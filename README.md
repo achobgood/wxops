@@ -57,16 +57,17 @@ pip install wxcli
 
 Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup); then `python -m pip install --user pipx && python -m pipx ensurepath` gives you `pipx`. `pipx`/`pip` pull every dependency automatically.
 
-### Get the Claude Code playbook
+### Get the playbook (Claude Code or Codex)
 
-The Claude Code playbook (agents, skills, reference docs) ships **inside the wheel**. After installing, materialize it into a folder with `wxcli init`:
+The playbook (agents, skills, reference docs) ships **inside the wheel** in both Claude Code and Codex shapes. After installing, materialize it into a folder with `wxcli init` — which writes **both** by default, so the same folder works in either tool:
 
 ```bash
-wxcli init                 # writes the playbook into ./wxcli-playbook
-cd wxcli-playbook && claude # start Claude Code in the playbook
+wxcli init                   # writes the Claude Code + Codex playbook into ./wxcli-playbook
+cd wxcli-playbook && claude  # start Claude Code…
+cd wxcli-playbook && codex   # …or start Codex — reads AGENTS.md + .codex/
 ```
 
-`wxcli init --uninstall` removes the materialized files again. No clone required.
+Narrow with `wxcli init --claude-only` or `wxcli init --codex-only`. `wxcli init --uninstall` removes the materialized files again. No clone required.
 
 ## Authenticate
 

@@ -1,0 +1,1628 @@
+# CDR Recipe Catalog — 75 Recipes
+
+Lookup catalog of ready-to-run CDR query recipes for the `reporting` skill. Each recipe is a self-contained `wxcli cdr list ... | python3.11` snippet answering one common question.
+
+**How to use this file:**
+- This catalog is the *recipes only*. The **composition method** — Call Leg Model, Field Taxonomy, Composition Rules, and Output Patterns — lives in `../SKILL.md` (§ CDR Query Composition Guide). Read that first; it tells you how to read, adapt, and compose any recipe.
+- **Find a recipe fast:** list them all with `grep -nE '^### Category|^\*\*Recipe' references/cdr-recipes.md`, or grep by keyword — e.g. `grep -ni "emergency" references/cdr-recipes.md`, `grep -ni "hold" references/cdr-recipes.md`.
+- **No recipe fits?** Compose a new query from the Field Taxonomy + Output Patterns in `../SKILL.md`. The recipes here are examples of those patterns, not an exhaustive list.
+- All recipes use the **CDR Feed** (`wxcli cdr list`, 12-hour max window, 30-day retention) unless a recipe says otherwise. Replace `START`/`END` with ISO 8601 timestamps (`2026-04-10T14:00:00.000Z`).
+
+## Categories
+
+| # | Category | Recipes | Covers |
+|---|----------|---------|--------|
+| 1 | Call Volume & Traffic | 1–8 | total count, by location/hour/day/type, inbound vs outbound, peak hour, trend |
+| 2 | Call Outcomes & Quality | 9–16 | missed/failed/abandoned, answer rate, outcome reason, short calls, long-ring no-answer |
+| 3 | Hold & Wait Time | 17–24 | avg hold, excessive hold (>30s/>60s), hold-then-abandon, ring duration, hold by user |
+| 4 | User & Agent Performance | 25–32 | top talkers, calls/duration per user, missed per user, answer rate, international, after-hours |
+| 5 | Trunk & Routing | 33–39 | calls per trunk, utilization by hour, route groups, redirect/original reason, forwarding loops |
+| 6 | PSTN & Billing | 40–46 | by vendor, duration by vendor, international by country, call-type mix, auth codes, vendor comparison |
+| 7 | Device & Client | 47–52 | client type, device model inventory, OS type, softphone vs desk, Webex Go mobile, client version |
+| 8 | Spam & Reputation | 53–57 | reputation score distribution, blocked vs allowed, top blocked numbers, spam by location, captcha |
+| 9 | Recording Compliance | 58–63 | success rate, by platform, by trigger, failed recordings, unrecorded analysis, compliance by location |
+| 10 | Call Tracing & Diagnostics | 64–69 | trace by correlation ID, transfer chains, park/retrieve, forwarding path, quality proxy, repeat callers |
+| 11 | Cross-Category Compound | 70–75 | multi-filter queries combining dimensions from other categories: spam→queue→abandon, international calls on a trunk during business hours, forwarded-twice→voicemail, missed calls from repeat callers, long-hold calls that were transferred, after-hours emergency (look here when a question crosses trunk + call-type + time, etc., not just one category) |
+
+---
+
+### Category 1: Call Volume & Traffic
+
+**Recipe 1 — Total call count**
+Question: "How many calls did we get?"
+Note: Unique Correlation ID count = best proxy for "number of calls." Raw CDR count and ORIGINATING count both overcount — HG calls generate multiple ORIGINATING CDRs (one per ring attempt) and multiple TERMINATING CDRs (HG + agent per attempt).
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+orig = len([r for r in data if r.get('Direction') == 'ORIGINATING'])
+term = len([r for r in data if r.get('Direction') == 'TERMINATING'])
+unique = len(set(r.get('Correlation ID') for r in data if r.get('Correlation ID')))
+# Raw CDR counts are inflated for HG calls (multiple O+T CDRs per ring attempt).
+# Unique Correlation ID count is the best proxy for unique calls.
+print(f'Total CDR legs: {len(data)} (ORIGINATING: {orig}, TERMINATING: {term})')
+print(f'Unique calls (by Correlation ID): {unique}')
+"
+```
+
+**Recipe 2 — Calls by location**
+Question: "Which office is busiest?"
+# Output: Location | Total | Answered | Missed | Answer% | Avg Duration(s)
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    loc = r.get('Location','Unknown')
+    stats[loc]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[loc]['answered'] += 1
+        stats[loc]['dur'] += int(r.get('Duration',0))
+print(f\"{'Location':<25} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6} {'AvgDur':>7}\")
+for loc, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    missed = s['total'] - s['answered']
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    avg = s['dur']/s['answered'] if s['answered'] else 0
+    print(f\"{loc:<25} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}% {avg:>6.0f}s\")
+"
+```
+
+**Recipe 3 — Calls by hour**
+Question: "When is our peak call time?"
+# Output: Hour | Total | Answered | Missed Rate%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0})
+for r in data:
+    h = r.get('Start time','')[:13]
+    if h:
+        stats[h]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[h]['answered'] += 1
+print(f\"{'Hour':<14} {'Total':>6} {'Answered':>9} {'Missed%':>8}\")
+for h, s in sorted(stats.items()):
+    missed_rate = (s['total']-s['answered'])/s['total']*100 if s['total'] else 0
+    print(f\"{h:<14} {s['total']:>6} {s['answered']:>9} {missed_rate:>7.1f}%\")
+"
+```
+
+**Recipe 4 — Calls by day of week**
+Question: "Which day of the week is busiest?"
+# Output: Day | Total | Answered | Missed Rate%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+from datetime import datetime
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0})
+for r in data:
+    ts = r.get('Start time','')
+    if ts:
+        try:
+            dt = datetime.fromisoformat(ts.replace('Z','+00:00'))
+            day = dt.strftime('%A')
+            stats[day]['total'] += 1
+            if r.get('Answer indicator') == 'Yes':
+                stats[day]['answered'] += 1
+        except: pass
+print(f\"{'Day':<12} {'Total':>6} {'Answered':>9} {'Missed%':>8}\")
+for day in ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']:
+    if stats[day]['total'] > 0:
+        s = stats[day]
+        missed_rate = (s['total']-s['answered'])/s['total']*100 if s['total'] else 0
+        print(f\"{day:<12} {s['total']:>6} {s['answered']:>9} {missed_rate:>7.1f}%\")
+"
+```
+
+**Recipe 5 — Calls by type**
+Question: "How many internal vs external vs international calls?"
+# Output: Call Type | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+types = Counter(r.get('Call type', 'Unknown') for r in data)
+for t, c in types.most_common():
+    print(f'{t}: {c} calls ({c/len(data)*100:.1f}%)')
+"
+```
+
+**Recipe 6 — Inbound vs outbound ratio**
+Question: "What's our inbound/outbound split?"
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+total = len(data)
+inb = len([r for r in data if r.get('Direction') == 'TERMINATING'])
+outb = len([r for r in data if r.get('Direction') == 'ORIGINATING'])
+print(f'Total: {total}')
+print(f'Inbound:  {inb} ({inb/total*100:.1f}%)' if total else 'No data')
+print(f'Outbound: {outb} ({outb/total*100:.1f}%)' if total else '')
+"
+```
+
+**Recipe 7 — Peak hour identification**
+Question: "What's the single busiest hour?"
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+hours = Counter(r.get('Start time', '')[:13] for r in data)
+if hours:
+    peak, count = hours.most_common(1)[0]
+    print(f'Peak hour: {peak} with {count} calls')
+    print(f'Average: {len(data)/len(hours):.1f} calls/hour')
+"
+```
+
+**Recipe 8 — Volume trend comparison**
+Question: "Are calls up or down vs last week?"
+Note: Requires two CDR pulls — one for this week, one for last week. Replace THIS_START/THIS_END and LAST_START/LAST_END accordingly.
+# Output: Period | Calls | Change | % Change
+```bash
+wxcli cdr list --start-time THIS_START --end-time THIS_END -o json > /tmp/cdr_this.json
+wxcli cdr list --start-time LAST_START --end-time LAST_END -o json > /tmp/cdr_last.json
+python3.11 -c "
+import json
+this_week = json.load(open('/tmp/cdr_this.json'))
+last_week = json.load(open('/tmp/cdr_last.json'))
+diff = len(this_week) - len(last_week)
+pct = (diff / len(last_week) * 100) if last_week else 0
+direction = 'up' if diff > 0 else 'down'
+print(f'This period: {len(this_week)} calls')
+print(f'Last period: {len(last_week)} calls')
+print(f'Change: {direction} {abs(diff)} ({abs(pct):.1f}%)')
+"
+```
+# Note: R8 requires live CDR pulls written to /tmp/cdr_this.json and /tmp/cdr_last.json.
+# Not compatible with the session cache (/tmp/cdr-session.json). See Step 6a for pull instructions.
+
+### Category 2: Call Outcomes & Quality
+
+**Recipe 9 — Missed calls**
+Question: "How many calls did we miss?"
+Note: Filters to User-type TERMINATING CDRs only — excludes HuntGroup CDRs (which also have Answer indicator=No for unanswered ring attempts but are not human misses).
+# Output: Time | User | Calling # | Called # | Ring Duration | Reason
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+# Filter to User-type TERMINATING only: HG ring attempts also show Answer indicator=No
+# but are not missed calls — they are internal delivery mechanics
+missed = [r for r in data if r.get('Answer indicator') == 'No'
+    and r.get('Direction') == 'TERMINATING'
+    and r.get('User type') == 'User']
+unique_calls = set(r.get('Correlation ID') for r in data if r.get('Correlation ID'))
+print(f'Missed deliveries to users: {len(missed)} (of {len(unique_calls)} unique calls)')
+if not missed:
+    print('No matching records found in this time window.')
+else:
+    for c in missed[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | ring {c.get('Ring duration','?')}s | {c.get('Call outcome reason','?')}\")
+"
+```
+
+**Recipe 10 — Failed calls**
+Question: "How many calls failed?"
+# Output: Time | User | Calling # | Called # | Outcome | Reason
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+failed = [r for r in data if r.get('Call outcome') in ('Failure', 'Refusal')]
+print(f'Failed/refused: {len(failed)} of {len(data)}')
+if not failed:
+    print('No matching records found in this time window.')
+else:
+    for c in failed[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | {c.get('Call outcome','?')}: {c.get('Call outcome reason','?')}\")
+"
+```
+
+**Recipe 11 — Abandoned calls**
+Question: "How many callers hung up before we answered?"
+Note: Deduplicates by Correlation ID — a caller who abandoned while ringing through a HG generates multiple No-answer CDRs (one per ring attempt) but should count as one abandonment.
+# Output: Unique abandoned calls + Time | Calling # | Called # | Ring Duration
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+# Group by Correlation ID; a call is abandoned if all CDRs have Answer indicator=No
+# and at least one has Releasing party=Local (caller hung up)
+corr = defaultdict(list)
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr[cid].append(r)
+abandoned = []
+for cid, legs in corr.items():
+    any_answered = any(r.get('Answer indicator') == 'Yes' for r in legs)
+    caller_hungup = any(r.get('Releasing party') == 'Local' and r.get('Answer indicator') == 'No' for r in legs)
+    if not any_answered and caller_hungup:
+        first = sorted(legs, key=lambda x: x.get('Start time',''))[0]
+        abandoned.append(first)
+print(f'Abandoned calls (caller hung up before answer): {len(abandoned)} of {len(corr)} unique calls')
+if not abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in sorted(abandoned, key=lambda x: x.get('Start time',''))[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('Calling number','?')} -> {c.get('Called number','?')} | rang {c.get('Ring duration','?')}s\")
+"
+```
+
+**Recipe 12 — Answer rate**
+Question: "What percentage of calls do we answer?"
+Note: Deduplicates by Correlation ID and checks for a User-type TERMINATING answer. Raw CDR counts are NOT valid for answer rate — HG calls produce multiple Answered=Yes CDRs (HG TERMINATING + HG ORIGINATING + agent TERMINATING) per single answered call.
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+# Group CDRs by Correlation ID
+corr = defaultdict(list)
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr[cid].append(r)
+# A call is 'answered' if any User-type TERMINATING CDR has Answer indicator=Yes
+answered_calls = sum(
+    1 for legs in corr.values()
+    if any(r.get('Answer indicator') == 'Yes'
+           and r.get('Direction') == 'TERMINATING'
+           and r.get('User type') == 'User'
+           for r in legs)
+)
+total_calls = len(corr)
+print(f'Answer rate: {answered_calls/total_calls*100:.1f}% ({answered_calls} of {total_calls} unique calls)' if total_calls else 'No data')
+"
+```
+
+**Recipe 13 — Calls by outcome reason**
+Question: "Why are calls failing?"
+# Output: Reason | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+reasons = Counter(r.get('Call outcome reason', 'Unknown') for r in data if r.get('Call outcome') != 'Success')
+total_non_success = sum(reasons.values())
+for reason, count in reasons.most_common():
+    pct = count/total_non_success*100 if total_non_success else 0
+    print(f'{reason}: {count} ({pct:.1f}%)')
+"
+```
+
+**Recipe 14 — Short calls (possible misroutes)**
+Question: "How many calls lasted under 10 seconds?"
+# Output: Time | User | Called # | Duration | Outcome
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+short = [r for r in data if r.get('Answer indicator') == 'Yes' and int(r.get('Duration', 0)) < 10]
+print(f'Short calls (<10s, answered): {len(short)} of {len(data)}')
+if not short:
+    print('No matching records found in this time window.')
+else:
+    for c in short[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | {c.get('Called number','?')} | {c.get('Duration','?')}s | {c.get('Call outcome','?')}\")
+"
+```
+
+**Recipe 15 — Long-ring no-answer**
+Question: "Calls that rang for over 30 seconds and weren't answered?"
+# Output: Time | User | Calling # | Ring Duration
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+long_ring = [r for r in data if r.get('Answer indicator') == 'No' and int(r.get('Ring duration', 0)) > 30]
+print(f'Long-ring no-answer (>30s ring): {len(long_ring)}')
+if not long_ring:
+    print('No matching records found in this time window.')
+else:
+    for c in long_ring[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | rang {c.get('Ring duration')}s | from {c.get('Calling number')}\")
+"
+```
+
+**Recipe 16 — Call outcome by location**
+Question: "Which office has the worst answer rate?"
+Note: Uses Correlation ID deduplication — HG calls produce multiple Answered=Yes CDRs per call so raw CDR counts would inflate answer rates. Each unique Correlation ID = one call.
+# Output: Location | Unique Calls | Answered | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+# Group by Correlation ID, track location and whether a User answered
+corr = defaultdict(lambda: {'loc': 'Unknown', 'answered': False})
+for r in data:
+    cid = r.get('Correlation ID')
+    if not cid:
+        continue
+    if r.get('Location'):
+        corr[cid]['loc'] = r.get('Location')
+    if (r.get('Answer indicator') == 'Yes'
+            and r.get('Direction') == 'TERMINATING'
+            and r.get('User type') == 'User'):
+        corr[cid]['answered'] = True
+stats = defaultdict(lambda: {'total': 0, 'answered': 0})
+for info in corr.values():
+    loc = info['loc']
+    stats[loc]['total'] += 1
+    if info['answered']:
+        stats[loc]['answered'] += 1
+print(f\"{'Location':<25} {'Calls':>6} {'Answered':>9} {'Ans%':>6}\")
+for loc, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['total'],1)):
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{loc:<25} {s['total']:>6} {s['answered']:>9} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 16b — Inbound answer rate for a specific location**
+Question: "What percentage of inbound calls to [Location] were answered vs missed?"
+Note: Deduplicates by Correlation ID and checks for a User-type answer. HG TERMINATING CDRs also show Answered=Yes (HG processed the call) — filtering to User type=User gives the human answer rate. Pass location name via --locations flag at pull time.
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END --locations "Location Name" -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+corr = defaultdict(list)
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr[cid].append(r)
+answered_calls = sum(
+    1 for legs in corr.values()
+    if any(r.get('Answer indicator') == 'Yes'
+           and r.get('Direction') == 'TERMINATING'
+           and r.get('User type') == 'User'
+           for r in legs)
+)
+total = len(corr)
+missed = total - answered_calls
+print(f'Unique calls: {total}')
+print(f'Answered: {answered_calls} ({answered_calls/total*100:.1f}%)' if total else 'No data')
+print(f'Missed:   {missed} ({missed/total*100:.1f}%)' if total else '')
+"
+```
+Note: If the window exceeds 12 hours (e.g., "yesterday" = 24h), issue 2 sequential CDR pulls and concatenate the JSON arrays before piping to Python. See the multi-pull merge pattern in Step 6a.
+
+### Category 3: Hold & Wait Time
+
+**Recipe 17 — Average hold time**
+Question: "What's our average hold time?"
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+holds = [int(r.get('Hold duration', 0)) for r in data if int(r.get('Hold duration', 0)) > 0]
+if holds:
+    print(f'Calls with hold: {len(holds)}')
+    print(f'Average hold: {sum(holds)/len(holds):.1f}s')
+    print(f'Max hold: {max(holds)}s')
+else:
+    print('No calls with hold time found')
+"
+```
+
+**Recipe 18 — Calls with excessive hold (>30s)**
+Question: "How many calls had over 30 seconds of hold?"
+# Output: Time | User | Hold Duration | Calling #
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+over30 = [r for r in data if int(r.get('Hold duration', 0)) > 30]
+print(f'Calls with >30s hold: {len(over30)}')
+if not over30:
+    print('No matching records found in this time window.')
+else:
+    for c in over30[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+"
+```
+
+**Recipe 19 — Calls with excessive hold (>60s)**
+Question: "How many calls had over a minute of hold?"
+# Output: Time | User | Hold Duration | Calling #
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+over60 = [r for r in data if int(r.get('Hold duration', 0)) > 60]
+print(f'Calls with >60s hold: {len(over60)}')
+if not over60:
+    print('No matching records found in this time window.')
+else:
+    for c in over60[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+"
+```
+
+**Recipe 20 — Hold-then-abandoned (>30s)**
+Question: "Calls we answered, put on hold >30s, and the caller hung up?"
+# Output: Time | User | Hold Duration | Total Duration
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+hold_abandoned = [r for r in data
+    if r.get('Answer indicator') == 'Yes'
+    and int(r.get('Hold duration', 0)) > 30
+    and r.get('Releasing party') == 'Remote']
+print(f'Answered -> held >30s -> caller hung up: {len(hold_abandoned)}')
+if not hold_abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in hold_abandoned[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+"
+```
+
+**Recipe 21 — Hold-then-abandoned (>60s)**
+Question: "Calls we answered, put on hold >60s, and the caller hung up?"
+# Output: Time | User | Hold Duration | Total Duration
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+hold_abandoned = [r for r in data
+    if r.get('Answer indicator') == 'Yes'
+    and int(r.get('Hold duration', 0)) > 60
+    and r.get('Releasing party') == 'Remote']
+print(f'Answered -> held >60s -> caller hung up: {len(hold_abandoned)}')
+if not hold_abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in hold_abandoned[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+"
+```
+
+**Recipe 22 — Average ring duration**
+Question: "How long are callers waiting before we pick up?"
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+rings = [int(r.get('Ring duration', 0)) for r in data if r.get('Answer indicator') == 'Yes' and int(r.get('Ring duration', 0)) > 0]
+if rings:
+    print(f'Answered calls with ring data: {len(rings)}')
+    print(f'Average ring: {sum(rings)/len(rings):.1f}s')
+    print(f'Max ring: {max(rings)}s')
+"
+```
+
+**Recipe 23 — Ring duration by location**
+Question: "Which office is slowest to answer?"
+# Output: Location | Avg Ring(s) | Calls
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(list)
+for r in data:
+    if r.get('Answer indicator') == 'Yes' and int(r.get('Ring duration', 0)) > 0:
+        stats[r.get('Location', 'Unknown')].append(int(r.get('Ring duration', 0)))
+for loc, rings in sorted(stats.items(), key=lambda x: sum(x[1])/len(x[1]), reverse=True):
+    avg = sum(rings)/len(rings)
+    print(f'{loc}: avg {avg:.1f}s ring ({len(rings)} calls)')
+"
+```
+
+**Recipe 24 — Hold time by user**
+Question: "Which agents put callers on hold the longest?"
+# Output: User | Avg Hold(s) | Calls with Hold | Max Hold(s)
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(list)
+for r in data:
+    hold = int(r.get('Hold duration', 0))
+    if hold > 0:
+        stats[r.get('User', 'Unknown')].append(hold)
+for user, holds in sorted(stats.items(), key=lambda x: sum(x[1])/len(x[1]), reverse=True)[:15]:
+    avg = sum(holds)/len(holds)
+    print(f'{user}: avg {avg:.1f}s hold, {len(holds)} calls with hold, max {max(holds)}s')
+"
+```
+
+### Category 4: User & Agent Performance
+
+**Recipe 25 — Top talkers (by call count)**
+Question: "Who makes/receives the most calls?"
+# Output: User | Total | Answered | Missed | Answer% | Avg Duration(s)
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+        stats[user]['dur'] += int(r.get('Duration',0))
+print(f\"{'User':<30} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6} {'AvgDur':>7}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True)[:15]:
+    missed = s['total'] - s['answered']
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    avg = s['dur']/s['answered'] if s['answered'] else 0
+    print(f\"{user:<30} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}% {avg:>6.0f}s\")
+"
+```
+
+**Recipe 26 — Top talkers (by total duration)**
+Question: "Who spends the most time on the phone?"
+# Output: User | Total Min | Avg Duration(s) | Calls | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+    stats[user]['dur'] += int(r.get('Duration',0))
+print(f\"{'User':<30} {'Total Min':>10} {'Avg Dur':>8} {'Calls':>6} {'Ans%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['dur'], reverse=True)[:15]:
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    avg = s['dur']/s['total'] if s['total'] else 0
+    print(f\"{user:<30} {s['dur']/60:>10.1f} {avg:>7.0f}s {s['total']:>6} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 27 — Calls per user**
+Question: "How many calls does each user handle?"
+# Output: User | Total | Answered | Missed | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+print(f\"{'User':<30} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    missed = s['total'] - s['answered']
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 28 — Average duration per user**
+Question: "Who has the longest average call?"
+# Output: User | Avg Duration(s) | Calls | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'durs':[], 'total':0, 'answered':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+        stats[user]['durs'].append(int(r.get('Duration',0)))
+print(f\"{'User':<30} {'Avg Dur':>8} {'Calls':>6} {'Ans%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: sum(x[1]['durs'])/len(x[1]['durs']) if x[1]['durs'] else 0, reverse=True)[:15]:
+    avg = sum(s['durs'])/len(s['durs']) if s['durs'] else 0
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {avg:>7.0f}s {s['total']:>6} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 29 — Users with most missed calls**
+Question: "Who misses the most calls?"
+# Output: User | Missed | Total | Miss%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'missed':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'No':
+        stats[user]['missed'] += 1
+print(f\"{'User':<30} {'Missed':>7} {'Total':>6} {'Miss%':>6}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['missed'], reverse=True)[:15]:
+    rate = s['missed']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['missed']:>7} {s['total']:>6} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 30 — User answer rate**
+Question: "What's each user's answer rate?"
+# Output: User | Total | Answered | Missed | Answer% | Avg Duration(s)
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total': 0, 'answered': 0, 'dur': 0})
+for r in data:
+    user = r.get('User', 'Unknown')
+    stats[user]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[user]['answered'] += 1
+        stats[user]['dur'] += int(r.get('Duration', 0))
+print(f\"{'User':<30} {'Total':>6} {'Answered':>9} {'Missed':>7} {'Ans%':>6} {'AvgDur':>7}\")
+for user, s in sorted(stats.items(), key=lambda x: x[1]['answered']/max(x[1]['total'],1)):
+    missed = s['total'] - s['answered']
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    avg = s['dur']/s['answered'] if s['answered'] else 0
+    print(f\"{user:<30} {s['total']:>6} {s['answered']:>9} {missed:>7} {rate:>5.1f}% {avg:>6.0f}s\")
+"
+```
+
+**Recipe 31 — International calls per user**
+Question: "Who makes the most international calls?"
+# Output: User | Intl Calls | Total Calls | Intl%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'intl':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    if r.get('Call type') == 'SIP_INTERNATIONAL':
+        stats[user]['intl'] += 1
+intl_users = {u: s for u, s in stats.items() if s['intl'] > 0}
+print(f\"{'User':<30} {'Intl':>5} {'Total':>6} {'Intl%':>6}\")
+for user, s in sorted(intl_users.items(), key=lambda x: x[1]['intl'], reverse=True)[:15]:
+    rate = s['intl']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['intl']:>5} {s['total']:>6} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 32 — After-hours activity**
+Question: "Who's making calls outside business hours (before 8am or after 6pm)?"
+# Output: User | After-Hours | Total | AH%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'ah':0})
+for r in data:
+    user = r.get('User','Unknown')
+    stats[user]['total'] += 1
+    ts = r.get('Start time','')
+    if ts:
+        try:
+            hour = int(ts[11:13])
+            if hour < 8 or hour >= 18:
+                stats[user]['ah'] += 1
+        except: pass
+ah_users = {u: s for u, s in stats.items() if s['ah'] > 0}
+print(f\"{'User':<30} {'After-Hours':>12} {'Total':>6} {'AH%':>5}\")
+for user, s in sorted(ah_users.items(), key=lambda x: x[1]['ah'], reverse=True)[:15]:
+    rate = s['ah']/s['total']*100 if s['total'] else 0
+    print(f\"{user:<30} {s['ah']:>12} {s['total']:>6} {rate:>4.1f}%\")
+"
+```
+
+### Category 5: Trunk & Routing
+
+**Recipe 33 — Calls per trunk**
+Question: "How much traffic on each trunk?"
+# Output: Trunk | Direction | Total | Duration(min) | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    for field, direction in [('Inbound trunk','Inbound'),('Outbound trunk','Outbound')]:
+        trunk = r.get(field)
+        if trunk:
+            key = (trunk, direction)
+            stats[key]['total'] += 1
+            if r.get('Answer indicator') == 'Yes':
+                stats[key]['answered'] += 1
+            stats[key]['dur'] += int(r.get('Duration',0))
+print(f\"{'Trunk':<30} {'Dir':>8} {'Total':>6} {'Min':>7} {'Ans%':>6}\")
+for (trunk, direction), s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{trunk:<30} {direction:>8} {s['total']:>6} {s['dur']/60:>7.1f} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 34 — Trunk utilization by hour**
+Question: "When are our trunks busiest?"
+# Output: Trunk | Hour | Calls
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+trunk_hours = Counter()
+for r in data:
+    trunk = r.get('Outbound trunk') or r.get('Inbound trunk')
+    hour = r.get('Start time', '')[:13]
+    if trunk and hour:
+        trunk_hours[(trunk, hour)] += 1
+for (trunk, hour), count in sorted(trunk_hours.items()):
+    print(f'{trunk} | {hour}: {count} calls')
+"
+```
+
+**Recipe 35 — Route group distribution**
+Question: "How is traffic distributed across route groups?"
+# Output: Route Group | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+groups = Counter(r.get('Route group') for r in data if r.get('Route group'))
+total = sum(groups.values())
+for group, count in groups.most_common():
+    print(f\"{group}: {count} ({count/total*100:.1f}%)\")
+"
+```
+
+**Recipe 36 — Redirect chain analysis**
+Question: "How many calls were forwarded/redirected?"
+# Output: Summary + Reason | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+redirected = [r for r in data if r.get('Redirect reason')]
+print(f'Redirected calls: {len(redirected)} of {len(data)} ({len(redirected)/len(data)*100:.1f}%)' if data else 'No data')
+reasons = Counter(r.get('Redirect reason') for r in redirected)
+total_r = sum(reasons.values())
+for reason, count in reasons.most_common():
+    print(f\"  {reason}: {count} ({count/total_r*100:.1f}%)\")
+"
+```
+
+**Recipe 37 — Calls by redirect reason**
+Question: "Why are calls being redirected?"
+# Output: Reason | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+reasons = Counter(r.get('Redirect reason') for r in data if r.get('Redirect reason'))
+total = sum(reasons.values())
+for reason, count in reasons.most_common(10):
+    print(f\"{reason}: {count} ({count/total*100:.1f}%)\")
+"
+```
+
+**Recipe 38 — Calls by original reason**
+Question: "What triggers the first redirect?"
+# Output: Reason | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+reasons = Counter(r.get('Original reason') for r in data if r.get('Original reason'))
+total = sum(reasons.values())
+for reason, count in reasons.most_common(10):
+    print(f\"{reason}: {count} ({count/total*100:.1f}%)\")
+"
+```
+
+**Recipe 39 — Forwarding loop detection**
+Question: "Any calls redirected 3+ times (possible forwarding loops)?"
+# Output: Correlation ID | Legs | Start Time | Calling # | Called #
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+corr_counts = defaultdict(int)
+corr_samples = {}
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr_counts[cid] += 1
+        corr_samples[cid] = r
+loops = {cid: count for cid, count in corr_counts.items() if count >= 3}
+print(f'Calls with 3+ legs (possible loops): {len(loops)}')
+for cid, count in sorted(loops.items(), key=lambda x: x[1], reverse=True)[:10]:
+    s = corr_samples[cid]
+    print(f\"  {cid} | {count} legs | {s.get('Start time')} | {s.get('Calling number')} -> {s.get('Called number')}\")
+"
+```
+
+### Category 6: PSTN & Billing
+
+**Recipe 40 — Calls by PSTN vendor**
+Question: "How is traffic split across carriers?"
+# Output: Vendor | Total | Duration(min) | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    v = r.get('PSTN vendor name')
+    if v:
+        stats[v]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[v]['answered'] += 1
+        stats[v]['dur'] += int(r.get('Duration',0))
+print(f\"{'Vendor':<30} {'Total':>6} {'Min':>7} {'Ans%':>6}\")
+for v, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{v:<30} {s['total']:>6} {s['dur']/60:>7.1f} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 41 — Duration by PSTN vendor**
+Question: "Which carrier carries the most minutes?"
+# Output: Vendor | Total | Duration(min) | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    v = r.get('PSTN vendor name')
+    if v:
+        stats[v]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[v]['answered'] += 1
+        stats[v]['dur'] += int(r.get('Duration',0))
+print(f\"{'Vendor':<30} {'Total':>6} {'Min':>7} {'Ans%':>6}\")
+for v, s in sorted(stats.items(), key=lambda x: x[1]['dur'], reverse=True):
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{v:<30} {s['total']:>6} {s['dur']/60:>7.1f} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 42 — International calls by country**
+Question: "Which countries are we calling?"
+# Output: Country | Calls | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+countries = Counter(r.get('International country') for r in data if r.get('International country'))
+total = sum(countries.values())
+print(f'International calls to {len(countries)} countries:')
+for country, count in countries.most_common():
+    print(f'  {country}: {count} ({count/total*100:.1f}%)')
+"
+```
+
+**Recipe 43 — International call duration by country**
+Question: "How many minutes to each country?"
+# Output: Country | Duration(min) | Calls | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'dur':0,'count':0})
+for r in data:
+    c = r.get('International country')
+    if c:
+        stats[c]['dur'] += int(r.get('Duration',0))
+        stats[c]['count'] += 1
+total_calls = sum(s['count'] for s in stats.values())
+print(f\"{'Country':<20} {'Min':>7} {'Calls':>6} {'%':>5}\")
+for c, s in sorted(stats.items(), key=lambda x: x[1]['dur'], reverse=True):
+    pct = s['count']/total_calls*100 if total_calls else 0
+    print(f\"{c:<20} {s['dur']/60:>7.1f} {s['count']:>6} {pct:>4.1f}%\")
+"
+```
+
+**Recipe 44 — Call type mix**
+Question: "What's our toll-free vs premium vs national breakdown?"
+# Output: Call Type | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+types = Counter(r.get('Call type', 'Unknown') for r in data)
+total = len(data)
+for t, c in types.most_common():
+    print(f'{t}: {c} ({c/total*100:.1f}%)')
+"
+```
+
+**Recipe 45 — Authorization code usage**
+Question: "Which auth codes are being used and how often?"
+# Output: Code | Calls | Distinct Users
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'calls':0,'users':set()})
+for r in data:
+    code = r.get('Authorization code')
+    if code:
+        stats[code]['calls'] += 1
+        user = r.get('User')
+        if user:
+            stats[code]['users'].add(user)
+if stats:
+    print(f'{len(stats)} auth codes in use:')
+    print(f\"{'Code':<20} {'Calls':>6} {'Users':>6}\")
+    for code, s in sorted(stats.items(), key=lambda x: x[1]['calls'], reverse=True):
+        print(f\"{code:<20} {s['calls']:>6} {len(s['users']):>6}\")
+else:
+    print('No calls with authorization codes found')
+"
+```
+
+**Recipe 46 — PSTN vendor comparison**
+Question: "Compare carriers on volume and duration"
+# Output: Vendor | Calls | Minutes | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'calls': 0, 'duration': 0, 'answered': 0})
+for r in data:
+    v = r.get('PSTN vendor name')
+    if v:
+        stats[v]['calls'] += 1
+        stats[v]['duration'] += int(r.get('Duration', 0))
+        if r.get('Answer indicator') == 'Yes':
+            stats[v]['answered'] += 1
+print(f\"{'Vendor':<30} {'Calls':>6} {'Minutes':>8} {'Answer%':>8}\")
+print('-' * 55)
+for v, s in sorted(stats.items(), key=lambda x: x[1]['calls'], reverse=True):
+    rate = s['answered']/s['calls']*100 if s['calls'] else 0
+    print(f\"{v:<30} {s['calls']:>6} {s['duration']/60:>8.1f} {rate:>7.1f}%\")
+"
+```
+
+### Category 7: Device & Client
+
+**Recipe 47 — Client type distribution**
+Question: "What are people using to make calls?"
+# Output: Client Type | Total | % | Duration(min) | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
+for r in data:
+    ct = r.get('Client type','Unknown')
+    stats[ct]['total'] += 1
+    if r.get('Answer indicator') == 'Yes':
+        stats[ct]['answered'] += 1
+    stats[ct]['dur'] += int(r.get('Duration',0))
+total = len(data)
+print(f\"{'Client Type':<25} {'Total':>6} {'%':>5} {'Min':>7} {'Ans%':>6}\")
+for ct, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    pct = s['total']/total*100 if total else 0
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{ct:<25} {s['total']:>6} {pct:>4.1f}% {s['dur']/60:>7.1f} {rate:>5.1f}%\")
+"
+```
+
+**Recipe 48 — Device model inventory**
+Question: "What phone models are active in CDR?"
+# Output: Model | Calls | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+models = Counter(r.get('Model') for r in data if r.get('Model'))
+total = sum(models.values())
+print(f'{len(models)} device models seen:')
+for model, count in models.most_common():
+    print(f'  {model}: {count} ({count/total*100:.1f}%)')
+"
+```
+
+**Recipe 49 — Calls by OS type**
+Question: "Mobile vs desktop breakdown?"
+# Output: OS Type | Count | % | Answer%
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total':0,'answered':0})
+for r in data:
+    os = r.get('OS type')
+    if os:
+        stats[os]['total'] += 1
+        if r.get('Answer indicator') == 'Yes':
+            stats[os]['answered'] += 1
+total = sum(s['total'] for s in stats.values())
+print(f\"{'OS Type':<20} {'Count':>6} {'%':>5} {'Ans%':>6}\")
+for os, s in sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True):
+    pct = s['total']/total*100 if total else 0
+    rate = s['answered']/s['total']*100 if s['total'] else 0
+    print(f\"{os:<20} {s['total']:>6} {pct:>4.1f}% {rate:>5.1f}%\")
+"
+```
+
+**Recipe 50 — Softphone vs desk phone ratio**
+Question: "How many calls from Webex app vs physical phones?"
+# Output: Client Category | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+total = len(data)
+app = len([r for r in data if r.get('Client type') in ('WXC_CLIENT', 'TEAMS_WXC_CLIENT')])
+device = len([r for r in data if r.get('Client type') == 'WXC_DEVICE'])
+sip = len([r for r in data if r.get('Client type') == 'SIP'])
+other = total - app - device - sip
+print(f'Webex App (softphone): {app} ({app/total*100:.1f}%)')
+print(f'Desk phone (WXC_DEVICE): {device} ({device/total*100:.1f}%)')
+print(f'SIP endpoint: {sip} ({sip/total*100:.1f}%)')
+print(f'Other: {other} ({other/total*100:.1f}%)')
+"
+```
+
+**Recipe 51 — Webex Go mobile calls**
+Question: "How many calls over cellular (Webex Go)?"
+# Output: Time | User | Direction | Duration(s)
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+mobile = [r for r in data if r.get('Sub client type') == 'MOBILE_NETWORK']
+print(f'Webex Go (mobile network) calls: {len(mobile)} of {len(data)}')
+if not mobile:
+    print('No matching records found in this time window.')
+else:
+    for c in mobile[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Direction')} | {c.get('Duration')}s\")
+"
+```
+
+**Recipe 52 — Client version distribution**
+Question: "Are users on the latest app version?"
+# Output: Client Version | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+versions = Counter(r.get('Client version') for r in data if r.get('Client version'))
+total = sum(versions.values())
+for version, count in versions.most_common(15):
+    print(f'{version}: {count} ({count/total*100:.1f}%)')
+"
+```
+
+### Category 8: Spam & Reputation
+
+**Recipe 53 — Reputation score distribution**
+Question: "How many calls by reputation score range?"
+# Output: Score Range | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+buckets = Counter()
+for r in data:
+    score = r.get('Caller Reputation Score')
+    if score:
+        s = float(score)
+        if s <= 1.0: buckets['0-1 (likely spam)'] += 1
+        elif s <= 2.0: buckets['1-2 (suspicious)'] += 1
+        elif s <= 3.0: buckets['2-3 (neutral)'] += 1
+        elif s <= 4.0: buckets['3-4 (probably ok)'] += 1
+        else: buckets['4-5 (trusted)'] += 1
+has_score = sum(buckets.values())
+print(f'Calls with reputation scores: {has_score} of {len(data)}')
+total_scored = sum(buckets.values())
+for bucket, count in sorted(buckets.items()):
+    pct = count/total_scored*100 if total_scored else 0
+    print(f'  {bucket}: {count} ({pct:.1f}%)')
+"
+```
+
+**Recipe 54 — Blocked vs allowed ratio**
+Question: "What percentage of calls are we blocking?"
+# Output: Result | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+results = Counter(r.get('Caller Reputation Service Result') for r in data if r.get('Caller Reputation Service Result'))
+total = sum(results.values())
+for result, count in results.most_common():
+    print(f'{result}: {count} ({count/total*100:.1f}%)')
+"
+```
+
+**Recipe 55 — Top blocked numbers**
+Question: "Which numbers get blocked most?"
+# Output: Calling Number | Blocked Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+blocked = Counter(r.get('Calling number') for r in data
+    if r.get('Caller Reputation Service Result') in ('block', 'captcha-block'))
+total = sum(blocked.values())
+print('Top blocked callers:')
+for number, count in blocked.most_common(15):
+    pct = count/total*100 if total else 0
+    print(f'  {number}: {count} ({pct:.1f}%)')
+"
+```
+
+**Recipe 56 — Spam rate by location**
+Question: "Which office gets the most spam?"
+# Output: Location | Spam Count | Spam% | Total
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'total': 0, 'spam': 0})
+for r in data:
+    loc = r.get('Location', 'Unknown')
+    stats[loc]['total'] += 1
+    result = r.get('Caller Reputation Service Result', '')
+    if result in ('block', 'captcha-block', 'captcha-allow'):
+        stats[loc]['spam'] += 1
+for loc, s in sorted(stats.items(), key=lambda x: x[1]['spam'], reverse=True):
+    rate = s['spam']/s['total']*100 if s['total'] else 0
+    print(f\"{loc}: {s['spam']} spam ({rate:.1f}%) of {s['total']} total\")
+"
+```
+
+**Recipe 57 — Captcha effectiveness**
+Question: "How many captcha challenges succeed vs fail?"
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+captcha_allow = len([r for r in data if r.get('Caller Reputation Service Result') == 'captcha-allow'])
+captcha_block = len([r for r in data if r.get('Caller Reputation Service Result') == 'captcha-block'])
+total_captcha = captcha_allow + captcha_block
+if total_captcha:
+    print(f'Captcha challenges: {total_captcha}')
+    print(f'  Passed: {captcha_allow} ({captcha_allow/total_captcha*100:.1f}%)')
+    print(f'  Failed: {captcha_block} ({captcha_block/total_captcha*100:.1f}%)')
+else:
+    print('No captcha challenges found')
+"
+```
+
+### Category 9: Recording Compliance
+
+**Recipe 58 — Recording success rate**
+Question: "What percentage of recordings succeed?"
+# Output: Recording Result | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+results = Counter(r.get('Call Recording Result') for r in data if r.get('Call Recording Result'))
+total = sum(results.values())
+print(f'Calls with recording data: {total}')
+for result, count in results.most_common():
+    print(f'  {result}: {count} ({count/total*100:.1f}%)')
+"
+```
+
+**Recipe 59 — Recording by platform**
+Question: "Which recording platforms are in use?"
+# Output: Platform | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+platforms = Counter(r.get('Call Recording Platform Name') for r in data if r.get('Call Recording Platform Name'))
+total = sum(platforms.values())
+for platform, count in platforms.most_common():
+    print(f'{platform}: {count} ({count/total*100:.1f}%)')
+"
+```
+
+**Recipe 60 — Recording by trigger type**
+Question: "How are recordings initiated?"
+# Output: Trigger | Count | %
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+triggers = Counter(r.get('Call Recording Trigger') for r in data if r.get('Call Recording Trigger'))
+total = sum(triggers.values())
+for trigger, count in triggers.most_common():
+    print(f'{trigger}: {count} ({count/total*100:.1f}%)')
+"
+```
+
+**Recipe 61 — Failed recordings**
+Question: "Which calls failed to record?"
+# Output: Time | User | Platform | Calling # | Called #
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+failed = [r for r in data if r.get('Call Recording Result') == 'failed']
+print(f'Failed recordings: {len(failed)}')
+if not failed:
+    print('No matching records found in this time window.')
+else:
+    for c in failed[:15]:
+        print(f\"  {c.get('Start time')} | {c.get('User')} | {c.get('Call Recording Platform Name')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+"
+```
+
+**Recipe 62 — Unrecorded calls analysis**
+Question: "How many answered calls have no recording data?"
+# Output: Metric | Value (summary) + Location | Unrecorded (sub-table)
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+answered = [r for r in data if r.get('Answer indicator') == 'Yes']
+no_recording = [r for r in answered if not r.get('Call Recording Result')]
+print(f'Answered calls: {len(answered)}')
+print(f'With recording data: {len(answered) - len(no_recording)}')
+print(f'Without recording data: {len(no_recording)}')
+if no_recording:
+    locs = Counter(r.get('Location', 'Unknown') for r in no_recording)
+    print(f\"{'Location':<25} {'Unrecorded':>10}\")
+    for loc, count in locs.most_common():
+        print(f\"{loc:<25} {count:>10}\")
+"
+```
+
+**Recipe 63 — Recording compliance by location**
+Question: "Which office has the worst recording rate?"
+# Output: Location | Recorded% | Recorded | Answered | Failed
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+stats = defaultdict(lambda: {'answered': 0, 'recorded': 0, 'failed': 0})
+for r in data:
+    if r.get('Answer indicator') == 'Yes':
+        loc = r.get('Location', 'Unknown')
+        stats[loc]['answered'] += 1
+        result = r.get('Call Recording Result', '')
+        if result == 'successful':
+            stats[loc]['recorded'] += 1
+        elif result == 'failed':
+            stats[loc]['failed'] += 1
+print(f\"{'Location':<25} {'Recorded%':>10} {'Recorded':>10} {'Answered':>10} {'Failed':>8}\")
+for loc, s in sorted(stats.items(), key=lambda x: x[1]['recorded']/max(x[1]['answered'],1)):
+    rate = s['recorded']/s['answered']*100 if s['answered'] else 0
+    print(f\"{loc:<25} {rate:>9.1f}% {s['recorded']:>10} {s['answered']:>10} {s['failed']:>8}\")
+"
+```
+
+### Category 10: Call Tracing & Diagnostics
+
+**Recipe 64 — Trace call by correlation ID**
+Question: "Find all legs of this call"
+Note: Replace CORRELATION_ID with the actual value. For calls involving transfers, multiple Correlation IDs may be involved — use Recipe 65 to follow the full transfer chain instead.
+# Output: Leg # | Time | Direction | User type | User | From | To | Duration | Related Reason
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+cid = 'CORRELATION_ID'
+legs = [r for r in data if r.get('Correlation ID') == cid]
+print(f'Found {len(legs)} legs for correlation ID {cid}:')
+if not legs:
+    print('No matching records found in this time window.')
+else:
+    for i, c in enumerate(sorted(legs, key=lambda x: x.get('Start time', '')), 1):
+        print(f'  Leg {i}: {c.get(\"Start time\",\"\")[:16]} | {c.get(\"Direction\")} | {c.get(\"User type\",\"?\")} | {c.get(\"User\", \"?\")} | {c.get(\"Calling number\")} -> {c.get(\"Called number\")} | {c.get(\"Duration\")}s | {c.get(\"Related reason\", \"\")}')
+"
+```
+
+**Recipe 65 — Transfer chain reconstruction**
+Question: "Show the full transfer path for this call"
+Note: Replace CORRELATION_ID with the starting Correlation ID. The recipe follows Transfer related call ID → Local call ID linkage to discover all linked Correlation IDs across the transfer chain.
+# Output: CorrID | Leg # | Time | User type | Direction | Related Reason | From | To
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+seed_cid = 'CORRELATION_ID'
+
+# Build lookup: local_call_id -> CDR
+by_local = {r.get('Local call ID'): r for r in data if r.get('Local call ID')}
+
+# Walk transfer chain: follow transfer_related_call_id -> local_call_id links
+visited = set()
+queue = [seed_cid]
+all_cdrs = []
+while queue:
+    cid = queue.pop()
+    if cid in visited:
+        continue
+    visited.add(cid)
+    group = [r for r in data if r.get('Correlation ID') == cid]
+    all_cdrs.extend(group)
+    for r in group:
+        trid = r.get('Transfer related call ID')
+        if trid and trid in by_local:
+            linked_cid = by_local[trid].get('Correlation ID')
+            if linked_cid and linked_cid not in visited:
+                queue.append(linked_cid)
+
+print(f'Transfer chain: {len(visited)} Correlation IDs, {len(all_cdrs)} CDRs')
+if not all_cdrs:
+    print('No matching records found in this time window.')
+else:
+    for i, c in enumerate(sorted(all_cdrs, key=lambda x: x.get('Start time', '')), 1):
+        cid_short = (c.get('Correlation ID') or '')[-8:]
+        print(f\"  {i}: ...{cid_short} | {c.get('Start time','')[:16]} | {c.get('User type','?')} | {c.get('Direction')} | {c.get('Related reason','') or c.get('Transfer related call ID','')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+"
+```
+
+**Recipe 66 — Park and retrieve trace**
+Question: "How many calls were parked? Average park duration?"
+# Output: Metric | Value
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+parked = [r for r in data if r.get('Related reason') and 'CallPark' in r.get('Related reason', '')]
+retrieved = [r for r in data if r.get('Related reason') and 'CallParkRetrieve' in r.get('Related reason', '')]
+print(f'Call Park events: {len(parked)}')
+print(f'Call Park Retrieve events: {len(retrieved)}')
+if not parked:
+    print('No matching records found in this time window.')
+else:
+    for c in parked[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+"
+```
+
+**Recipe 67 — Forwarding path reconstruction**
+Question: "How did this call reach this user?"
+Note: Replace CORRELATION_ID with the actual value.
+# Output: Hop # | User | Original Reason | Redirect Reason | Related Reason
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+cid = 'CORRELATION_ID'
+legs = sorted([r for r in data if r.get('Correlation ID') == cid], key=lambda x: x.get('Start time', ''))
+print(f'Forwarding path ({len(legs)} hops):')
+if not legs:
+    print('No matching records found in this time window.')
+else:
+    for i, c in enumerate(legs, 1):
+        orig = c.get('Original reason', '-')
+        redir = c.get('Redirect reason', '-')
+        related = c.get('Related reason', '-')
+        print(f'  Hop {i}: {c.get(\"User\", \"?\")} | orig={orig} | redirect={redir} | related={related}')
+"
+```
+
+**Recipe 68 — Call quality proxy (failure patterns)**
+Question: "Find calls with likely quality issues"
+# Output: Metric | Value (summary) + Reason | Count (sub-table)
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+short_fail = [r for r in data
+    if r.get('Answer indicator') == 'Yes'
+    and int(r.get('Duration', 0)) < 5
+    and r.get('Call outcome') == 'Failure']
+sip_errors = [r for r in data if r.get('Call outcome reason', '').startswith('SIP')]
+print(f'Short answered calls that failed (<5s): {len(short_fail)}')
+print(f'SIP error outcomes: {len(sip_errors)}')
+if sip_errors:
+    from collections import Counter
+    reasons = Counter(r.get('Call outcome reason') for r in sip_errors)
+    print(f\"{'Reason':<40} {'Count':>6}\")
+    for reason, count in reasons.most_common(10):
+        print(f\"  {reason:<38} {count:>6}\")
+"
+```
+
+**Recipe 69 — Repeated caller detection**
+Question: "Who's calling the same number over and over?"
+# Output: Calling # | Called # | Call Count
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+pairs = Counter((r.get('Calling number', '?'), r.get('Called number', '?')) for r in data)
+repeats = {pair: count for pair, count in pairs.items() if count >= 3}
+print(f'Number pairs with 3+ calls:')
+for (caller, called), count in sorted(repeats.items(), key=lambda x: x[1], reverse=True)[:15]:
+    print(f'  {caller} -> {called}: {count} calls')
+"
+```
+
+### Category 11: Cross-Category Compound Queries
+
+**Recipe 70 — Spam that reached a queue and was abandoned**
+Question: "Spam calls that made it into a queue and the caller hung up?"
+# Output: Time | Rep Score | Rep Result | Calling # | Queue Type
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+spam_queue_abandoned = [r for r in data
+    if r.get('Caller Reputation Service Result') in ('captcha-allow', 'allow')
+    and float(r.get('Caller Reputation Score') or '5') < 2.0
+    and r.get('Queue type')
+    and r.get('Answer indicator') == 'No']
+print(f'Low-reputation calls that reached a queue and were abandoned: {len(spam_queue_abandoned)}')
+if not spam_queue_abandoned:
+    print('No matching records found in this time window.')
+else:
+    for c in spam_queue_abandoned[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | score={c.get('Caller Reputation Score','?')} | {c.get('Caller Reputation Service Result','?')} | {c.get('Calling number','?')} | queue={c.get('Queue type','?')}\")
+"
+```
+
+**Recipe 71 — International calls on a specific trunk during business hours**
+Question: "International calls on trunk X during business hours?"
+Note: Replace TRUNK_NAME with the actual trunk name.
+# Output: Time | User | Called # | Duration(s) | Trunk
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+trunk_name = 'TRUNK_NAME'
+results = [r for r in data
+    if r.get('Call type') == 'SIP_INTERNATIONAL'
+    and (r.get('Outbound trunk') == trunk_name or r.get('Inbound trunk') == trunk_name)
+    and 8 <= int(r.get('Start time', '')[11:13] or '0') < 18]
+print(f'International calls on {trunk_name} during business hours: {len(results)}')
+total_dur = sum(int(r.get('Duration', 0)) for r in results)
+print(f'Total duration: {total_dur/60:.1f} min')
+if not results:
+    print('No matching records found in this time window.')
+else:
+    for r in results[:10]:
+        trunk_used = r.get('Outbound trunk') or r.get('Inbound trunk','?')
+        print(f\"  {r.get('Start time','')[:16]} | {r.get('User','?')} | {r.get('Called number','?')} | {r.get('Duration','?')}s | {trunk_used}\")
+"
+```
+
+**Recipe 72 — Calls forwarded twice that ended in voicemail**
+Question: "Calls that were forwarded multiple times and ended in voicemail?"
+# Output: Time | Calling # | Legs | Redirected Legs
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import defaultdict
+data = json.load(sys.stdin)
+corr_legs = defaultdict(list)
+for r in data:
+    cid = r.get('Correlation ID')
+    if cid:
+        corr_legs[cid].append(r)
+multi_fwd_vm = []
+for cid, legs in corr_legs.items():
+    redirected = [l for l in legs if l.get('Redirect reason')]
+    vm = [l for l in legs if 'VoiceMail' in l.get('Related reason', '') or 'VoiceMailRetrieval' in l.get('Related reason', '')]
+    if len(redirected) >= 2 and vm:
+        multi_fwd_vm.append((cid, legs))
+print(f'Calls forwarded 2+ times ending in voicemail: {len(multi_fwd_vm)}')
+if not multi_fwd_vm:
+    print('No matching records found in this time window.')
+else:
+    for cid, legs in multi_fwd_vm[:5]:
+        first = sorted(legs, key=lambda x: x.get('Start time',''))[0]
+        redirected_count = len([l for l in legs if l.get('Redirect reason')])
+        print(f\"  {first.get('Start time','')[:16]} | {first.get('Calling number','?')} | {len(legs)} legs | {redirected_count} redirected\")
+"
+```
+
+**Recipe 73 — Missed calls from repeat callers**
+Question: "Repeat callers we keep missing?"
+# Output: Calling # | Missed Count
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+from collections import Counter
+data = json.load(sys.stdin)
+missed = [r for r in data if r.get('Answer indicator') == 'No']
+repeat_missed = Counter(r.get('Calling number', '?') for r in missed)
+repeats = {num: count for num, count in repeat_missed.items() if count >= 2}
+print(f'Callers with 2+ missed calls:')
+for num, count in sorted(repeats.items(), key=lambda x: x[1], reverse=True)[:15]:
+    print(f'  {num}: {count} missed calls')
+"
+```
+
+**Recipe 74 — Long-hold calls that were transferred**
+Question: "Calls with long hold that ended up being transferred?"
+# Output: Time | User | Hold Duration(s) | Calling # | Called # | Related Reason
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+hold_transfer = [r for r in data
+    if int(r.get('Hold duration', 0)) > 60
+    and r.get('Related reason') and 'Transfer' in r.get('Related reason', '')]
+print(f'Calls with >60s hold then transferred: {len(hold_transfer)}')
+if not hold_transfer:
+    print('No matching records found in this time window.')
+else:
+    for c in hold_transfer[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | hold {c.get('Hold duration','?')}s | {c.get('Calling number','?')} -> {c.get('Called number','?')} | {c.get('Related reason','?')}\")
+"
+```
+
+**Recipe 75 — After-hours emergency calls**
+Question: "Emergency calls outside business hours?"
+# Output: Time | User | Location | Calling # | Called #
+```bash
+wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
+import json, sys
+data = json.load(sys.stdin)
+after_hours_emergency = [r for r in data
+    if r.get('Call type') == 'SIP_EMERGENCY'
+    and (int(r.get('Start time', '')[11:13] or '0') < 8 or int(r.get('Start time', '')[11:13] or '0') >= 18)]
+print(f'After-hours emergency calls: {len(after_hours_emergency)}')
+if not after_hours_emergency:
+    print('No matching records found in this time window.')
+else:
+    for c in after_hours_emergency[:10]:
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | {c.get('Location')} | {c.get('Calling number')} -> {c.get('Called number')}\")
+"
+```
+
