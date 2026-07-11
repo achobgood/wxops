@@ -24,7 +24,7 @@ jobs:
           python wxcli-dist/assemble.py
           if [ -n "$(git status --porcelain -- src/wxcli/_playbook)" ]; then
             git status --porcelain -- src/wxcli/_playbook
-            echo "::error::src/wxcli/_playbook is stale — run 'python wxcli-dist/assemble.py', review the diff, commit, re-tag."
+            echo "::error::src/wxcli/_playbook (Claude + Codex playbook) is stale — run 'python wxcli-dist/assemble.py', review the diff, commit, re-tag."
             exit 1
           fi
 

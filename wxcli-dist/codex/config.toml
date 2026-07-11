@@ -1,0 +1,14 @@
+# wxcli Codex playbook config — GENERATED into .codex/config.toml. Do not hand-edit.
+# These apply once you trust this folder in Codex (codex trusts the repo/cwd).
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+# Optional "repo is behind → run wxcli update" nudge. Repo-local hooks do NOT
+# fire in interactive sessions (openai/codex#17532), so install this GLOBALLY in
+# ~/.codex/config.toml, not here:
+#
+# [[hooks.SessionStart]]
+# [[hooks.SessionStart.hooks]]
+# type = "command"
+# command = "git fetch origin --quiet 2>/dev/null; B=$(git rev-list HEAD..origin/main --count 2>/dev/null); [ \"${B:-0}\" -gt 0 ] && echo \"Repo is $B commit(s) behind — suggest running wxcli update.\""
+# timeout = 15
