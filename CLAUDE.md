@@ -101,11 +101,11 @@ wxcli dect-devices show "Y2lz..."
 
 ### Agent Orchestration — Long-Running Work & Silence Detection
 
-Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python polling loop exceeded Bash's 10-min timeout. Parent sent two `SendMessage` pings that received no response because the subagent's tool call was still in flight and then terminated; the agent loop never got a chance to resume and handle the messages. Root cause recovery required spawning a fresh agent to verify org state and finish the job. This protocol **complements** — does not replace — the phase-per-invocation rule above.
+A subagent can die mid-work when a long-running tool call (e.g. a Python polling loop) outlives Bash's ~10-min timeout: the call is killed, the agent loop never resumes to emit a final message, and `SendMessage` pings queue to a dead mailbox. This protocol prevents and recovers from that; it **complements** — does not replace — the phase-per-invocation rule above.
 
 #### For subagents running long-running work (>2 min expected)
 
-1. **Never wrap long-running polling in a single Bash call.** The Bash tool has a ~10-min hard timeout; if the tool call runs longer, stdout buffering hides progress and the subagent dies silently when the kernel kills the process. The agent loop never resumes to produce a final message, so the parent sees silence.
+1. **Never wrap long-running polling in a single Bash call.** A call that outlives the ~10-min hard timeout is killed mid-run; stdout buffering hides progress and the parent sees silence (see the failure mode above).
 2. **Split into discrete tool calls.** One Bash call per polling round (not 20 rounds in one call). Between rounds, the agent loop can emit progress messages.
 3. **Use `run_in_background: true` on Bash** for genuinely long-running commands (e.g., `wxcli cucm execute` that runs >5 min); monitor the task output file (but do not `tail`/Read large JSONL transcripts — use targeted line ranges only).
 4. **Emit progress explicitly.** At minimum every 60s, the subagent should produce a visible message (text output, not a tool call) so observers see aliveness.
@@ -155,25 +155,13 @@ Added 2026-04-15 after an org-cleanup subagent died mid-Phase-2 when its Python 
 
 ### Skill Disambiguation
 
-When multiple skills could match, use this lookup:
+When multiple skills could match, use this lookup. (Basic skill-vs-skill routing already lives in each skill's `NOT for:` description, which the session always sees — the rows below cover only what those don't resolve: subtle overlaps, Calling-vs-CC terminology collisions, and undocumented capabilities.)
 
 | If the user wants to... | Use this skill | NOT this one |
 |--------------------------|---------------|-------------|
-| Configure Customer Assist (screen pop, wrap-up, supervisors) | `customer-assist` | `configure-features` (CX queues are a separate skill) |
-| Create a call queue, hunt group, or auto attendant | `configure-features` | `customer-assist` (only for CX Essentials features) |
-| Set person call forwarding, DND, voicemail, caller ID | `manage-call-settings` | `configure-features` (person settings ≠ call features) |
-| Add/remove phone numbers on a user, number reassignment | `manage-call-settings` | `provision-calling` (that's for initial user/license creation) |
+| Add/remove phone numbers on a user, number reassignment | `manage-call-settings` | `provision-calling` (that's for initial user/license creation; provision-calling owns number *inventory*, not per-user assignment) |
 | Update user profile fields (alternate numbers, display name) | `provision-calling` | `manage-call-settings` (profile fields are People API, not telephony config) |
-| Configure voicemail groups (shared location mailbox) | `configure-features` | `manage-call-settings` (voicemail groups are a location feature) |
-| Provision MPP phones, DECT, activation codes | `manage-devices` | `device-platform` (that's for config keys, not provisioning) |
-| Set 9800-series PhoneOS config keys, xAPI commands | `device-platform` | `manage-devices` (that's for provisioning, not config) |
-| Query Webex Calling CDR, call quality, queue stats | `reporting` | `reporting-cc` (that's Contact Center only) |
-| Query Contact Center agent/queue analytics | `reporting-cc` | `reporting` (that's Calling only) |
-| Query meeting quality, workspace utilization | `reporting-meetings` | `reporting` (different API domain) |
-| Delete/clean up resources | `teardown` | `provision-calling` (that's for creation) |
-| Provision users, locations, licenses | `provision-calling` | `teardown` (that's for deletion) |
-| Map numbers to CC entry points, CC dial numbers | `contact-center` | `configure-routing` (that's Calling routing, not CC routing) |
-| CC entry points, teams, skills, agents, queues, flows | `contact-center` | `configure-features` (that's Calling features, not CC) |
+| Configure voicemail groups (shared location mailbox) | `configure-features` | `manage-call-settings` ("voicemail" collides: groups are a location feature, not person voicemail) |
 | **Calling vs CC terminology — when the same word means different things:** | | |
 | "Create a queue" (Calling call queue) | `configure-features` | `contact-center` (that's CC queues — different API, different entity) |
 | "Create a queue" (Contact Center queue) | `contact-center` | `configure-features` (that's Calling queues — no skill-based routing) |
