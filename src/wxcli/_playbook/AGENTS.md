@@ -122,25 +122,13 @@ trusting a single command's self-reported result.
 
 ### Skill Disambiguation
 
-When multiple skills could match, use this lookup:
+When multiple skills could match, use this lookup. (Basic skill-vs-skill routing already lives in each skill's `NOT for:` description, which the session always sees — the rows below cover only what those don't resolve: subtle overlaps, Calling-vs-CC terminology collisions, and undocumented capabilities.)
 
 | If the user wants to... | Use this skill | NOT this one |
 |--------------------------|---------------|-------------|
-| Configure Customer Assist (screen pop, wrap-up, supervisors) | `customer-assist` | `configure-features` (CX queues are a separate skill) |
-| Create a call queue, hunt group, or auto attendant | `configure-features` | `customer-assist` (only for CX Essentials features) |
-| Set person call forwarding, DND, voicemail, caller ID | `manage-call-settings` | `configure-features` (person settings ≠ call features) |
-| Add/remove phone numbers on a user, number reassignment | `manage-call-settings` | `provision-calling` (that's for initial user/license creation) |
+| Add/remove phone numbers on a user, number reassignment | `manage-call-settings` | `provision-calling` (that's for initial user/license creation; provision-calling owns number *inventory*, not per-user assignment) |
 | Update user profile fields (alternate numbers, display name) | `provision-calling` | `manage-call-settings` (profile fields are People API, not telephony config) |
-| Configure voicemail groups (shared location mailbox) | `configure-features` | `manage-call-settings` (voicemail groups are a location feature) |
-| Provision MPP phones, DECT, activation codes | `manage-devices` | `device-platform` (that's for config keys, not provisioning) |
-| Set 9800-series PhoneOS config keys, xAPI commands | `device-platform` | `manage-devices` (that's for provisioning, not config) |
-| Query Webex Calling CDR, call quality, queue stats | `reporting` | `reporting-cc` (that's Contact Center only) |
-| Query Contact Center agent/queue analytics | `reporting-cc` | `reporting` (that's Calling only) |
-| Query meeting quality, workspace utilization | `reporting-meetings` | `reporting` (different API domain) |
-| Delete/clean up resources | `teardown` | `provision-calling` (that's for creation) |
-| Provision users, locations, licenses | `provision-calling` | `teardown` (that's for deletion) |
-| Map numbers to CC entry points, CC dial numbers | `contact-center` | `configure-routing` (that's Calling routing, not CC routing) |
-| CC entry points, teams, skills, agents, queues, flows | `contact-center` | `configure-features` (that's Calling features, not CC) |
+| Configure voicemail groups (shared location mailbox) | `configure-features` | `manage-call-settings` ("voicemail" collides: groups are a location feature, not person voicemail) |
 | **Calling vs CC terminology — when the same word means different things:** | | |
 | "Create a queue" (Calling call queue) | `configure-features` | `contact-center` (that's CC queues — different API, different entity) |
 | "Create a queue" (Contact Center queue) | `contact-center` | `configure-features` (that's Calling queues — no skill-based routing) |
