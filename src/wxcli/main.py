@@ -21,8 +21,17 @@ def version_callback(value: bool):
 @app.callback()
 def main(
     version: bool = typer.Option(False, "--version", callback=version_callback, is_eager=True),
+    no_update_check: bool = typer.Option(
+        False, "--no-update-check",
+        help="Skip the once-a-day PyPI update check for this run.",
+    ),
 ):
-    pass
+    # Best-effort upgrade nudge; never let it break a real command.
+    try:
+        from wxcli.update_check import maybe_notify_update
+        maybe_notify_update(__version__, disabled=no_update_check)
+    except Exception:
+        pass
 
 
 @app.command()
