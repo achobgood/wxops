@@ -3,12 +3,15 @@
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
-# Optional "repo is behind → run wxcli update" nudge. Repo-local hooks do NOT
-# fire in interactive sessions (openai/codex#17532), so install this GLOBALLY in
-# ~/.codex/config.toml, not here:
+# Optional "a newer wxcli is on PyPI → run wxcli update" nudge. Repo-local hooks
+# do NOT fire in interactive Codex sessions (openai/codex#17532), so this can only
+# be installed GLOBALLY in ~/.codex/config.toml, not here. The wxcli CLI already
+# prints a one-line PyPI update banner on startup (see update_check.py) — that is
+# the primary path for Codex. Add the hook below only if you also want a
+# session-start nudge:
 #
 # [[hooks.SessionStart]]
 # [[hooks.SessionStart.hooks]]
 # type = "command"
-# command = "git fetch origin --quiet 2>/dev/null; B=$(git rev-list HEAD..origin/main --count 2>/dev/null); [ \"${B:-0}\" -gt 0 ] && echo \"Repo is $B commit(s) behind — suggest running wxcli update.\""
+# command = "wxcli update --hook"
 # timeout = 15
