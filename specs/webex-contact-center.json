@@ -58377,9 +58377,9 @@
                     {
                       "activityName": "play-message",
                       "displayName": "Play Message",
-                      "category": "Voice",
+                      "category": "core",
                       "group": "action",
-                      "activityType": "ACTION"
+                      "activityType": "action"
                     }
                   ]
                 }
@@ -58481,7 +58481,7 @@
           "Activities"
         ],
         "summary": "Get Activity Input Choices",
-        "description": "Resolve choices for an activity input. Use this when an activity input requires a value from a predefined or dynamically resolved set (e.g., available queues, audio files, agents).\n\nThis endpoint is only valid for inputs that expose choices (an input whose definition includes `allowedValues` or a `choicesEndpoint`, as returned by `describeActivity`). Calling it for an input that does not support choices returns 400.\n\n**Modes:**\n- `list` — Returns the full set of allowed values for a static-choice input.\n- `search` — Returns matches for the supplied `query` string. Use for type-ahead UIs over large choice sets.\n- `validate` — Checks whether a single `value` is allowed and returns its label/metadata if so.\n- `dynamic` — Resolves cascading choices whose allowed values depend on one or more sibling inputs. Pass the relevant sibling values via `parent_inputs` (e.g., a queue list scoped to a previously selected team).\n\nScope: `cjp:config_read`",
+        "description": "Resolve choices for an activity input. Use this when an activity input requires a value from a predefined or dynamically resolved set (e.g., available queues, audio files, agents).\n\nThis endpoint is only valid for inputs that expose choices (an input whose definition includes `allowedValues` or a `choicesEndpoint`, as returned by `describeActivity`). Calling it for an input that does not support choices returns 400.\n\nPass `search` to filter the choices (type-ahead). Add `validate=true` together with `search` to do a point-lookup of a single value instead of filtering — the match is against the choice's `value` (its ID), not its display `name`. For a cascading input whose allowed values depend on a sibling input, supply the parent with `parentInputName` and `parentValue`; otherwise a cascading input returns 400.\n\nFiltering and validation apply only to dynamic (`choicesEndpoint`-backed) inputs. A static input always returns its full enumerated list regardless of `search`/`validate`.\n\nScope: `cjp:config_read`",
         "operationId": "getActivityInputChoices",
         "parameters": [
           {
@@ -58525,26 +58525,9 @@
             "example": "channelType"
           },
           {
-            "name": "mode",
+            "name": "search",
             "in": "query",
-            "description": "Resolution mode. Defaults to `list`.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "list",
-                "search",
-                "validate",
-                "dynamic"
-              ],
-              "default": "list"
-            },
-            "example": "list"
-          },
-          {
-            "name": "query",
-            "in": "query",
-            "description": "Search term. Required when `mode=search`.",
+            "description": "Search text used to filter the returned choices (type-ahead). When `validate=true`, this is instead the single value to look up.",
             "required": false,
             "schema": {
               "type": "string"
@@ -58552,49 +58535,50 @@
             "example": "support"
           },
           {
-            "name": "value",
+            "name": "validate",
             "in": "query",
-            "description": "Candidate value to validate. Required when `mode=validate`.",
+            "description": "When `true` and `search` is supplied, performs a point-lookup of the single value in `search` (matched against the choice's `value`/ID) instead of filtering.",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "boolean",
+              "default": false
             },
-            "example": "Main_Support_Queue"
+            "example": false
           },
           {
-            "name": "parent_inputs",
+            "name": "parentValue",
             "in": "query",
-            "description": "JSON object of parent input values used for cascading resolution. Required when `mode=dynamic`.",
+            "description": "Parent input value for a cascading/dynamic input (for example, the selected `channelType`).",
             "required": false,
             "schema": {
               "type": "string"
             },
-            "example": "{\"team\":\"team-id-1\"}"
+            "example": "TELEPHONY"
+          },
+          {
+            "name": "parentInputName",
+            "in": "query",
+            "description": "Parent input name for a cascading/dynamic input. Required when `parentValue` is provided.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "channelType"
           }
         ],
         "responses": {
           "200": {
-            "description": "Array of allowed values with labels and descriptions.",
+            "description": "Resolved choices for the input, plus resolution metadata.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ActivityChoiceEntry"
-                  },
-                  "example": [
-                    {
-                      "value": "team-id-1",
-                      "label": "Team 1",
-                      "description": "Default support team."
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ActivityInputChoices"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad Request — missing or invalid mode-specific parameter.",
+            "description": "Bad Request — a cascading input was queried without its parent (`parentInputName`/`parentValue`), or the input does not support choices.",
             "content": {
               "application/json": {
                 "schema": {
@@ -58654,21 +58638,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Array of event specifications.",
+            "description": "Available event specifications, plus ready-to-paste quick-start snippets.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/EventSpecification"
-                  },
-                  "example": [
-                    {
-                      "name": "AgentDisconnected",
-                      "displayName": "Agent Disconnected",
-                      "description": "Fires when the agent leg of the call drops unexpectedly."
-                    }
-                  ]
+                  "$ref": "#/components/schemas/EventSpecificationsResponse"
                 }
               }
             }
@@ -58790,7 +58764,7 @@
           {
             "name": "includePagination",
             "in": "query",
-            "description": "If set to to true then a different paginated response object containing the page metadata (currentPage, totalRecords, pageSize, totalPages) will be returned. The flow objects will be in an array named \"data\".",
+            "description": "If set to true then a different paginated response object containing the page metadata (currentPage, totalRecords, pageSize, totalPages) will be returned. The flow objects will be in an array named \"data\".",
             "required": false,
             "schema": {
               "type": "boolean",
@@ -58863,7 +58837,7 @@
           "Flows"
         ],
         "summary": "Publish a Flow or Subflow",
-        "description": "Returns the published flow in response.\n\nThe Publish API validates the basic structure of the flows. We recommend manually verifying the published flows before proceeding with live traffic.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
+        "description": "Returns the published flow in response.\n\nThe Publish API validates the basic structure of the flows. We recommend manually verifying the published flows before proceeding with live traffic.\n\nScope: `cjp:config_write`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
         "operationId": "publishFlowVersionUsingPOST",
         "parameters": [
           {
@@ -59746,7 +59720,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FlowV2ValidationResult"
+                  "$ref": "#/components/schemas/FlowV2DraftValidationResult"
                 }
               }
             }
@@ -60085,7 +60059,7 @@
             }
           },
           "400": {
-            "description": "Bad Request. Causes include: function body missing, malformed payload, or duplicate function name.",
+            "description": "Bad Request. Causes include: function body missing or malformed payload.",
             "content": {
               "application/json": {
                 "schema": {
@@ -60097,6 +60071,16 @@
           "401": {
             "description": "Unauthorized.",
             "content": {}
+          },
+          "409": {
+            "description": "Conflict. A function with the same name already exists in the org.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FnConflictResponse"
+                }
+              }
+            }
           },
           "500": {
             "description": "Internal Server Error.",
@@ -60361,7 +60345,7 @@
           "Functions"
         ],
         "summary": "Import a Custom Function",
-        "description": "Import a custom function from a previously exported zip file. Use `overwrite=true` to replace any existing function with the same name.\n\nScope: `cjp:config_write`",
+        "description": "Import a custom function from a previously exported function-definition JSON file, uploaded as the multipart `file` part (not a zip or base64 envelope). Use `overwrite=true` to replace any existing function with the same name.\n\nScope: `cjp:config_write`",
         "operationId": "importFn",
         "parameters": [
           {
@@ -60411,7 +60395,7 @@
                   "file": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Zip file produced by the export API."
+                    "description": "Function-definition JSON document produced by the export API, uploaded as the multipart file part (not a zip or base64 envelope)."
                   }
                 },
                 "required": [
@@ -60433,7 +60417,7 @@
             }
           },
           "400": {
-            "description": "Bad Request. The supplied zip file is corrupted or malformed.",
+            "description": "Bad Request. The supplied function-definition file is corrupted or malformed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -60765,7 +60749,7 @@
           "Functions"
         ],
         "summary": "Export a Custom Function",
-        "description": "Export a custom function (its metadata and source code) for the given version or publish tag. The response embeds the exported artifact, suitable for re-importing via the import API.\n\nScope: `cjp:config_read`",
+        "description": "Export a custom function for the given version or publish tag. Returns the plain function-definition JSON (name, language, runtime, description, source code, inputs, and outputs), suitable for re-importing via the import API.\n\nScope: `cjp:config_read`",
         "operationId": "exportFn",
         "parameters": [
           {
@@ -91160,26 +91144,103 @@
           }
         }
       },
+      "ActivityInputChoices": {
+        "title": "ActivityInputChoices",
+        "type": "object",
+        "description": "Resolved choices for an activity input, returned by the activity input choices endpoint, along with resolution metadata.",
+        "additionalProperties": true,
+        "example": {
+          "count": 2,
+          "source": "static",
+          "choices": [
+            {
+              "name": "Voice",
+              "value": "TELEPHONY"
+            },
+            {
+              "name": "Work item",
+              "value": "WORK_ITEM"
+            }
+          ],
+          "parentInputName": "",
+          "parentValue": "",
+          "isSearchEnabled": false,
+          "resolvedInput": "channelType",
+          "activity": "queue-lookup",
+          "input": "channelType"
+        },
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Number of choices returned.",
+            "example": 2
+          },
+          "source": {
+            "type": "string",
+            "description": "How the choices were resolved.",
+            "enum": [
+              "list",
+              "search",
+              "validate",
+              "dynamic",
+              "static"
+            ],
+            "example": "static"
+          },
+          "choices": {
+            "type": "array",
+            "description": "The resolved choices.",
+            "items": {
+              "$ref": "#/components/schemas/ActivityChoiceEntry"
+            }
+          },
+          "parentInputName": {
+            "type": "string",
+            "description": "Parent input name echoed back for cascading resolution (empty when not cascading).",
+            "example": ""
+          },
+          "parentValue": {
+            "type": "string",
+            "description": "Parent input value echoed back for cascading resolution (empty when not cascading).",
+            "example": ""
+          },
+          "isSearchEnabled": {
+            "type": "boolean",
+            "description": "True when the input supports server-side search/filtering.",
+            "example": false
+          },
+          "resolvedInput": {
+            "type": "string",
+            "description": "The input name the choices were resolved for.",
+            "example": "channelType"
+          },
+          "activity": {
+            "type": "string",
+            "description": "The activity name the input belongs to.",
+            "example": "queue-lookup"
+          },
+          "input": {
+            "type": "string",
+            "description": "The requested input name.",
+            "example": "channelType"
+          }
+        }
+      },
       "ActivityChoiceEntry": {
         "title": "ActivityChoiceEntry",
         "type": "object",
-        "description": "An allowed value for an activity input, returned by the activity input choices endpoint.",
+        "description": "A single resolved choice for an activity input.",
         "additionalProperties": true,
         "properties": {
-          "value": {
-            "type": "string",
-            "description": "The choice value, suitable for use as the activity input value.",
-            "example": "Main_Support_Queue"
-          },
-          "label": {
+          "name": {
             "type": "string",
             "description": "Human-readable label shown in authoring UIs.",
             "example": "Main Support Queue"
           },
-          "description": {
+          "value": {
             "type": "string",
-            "description": "Human-readable description of the choice.",
-            "example": "Top-level support queue routed to all tier-1 agents."
+            "description": "The choice value/ID, suitable for use as the activity input value.",
+            "example": "Main_Support_Queue"
           }
         }
       },
@@ -91192,37 +91253,62 @@
           "name": {
             "type": "string",
             "description": "Input field name.",
-            "example": "queue"
+            "example": "channelType"
           },
           "type": {
             "type": "string",
-            "description": "Input data type (for example, `STRING`, `INTEGER`, `BOOLEAN`, `OBJECT`).",
-            "example": "STRING"
+            "description": "Input data type (for example, `string`, `boolean`, `int`, `object[]`).",
+            "example": "string"
           },
           "required": {
             "type": "boolean",
             "description": "True if the input must be supplied.",
             "example": true
           },
-          "default": {
-            "description": "Default value applied when the input is not supplied. Type matches `type`.",
+          "defaultValue": {
+            "description": "Default value applied when the input is not supplied. May be null. Type matches `type`.",
             "example": null
           },
-          "choicesMode": {
+          "showOnCondition": {
             "type": "string",
-            "description": "How allowed values are resolved via the activity input choices endpoint. Only set on inputs that have a constrained value set.",
-            "enum": [
-              "list",
-              "search",
-              "validate",
-              "dynamic"
-            ],
-            "example": "list"
+            "nullable": true,
+            "description": "Expression controlling when this input is shown in authoring UIs, evaluated against sibling input values. Null when the input is always shown.",
+            "example": "toggle == false"
+          },
+          "isSecure": {
+            "type": "boolean",
+            "description": "True if the input holds sensitive data that should be masked.",
+            "example": false
+          },
+          "allowedValues": {
+            "type": "array",
+            "nullable": true,
+            "description": "Enumerated allowed values for a static-choice input. Null when the input is unconstrained or resolves its choices dynamically via `choicesEndpoint`.",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "TELEPHONY",
+              "WORK_ITEM"
+            ]
+          },
+          "choicesEndpoint": {
+            "type": "string",
+            "nullable": true,
+            "description": "Relative endpoint used to resolve choices dynamically for this input. Null when the input has no dynamic choices.",
+            "example": "GET /v2/activities/play-message/inputs/audioFile/choices"
+          },
+          "children": {
+            "type": "array",
+            "description": "Nested inputs for composite/object inputs. Empty when the input has no children.",
+            "items": {
+              "$ref": "#/components/schemas/ActivityInput"
+            }
           },
           "description": {
             "type": "string",
             "description": "Human-readable description of the input.",
-            "example": "Queue to enqueue the contact onto."
+            "example": "Channel type the contact arrived on."
           }
         }
       },
@@ -91252,23 +91338,23 @@
       "ActivityOutputPort": {
         "title": "ActivityOutputPort",
         "type": "object",
-        "description": "A named output port the activity may exit through. Edges reference these names via `from_port`.",
+        "description": "An output port the activity may exit through. Edges reference a port via their `condition`.",
         "additionalProperties": true,
         "properties": {
-          "name": {
+          "condition": {
             "type": "string",
-            "description": "Port name. Must be referenced verbatim from `FlowV2Edge.from_port`.",
-            "example": "onTimeout"
+            "description": "Port condition. An edge's `condition` must match one of these verbatim (for example, `default`, `error`).",
+            "example": "default"
           },
-          "displayName": {
+          "label": {
             "type": "string",
-            "description": "Human-readable port label shown in authoring UIs.",
-            "example": "On Timeout"
+            "description": "Human-readable port label shown in authoring UIs. May be empty.",
+            "example": "default"
           },
-          "description": {
-            "type": "string",
-            "description": "Human-readable description of when this port fires.",
-            "example": "Fires when the activity exceeds its configured timeout."
+          "isErrorPath": {
+            "type": "boolean",
+            "description": "True if this port is the activity's error path.",
+            "example": false
           }
         }
       },
@@ -91280,17 +91366,28 @@
         "example": {
           "activityName": "play-message",
           "displayName": "Play Message",
-          "category": "Voice",
+          "category": "core",
           "group": "action",
-          "activityType": "ACTION",
+          "activityType": "action",
           "inputs": [],
           "outputs": [],
-          "outputPorts": []
+          "outputPorts": [
+            {
+              "condition": "error",
+              "label": "",
+              "isErrorPath": true
+            },
+            {
+              "condition": "default",
+              "label": "default",
+              "isErrorPath": false
+            }
+          ]
         },
         "properties": {
           "activityName": {
             "type": "string",
-            "description": "Stable activity type identifier referenced by a flow node's `properties.activityName`.",
+            "description": "Stable activity type identifier referenced by a flow node's `properties.activityName`. Read the value verbatim from this endpoint; it is not always kebab-case (for example, `SetCallerID`, `Feedback-V2`, `queue-lookup`).",
             "example": "play-message"
           },
           "displayName": {
@@ -91300,18 +91397,18 @@
           },
           "category": {
             "type": "string",
-            "description": "High-level grouping the activity belongs to (for example, `Voice`, `Routing`, `Data`).",
-            "example": "Voice"
+            "description": "High-level grouping the activity belongs to (for example, `core`).",
+            "example": "core"
           },
           "group": {
             "type": "string",
-            "description": "Lifecycle group the activity belongs to (for example, `start`, `action`, `event`, `end`).",
+            "description": "Group the activity belongs to. An open set; observed values include `action`, `enum-gateway`, `http-request`, `parse-activity`, `set-variable`, and `terminating-action`. Read the value verbatim rather than assuming a fixed set.",
             "example": "action"
           },
           "activityType": {
             "type": "string",
-            "description": "Underlying activity classification used by the runtime.",
-            "example": "ACTION"
+            "description": "Underlying activity classification used by the runtime (for example, `action`, `start`).",
+            "example": "action"
           },
           "inputs": {
             "type": "array",
@@ -91329,7 +91426,7 @@
           },
           "outputPorts": {
             "type": "array",
-            "description": "Named output ports the activity may exit through. Edge `from_port` must match one of these names.",
+            "description": "Output ports the activity may exit through. An edge's `condition` must match one of these ports' `condition` values.",
             "items": {
               "$ref": "#/components/schemas/ActivityOutputPort"
             }
@@ -91375,22 +91472,92 @@
       "FlowV2ValidationError": {
         "title": "FlowV2ValidationError",
         "type": "object",
-        "description": "A single validation issue against a flow document.",
+        "description": "A single validation error against a flow document.",
         "properties": {
-          "path": {
+          "activityName": {
             "type": "string",
-            "description": "JSON Pointer to the offending field within the flow document.",
-            "example": "/nodes/2/inputs/queue"
+            "description": "Name of the activity the error relates to.",
+            "example": "play-message"
           },
-          "code": {
+          "condition": {
             "type": "string",
-            "description": "Stable error code.",
-            "example": "UNKNOWN_QUEUE"
+            "description": "Edge condition the error relates to, when applicable.",
+            "example": "onTimeout"
+          },
+          "from": {
+            "type": "string",
+            "description": "Source node label of the offending edge, when applicable.",
+            "example": "WelcomeMessage"
+          },
+          "edge": {
+            "type": "string",
+            "description": "Human-readable description of the offending edge, when applicable.",
+            "example": "WelcomeMessage->DisconnectContact(onTimeout)"
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "Suggested fix.",
+            "example": "Use one of: default, error"
           },
           "message": {
             "type": "string",
             "description": "Human-readable explanation of the error.",
-            "example": "Queue 'Main_Support_Quueue' was not found in the project."
+            "example": "Condition 'onTimeout' is not valid for activity 'play-message'."
+          },
+          "severity": {
+            "type": "string",
+            "description": "Severity of the issue.",
+            "enum": [
+              "ERROR"
+            ],
+            "example": "ERROR"
+          }
+        }
+      },
+      "EventSpecificationsResponse": {
+        "title": "EventSpecificationsResponse",
+        "type": "object",
+        "description": "The list of event specifications available for use in `eventFlows[]`, plus ready-to-paste quick-start snippets.",
+        "additionalProperties": true,
+        "example": {
+          "specifications": [
+            {
+              "eventSourceName": "WebexContactCenter",
+              "eventClassificationName": "VoiceInteractions",
+              "eventSpecificationName": "ContactStartWorkflow"
+            },
+            {
+              "eventSourceName": "WebexContactCenter",
+              "eventClassificationName": "VoiceInteractions",
+              "eventSpecificationName": "GlobalErrorHandling"
+            }
+          ],
+          "quick_start": {
+            "description": "Copy snippets directly into flow; backend resolves IDs from names.",
+            "voice_flow_start_node": {
+              "eventSourceName": "WebexContactCenter",
+              "eventClassificationName": "VoiceInteractions",
+              "eventSpecificationName": "ContactStartWorkflow"
+            },
+            "global_error_eventflow": {
+              "eventSourceName": "WebexContactCenter",
+              "eventClassificationName": "VoiceInteractions",
+              "eventSpecificationName": "GlobalErrorHandling"
+            }
+          }
+        },
+        "properties": {
+          "specifications": {
+            "type": "array",
+            "description": "The available event specifications.",
+            "items": {
+              "$ref": "#/components/schemas/EventSpecification"
+            }
+          },
+          "quick_start": {
+            "type": "object",
+            "description": "Ready-to-paste start-node and global-error snippets. The backend resolves IDs from the supplied names.",
+            "additionalProperties": true
           }
         }
       },
@@ -91400,30 +91567,20 @@
         "description": "An event type that can be referenced from `eventFlows[]` in a flow document.",
         "additionalProperties": true,
         "properties": {
-          "name": {
+          "eventSpecificationName": {
             "type": "string",
-            "description": "Event name. Must be used verbatim as `FlowV2EventFlow.event`.",
-            "example": "AgentDisconnected"
+            "description": "Event specification name. Must be used verbatim as `FlowV2EventFlow.event`.",
+            "example": "ContactStartWorkflow"
           },
-          "displayName": {
+          "eventSourceName": {
             "type": "string",
-            "description": "Human-readable event label.",
-            "example": "Agent Disconnected"
+            "description": "Name of the event source the specification belongs to.",
+            "example": "WebexContactCenter"
           },
-          "description": {
+          "eventClassificationName": {
             "type": "string",
-            "description": "Human-readable description of when this event fires.",
-            "example": "Fires when the agent leg of the call drops unexpectedly."
-          },
-          "payloadSchema": {
-            "type": "object",
-            "description": "JSON Schema describing the event payload available to the handler subflow.",
-            "additionalProperties": true
-          },
-          "context": {
-            "type": "object",
-            "description": "Contextual metadata bound when the event fires (for example, related contact ID or queue ID).",
-            "additionalProperties": true
+            "description": "Name of the event classification the specification belongs to.",
+            "example": "VoiceInteractions"
           }
         }
       },
@@ -92392,39 +92549,9 @@
       },
       "FlowLockResponse": {
         "title": "FlowLockResponse",
-        "type": "object",
-        "description": "Lock confirmation. Locks auto-expire after 15 minutes of inactivity.",
-        "additionalProperties": true,
-        "example": {
-          "flowId": "661c7bc712eaf357de7e4aeb",
-          "lockedBy": "user@company.com",
-          "lockedAt": "2026-05-27T10:15:00.000Z",
-          "expiresAt": "2026-05-27T10:30:00.000Z"
-        },
-        "properties": {
-          "flowId": {
-            "type": "string",
-            "description": "ID of the locked flow.",
-            "example": "661c7bc712eaf357de7e4aeb"
-          },
-          "lockedBy": {
-            "type": "string",
-            "description": "Email of the principal currently holding the lock.",
-            "example": "user@company.com"
-          },
-          "lockedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp the lock was acquired.",
-            "example": "2026-05-27T10:15:00.000Z"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp the lock will auto-expire if not refreshed.",
-            "example": "2026-05-27T10:30:00.000Z"
-          }
-        }
+        "type": "string",
+        "description": "Lock/unlock acknowledgement. Returns the literal JSON string \"OK\" on success. Locks auto-expire after 15 minutes of inactivity.",
+        "example": "OK"
       },
       "BasicFlow": {
         "title": "BasicFlow",
@@ -92969,6 +93096,32 @@
           }
         }
       },
+      "FlowV2ValidationWarning": {
+        "title": "FlowV2ValidationWarning",
+        "type": "object",
+        "description": "A single non-blocking validation warning or recommendation against a flow document.",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "description": "Severity of the issue.",
+            "enum": [
+              "WARNING",
+              "RECOMMENDATION"
+            ],
+            "example": "RECOMMENDATION"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable warning code.",
+            "example": "FC1007"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable explanation of the warning.",
+            "example": "Add descriptions for activities"
+          }
+        }
+      },
       "FlowV2ValidationResult": {
         "title": "FlowV2ValidationResult",
         "type": "object",
@@ -92977,16 +93130,23 @@
           "valid": false,
           "errors": [
             {
-              "path": "/nodes/2/inputs/queue",
-              "code": "UNKNOWN_QUEUE",
-              "message": "Queue 'Main_Support_Quueue' was not found in the project."
-            },
-            {
-              "path": "/edges/4/condition",
-              "code": "INVALID_PORT",
-              "message": "Activity 'PlayMessage' does not expose a port named 'onTimeout'."
+              "activityName": "start",
+              "condition": "onTimeoutBOGUS",
+              "from": "NewContact",
+              "suggestion": "Use one of: out",
+              "message": "Condition 'onTimeoutBOGUS' is not valid for activity 'start'.",
+              "severity": "ERROR",
+              "edge": "NewContact->WelcomeMessage(onTimeoutBOGUS)"
             }
-          ]
+          ],
+          "warnings": [
+            {
+              "severity": "RECOMMENDATION",
+              "code": "FC1007",
+              "message": "Add descriptions for activities"
+            }
+          ],
+          "summary": "1 error(s), 1 warning(s)."
         },
         "properties": {
           "valid": {
@@ -92995,9 +93155,93 @@
           },
           "errors": {
             "type": "array",
-            "description": "Per-issue errors. Empty when `valid` is true.",
+            "description": "Blocking errors. Empty when `valid` is true.",
             "items": {
               "$ref": "#/components/schemas/FlowV2ValidationError"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "description": "Non-blocking warnings and recommendations.",
+            "items": {
+              "$ref": "#/components/schemas/FlowV2ValidationWarning"
+            }
+          },
+          "summary": {
+            "type": "string",
+            "description": "Human-readable summary of the validation outcome.",
+            "example": "FlowV2 looks valid for import/save."
+          }
+        }
+      },
+      "FlowV2DraftValidationEntry": {
+        "title": "FlowV2DraftValidationEntry",
+        "type": "object",
+        "description": "A single result entry returned when validating a stored flow draft.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable result code.",
+            "example": "FC1007"
+          },
+          "docLink": {
+            "type": "string",
+            "description": "Link to documentation about this result. May be empty.",
+            "example": ""
+          },
+          "hint": {
+            "type": "string",
+            "description": "Additional hint about the result, when available.",
+            "example": "Flow has isolated activities. Ensure all nodes are reachable from the start node."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable explanation of the result.",
+            "example": "Add descriptions for activities"
+          },
+          "severity": {
+            "type": "string",
+            "description": "Severity of the result.",
+            "enum": [
+              "ERROR",
+              "WARNING",
+              "RECOMMENDATION"
+            ],
+            "example": "RECOMMENDATION"
+          },
+          "activityLabel": {
+            "type": "string",
+            "description": "Label of the activity the result relates to. May be empty.",
+            "example": ""
+          }
+        }
+      },
+      "FlowV2DraftValidationResult": {
+        "title": "FlowV2DraftValidationResult",
+        "type": "object",
+        "description": "Result of validating a stored flow draft. Issues are returned under `results`.",
+        "example": {
+          "valid": true,
+          "results": [
+            {
+              "code": "FC1007",
+              "docLink": "",
+              "message": "Add descriptions for activities",
+              "severity": "RECOMMENDATION",
+              "activityLabel": ""
+            }
+          ]
+        },
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "description": "True if the draft passed validation."
+          },
+          "results": {
+            "type": "array",
+            "description": "Per-issue results.",
+            "items": {
+              "$ref": "#/components/schemas/FlowV2DraftValidationEntry"
             }
           }
         }
@@ -93184,10 +93428,10 @@
             }
           ],
           "pageInfo": {
-            "pageNumber": 0,
+            "currentPage": 0,
             "pageSize": 100,
-            "totalElements": 1,
-            "totalPages": 1
+            "totalPages": 1,
+            "totalRecords": 1
           }
         }
       },
@@ -93197,7 +93441,7 @@
         "description": "Pagination details for a paged list response.",
         "additionalProperties": true,
         "properties": {
-          "pageNumber": {
+          "currentPage": {
             "type": "integer",
             "format": "int32",
             "description": "Zero-based index of the returned page.",
@@ -93209,40 +93453,72 @@
             "description": "Page size used by the query.",
             "example": 100
           },
-          "totalElements": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Total number of records matching the query, across all pages.",
-            "example": 42
-          },
           "totalPages": {
             "type": "integer",
             "format": "int32",
             "description": "Total number of pages.",
             "example": 1
+          },
+          "totalRecords": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of records matching the query, across all pages.",
+            "example": 42
           }
         },
         "example": {
-          "pageNumber": 0,
+          "currentPage": 0,
           "pageSize": 100,
-          "totalElements": 42,
-          "totalPages": 1
+          "totalPages": 1,
+          "totalRecords": 42
         }
       },
       "FnStatusResponse": {
         "title": "FnStatusResponse",
+        "type": "string",
+        "description": "Acknowledgement returned by lock/unlock operations. Returns the literal JSON string \"OK\" on success.",
+        "example": "OK"
+      },
+      "FnConflictResponse": {
+        "title": "FnConflictResponse",
         "type": "object",
-        "description": "Generic status acknowledgement returned by lock/unlock operations.",
+        "description": "Conflict envelope returned when a function with the same name already exists in the org.",
         "additionalProperties": true,
         "properties": {
           "status": {
-            "type": "string",
-            "description": "HTTP-style status string.",
-            "example": "200 OK"
+            "type": "integer",
+            "description": "HTTP status code.",
+            "example": 409
+          },
+          "errors": {
+            "type": "array",
+            "description": "The conflicts encountered.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "description": "Human-readable description of the conflict.",
+                  "example": "409 CONFLICT \"Function with name: validateZipCode already exists in org: 8eb7da9a-c81c-4d13-b08b-38fdeb7330d8. Please choose a different name.\""
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Error type.",
+                  "example": "Conflict"
+                }
+              }
+            }
           }
         },
         "example": {
-          "status": "200 OK"
+          "status": 409,
+          "errors": [
+            {
+              "description": "409 CONFLICT \"Function with name: validateZipCode already exists in org: 8eb7da9a-c81c-4d13-b08b-38fdeb7330d8. Please choose a different name.\"",
+              "type": "Conflict"
+            }
+          ]
         }
       },
       "FnCreateReq": {
@@ -93494,30 +93770,38 @@
         "description": "Result of a test invocation. Contains the value returned by the function plus execution metadata.",
         "additionalProperties": true,
         "properties": {
-          "result": {
-            "description": "Value returned by the function.",
+          "statusCode": {
+            "type": "integer",
+            "description": "HTTP-style status code of the invocation.",
+            "example": 200
+          },
+          "data": {
+            "description": "Output data returned by the function (the object set into `response.data`).",
             "example": {
-              "isValid": true
+              "phoneDigits": "4155550132",
+              "areaCode": "415"
             }
           },
-          "logs": {
+          "errorMessage": {
             "type": "string",
-            "description": "Captured stdout/stderr from the invocation.",
-            "example": "validated zip 94043"
+            "description": "Error message when the invocation failed; empty string on success.",
+            "example": ""
           },
-          "durationMs": {
+          "timeTakenInMilliseconds": {
             "type": "integer",
             "format": "int64",
             "description": "Wall-clock execution time, in milliseconds.",
-            "example": 12
+            "example": 3052
           }
         },
         "example": {
-          "result": {
-            "isValid": true
+          "statusCode": 200,
+          "data": {
+            "phoneDigits": "4155550132",
+            "areaCode": "415"
           },
-          "logs": "validated zip 94043",
-          "durationMs": 12
+          "errorMessage": "",
+          "timeTakenInMilliseconds": 3052
         }
       },
       "FnPublishReq": {
@@ -93553,30 +93837,56 @@
       "FnExport": {
         "title": "FnExport",
         "type": "object",
-        "description": "Exported representation of a custom function, suitable for re-importing via the import API.",
+        "description": "Exported function definition, suitable for re-importing via the import API as an uploaded JSON file.",
         "additionalProperties": true,
         "properties": {
-          "fileName": {
+          "name": {
             "type": "string",
-            "description": "Suggested file name for the exported artifact.",
-            "example": "validateZipCode.zip"
+            "description": "Function name.",
+            "example": "validateZipCode"
           },
-          "contentType": {
+          "language": {
             "type": "string",
-            "description": "Content type of the embedded artifact.",
-            "example": "application/zip"
+            "description": "Source language of the function (for example, `js`, `py`).",
+            "example": "js"
           },
-          "content": {
+          "runtime": {
             "type": "string",
-            "format": "byte",
-            "description": "Base64-encoded zip archive containing the function source code and metadata.",
-            "example": "UEsDBBQAAAAIAA=="
+            "description": "Runtime the function executes on.",
+            "example": "nodejs22.x"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the function.",
+            "example": "Validates and normalizes a US ZIP code."
+          },
+          "sourceCode": {
+            "type": "string",
+            "description": "Full function source code.",
+            "example": "export const handle = (request, response) => { /* ... */ };"
+          },
+          "inputs": {
+            "type": "array",
+            "description": "Declared function inputs.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "outputs": {
+            "type": "string",
+            "description": "Declared function outputs as a JSON-encoded string.",
+            "example": "{\"myOutputVar1\": 7, \"myOutputVar2\": \"String data\"}"
           }
         },
         "example": {
-          "fileName": "validateZipCode.zip",
-          "contentType": "application/zip",
-          "content": "UEsDBBQAAAAIAA=="
+          "name": "validateZipCode",
+          "language": "js",
+          "runtime": "nodejs22.x",
+          "description": "Validates and normalizes a US ZIP code.",
+          "sourceCode": "export const handle = (request, response) => { /* ... */ };",
+          "inputs": [],
+          "outputs": "{\"myOutputVar1\": 7, \"myOutputVar2\": \"String data\"}"
         }
       },
       "FlowTemplate": {
