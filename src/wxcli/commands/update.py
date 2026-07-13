@@ -193,10 +193,13 @@ def _run_hook_check() -> None:
     except Exception:
         raise typer.Exit(0)
     if latest:
-        typer.echo(
-            f"A newer wxcli is available: {latest} (you have {__version__}). "
-            f"Tell the user an update is available and suggest running 'wxcli update'."
-        )
+        try:
+            typer.echo(
+                f"A newer wxcli is available: {latest} (you have {__version__}). "
+                f"Tell the user an update is available and suggest running 'wxcli update'."
+            )
+        except Exception:
+            raise typer.Exit(0)
         raise typer.Exit(2)
     raise typer.Exit(0)
 

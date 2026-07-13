@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "wxcli update --hook",
+            "command": "wxcli --no-update-check update --hook",
             "asyncRewake": true
           }
         ]
