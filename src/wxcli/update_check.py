@@ -91,14 +91,23 @@ def check_for_update(current_version, *, now=None, cache_path=CACHE_PATH,
     try:
         if now is None:
             now = time.time()
-        latest = None
         cache = _read_cache(cache_path)
-        if (not force and cache
-                and isinstance(cache.get("last_check"), (int, float))
-                and now - cache["last_check"] < ttl):
+        cache_fresh = (
+            not force and cache
+            and isinstance(cache.get("last_check"), (int, float))
+            and now - cache["last_check"] < ttl
+        )
+        if cache_fresh:
             latest = cache.get("latest")
-        if latest is None:
-            latest = _fetch_latest(timeout)
+        else:
+            try:
+                latest = _fetch_latest(timeout)
+            except Exception:
+                # Negative-cache the failure so an offline / firewalled machine
+                # doesn't re-hit PyPI (and eat the timeout) on every command.
+                # Preserve the last known-good latest so a previously-seen
+                # update still notifies.
+                latest = cache.get("latest") if cache else None
             _write_cache(cache_path, latest, now)
         if latest and _is_newer(latest, current_version):
             return latest

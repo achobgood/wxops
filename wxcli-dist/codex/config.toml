@@ -13,5 +13,5 @@ sandbox_mode = "workspace-write"
 # [[hooks.SessionStart]]
 # [[hooks.SessionStart.hooks]]
 # type = "command"
-# command = "wxcli update --hook"
+# command = "wxcli --no-update-check update --hook"
 # timeout = 15
