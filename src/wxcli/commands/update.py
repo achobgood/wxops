@@ -176,6 +176,31 @@ def refresh_playbook(latest: str, yes: bool, cwd: Path | None = None,
         typer.echo("Playbook refresh failed — run 'wxcli init --force' manually.", err=True)
 
 
+def _run_hook_check() -> None:
+    """Session-start hook path: cached PyPI check. Exit 2 with an
+    assistant-directed message when behind; exit 0 (silent) otherwise.
+    Honors the same opt-outs as the startup banner and stays quiet on
+    editable installs and on any error."""
+    from wxcli.update_check import ENV_DISABLE, _env_truthy, check_for_update
+    if _env_truthy(ENV_DISABLE) or _env_truthy("CI"):
+        raise typer.Exit(0)
+    try:
+        if detect_install_method() == "editable":
+            raise typer.Exit(0)
+        latest = check_for_update(__version__)
+    except typer.Exit:
+        raise
+    except Exception:
+        raise typer.Exit(0)
+    if latest:
+        typer.echo(
+            f"A newer wxcli is available: {latest} (you have {__version__}). "
+            f"Tell the user an update is available and suggest running 'wxcli update'."
+        )
+        raise typer.Exit(2)
+    raise typer.Exit(0)
+
+
 @app.callback(invoke_without_command=True)
 def update(
     ctx: typer.Context,
@@ -184,9 +209,18 @@ def update(
     migrate: bool = typer.Option(
         False, "--migrate", help="Switch a source/clone install to a managed pipx install."
     ),
+    hook: bool = typer.Option(
+        False, "--hook", hidden=True,
+        help="Session-start hook: cached PyPI check; exit 2 with an "
+             "assistant-directed message when a newer wxcli exists.",
+    ),
 ):
     """Check PyPI for a newer wxcli and upgrade in place."""
     if ctx.invoked_subcommand:
+        return
+
+    if hook:
+        _run_hook_check()
         return
 
     if migrate:
