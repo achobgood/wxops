@@ -101096,6 +101096,143 @@
         }
       }
     },
+    "/telephony/config/people/{personId}/outboundBillingPlan": {
+      "get": {
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OutboundBillingPlanResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "summary": "Retrieve a Person's Outbound Billing Plan",
+        "operationId": "getPersonOutboundBillingPlan",
+        "description": "<div><Callout type=\"warning\">Not supported for Webex for Government (FedRAMP).</Callout></div>\n\nRetrieve the Cisco Calling Plan outbound billing plan setting for a person.\n\nCisco Calling Plan outbound billing identifies whether outbound calls for the person are billed through Cisco Calling Plan.\n\nThe response returns `enabled` as `true` when Cisco Calling Plan outbound billing is enabled for the person. Otherwise, the response returns `enabled` as `false`.\n\nRetrieving a person's outbound billing plan requires a full, user, read-only administrator, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/personId"
+          },
+          {
+            "$ref": "#/components/parameters/orgId"
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "summary": "Modify a Person's Outbound Billing Plan",
+        "operationId": "updatePersonOutboundBillingPlan",
+        "description": "<div><Callout type=\"warning\">Not supported for Webex for Government (FedRAMP).</Callout></div>\n\nModify the Cisco Calling Plan outbound billing plan setting for a person.\n\nCisco Calling Plan outbound billing identifies whether outbound calls for the person are billed through Cisco Calling Plan.\n\nSet `enabled` to `true` to enable Cisco Calling Plan outbound billing. Setting `enabled` to `true` is supported only for a person in a Cisco Calling Plan location. Set `enabled` to `false` to disable it.\n\nUpdating a person's outbound billing plan requires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "User Call Settings (3/3)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/personId"
+          },
+          {
+            "$ref": "#/components/parameters/orgId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/OutboundBillingPlanRequest"
+        }
+      }
+    },
     "/telephony/config/virtualLines": {
       "get": {
         "responses": {
@@ -108054,6 +108191,143 @@
               }
             }
           }
+        }
+      }
+    },
+    "/telephony/config/virtualLines/{virtualLineId}/outboundBillingPlan": {
+      "get": {
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OutboundBillingPlanResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "summary": "Retrieve a Virtual Line's Outbound Billing Plan",
+        "operationId": "getVirtualLineOutboundBillingPlan",
+        "description": "<div><Callout type=\"warning\">Not supported for Webex for Government (FedRAMP).</Callout></div>\n\nRetrieve the Cisco Calling Plan outbound billing plan setting for a virtual line.\n\nCisco Calling Plan outbound billing identifies whether outbound calls for the virtual line are billed through Cisco Calling Plan.\n\nThe response returns `enabled` as `true` when Cisco Calling Plan outbound billing is enabled for the virtual line. Otherwise, the response returns `enabled` as `false`.\n\nRetrieving a virtual line's outbound billing plan requires a full, user, read-only administrator, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Virtual Line Call Settings"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VirtualLineId"
+          },
+          {
+            "$ref": "#/components/parameters/OrgId"
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "summary": "Modify a Virtual Line's Outbound Billing Plan",
+        "operationId": "updateVirtualLineOutboundBillingPlan",
+        "description": "<div><Callout type=\"warning\">Not supported for Webex for Government (FedRAMP).</Callout></div>\n\nModify the Cisco Calling Plan outbound billing plan setting for a virtual line.\n\nCisco Calling Plan outbound billing identifies whether outbound calls for the virtual line are billed through Cisco Calling Plan.\n\nSet `enabled` to `true` to enable Cisco Calling Plan outbound billing. Setting `enabled` to `true` is supported only for a virtual line in a Cisco Calling Plan location. Set `enabled` to `false` to disable it.\n\nUpdating a virtual line's outbound billing plan requires a full, user, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Virtual Line Call Settings"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/VirtualLineId"
+          },
+          {
+            "$ref": "#/components/parameters/OrgId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/OutboundBillingPlanRequest"
         }
       }
     },
@@ -119266,6 +119540,143 @@
             }
           }
         ]
+      }
+    },
+    "/telephony/config/workspaces/{workspaceId}/outboundBillingPlan": {
+      "get": {
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OutboundBillingPlanResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "summary": "Retrieve a Workspace's Outbound Billing Plan",
+        "operationId": "getWorkspaceOutboundBillingPlan",
+        "description": "<div><Callout type=\"warning\">Not supported for Webex for Government (FedRAMP).</Callout></div>\n\nRetrieve the Cisco Calling Plan outbound billing plan setting for a workspace.\n\nCisco Calling Plan outbound billing identifies whether outbound calls for the workspace are billed through Cisco Calling Plan.\n\nThe response returns `enabled` as `true` when Cisco Calling Plan outbound billing is enabled for the workspace. Otherwise, the response returns `enabled` as `false`.\n\nRetrieving a workspace's outbound billing plan requires a full, device, read-only administrator, or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Workspace Call Settings (2/2)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "$ref": "#/components/parameters/OrgId"
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/NoContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "428": {
+            "$ref": "#/components/responses/PreconditionRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        },
+        "summary": "Modify a Workspace's Outbound Billing Plan",
+        "operationId": "updateWorkspaceOutboundBillingPlan",
+        "description": "<div><Callout type=\"warning\">Not supported for Webex for Government (FedRAMP).</Callout></div>\n\nModify the Cisco Calling Plan outbound billing plan setting for a workspace.\n\nCisco Calling Plan outbound billing identifies whether outbound calls for the workspace are billed through Cisco Calling Plan.\n\nSet `enabled` to `true` to enable Cisco Calling Plan outbound billing. Setting `enabled` to `true` is supported only for a workspace in a Cisco Calling Plan location. Set `enabled` to `false` to disable it.\n\nUpdating a workspace's outbound billing plan requires a full, device, or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Workspace Call Settings (2/2)"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "$ref": "#/components/parameters/OrgId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/OutboundBillingPlanRequest"
+        }
       }
     },
     "/workspaces": {
@@ -168206,6 +168617,23 @@
         ],
         "example": "USER"
       },
+      "OutboundBillingPlan": {
+        "type": "object",
+        "example": {
+          "enabled": true
+        },
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Set to `true` when Cisco Calling Plan outbound billing is enabled for the workspace.",
+            "example": true
+          }
+        },
+        "description": "Cisco Calling Plan outbound billing setting for the workspace."
+      },
       "ListVirtualLineObject": {
         "type": "object",
         "required": [
@@ -172560,6 +172988,48 @@
             "example": "lastName-asc"
           }
         }
+      },
+      "VirtualLineId": {
+        "name": "virtualLineId",
+        "in": "path",
+        "description": "Unique identifier for the virtual line.",
+        "required": true,
+        "example": "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS85Y2JmYjYxZi00ZGM0LTQ1NWItYmMzYS00NmI4YmY5YjQzNzk",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Unique identifier for the virtual line.",
+          "example": "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS85Y2JmYjYxZi00ZGM0LTQ1NWItYmMzYS00NmI4YmY5YjQzNzk"
+        }
+      },
+      "OrgId": {
+        "name": "orgId",
+        "in": "query",
+        "description": "ID of the organization within which the workspace resides. Only admin users of another organization, such as partners, may use this parameter because the default is the same organization as the token used to access the API.",
+        "required": false,
+        "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "ID of the organization within which the workspace resides.",
+          "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE"
+        }
+      },
+      "WorkspaceId": {
+        "name": "workspaceId",
+        "in": "path",
+        "description": "Unique identifier for the workspace.",
+        "required": true,
+        "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RmNjkxOGVmLWE4MjAtNGFmYS1iYjg1LTcyY2ZlZmI3ZGM2Nw==",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Unique identifier for the workspace.",
+          "example": "Y2lzY29zcGFyazovL3VzL1BMQUNFL2RmNjkxOGVmLWE4MjAtNGFmYS1iYjg1LTcyY2ZlZmI3ZGM2Nw=="
+        }
       }
     },
     "responses": {
@@ -172579,7 +173049,7 @@
         "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
       },
       "Conflict": {
-        "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system."
+        "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
       },
       "Gone": {
         "description": "Gone: The requested resource is no longer available."
@@ -172607,8 +173077,39 @@
       },
       "GatewayTimeout": {
         "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+      },
+      "OutboundBillingPlanResponse": {
+        "description": "OK",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OutboundBillingPlan"
+            },
+            "example": {
+              "enabled": true
+            }
+          }
+        }
+      },
+      "NoContent": {
+        "description": "No Content"
       }
     },
-    "requestBodies": {}
+    "requestBodies": {
+      "OutboundBillingPlanRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/OutboundBillingPlan"
+            },
+            "example": {
+              "enabled": false
+            }
+          }
+        },
+        "description": "Cisco Calling Plan outbound billing setting to apply to the workspace."
+      }
+    }
   }
 }

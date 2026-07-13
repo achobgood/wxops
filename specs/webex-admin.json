@@ -28478,7 +28478,7 @@
           },
           "roles": {
             "type": "array",
-            "description": "The roles assigned to the admin for managing the customer group.",
+            "description": "The roles assigned to the admin for managing the customer group. For initial release both External Admin and Partner Admin will only support one set of roles: `id_full_admin + atlas-portal.partner.provision_admin`.",
             "items": {
               "type": "string"
             }
@@ -32968,7 +32968,11 @@
             "description": "The roles assigned to the admin for managing the customer group.",
             "items": {
               "type": "string"
-            }
+            },
+            "example": [
+              "atlas-portal.partner.provision_admin",
+              "id_full_admin"
+            ]
           }
         }
       },
@@ -33229,7 +33233,7 @@
           },
           "roles": {
             "type": "array",
-            "description": "The roles assigned to the admin.",
+            "description": "The roles assigned to the admin. For initial release both External Admin and Partner Admin will only support one set of roles: `id_full_admin + atlas-portal.partner.provision_admin`.",
             "items": {
               "type": "string"
             },
@@ -33269,7 +33273,7 @@
           },
           "roles": {
             "type": "array",
-            "description": "The roles assigned to the admin.",
+            "description": "The roles assigned to the admin. For initial release both External Admin and Partner Admin will only support one set of roles: `id_full_admin + atlas-portal.partner.provision_admin`.",
             "items": {
               "type": "string"
             },
