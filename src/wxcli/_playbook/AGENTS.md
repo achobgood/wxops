@@ -15,6 +15,17 @@ For every question — capability, configuration, behavior, limits, or anything 
 
 The reference docs and skills are the authoritative source for this project. Training data about Cisco/Webex products is unreliable — product tiers get conflated, feature names change, and capabilities vary by license. If the answer isn't in the docs or skills, say so explicitly rather than filling the gap from training data.
 
+## Plain-English Communication Rule
+
+The target user has ZERO platform experience. When explaining findings, trade-offs, or decisions — or asking the user to choose between options — do NOT lead with jargon, acronyms, or internal feature-names. Instead:
+- Lead with **"what we're actually deciding"** in one plain sentence.
+- Replace every technical term with a **concrete before/after of what the user would type or see** (e.g. "Today you type X and see Y; the other way you'd type/see Z").
+- Answer their real questions directly: **what should we do, why, is it easy to maintain, what risks breaking.**
+- **End with a clear recommendation**, not a neutral menu of options.
+- If a technical term must appear, define it inline the first time.
+
+This applies to chat answers AND the option text in any question you ask the user.
+
 ## Execution Discipline
 
 - **Verify before claiming done.** Run the command, check the output, confirm the state. Never report success from inference alone. Ask yourself: "Would a staff engineer approve this?"

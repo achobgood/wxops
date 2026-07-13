@@ -27,14 +27,27 @@ INCLUDE_PATHS = [
     ".claude/skills",
     ".claude/rules",
     "docs/reference",
+    # The CUCM migration skill and advisor read these at runtime.  They must
+    # travel with `wxcli init`, not just live in a source checkout.
+    "docs/knowledge-base/migration",
+    "docs/runbooks/cucm-migration",
 ]
 EXCLUDE_FILES = {
     # Dev-facing spec-authoring template (19 src/ refs); its only shipping
     # referrer (.claude/rules/cucm-migration.md) is scrubbed in Task 5/B3.
     "docs/reference/migration-spec-template.md",
+    # Internal review notes, not operator-facing playbook material.
+    "docs/runbooks/cucm-migration/self-review-findings.md",
 }
 EXCLUDE_BASENAMES = {"TODO.md", ".DS_Store"}
 AUDIT_TOKENS = ("src/", "tools/", "python3.14 -m", "field_overrides")
+# These operator docs cite implementation files as provenance. The code is not
+# shipped in an installed playbook, but the citations are explanatory rather
+# than executable links; retain them while keeping the usual audit elsewhere.
+SOURCE_CITATION_PREFIXES = (
+    "docs/knowledge-base/migration/",
+    "docs/runbooks/cucm-migration/",
+)
 
 # ── Codex playbook transform ──────────────────────────────────────────────
 # The Codex shape (.codex/ + AGENTS.md) is GENERATED from the assembled Claude
@@ -131,8 +144,11 @@ def audit_bundle(bundle_dir: Path) -> list[tuple[str, int, str]]:
             continue
         rel = path.relative_to(bundle_dir).as_posix()
         lines = path.read_text(errors="replace").splitlines()
+        tokens = AUDIT_TOKENS
+        if rel.startswith(SOURCE_CITATION_PREFIXES):
+            tokens = tuple(tok for tok in AUDIT_TOKENS if tok != "src/")
         for i in range(_body_start(rel, lines), len(lines)):
-            for tok in AUDIT_TOKENS:
+            for tok in tokens:
                 if tok in lines[i]:
                     violations.append((rel, i + 1, tok))
     return violations

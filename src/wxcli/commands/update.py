@@ -155,7 +155,9 @@ def refresh_playbook(latest: str, yes: bool, cwd: Path | None = None,
     `wxcli init --force` manually (documented, not solved).
     """
     folder = (cwd or Path.cwd()).resolve()
-    if not (folder / ".claude" / ".wxops-manifest.json").exists():
+    claude_installed = (folder / ".claude" / ".wxops-manifest.json").exists()
+    codex_installed = (folder / ".codex" / ".wxops-manifest.json").exists()
+    if not (claude_installed or codex_installed):
         typer.echo(
             f"To refresh a playbook folder: run 'wxcli init --force' in it "
             f"(brings it to v{latest})."
@@ -165,7 +167,12 @@ def refresh_playbook(latest: str, yes: bool, cwd: Path | None = None,
         f"This folder holds a wxops playbook. Refresh it to v{latest}?", default=True
     ):
         return
-    if run(["wxcli", "init", "--force", str(folder)]).returncode != 0:
+    profile_flag = (
+        [] if claude_installed and codex_installed
+        else ["--claude-only"] if claude_installed
+        else ["--codex-only"]
+    )
+    if run(["wxcli", "init", "--force", *profile_flag, str(folder)]).returncode != 0:
         typer.echo("Playbook refresh failed — run 'wxcli init --force' manually.", err=True)
 
 
