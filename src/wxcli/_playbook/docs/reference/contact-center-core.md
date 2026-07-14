@@ -67,19 +67,19 @@ Runtime agent operations: login, logout, state changes, reload, buddy lists, act
 |--------|------|-------------|-------------|
 | GET | `/v1/agents/activities` | `list` | Get Agent Activities |
 | POST | `/v1/agents/buddyList` | `create-buddy-list` | Buddy Agents List |
-| POST | `/v1/agents/login` | `create-login-agents-1` | Login (v1) |
+| POST | `/v1/agents/login` | `create` | Login (v1) |
 | PUT | `/v1/agents/logout` | `update` | Logout |
-| POST | `/v1/agents/reload` | `create` | Reload |
+| POST | `/v1/agents/reload` | `create-reload-agents` | Reload |
 | PUT | `/v1/agents/session/state` | `update-state-session` | State Change |
 | GET | `/v1/agents/statistics` | `list-statistics` | Get Agent Statistics |
-| POST | `/v2/agents/login` | `create-login-agents` | Login (v2) |
+| POST | `/v2/agents/login` | `create-login` | Login (v2) |
 | PUT | `/v2/agents/logout` | `update-logout` | Logout (v2) |
-| POST | `/v2/agents/reload` | `create-reload` | Reload (v2) |
+| POST | `/v2/agents/reload` | `create-reload-agents-1` | Reload (v2) |
 | PUT | `/v2/agents/session/state` | `update-state-session-1` | State Change (v2) |
 
 ### Key Parameters
 
-- **Login:** Requires `teamId`, `channelName`, `agentDn` (dial number)
+- **Login:** Requires `dialNumber`; optional `teamId`, `isExtension`, `deviceType`, `deviceId`, `roles`
 - **State Change:** Requires `state` (Available, Idle, etc.), `auxCodeId` (for idle codes)
 - **Activities:** Supports `from`, `to` date filters, `agentId`, `state`
 - **Statistics:** Supports `agentId`, `channelType`, `from`, `to`
@@ -88,12 +88,7 @@ Runtime agent operations: login, logout, state changes, reload, buddy lists, act
 
 ```bash
 # Log in an agent (v2)
-wxcli cc-agents create-login-agents --json-body '{
-  "agentId": "...",
-  "teamId": "...",
-  "channelName": "telephony",
-  "agentDn": "1001"
-}'
+wxcli cc-agents create-login --dial-number "1001" --team-id "..." --is-extension
 
 # Change agent state to Available
 wxcli cc-agents update-state-session-1 --json-body '{
@@ -105,7 +100,7 @@ wxcli cc-agents update-state-session-1 --json-body '{
 wxcli cc-agents list --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
 
 # Get agent statistics
-wxcli cc-agents list-statistics --agent-id "..."
+wxcli cc-agents list-statistics --agent-ids "..." --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
 
 # Log out agent (v2)
 wxcli cc-agents update-logout --json-body '{"agentId": "..."}'
@@ -258,7 +253,7 @@ Contact Center user management. CC users are Webex users with CC-specific config
 |--------|------|-------------|-------------|
 | GET | `/organization/{orgid}/user` | `list-user-organization` | List User(s) (v1) |
 | PATCH | `/organization/{orgid}/user/bulk` | `update` | Bulk partial update Users |
-| GET | `/organization/{orgid}/user/bulk-export` | `list-bulk-export` | Bulk export User(s) |
+| GET | `/organization/{orgid}/user/bulk-export` | _(no CLI command)_ | Bulk export User(s) |
 | GET | `/organization/{orgid}/user/by-ci-user-id/{id}` | `show-by-ci-user-id-organization` | Get User by CI User ID (v1) |
 | POST | `/organization/{orgid}/user/fetch-by-skill-requirements` | `create` | Get agents matching skill requirements |
 | POST | `/organization/{orgid}/user/fetch-user-details-by-ids` | `create-fetch-user-details-by-ids` | Get Users by provided IDs |
@@ -268,7 +263,7 @@ Contact Center user management. CC users are Webex users with CC-specific config
 | PATCH | `/organization/{orgid}/user/{id}` | `update-user-organization-1` | Partially update User by ID |
 | PUT | `/organization/{orgid}/user/{id}` | `update-user-organization` | Update User by ID |
 | GET | `/organization/{orgid}/user/{id}/incoming-references` | `list` | List references for User |
-| GET | `/organization/{orgid}/v2/user` | `list-user-v2` | List User(s) (v2) |
+| GET | `/organization/{orgid}/v2/user` | `list-user` | List User(s) (v2) |
 | GET | `/organization/{orgid}/v2/user/by-ci-user-id/{id}` | `show-by-ci-user-id-v2` | Get User by CI User ID (v2) |
 | PATCH | `/organization/{orgid}/user/bulk/update-dynamic-skill/{skillId}` | `update-dynamic-skill` | Bulk assign/unassign dynamic skill |
 | GET | `/organization/{orgid}/user/by-dynamic-skill-id/{skillId}` | `show-by-dynamic-skill-id` | List users with a specific dynamic skill |
@@ -288,16 +283,13 @@ Contact Center user management. CC users are Webex users with CC-specific config
 
 ```bash
 # List CC users (v2 -- enhanced filtering)
-wxcli cc-users list-user-v2
+wxcli cc-users list-user
 
 # Get a user with their profile
-wxcli cc-users show --id "user-uuid"
+wxcli cc-users show-with-user-profile "user-uuid"
 
 # Get a user by their Webex CI User ID
-wxcli cc-users show-by-ci-user-id-v2 --id "ci-user-uuid"
-
-# Bulk export all users
-wxcli cc-users list-bulk-export
+wxcli cc-users show-by-ci-user-id-v2 "ci-user-uuid"
 
 # Find agents matching skill requirements
 wxcli cc-users create --json-body '{
@@ -355,28 +347,28 @@ curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/user/fetch-by-
 
 ## 5. User Profiles (`cc-user-profiles`)
 
-User profiles define what a CC agent can do: access to queues, features, and settings. Three API versions available (v1, v2, v3).
+User profiles define what a CC agent can do: access to queues, features, and settings. Three API versions exist (v1, v2, v3), but `wxcli` only exposes the v3 endpoints plus the v1 incoming-references lookup (`list`).
 
 ### Endpoints
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/organization/{orgid}/user-profile` | `list-user-profile-organization` | List (v1) |
-| POST | `/organization/{orgid}/user-profile/bulk` | `create-bulk-user-profile-1` | Bulk save (v1) |
-| GET | `/organization/{orgid}/user-profile/bulk-export` | `list-bulk-export-user-profile-1` | Bulk export (v1) |
-| POST | `/organization/{orgid}/user-profile/purge-inactive-entities` | `create` | Purge inactive |
-| GET | `/organization/{orgid}/user-profile/{id}` | `show` | Get by ID (v1) |
-| DELETE | `/organization/{orgid}/user-profile/{id}` | `delete` | Delete (v1) |
-| PUT | `/organization/{orgid}/user-profile/{id}` | `update` | Update (v1) |
+| GET | `/organization/{orgid}/user-profile` | _(no CLI command)_ | List (v1) |
+| POST | `/organization/{orgid}/user-profile/bulk` | _(no CLI command)_ | Bulk save (v1) |
+| GET | `/organization/{orgid}/user-profile/bulk-export` | _(no CLI command)_ | Bulk export (v1) |
+| POST | `/organization/{orgid}/user-profile/purge-inactive-entities` | _(no CLI command)_ | Purge inactive |
+| GET | `/organization/{orgid}/user-profile/{id}` | _(no CLI command)_ | Get by ID (v1) |
+| DELETE | `/organization/{orgid}/user-profile/{id}` | _(no CLI command)_ | Delete (v1) |
+| PUT | `/organization/{orgid}/user-profile/{id}` | _(no CLI command)_ | Update (v1) |
 | GET | `/organization/{orgid}/user-profile/{id}/incoming-references` | `list` | List references |
-| GET | `/organization/{orgid}/v2/user-profile` | `list-user-profile-v2` | List (v2) |
-| GET | `/organization/{orgid}/v3/user-profile` | `list-user-profile-v3` | List (v3) |
-| POST | `/organization/{orgid}/v3/user-profile` | `create-user-profile` | Create (v3) |
-| POST | `/organization/{orgid}/v3/user-profile/bulk` | `create-bulk-user-profile` | Bulk save (v3) |
-| GET | `/organization/{orgid}/v3/user-profile/bulk-export` | `list-bulk-export-user-profile` | Bulk export (v3) |
-| GET | `/organization/{orgid}/v3/user-profile/{id}` | `show-user-profile` | Get by ID (v3) |
-| DELETE | `/organization/{orgid}/v3/user-profile/{id}` | `delete-user-profile` | Delete (v3) |
-| PUT | `/organization/{orgid}/v3/user-profile/{id}` | `update-user-profile` | Update (v3) |
+| GET | `/organization/{orgid}/v2/user-profile` | _(no CLI command)_ | List (v2) |
+| GET | `/organization/{orgid}/v3/user-profile` | `list-user-profile` | List (v3) |
+| POST | `/organization/{orgid}/v3/user-profile` | `create` | Create (v3) |
+| POST | `/organization/{orgid}/v3/user-profile/bulk` | `create-bulk` | Bulk save (v3) |
+| GET | `/organization/{orgid}/v3/user-profile/bulk-export` | _(no CLI command)_ | Bulk export (v3) |
+| GET | `/organization/{orgid}/v3/user-profile/{id}` | `show` | Get by ID (v3) |
+| DELETE | `/organization/{orgid}/v3/user-profile/{id}` | `delete` | Delete (v3) |
+| PUT | `/organization/{orgid}/v3/user-profile/{id}` | `update` | Update (v3) |
 | GET | `/organization/{orgid}/v3/user-profile/{id}/acl` | `list-acl` | Get ACL (v3) |
 
 ### Key Parameters
@@ -389,26 +381,23 @@ User profiles define what a CC agent can do: access to queues, features, and set
 
 ```bash
 # List user profiles (v3)
-wxcli cc-user-profiles list-user-profile-v3
+wxcli cc-user-profiles list-user-profile
 
 # Get a user profile by ID (v3)
-wxcli cc-user-profiles show-user-profile --id "profile-uuid"
+wxcli cc-user-profiles show "profile-uuid"
 
 # Create a user profile (v3)
-wxcli cc-user-profiles create-user-profile --json-body '{
+wxcli cc-user-profiles create --json-body '{
   "name": "Standard Agent Profile",
   "description": "Default profile for voice agents",
   "accessRights": {"queues": ["queue-uuid-1", "queue-uuid-2"]}
 }'
 
 # Get profile ACL (v3)
-wxcli cc-user-profiles list-acl --id "profile-uuid"
-
-# Bulk export all profiles (v3)
-wxcli cc-user-profiles list-bulk-export-user-profile
+wxcli cc-user-profiles list-acl "profile-uuid"
 
 # Delete a user profile (v3)
-wxcli cc-user-profiles delete-user-profile --id "profile-uuid"
+wxcli cc-user-profiles delete "profile-uuid"
 ```
 
 ### Raw HTTP
@@ -454,7 +443,7 @@ Contact Service Queues route incoming contacts to agents based on routing strate
 | PUT | `/organization/{orgid}/contact-service-queue/{id}` | `update-contact-service-queue-organization` | Update |
 | GET | `/organization/{orgid}/contact-service-queue/{id}/incoming-references` | `list-incoming-references` | List references |
 | GET | `/organization/{orgid}/v2/contact-service-queue` | `list-contact-service-queue-v2` | List (v2) |
-| POST | `/organization/{orgid}/v2/contact-service-queue` | `create-contact-service-queue-v2` | Create (v2) |
+| POST | `/organization/{orgid}/v2/contact-service-queue` | `create-contact-service-queue` | Create (v2) |
 | GET | `/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/agent-based-queues` | `list-agent-based-queues` | Agent-based queues by user |
 | GET | `/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/skill-based-queues` | `list-skill-based-queues` | Skill-based queues by user |
 | GET | `/organization/{orgid}/v2/contact-service-queue/by-user-id/{userid}/team-based-queues` | `list-team-based-queues` | Team-based queues by user |
@@ -462,11 +451,11 @@ Contact Service Queues route incoming contacts to agents based on routing strate
 | PUT | `/organization/{orgid}/v2/contact-service-queue/{id}` | `update-contact-service-queue-v2` | Update (v2) |
 | POST | `/organization/{orgid}/v2/contact-service-queue/{id}/reassign-agents` | `create-reassign-agents` | Reassign agents |
 | GET | `/organization/{orgid}/v3/contact-service-queue` | `list-contact-service-queue-v3` | List (v3) |
-| GET | `/organization/{orgid}/contact-service-queue/by-team-id/{id}/internal` | `list-internal-by-team-id` | Team CSQs by team ID (internal) |
-| GET | `/organization/{orgid}/contact-service-queue/by-user-ci-id/{ciUserId}/internal` | `list-internal-by-user-ci-id` | Agent CSQs by CI user ID (internal) |
+| GET | `/organization/{orgid}/contact-service-queue/by-team-id/{id}/internal` | _(no CLI command)_ | Team CSQs by team ID (internal) |
+| GET | `/organization/{orgid}/contact-service-queue/by-user-ci-id/{ciUserId}/internal` | _(no CLI command)_ | Agent CSQs by CI user ID (internal) |
 | POST | `/organization/{orgid}/contact-service-queue/fetch-by-dynamic-skills-and-skillProfile` | `create-fetch-by-dynamic-skills-and-skill-profile` | Skill-based CSQs by dynamic skills + profile |
 | POST | `/organization/{orgid}/contact-service-queue/fetch-by-userId-skillProfileId` | `create-fetch-by-user-id-skill-profile-id` | Skill-based CSQs by user ID + skill profile ID |
-| GET | `/organization/{orgid}/contact-service-queue/skill-based-queues/by-ci-user-id/{id}/internal` | `list-internal-by-ci-user-id` | Skill-based CSQs by CI user ID (internal) |
+| GET | `/organization/{orgid}/contact-service-queue/skill-based-queues/by-ci-user-id/{id}/internal` | _(no CLI command)_ | Skill-based CSQs by CI user ID (internal) |
 | POST | `/organization/{orgid}/v2/contact-service-queue/fetch-by-grouped-assistant-skill` | `create-fetch-by-grouped-assistant-skill` | Queue mapping summary by assistant skill (v2) |
 
 ### Key Parameters
@@ -490,40 +479,42 @@ wxcli cc-queue list-contact-service-queue-v3
 wxcli cc-queue list-contact-service-queue-v2
 
 # Create a queue (v2)
-wxcli cc-queue create-contact-service-queue-v2 --json-body '{
+wxcli cc-queue create-contact-service-queue --json-body '{
   "name": "Sales Queue",
-  "channelType": "telephony",
-  "routingType": "SKILL_BASED",
-  "skillProfileId": "...",
-  "distributionType": "LONGEST_AVAILABLE"
+  "queueType": "INBOUND",
+  "channelType": "TELEPHONY",
+  "routingType": "SKILLS_BASED",
+  "queueRoutingType": "SKILL_BASED",
+  "checkAgentAvailability": true,
+  "serviceLevelThreshold": 60,
+  "maxActiveContacts": 100,
+  "maxTimeInQueue": 3600,
+  "active": true
 }'
 
 # Get a specific queue (v2)
-wxcli cc-queue show-contact-service-queue-v2 --id "queue-uuid"
+wxcli cc-queue show-contact-service-queue-v2 "queue-uuid"
 
 # Get queues where an agent is eligible (agent-based)
-wxcli cc-queue list-agent-based-queues --userid "user-uuid"
+wxcli cc-queue list-agent-based-queues "user-uuid"
 
 # Reassign agents to a queue
-wxcli cc-queue create-reassign-agents --id "queue-uuid" --json-body '{
+wxcli cc-queue create-reassign-agents "queue-uuid" --json-body '{
   "agentIds": ["agent1-uuid", "agent2-uuid"],
   "action": "ADD"
 }'
 
-# Bulk export all queues
+# List all queues (v1)
 wxcli cc-queue list
 
 # Delete a queue
-wxcli cc-queue delete --id "queue-uuid"
+wxcli cc-queue delete "queue-uuid"
 
-# List team-based queues for a team (internal)
-wxcli cc-queue list-internal-by-team-id "team-uuid"
+# List team-based queues for a user
+wxcli cc-queue list-team-based-queues "user-uuid"
 
-# List agent-based queues for a CI user (internal)
-wxcli cc-queue list-internal-by-user-ci-id "ci-user-uuid"
-
-# List skill-based queues for a CI user (internal)
-wxcli cc-queue list-internal-by-ci-user-id "ci-user-uuid"
+# List skill-based queues for a user
+wxcli cc-queue list-skill-based-queues "user-uuid"
 
 # Find skill-based queues matching dynamic skills + profile
 wxcli cc-queue create-fetch-by-dynamic-skills-and-skill-profile --json-body '{
@@ -629,7 +620,7 @@ Entry points are the initial landing points for customer contacts. Each entry po
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
 | GET | `/organization/{orgid}/entry-point` | `list-entry-point-organization` | List |
-| POST | `/organization/{orgid}/entry-point` | `create-entry-point` | Create |
+| POST | `/organization/{orgid}/entry-point` | `create` | Create |
 | POST | `/organization/{orgid}/entry-point/bulk` | `create` | Bulk save |
 | GET | `/organization/{orgid}/entry-point/bulk-export` | `list` | Bulk export |
 | POST | `/organization/{orgid}/entry-point/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
@@ -637,31 +628,34 @@ Entry points are the initial landing points for customer contacts. Each entry po
 | DELETE | `/organization/{orgid}/entry-point/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/entry-point/{id}` | `update` | Update |
 | GET | `/organization/{orgid}/entry-point/{id}/incoming-references` | `list-incoming-references` | List references |
-| GET | `/organization/{orgid}/v2/entry-point` | `list-entry-point-v2` | List (v2) |
+| GET | `/organization/{orgid}/v2/entry-point` | `list-entry-point` | List (v2) |
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `channelType` (telephony, chat, email, social), `serviceLevel` threshold
+- **Create:** Requires `name`, `entryPointType` (INBOUND/OUTBOUND), `channelType` (TELEPHONY, EMAIL, FAX, CHAT, VIDEO, OTHERS, SOCIAL_CHANNEL), `active`, `serviceLevelThreshold`, `maximumActiveContacts`
 - **v2 list:** Enhanced filtering and pagination support
 
 ### CLI Examples
 
 ```bash
 # List all entry points (v2)
-wxcli cc-entry-point list-entry-point-v2
+wxcli cc-entry-point list-entry-point
 
 # Create a telephony entry point
-wxcli cc-entry-point create-entry-point --json-body '{
+wxcli cc-entry-point create --json-body '{
   "name": "Main IVR",
-  "channelType": "telephony",
-  "serviceLevel": 60
+  "entryPointType": "INBOUND",
+  "channelType": "TELEPHONY",
+  "active": true,
+  "serviceLevelThreshold": 60,
+  "maximumActiveContacts": 100
 }'
 
 # Get a specific entry point
-wxcli cc-entry-point show --id "ep-uuid"
+wxcli cc-entry-point show "ep-uuid"
 
 # Bulk export all entry points
-wxcli cc-entry-point list
+wxcli cc-entry-point list-bulk-export
 
 # Delete an entry point
 wxcli cc-entry-point delete --id "ep-uuid"
@@ -847,14 +841,14 @@ Skill profiles bundle skill-value pairs and are assigned to agents. When a queue
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
 | GET | `/organization/{orgid}/skill-profile` | `list-skill-profile-organization` | List |
-| POST | `/organization/{orgid}/skill-profile` | `create-skill-profile` | Create |
+| POST | `/organization/{orgid}/skill-profile` | `create` | Create |
 | POST | `/organization/{orgid}/skill-profile/bulk` | `create` | Bulk save |
 | GET | `/organization/{orgid}/skill-profile/bulk-export` | `list` | Bulk export |
 | GET | `/organization/{orgid}/skill-profile/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/skill-profile/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/skill-profile/{id}` | `update` | Update |
 | GET | `/organization/{orgid}/skill-profile/{id}/incoming-references` | `list-incoming-references` | List references |
-| GET | `/organization/{orgid}/v2/skill-profile` | `list-skill-profile-v2` | List (v2) |
+| GET | `/organization/{orgid}/v2/skill-profile` | `list-skill-profile` | List (v2) |
 
 ### Key Parameters
 
@@ -865,10 +859,10 @@ Skill profiles bundle skill-value pairs and are assigned to agents. When a queue
 
 ```bash
 # List all skill profiles (v2)
-wxcli cc-skill-profile list-skill-profile-v2
+wxcli cc-skill-profile list-skill-profile
 
 # Create a skill profile
-wxcli cc-skill-profile create-skill-profile --json-body '{
+wxcli cc-skill-profile create --json-body '{
   "name": "Senior Sales Agent",
   "skills": [
     {"skillId": "product-knowledge-uuid", "skillValue": 8},
@@ -878,7 +872,7 @@ wxcli cc-skill-profile create-skill-profile --json-body '{
 }'
 
 # Get a specific skill profile
-wxcli cc-skill-profile show --id "profile-uuid"
+wxcli cc-skill-profile show "profile-uuid"
 
 # Bulk export all skill profiles
 wxcli cc-skill-profile list
@@ -912,7 +906,7 @@ Multimedia profiles define channel capacity for agents: how many concurrent cont
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
 | GET | `/organization/{orgid}/multimedia-profile` | `list-multimedia-profile-organization` | List |
-| POST | `/organization/{orgid}/multimedia-profile` | `create-multimedia-profile` | Create |
+| POST | `/organization/{orgid}/multimedia-profile` | `create` | Create |
 | POST | `/organization/{orgid}/multimedia-profile/bulk` | `create` | Bulk save |
 | GET | `/organization/{orgid}/multimedia-profile/bulk-export` | `list` | Bulk export |
 | POST | `/organization/{orgid}/multimedia-profile/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
@@ -920,7 +914,7 @@ Multimedia profiles define channel capacity for agents: how many concurrent cont
 | DELETE | `/organization/{orgid}/multimedia-profile/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/multimedia-profile/{id}` | `update` | Update |
 | GET | `/organization/{orgid}/multimedia-profile/{id}/incoming-references` | `list-incoming-references` | List references |
-| GET | `/organization/{orgid}/v2/multimedia-profile` | `list-multimedia-profile-v2` | List (v2) |
+| GET | `/organization/{orgid}/v2/multimedia-profile` | `list-multimedia-profile` | List (v2) |
 
 ### Key Parameters
 
@@ -931,24 +925,30 @@ Multimedia profiles define channel capacity for agents: how many concurrent cont
 
 ```bash
 # List multimedia profiles (v2)
-wxcli cc-multimedia-profile list-multimedia-profile-v2
+wxcli cc-multimedia-profile list-multimedia-profile
 
 # Create a multimedia profile
-wxcli cc-multimedia-profile create-multimedia-profile --json-body '{
+wxcli cc-multimedia-profile create --json-body '{
   "name": "Voice Only",
   "telephony": 1,
   "chat": 0,
   "email": 0,
-  "social": 0
+  "social": 0,
+  "active": true,
+  "blendingModeEnabled": false,
+  "blendingMode": "EXCLUSIVE"
 }'
 
 # Create a blended profile (voice + chat)
-wxcli cc-multimedia-profile create-multimedia-profile --json-body '{
+wxcli cc-multimedia-profile create --json-body '{
   "name": "Blended Agent",
   "telephony": 1,
   "chat": 3,
   "email": 5,
-  "social": 2
+  "social": 2,
+  "active": true,
+  "blendingModeEnabled": true,
+  "blendingMode": "BLENDED"
 }'
 
 # Get a specific profile
@@ -982,7 +982,7 @@ Desktop layouts define the Agent Desktop UI: widget placement, header, navigatio
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| POST | `/organization/{orgid}/desktop-layout` | `create-desktop-layout` | Create |
+| POST | `/organization/{orgid}/desktop-layout` | `create` | Create |
 | POST | `/organization/{orgid}/desktop-layout/bulk` | `create` | Bulk save |
 | GET | `/organization/{orgid}/desktop-layout/bulk-export` | `list-bulk-export` | Bulk export |
 | POST | `/organization/{orgid}/desktop-layout/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
@@ -994,7 +994,7 @@ Desktop layouts define the Agent Desktop UI: widget placement, header, navigatio
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `desktopLayoutJson` (the layout JSON structure as a string)
+- **Create:** Requires `name`, `editedBy`, `jsonFileName`, `jsonFileContent` (the layout JSON as a string), `global`, `status`, `defaultJsonModified`, `validated`
 - **Layout JSON:** Defines widget areas, header, navigation panel, and auxiliary info panel
 - **Update:** PUT replaces the entire layout -- GET first, modify, then PUT back
 
@@ -1002,22 +1002,25 @@ Desktop layouts define the Agent Desktop UI: widget placement, header, navigatio
 
 ```bash
 # List desktop layouts (v2)
-wxcli cc-desktop-layout list
+wxcli cc-desktop-layout list-desktop-layout
 
 # Create a desktop layout
-wxcli cc-desktop-layout create-desktop-layout --json-body '{
+wxcli cc-desktop-layout create --json-body '{
   "name": "Custom Sales Layout",
-  "desktopLayoutJson": "{\"header\":{},\"navigation\":{},\"panel\":{}}"
+  "editedBy": "admin@example.com",
+  "jsonFileName": "sales-layout.json",
+  "jsonFileContent": "{\"header\":{},\"navigation\":{},\"panel\":{}}",
+  "global": false,
+  "status": true,
+  "defaultJsonModified": true,
+  "validated": true
 }'
 
 # Get a specific layout
-wxcli cc-desktop-layout show --id "layout-uuid"
-
-# Bulk export all layouts
-wxcli cc-desktop-layout list-bulk-export
+wxcli cc-desktop-layout show "layout-uuid"
 
 # Delete a layout
-wxcli cc-desktop-layout delete --id "layout-uuid"
+wxcli cc-desktop-layout delete "layout-uuid"
 ```
 
 ### Raw HTTP
@@ -1045,7 +1048,7 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
 | GET | `/organization/{orgid}/agent-profile` | `list` | List |
-| POST | `/organization/{orgid}/agent-profile` | `create-agent-profile` | Create |
+| POST | `/organization/{orgid}/agent-profile` | `create` | Create |
 | POST | `/organization/{orgid}/agent-profile/bulk` | `create` | Bulk save |
 | GET | `/organization/{orgid}/agent-profile/bulk-export` | `list-bulk-export` | Bulk export |
 | POST | `/organization/{orgid}/agent-profile/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
@@ -1068,20 +1071,17 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 wxcli cc-desktop-profile list-agent-profile
 
 # Create a desktop profile
-wxcli cc-desktop-profile create-agent-profile --json-body '{
+wxcli cc-desktop-profile create --json-body '{
   "name": "Sales Desktop Profile",
   "desktopLayoutId": "layout-uuid",
   "dialNumberSettings": {"agentDN": true, "otherDN": false}
 }'
 
 # Get a specific profile
-wxcli cc-desktop-profile show --id "profile-uuid"
-
-# Bulk export all profiles
-wxcli cc-desktop-profile list-bulk-export
+wxcli cc-desktop-profile show "profile-uuid"
 
 # Delete a profile
-wxcli cc-desktop-profile delete --id "profile-uuid"
+wxcli cc-desktop-profile delete "profile-uuid"
 ```
 
 ### Raw HTTP
@@ -1252,11 +1252,11 @@ Auxiliary (idle/wrap-up) codes categorize agent non-available time. When an agen
 | DELETE | `/organization/{orgid}/auxiliary-code/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/auxiliary-code/{id}` | `update-auxiliary-code` | Update |
 | GET | `/organization/{orgid}/auxiliary-code/{id}/incoming-references` | `list` | List references |
-| GET | `/organization/{orgid}/v2/auxiliary-code` | `list-auxiliary-code-v2` | List (v2) |
+| GET | `/organization/{orgid}/v2/auxiliary-code` | `list-auxiliary-code` | List (v2) |
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `defaultCode` (boolean), `isActive`, `codeType` (IDLE_CODE or WRAP_UP_CODE)
+- **Create:** Requires `name`, `defaultCode` (boolean), `active`, `workTypeId`, `workTypeCode` (IDLE_CODE or WRAP_UP_CODE)
 - **Bulk partial update:** PATCH with array of partial updates -- only specified fields are changed
 - **Default code:** One idle code and one wrap-up code can be marked as default
 
@@ -1264,22 +1264,24 @@ Auxiliary (idle/wrap-up) codes categorize agent non-available time. When an agen
 
 ```bash
 # List aux codes (v2)
-wxcli cc-aux-code list-auxiliary-code-v2
+wxcli cc-aux-code list-auxiliary-code
 
 # Create an idle code
 wxcli cc-aux-code create --json-body '{
   "name": "Lunch Break",
-  "codeType": "IDLE_CODE",
+  "workTypeCode": "IDLE_CODE",
+  "workTypeId": "work-type-uuid",
   "defaultCode": false,
-  "isActive": true
+  "active": true
 }'
 
 # Create a wrap-up code
 wxcli cc-aux-code create --json-body '{
   "name": "Follow-up Required",
-  "codeType": "WRAP_UP_CODE",
+  "workTypeCode": "WRAP_UP_CODE",
+  "workTypeId": "work-type-uuid",
   "defaultCode": false,
-  "isActive": true
+  "active": true
 }'
 
 # Bulk partial update

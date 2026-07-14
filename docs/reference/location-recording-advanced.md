@@ -2,7 +2,7 @@
 # Location Recording, Supervisor, Guest Calling, Conference & Misc
 
 **CLI group:** `wxcli call-recording` (org-level recording vendor, compliance, per-location vendor assignment)
-**NOT:** `wxcli location-call-settings` (that group handles dial patterns for premise PSTN — completely different domain)
+**NOT:** `wxcli call-routing` (similar name, different domain — that group handles dial plans and dial patterns for premise PSTN)
 
 ## Sources
 

@@ -117,39 +117,42 @@ Tag customer organizations and subscriptions for categorization (region, tier, v
 
 | Command | Description | Key Arguments |
 |---------|-------------|---------------|
-| `show` | Retrieve all customer tags | `--type TYPE` (required) |
-| `create` | Create or replace org tags | `ORG_ID` (required), `--json-body` |
-| `show-organizations-tags` | Get a customer org's tags | `ORG_ID` (required) |
-| `show-organizations-tags-1` | Fetch all customers matching a set of tags | `--tags TAG1,TAG2` (required), `--max N` |
-| `create-assign-tags` | Create or replace subscription tags | `ORG_ID SUBSCRIPTION_ID` (required), `--json-body` |
-| `show-subscriptions-tags` | List subscriptions matching a set of tags | `--tags TAG1,TAG2` (required), `--max N` |
-| `show-subscriptions-organizations` | Fetch a specific subscription | `ORG_ID SUBSCRIPTION_ID` (required) |
+| `list` | Retrieve all customer tags | `--type TYPE` (required), `--limit N`, `--offset N` |
+| `create` | Create or replace the target org's tags | `--json-body` |
+| `show` | Get the target org's tags | (none) |
+| `list-organizations` | Fetch all customers matching a set of tags | `--tags TAG1,TAG2` (required), `--limit N`, `--offset N` |
+| `create-assign-tags` | Create or replace subscription tags | `SUBSCRIPTION_ID` (arg), `--json-body` |
+| `list-subscriptions` | List subscriptions matching a set of tags | `--tags TAG1,TAG2` (required), `--limit N`, `--offset N` |
+| `show-subscriptions` | Fetch a specific subscription | `SUBSCRIPTION_ID` (arg) |
+
+**These commands take no `ORG_ID` argument.** `create`, `show`, `create-assign-tags`, and `show-subscriptions` resolve the target org from your saved config -- set it with `wxcli switch-org` before running them, and confirm it with `wxcli whoami`. If no org is saved, they fall back to the token's own org.
 
 ### CLI Examples
 
 ```bash
 # List all tags of a given type
-wxcli partner-tags show --type organization
+wxcli partner-tags list --type organization
 
-# Get tags assigned to a specific customer org
-wxcli partner-tags show-organizations-tags Y2lzY29zcGFyazovL3VzL09SR...
+# Point at the customer org you want to work on, then read its tags
+wxcli switch-org
+wxcli partner-tags show
 
-# Assign tags to a customer org (replaces existing tags)
-wxcli partner-tags create Y2lzY29zcGFyazovL3VzL09SR... \
-  --json-body '{"tags": ["region:west", "tier:gold", "vertical:healthcare"]}'
+# Assign tags to that customer org (replaces existing tags)
+wxcli partner-tags create \
+  --json-body '{"tags": [{"name": "region:west", "description": "West region"}, {"name": "tier:gold", "description": "Gold tier"}]}'
 
 # Find all customer orgs with specific tags
-wxcli partner-tags show-organizations-tags-1 --tags "region:west,tier:gold" --max 50
+wxcli partner-tags list-organizations --tags "region:west,tier:gold" --limit 50
 
 # Assign tags to a subscription
-wxcli partner-tags create-assign-tags Y2lzY29zcGFyazovL3VzL09SR... SUB_ID_HERE \
-  --json-body '{"tags": ["billing:annual", "support:premium"]}'
+wxcli partner-tags create-assign-tags SUB_ID_HERE \
+  --json-body '{"tags": [{"name": "billing:annual", "description": "Annual billing"}]}'
 
 # Find subscriptions by tags
-wxcli partner-tags show-subscriptions-tags --tags "billing:annual"
+wxcli partner-tags list-subscriptions --tags "billing:annual"
 
 # Get details of a specific subscription
-wxcli partner-tags show-subscriptions-organizations Y2lzY29zcGFyazovL3VzL09SR... SUB_ID_HERE
+wxcli partner-tags show-subscriptions SUB_ID_HERE
 ```
 
 ### Raw HTTP Fallback
@@ -297,18 +300,21 @@ wxcli partner-admins list-partner-admins CUSTOMER_ORG_ID
 ### Tag customers by region and tier
 
 ```bash
-# Tag customer orgs for portfolio management
-wxcli partner-tags create ORG_ID_WEST_1 \
-  --json-body '{"tags": ["region:west", "tier:gold", "vertical:finance"]}'
+# Tag customer orgs for portfolio management. `create` always writes to the org
+# saved in config, so switch targets between customers.
+wxcli switch-org ORG_ID_WEST_1
+wxcli partner-tags create \
+  --json-body '{"tags": [{"name": "region:west", "description": "West region"}, {"name": "tier:gold", "description": "Gold tier"}, {"name": "vertical:finance", "description": "Finance"}]}'
 
-wxcli partner-tags create ORG_ID_EAST_1 \
-  --json-body '{"tags": ["region:east", "tier:silver", "vertical:retail"]}'
+wxcli switch-org ORG_ID_EAST_1
+wxcli partner-tags create \
+  --json-body '{"tags": [{"name": "region:east", "description": "East region"}, {"name": "tier:silver", "description": "Silver tier"}, {"name": "vertical:retail", "description": "Retail"}]}'
 
 # Find all gold-tier customers
-wxcli partner-tags show-organizations-tags-1 --tags "tier:gold"
+wxcli partner-tags list-organizations --tags "tier:gold"
 
 # Find all west-region finance customers
-wxcli partner-tags show-organizations-tags-1 --tags "region:west,vertical:finance"
+wxcli partner-tags list-organizations --tags "region:west,vertical:finance"
 ```
 
 ### Generate a partner-level report
@@ -335,9 +341,9 @@ wxcli partner-reports show REPORT_ID
 
 1. **Partner-level token required.** All three command groups (`partner-admins`, `partner-tags`, `partner-reports`) require authentication as a partner administrator. A standard org admin token or a service app token scoped to a single org will return 403 or 401 errors.
 
-2. **`show-organizations-tags-1` is a generator artifact.** The `-1` suffix exists because the OpenAPI spec has two endpoints on `/v1/partner/tags/organizations` -- one for getting a specific org's tags (by path parameter) and one for querying orgs by tags (by query parameter). The generator disambiguated them with the `-1` suffix. The command works correctly despite the awkward name.
+2. **Two different commands share the `/v1/partner/tags/organizations` path.** The OpenAPI spec puts two endpoints on it -- one gets a specific org's tags (by path parameter), the other queries orgs by tags (by query parameter). These are now `show` and `list-organizations` respectively. An older generator emitted them as `show-organizations-tags` and `show-organizations-tags-1`; scripts using those names will fail, so update them.
 
-3. **`show-subscriptions-organizations` name is misleading.** Despite the name, this command fetches a single subscription's details (given an org ID and subscription ID), not a list of organizations. The name comes from the URL path structure `/organizations/{orgId}/subscriptions/{subscriptionId}`.
+3. **`show-subscriptions` fetches one subscription; `list-subscriptions` queries by tag.** The names are close but the operations differ: `show-subscriptions SUBSCRIPTION_ID` returns a single subscription's details, while `list-subscriptions --tags` returns every subscription matching a tag set. An older generator named the former `show-subscriptions-organizations` (after the `/organizations/{orgId}/subscriptions/{subscriptionId}` path); that name no longer exists.
 
 4. **Tag create commands replace, not append.** Both `partner-tags create` and `partner-tags create-assign-tags` replace all existing tags with the provided list. To add a tag, you must first read the current tags, add the new one to the list, and write the full set back. Passing an empty array (`[]`) removes all tags from the org. Once a tag is unassigned from its last customer org, it is automatically removed from the API listing.
 
@@ -347,7 +353,7 @@ wxcli partner-reports show REPORT_ID
 
 7. **Response key extraction.** The `partner-reports list` command looks for results under the `Report Attributes` key, and `list-templates` looks under `Template Collection`. If the API changes these keys, the table output will appear empty. Use `-o json` to see the raw response.
 
-8. **`--type` parameter on `partner-tags show`.** This parameter is required but the valid values are not enumerated in the OpenAPI spec. The spec provides `ORGANIZATION` (uppercase) as the example value. The endpoint requires partner admin privileges — a standard org admin token gets 403 Forbidden for all values tested (`ORGANIZATION`, `SUBSCRIPTION`, `organization`). Both `ORGANIZATION` and `SUBSCRIPTION` are confirmed valid type values per the live API reference. <!-- Partially verified via live API 2026-03-19: all values return 403 with org admin token (partner admin required). No 400 "invalid type" error observed for ORGANIZATION or SUBSCRIPTION. -->
+8. **`--type` parameter on `partner-tags list`.** This parameter is required but the valid values are not enumerated in the OpenAPI spec. The spec provides `ORGANIZATION` (uppercase) as the example value. The endpoint requires partner admin privileges — a standard org admin token gets 403 Forbidden for all values tested (`ORGANIZATION`, `SUBSCRIPTION`, `organization`). Both `ORGANIZATION` and `SUBSCRIPTION` are confirmed valid type values per the live API reference. <!-- Partially verified via live API 2026-03-19: all values return 403 with org admin token (partner admin required). No 400 "invalid type" error observed for ORGANIZATION or SUBSCRIPTION. -->
 
 ---
 

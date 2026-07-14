@@ -86,7 +86,7 @@ Publish API.
 
 ## 2. Person and Identity Management
 
-CLI group: `wxcli cc-journey` (10 commands)
+CLI group: `wxcli cc-journey` (9 commands)
 
 Persons are the core identity objects in JDS. Each person has typed identity buckets (`phone`,
 `email`, `temporaryId`, `customerId`, `socialId`) and a flattened `aliases` array used for
@@ -94,13 +94,12 @@ lookup and merge matching.
 
 | CLI Command | HTTP | Description |
 |-------------|------|-------------|
-| `show-workspace-id-person` | GET `.../person/workspace-id/{workspaceId}` | List all persons |
-| `create-workspace-id-person` | POST `.../person/workspace-id/{workspaceId}` | Create a person |
-| `update-person-id-workspace-id` | PATCH `.../person/workspace-id/{wId}/person-id/{pId}` | Update person |
-| `delete-person-id` | DELETE `.../person/workspace-id/{wId}/person-id/{pId}` | Delete person |
-| `update-person-id-workspace-id-1` | PATCH `.../person/add-identities/workspace-id/{wId}/person-id/{pId}` | Add identities |
-| `update` | PATCH `/v1/api/person/remove-identities/...` | Remove identities (runtime) |
-| `update-person-id-workspace-id-2` | PATCH `.../person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities (admin) |
+| `show` | GET `.../person/workspace-id/{workspaceId}` | List all persons (or one via `--person-id`) |
+| `create` | POST `.../person/workspace-id/{workspaceId}` | Create a person |
+| `update` | PATCH `.../person/workspace-id/{wId}/person-id/{pId}` | Update person |
+| `delete` | DELETE `.../person/workspace-id/{wId}/person-id/{pId}` | Delete person |
+| `update-person-id-workspace-id` | PATCH `.../person/add-identities/workspace-id/{wId}/person-id/{pId}` | Add identities |
+| `update-person-id-workspace-id-1` | PATCH `.../person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities |
 | `show-aliases` | GET `.../person/workspace-id/{wId}/aliases/{aliases}` | Search by alias |
 | `create-workspace-id-merge-identities` | POST `.../person/merge-identities/workspace-id/{wId}` | Merge aliases |
 | `create-primary-person-id` | POST `.../person/merge/workspace-id/{wId}/primary-person-id/{pId}` | Merge to primary |
@@ -109,19 +108,19 @@ Admin paths are prefixed with `/admin/v1/api`.
 
 ```bash
 # List all persons in a workspace
-wxcli cc-journey show-workspace-id-person ws-abc-123 -o json
+wxcli cc-journey show ws-abc-123 -o json
 
 # Search by alias (use E.164 with + prefix for phone numbers)
 wxcli cc-journey show-aliases ws-abc-123 "+19103915567" -o json
 
 # Create a person manually
-wxcli cc-journey create-workspace-id-person ws-abc-123 --json-body '{
+wxcli cc-journey create ws-abc-123 --json-body '{
   "firstName": "John", "lastName": "Doe",
-  "identities": [{"type": "phone", "value": "+15551234567"}]
+  "phone": ["+15551234567"]
 }'
 
 # Delete a person by ID
-wxcli cc-journey delete-person-id ws-abc-123 person-id-here
+wxcli cc-journey delete ws-abc-123 person-id-here
 
 # Merge identities to a primary person
 wxcli cc-journey create-primary-person-id ws-abc-123 person-001
@@ -272,8 +271,8 @@ or via the Publish API.
 | CLI Command | HTTP | Description |
 |-------------|------|-------------|
 | `show-workspace-id-wxcc-subscription` | GET `.../wxcc-subscription/workspace-id/{wId}` | Get subscription |
-| `create` | POST `.../wxcc-subscription/workspace-id/{wId}` | Create subscription |
-| `delete-workspace-id` | DELETE `.../wxcc-subscription/workspace-id/{wId}` | Delete subscription |
+| `create-workspace-id-wxcc-subscription` | POST `.../wxcc-subscription/workspace-id/{wId}` | Create subscription |
+| `delete-workspace-id-wxcc-subscription` | DELETE `.../wxcc-subscription/workspace-id/{wId}` | Delete subscription |
 
 All paths are prefixed with `/admin/v1/api`.
 
@@ -282,10 +281,10 @@ All paths are prefixed with `/admin/v1/api`.
 wxcli cc-journey show-workspace-id-wxcc-subscription ws-abc-123
 
 # Create WXCC subscription (links workspace to WXCC event stream)
-wxcli cc-journey create ws-abc-123
+wxcli cc-journey create-workspace-id-wxcc-subscription ws-abc-123
 
 # Delete WXCC subscription
-wxcli cc-journey delete-workspace-id ws-abc-123
+wxcli cc-journey delete-workspace-id-wxcc-subscription ws-abc-123
 ```
 
 ---

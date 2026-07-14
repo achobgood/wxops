@@ -1337,11 +1337,15 @@ Before attempting to read or change device-level settings, determine which API s
 
 If the model is unknown or you want to be safe, query the telephony device details and check the `deviceSettingsConfigurationModelId` field:
 
-1. Get the device's telephony details to find its model info:
-   ```bash
-   wxcli device-settings list-supported-devices --output json
+1. Read the org's supported device list from `GET /v1/telephony/config/supportedDevices`:
+   ```python
+   from wxcli.auth import get_api
+   api = get_api()
+   devices = api.session.rest_get("https://webexapis.com/v1/telephony/config/supportedDevices")["devices"]
    ```
-   Each supported device model includes `deviceSettingsConfiguration`: one of `WEBEX_CALLING_DEVICE_CONFIGURATION`, `WEBEX_DEVICE_CONFIGURATION`, `WEBEX_CALLING_DYNAMIC_DEVICE_CONFIGURATION`, or `NONE`.
+   Each entry in `devices` includes `deviceSettingsConfiguration`: one of `WEBEX_CALLING_DEVICE_CONFIGURATION`, `WEBEX_DEVICE_CONFIGURATION`, `WEBEX_CALLING_DYNAMIC_DEVICE_CONFIGURATION`, or `NONE`.
+
+   > **CLI gotcha:** `wxcli device-dynamic-settings list` calls this same endpoint, but extracts the response's `upgradeChannelList` array instead of `devices` -- it returns `["STABLE_DELAY", "STABLE", "PREVIEW"]`, not the device list. Use raw HTTP until that is fixed.
 
 2. Match the device's `model` to the supported devices list and read its `deviceSettingsConfiguration` value.
 

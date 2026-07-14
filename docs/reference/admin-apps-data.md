@@ -456,7 +456,7 @@ Data sources define endpoints where Webex sends data via JWT-authenticated webho
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `report-templates show` | List available report templates | (no required options) |
+| `report-templates list` | List available report templates | (no required options) |
 
 ### CLI Examples
 
@@ -506,7 +506,7 @@ wxcli resource-group-memberships update MEMBERSHIP_ID_HERE \
   --status activated
 
 # List available report templates
-wxcli report-templates show
+wxcli report-templates list
 ```
 
 ### Data Source Registration Flow
@@ -626,7 +626,7 @@ For calling-specific report creation and download, see [reporting-analytics.md](
 
 6. **Two delete commands for recordings.** `admin-recordings delete` (admin hard-delete by recording ID) vs `admin-recordings delete-recordings` (delete with host-email context). The former is admin-only; the latter can specify a host email for user-context deletion.
 
-7. **`report-templates show` actually lists templates.** The command is named `show` (maps to GET on a list endpoint) but returns all available report templates, not a single template. Use this to discover template IDs, then use `reports` commands from the calling spec to create and download reports.
+7. **`report-templates list` is the only report-templates command.** There is no per-template detail command -- the API exposes a list endpoint only, so `list` returns every available template and you filter client-side. Use it to discover template IDs, then use `reports` commands from the calling spec to create and download reports.
 
 8. **Data source `--token-lifetime-minutes` controls JWT expiry.** The token Webex creates for authenticating to your webhook URL expires after this many minutes. Set it long enough to avoid gaps in data delivery, but short enough for security. Must be refreshed before expiration by updating the data source.
 
@@ -638,6 +638,6 @@ For calling-specific report creation and download, see [reporting-analytics.md](
 
 ## See Also
 
-- **[reporting-analytics.md](reporting-analytics.md)** -- CDR, report creation/download, call quality metrics, and queue/AA statistics. The `report-templates show` command here discovers template IDs; use `reports` commands from that doc to create and download reports.
+- **[reporting-analytics.md](reporting-analytics.md)** -- CDR, report creation/download, call quality metrics, and queue/AA statistics. The `report-templates list` command here discovers template IDs; use `reports` commands from that doc to create and download reports.
 - **[authentication.md](authentication.md)** -- OAuth flows, service app authorization, token scopes. Service apps require admin pre-authorization in Control Hub before `service-apps create` can issue tokens.
 - **[webhooks-events.md](webhooks-events.md)** -- Webhook event subscriptions. Data sources are a different mechanism (JWT-authenticated push to your endpoint) but serve a similar purpose of delivering Webex data to external systems.

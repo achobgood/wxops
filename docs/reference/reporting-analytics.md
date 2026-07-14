@@ -481,10 +481,10 @@ class ReportTemplate(ApiModel):
 
 ```bash
 # List all available report templates (JSON output)
-wxcli report-templates show
+wxcli report-templates list -o json
 
 # List report templates in table format
-wxcli report-templates show -o table
+wxcli report-templates list -o table
 ```
 
 ### Usage Example
@@ -658,7 +658,7 @@ for cdr in cdrs:
 
 ```bash
 # Step 1: Discover available templates
-wxcli report-templates show -o json
+wxcli report-templates list -o json
 
 # Step 2: Create the report (use the template ID from step 1)
 wxcli reports create --template-id 130 \
@@ -836,7 +836,7 @@ wxcli cdr list \
   --end-time "2026-03-17T16:00:00.000Z" -o json
 
 # List calling recordings to check status
-wxcli recordings list --service-type calling --status available
+wxcli converged-recordings list --service-type calling --status available
 
 # Get recording audit summaries for compliance review
 wxcli recording-report list \
@@ -1010,50 +1010,50 @@ api.session.rest_delete(f"{BASE}/reports/{report_id}")
 
 ```bash
 # List all available recordings
-wxcli recordings list
+wxcli converged-recordings list
 
 # List calling recordings in a date range
-wxcli recordings list \
+wxcli converged-recordings list \
   --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z" \
   --service-type calling
 
 # List recordings filtered by status and format
-wxcli recordings list --status available --format MP3
+wxcli converged-recordings list --status available --format MP3
 
 # List recordings by location and owner type
-wxcli recordings list --location-id "Y2lz...bG9j" --owner-type user
+wxcli converged-recordings list --location-id "Y2lz...bG9j" --owner-type user
 
 # List recordings in JSON format with pagination
-wxcli recordings list --service-type calling -o json --limit 50
+wxcli converged-recordings list --service-type calling -o json --limit 50
 
 # List recordings for admin/compliance (all users in org)
-wxcli recordings list-converged-recordings \
+wxcli converged-recordings list-converged-recordings \
   --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z"
 
 # Get details for a specific recording
-wxcli recordings show "Y2lz...cmVj"
+wxcli converged-recordings show "Y2lz...cmVj"
 
 # Get recording metadata
-wxcli recordings show-metadata "Y2lz...cmVj"
+wxcli converged-recordings show-metadata "Y2lz...cmVj"
 
 # Delete a recording
-wxcli recordings delete "Y2lz...cmVj"
+wxcli converged-recordings delete "Y2lz...cmVj"
 
 # Reassign recordings from one owner to another
-wxcli recordings create \
+wxcli converged-recordings create \
   --owner-email "oldowner@company.com" \
   --reassign-owner-email "newowner@company.com"
 
 # Move recordings to recycle bin
-wxcli recordings create-soft-delete \
+wxcli converged-recordings create-soft-delete \
   --json-body '{"trashAll": true, "ownerEmail": "user@company.com"}'
 
 # Restore recordings from recycle bin
-wxcli recordings create-restore \
+wxcli converged-recordings create-restore \
   --json-body '{"restoreAll": true, "ownerEmail": "user@company.com"}'
 
 # Purge recordings permanently from recycle bin
-wxcli recordings create-purge \
+wxcli converged-recordings create-purge \
   --json-body '{"purgeAll": true, "ownerEmail": "user@company.com"}'
 
 # Download a single recording's artifacts (transcript, AI notes, audio)

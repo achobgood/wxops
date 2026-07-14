@@ -528,7 +528,7 @@ HDS manages encryption keys on-premises for compliance-sensitive organizations. 
 | Cluster details | `wxcli hds show-clusters CLUSTER_ID` | HDS cluster configuration and health |
 | Node details | `wxcli hds show-nodes NODE_ID` | Individual node status |
 | Database details | `wxcli hds list ORG_ID` | HDS database configuration |
-| Multi-tenant info | `wxcli hds list-multi-tenant ORG_ID` | Multi-tenant HDS org details |
+| Multi-tenant info | `wxcli hds list-tenants ORG_ID` | Multi-tenant HDS org details |
 | Network tests | `wxcli hds list-network-test NODE_ID` | Network test results for a node |
 | Availability | `wxcli hds list-availability CLUSTER_ID` | Cluster availability metrics over time |
 
