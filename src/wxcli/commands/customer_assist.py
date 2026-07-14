@@ -371,3 +371,65 @@ def list_available_agents(
         print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+@app.command("show-call-recordings")
+def show_call_recordings(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Read Queue Call Recording Settings."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/cxEssentials/callRecordings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    if output == "json":
+        print_json(result)
+    else:
+        if isinstance(result, dict):
+            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
+        elif isinstance(result, list):
+            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
+        else:
+            print_json(result)
+
+
+
+@app.command("update-call-recordings")
+def update_call_recordings(
+    location_id: str = typer.Argument(help="locationId"),
+    queue_id: str = typer.Argument(help="queueId"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether call recording is enabled for the queue."),
+    record: str = typer.Option(None, "--record", help="When to record. Live-verified value: `Always`. Other values"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Queue Call Recording Settings\n\nExample --json-body:\n  '{"enabled":true,"record":"...","notification":{"type":"...","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/cxEssentials/callRecordings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if enabled is not None:
+            body["enabled"] = enabled
+        if record is not None:
+            body["record"] = record
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+
