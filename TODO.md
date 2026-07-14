@@ -46,7 +46,7 @@ Relocated from the CLAUDE.md `### CLI (wxcli) — Primary Execution Layer` table
 
 | Path | Purpose |
 |------|---------|
-| `src/wxcli/main.py` | CLI entry point — 178 command groups |
+| `src/wxcli/main.py` | CLI entry point — 176 command groups |
 | `src/wxcli/commands/*.py` | All command implementations (raw HTTP pattern) |
 | `specs/webex-cloud-calling.json` | OpenAPI 3.0 spec — calling APIs |
 | `specs/webex-admin.json` | OpenAPI 3.0 spec — admin/org management APIs |
@@ -94,4 +94,4 @@ The migration tool is at `src/wxcli/migration/` and wired into the CLI as `wxcli
 
 Relocated from the CLAUDE.md `## CLI Status & Known Issues` intro paragraph. The paragraph was rewritten to keep only the group-count sentence and the converged-recordings sentence (path-free). Original paragraph:
 
-**178 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** 171 generated modules from 9 tracked OpenAPI 3.0 specs via `tools/generate_commands.py`, registered through the generator-emitted `_registry.py` manifest; spec refresh + regen is one atomic operation (`tools/spec_sync.py`), checked by `tools/drift_check.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
+**176 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** 171 generated modules from 9 tracked OpenAPI 3.0 specs via `tools/generate_commands.py`, registered through the generator-emitted `_registry.py` manifest; spec refresh + regen is one atomic operation (`tools/spec_sync.py`), checked by `tools/drift_check.py`. The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands (`converged_recordings_export.py`).
