@@ -75,6 +75,21 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 
     Fix when triaged: pin a truthful name via `tag_overrides` -> `command_name_overrides` (per issue #18) and make the success message follow the operation's real semantics rather than the verb. Interim protection is documentation only — `configure-features/SKILL.md` Critical Rules #21-22 carry a trap table. That protects an agent that read the skill first; it does not protect anyone reading `--help` alone, and the "Updated." message actively misleads.
 
+21. **The renderer drops `requestBody` on DELETE, so scoped deletes silently become delete-everything.** UNFIXED — logged 2026-07-14, found while fixing doc flag drift. 10 tracked spec operations declare a DELETE request body; **none** of the generated commands can send one (no `--json-body`, no fields). The body is what *narrows* these deletes, so losing it does not fail — it widens the blast radius:
+
+    | Command | Body the spec defines | Effect without it |
+    |---------|----------------------|-------------------|
+    | `call-queue delete-supervisors-config` | `supervisors[]` | deletes **all supervisors in the org** |
+    | `device-settings delete-background-images` | `backgroundImages[]` | deletes **all background images** |
+    | `numbers delete` | phone numbers to remove | cannot name which numbers |
+    | `call-queue delete-dnis-queues` | `dnis[]` (**required**) | request is unsatisfiable |
+
+    This is the same family as #20 (a name/behaviour mismatch the generator can see but does not act on) and compounds it: the widened delete is reached through a command whose `--help` gives no hint the scoping input exists.
+
+    Detection: `op.get("requestBody")` on a `delete` operation, cross-referenced against the rendered command's flags — the check that surfaced this is ~10 lines.
+
+    Fix when triaged: render `--json-body` for DELETE bodies exactly as for PUT/POST (the renderer already knows how; the DELETE branch just never asks). Until then the CLI cannot scope these deletes at all, and the docs say so explicitly rather than showing a `--json-body` that does not exist — `manage-devices/SKILL.md` and `customer-assist/SKILL.md` carry the warning and the raw-HTTP fallback.
+
 ## Templates, Examples & Plans
 
 | Path | Purpose |
