@@ -3,8 +3,12 @@ name: configure-features
 description: |
   Create, modify, or delete Webex Calling call features using wxcli CLI commands: Auto Attendants, Call Queues,
   Hunt Groups, Paging Groups, Call Park, Call Pickup, Voicemail Groups, and Calling schedules
-  (business hours, holidays). Guides the user from prerequisites through creation, modification,
-  deletion, and verification.
+  (business hours, holidays). Also covers the announcement repository (greeting files) and
+  text-to-speech prompt generation, announcement playlists (music on hold) and playlist usage,
+  location call handling (internal dialing, location intercept, outgoing calling permissions,
+  access/authorization codes, outgoing digit patterns), caller reputation (spam/fraud call scoring),
+  and external voicemail MWI control. Guides the user from prerequisites through creation,
+  modification, deletion, and verification.
   Use for: create, update, delete, remove, list, or troubleshoot any Calling call feature.
   NOT for: Contact Center queues/teams/flows (use contact-center skill), Customer Assist/CX Essentials
   (use customer-assist skill), or per-person call settings (use manage-call-settings skill).
@@ -26,6 +30,10 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/call-features-major.md` for AA, CQ, HG data models and API signatures
 2. Read `docs/reference/call-features-additional.md` for Paging, Call Park, Call Pickup, VM Groups, CX Essentials
+3. Read `docs/reference/location-calling-media.md` for announcements, playlists, and access codes (only when working those groups)
+4. Read `docs/reference/location-calling-core.md` for internal dialing and location-level call handling
+5. Read `docs/reference/location-recording-advanced.md` for caller reputation
+6. Read `docs/reference/call-control.md` §6 for external voicemail MWI
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli call-queue create --help` reveals the kebab-cased flags like `--has-cx-essentials` and the `--json-body` shape you cannot guess from training data). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
@@ -55,6 +63,12 @@ Ask the user which feature they want to create. Present this decision matrix if 
 | Let team members answer each other's ringing phones | **Call Pickup** |
 | Shared voicemail box for a team or feature | **Voicemail Group** |
 | Screen pop, recording, wrap-up, supervisors on a CQ | **Customer Assist** (use `customer-assist` skill) |
+| Upload/manage greeting audio files used by AA/CQ; generate a spoken prompt from text | **Announcements** (`announcements`) |
+| Group announcements into a music-on-hold rotation and assign to locations | **Announcement Playlists** (`announcement-playlists`) |
+| See which queues/locations reference a playlist before changing or deleting it | **Playlist Usage** (`cq-playlists`) |
+| Route unknown extensions off-net; block/allow outbound call types; access codes; digit patterns | **Location Call Handling** (`location-call-handling`) |
+| Score inbound calls for spam/fraud via an external reputation provider | **Caller Reputation** (`caller-reputation`) |
+| Turn a user's or workspace's voicemail waiting light on/off from an external voicemail system | **External Voicemail MWI** (`external-voicemail`) |
 
 ## Step 4: Check prerequisites
 
@@ -466,6 +480,141 @@ Optional flags: `--phone-number`, `--first-name`, `--last-name`.
 
 ---
 
+### Announcements (greeting repository + text-to-speech)
+
+The announcement repository holds the audio files that AAs, CQs, and playlists play to callers. Every announcement lives at **one of two scopes**: org-level (available to all locations) or location-level (that location only). Each scope has its own set of commands — this is the main source of confusion in this group.
+
+| Scope | List | Create | Show details | Update | Delete | Repo usage |
+|-------|------|--------|--------------|--------|--------|------------|
+| Org | `list` | `create` | `show-announcements-config` | `update` | `delete` | `show` |
+| Location | `list --location-id LOC_ID` | `create-announcements LOC_ID` | `show-announcements-locations LOC_ID ANN_ID` | `update-announcements LOC_ID ANN_ID` | `delete-announcements LOC_ID ANN_ID` | `show-usage-announcements LOC_ID` |
+
+> **NAMING TRAP:** `wxcli announcements show` does **not** show an announcement — it returns org repository usage (space used, size limits). To fetch one announcement's details use `show-announcements-config ANNOUNCEMENT_ID` (org) or `show-announcements-locations LOCATION_ID ANNOUNCEMENT_ID` (location).
+
+**Discovery — start here:**
+
+```bash
+# List org-level announcements
+wxcli announcements list --output json
+
+# List announcements for one location, or across all locations
+wxcli announcements list --location-id LOCATION_ID --output json
+wxcli announcements list --location-id all --output json
+
+# Check repository space before uploading
+wxcli announcements show --output json
+```
+
+`list` also filters with `--name`, `--file-name`, `--file-type`, `--media-file-type`, and sorts with `--order`.
+
+**Create an announcement.** `create` (org) and `create-announcements LOCATION_ID` take a file **URI**, not a local file path — all four flags are required:
+
+```bash
+wxcli announcements create \
+  --name "Welcome Greeting" \
+  --file-uri "https://example.com/welcome.wav" \
+  --file-name "welcome.wav" \
+  --no-is-text-to-speech
+```
+
+Use `--is-text-to-speech` instead of `--no-is-text-to-speech` when registering a TTS-generated prompt.
+
+**Delete (both scopes need `--force` for non-interactive runs):**
+
+```bash
+wxcli announcements delete ANNOUNCEMENT_ID --force
+wxcli announcements delete-announcements LOCATION_ID ANNOUNCEMENT_ID --force
+```
+
+**Before deleting, check what references the announcement.** The details command returns `featureReferences` and `playlists` — an announcement in use by an AA/CQ/playlist should not be deleted blind:
+
+```bash
+wxcli announcements show-announcements-config ANNOUNCEMENT_ID --output json
+```
+
+#### Text-to-Speech prompts
+
+Generate spoken audio from text instead of recording and uploading a WAV. The flow is: pick a voice → generate → poll status.
+
+```bash
+# 1. List available voices (get the voice ID and language code)
+wxcli announcements tts-voices --output json
+
+# 2. Generate the prompt
+wxcli announcements tts-generate --voice VOICE_ID --text "Thank you for calling. Please hold." --language-code en_US
+
+# 3. Poll generation status using the returned ttsId
+wxcli announcements tts-status TTS_ID --output json
+
+# 4. Check TTS quota/consumption for the org
+wxcli announcements tts-usage --output json
+```
+
+`tts-generate` is asynchronous — it returns a `ttsId`. Poll `tts-status` until generation completes before wiring the prompt into a feature.
+
+---
+
+### Announcement Playlists (music on hold)
+
+A playlist groups announcement files into a rotation (typically music on hold) and is then assigned to locations. **Playlists are org-level objects** — you create one playlist and assign it to many locations.
+
+**Order of operations:** upload announcements first → create the playlist referencing those announcement IDs → assign the playlist to locations.
+
+| Parameter | Required | Notes |
+|-----------|:--------:|-------|
+| Name | Yes | Unique name for the playlist |
+| Announcement IDs | No (on create) | Array of announcement IDs — `--json-body` only, no flag exists |
+| Location IDs | No | Assigned separately via `update-playlists` |
+
+```bash
+# List playlists in the org
+wxcli announcement-playlists list --output json
+
+# Get one playlist (includes its announcement list)
+wxcli announcement-playlists show PLAYLIST_ID --output json
+
+# Create a playlist — announcement IDs require --json-body
+wxcli announcement-playlists create --json-body '{"name":"Lobby MOH","announcementIds":["ANN_ID_1","ANN_ID_2"]}'
+
+# Rename (flag) or change its announcements (--json-body)
+wxcli announcement-playlists update PLAYLIST_ID --name "Lobby MOH v2"
+wxcli announcement-playlists update PLAYLIST_ID --json-body '{"name":"Lobby MOH v2","announcementIds":["ANN_ID_1"]}'
+
+# Delete
+wxcli announcement-playlists delete PLAYLIST_ID --force
+```
+
+**Location assignment:**
+
+```bash
+# Which locations use this playlist
+wxcli announcement-playlists list-playlists PLAYLIST_ID --output json
+
+# Assign locations — FULL REPLACE, not incremental
+wxcli announcement-playlists update-playlists PLAYLIST_ID --json-body '{"locationIds":["LOC_ID_1","LOC_ID_2"]}'
+```
+
+> **WARNING (full replace):** `update-playlists` replaces the entire location assignment list. Always read the current list with `list-playlists` first and include every location you want to keep — omitting one un-assigns it.
+
+> **NAMING TRAP:** `list-playlists` and `update-playlists` operate on a playlist's **locations**, not on playlists. To list playlists themselves, use plain `list`.
+
+#### Playlist usage (`cq-playlists`)
+
+Before changing or deleting a playlist, check what references it. This is the only command in the `cq-playlists` group.
+
+```bash
+# Everything referencing this playlist
+wxcli cq-playlists list PLAYLIST_ID --output json
+
+# Narrow to feature references (call queues, auto attendants) or location assignments
+wxcli cq-playlists list PLAYLIST_ID --playlist-usage-type feature --output json
+wxcli cq-playlists list PLAYLIST_ID --playlist-usage-type location --output json
+```
+
+`--playlist-usage-type` accepts only `feature` or `location`.
+
+---
+
 ### CX Essentials (Customer Assist)
 
 Customer Assist (formerly CX Essentials) has its own dedicated skill with full coverage of screen pop, wrap-up reasons, queue call recording, supervisors, and available agents.
@@ -473,6 +622,169 @@ Customer Assist (formerly CX Essentials) has its own dedicated skill with full c
 > **Use the `customer-assist` skill** for all Customer Assist configuration.
 
 The call queue itself is still created here (see Call Queue section above). Once the queue exists, switch to the `customer-assist` skill to configure Customer Assist features on it.
+
+---
+
+### Location Call Handling
+
+19 commands covering location-wide call handling: where unknown extensions route, whether the location is intercepted, what call types users may dial out, and the access codes / digit patterns that override those rules. **Every command takes `LOCATION_ID` as the first positional argument.**
+
+> **THIS GROUP HAS THE WORST NAMING IN THE CLI.** The generic verbs do not mean what they look like. Read this table before running anything:
+>
+> | Command | What it ACTUALLY does |
+> |---------|----------------------|
+> | `show` / `update` | Internal **dialing** config — not a generic show/update |
+> | `list` | Gets the location's **outgoing permission** — returns one settings object, not a list |
+> | `create` | Creates an **access code** |
+> | `update-access-codes` | **DELETES** specific access codes (body is `deleteCodes`) — it does not update anything |
+> | `delete` | **DELETES ALL** access codes for the location |
+> | `delete-digit-patterns-outgoing-permission` | **DELETES ALL** digit patterns for the location |
+> | `delete-digit-patterns-outgoing-permission-1` | Deletes **one** digit pattern (the `-1` suffix is the single-item variant) |
+
+**Discovery — read current state before changing anything:**
+
+```bash
+wxcli location-call-handling show LOCATION_ID --output json                  # internal dialing
+wxcli location-call-handling list LOCATION_ID --output json                  # outgoing permissions
+wxcli location-call-handling show-intercept LOCATION_ID --output json        # intercept
+wxcli location-call-handling show-access-codes LOCATION_ID --output json     # access codes
+wxcli location-call-handling list-digit-patterns LOCATION_ID --output json   # digit patterns
+```
+
+#### Internal dialing (`show`, `update`)
+
+Controls whether calls to an unknown extension are routed off-net to a trunk or route group.
+
+```bash
+wxcli location-call-handling update LOCATION_ID --json-body '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"ROUTE_GROUP_ID","type":"ROUTE_GROUP"}}'
+```
+
+`--enable-unknown-extension-route-policy` / `--no-enable-unknown-extension-route-policy` toggles the policy alone; setting the route target requires `--json-body`. The trunk or route group must already exist — create it with the `configure-routing` skill first.
+
+#### Location intercept (`show-intercept`, `update-intercept`)
+
+Overrides all inbound and/or outbound calling at the location, sending callers to an announcement instead. Used during cutovers and closures.
+
+```bash
+wxcli location-call-handling update-intercept LOCATION_ID --json-body '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"DEFAULT"}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":false}}'
+```
+
+`--enabled` / `--no-enabled` toggles intercept alone.
+
+> **BLAST RADIUS:** Enabling intercept silently overrides call handling for the **whole location**. Confirm with the user before enabling.
+
+#### Outgoing permissions (`list`, `update-outgoing-permission`)
+
+Allow/block outbound call types (international, premium, toll-free, etc.) for the location.
+
+```bash
+wxcli location-call-handling update-outgoing-permission LOCATION_ID --json-body '{"callingPermissions":[{"callType":"INTERNATIONAL","action":"BLOCK","transferEnabled":false}]}'
+```
+
+#### Auto transfer numbers (`show-auto-transfer-numbers`, `update-auto-transfer-numbers`)
+
+The destinations that outbound rules with a `TRANSFER_NUMBER_1/2/3` action send calls to.
+
+```bash
+wxcli location-call-handling show-auto-transfer-numbers LOCATION_ID --output json
+wxcli location-call-handling update-auto-transfer-numbers LOCATION_ID --auto-transfer-number1 "+15551234567"
+```
+
+Flags: `--auto-transfer-number1`, `--auto-transfer-number2`, `--auto-transfer-number3`.
+
+#### Access codes (`show-access-codes`, `create`, `update-access-codes`, `delete`)
+
+Authorization codes that let a caller bypass an outgoing permission restriction.
+
+```bash
+# Add an access code
+wxcli location-call-handling create LOCATION_ID --json-body '{"accessCodes":{"code":"123456","description":"Front desk override"}}'
+
+# Delete SPECIFIC codes (yes, the command is named "update-access-codes")
+wxcli location-call-handling update-access-codes LOCATION_ID --json-body '{"deleteCodes":["123456"]}'
+
+# Delete ALL access codes at the location
+wxcli location-call-handling delete LOCATION_ID --force
+```
+
+#### Digit patterns (6 commands)
+
+Per-pattern outbound rules — match a dialed pattern and allow, block, require an auth code, or force a transfer number.
+
+```bash
+# Create a pattern (all four flags required)
+wxcli location-call-handling create-digit-patterns LOCATION_ID \
+  --name "Block 900" --pattern "1900XXXXXXX" --action BLOCK --no-transfer-enabled
+
+# Read one / update one
+wxcli location-call-handling show-digit-patterns LOCATION_ID DIGIT_PATTERN_ID --output json
+wxcli location-call-handling update-digit-patterns LOCATION_ID DIGIT_PATTERN_ID --action ALLOW
+
+# Delete ONE pattern
+wxcli location-call-handling delete-digit-patterns-outgoing-permission-1 LOCATION_ID DIGIT_PATTERN_ID --force
+
+# Delete ALL patterns at the location
+wxcli location-call-handling delete-digit-patterns-outgoing-permission LOCATION_ID --force
+```
+
+`--action` accepts: `ALLOW`, `BLOCK`, `AUTH_CODE`, `TRANSFER_NUMBER_1`, `TRANSFER_NUMBER_2`, `TRANSFER_NUMBER_3`.
+
+> **Digit patterns here are permission rules (allow/block a dialed pattern), not digit manipulation.** To strip or prepend digits, use translation patterns in the `configure-routing` skill.
+
+#### Example password (`generate-example-password`)
+
+Generates a compliant example password for the location's SIP device credentials.
+
+```bash
+wxcli location-call-handling generate-example-password LOCATION_ID --json-body '{"generate":["sip"]}'
+```
+
+---
+
+### Caller Reputation
+
+Connects an external reputation provider that scores inbound calls for spam/fraud. **Org-level, not location-level** — there is no `LOCATION_ID` argument in this group.
+
+```bash
+# What providers are available
+wxcli caller-reputation list --output json
+
+# Current service settings and connection status
+wxcli caller-reputation show --output json
+wxcli caller-reputation show-status --output json
+
+# Enable a provider and set scoring thresholds
+wxcli caller-reputation update --enabled --id PROVIDER_ID --name "Provider Name" \
+  --client-id CLIENT_ID --client-secret CLIENT_SECRET \
+  --call-block-score-threshold "80" --call-allow-score-threshold "20"
+
+# Recover a provider locked out after repeated auth failures
+wxcli caller-reputation unlock-caller-reputation --id PROVIDER_ID
+```
+
+**Gotchas (both confirmed in `--help`):**
+- **Score thresholds are strings, not integers** — `--call-block-score-threshold "80"`. Quote them.
+- **This group uses `--organization-id`, not the usual `--orgId`/`orgId` injection.** Every command accepts `--organization-id`; omit it to use the token's own org.
+- `show-status` returns provider state: `NOT_CONNECTED`, `CONNECTING`, `CONNECTED`, `ACTIVE`, `EXPIRED`, `AUTH_FAILED`, `PROVIDER_DISABLED`. An `AUTH_FAILED` or `EXPIRED` provider is why scoring silently stops.
+- `client_secret` is write-only — it is never returned by `show`.
+
+---
+
+### External Voicemail (MWI)
+
+One command. Turns the message-waiting indicator (the voicemail light/badge) on or off for a person or workspace — used when an **external** voicemail system, not Webex voicemail, holds the messages.
+
+```bash
+# Light the voicemail indicator
+wxcli external-voicemail create --id PERSON_OR_WORKSPACE_ID --action SET
+
+# Turn it off
+wxcli external-voicemail create --id PERSON_OR_WORKSPACE_ID --action CLEAR
+```
+
+`--id` is required; `--action` accepts `SET` or `CLEAR` only.
+
+> **Requires a Service App token** with the `spark-admin:calls_write` scope — an ordinary admin token or PAT will not work here. See `docs/reference/call-control.md` §6. This command only drives the indicator; it does not create or store voicemail.
 
 ---
 
@@ -554,7 +866,27 @@ wxcli call-pickup show LOCATION_ID PICKUP_ID --output json
 
 # Example for voicemail group
 wxcli location-voicemail show-voicemail-groups LOCATION_ID VMG_ID --output json
+
+# Example for announcement (org-level vs location-level)
+wxcli announcements show-announcements-config ANNOUNCEMENT_ID --output json
+wxcli announcements show-announcements-locations LOCATION_ID ANNOUNCEMENT_ID --output json
+
+# Example for announcement playlist (plus its location assignments)
+wxcli announcement-playlists show PLAYLIST_ID --output json
+wxcli announcement-playlists list-playlists PLAYLIST_ID --output json
+
+# Example for location call handling (each theme reads back separately)
+wxcli location-call-handling show LOCATION_ID --output json
+wxcli location-call-handling list LOCATION_ID --output json
+wxcli location-call-handling show-access-codes LOCATION_ID --output json
+wxcli location-call-handling list-digit-patterns LOCATION_ID --output json
+
+# Example for caller reputation (settings + live connection state)
+wxcli caller-reputation show --output json
+wxcli caller-reputation show-status --output json
 ```
+
+> **External voicemail MWI has no read-back command** — the `external-voicemail` group only has `create`. Verify by checking the physical device indicator, not via API.
 
 ## Step 8: Report results
 
@@ -612,6 +944,16 @@ Next steps:
     - Routing (trunks, dial plans, PSTN) → `configure-routing` skill
     - Device provisioning → `manage-devices` skill
     - Location teardown → `provision-calling` skill (Operation D: Teardown)
+21. **`location-call-handling` verbs lie — never infer meaning from the command name.** `show`/`update` are internal dialing; `list` returns outgoing permissions (a settings object, not a list); `create` makes an access code; `update-access-codes` **deletes** codes; `delete` wipes **all** access codes. Re-read the trap table in the Location Call Handling section before running any of them.
+22. **Three commands in `location-call-handling` delete everything at a location** — `delete` (all access codes), `delete-digit-patterns-outgoing-permission` (all digit patterns), and enabling `update-intercept` (overrides all call handling). The single-item digit pattern delete is the `-1` suffixed variant. Confirm scope with the user first.
+23. **`announcements show` is repository usage, not announcement details.** Use `show-announcements-config ANN_ID` (org) or `show-announcements-locations LOC_ID ANN_ID` (location).
+24. **Announcements are scoped org-level OR location-level, with different commands for each.** Location-level commands are the `*-announcements`/`*-announcements-locations` variants and take `LOCATION_ID` first. Passing a location announcement ID to an org command returns 404.
+25. **Check references before deleting an announcement or playlist.** `wxcli announcements show-announcements-config ANN_ID -o json` returns `featureReferences` and `playlists`; `wxcli cq-playlists list PLAYLIST_ID -o json` shows which queues/locations use a playlist. Deleting an in-use file silently breaks the AA/CQ that plays it.
+26. **Playlist location assignment is a full replace.** `announcement-playlists update-playlists` overwrites the whole list — read `list-playlists PLAYLIST_ID` first and re-include every location you want to keep.
+27. **`caller-reputation` is org-level and uses `--organization-id`**, not the standard orgId injection. Score thresholds are **strings** — quote them (`--call-block-score-threshold "80"`).
+28. **`external-voicemail create` requires a Service App token** with `spark-admin:calls_write`. Admin tokens and PATs fail. It has no read-back command.
+29. **Announcement `create` takes a file URI, not a local path.** `--file-uri`, `--file-name`, `--name`, and the `--is-text-to-speech`/`--no-is-text-to-speech` flag are all required. For a spoken prompt without an audio file, use the `tts-generate` flow instead.
+30. **`tts-generate` is async.** It returns a `ttsId` — poll `wxcli announcements tts-status TTS_ID` until generation completes before referencing the prompt in a feature.
 
 ---
 

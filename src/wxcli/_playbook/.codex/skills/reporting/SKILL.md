@@ -26,7 +26,9 @@ If you cannot answer all four, read `docs/reference/reporting-analytics.md` befo
 1. Read `docs/reference/reporting-analytics.md` for CDR fields, report templates, API constraints
 2. The 75 CDR recipes live in `references/cdr-recipes.md` (this skill's `references/` dir) — load on demand when a question maps to a recipe; see the Recipe Catalog index under the CDR Query Composition Guide below
 
-**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cdr list --help` for call detail records, `wxcli reports --help` for templated reports — date-range and filter flag names are spec-generated). Even read commands differ by name (`show` vs `list`, known issue #5), so confirm before running. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cdr list --help` for call detail records, `wxcli reports --help` for templated reports — date-range and filter flag names are spec-generated). Even read commands differ by name (`show` vs `list`, known issue #5), so confirm before running. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests. Common traps:
+- There is **no bare `recordings` group** in the CLI — some reference docs still cite one. The real groups are `converged-recordings` (call recordings), `admin-recordings` (meeting recordings), `recording-report`, and `call-recording`.
+- `converged-recordings` and `admin-recordings` share command names but are different APIs — confirm which one you want via Step 6d before running any delete/purge.
 
 ## Step 2: Verify auth token
 
@@ -42,7 +44,8 @@ If this fails, stop and resolve authentication first (`wxcli configure`).
 |-------------|-------|------------------------|
 | CDR (Detailed Call History) | `spark-admin:calling_cdr_read` | Admin must have "Webex Calling Detailed Call History API access" role enabled in Control Hub |
 | Report Templates & Reports | `analytics:read_all` | Read-only or full admin. Org must have **Pro Pack for Cisco Webex** license. |
-| Converged Recordings | `spark-admin:telephony_config_read` | Admin recordings use `/admin/convergedRecordings` endpoint |
+| Converged Recordings (**call** recordings) | `spark-admin:telephony_config_read` | Admin listing uses `converged-recordings list-converged-recordings` |
+| Admin Recordings (**meeting** recordings) | `spark-admin:recordings_read` (admin) or `spark-compliance:recordings_read` (compliance officer) | Write ops (delete/recycle bin/restore/purge) need `spark-admin:recordings_write` |
 | Recording Reports | `spark-admin:telephony_config_read` | Audit reports for recording access |
 | Partner Reports | `analytics:read_all` | Partner admin scope |
 | **Contact Center stats** | `cjp:config_read` | **Use the `reporting-cc` skill instead** |
@@ -68,7 +71,8 @@ Ask the user what they want to analyze. Present this decision matrix if they are
 | Per-agent queue performance (handle time, calls handled) | **Call Queue Agent Stats report** | `wxcli reports` + `wxcli report-templates` |
 | Auto attendant call volumes and menu usage | **AA Stats report** | `wxcli reports` + `wxcli report-templates` |
 | Call quality (jitter, latency, packet loss) | **Calling Quality / Media Quality report** | `wxcli reports` + `wxcli report-templates` |
-| Call recordings (list, download, manage) | **Converged Recordings** | `wxcli converged-recordings` |
+| **Call** recordings — a phone call was recorded (list, download, manage) | **Converged Recordings** | `wxcli converged-recordings` |
+| **Meeting** recordings — org-wide/compliance listing, recycle bin, sharing | **Admin Recordings** | `wxcli admin-recordings` |
 | Recording access audit | **Recording Reports** | `wxcli recording-report` |
 | Partner-level report generation | **Partner Reports** | `wxcli partner-reports` |
 | Contact Center queue/agent stats | **→ Use `reporting-cc` skill** | CC-scoped OAuth required |
@@ -344,6 +348,70 @@ wxcli recording-report list -o json
 wxcli recording-report list-access-detail --recording-id RECORDING_ID -o json
 ```
 
+### 6d. Admin recordings (MEETING recordings) — do not confuse with 6c
+
+`wxcli admin-recordings` (14 commands) manages **Webex Meetings** recordings org-wide: admin/compliance listing across all users, recycle bin (soft-delete/restore/purge), hard delete, sharing, and group recordings. It hits `/v1/recordings`, `/v1/admin/recordings`, and `/v1/group/recordings`.
+
+**This is the single easiest group in the CLI to misuse.** `converged-recordings` (6c) and `admin-recordings` have near-identical group names and overlapping command names (`list`, `show`, `delete`, `create-soft-delete`, `create-restore`, `create-purge`), but they operate on **different recordings on different endpoints**. Running the wrong one returns an empty list — or purges the wrong recordings.
+
+**Decision rule: what was recorded?**
+- A **phone call** (Calling / Customer Assist) --> `converged-recordings` (6c)
+- A **meeting** (Meeting Center, Event Center, Training Center, Support Center) --> `admin-recordings` (6d)
+
+| | `converged-recordings` (6c) | `admin-recordings` (6d) |
+|---|---|---|
+| Endpoint | `/v1/convergedRecordings` | `/v1/recordings`, `/v1/admin/recordings`, `/v1/group/recordings` |
+| Records | Webex **Calling** calls | Webex **Meetings** |
+| `--format` choices | `MP3` | `MP4`, `ARF` |
+| `--service-type` choices | `calling`, `customerAssist` | `MeetingCenter`, `EventCenter`, `SupportCenter`, `TrainingCenter` |
+| Who owns it | `--owner-email`, `--owner-id`, `--owner-type` (user/place/virtualLine/callQueue) | `--host-email`, `--person-id` |
+| Scoping filters | `--location-id`, `--storage-region` | `--site-url`, `--meeting-id` |
+| Has `download` / `export` | Yes | No |
+
+If you see `--site-url`, `--meeting-id`, or `MP4`/`ARF`, you are in meetings territory. If you see `--location-id`, `--owner-type`, or `MP3`, you are in calling territory.
+
+**List meeting recordings (admin / compliance officer, org-wide):**
+
+```bash
+wxcli admin-recordings list-recordings-admin \
+  --from "2026-04-01T00:00:00Z" --to "2026-04-10T00:00:00Z" \
+  --status available -o json
+```
+
+**List for one host, and get details:**
+
+```bash
+wxcli admin-recordings list --host-email user@example.com -o json
+wxcli admin-recordings show RECORDING_ID -o json
+```
+
+**Recycle bin lifecycle** (`available` --> `deleted` --> `purged`):
+
+```bash
+# Move to recycle bin (recoverable)
+wxcli admin-recordings create-soft-delete --host-email user@example.com \
+  --json-body '{"recordingIds":["REC_ID_1","REC_ID_2"]}'
+
+# Restore from recycle bin
+wxcli admin-recordings create-restore --host-email user@example.com --restore-all
+
+# Permanently purge — NOT recoverable
+wxcli admin-recordings create-purge --host-email user@example.com --purge-all
+```
+
+> **WARNING:** `create-purge` is irreversible. `--purge-all` purges every recycle-bin recording for that host. Always confirm the exact scope with the user before running it, and prefer an explicit `--json-body '{"recordingIds":[...]}'` over `--purge-all`.
+
+> **NOTE:** `admin-recordings delete RECORDING_ID --force` is a **hard delete** that bypasses the recycle bin — it is not the same as `create-soft-delete`.
+
+**Group recordings:**
+
+```bash
+wxcli admin-recordings list-recordings-group --person-id PERSON_ID -o json
+wxcli admin-recordings show-recordings RECORDING_ID --person-id PERSON_ID -o json
+```
+
+See `docs/reference/admin-apps-data.md` § 3 (Recordings (Admin)) for the full command list and sharing commands (`create-access-list-recordings`, `create-access-list-recordings-1`).
+
 ## Step 7: Session Pattern — Pull Once, Query Many
 
 CDR pulls are slow due to the CDR API rate limit (1 request/minute) and the 12-hour max window per request. A 7-day pull requires 14 sequential requests = ~14 minutes. This section prevents redundant pulls and sets correct user expectations.
@@ -477,6 +545,10 @@ For non-CDR results (Reports API, recordings), use:
 12. **Location filter uses names, not IDs.** Up to 10, comma-separated.
 13. **Recording management is destructive.** `create-purge` is permanent. Always confirm.
 14. **Converged recordings scope split.** User-level: `wxcli converged-recordings list`. Admin: `wxcli converged-recordings list-converged-recordings`.
+15. **`converged-recordings` = CALL recordings; `admin-recordings` = MEETING recordings.** The two groups share command names (`list`, `show`, `delete`, `create-soft-delete`, `create-restore`, `create-purge`) but hit different endpoints. Wrong group = empty results, or purging the wrong recordings. Decide by asking what was recorded — a phone call or a meeting. See Step 6d.
+16. **`admin-recordings delete` is a hard delete, not a soft delete.** It bypasses the recycle bin. Use `create-soft-delete` for the recoverable path.
+17. **`admin-recordings create-purge --purge-all` is irreversible and host-wide.** Prefer explicit `--json-body '{"recordingIds":[...]}'`. Always confirm scope with the user first.
+18. **There is no bare `recordings` group in the CLI.** It has never existed. Some reference docs still cite one — the real groups are `converged-recordings`, `admin-recordings`, `recording-report`, and `call-recording`.
 
 ---
 
@@ -487,8 +559,10 @@ For non-CDR results (Reports API, recordings), use:
 | `spark-admin:calling_cdr_read` | CDR Feed and Stream |
 | `analytics:read_all` | Report Templates, Reports, Partner Reports |
 | `spark-admin:locations_read` | Location name filtering on CDR |
-| `spark-admin:telephony_config_read` | Converged recordings read |
-| `spark-admin:telephony_config_write` | Recording management (reassign, delete, purge) |
+| `spark-admin:telephony_config_read` | Converged (call) recordings read |
+| `spark-admin:telephony_config_write` | Converged (call) recording management (reassign, delete, purge) |
+| `spark-admin:recordings_read` | Admin (meeting) recordings — list as admin |
+| `spark-admin:recordings_write` | Admin (meeting) recordings — delete, recycle bin, restore, purge |
 | `spark-compliance:recordings_read` | Compliance officer recording access |
 
 ---
