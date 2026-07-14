@@ -1,0 +1,178 @@
+{
+  "_comment": [
+    "ADDITIVE overlay for specs/webex-cloud-calling.json — see tools/spec_overlay.py.",
+    "specs/ is a verbatim upstream mirror (update-specs.py overwrites it), so an",
+    "endpoint upstream omits must be re-added here or it is lost on every pull.",
+    "Additive only: if upstream publishes one of these paths, the drift gate fails",
+    "and the entry must be deleted. Schemas below are transcribed from LIVE",
+    "responses, not from any SDK — every field was proven by GET/PUT read-back."
+  ],
+  "paths": {
+    "/telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings": {
+      "x-wxcli-overlay": {
+        "reason": "Live endpoint absent from Cisco's published spec. Never present in any revision (`git log -S 'cxEssentials/callRecordings' -- specs/` is empty), so the generator produced no command and docs/reference/call-features-additional.md documented a command that never existed for ~4 months.",
+        "evidence": "Verified live against org ahobgood-lab on 2026-07-14 with a throwaway CX Essentials queue: GET -> 200 with a BroadWorks-backed payload (serviceProvider/externalGroup populated); PUT {enabled:true,record:'Always'} -> 204, and a follow-up GET read-back confirmed both values persisted. Every field in the schemas below was proven writable by read-back. NOTE: this API returns 204 for unknown fields and silently drops them (PUT {bogusFieldXyz:...} -> 204, absent on read-back), so a 204 alone proves nothing here — only read-back does.",
+        "remove_when": "Cisco publishes this path upstream; the drift gate will fail with 'overlay is stale' and this entry must be deleted."
+      },
+      "get": {
+        "tags": ["Features: Customer Assist"],
+        "operationId": "Read Queue Call Recording Settings",
+        "summary": "Read Queue Call Recording Settings",
+        "description": "Retrieve a Customer Assist call queue's call recording settings. Recording configuration lives ONLY in this sub-resource — the call queue payload itself carries no recording fields, so `call-queue show/update` cannot read or write it. Requires `spark-admin:people_read` (NOT the telephony_config scope the other Customer Assist endpoints use).",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "The location ID where the call queue resides.",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzVlZmI5MTFhLThmNmUtNGU2Ny1iOTZkLWNkM2VmNmRhNDE2OA",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "required": true,
+            "description": "The Customer Assist call queue ID whose recording settings are read.",
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvYUhaaFpUTjJNRzh5YjBBMk5EazBNVEk1Tnk1cGJuUXhNQzVpWTJ4a0xuZGxZbVY0TG1OdmJRPT0",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "required": false,
+            "description": "The organization ID of the customer or partner's organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/GetQueueCallRecordingObject"},
+                "example": {
+                  "enabled": true,
+                  "record": "Always",
+                  "notification": {"type": "Beep", "enabled": true},
+                  "repeat": {"interval": 30, "enabled": true},
+                  "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true},
+                  "serviceProvider": "WRLVH568881",
+                  "externalGroup": "WRLVH568881L568965",
+                  "externalIdentifier": "a059f218-64c5-4368-912d-6e3c62d01d87"
+                }
+              }
+            }
+          },
+          "400": {"description": "Bad Request: The request was invalid or cannot be otherwise served."},
+          "401": {"description": "Unauthorized: Authentication credentials were missing or incorrect."},
+          "403": {"description": "Forbidden: Call Queue Recording Settings API access can be restricted via Control Hub by a full administrator."},
+          "404": {"description": "Not Found: The queue does not exist, or Customer Assist is not enabled on it."}
+        }
+      },
+      "put": {
+        "tags": ["Features: Customer Assist"],
+        "operationId": "Update Queue Call Recording Settings",
+        "summary": "Update Queue Call Recording Settings",
+        "description": "Configure a Customer Assist call queue's call recording settings. Requires `spark-admin:people_write` (NOT the telephony_config scope the other Customer Assist endpoints use). Behaves as a PARTIAL MERGE, not a replace: fields omitted from the body retain their previous value (live-verified — `record` stayed set across a PUT that omitted it). WARNING: returns 204 for unrecognised fields and silently discards them — always read the settings back to confirm a write landed.",
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "The location ID where the call queue resides.",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzVlZmI5MTFhLThmNmUtNGU2Ny1iOTZkLWNkM2VmNmRhNDE2OA",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "queueId",
+            "in": "path",
+            "required": true,
+            "description": "The Customer Assist call queue ID whose recording settings are modified.",
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvYUhaaFpUTjJNRzh5YjBBMk5EazBNVEk1Tnk1cGJuUXhNQzVpWTJ4a0xuZGxZbVY0TG1OdmJRPT0",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "required": false,
+            "description": "The organization ID of the customer or partner's organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/ModifyQueueCallRecordingPayload"},
+              "example": {
+                "enabled": true,
+                "record": "Always",
+                "notification": {"type": "Beep", "enabled": true},
+                "repeat": {"interval": 30, "enabled": true},
+                "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true}
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {"description": "No Content — settings accepted. Unrecognised fields are silently dropped; read back to confirm."},
+          "400": {"description": "Bad Request: The request was invalid or cannot be otherwise served."},
+          "401": {"description": "Unauthorized: Authentication credentials were missing or incorrect."},
+          "403": {"description": "Forbidden: Call Queue Recording Settings API access can be restricted via Control Hub by a full administrator."},
+          "404": {"description": "Not Found: The queue does not exist, or Customer Assist is not enabled on it."}
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "QueueRecordingNotification": {
+        "type": "object",
+        "properties": {
+          "type": {"type": "string", "description": "Notification played to participants while recording. Live-verified values: `None`, `Beep`."},
+          "enabled": {"type": "boolean", "description": "Whether the recording notification is played."}
+        }
+      },
+      "QueueRecordingRepeat": {
+        "type": "object",
+        "properties": {
+          "interval": {"type": "integer", "description": "Seconds between repeats of the recording notification. Live-verified: 15 (default), 30."},
+          "enabled": {"type": "boolean", "description": "Whether the notification repeats during the call."}
+        }
+      },
+      "QueueRecordingStartStopAnnouncement": {
+        "type": "object",
+        "properties": {
+          "internalCallsEnabled": {"type": "boolean", "description": "Play the start/stop announcement on internal calls."},
+          "pstnCallsEnabled": {"type": "boolean", "description": "Play the start/stop announcement on PSTN calls."}
+        }
+      },
+      "ModifyQueueCallRecordingPayload": {
+        "type": "object",
+        "description": "Writable queue call recording settings. Every field below was proven writable by live PUT-then-GET read-back on 2026-07-14.",
+        "properties": {
+          "enabled": {"type": "boolean", "description": "Whether call recording is enabled for the queue."},
+          "record": {"type": "string", "description": "When to record. Live-verified value: `Always`. Other values are not asserted here because they have not been verified against the live API."},
+          "notification": {"$ref": "#/components/schemas/QueueRecordingNotification"},
+          "repeat": {"$ref": "#/components/schemas/QueueRecordingRepeat"},
+          "startStopAnnouncement": {"$ref": "#/components/schemas/QueueRecordingStartStopAnnouncement"}
+        }
+      },
+      "GetQueueCallRecordingObject": {
+        "type": "object",
+        "description": "Queue call recording settings as returned by the live API.",
+        "properties": {
+          "enabled": {"type": "boolean", "description": "Whether call recording is enabled for the queue."},
+          "record": {"type": "string", "description": "When calls are recorded. Only returned once recording is enabled."},
+          "notification": {"$ref": "#/components/schemas/QueueRecordingNotification"},
+          "repeat": {"$ref": "#/components/schemas/QueueRecordingRepeat"},
+          "startStopAnnouncement": {"$ref": "#/components/schemas/QueueRecordingStartStopAnnouncement"},
+          "serviceProvider": {"type": "string", "description": "Read-only. Recording vendor's service provider ID (BroadWorks-backed)."},
+          "externalGroup": {"type": "string", "description": "Read-only. Recording vendor's external group ID."},
+          "externalIdentifier": {"type": "string", "description": "Read-only. Recording vendor's external identifier for this queue."}
+        }
+      }
+    }
+  }
+}
