@@ -582,6 +582,47 @@ def check_flags(surface: dict, flag_surface: dict) -> list:
     return dead
 
 
+# ------------------------------------------------------------------ check 7
+
+# The backticks must wrap the flag AND NOTHING ELSE. That is what keeps this
+# check out of check 6's territory: `wxcli people create --license` is a command
+# span and belongs to check 6, while `--license` alone is a prose citation and
+# belongs here. It also drops `curl --header`-style spans, where the flag is a
+# different tool's and the backticks wrap the whole invocation.
+PROSE_FLAG = re.compile(r"`(--[a-z0-9][a-z0-9-]+)`")
+
+
+def check_prose_flags(flag_surface: dict) -> list:
+    """Backticked flags that exist on NO wxcli command anywhere.
+
+    Check 6 can only judge a flag that trails a resolvable `wxcli <group>
+    <command>` in a code span. A flag named in a sentence or a table cell has no
+    command in front of it, so check 6 is blind to it by design. This check is
+    the command-free complement, and it is deliberately weaker: with no command
+    to check against, it can only say "no such flag anywhere", never "real flag,
+    wrong command". A citation like `--media-type` on `cc-ewt show` (real on
+    cc-tasks create, fiction there) passes this check and always will.
+
+    It also cannot tell "use `--x`" from "there is NO `--x`". The repo documents
+    several non-existent flags on purpose, to stop an agent reaching for one;
+    those lines are some of the best docs here and a check that pressured
+    someone into deleting them would make the playbook worse. They are
+    allowlisted per file as `prose-flag <path> <flag>`.
+    """
+    real = {f for cmds in flag_surface.values() for fl in cmds.values() for f in fl}
+    allow = load_allowlist()
+    dead = []
+    for rel in sorted(f for pat in SCAN_PATTERNS for f in tracked_files(pat)
+                      if f.endswith(".md")):
+        for lineno, line in enumerate((REPO / rel).read_text().splitlines(), 1):
+            for m in PROSE_FLAG.finditer(line):
+                flag = m.group(1)
+                if flag in real or f"prose-flag {rel} {flag}" in allow:
+                    continue
+                dead.append({"file": rel, "line": lineno, "flag": flag})
+    return dead
+
+
 # ---------------------------------------------------------- deliberate gaps
 
 GAPS_DOC = REPO / "docs" / "arch" / "deliberate-gaps.md"
@@ -655,7 +696,9 @@ def main() -> int:
     count_mismatches = check_counts(surface)
     unreferenced = check_unreferenced(group_refs)
     stale_overlays = check_overlays()
-    dead_flags = check_flags(surface, build_flag_surface())
+    flag_surface = build_flag_surface()
+    dead_flags = check_flags(surface, flag_surface)
+    prose_flags = check_prose_flags(flag_surface)
 
     results = {
         "1_spec_cli_parity": parity,
@@ -664,10 +707,11 @@ def main() -> int:
         "4_undeclared_unreferenced_groups": unreferenced,
         "5_stale_overlays": stale_overlays,
         "6_dead_flags": dead_flags,
+        "7_prose_flags": prose_flags,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
-                  or stale_overlays or dead_flags)
+                  or stale_overlays or dead_flags or prose_flags)
 
     if args.json:
         print(json.dumps(results, indent=2))
@@ -706,6 +750,11 @@ def main() -> int:
             print(f"      {f['file']}:{f['line']}  {f['ref']}  {f['flag']}")
         if len(dead_flags) > 20:
             print(f"      ... and {len(dead_flags) - 20} more (--json for all)")
+        print(f"[7] prose flags on no command: {len(prose_flags)}")
+        for f in prose_flags[:20]:
+            print(f"      {f['file']}:{f['line']}  {f['flag']}")
+        if len(prose_flags) > 20:
+            print(f"      ... and {len(prose_flags) - 20} more (--json for all)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
