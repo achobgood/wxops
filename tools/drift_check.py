@@ -59,6 +59,17 @@ def tracked_files(*patterns: str) -> set[str]:
     return {line for line in out.stdout.splitlines() if line}
 
 
+def tracked_specs() -> set[str]:
+    """Tracked OpenAPI specs — files directly under specs/, not specs/overlays/.
+
+    git's pathspec `specs/*.json` matches across directories, so overlay
+    fragments (specs/overlays/*.overlay.json) would otherwise be counted as
+    specs and parsed as if they were one.
+    """
+    return {f for f in tracked_files("specs/*.json")
+            if Path(f).parent.name == "specs"}
+
+
 def normalize_path(path: str) -> str:
     """Normalize an API path for matching: params -> {}, strip /v1 prefix."""
     path = re.sub(r"\{[^}]*\}", "{}", path)
@@ -119,7 +130,7 @@ def load_spec_ops(skip_tags: dict) -> tuple[dict, dict]:
     skipped_uploads); they are a known limitation, not drift.
     """
     ops, skipped = {}, {}
-    for rel in sorted(tracked_files("specs/*.json")):
+    for rel in sorted(tracked_specs()):
         spec_name = Path(rel).name
         spec = json.loads((REPO / rel).read_text())
         # Overlays supply endpoints upstream omits but the live API serves, so
@@ -340,7 +351,7 @@ def check_references(surface: dict, top_level: set[str]) -> tuple[list, dict]:
 
 def check_counts(surface: dict) -> list:
     measured_groups = distinct_command_sets()
-    measured_specs = len(tracked_files("specs/*.json"))
+    measured_specs = len(tracked_specs())
     mismatches = []
     for rel in ("CLAUDE.md", "README.md"):
         text = (REPO / rel).read_text()
@@ -395,7 +406,7 @@ def check_overlays() -> list:
     stops an overlay outliving its purpose. See tools/spec_overlay.py rule 1.
     """
     stale = []
-    for rel in sorted(tracked_files("specs/*.json")):
+    for rel in sorted(tracked_specs()):
         raw = json.loads((REPO / rel).read_text())
         for p in superseded_paths(raw, load_overlay(REPO / rel)):
             stale.append({"spec": Path(rel).name, "path": p})
