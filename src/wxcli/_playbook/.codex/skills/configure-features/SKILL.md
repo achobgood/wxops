@@ -217,7 +217,7 @@ wxcli auto-attendant create LOCATION_ID \
   --business-schedule "Business Hours"
 ```
 
-Optional flags: `--phone-number`, `--holiday-schedule`, `--disabled`.
+Optional flags: `--phone-number`, `--holiday-schedule`, `--extension-dialing`, `--name-dialing`, `--first-name`, `--last-name`, `--language-code`, `--time-zone`.
 
 ---
 
@@ -376,7 +376,7 @@ wxcli paging-group create LOCATION_ID \
   --extension 8100
 ```
 
-Optional flags: `--disabled`.
+Optional flags: `--phone-number`, `--first-name`, `--last-name`, `--language-code`, `--originator-caller-id-enabled`.
 
 To list existing paging groups:
 

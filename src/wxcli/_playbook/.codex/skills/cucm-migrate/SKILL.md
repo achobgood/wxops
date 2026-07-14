@@ -463,7 +463,7 @@ This table is the PRIMARY execution mechanism. The pipeline says WHAT. The domai
 |--------------|---------|-------------|------------------------------|
 | location | create | provision-calling | Two-step: `locations create` + `location-settings create` to enable calling |
 | location | enable_calling | provision-calling | Separate API call to enable Webex Calling on the location |
-| user | create | provision-calling | Extension required at creation. License via `--license`. Combines create + assign_number + assign_license |
+| user | create | provision-calling | Extension required at creation. `people create` has no license flag — licenses are assigned separately via the `licenses` group. Combines create + assign_number + assign_license |
 | user | configure_settings | manage-call-settings | Read-before-write. `--json-body` format. Per-setting endpoint paths |
 | user | configure_voicemail | manage-call-settings | Same as configure_settings |
 | workspace | create | provision-calling | License tier matters. Basic vs Professional determines which settings work |

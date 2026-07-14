@@ -258,7 +258,7 @@ messages = result.get("items", [])
 ### Gotchas
 
 - **`--room-id` is required for `list`** — there is no global messages endpoint. You must specify a room.
-- **`--files` accepts a URL, not a local file path.** The URL must be publicly accessible or a Webex content URL. For local file uploads, use `--json-body` with a multipart approach or upload first via another mechanism.
+- **There is no `--files` flag** — the API's `files` field is an array, so it is not rendered as a flag (known issue #2). Attach via `--json-body '{"roomId":"...","text":"...","files":["https://example.com/a.png"]}'`. The entry must be a **publicly accessible URL, not a local file path**, and the API accepts only one file per message. For a local file, upload it somewhere reachable first.
 - **Bots can only read messages where they are @mentioned**, except in 1:1 direct spaces where they see all messages.
 - **Edit only works on messages sent by the authenticated user or bot.** Editing someone else's message will return 403.
 - **`--before` and `--before-message` are pagination tools** — use `--before-message` with the ID of the oldest message in the last page to walk backward through history.

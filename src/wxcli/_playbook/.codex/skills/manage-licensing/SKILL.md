@@ -504,7 +504,7 @@ Next steps:
 
 10. **206 Partial Content is not an error** -- The PATCH endpoint can return HTTP 206 when some licenses succeeded but others failed. Always compare the returned `licenses` array against what was requested.
 
-11. **`licenses` (admin spec) vs `licenses` (calling spec)** -- Use `licenses` for assignment/removal and full inventory. Use `licenses` with `--calling-only` for quick calling-license audits.
+11. **`licenses-api` is a deprecated alias for `licenses`** -- Both names resolve to the same module with the same commands (`list`, `show`, `update`). Prefer `licenses`; `licenses-api` will be removed.
 
 12. **Log all operations** -- Print what you are about to do before each CLI command, and print the result after. This creates an audit trail for troubleshooting.
 
@@ -552,17 +552,6 @@ Licensing-specific errors:
 | List people (for cross-reference) | `spark-admin:people_read` |
 | List resource groups / memberships | `spark-admin:resource_groups_read` |
 | Update a resource group membership | `spark-admin:resource_group_memberships_write` |
-
----
-
-## Two CLI Groups for Licensing
-
-| | `licenses` (admin spec) | `licenses` (calling spec) |
-|---|---|---|
-| **Commands** | list, show, update | list, show |
-| **Best for** | Full lifecycle: inventory, details with assigned users, assign, remove | Quick calling-license audit |
-| **Assignment** | Yes -- via `update` with `--json-body` | No -- read-only |
-| **Filter** | No built-in filter (use JSON output + script) | `--calling-only` flag |
 
 ---
 
