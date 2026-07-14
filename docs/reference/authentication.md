@@ -1,6 +1,8 @@
 # Authentication Reference — Webex Calling APIs
 
-This document covers every authentication method available for the Webex Calling APIs, including token types, OAuth flows, scope requirements, and the `wxc_sdk` Python SDK patterns for each.
+This document covers every authentication method available for the Webex Calling APIs, including token types, OAuth flows, and scope requirements for each.
+
+**Execution path:** authenticate with `wxcli configure` and verify with `wxcli whoami`. When an operation has no `wxcli` command, fall back to raw HTTP via `wxcli.auth.get_api()` (see [Raw HTTP via api.session](#raw-http-via-apisession)). The `wxc_sdk` code below is included to document the shape of the underlying API models — this project does not execute that SDK.
 
 ## Sources
 
@@ -62,17 +64,19 @@ Authorization: Bearer <ACCESS_TOKEN>
 - Intended strictly for development and testing — never embed in production code
 - **Contact Center limitation:** Even full admins on CC-provisioned orgs get 403 on CC config endpoints (`api.wxcc-{region}.cisco.com`) with a PAT. Create an OAuth integration at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes, complete the OAuth flow, and use that token instead.
 
-**wxc_sdk usage:**
+**Usage:**
 
-```python
-from wxc_sdk import WebexSimpleApi
+`wxcli configure` prompts for the token and saves it to `~/.wxcli/config.json`, so it persists across shell invocations. Verify with `wxcli whoami`.
 
-# Pass token directly as a string
-api = WebexSimpleApi(tokens='YOUR_PERSONAL_ACCESS_TOKEN')
+```bash
+# Prompts for the token ("Webex API token:")
+wxcli configure
 
-# Or set the environment variable and pass nothing
-# export WEBEX_ACCESS_TOKEN=YOUR_PERSONAL_ACCESS_TOKEN
-api = WebexSimpleApi()
+# Or pipe it in non-interactively
+echo "YOUR_PERSONAL_ACCESS_TOKEN" | wxcli configure
+
+# Confirm the token works — prints the authenticated user, org, and time remaining
+wxcli whoami
 ```
 
 ---
@@ -272,9 +276,11 @@ SERVICE_APP_CLIENT_ID=<client_id>
 SERVICE_APP_CLIENT_SECRET=<client_secret>
 ```
 
-### wxc_sdk Service App Pattern
+### Service App Refresh — API Shape Reference
 
-From `examples/service_app.py` in the SDK:
+With `wxcli`, feed the service app's current access token to `wxcli configure` and verify with `wxcli whoami`. There is no `wxcli` command for the refresh-token exchange itself — perform that against `https://webexapis.com/v1/access_token` (see [Token Refresh Flow](#token-refresh-flow)), then configure the resulting access token.
+
+The `wxc_sdk` example below is retained only to document the shape of that refresh call:
 
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -376,12 +382,11 @@ Bots are special Webex identities with their own access token.
 - Bots can interact with messaging, spaces, and webhooks
 - Bot tokens have **limited scope for Calling APIs** — bots cannot place or manage calls on behalf of users
 
-**wxc_sdk usage:**
+**Usage:**
 
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi(tokens='BOT_ACCESS_TOKEN')
+```bash
+echo "BOT_ACCESS_TOKEN" | wxcli configure
+wxcli whoami
 ```
 
 Since bot tokens never expire, no refresh logic is needed.
@@ -598,24 +603,23 @@ TOKEN_INTEGRATION_CLIENT_SCOPES=spark:calls_read spark:calls_write spark:people_
 
 <!-- Added by playbook session 2026-03-18 -->
 
-The wxc_sdk `WebexSimpleApi` object is not just an SDK client — it also provides a pre-authenticated HTTP session you can use to call **any** Webex API endpoint directly, without going through typed SDK methods. This is the pattern used by the wxcli auto-generated commands.
+`wxcli.auth.get_api()` returns a pre-authenticated object whose `.session` can call **any** Webex API endpoint directly. This is the fallback path when no `wxcli` command covers an operation.
 
 ### Why Use Raw HTTP
 
-- **Coverage gaps:** The SDK may not yet wrap every Webex Calling endpoint. Raw HTTP lets you call any documented (or undocumented) API.
-- **Exact control:** You send the exact JSON body and query params the API expects, with no SDK data model translation.
-- **Same auth:** The session inherits all authentication, token refresh, rate-limit retry, and concurrency control from the `WebexSimpleApi` you already set up.
+- **Coverage gaps:** Not every Webex Calling endpoint has a `wxcli` command. Raw HTTP lets you call any documented (or undocumented) API.
+- **Exact control:** You send the exact JSON body and query params the API expects, with no data model translation.
+- **Same auth:** The session reads the token saved by `wxcli configure` and inherits its token resolution and rate-limit retry.
 
 ### How It Works
 
-Initialize `WebexSimpleApi` using any auth method from the sections above. Then use `api.session.rest_*()` methods for direct HTTP calls:
+`get_api()` picks up the token you saved with `wxcli configure` — no separate auth setup. Then use `api.session.rest_*()` methods for direct HTTP calls:
 
 ```python
-from wxc_sdk import WebexSimpleApi
+from wxcli.auth import get_api
 
-# Auth via environment variable (same as SDK usage)
-# export WEBEX_ACCESS_TOKEN=YOUR_TOKEN
-api = WebexSimpleApi()
+# Reads the token saved by `wxcli configure`
+api = get_api()
 
 BASE = "https://webexapis.com/v1"
 
@@ -641,74 +645,59 @@ api.session.rest_delete(f"{BASE}/people/{person_id}")
 | `api.session.rest_get(url, params=...)` | GET | Parsed JSON dict | Use `params` for query string |
 | `api.session.rest_post(url, json=...)` | POST | Parsed JSON dict | Use `json` for request body |
 | `api.session.rest_put(url, json=...)` | PUT | Parsed JSON dict or `None` | Use `json` for request body |
-| `api.session.rest_delete(url)` | DELETE | `None` | No response body |
+| `api.session.rest_delete(url, params=...)` | DELETE | Parsed JSON dict | Typically no response body |
+| `api.session.rest_patch(url, json=..., content_type=...)` | PATCH | Parsed JSON dict | `content_type` overrides the default when an endpoint demands it |
+| `api.session.follow_pagination(url, params=..., item_key="items")` | GET | Generator of items | Follows `Link: rel="next"` and yields each item across all pages |
 
 ### Key Constraints
 
 - **Full URLs required:** You must provide the complete URL including `https://webexapis.com/v1/...`. The session does not prepend a base URL.
-- **No auto-pagination:** Unlike typed SDK methods (e.g., `api.people.list()`), raw HTTP calls return a single page. To paginate, pass `max=1000` and handle `next` links yourself.
-- **Responses are plain dicts:** Results are parsed JSON dictionaries, not SDK model objects. Access fields with bracket notation (`result["items"]`), not dot notation.
-- **Errors raise `RestError`:** All HTTP errors (401, 403, 404, 429, etc.) raise `wxc_sdk.rest.RestError`, just like typed SDK calls.
+- **`rest_get` returns one page:** `rest_get` returns a single page. For multi-page result sets use `api.session.follow_pagination(url)`, which follows the `Link: rel="next"` header and yields every item.
+- **Responses are plain dicts:** Results are parsed JSON dictionaries, not model objects. Access fields with bracket notation (`result["items"]`), not dot notation.
+- **Errors raise `WebexError`:** All HTTP errors (401, 403, 404, 429, etc.) raise `wxcli.auth.WebexError`, which carries a `status_code` attribute.
 
 ### Auth Inheritance
 
-The session inherits every auth behavior from `WebexSimpleApi`:
+The session inherits its auth from whatever `wxcli configure` saved:
 
 | Feature | Behavior with raw HTTP |
 |---------|----------------------|
-| `WEBEX_ACCESS_TOKEN` env var | Works — session reads the token automatically |
-| `Tokens` object with refresh | Works — session refreshes transparently before expired requests |
-| Service app tokens | Works — same `Integration.refresh()` flow, then pass `Tokens` to `WebexSimpleApi` |
-| `retry_429=True` | Works — session retries rate-limited requests automatically |
-| `concurrent_requests=10` | Works — session enforces the semaphore on raw HTTP calls too |
-| Debug logging | Works — `Authorization` headers are masked as `Bearer ***` |
+| `WEBEX_ACCESS_TOKEN` / `WEBEX_TOKEN` env var | Checked first, in that order — an env var overrides the config file |
+| Token saved by `wxcli configure` | Read from `~/.wxcli/config.json` when neither env var is set |
+| No token at all | `get_api()` exits with `Error: No token found. Run 'wxcli configure' or set WEBEX_ACCESS_TOKEN.` |
+| Rate-limit retry | Up to 3 retries on 429, honoring `Retry-After`; set `WXCLI_NO_RETRY=1` to disable |
+| Debug logging | `get_api(debug=True)` raises the log level to DEBUG |
 
-### Complete Example: Service App + Raw HTTP
+### Complete Example: Raw HTTP
+
+Whatever token `wxcli configure` saved (personal, integration, or service app access token) is the one this session uses.
 
 ```python
-import os
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.integration import Integration
-from wxc_sdk.tokens import Tokens
+from wxcli.auth import get_api
 
-# Set up service app auth (identical to SDK pattern)
-tokens = Tokens(refresh_token=os.getenv('SERVICE_APP_REFRESH_TOKEN'))
-integration = Integration(
-    client_id=os.getenv('SERVICE_APP_CLIENT_ID'),
-    client_secret=os.getenv('SERVICE_APP_CLIENT_SECRET'),
-    scopes=[],
-    redirect_url=None
-)
-integration.refresh(tokens=tokens)
+api = get_api()
 
-# Use the authenticated session for raw HTTP calls
 BASE = "https://webexapis.com/v1"
 
-with WebexSimpleApi(tokens=tokens) as api:
-    # List all locations
-    locations = api.session.rest_get(
-        f"{BASE}/locations", params={"max": 1000}
-    )
-    for loc in locations.get("items", []):
-        print(f"{loc['name']} ({loc['id']})")
+# List all locations — follow_pagination yields items across every page
+locations = list(api.session.follow_pagination(f"{BASE}/locations"))
+for loc in locations:
+    print(f"{loc['name']} ({loc['id']})")
 
-    # Read telephony config for a location
-    loc_id = locations["items"][0]["id"]
-    tele = api.session.rest_get(
-        f"{BASE}/telephony/config/locations/{loc_id}"
-    )
-    print(f"Calling line ID: {tele.get('callingLineId')}")
+# Read telephony config for a location
+loc_id = locations[0]["id"]
+tele = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}")
+print(f"Calling line ID: {tele.get('callingLineId')}")
 ```
 
-### When to Use SDK Methods vs Raw HTTP
+### When to Use a wxcli Command vs Raw HTTP
 
 | Situation | Use |
 |-----------|-----|
-| Endpoint is wrapped by wxc_sdk (e.g., `api.people.list()`) | SDK method — typed, paginated, validated |
-| Endpoint is not in wxc_sdk yet | Raw HTTP via `api.session.rest_*()` |
+| A `wxcli` command covers the operation | The `wxcli` command — it encodes required fields, auth, and validation. Confirm with `wxcli <group> <command> --help` |
+| No `wxcli` command covers the endpoint | Raw HTTP via `api.session.rest_*()` |
 | You need exact control over request body/params | Raw HTTP |
-| You need auto-pagination over large result sets | SDK method (handles `next` links automatically) |
-| Building CLI commands from Postman collections | Raw HTTP (the wxcli auto-gen pattern) |
+| You need every item across a large result set | `api.session.follow_pagination()` (handles `next` links automatically) |
 
 ---
 

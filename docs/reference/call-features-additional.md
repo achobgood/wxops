@@ -1227,7 +1227,7 @@ Voicemail Groups do not have explicit member lists. They are shared voicemail bo
 
 <!-- Updated by playbook session 2026-03-18 -->
 
-The Voicemail Groups CLI uses SDK methods (not raw HTTP) for most operations. The SDK base is `telephony/config/voicemailGroups`. The underlying API URLs are:
+The Voicemail Groups API base is `telephony/config/voicemailGroups`. The underlying API URLs are:
 
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -1269,7 +1269,7 @@ result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/voic
 vg_id = result["id"]
 ```
 
-**Gotcha**: The wxc_sdk `VoicemailGroupDetail.for_create()` method has a bug -- missing `by_alias=True`, which sends snake_case keys instead of camelCase. Workaround: `model_dump(mode='json', by_alias=True, exclude_unset=True)`.
+**Gotcha**: The create body must use camelCase keys. Send them explicitly, as the example above does -- or pass `--json-body` via the CLI.
 
 **Update Voicemail Group:**
 
@@ -2082,7 +2082,7 @@ result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/annou
 items = result["usage"]
 ```
 
-**Note**: Announcement upload (create) requires multipart/form-data with the binary file. The raw HTTP `rest_post` method may not support file uploads directly -- use the SDK's upload methods or construct multipart requests manually.
+**Note**: Announcement upload (create) is exposed by the CLI -- use `wxcli announcements create` (org level) or `wxcli announcements create-announcements LOCATION_ID` (location level). Both take `--name`, `--file-uri`, `--file-name`, and `--is-text-to-speech`/`--no-is-text-to-speech`.
 
 #### Playlists
 
@@ -2563,13 +2563,13 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 - **Agent format differs by feature type** : Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays. Using `[{"id": ...}]` for pickup or paging returns 400 "Invalid field value: agents/targets". Reads always return full agent objects regardless.
 - **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` without a location argument returns empty. Must enumerate per-location during cleanup.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
-- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
+- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The create body must use camelCase keys; use `--json-body` via the CLI.
 - **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features. Error 28018 ("CX Essentials is not enabled for this Call center") means the target queue is not a Customer Assist queue.
 - **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
 - **CX queues hidden from default list**: `wxcli call-queue list` does not show Customer Assist queues. Pass `--has-cx-essentials true` to see them.
 - **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
-- **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
+- **Announcement upload takes a file URI, not a local file**: `wxcli announcements create` (org) and `wxcli announcements create-announcements LOCATION_ID` (location) send a JSON body with `fileUri`/`fileName` -- the file must already be reachable at a URI. There is no local-file upload flag.
 - **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2).
 - **No native PagingGroup AXL object type.** CUCM does not expose paging groups through AXL (`listPagingGroup`/`getPagingGroup` do not exist). Paging requires third-party systems (InformaCast, Cisco Paging Server). The migration pipeline's `CanonicalPagingGroup` type exists for manual/CSV import but cannot be auto-extracted from CUCM.
 

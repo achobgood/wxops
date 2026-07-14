@@ -69,6 +69,11 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 17. ~~CC "Site" tag collides with Meetings "Site" tag.~~ **Retired 2026-07-01:** per-spec `cli_name_overrides` (`webex-contact-center.json: Site -> cc-site, Data Sources -> cc-data-sources`) resolve the collision; `cc_site.py` regenerates normally with `--all` and regen order no longer matters for this.
 18. **Spec churn can silently rename commands.** New spec ops can win command-name races within a tag and rename operator-facing commands (happened to `call-queue show/update`, 2026-07-01). Pin load-bearing names with `tag_overrides` -> `command_name_overrides`. Review regen diffs for renames, not just additions.
 19. **Query-param/body-field name collisions are skipped, not rendered.** When an endpoint has a body field whose flag name would collide with a path/query param (CC Flows `create-import` flowType), the renderer keeps the query param and drops the body flag — set the body field via `--json-body`.
+20. **Command names come from the HTTP verb, so a destructive PUT is named `update-*`.** UNFIXED — logged 2026-07-14 for separate triage. `_derive_command_name` maps the verb to the name, but Cisco models some deletes as PUT-with-a-delete-body. The live example is `location-call-handling update-access-codes`: its own `--help` title is *"Delete Outgoing Permission Access Code Location"*, its body is `{"deleteCodes":[...]}`, and on success the renderer prints **"Updated."** An agent asked to "update the access codes" will delete them and be told it updated them.
+
+    Detection: an operation whose `summary`/`operationId` starts with "Delete" but whose method is PUT/POST. Worth a renderer check that flags the mismatch, since the generator can see both.
+
+    Fix when triaged: pin a truthful name via `tag_overrides` -> `command_name_overrides` (per issue #18) and make the success message follow the operation's real semantics rather than the verb. Interim protection is documentation only — `configure-features/SKILL.md` Critical Rules #21-22 carry a trap table. That protects an agent that read the skill first; it does not protect anyone reading `--help` alone, and the "Updated." message actively misleads.
 
 ## Templates, Examples & Plans
 

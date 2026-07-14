@@ -1139,7 +1139,7 @@ api.session.rest_put(
 10. **`list_dect_networks` is org-wide.** Unlike most DECT methods that require `location_id`, `list_dect_networks` searches across the entire org and accepts `location_id` as an optional filter.
 
 11. **DECT network create returns `dectNetworkId`, not `id`, in response body.**
-The `create_dect_network` API response body returns the new network's identifier under the key `dectNetworkId`, not `id`. Code that parses the raw JSON response as `response['id']` will get a `KeyError`. The wxc_sdk method handles this internally and returns the ID as a string.
+The `create_dect_network` API response body returns the new network's identifier under the key `dectNetworkId`, not `id`. Code that parses the raw JSON response as `response['id']` will get a `KeyError` — read `response['dectNetworkId']` instead.
 
 ---
 
