@@ -375,8 +375,11 @@ channel. Useful for IVR flows that announce hold times to callers. 1 command.
 
 - `--queue-id` -- Queue ID to check (required)
 - `--lookback-minutes` -- Sampling window, 5-240 (required)
-- `--max-cv` -- Maximum coefficient of variation before EWT is withheld
-- `--min-valid-samples` -- Minimum samples required for a valid EWT
+- `--max-cv` -- Maximum coefficient of variance within a subset of samples (wait times for tasks
+  connected to an agent in a one-minute interval), used to determine whether the average of those
+  values is treated as a valid sample for EWT computation. 1-100, defaults to 40%
+- `--min-valid-samples` -- Minimum percentage of valid samples, with respect to the total number of
+  samples, within the specified lookback window. 1-100, defaults to 40%
 
 ### CLI Examples
 
