@@ -373,9 +373,10 @@ channel. Useful for IVR flows that announce hold times to callers. 1 command.
 
 ### Key Parameters
 
-- `--queue-id` -- Queue ID to check
-- `--media-type` -- Media type (e.g., `telephony`, `chat`, `email`)
-- `--lookup-type` -- Type of EWT lookup
+- `--queue-id` -- Queue ID to check (required)
+- `--lookback-minutes` -- Sampling window, 5-240 (required)
+- `--max-cv` -- Maximum coefficient of variation before EWT is withheld
+- `--min-valid-samples` -- Minimum samples required for a valid EWT
 
 ### CLI Examples
 
