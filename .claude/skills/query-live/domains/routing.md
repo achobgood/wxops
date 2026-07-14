@@ -61,7 +61,7 @@ wxcli pstn list LOCATION_ID -o json
 
 ### Test Call Routing
 ```bash
-wxcli call-routing test-call-routing --originator-id PERSON_ID --originator-type PEOPLE --destination "+15125551234" -o json
+wxcli call-routing test-call-routing --originator-id PERSON_ID --originator-type PEOPLE --destination "+15125551234"
 ```
 Tests how a dialed number would be routed. Useful for "what happens if I dial...?" questions. `--originator-type` accepts `PEOPLE` or `TRUNK`. This is a POST but does not modify state — it's a read-only simulation.
 

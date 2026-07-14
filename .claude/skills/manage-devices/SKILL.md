@@ -135,7 +135,7 @@ wxcli numbers list --location-id LOCATION_ID --output json
 
 | Requirement | Details |
 |-------------|---------|
-| Valid MAC address | 12 hex characters (e.g., `AABBCCDDEEFF`). Validate with `wxcli device-settings validate-a-list --macs AABBCCDDEEFF` |
+| Valid MAC address | 12 hex characters (e.g., `AABBCCDDEEFF`). Validate with `wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF"]}'` |
 | Target person/workspace | Must exist before device creation |
 | Device model | Must be in supported catalog |
 | SIP password | Only for 3rd-party (non-Cisco) devices |
@@ -292,8 +292,10 @@ wxcli devices delete DEVICE_ID
 **Update device tags:**
 
 ```bash
-wxcli devices update DEVICE_ID --output json
+wxcli devices update DEVICE_ID --op replace --path tags --value '["lobby","floor-2"]'
 ```
+
+`--op` is `add`, `remove`, or `replace`; `--path` only supports `tags`.
 
 > **NOTE:** Tag operations use JSON Patch format. The CLI handles this internally. Tags are useful for filtering devices in bulk operations (e.g., apply line key templates by tag).
 
@@ -390,7 +392,7 @@ wxcli dect-devices update-handsets LOCATION_ID DECT_NETWORK_ID HANDSET_ID \
 wxcli dect-devices show-serviceability-password LOCATION_ID DECT_NETWORK_ID --output json
 
 # Generate and enable (WARNING: may reboot entire DECT network)
-wxcli dect-devices generate-and-enable LOCATION_ID DECT_NETWORK_ID --output json
+wxcli dect-devices generate-and-enable LOCATION_ID DECT_NETWORK_ID
 ```
 
 **DECT association queries:**
@@ -572,7 +574,7 @@ wxcli device-settings create --json-body '{
 }'
 
 # Preview how many devices would be affected
-wxcli device-settings preview-apply-line TEMPLATE_ID --output json
+wxcli device-settings preview-apply-line --action APPLY_TEMPLATE --template-id TEMPLATE_ID
 
 # Apply template to devices (has named flags — simpler than --json-body)
 wxcli device-settings create-apply-line-key-template --action APPLY_TEMPLATE --template-id TEMPLATE_ID
@@ -620,16 +622,20 @@ wxcli device-settings list-background-images --output json
 # Upload a background image to a device — no CLI (multipart upload, generator cannot render)
 # Raw HTTP fallback: POST /telephony/config/devices/{deviceId}/actions/backgroundImageUpload/invoke (multipart/form-data)
 
-# Delete background images
-wxcli device-settings delete-background-images --json-body '{
-  "backgroundImages": [{"fileName": "logo.png", "forceDelete": true}]
-}'
+# Delete background images — deletes ALL of them. The API scopes this with a
+# request body, which the generator does not render for DELETE verbs (known
+# issue #21), so the CLI cannot target individual images.
+wxcli device-settings delete-background-images --force
+
+# Delete specific images — no CLI. Raw HTTP fallback:
+# DELETE /telephony/config/devices/backgroundImages
+#   {"backgroundImages": [{"fileName": "logo.png", "forceDelete": true}]}
 ```
 
 **MAC address validation:**
 
 ```bash
-wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF","112233445566"]}' --output json
+wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF","112233445566"]}'
 ```
 
 States: `AVAILABLE`, `UNAVAILABLE`, `DUPLICATE_IN_LIST`, `INVALID`
