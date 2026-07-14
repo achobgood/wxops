@@ -29,7 +29,10 @@ jobs:
           pip install -e .
           # pytest-asyncio is required, not optional: pyproject sets
           # asyncio_mode = "auto" and 7 test modules use `async def test_*`.
-          pip install pytest pytest-asyncio
+          # aioresponses likewise: 6 tracked migration/execute modules import it
+          # to stub aiohttp. It is declared nowhere else, so a dev with it
+          # installed sees green locally while CI cannot even collect them.
+          pip install pytest pytest-asyncio aioresponses
 
       - name: Run tests (excluding live API tests)
         run: |
