@@ -1688,11 +1688,20 @@ wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
 wxcli cx-essentials list-available-agents LOCATION_ID
 
 # Get queue call recording settings
-wxcli cx-essentials show-queue-recording LOCATION_ID QUEUE_ID -o json
+wxcli cx-essentials show-call-recordings LOCATION_ID QUEUE_ID -o json
 
-# Update queue call recording settings
-wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
+# Update queue call recording settings (simple: enable + record mode)
+wxcli cx-essentials update-call-recordings LOCATION_ID QUEUE_ID \
   --enabled --record Always
+
+# Update nested recording settings (notification / repeat / announcement) via --json-body
+wxcli cx-essentials update-call-recordings LOCATION_ID QUEUE_ID --json-body '{
+  "enabled": true,
+  "record": "Always",
+  "notification": {"type": "Beep", "enabled": true},
+  "repeat": {"interval": 30, "enabled": true},
+  "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true}
+}'
 
 # --- Queue Discovery & Creation ---
 
@@ -1716,6 +1725,38 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 > **GOTCHA:** Creating a Customer Assist queue requires `callPolicies` in the request body via `--json-body`. Omitting `callPolicies` results in a 400 error. Minimum: `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
 
 > **GOTCHA:** `delete-supervisors-config-1` returns 204 but the supervisor persists. Use `update-supervisors` with `action: DELETE` on each agent instead — removing the last agent auto-removes the supervisor.
+
+### Queue Call Recording — data model
+
+Queue recording lives **only** at `telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings`. It is **not** part of the call queue object: `wxcli call-queue show ... --has-cx-essentials true` returns zero recording-related keys, so `call-queue update --json-body` can never read or write these settings.
+
+Cisco's published OpenAPI spec omits this path (it has never appeared in any revision). The CLI commands are generated from an additive local overlay — see `specs/overlays/webex-cloud-calling.overlay.json` and `tools/spec_overlay.py`. Every field below was proven against the live API on 2026-07-14 by PUT-then-GET read-back.
+
+| Field | Type | Writable | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | `bool` | yes | Master switch for queue recording. |
+| `record` | `str` | yes | When to record. **Only `Always` is live-verified.** Other values are not documented here because they have not been tested. |
+| `notification.type` | `str` | yes | Live-verified: `None`, `Beep`. |
+| `notification.enabled` | `bool` | yes | |
+| `repeat.interval` | `int` | yes | Seconds between notification repeats. Live-verified: `15` (default), `30`. |
+| `repeat.enabled` | `bool` | yes | |
+| `startStopAnnouncement.internalCallsEnabled` | `bool` | yes | |
+| `startStopAnnouncement.pstnCallsEnabled` | `bool` | yes | |
+| `serviceProvider` | `str` | no | Read-only. Recording vendor service provider ID (BroadWorks-backed). |
+| `externalGroup` | `str` | no | Read-only. |
+| `externalIdentifier` | `str` | no | Read-only. |
+| `postCallRecordingSettings` | `object` | untested | Only returned once `enabled` is true. Writability not verified — do not assume. |
+| `announcements` | `object` | untested | Only returned once `enabled` is true. Writability not verified — do not assume. |
+
+> **GOTCHA:** This endpoint returns **204 for unknown fields and silently discards them**. A PUT of `{"bogusFieldXyz": "nonsense"}` returns 204 exactly like a valid write. A 2xx is therefore *not* evidence a setting applied — always read back with `show-call-recordings` to confirm.
+
+> **GOTCHA:** The PUT is a **partial merge, not a replace**. Fields omitted from the body keep their previous value (verified: `record` stayed `Always` across a PUT that omitted it). You do not need to resend the whole object to change one field.
+
+> **GOTCHA:** The response schema is **conditional on `enabled`**. When recording is off, `record`, `postCallRecordingSettings`, and `announcements` are absent entirely. Do not treat their absence as "unsupported".
+
+> **GOTCHA:** Queue recording uses `spark-admin:people_read` / `spark-admin:people_write` — *different* scopes from every other Customer Assist endpoint (which use `spark-admin:telephony_config_*`). A token that works for screen pop can still 403 here.
+
+> **HISTORY:** Until 2026-07-14 this section documented two commands named `show-queue-recording` and `update-queue-recording`. **Neither ever existed in any released version.** The endpoint was real and even the flag names were right — only the command names were invented, and nobody ran them. The drift gate missed it for ~4 months because `docs/reference/**` was outside its scan scope, even though CLAUDE.md's Mandatory Grounding Rule forces every agent to read these docs. Now fixed: `tools/drift_check.py` `SCAN_PATTERNS` covers `docs/reference/**`, and the gate runs on every push/PR.
 
 ---
 
