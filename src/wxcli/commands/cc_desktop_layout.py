@@ -152,12 +152,8 @@ def create_purge_inactive_entities(
         handle_rest_error(e)
     if output == "json":
         print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
     else:
-        print_json(result)
+        typer.echo("Purged.")
 
 
 

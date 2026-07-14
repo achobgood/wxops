@@ -1,6 +1,13 @@
 """Render Endpoint objects into complete wxcli Typer command .py files."""
 import re
-from tools.postman_parser import Endpoint, EndpointField, camel_to_snake, camel_to_kebab
+from tools.postman_parser import (
+    DESTRUCTIVE_SEMANTICS,
+    Endpoint,
+    EndpointField,
+    camel_to_snake,
+    camel_to_kebab,
+    summary_leading_verb,
+)
 
 
 BASE_URL = "https://webexapis.com/v1"
@@ -159,9 +166,29 @@ def _escape_help(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").strip()
 
 
+def _success_message(ep, default: str) -> str:
+    """Success message for an operation, following semantics rather than verb.
+
+    Known issue #20: command_type comes from the HTTP method, so a PUT that only
+    deletes would report "Updated." Where the parser identified real destructive
+    semantics, that wins.
+    """
+    semantics = getattr(ep, "real_semantics", None)
+    return DESTRUCTIVE_SEMANTICS[semantics] if semantics else default
+
+
 def _render_docstring(ep) -> str:
-    """Render docstring with optional --json-body example."""
+    """Render docstring with a destructive-semantics note and --json-body example."""
     doc = ep.name
+    semantics = getattr(ep, "real_semantics", None)
+    if semantics and summary_leading_verb(ep.name) not in DESTRUCTIVE_SEMANTICS:
+        # The summary itself is misleading — "Modify Access Codes for a Person"
+        # on a PUT that accepts only deleteCodes. Someone reading --help gets no
+        # other hint that this is destructive, so say it before the example.
+        doc += (
+            f"\\n\\nDESTRUCTIVE: this {ep.method} only {semantics}s despite the "
+            f"summary above. It cannot add or modify."
+        )
     if ep.json_body_example:
         doc += f"\\n\\nExample --json-body:\\n  '{ep.json_body_example}'"
     return f'    """{doc}."""'
@@ -436,6 +463,15 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
 
 
 def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    # A destructive POST creates no resource, so there is no id to report and
+    # "Created:" would be a lie — report what actually happened instead.
+    if getattr(ep, "real_semantics", None):
+        return "\n".join([
+            '    if output == "json":',
+            '        print_json(result)',
+            '    else:',
+            f'        typer.echo("{_success_message(ep, "Created.")}")',
+        ])
     # Prefer schema-derived response_id_key, fall back to folder overrides
     id_key = ep.response_id_key or (folder_overrides or {}).get("create", {}).get("id_key")
     lines = ['    if output == "json":', '        print_json(result)']
@@ -646,7 +682,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    try:",
         f"        {method_call}",
         _render_error_handler("    "),
-        '    typer.echo(f"Updated.")',
+        f'    typer.echo(f"{_success_message(ep, "Updated.")}")',
     ]
     return "\n".join(lines)
 
