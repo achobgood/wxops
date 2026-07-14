@@ -301,6 +301,9 @@ def show(
 def delete_recordings(
     recording_id: str = typer.Argument(help="recordingId"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
+    reason: str = typer.Option(None, "--reason", help="Reason for deleting a recording. Only required when a Compli"),
+    comment: str = typer.Option(None, "--comment", help="Compliance Officer's explanation for deleting a recording. T"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -312,8 +315,16 @@ def delete_recordings(
     params = {}
     if host_email is not None:
         params["hostEmail"] = host_email
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if reason is not None:
+            body["reason"] = reason
+        if comment is not None:
+            body["comment"] = comment
     try:
-        api.session.rest_delete(url, params=params)
+        api.session.rest_delete(url, json=body or None, params=params)
     except WebexError as e:
         handle_rest_error(e)
     typer.echo(f"Deleted: {recording_id}")

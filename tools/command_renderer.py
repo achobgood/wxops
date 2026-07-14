@@ -661,6 +661,27 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
+
+    # 10 Webex DELETE operations carry a request body, and on 5 of them the body
+    # is what SCOPES the delete (`supervisorIds`, `phoneNumbers`, `items`,
+    # `backgroundImages`, `handsetIds`). This branch used to skip bodies
+    # entirely, which made those 5 commands inert: verified live against
+    # /telephony/config/supervisors — 400, errorCode 25024, "Required request
+    # body is missing". They could never have worked.
+    used_names = _used_param_names(ep)
+    has_body = bool(ep.body_fields)
+    if has_body:
+        for bf in ep.body_fields:
+            param = _safe_param_name(bf.python_name)
+            if bf.field_type in ("object", "array") or param in used_names:
+                continue  # arrays/objects can only be expressed via --json-body
+            help_text = _enum_help(bf)
+            if bf.field_type == "bool":
+                params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
+            else:
+                params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+        params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+
     has_spec_force = any(qp.name == "force" for qp in ep.query_params)
     if not has_spec_force:
         params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
@@ -680,7 +701,38 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     auto_inject = _render_auto_inject_params(ep)
     if not qp_build and has_params:
         qp_build = ["    params = {}"]
-    delete_call = "api.session.rest_delete(url)" if not has_params else "api.session.rest_delete(url, params=params)"
+
+    body_build: list[str] = []
+    if has_body:
+        body_build = ["    if json_body:", "        body = json.loads(json_body)",
+                      "    else:", "        body = {}"]
+        for bf in ep.body_fields:
+            param = _safe_param_name(bf.python_name)
+            if bf.field_type in ("object", "array") or param in used_names:
+                continue
+            body_build.append(f'        if {param} is not None:\n            body["{bf.name}"] = {param}')
+        required = [bf.name for bf in ep.body_fields if bf.required]
+        if required:
+            # Fail HERE, not at the API. A scoped delete whose scope is missing
+            # is the one shape that must never reach the wire: these endpoints
+            # gate delete-everything behind an explicit `deleteAll`, so a body
+            # that merely omits the targets is a mistake, not a request.
+            body_build.extend([
+                f"    missing = [f for f in {required!r} if f not in body]",
+                "    if missing:",
+                '        typer.echo(f"Error: required body field(s) missing: {\', \'.join(missing)}. '
+                'Pass them via --json-body — this delete needs to know what to delete.", err=True)',
+                "        raise typer.Exit(1)",
+            ])
+
+    # `body or None` preserves the no-body wire format when nothing was supplied,
+    # so the 5 metadata-body deletes (reason/comment on recordings) behave exactly
+    # as they do today rather than newly sending `{}`.
+    if has_body:
+        delete_call = ("api.session.rest_delete(url, json=body or None)" if not has_params
+                       else "api.session.rest_delete(url, json=body or None, params=params)")
+    else:
+        delete_call = "api.session.rest_delete(url)" if not has_params else "api.session.rest_delete(url, params=params)"
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -695,6 +747,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
+        *body_build,
         "    try:",
         f"        {delete_call}",
         _render_error_handler("    "),

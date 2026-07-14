@@ -79,8 +79,14 @@ class WebexSession:
         return self._json_or_raise(self._request("PATCH", url, json=json, params=params,
                                                  content_type=content_type))
 
-    def rest_delete(self, url: str, params=None) -> dict:
-        return self._json_or_raise(self._request("DELETE", url, params=params))
+    def rest_delete(self, url: str, json=None, params=None) -> dict:
+        # DELETE carries a body on 10 Webex operations: the body is what SCOPES
+        # the delete (`supervisorIds`, `phoneNumbers`, `backgroundImages`...).
+        # Without it the API rejects the call outright — verified live against
+        # /telephony/config/supervisors: 400, errorCode 25024, "Required request
+        # body is missing". It does NOT delete everything; those endpoints gate
+        # delete-all behind an explicit `deleteAll: true`.
+        return self._json_or_raise(self._request("DELETE", url, json=json, params=params))
 
     def follow_pagination(self, url: str, params=None, item_key: str = "items"):
         while url:

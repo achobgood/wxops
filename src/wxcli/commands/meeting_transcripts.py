@@ -213,6 +213,9 @@ def update(
 @app.command("delete")
 def delete(
     transcript_id: str = typer.Argument(help="transcriptId"),
+    reason: str = typer.Option(None, "--reason", help="Reason for deleting a transcript. Only required when a Compl"),
+    comment: str = typer.Option(None, "--comment", help="Explanation for deleting a transcript. The comment can be a"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -221,8 +224,16 @@ def delete(
         typer.confirm(f"Delete {transcript_id}?", abort=True)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingTranscripts/{transcript_id}"
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if reason is not None:
+            body["reason"] = reason
+        if comment is not None:
+            body["comment"] = comment
     try:
-        api.session.rest_delete(url)
+        api.session.rest_delete(url, json=body or None)
     except WebexError as e:
         handle_rest_error(e)
     typer.echo(f"Deleted: {transcript_id}")

@@ -526,6 +526,8 @@ def delete_handsets_dect_networks(
 def delete_handsets_dect_networks_1(
     location_id: str = typer.Argument(help="locationId"),
     dect_network_id: str = typer.Argument(help="dectNetworkId"),
+    delete_all: bool = typer.Option(None, "--delete-all/--no-delete-all", help="If present the items array is ignored and all items in the c"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -538,8 +540,18 @@ def delete_handsets_dect_networks_1(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+        if delete_all is not None:
+            body["deleteAll"] = delete_all
+    missing = [f for f in ['handsetIds'] if f not in body]
+    if missing:
+        typer.echo(f"Error: required body field(s) missing: {', '.join(missing)}. Pass them via --json-body — this delete needs to know what to delete.", err=True)
+        raise typer.Exit(1)
     try:
-        api.session.rest_delete(url, params=params)
+        api.session.rest_delete(url, json=body or None, params=params)
     except WebexError as e:
         handle_rest_error(e)
     typer.echo(f"Deleted: {dect_network_id}")

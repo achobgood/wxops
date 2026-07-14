@@ -88,6 +88,7 @@ def update(
 @app.command("delete")
 def delete(
     location_id: str = typer.Argument(help="locationId"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -100,8 +101,16 @@ def delete(
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    missing = [f for f in ['phoneNumbers'] if f not in body]
+    if missing:
+        typer.echo(f"Error: required body field(s) missing: {', '.join(missing)}. Pass them via --json-body — this delete needs to know what to delete.", err=True)
+        raise typer.Exit(1)
     try:
-        api.session.rest_delete(url, params=params)
+        api.session.rest_delete(url, json=body or None, params=params)
     except WebexError as e:
         handle_rest_error(e)
     typer.echo(f"Deleted: {location_id}")
