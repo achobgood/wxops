@@ -33,3 +33,35 @@ location-settings update-location-calling
 # call-routing list-trunks / list-route-groups")
 trunk
 route-group
+
+# ---------------------------------------------------------------- check 7
+# Format: "prose-flag <path> <flag>" — file-scoped, not line-scoped, so an
+# unrelated edit above the line does not rot the entry.
+#
+# Every entry below is a doc that names a flag IN ORDER TO SAY IT DOES NOT
+# EXIST. Check 7 cannot tell "use `--x`" from "there is no `--x`", so without
+# these it would report the repo's best anti-footgun docs as bugs and pressure
+# someone into deleting them. Each was verified against `--help` on 2026-07-14.
+#
+# Adding an entry here is a claim that the line DENIES the flag. If you are
+# adding one to silence the gate on a line that RECOMMENDS a flag, stop — that
+# line is a bug; fix the doc.
+
+# "validate-a-list has NO --macs flag ... use --json-body '{"macs":[...]}'"
+prose-flag .claude/skills/manage-devices/SKILL.md --macs
+# "create-base-stations has NO --base-station-macs flag — use --json-body"
+prose-flag .claude/skills/manage-devices/SKILL.md --base-station-macs
+# "the people create command does not have a --emails CLI option"
+prose-flag .claude/skills/manage-identity/SKILL.md --emails
+# same denial, reference-doc side
+prose-flag docs/reference/admin-identity-scim.md --emails
+# "Do NOT use wxcli cleanup — it has no --exclude-devices flag"
+prose-flag .claude/skills/teardown/SKILL.md --exclude-devices
+# "Gotcha — there is no --calling-only filter" (cited twice on one line)
+prose-flag docs/reference/admin-licensing.md --calling-only
+# "Required for the invitees array — there is no --invitees flag"
+prose-flag docs/reference/meetings-core.md --invitees
+# "There is no --files flag" — the API's files field is real (POST /messages,
+# array of public URLs) but arrays are not rendered as flags, so an agent will
+# reach for it; the gotcha exists to redirect to --json-body
+prose-flag docs/reference/messaging-spaces.md --files

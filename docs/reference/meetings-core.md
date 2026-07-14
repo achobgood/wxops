@@ -459,7 +459,8 @@ Registration forms and registrant management for webinar-type meetings. These en
 | `--require-company-name` | Require company name |
 | `--require-job-title` | Require job title |
 | `--require-work-phone` | Require work phone number |
-| `--require-address-1` | Require address line 1 |
+| `--require-address1` | Require address line 1 |
+| `--require-address2` | Require address line 2 |
 | `--require-city` | Require city |
 | `--require-state` | Require state/province |
 | `--require-zip-code` | Require postal code |
