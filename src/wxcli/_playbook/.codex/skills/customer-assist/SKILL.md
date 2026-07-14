@@ -311,13 +311,13 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true --jso
 # --- Delete ---
 
 # Delete a specific supervisor
-wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --has-cx-essentials true --force
+wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
 
-# Delete supervisors in bulk
-wxcli call-queue delete-supervisors-config --has-cx-essentials true --force
+# Delete ALL supervisors in the org — the CLI cannot scope this (see WARNING)
+wxcli call-queue delete-supervisors-config --force
 ```
 
-> **WARNING:** `delete-supervisors-config --force` without specifying IDs may remove **all supervisors in the org**. Always confirm scope before executing. Omitting `--force` triggers a confirmation prompt.
+> **WARNING:** `delete-supervisors-config --force` removes **all supervisors in the org**, and the CLI offers no way to narrow it: the API scopes this delete with a request body, which the generator does not render for DELETE verbs (known issue #21). To remove specific supervisors, use `delete-supervisors-config-1 SUPERVISOR_ID` one at a time, or the raw HTTP fallback. Omitting `--force` triggers a confirmation prompt.
 
 > **NOTE:** `SUPERVISOR_ID` in these commands is the supervisor's **person ID**, not a separate supervisor entity ID. Use `wxcli call-queue list-supervisors --has-cx-essentials true` to find supervisor person IDs.
 

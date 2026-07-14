@@ -380,11 +380,11 @@ channel. Useful for IVR flows that announce hold times to callers. 1 command.
 ### CLI Examples
 
 ```bash
-# Get estimated wait time for a queue
-wxcli cc-ewt show --queue-id <queue-id> --media-type telephony
+# Get estimated wait time for a queue (--lookback-minutes is required, 5-240)
+wxcli cc-ewt show --queue-id <queue-id> --lookback-minutes 30
 
 # Get EWT as JSON
-wxcli cc-ewt show --queue-id <queue-id> --media-type telephony -o json
+wxcli cc-ewt show --queue-id <queue-id> --lookback-minutes 30 -o json
 ```
 
 ### Raw HTTP

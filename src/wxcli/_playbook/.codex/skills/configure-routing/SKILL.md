@@ -375,11 +375,10 @@ wxcli call-routing create-translation-patterns-call-routing \
 **Create location-level translation pattern:**
 
 ```bash
-wxcli call-routing create-translation-patterns-call-routing-1 \
+wxcli call-routing create-translation-patterns-call-routing-1 LOCATION_ID \
   --name "Local-Rewrite" \
   --matching-pattern "+1919555XXXX" \
-  --replacement-pattern "+19196660000" \
-  --location-id LOCATION_ID
+  --replacement-pattern "+19196660000"
 ```
 
 **View translation patterns:**
@@ -392,7 +391,7 @@ wxcli call-routing list-translation-patterns --output json
 wxcli call-routing show-translation-patterns-call-routing PATTERN_ID --output json
 
 # Show a specific location-level pattern
-wxcli call-routing show-translation-patterns-call-routing-1 PATTERN_ID --location-id LOCATION_ID --output json
+wxcli call-routing show-translation-patterns-call-routing-1 LOCATION_ID PATTERN_ID --output json
 ```
 
 **Delete translation patterns:**
@@ -402,7 +401,7 @@ wxcli call-routing show-translation-patterns-call-routing-1 PATTERN_ID --locatio
 wxcli call-routing delete-translation-patterns-call-routing PATTERN_ID
 
 # Location-level
-wxcli call-routing delete-translation-patterns-call-routing-1 PATTERN_ID --location-id LOCATION_ID
+wxcli call-routing delete-translation-patterns-call-routing-1 LOCATION_ID PATTERN_ID
 ```
 
 ### 4j. Component CLI reference -- PSTN Connection (per-location)

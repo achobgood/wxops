@@ -74,7 +74,7 @@ Video Mesh deploys on-premises media processing nodes that keep real-time media 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | List clusters | `wxcli video-mesh list-clusters-video-mesh` | GET /videoMesh/clusters | List all Video Mesh clusters in the org |
-| Show cluster | `wxcli video-mesh show --cluster-id ID` | GET /videoMesh/clusters/{clusterId} | Get details for a single cluster |
+| Show cluster | `wxcli video-mesh show ID` | GET /videoMesh/clusters/{clusterId} | Get details for a single cluster |
 
 ### Key Parameters
 
@@ -424,7 +424,7 @@ Configure alerting thresholds for Video Mesh events. These thresholds determine 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | List thresholds | `wxcli video-mesh list-event-thresholds` | GET /videoMesh/eventThresholds | List all event threshold configurations |
-| Show threshold | `wxcli video-mesh show-event-thresholds --event-threshold-id ID` | GET /videoMesh/eventThresholds/{eventThresholdId} | Get a specific threshold config |
+| Show threshold | `wxcli video-mesh show-event-thresholds ID` | GET /videoMesh/eventThresholds/{eventThresholdId} | Get a specific threshold config |
 | Update thresholds | `wxcli video-mesh update --json-body JSON` | PATCH /videoMesh/eventThresholds | Update threshold values (partial update) |
 | Reset thresholds | `wxcli video-mesh create-reset` | POST /videoMesh/eventThresholds/reset | Reset all thresholds to defaults |
 
@@ -515,8 +515,8 @@ Manage participants during a live meeting or query historical participant data f
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | List participants | `wxcli meeting-participants list --meeting-id ID` | GET /meetingParticipants | List participants for a meeting |
-| Show participant | `wxcli meeting-participants show --participant-id ID` | GET /meetingParticipants/{participantId} | Get participant details |
-| Update participant | `wxcli meeting-participants update --participant-id ID` | PUT /meetingParticipants/{participantId} | Mute, unmute, admit, or expel a participant |
+| Show participant | `wxcli meeting-participants show ID` | GET /meetingParticipants/{participantId} | Get participant details |
+| Update participant | `wxcli meeting-participants update ID` | PUT /meetingParticipants/{participantId} | Mute, unmute, admit, or expel a participant |
 | Query by email | `wxcli meeting-participants create --json-body JSON` | POST /meetingParticipants/query | Query participants by email addresses |
 | Admit participants | `wxcli meeting-participants create-admit --json-body JSON` | POST /meetingParticipants/admit | Admit participants from the lobby |
 | Call out SIP | `wxcli meeting-participants create-callout --json-body JSON` | POST /meetingParticipants/callout | Dial a SIP URI to add to meeting |
@@ -679,9 +679,9 @@ Manage who is invited to a meeting before it starts. Invitees are the pre-meetin
 | List invitees | `wxcli meeting-invitees list --meeting-id ID` | GET /meetingInvitees | List invitees for a meeting |
 | Create invitee | `wxcli meeting-invitees create --meeting-id ID --email user@example.com` | POST /meetingInvitees | Invite a person to a meeting |
 | Bulk insert | `wxcli meeting-invitees create-bulk-insert --json-body JSON` | POST /meetingInvitees/bulkInsert | Invite multiple people at once |
-| Show invitee | `wxcli meeting-invitees show --meeting-invitee-id ID` | GET /meetingInvitees/{meetingInviteeId} | Get invitee details |
-| Update invitee | `wxcli meeting-invitees update --meeting-invitee-id ID` | PUT /meetingInvitees/{meetingInviteeId} | Update invitee role (co-host, panelist) |
-| Delete invitee | `wxcli meeting-invitees delete --meeting-invitee-id ID --force` | DELETE /meetingInvitees/{meetingInviteeId} | Remove an invitee |
+| Show invitee | `wxcli meeting-invitees show ID` | GET /meetingInvitees/{meetingInviteeId} | Get invitee details |
+| Update invitee | `wxcli meeting-invitees update ID` | PUT /meetingInvitees/{meetingInviteeId} | Update invitee role (co-host, panelist) |
+| Delete invitee | `wxcli meeting-invitees delete ID --force` | DELETE /meetingInvitees/{meetingInviteeId} | Remove an invitee |
 
 ### Key Parameters
 

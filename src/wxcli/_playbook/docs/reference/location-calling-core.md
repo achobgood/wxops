@@ -1162,7 +1162,7 @@ api.session.rest_delete(
 wxcli location-settings list-directories Y2lzY29zcGFyazovL...
 
 # Get details for a specific directory
-wxcli location-settings show-directories Y2lzY29zcGFyazovL... --json-body '...'
+wxcli location-settings show-directories Y2lzY29zcGFyazovL... DIRECTORY_ID
 
 # Create a new receptionist contact directory
 wxcli location-settings create-directories Y2lzY29zcGFyazovL... \

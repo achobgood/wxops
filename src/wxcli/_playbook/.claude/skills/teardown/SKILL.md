@@ -97,7 +97,7 @@ wxcli call-routing list-trunks -o json 2>&1        # filter by location in outpu
 # Layer 3: Supporting resources
 wxcli virtual-extensions list --location-id $LOC -o json 2>&1
 wxcli location-schedules list $LOC -o json 2>&1
-wxcli operating-modes list --location-id $LOC -o json 2>&1
+wxcli operating-modes list --limit-to-location-id $LOC -o json 2>&1
 
 # Layer 4: Users
 wxcli users list --location-id $LOC -o json 2>&1
