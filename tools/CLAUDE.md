@@ -75,20 +75,28 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 
     Fix when triaged: pin a truthful name via `tag_overrides` -> `command_name_overrides` (per issue #18) and make the success message follow the operation's real semantics rather than the verb. Interim protection is documentation only — `configure-features/SKILL.md` Critical Rules #21-22 carry a trap table. That protects an agent that read the skill first; it does not protect anyone reading `--help` alone, and the "Updated." message actively misleads.
 
-21. **The renderer drops `requestBody` on DELETE, so scoped deletes silently become delete-everything.** UNFIXED — logged 2026-07-14, found while fixing doc flag drift. 10 tracked spec operations declare a DELETE request body; **none** of the generated commands can send one (no `--json-body`, no fields). The body is what *narrows* these deletes, so losing it does not fail — it widens the blast radius:
+21. **The renderer dropped `requestBody` on DELETE, so the 5 scoped deletes were inert.** **FIXED 2026-07-14** (renderer + `rest_delete`), and the original severity claim here was **WRONG** — corrected below so nobody re-inherits it.
 
-    | Command | Body the spec defines | Effect without it |
-    |---------|----------------------|-------------------|
-    | `call-queue delete-supervisors-config` | `supervisors[]` | deletes **all supervisors in the org** |
-    | `device-settings delete-background-images` | `backgroundImages[]` | deletes **all background images** |
-    | `numbers delete` | phone numbers to remove | cannot name which numbers |
-    | `call-queue delete-dnis-queues` | `dnis[]` (**required**) | request is unsatisfiable |
+    **What this issue used to say:** that a body-less DELETE "silently becomes delete-everything", e.g. `call-queue delete-supervisors-config` "deletes all supervisors in the org". **That was never tested. It is false.** Live-tested against `/telephony/config/supervisors` with two real supervisors present:
 
-    This is the same family as #20 (a name/behaviour mismatch the generator can see but does not act on) and compounds it: the widened delete is reached through a command whose `--help` gives no hint the scoping input exists.
+    ```
+    DELETE /v1/telephony/config/supervisors   (no body)
+    -> HTTP 400, Cisco-Spark-Error-Codes: 25024
+       {"errorCode":25024,"message":"Invalid JSON format in request body:
+        Required request body is missing: ..."}
+    -> supervisors after: 2 of 2 SURVIVED
+    ```
 
-    Detection: `op.get("requestBody")` on a `delete` operation, cross-referenced against the rendered command's flags — the check that surfaced this is ~10 lines.
+    The API **rejects** a body-less scoped delete. It was **inert, not dangerous** — it could never have worked, and could never have deleted anything. Delete-everything is gated behind an explicit `deleteAll: true` (also live-confirmed: with `deleteAll` passed, all supervisors were removed; without it, only the named `supervisorIds` were). An endpoint that wiped everything on an empty body would not need a `deleteAll` flag — that was the tell, and reading the spec's own field description would have settled it without a live call.
 
-    Fix when triaged: render `--json-body` for DELETE bodies exactly as for PUT/POST (the renderer already knows how; the DELETE branch just never asks). Until then the CLI cannot scope these deletes at all, and the docs say so explicitly rather than showing a `--json-body` that does not exist — `manage-devices/SKILL.md` and `customer-assist/SKILL.md` carry the warning and the raw-HTTP fallback.
+    **The real bug** (verified, now fixed): `_render_delete_command` never rendered body fields, and `rest_delete()` had no `json` parameter. 10 tracked spec ops declare a DELETE body; on 5 the body is what *scopes* the delete, so those 5 commands 400'd on every invocation:
+    `call-queue delete-supervisors-config` (`supervisorIds`), `call-queue delete-dnis-queues` (`items`), `numbers delete` (`phoneNumbers`), `device-settings delete-background-images` (`backgroundImages`), `dect-devices delete-handsets-dect-networks-1` (`handsetIds`). The other 5 take optional metadata only (`reason`/`comment` on recordings/transcripts) and were unaffected.
+
+    **The fix:** the DELETE branch now renders body fields + `--json-body` exactly as PUT/POST do, and required body fields are enforced **client-side** — a delete with no targets exits 1 locally and never reaches the wire, so the API's behaviour on an empty body stops mattering. `body or None` preserves the no-body wire format when nothing is supplied, so the 5 metadata-body deletes are unchanged.
+
+    Live-proven end-to-end on supervisors: scoped delete removed exactly the named target and left the other in place. **Still unproven: the other 4 scoping deletes were fixed by the same code path but not live-tested** — `numbers delete` most deserves it.
+
+    Lesson (this one cost a session): the claim above was inference stated as fact, in a file whose entire purpose is to be trusted. #20 is still UNFIXED and its claim is *observed* (its own `--help` says "Delete", it prints "Updated.") — do not let this correction cast doubt on that one.
 
 ## Templates, Examples & Plans
 
