@@ -22,10 +22,12 @@ user-call-settings
 # provision-calling/SKILL.md gotcha #6 — deliberate stale-guidance warning
 # ("the older update-location-calling guidance is stale — do not promise it")
 location-settings update-location-calling
-# customer-assist/SKILL.md:235 — deliberate negative example ("show-queue-
-# recording / update-queue-recording do NOT exist — use the CX queue itself")
-customer-assist show-queue-recording
-customer-assist update-queue-recording
+# (2026-07-14) Removed: `customer-assist show-queue-recording` /
+# `update-queue-recording`. Those names were fabricated and never existed, but
+# the ENDPOINT is real — proven live (GET 200 / PUT-then-read-back). It is now
+# generated from specs/overlays/webex-cloud-calling.overlay.json as
+# `show-call-recordings` / `update-call-recordings`, so no allowlist entry is
+# needed: the real commands resolve against the CLI on their own.
 # query-live/domains/routing.md:120 — deliberate negative examples ("Do NOT
 # use wxcli trunk / wxcli route-group — those groups don't exist; use
 # call-routing list-trunks / list-route-groups")
