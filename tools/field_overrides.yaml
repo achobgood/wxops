@@ -8,6 +8,7 @@
 #   skip_tags           — glob patterns for OpenAPI tags to skip entirely
 #   tag_merge           — merge split tags into one CLI group
 #   tag_op_excludes     — drop spurious tag/operation pairings (tag → path globs)
+#   verb_semantics_ack  — acked verb-vs-semantics mismatches (issue #20)
 #   cli_name_overrides  — human-friendly CLI group names (tag → CLI name)
 #   omit_query_params   — query params stripped from all commands
 #
@@ -612,6 +613,40 @@ tag_op_excludes:
     "External Voicemail":
       - "/telephony/calls"
       - "/telephony/calls/*"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Verb-vs-semantics acks — known issue #20
+# ═══════════════════════════════════════════════════════════════════════════════
+# Command names come from the HTTP method, but Cisco models some deletes as
+# PUT/POST with a delete-body: the verb says update, the operation deletes. The
+# generator classifies real semantics from the summary and the body shape, and
+# hard-fails on any destructive op whose name gives no hint it destroys.
+#
+# Listing an op here says: the misleading NAME is deliberate, reviewed, and kept
+# for compatibility. It does NOT silence the fix — the success message and the
+# --help text follow the real semantics for every flagged op, acked or not.
+# The value is the real verb; if the generator's classification stops matching
+# it, generation fails rather than letting the ack rot.
+#
+# Names were kept rather than renamed (2026-07-14, Adam): renaming is
+# user-facing and breaks anyone scripting the old name, and the actively harmful
+# half was the success message, which now tells the truth.
+verb_semantics_ack:
+  webex-cloud-calling.json:
+    # All four accessCodes PUTs are delete-only: `deleteCodes` is their sole
+    # body field, so they cannot add or modify. Creating is a separate POST on
+    # the same path. Only the location one has an honest summary ("Delete
+    # Outgoing Permission Access Code Location"); the other three say "Modify
+    # Access Codes", which is why summary-scanning alone never found them.
+    "PUT /telephony/config/locations/{locationId}/outgoingPermission/accessCodes": delete
+    "PUT /telephony/config/people/{personId}/outgoingPermission/accessCodes": delete
+    "PUT /telephony/config/virtualLines/{virtualLineId}/outgoingPermission/accessCodes": delete
+    "PUT /workspaces/{workspaceId}/features/outgoingPermission/accessCodes": delete
+  webex-contact-center.json:
+    # `cc-agent-greetings create` deletes greeting-file references. The bare
+    # `create` name is the worst of the set; kept only for compatibility.
+    "POST /organization/{orgid}/agent-personal-greeting/delete-reference": delete
+    "PATCH /admin/v1/api/person/remove-identities/workspace-id/{workspaceId}/person-id/{personId}": remove
 
 # Merge split tags into a single CLI group
 tag_merge:

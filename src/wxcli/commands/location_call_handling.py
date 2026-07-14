@@ -352,7 +352,7 @@ def update_access_codes(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    typer.echo(f"Deleted.")
 
 
 

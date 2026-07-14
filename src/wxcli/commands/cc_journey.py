@@ -116,7 +116,7 @@ def update_person_id_workspace_id_1(
         result = api.session.rest_patch(url, json=body, content_type="application/json-patch+json")
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    typer.echo(f"Removed.")
 
 
 

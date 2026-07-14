@@ -41,6 +41,57 @@ class Endpoint:
     auto_inject_path_params: list[str] = field(default_factory=list)
     content_type: str | None = None
     paginates: bool = False
+    real_semantics: str | None = None
+
+
+# Known issue #20: command_type comes from the HTTP method, but Cisco models
+# some deletes as PUT/POST with a delete-body — the verb says update, the
+# operation deletes. Maps the operation's real verb to its success message.
+DESTRUCTIVE_SEMANTICS = {
+    "delete": "Deleted.",
+    "remove": "Removed.",
+    "purge": "Purged.",
+    "clear": "Cleared.",
+    "revoke": "Revoked.",
+    "unassign": "Unassigned.",
+    "cancel": "Cancelled.",
+}
+
+# A body field that can only take things away. Deliberately narrow: `numbers`
+# on a PUT that also accepts additions is an update, not a delete.
+_DELETE_SHAPED_FIELD = re.compile(r"^(delete|remove|purge|revoke|unassign)", re.I)
+
+
+def summary_leading_verb(summary: str) -> str | None:
+    """The first word of an operation summary, lowercased, if it is a word."""
+    m = re.match(r"\s*([A-Za-z]+)", summary or "")
+    return m.group(1).lower() if m else None
+
+
+def classify_real_semantics(name: str, body_fields: list) -> str | None:
+    """Return an operation's real destructive verb, or None if it isn't one.
+
+    Two independent signals, because either alone misses real cases:
+
+    1. The summary leads with a destructive verb. Catches the ops whose summary
+       is honest even though the verb isn't ("Delete Outgoing Permission Access
+       Code Location" on a PUT).
+    2. Every body field is delete-shaped, so the operation *cannot* do anything
+       but delete. Catches the ops whose summary is itself misleading — the
+       person/virtual-line/workspace accessCodes PUTs say "Modify Access Codes"
+       and accept only `deleteCodes`. Summary-scanning alone never sees these.
+
+    Signal 2 requires *all* fields to be delete-shaped on purpose: `Modify Dial
+    Patterns` takes `dialPatterns` (add or delete) plus `deleteAllDialPatterns`,
+    which is a genuine update and must not be flagged.
+    """
+    verb = summary_leading_verb(name)
+    if verb in DESTRUCTIVE_SEMANTICS:
+        return verb
+    names = [f.name for f in body_fields]
+    if names and all(_DELETE_SHAPED_FIELD.search(n) for n in names):
+        return "delete"
+    return None
 
 
 def camel_to_kebab(name: str) -> str:

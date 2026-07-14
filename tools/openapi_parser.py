@@ -10,6 +10,7 @@ from tools.postman_parser import (
     EndpointField,
     camel_to_kebab,
     camel_to_snake,
+    classify_real_semantics,
     _derive_command_name,
     _dedup_command_names,
 )
@@ -505,6 +506,7 @@ def parse_operation(
         auto_inject_path_params=auto_inject_path_names,
         content_type=content_type,
         paginates=paginates,
+        real_semantics=classify_real_semantics(name, body_fields),
     )
 
 

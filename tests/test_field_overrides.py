@@ -7,14 +7,16 @@ from pathlib import Path
 import yaml
 
 from tools.postman_parser import (
+    DESTRUCTIVE_SEMANTICS,
     Endpoint,
     EndpointField,
+    classify_real_semantics,
     load_overrides,
     apply_endpoint_overrides,
     camel_to_kebab,
 )
 from tools.command_renderer import render_command_file, _render_list_command
-from tools.openapi_parser import parse_tag
+from tools.openapi_parser import load_spec, parse_operation, parse_tag
 from tools.generate_commands import KNOWN_GLOBAL_KEYS, should_skip_tag, merge_tags
 
 
@@ -100,6 +102,103 @@ class TestOverridesYamlValidity:
                         f"tag_op_excludes['{scope}']['{tag}'] glob {g!r} must be a "
                         f"path string starting with '/'"
                     )
+
+    def test_classify_flags_destructive_summary(self):
+        """Signal 1: the summary leads with a destructive verb (issue #20)."""
+        assert classify_real_semantics(
+            "Delete Outgoing Permission Access Code Location", []
+        ) == "delete"
+        assert classify_real_semantics("Purge inactive Teams", []) == "purge"
+        assert classify_real_semantics("Remove Preview Task", []) == "remove"
+
+    def test_classify_flags_delete_only_body(self):
+        """Signal 2: summary lies, but every body field can only take away.
+
+        The person/virtual-line/workspace accessCodes PUTs say "Modify Access
+        Codes" and accept only deleteCodes. Summary-scanning never sees these.
+        """
+        body = [EndpointField("deleteCodes", "delete-codes", "array", "Access Codes to delete.")]
+        assert classify_real_semantics("Modify Access Codes for a Person", body) == "delete"
+
+    def test_classify_ignores_genuine_update_with_a_delete_flag(self):
+        """A body that can BOTH add and delete is an update, not a delete.
+
+        "Modify Dial Patterns" takes dialPatterns (add or delete) alongside
+        deleteAllDialPatterns. Flagging it would mislabel a real update, so
+        signal 2 requires *every* field to be delete-shaped.
+        """
+        body = [
+            EndpointField("dialPatterns", "dial-patterns", "array", "Add or delete."),
+            EndpointField("deleteAllDialPatterns", "delete-all-dial-patterns", "boolean", "Delete all."),
+        ]
+        assert classify_real_semantics("Modify Dial Patterns", body) is None
+
+    def test_classify_leaves_ordinary_updates_alone(self):
+        assert classify_real_semantics("Update Voicemail Rules", []) is None
+        assert classify_real_semantics("Create Access Codes for a Person", []) is None
+
+    def test_verb_semantics_ack_shape(self):
+        """verb_semantics_ack: {spec.json|_global: {"METHOD /path": verb}}."""
+        with open(OVERRIDES_PATH) as f:
+            data = yaml.safe_load(f)
+        raw = data.get("verb_semantics_ack")
+        if raw is None:
+            return
+        assert isinstance(raw, dict), "verb_semantics_ack must be a dict"
+        for scope, entries in raw.items():
+            assert scope == "_global" or scope.endswith(".json"), (
+                f"verb_semantics_ack scope '{scope}' must be '_global' or a spec filename"
+            )
+            assert isinstance(entries, dict)
+            for key, verb in entries.items():
+                method, _, path = key.partition(" ")
+                assert method in ("PUT", "POST", "PATCH"), (
+                    f"verb_semantics_ack key {key!r} must start with PUT/POST/PATCH — "
+                    f"a real DELETE needs no ack"
+                )
+                assert path.startswith("/"), (
+                    f"verb_semantics_ack key {key!r} path must start with '/'"
+                )
+                assert verb in DESTRUCTIVE_SEMANTICS, (
+                    f"verb_semantics_ack {key!r} declares {verb!r}, which is not a "
+                    f"known destructive verb {sorted(DESTRUCTIVE_SEMANTICS)}"
+                )
+
+    def test_verb_semantics_acks_still_match_the_spec(self):
+        """An ack must keep describing a real, still-destructive operation.
+
+        Guards ack rot in both directions: upstream fixing the verb (the op is
+        no longer a mismatch, so the ack is dead weight) and upstream changing
+        the semantics under a stale ack. Known issue #20.
+        """
+        with open(OVERRIDES_PATH) as f:
+            data = yaml.safe_load(f)
+        raw = data.get("verb_semantics_ack") or {}
+        specs_dir = OVERRIDES_PATH.parent.parent / "specs"
+        for scope, entries in raw.items():
+            if scope == "_global":
+                continue
+            spec = load_spec(str(specs_dir / scope))
+            for key, declared in entries.items():
+                method, _, path = key.partition(" ")
+                assert path in spec["paths"], (
+                    f"verb_semantics_ack {key!r} names a path that is no longer in "
+                    f"{scope} — upstream moved or removed it; drop or update the ack"
+                )
+                op = spec["paths"][path].get(method.lower())
+                assert op is not None, (
+                    f"verb_semantics_ack {key!r}: {scope} no longer defines {method} "
+                    f"on that path"
+                )
+                body_fields = parse_operation(
+                    method.lower(), path, op, spec, [], set()
+                ).body_fields
+                actual = classify_real_semantics(op.get("summary", ""), body_fields)
+                assert actual == declared, (
+                    f"verb_semantics_ack {key!r} is acked as {declared!r} but the spec "
+                    f"now classifies it as {actual!r} — re-read the operation and "
+                    f"update or remove the ack"
+                )
 
     def test_omit_query_params_present(self):
         with open(OVERRIDES_PATH) as f:

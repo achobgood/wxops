@@ -601,7 +601,7 @@ def update_access_codes(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Access Codes for a Workspace\n\nExample --json-body:\n  '{"deleteCodes":["..."]}'."""
+    """Modify Access Codes for a Workspace\n\nDESTRUCTIVE: this PUT only deletes despite the summary above. It cannot add or modify.\n\nExample --json-body:\n  '{"deleteCodes":["..."]}'."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/outgoingPermission/accessCodes"
     params = {}
@@ -616,7 +616,7 @@ def update_access_codes(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    typer.echo(f"Deleted.")
 
 
 

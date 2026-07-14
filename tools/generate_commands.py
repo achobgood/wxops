@@ -7,7 +7,11 @@ import sys
 from pathlib import Path
 
 from tools.openapi_parser import load_spec, get_tags, parse_tag
-from tools.postman_parser import load_overrides, apply_endpoint_overrides
+from tools.postman_parser import (
+    DESTRUCTIVE_SEMANTICS,
+    load_overrides,
+    apply_endpoint_overrides,
+)
 from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC, BASE_URL_FS
 
 
@@ -22,7 +26,7 @@ DEFAULT_OUTPUT = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
 KNOWN_GLOBAL_KEYS = {
     "omit_query_params", "skip_tags", "tag_merge", "cli_name_overrides",
     "auto_inject_from_config", "tag_overrides", "tag_op_excludes",
-    "_resolved_cli_name_overrides",
+    "verb_semantics_ack", "_resolved_cli_name_overrides",
 }
 
 
@@ -167,6 +171,61 @@ def update_manifest(generated: list[tuple[str, str]], output_dir: Path) -> None:
     print(f"Manifest: {manifest_path.name} updated ({len(entries)} groups)")
 
 
+def check_verb_semantics(endpoints: list, spec_filename: str, acked: dict) -> list[str]:
+    """Return command names whose verb-derived name contradicts what they do.
+
+    Known issue #20. The command name comes from the HTTP method, but Cisco
+    models some deletes as PUT/POST with a delete-body, so a destructive
+    operation gets named `update-*`/`create-*`. The generator can see both the
+    method and the semantics, so it refuses to render the mismatch silently.
+
+    Only names that give the operator *no* signal are an error. A name that
+    carries the destructive verb already (`create-purge-inactive-entities`)
+    reads oddly but does not mislead, and the success message now follows the
+    real semantics regardless — see _success_message in command_renderer.
+    """
+    problems = []
+    for ep in endpoints:
+        if not ep.real_semantics or ep.command_type not in ("create", "update"):
+            continue
+        if any(verb in ep.command_name for verb in DESTRUCTIVE_SEMANTICS):
+            continue
+        key = f"{ep.method} /{ep.url_path.lstrip('/')}"
+        if key in acked:
+            declared = acked[key]
+            if declared != ep.real_semantics:
+                problems.append(
+                    f"{ep.command_name!r} is acked as {declared!r} but now classifies as "
+                    f"{ep.real_semantics!r} — re-check the spec and update the ack.\n"
+                    f"      {key}"
+                )
+            continue
+        problems.append(
+            f"{ep.command_name!r} ({ep.method}) really {ep.real_semantics}s: "
+            f"{ep.name!r}\n"
+            f"      {key}\n"
+            f"      Nothing in the name says {ep.real_semantics!r}, so an operator "
+            f"reading it cannot tell this is destructive.\n"
+            f"      Fix the name via tag_overrides -> command_name_overrides, or if the "
+            f"name must stay, ack it in field_overrides.yaml:\n"
+            f"        verb_semantics_ack:\n"
+            f"          {spec_filename}:\n"
+            f"            {key!r}: {ep.real_semantics!r}"
+        )
+    return problems
+
+
+def resolve_verb_semantics_ack(raw: dict | None, spec_filename: str) -> dict:
+    """Merge global + per-spec verb_semantics_ack. Shape mirrors tag_op_excludes."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise TypeError(f"verb_semantics_ack must be dict, got {type(raw).__name__}")
+    result = dict(raw.get("_global", {}) or {})
+    result.update(raw.get(spec_filename) or {})
+    return result
+
+
 def generate_tag(
     tag_name: str,
     spec: dict,
@@ -192,6 +251,23 @@ def generate_tag(
     # Apply endpoint-level overrides (table_columns, url_overrides)
     for ep in endpoints:
         apply_endpoint_overrides(ep, folder_ovr)
+
+    # Known issue #20: refuse to render a destructive op behind a name that
+    # gives no hint it destroys. Runs after command_name_overrides, so a name
+    # pinned to the truth clears the gate without an ack.
+    problems = check_verb_semantics(
+        endpoints, overrides.get("_spec_filename", "<spec>"),
+        overrides.get("_resolved_verb_semantics_ack", {}),
+    )
+    if problems:
+        print(
+            f"\nERROR: verb-vs-semantics mismatch in tag {tag_name!r} "
+            f"({len(problems)} command(s)):",
+            file=sys.stderr,
+        )
+        for p in problems:
+            print(f"  - {p}", file=sys.stderr)
+        sys.exit(1)
 
     # Determine module and cli names
     cli_name_overrides = overrides.get("_resolved_cli_name_overrides", {})
@@ -308,6 +384,12 @@ def main():
     # Resolve per-spec spurious tag/operation pairings
     overrides["_resolved_tag_op_excludes"] = resolve_tag_op_excludes(
         overrides.get("tag_op_excludes"), Path(args.spec).name
+    )
+
+    # Known issue #20: acknowledged verb-vs-semantics mismatches
+    overrides["_spec_filename"] = Path(args.spec).name
+    overrides["_resolved_verb_semantics_ack"] = resolve_verb_semantics_ack(
+        overrides.get("verb_semantics_ack"), Path(args.spec).name
     )
 
     # Apply tag merging
