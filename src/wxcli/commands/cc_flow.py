@@ -18,7 +18,7 @@ def cmd_list(
     partial_name_search: str = typer.Option(None, "--partial-name-search", help="Performs a partial string match on the name of the flow. If"),
     search_by: str = typer.Option(None, "--search-by", help="Filter expression in the format `<field>|<value>`. Supports"),
     size: str = typer.Option(None, "--size", help="Defines the number of items to be displayed on a page. If th"),
-    include_pagination: str = typer.Option(None, "--include-pagination", help="If set to to true then a different paginated response object"),
+    include_pagination: str = typer.Option(None, "--include-pagination", help="If set to true then a different paginated response object co"),
     is_validation: str = typer.Option(None, "--is-validation", help="If true, validates the existence of flows by ID regardless o"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -429,7 +429,7 @@ def list_validate(
     except WebexError as e:
         handle_rest_error(e)
     result = result or []
-    items = result.get("errors", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("results", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     if output == "json":
         print_json(items)
     else:

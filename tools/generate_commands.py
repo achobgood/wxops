@@ -101,6 +101,31 @@ def resolve_tag_merge(raw: dict | None, spec_filename: str) -> dict:
     return result
 
 
+def resolve_tag_op_excludes(raw: dict | None, spec_filename: str) -> dict:
+    """Merge global tag_op_excludes rules with per-spec rules.
+
+    ``tag_op_excludes`` drops spurious tag/operation pairings that exist in the
+    upstream spec — a tag that a set of operations carries but does not belong
+    to. Shape mirrors resolve_tag_merge: flat dict (legacy) or dict with
+    ``_global`` + per-spec-filename keys. Each value maps a tag name to a list
+    of path globs to exclude from that tag.
+
+    Keys are matched against the tag name as generated, i.e. *after* tag_merge
+    rewrites it — use the merged name ("User Call Settings"), not a source tag
+    ("User Call Settings (3/3)").
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise TypeError(f"tag_op_excludes must be dict, got {type(raw).__name__}")
+    if "_global" not in raw and not any(k.endswith(".json") for k in raw):
+        return dict(raw)
+    result = dict(raw.get("_global", {}) or {})
+    per_spec = raw.get(spec_filename) or {}
+    result.update(per_spec)
+    return result
+
+
 MANIFEST_HEADER = '''"""Registration manifest for generated command groups.
 
 Emitted by tools/generate_commands.py — do NOT edit by hand.
@@ -147,9 +172,11 @@ def generate_tag(
     if base_url_override == BASE_URL_FS:
         auto_inject_qp.add("projectId")
     folder_ovr = overrides.get(f"_tag_ovr:{tag_name}", {})
+    exclude_paths = overrides.get("_resolved_tag_op_excludes", {}).get(tag_name)
     endpoints, skipped_uploads = parse_tag(
         tag_name, spec, omit_query_params=omit_qp,
-        auto_inject_params=auto_inject_qp, seen_operation_ids=seen_op_ids
+        auto_inject_params=auto_inject_qp, seen_operation_ids=seen_op_ids,
+        exclude_paths=exclude_paths,
     )
 
     # Apply endpoint-level overrides (table_columns, url_overrides)
@@ -263,13 +290,18 @@ def main():
         overrides[f"_tag_ovr:{tag_name}"] = tag_ovr
     # Backwards compat: top-level tag blocks that aren't in tag_overrides
     known_global = {"omit_query_params", "skip_tags", "tag_merge", "cli_name_overrides",
-                    "auto_inject_from_config", "tag_overrides",
+                    "auto_inject_from_config", "tag_overrides", "tag_op_excludes",
                     "_resolved_cli_name_overrides"}
     for key, val in list(overrides.items()):
         if key in known_global or key.startswith("_"):
             continue
         if isinstance(val, dict) and f"_tag_ovr:{key}" not in overrides:
             overrides[f"_tag_ovr:{key}"] = val
+
+    # Resolve per-spec spurious tag/operation pairings
+    overrides["_resolved_tag_op_excludes"] = resolve_tag_op_excludes(
+        overrides.get("tag_op_excludes"), Path(args.spec).name
+    )
 
     # Apply tag merging
     tag_merge = resolve_tag_merge(overrides.get("tag_merge"), Path(args.spec).name)
@@ -307,11 +339,22 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    seen_op_ids: set[str] = set()
     total_cmds = 0
     generated_modules: list[tuple[str, str]] = []
 
     for t in targets:
+        # Dedup per-tag, not globally: an operation that legitimately carries
+        # several tags belongs in each of those groups (e.g. the hotDesking
+        # members endpoints are both "Features: Hot Desking Members" and
+        # "User Call Settings"). A global set gave the op to whichever tag was
+        # generated first, silently dropping it from the others.
+        #
+        # This is only safe because spurious tag pairings are filtered by
+        # tag_op_excludes and secondary-tag ops cannot claim a bare command
+        # name (see parse_tag). Without both, a foreign op floods the group and
+        # wins the name race — read known issue #22 in tools/CLAUDE.md before
+        # touching this; it has shipped a broken CLI once already.
+        seen_op_ids: set[str] = set()
         module_name, cli_name, cmd_count = generate_tag(
             t, spec, overrides, output_dir, args.dry_run, seen_op_ids,
             base_url_override=base_url_override,
