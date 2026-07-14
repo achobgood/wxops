@@ -15,6 +15,16 @@ DEFAULT_SPEC = Path(__file__).parent.parent / "specs" / "webex-cloud-calling.jso
 DEFAULT_OVERRIDES = Path(__file__).parent / "field_overrides.yaml"
 DEFAULT_OUTPUT = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
 
+# Top-level keys in field_overrides.yaml that are global settings rather than
+# tag blocks. Anything else at the top level is treated as a tag block, so a new
+# global key must be listed here or its subkeys get validated as tag keys.
+# Single source of truth: tests/test_field_overrides.py imports this.
+KNOWN_GLOBAL_KEYS = {
+    "omit_query_params", "skip_tags", "tag_merge", "cli_name_overrides",
+    "auto_inject_from_config", "tag_overrides", "tag_op_excludes",
+    "_resolved_cli_name_overrides",
+}
+
 
 def merge_tags(spec: dict, merge_map: dict) -> None:
     """Rewrite operation tags in-place so merged tags appear under a single name."""
@@ -289,11 +299,8 @@ def main():
     for tag_name, tag_ovr in spec_tag_ovr.items():
         overrides[f"_tag_ovr:{tag_name}"] = tag_ovr
     # Backwards compat: top-level tag blocks that aren't in tag_overrides
-    known_global = {"omit_query_params", "skip_tags", "tag_merge", "cli_name_overrides",
-                    "auto_inject_from_config", "tag_overrides", "tag_op_excludes",
-                    "_resolved_cli_name_overrides"}
     for key, val in list(overrides.items()):
-        if key in known_global or key.startswith("_"):
+        if key in KNOWN_GLOBAL_KEYS or key.startswith("_"):
             continue
         if isinstance(val, dict) and f"_tag_ovr:{key}" not in overrides:
             overrides[f"_tag_ovr:{key}"] = val
