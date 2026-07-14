@@ -670,7 +670,7 @@ Webex-native user management. Does not require `org-id` -- uses the authenticate
 | GET | `/v1/people/{personId}` | `people show` |
 | PUT | `/v1/people/{personId}` | `people update` |
 | DELETE | `/v1/people/{personId}` | `people delete` |
-| GET | `/v1/people/me` | `people list-me` |
+| GET | `/v1/people/me` | `people show-me` |
 
 ### Command Reference
 
@@ -681,7 +681,7 @@ Webex-native user management. Does not require `org-id` -- uses the authenticate
 | `show` | Get person details | `PERSON_ID` (positional) |
 | `update` | Update a person (PUT) | `PERSON_ID` (positional), `--display-name`, `--first-name`, `--last-name`, `--nick-name`, `--extension`, `--location-id`, `--department`, `--manager`, `--manager-id`, `--title`, `--avatar`, `--login-enabled/--no-login-enabled`, `--json-body` |
 | `delete` | Delete a person | `PERSON_ID` (positional), `--force` |
-| `list-me` | Get your own details | `--calling-data` |
+| `show-me` | Get your own details | `--calling-data` |
 
 ### CLI Examples
 
@@ -723,7 +723,7 @@ wxcli people update PERSON_ID --no-login-enabled
 wxcli people delete PERSON_ID --force
 
 # Get your own details (with calling data)
-wxcli people list-me --calling-data true -o json
+wxcli people show-me --calling-data true -o json
 ```
 
 ### Raw HTTP Fallback
@@ -902,7 +902,7 @@ wxcli identity-org generate-otp YOUR_ORG_ID USER_ID
 
 ### /me Endpoints Require User-Level Tokens
 
-`scim-users show-me` and `people list-me` hit the `/me` endpoint, which returns the identity of the authenticated user. These commands fail with admin service-app tokens because service apps do not represent a person. Use a user-level OAuth token (authorization code grant flow) instead.
+`scim-users show-me` and `people show-me` hit the `/me` endpoint, which returns the identity of the authenticated user. These commands fail with admin service-app tokens because service apps do not represent a person. Use a user-level OAuth token (authorization code grant flow) instead.
 
 ### orgId Requirement on SCIM Commands
 

@@ -40,21 +40,23 @@ is auto-injected from saved config. Set the region with `wxcli set-cc-region <re
 
 Dial plans in Contact Center define routing rules that map dialed numbers to entry points and queues.
 CC dial plans are entirely separate from Webex Calling dial plans -- different API, different base
-URL, different configuration model. 9 commands.
+URL, different configuration model. 8 commands.
 
 ### Commands
 
 | CLI Command | HTTP | Description |
 |---|---|---|
-| `wxcli cc-dial-plan create` | POST /organization/{orgid}/dial-plan/bulk | Bulk save Dial Plan(s) |
+| `wxcli cc-dial-plan list` | GET /organization/{orgid}/dial-plan | List Dial Plan(s) |
+| `wxcli cc-dial-plan create` | POST /organization/{orgid}/dial-plan | Create a new Dial Plan |
+| `wxcli cc-dial-plan create-bulk` | POST /organization/{orgid}/dial-plan/bulk | Bulk save Dial Plan(s) |
 | `wxcli cc-dial-plan show` | GET /organization/{orgid}/dial-plan/{id} | Get specific Dial Plan by ID |
 | `wxcli cc-dial-plan update` | PUT /organization/{orgid}/dial-plan/{id} | Update specific Dial Plan by ID |
 | `wxcli cc-dial-plan delete` | DELETE /organization/{orgid}/dial-plan/{id} | Delete specific Dial Plan by ID |
-| `wxcli cc-dial-plan list` | GET /organization/{orgid}/dial-plan/{id}/incoming-references | List references for a specific Dial Plan |
-| `wxcli cc-dial-plan list-dial-plan-v2` | GET /organization/{orgid}/v2/dial-plan | List Dial Plan(s) (v2) |
-| `wxcli cc-dial-plan list-bulk-export` | GET /organization/{orgid}/dial-plan/bulk-export | Bulk export Dial Plan(s) |
-| `wxcli cc-dial-plan list-dial-plan-organization` | GET /organization/{orgid}/dial-plan | List Dial Plan(s) (org) |
-| `wxcli cc-dial-plan create-dial-plan` | POST /organization/{orgid}/dial-plan | Create a new Dial Plan |
+| `wxcli cc-dial-plan list-incoming-references` | GET /organization/{orgid}/dial-plan/{id}/incoming-references | List references for a specific Dial Plan |
+| `wxcli cc-dial-plan list-dial-plan` | GET /organization/{orgid}/v2/dial-plan | List Dial Plan(s) (v2, supports `--search`) |
+
+There is no bulk-export command for dial plans. Use `list-dial-plan -o json` to dump them,
+or call the raw `bulk-export` endpoint over HTTP if the API exposes one for your org.
 
 ### Key Parameters
 
@@ -64,29 +66,27 @@ URL, different configuration model. 9 commands.
 ### CLI Examples
 
 ```bash
-# List all dial plans (v2 with pagination)
-wxcli cc-dial-plan list-dial-plan-v2
+# List all dial plans (v2 with pagination and --search)
+wxcli cc-dial-plan list-dial-plan
 
 # List dial plans for the org (v1)
-wxcli cc-dial-plan list-dial-plan-organization
+wxcli cc-dial-plan list
 
 # Get a specific dial plan
 wxcli cc-dial-plan show <dial-plan-id>
 
-# Create a new dial plan
-wxcli cc-dial-plan create-dial-plan --json-body '{"name":"US-Main","description":"Main US routing"}'
+# Create a new dial plan (--name, --regular-expression, --active are required)
+wxcli cc-dial-plan create --name "US-Main" --regular-expression '^\+1[0-9]{10}$' --active \
+  --description "Main US routing"
 
 # Bulk save dial plans
-wxcli cc-dial-plan create --json-body '{"items":[{"item":"...","requestAction":"SAVE"}]}'
-
-# Bulk export all dial plans
-wxcli cc-dial-plan list-bulk-export -o json
+wxcli cc-dial-plan create-bulk --json-body '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"SAVE"}]}'
 
 # Delete a dial plan
 wxcli cc-dial-plan delete <dial-plan-id>
 
 # List incoming references for a dial plan
-wxcli cc-dial-plan list <dial-plan-id>
+wxcli cc-dial-plan list-incoming-references <dial-plan-id>
 ```
 
 ### Raw HTTP
@@ -113,8 +113,7 @@ customer calls a mapped number, the call routes to the configured entry point an
 
 | CLI Command | HTTP | Description |
 |---|---|---|
-| `wxcli cc-dial-number list` | GET /organization/{orgid}/dial-number | List Dialed Number Mapping(s) |
-| `wxcli cc-dial-number list-dial-number-organization` | GET /organization/{orgid}/dial-number | List (org) |
+| `wxcli cc-dial-number list` | GET /organization/{orgid}/dial-number | List Dialed Number Mapping(s) (org) |
 | `wxcli cc-dial-number create` | POST /organization/{orgid}/dial-number | Create a new Dialed Number Mapping |
 | `wxcli cc-dial-number delete` | DELETE /organization/{orgid}/dial-number | Delete all Dialed Number Mapping(s) |
 | `wxcli cc-dial-number create-bulk` | POST /organization/{orgid}/dial-number/bulk | Bulk save |
@@ -125,6 +124,7 @@ customer calls a mapped number, the call routes to the configured entry point an
 | `wxcli cc-dial-number delete-dial-number` | DELETE /organization/{orgid}/dial-number/{id} | Delete by ID |
 | `wxcli cc-dial-number list-incoming-references` | GET /organization/{orgid}/dial-number/{id}/incoming-references | List references |
 | `wxcli cc-dial-number list-dial-number-v2` | GET /organization/{orgid}/v2/dial-number | List (v2) |
+| `wxcli cc-dial-number list-dial-number-v3` | GET /organization/{orgid}/v3/dial-number | List (v3) |
 
 ### Key Parameters
 
@@ -178,7 +178,7 @@ DELETE https://api.wxcc-us1.cisco.com/organization/{orgId}/dial-number
 
 Outdial ANI (Automatic Number Identification) controls the caller ID presented on outbound calls
 from the contact center. Has a two-level structure: ANI profiles contain ANI entries, each entry
-mapping to a specific phone number. 16 commands.
+mapping to a specific phone number. 15 commands.
 
 ### Commands
 
@@ -186,7 +186,6 @@ mapping to a specific phone number. 16 commands.
 |---|---|---|
 | `wxcli cc-outdial-ani list` | GET /organization/{orgid}/outdial-ani | List Outdial ANI(s) |
 | `wxcli cc-outdial-ani create` | POST /organization/{orgid}/outdial-ani | Create a new Outdial ANI |
-| `wxcli cc-outdial-ani list-bulk-export` | GET /organization/{orgid}/outdial-ani/bulk-export | Bulk export |
 | `wxcli cc-outdial-ani list-entry-outdial-ani` | GET /organization/{orgid}/outdial-ani/entry | List Outdial ANI Entry(s) |
 | `wxcli cc-outdial-ani show` | GET /organization/{orgid}/outdial-ani/{id} | Get by ID |
 | `wxcli cc-outdial-ani update` | PUT /organization/{orgid}/outdial-ani/{id} | Update by ID |
@@ -226,8 +225,8 @@ wxcli cc-outdial-ani list-entry-outdial-ani-1 <ani-id>
 # Delete an ANI entry
 wxcli cc-outdial-ani delete-entry <ani-id> <entry-id>
 
-# Bulk export all ANIs
-wxcli cc-outdial-ani list-bulk-export -o json
+# Dump all ANIs as JSON (there is no bulk-export command for outdial ANIs)
+wxcli cc-outdial-ani list-outdial-ani -o json
 ```
 
 ### Raw HTTP
@@ -381,11 +380,11 @@ channel. Useful for IVR flows that announce hold times to callers. 1 command.
 ### CLI Examples
 
 ```bash
-# Get estimated wait time for a queue
-wxcli cc-ewt show --queue-id <queue-id> --media-type telephony
+# Get estimated wait time for a queue (--lookback-minutes is required, 5-240)
+wxcli cc-ewt show --queue-id <queue-id> --lookback-minutes 30
 
 # Get EWT as JSON
-wxcli cc-ewt show --queue-id <queue-id> --media-type telephony -o json
+wxcli cc-ewt show --queue-id <queue-id> --lookback-minutes 30 -o json
 ```
 
 ### Raw HTTP
@@ -401,7 +400,7 @@ Authorization: Bearer {cc_token}
 ## 7. Overrides (cc-overrides)
 
 Overrides temporarily replace normal routing behavior -- for example, routing all calls to an
-overflow queue during a holiday or outage. They can be scheduled or activated on demand. 9 commands.
+overflow queue during a holiday or outage. They can be scheduled or activated on demand. 8 commands.
 
 ### Commands
 
@@ -410,7 +409,6 @@ overflow queue during a holiday or outage. They can be scheduled or activated on
 | `wxcli cc-overrides list` | GET /organization/{orgid}/overrides | List Overrides resource(s) |
 | `wxcli cc-overrides create` | POST /organization/{orgid}/overrides | Create a new Override |
 | `wxcli cc-overrides create-bulk` | POST /organization/{orgid}/overrides/bulk | Bulk save |
-| `wxcli cc-overrides list-bulk-export` | GET /organization/{orgid}/overrides/bulk-export | Bulk export |
 | `wxcli cc-overrides show` | GET /organization/{orgid}/overrides/{id} | Get by ID |
 | `wxcli cc-overrides update` | PUT /organization/{orgid}/overrides/{id} | Update by ID |
 | `wxcli cc-overrides delete` | DELETE /organization/{orgid}/overrides/{id} | Delete by ID |
@@ -440,8 +438,8 @@ wxcli cc-overrides update <override-id> --json-body '{"active":true}'
 # Delete an override
 wxcli cc-overrides delete <override-id>
 
-# Bulk export all overrides
-wxcli cc-overrides list-bulk-export -o json
+# Dump all overrides as JSON (there is no bulk-export command for overrides)
+wxcli cc-overrides list-overrides -o json
 ```
 
 ### Raw HTTP
@@ -631,29 +629,43 @@ Authorization: Bearer {cc_token}
 ## 11. Flows (cc-flow)
 
 Flows define the IVR and routing logic for contact center interactions. Subflows are reusable
-components within flows. The Flow API supports listing, importing (creating), exporting, and
-publishing flows. Uses the `/flow-store/{orgId}/project/{projectId}/flows` path family -- note
-the `projectId` is required for all operations. 4 commands.
+components within flows. The Flow API supports listing, importing, exporting, drafting,
+validating, locking, and publishing flows. Uses the `/{orgId}/project/{projectId}/flows` path
+family -- note the `projectId` is required for all operations. 11 commands.
 
 ### Commands
 
 | CLI Command | HTTP | Description |
 |---|---|---|
-| `wxcli cc-flow list` | GET /flow-store/{orgId}/project/{projectId}/flows | List Flows or Subflows |
-| `wxcli cc-flow create` | POST /flow-store/{orgId}/project/{projectId}/flows/import | Import a Flow or Subflow |
-| `wxcli cc-flow list-export` | GET /flow-store/{orgId}/project/{projectId}/flows/{flowId}/export | Export a Flow or Subflow |
-| `wxcli cc-flow create-export` | POST /flow-store/{orgId}/project/{projectId}/flows/{flowId}/export | Publish a Flow or Subflow |
+| `wxcli cc-flow list` | GET /{orgId}/project/{projectId}/flows | List Flows or Subflows |
+| `wxcli cc-flow show` | GET /{orgId}/project/{projectId}/v2/flows/{flowId} | Get a Flow |
+| `wxcli cc-flow create-flows` | POST /{orgId}/project/{projectId}/v2/flows/{flowId} | Save a Flow Draft |
+| `wxcli cc-flow update` | PATCH /{orgId}/project/{projectId}/v2/flows/{flowId} | Patch a Flow Draft |
+| `wxcli cc-flow create-import` | POST /{orgId}/project/{projectId}/v2/flows:import | Import a Flow |
+| `wxcli cc-flow export` | GET /{orgId}/project/{projectId}/v2/flows/{flowId}:export | Export a Flow |
+| `wxcli cc-flow publish` | POST /{orgId}/project/{projectId}/flows/{flowId}:publish | Publish a Flow or Subflow |
+| `wxcli cc-flow create-validate` | POST /{orgId}/project/{projectId}/v2/flows:validate | Validate a Flow |
+| `wxcli cc-flow list-validate` | GET /{orgId}/project/{projectId}/v2/flows/{flowId}:validate | Validate an existing Flow Draft |
+| `wxcli cc-flow create-lock` | POST /{orgId}/project/{projectId}/flows/{flowId}:lock | Lock a Flow or Subflow |
+| `wxcli cc-flow create-unlock` | POST /{orgId}/project/{projectId}/flows/{flowId}:unlock | Unlock a Flow or Subflow |
+
+> **Argument-order trap:** `publish`, `create-lock`, and `create-unlock` take `FLOW_ID` **before**
+> `PROJECT_ID`. Every other `cc-flow` command takes `PROJECT_ID` first. Always check `--help`.
 
 ### Key Parameters
 
 - `project-id` (argument) -- Project ID (required for all commands)
-- `flow-id` (argument) -- Flow ID (for export/publish)
+- `flow-id` (argument) -- Flow ID (for show/draft/export/publish/lock/validate)
 - `--flow-type` -- Filter by `FLOW` or `SUBFLOW`
-- `--ids` -- Comma-separated list of flow IDs to filter
-- `--partial-name-search` -- Partial name match filter
-- `--page` / `--size` -- Pagination controls
-- `--include-pagination` -- Include pagination metadata in response
-- `--json-body` -- Full JSON body for import/publish
+- `--ids` -- Comma-separated list of flow IDs to filter (`list` only)
+- `--partial-name-search` -- Partial name match filter (`list` only)
+- `--page` / `--size` -- Pagination controls (`list` only)
+- `--include-pagination` -- Include pagination metadata in response (`list` only)
+- `--version` -- Version to export; use `latest` for the most recent published (`export` only)
+- `--expected-version` -- Optimistic-locking guard for draft writes (`create-flows` / `update`)
+- `--skip-validation` -- Skip pre-publish validation (`publish` only)
+- `--overwrite` -- Replace an existing flow of the same name (`create-import` only)
+- `--json-body` -- Full JSON body for import/draft/publish/lock
 
 ### CLI Examples
 
@@ -667,28 +679,30 @@ wxcli cc-flow list <project-id> --flow-type SUBFLOW
 # Search flows by name
 wxcli cc-flow list <project-id> --partial-name-search "Main-IVR"
 
-# Export a flow definition
-wxcli cc-flow list-export <project-id> <flow-id> -o json
+# Export a flow definition (latest published version)
+wxcli cc-flow export <project-id> <flow-id> --version latest -o json
 
-# Import (create) a flow from exported JSON
-wxcli cc-flow create <project-id> --json-body '$(cat flow-export.json)'
+# Import a flow from exported JSON
+wxcli cc-flow create-import <project-id> --json-body "$(cat flow-export.json)"
 
-# Publish a flow
-wxcli cc-flow create-export <project-id> <flow-id> --json-body '{"version":"1.0"}'
+# Publish a flow -- NOTE: flow-id comes BEFORE project-id here
+wxcli cc-flow publish <flow-id> <project-id>
 ```
 
 ### Raw HTTP
 
+Paths below mirror what the CLI calls.
+
 ```bash
 # List flows
-GET https://api.wxcc-us1.cisco.com/flow-store/{orgId}/project/{projectId}/flows?flowType=FLOW
+GET https://api.wxcc-us1.cisco.com/{orgId}/project/{projectId}/flows?flowType=FLOW
 Authorization: Bearer {cc_token}
 
 # Export a flow
-GET https://api.wxcc-us1.cisco.com/flow-store/{orgId}/project/{projectId}/flows/{flowId}/export
+GET https://api.wxcc-us1.cisco.com/{orgId}/project/{projectId}/v2/flows/{flowId}:export?version=latest
 
 # Import a flow
-POST https://api.wxcc-us1.cisco.com/flow-store/{orgId}/project/{projectId}/flows/import
+POST https://api.wxcc-us1.cisco.com/{orgId}/project/{projectId}/v2/flows:import
 Content-Type: application/json
 {...flow definition JSON...}
 ```
@@ -698,24 +712,25 @@ Content-Type: application/json
 ## 12. Audio Files (cc-audio-files)
 
 Audio files are the prompts, greetings, and announcements used in flows, queues, and IVR menus.
-Supports full and partial updates (PUT vs PATCH). 7 commands.
+The CLI covers read and delete only -- see the upload gap below. 4 commands.
 
 ### Commands
 
 | CLI Command | HTTP | Description |
 |---|---|---|
-| `wxcli cc-audio-files create` | POST /organization/{orgid}/audio-file | Create audio file |
+| `wxcli cc-audio-files list-audio-file` | GET /organization/{orgid}/v2/audio-file | List (v2) |
 | `wxcli cc-audio-files show` | GET /organization/{orgid}/audio-file/{id} | Get by ID |
-| `wxcli cc-audio-files update` | PUT /organization/{orgid}/audio-file/{id} | Full update |
-| `wxcli cc-audio-files update-audio-file` | PATCH /organization/{orgid}/audio-file/{id} | Partial update |
 | `wxcli cc-audio-files delete` | DELETE /organization/{orgid}/audio-file/{id} | Delete by ID |
 | `wxcli cc-audio-files list` | GET /organization/{orgid}/audio-file/{id}/incoming-references | List references |
-| `wxcli cc-audio-files list-audio-file` | GET /organization/{orgid}/v2/audio-file | List (v2) |
+
+> **Upload gap:** there is no `create` or `update` command for audio files. Uploading a prompt is a
+> multipart/form-data request carrying the binary file, which the CLI generator does not render.
+> Upload and replace audio files via the Control Hub UI, or call the endpoint over raw HTTP with a
+> multipart body. Do not substitute `list` or `delete` -- they cannot upload.
 
 ### Key Parameters
 
-- `--json-body` -- Full JSON body for create/update
-- `id` (argument) -- Audio file ID for show/update/delete/references
+- `id` (argument) -- Audio file ID for show/delete/references
 
 ### CLI Examples
 
@@ -726,14 +741,8 @@ wxcli cc-audio-files list-audio-file
 # Get a specific audio file
 wxcli cc-audio-files show <audio-file-id>
 
-# Create an audio file
-wxcli cc-audio-files create --json-body '{"name":"welcome-greeting","type":"WAV","description":"Main welcome prompt"}'
-
-# Partial update (change name only)
-wxcli cc-audio-files update-audio-file <audio-file-id> --json-body '{"name":"updated-greeting"}'
-
-# Full update
-wxcli cc-audio-files update <audio-file-id> --json-body '{"name":"updated-greeting","type":"WAV","description":"Updated prompt"}'
+# NOTE: uploading/replacing an audio file has no CLI command (multipart upload).
+# Use Control Hub or a raw multipart HTTP request.
 
 # Delete an audio file
 wxcli cc-audio-files delete <audio-file-id>
@@ -839,8 +848,8 @@ team configurations) for bulk management and assignment. 8 commands.
 | `wxcli cc-resource-collection show` | GET /organization/{orgid}/resource-collection/{id} | Get by ID |
 | `wxcli cc-resource-collection update-resource-collection` | PUT /organization/{orgid}/resource-collection/{id} | Update by ID |
 | `wxcli cc-resource-collection delete` | DELETE /organization/{orgid}/resource-collection/{id} | Delete by ID |
-| `wxcli cc-resource-collection list` | GET /organization/{orgid}/v2/resource-collection | List (v2) |
-| `wxcli cc-resource-collection list-incoming-references` | GET /organization/{orgid}/resource-collection/{id}/incoming-references | List references |
+| `wxcli cc-resource-collection list-resource-collection` | GET /organization/{orgid}/v2/resource-collection | List (v2) |
+| `wxcli cc-resource-collection list` | GET /organization/{orgid}/resource-collection/{id}/incoming-references | List references (takes an ID) |
 
 ### Key Parameters
 
@@ -851,7 +860,7 @@ team configurations) for bulk management and assignment. 8 commands.
 
 ```bash
 # List all resource collections (v2)
-wxcli cc-resource-collection list
+wxcli cc-resource-collection list-resource-collection
 
 # Get a specific resource collection
 wxcli cc-resource-collection show <collection-id>
@@ -869,7 +878,7 @@ wxcli cc-resource-collection update --json-body '{"items":[{"id":"coll-1","name"
 wxcli cc-resource-collection delete <collection-id>
 
 # List what references this collection
-wxcli cc-resource-collection list-incoming-references <collection-id>
+wxcli cc-resource-collection list <collection-id>
 ```
 
 ### Raw HTTP
@@ -896,19 +905,18 @@ Content-Type: application/json
 
 All 98 endpoints across 15 CLI groups, grouped by resource.
 
-### Dial Plans (9)
+### Dial Plans (8)
 
 | Method | Path | CLI Command |
 |---|---|---|
-| GET | /organization/{orgid}/dial-plan | `cc-dial-plan list-dial-plan-organization` |
-| POST | /organization/{orgid}/dial-plan | `cc-dial-plan create-dial-plan` |
-| POST | /organization/{orgid}/dial-plan/bulk | `cc-dial-plan create` |
-| GET | /organization/{orgid}/dial-plan/bulk-export | `cc-dial-plan list-bulk-export` |
+| GET | /organization/{orgid}/dial-plan | `cc-dial-plan list` |
+| POST | /organization/{orgid}/dial-plan | `cc-dial-plan create` |
+| POST | /organization/{orgid}/dial-plan/bulk | `cc-dial-plan create-bulk` |
 | GET | /organization/{orgid}/dial-plan/{id} | `cc-dial-plan show` |
 | DELETE | /organization/{orgid}/dial-plan/{id} | `cc-dial-plan delete` |
 | PUT | /organization/{orgid}/dial-plan/{id} | `cc-dial-plan update` |
-| GET | /organization/{orgid}/dial-plan/{id}/incoming-references | `cc-dial-plan list` |
-| GET | /organization/{orgid}/v2/dial-plan | `cc-dial-plan list-dial-plan-v2` |
+| GET | /organization/{orgid}/dial-plan/{id}/incoming-references | `cc-dial-plan list-incoming-references` |
+| GET | /organization/{orgid}/v2/dial-plan | `cc-dial-plan list-dial-plan` |
 
 ### Dial Numbers (12)
 
@@ -925,7 +933,7 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 | PUT | /organization/{orgid}/dial-number/{id} | `cc-dial-number update` |
 | GET | /organization/{orgid}/dial-number/{id}/incoming-references | `cc-dial-number list-incoming-references` |
 | GET | /organization/{orgid}/v2/dial-number | `cc-dial-number list-dial-number-v2` |
-| GET | /organization/{orgid}/v3/dial-number | (v3 variant, mapped via `list-dial-number-v2` or `list-dial-number-organization`) |
+| GET | /organization/{orgid}/v3/dial-number | `cc-dial-number list-dial-number-v3` |
 
 ### Outdial ANI (16)
 
@@ -934,7 +942,6 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 | GET | /organization/{orgid}/outdial-ani | `cc-outdial-ani list` |
 | POST | /organization/{orgid}/outdial-ani | `cc-outdial-ani create` |
 | POST | /organization/{orgid}/outdial-ani/bulk | `cc-outdial-ani create-bulk-outdial-ani` |
-| GET | /organization/{orgid}/outdial-ani/bulk-export | `cc-outdial-ani list-bulk-export` |
 | GET | /organization/{orgid}/outdial-ani/entry | `cc-outdial-ani list-entry-outdial-ani` |
 | GET | /organization/{orgid}/outdial-ani/{id} | `cc-outdial-ani show` |
 | DELETE | /organization/{orgid}/outdial-ani/{id} | `cc-outdial-ani delete` |
@@ -984,7 +991,6 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 | GET | /organization/{orgid}/overrides | `cc-overrides list` |
 | POST | /organization/{orgid}/overrides | `cc-overrides create` |
 | POST | /organization/{orgid}/overrides/bulk | `cc-overrides create-bulk` |
-| GET | /organization/{orgid}/overrides/bulk-export | `cc-overrides list-bulk-export` |
 | GET | /organization/{orgid}/overrides/{id} | `cc-overrides show` |
 | DELETE | /organization/{orgid}/overrides/{id} | `cc-overrides delete` |
 | PUT | /organization/{orgid}/overrides/{id} | `cc-overrides update` |
@@ -1023,24 +1029,28 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 |---|---|---|
 | POST | /v1/captures/query | `cc-captures create` |
 
-### Flows (4)
+### Flows (11)
 
 | Method | Path | CLI Command |
 |---|---|---|
-| GET | /flow-store/{orgId}/project/{projectId}/flows | `cc-flow list` |
-| POST | /flow-store/{orgId}/project/{projectId}/flows/import | `cc-flow create` |
-| GET | /flow-store/{orgId}/project/{projectId}/flows/{flowId}/export | `cc-flow list-export` |
-| POST | /flow-store/{orgId}/project/{projectId}/flows/{flowId}/export | `cc-flow create-export` |
+| GET | /{orgId}/project/{projectId}/flows | `cc-flow list` |
+| POST | /{orgId}/project/{projectId}/flows/{flowId}:publish | `cc-flow publish` |
+| POST | /{orgId}/project/{projectId}/flows/{flowId}:lock | `cc-flow create-lock` |
+| POST | /{orgId}/project/{projectId}/flows/{flowId}:unlock | `cc-flow create-unlock` |
+| POST | /{orgId}/project/{projectId}/v2/flows:validate | `cc-flow create-validate` |
+| POST | /{orgId}/project/{projectId}/v2/flows:import | `cc-flow create-import` |
+| GET | /{orgId}/project/{projectId}/v2/flows/{flowId} | `cc-flow show` |
+| POST | /{orgId}/project/{projectId}/v2/flows/{flowId} | `cc-flow create-flows` |
+| PATCH | /{orgId}/project/{projectId}/v2/flows/{flowId} | `cc-flow update` |
+| GET | /{orgId}/project/{projectId}/v2/flows/{flowId}:validate | `cc-flow list-validate` |
+| GET | /{orgId}/project/{projectId}/v2/flows/{flowId}:export | `cc-flow export` |
 
-### Audio Files (7)
+### Audio Files (4)
 
 | Method | Path | CLI Command |
 |---|---|---|
-| POST | /organization/{orgid}/audio-file | `cc-audio-files create` |
 | DELETE | /organization/{orgid}/audio-file/{id} | `cc-audio-files delete` |
 | GET | /organization/{orgid}/audio-file/{id} | `cc-audio-files show` |
-| PATCH | /organization/{orgid}/audio-file/{id} | `cc-audio-files update-audio-file` |
-| PUT | /organization/{orgid}/audio-file/{id} | `cc-audio-files update` |
 | GET | /organization/{orgid}/audio-file/{id}/incoming-references | `cc-audio-files list` |
 | GET | /organization/{orgid}/v2/audio-file | `cc-audio-files list-audio-file` |
 
@@ -1066,14 +1076,14 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 | GET | /organization/{orgid}/resource-collection/{id} | `cc-resource-collection show` |
 | DELETE | /organization/{orgid}/resource-collection/{id} | `cc-resource-collection delete` |
 | PUT | /organization/{orgid}/resource-collection/{id} | `cc-resource-collection update-resource-collection` |
-| GET | /organization/{orgid}/resource-collection/{id}/incoming-references | `cc-resource-collection list-incoming-references` |
-| GET | /organization/{orgid}/v2/resource-collection | `cc-resource-collection list` |
+| GET | /organization/{orgid}/resource-collection/{id}/incoming-references | `cc-resource-collection list` |
+| GET | /organization/{orgid}/v2/resource-collection | `cc-resource-collection list-resource-collection` |
 
 ---
 
 ## 16. Gotchas
 
-1. **CC dial plans are separate from Webex Calling dial plans.** Different API, different base URL (`api.wxcc-{region}.cisco.com` vs `webexapis.com`), different configuration model. Do not confuse `wxcli cc-dial-plan` with `wxcli dial-plan`.
+1. **CC dial plans are separate from Webex Calling dial plans.** Different API, different base URL (`api.wxcc-{region}.cisco.com` vs `webexapis.com`), different configuration model. Do not confuse the CC group `wxcli cc-dial-plan` with the Webex Calling dial plan commands, which live under `wxcli call-routing` (`list-dial-plans`, `create`, `show-dial-plans`, `update-dial-plans`, `delete`). There is no top-level `dial-plan` group.
 
 2. **Dial numbers have a "delete all" endpoint.** `wxcli cc-dial-number delete` (DELETE /organization/{orgid}/dial-number) deletes ALL dialed number mappings in the org. To delete a single mapping, use `wxcli cc-dial-number delete-dial-number <id>`.
 
@@ -1107,7 +1117,7 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 
 14. **Bulk operations use different patterns.** Config resources support `/bulk` (POST for bulk save) and `/bulk-export` (GET for bulk export). The bulk save `create` commands expect an `items` array with `requestAction` per item.
 
-15. **`/bulk-export` endpoints deprecated April 2026.** The GET `/bulk-export` endpoints for all config resources (dial plans, dial numbers, outdial ANI, contact numbers, overrides, audio files, and others) are deprecated in favor of the list endpoints. Prefer `list-dial-plan-v2`, `list-dial-number-v2`, etc. The `list-bulk-export` CLI commands remain in place until the endpoints are removed but should not be used in new code.
+15. **`/bulk-export` endpoints deprecated April 2026.** The GET `/bulk-export` endpoints are deprecated in favor of the list endpoints. Prefer `list-dial-plan`, `list-dial-number-v2`, `list-outdial-ani`, `list-overrides`, `list-audio-file`, etc. Dial plans, outdial ANIs, overrides, and audio files no longer have a `list-bulk-export` command at all -- use their list command with `-o json` instead. A `list-bulk-export` command still exists for `cc-dial-number`, `cc-contact-number`, `cc-entry-point`, `cc-site`, `cc-address-book`, `cc-aux-code`, and `cc-multimedia-profile`, but should not be used in new code.
 
 16. **Posting JDS events from Flow Designer requires `workspaceId` as a query parameter.** Use an HTTP Request node with method POST and full absolute URL: `https://api.wxcc-us1.cisco.com/publish/v1/api/event?workspaceId={{CJDS_Workspace_ID}}`. The body does not contain `workspaceId` — it goes on the query string only. Minimum body:
     ```json

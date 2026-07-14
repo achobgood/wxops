@@ -32,6 +32,9 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 - Hoteling read/write split: UPDATE is `device-settings update-hoteling`, but READ/VERIFY is `user-settings show-hoteling` — different groups! There is no `show-hoteling` in `device-settings`.
 - LKT delete is `wxcli device-settings delete TEMPLATE_ID` — NOT `delete-line-key-templates` (that command doesn't exist)
 - `create-apply-line-key-template` has named flags `--action` and `--template-id` — prefer these over `--json-body` for simple applies
+- `device-dynamic-settings get-customer-device` / `get-location-device` / `get-device-dynamic` are POST-under-the-hood (they call `.../actions/getSettings/invoke`). They take `--json-body '{"tags":["..."]}'` and have **NO `--output` flag** — do not append `-o json` to them
+- `device-dynamic-settings update` (per-device) vs `create` (org/location bulk job) — `create` is the bulk writer despite the name; `update` targets a single DEVICE_ID
+- `workspace-locations` and `locations` share all 10 command names (list, create, show, update, delete, list-floors, create-floors, show-floors, update-floors, delete-floors). They are **different APIs on different endpoints** — see Step 6g before using either
 
 ## Step 2: Verify auth token
 
@@ -67,6 +70,10 @@ Ask the user what they want to do. Present this decision matrix if they are unsu
 | Create a conference room or lobby phone workspace | **Workspace** | `wxcli workspaces` |
 | Allow users to temporarily use a shared phone | **Hot desking** | `wxcli hot-desk` / `wxcli hot-desking-portal` |
 | Validate MAC addresses before provisioning | **MAC validation** | `wxcli device-settings` |
+| Push a phone setting (tag) to every device of a model, org-wide or per-location | **Dynamic settings** | `wxcli device-dynamic-settings` |
+| Discover which settings/tags a phone model actually supports | **Dynamic settings** | `wxcli device-dynamic-settings` |
+| Track/troubleshoot a bulk settings rollout job | **Dynamic settings jobs** | `wxcli device-dynamic-settings` |
+| Manage legacy Workspaces-API locations (lat/long) and building floors | **Workspace locations** | `wxcli workspace-locations` |
 
 **Not a hardware operation?** For RoomOS software configuration, workspace personalization, or xAPI commands (dial, volume, standby, room analytics), use the `device-platform` skill instead.
 
@@ -128,7 +135,7 @@ wxcli numbers list --location-id LOCATION_ID --output json
 
 | Requirement | Details |
 |-------------|---------|
-| Valid MAC address | 12 hex characters (e.g., `AABBCCDDEEFF`). Validate with `wxcli device-settings validate-a-list --macs AABBCCDDEEFF` |
+| Valid MAC address | 12 hex characters (e.g., `AABBCCDDEEFF`). Validate with `wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF"]}'` |
 | Target person/workspace | Must exist before device creation |
 | Device model | Must be in supported catalog |
 | SIP password | Only for 3rd-party (non-Cisco) devices |
@@ -285,8 +292,10 @@ wxcli devices delete DEVICE_ID
 **Update device tags:**
 
 ```bash
-wxcli devices update DEVICE_ID --output json
+wxcli devices update DEVICE_ID --op replace --path tags --value '["lobby","floor-2"]'
 ```
+
+`--op` is `add`, `remove`, or `replace`; `--path` only supports `tags`.
 
 > **NOTE:** Tag operations use JSON Patch format. The CLI handles this internally. Tags are useful for filtering devices in bulk operations (e.g., apply line key templates by tag).
 
@@ -383,7 +392,7 @@ wxcli dect-devices update-handsets LOCATION_ID DECT_NETWORK_ID HANDSET_ID \
 wxcli dect-devices show-serviceability-password LOCATION_ID DECT_NETWORK_ID --output json
 
 # Generate and enable (WARNING: may reboot entire DECT network)
-wxcli dect-devices generate-and-enable LOCATION_ID DECT_NETWORK_ID --output json
+wxcli dect-devices generate-and-enable LOCATION_ID DECT_NETWORK_ID
 ```
 
 **DECT association queries:**
@@ -565,7 +574,7 @@ wxcli device-settings create --json-body '{
 }'
 
 # Preview how many devices would be affected
-wxcli device-settings preview-apply-line TEMPLATE_ID --output json
+wxcli device-settings preview-apply-line --action APPLY_TEMPLATE --template-id TEMPLATE_ID
 
 # Apply template to devices (has named flags — simpler than --json-body)
 wxcli device-settings create-apply-line-key-template --action APPLY_TEMPLATE --template-id TEMPLATE_ID
@@ -613,16 +622,20 @@ wxcli device-settings list-background-images --output json
 # Upload a background image to a device — no CLI (multipart upload, generator cannot render)
 # Raw HTTP fallback: POST /telephony/config/devices/{deviceId}/actions/backgroundImageUpload/invoke (multipart/form-data)
 
-# Delete background images
-wxcli device-settings delete-background-images --json-body '{
-  "backgroundImages": [{"fileName": "logo.png", "forceDelete": true}]
-}'
+# Delete background images — deletes ALL of them. The API scopes this with a
+# request body, which the generator does not render for DELETE verbs (known
+# issue #21), so the CLI cannot target individual images.
+wxcli device-settings delete-background-images --force
+
+# Delete specific images — no CLI. Raw HTTP fallback:
+# DELETE /telephony/config/devices/backgroundImages
+#   {"backgroundImages": [{"fileName": "logo.png", "forceDelete": true}]}
 ```
 
 **MAC address validation:**
 
 ```bash
-wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF","112233445566"]}' --output json
+wxcli device-settings validate-a-list --json-body '{"macs":["AABBCCDDEEFF","112233445566"]}'
 ```
 
 States: `AVAILABLE`, `UNAVAILABLE`, `DUPLICATE_IN_LIST`, `INVALID`
@@ -669,6 +682,93 @@ wxcli hot-desking-portal update LOCATION_ID --json-body '{...}'
 # View user-level guest hot desking settings
 wxcli hot-desking-portal show-guest PERSON_ID --output json
 ```
+
+### 6f. Device dynamic settings (fleet-wide phone settings by tag)
+
+`wxcli device-dynamic-settings` (10 commands) changes phone settings **by tag name** across a whole model family — org-wide, per-location, or on one device — instead of editing devices one at a time. Endpoints live under `/telephony/config/devices/dynamicSettings` and `/telephony/config/jobs/devices/dynamicDeviceSettings`.
+
+**Use this when** the request is "set X on all our 8845s" or "what settings can this model take?". Use `device-settings` (Step 6d) instead for members, line keys, and layout; use the `device-platform` skill for PhoneOS/RoomOS config *keys* on a named device.
+
+**Settings hierarchy:** org (customer) --> location --> device. A lower scope overrides a higher one.
+
+**Discover what a model supports first:**
+
+```bash
+# Which devices support dynamic settings (filter by type, e.g. MPP)
+wxcli device-dynamic-settings list --type MPP --output json
+
+# Which setting groups/tabs exist for a model
+wxcli device-dynamic-settings list-settings-groups \
+  --family-or-model-display-name "Cisco 8845" --include-settings-type ALL --output json
+```
+
+**Read current settings at each scope:**
+
+```bash
+# Org (customer) scope — NOTE: no --output flag on this command
+wxcli device-dynamic-settings get-customer-device --family-or-model-display-name "Cisco 8845"
+
+# Location scope (LOCATION_ID is a positional arg)
+wxcli device-dynamic-settings get-location-device LOCATION_ID --family-or-model-display-name "Cisco 8845"
+
+# Single device
+wxcli device-dynamic-settings get-device-dynamic DEVICE_ID
+```
+
+> **NOTE:** These three `get-*` commands are POST requests to `.../actions/getSettings/invoke`. They accept `--json-body '{"tags":["..."]}'` to filter to specific tags and have **no `--output` flag** — adding `-o json` fails.
+
+**Write settings:**
+
+```bash
+# One device
+wxcli device-dynamic-settings update DEVICE_ID \
+  --json-body '{"tags":[{"tag":"...","action":"...","value":"..."}]}'
+
+# Bulk across the org, or scoped to a location — returns a JOB_ID
+wxcli device-dynamic-settings create --json-body '{
+  "tags": [{"familyOrModelDisplayName": "Cisco 8845", "tag": "...", "action": "...", "value": "..."}],
+  "locationId": "LOCATION_ID"
+}'
+```
+
+> **WARNING:** `create` is the **bulk writer** (org/location), not a "create a new thing" command. `update` targets a single device. The names are counterintuitive — read them carefully.
+
+**Track the bulk job:**
+
+```bash
+wxcli device-dynamic-settings list-dynamic-device-settings --output json   # all jobs
+wxcli device-dynamic-settings show JOB_ID --output json                    # job status
+wxcli device-dynamic-settings list-errors JOB_ID --output json             # per-device failures
+```
+
+Bulk writes are asynchronous — a returned JOB_ID does **not** mean the fleet is updated. Poll `show`, then check `list-errors` for devices that failed.
+
+### 6g. Workspace locations (legacy Workspaces API) -- NOT the same as `wxcli locations`
+
+`wxcli workspace-locations` (10 commands) manages the **legacy Workspaces-API location** objects at `/v1/workspaceLocations`, plus their floors. `wxcli locations` manages **Webex Calling locations** at `/v1/locations`. Both groups expose the *same 10 command names*, so a wrong group silently targets the wrong object.
+
+| | `wxcli workspace-locations` | `wxcli locations` |
+|---|---|---|
+| Endpoint | `/v1/workspaceLocations` | `/v1/locations` |
+| Object | Legacy Workspaces-API location (building) | Webex Calling location |
+| `create` requires | `--display-name`, `--address`, `--country-code`, `--latitude`, `--longitude` | `--name`, `--time-zone`, `--preferred-language`, `--announcement-language` |
+| `list` filters | `--display-name`, `--address`, `--country-code`, `--city-name` | `--name`, `--id` |
+| Scope | `spark-admin:workspace_locations_read` / `_write` | `spark-admin:locations_read` / `_write` |
+| Use for | Floors, lat/long geodata on legacy building records | Everything calling: users, numbers, devices, features |
+
+**Rule of thumb:** if the task involves calling — provisioning users, assigning numbers, creating devices or workspaces — you want `wxcli locations`. Only reach for `workspace-locations` to read/maintain legacy building records and floor lists.
+
+```bash
+# List legacy workspace locations (filters differ from wxcli locations)
+wxcli workspace-locations list --country-code US --output json
+wxcli workspace-locations list --city-name "San Francisco" --output json
+
+# Show one, and its floors
+wxcli workspace-locations show LOCATION_ID --output json
+wxcli workspace-locations list-floors LOCATION_ID --output json
+```
+
+> **Deprecation note:** `docs/reference/devices-workspaces.md` (Workspace Locations API section) marks this a legacy API and directs new work to `wxcli locations`. Prefer `locations` unless you specifically need floors or the legacy record.
 
 ---
 
@@ -746,6 +846,9 @@ Next steps:
 21. **Model string format differs by phone family.** Classic MPP phones use `"DMS Cisco 8845"` (with DMS prefix). 9800-series phones use `"Cisco 9861"` (no DMS prefix). Using the wrong format for device creation or line key templates will fail. Check `wxcli device-settings list-supported-devices-dects --output json` for exact model strings.
 22. **DECT display name character limits.** Network `displayName` is max 11 characters. Handset `customDisplayName` is 1-16 characters. Exceeding limits returns 400.
 23. **DECT access code must be unique within the location.** If two DECT networks at the same location share an access code, handsets may register with the wrong network.
+24. **`workspace-locations` is NOT `locations`.** Both groups expose the same 10 command names but hit different endpoints (`/v1/workspaceLocations` vs `/v1/locations`) and different objects. Anything calling-related (users, numbers, devices, features) uses `wxcli locations`. `workspace-locations` is the legacy Workspaces-API building record — use it only for floors or legacy geodata. See Step 6g.
+25. **`device-dynamic-settings get-*` commands have no `--output` flag.** `get-customer-device`, `get-location-device`, and `get-device-dynamic` are POST calls to `.../actions/getSettings/invoke`. Appending `-o json` fails. Filter with `--json-body '{"tags":["..."]}'`.
+26. **`device-dynamic-settings create` is the bulk writer, not a creator.** `create` pushes tag changes org-wide or per-location and returns a JOB_ID; `update` writes a single device. Bulk writes are async — poll `show JOB_ID` and check `list-errors JOB_ID` before reporting success.
 
 ---
 
@@ -761,6 +864,8 @@ These are the **exact group names** registered in `wxcli`. Do not use any other 
 | `wxcli workspaces` | `workspaces.py` | list, create, show, update, delete, show-capabilities |
 | `wxcli workspace-settings` | `workspace_settings.py` | 60+ commands (call settings, monitoring, permissions, voicemail, recording) |
 | `wxcli device-configurations` | `device_configurations.py` | show, update (PhoneOS/RoomOS config keys) |
+| `wxcli device-dynamic-settings` | `device_dynamic_settings.py` | 10 commands (supported devices, settings groups, org/location/device reads, per-device update, bulk job create, job status, job errors) |
+| `wxcli workspace-locations` | `workspace_locations.py` | 10 commands (legacy workspace locations + floors CRUD) |
 | `wxcli hot-desk` | `hot_desk.py` | list, delete |
 | `wxcli hot-desking-portal` | `hot_desking_portal.py` | show, update, show-guest, update-guest |
 
@@ -777,6 +882,8 @@ These are the **exact group names** registered in `wxcli`. Do not use any other 
 | `wxcli dect-devices` | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 | `wxcli workspaces` | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` |
 | `wxcli workspace-settings` | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` |
+| `wxcli device-dynamic-settings` | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
+| `wxcli workspace-locations` | `spark-admin:workspace_locations_read` | `spark-admin:workspace_locations_write` |
 | `wxcli hot-desk` | (undocumented) | (undocumented) |
 | `wxcli hot-desking-portal` | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 

@@ -42,7 +42,7 @@ Mock server URLs (public, no auth required — return saved response examples):
 
 ## CLI Test Status
 
-178 command groups (171 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+176 command groups (171 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ## Generator Rules
 
@@ -69,6 +69,26 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 17. ~~CC "Site" tag collides with Meetings "Site" tag.~~ **Retired 2026-07-01:** per-spec `cli_name_overrides` (`webex-contact-center.json: Site -> cc-site, Data Sources -> cc-data-sources`) resolve the collision; `cc_site.py` regenerates normally with `--all` and regen order no longer matters for this.
 18. **Spec churn can silently rename commands.** New spec ops can win command-name races within a tag and rename operator-facing commands (happened to `call-queue show/update`, 2026-07-01). Pin load-bearing names with `tag_overrides` -> `command_name_overrides`. Review regen diffs for renames, not just additions.
 19. **Query-param/body-field name collisions are skipped, not rendered.** When an endpoint has a body field whose flag name would collide with a path/query param (CC Flows `create-import` flowType), the renderer keeps the query param and drops the body flag — set the body field via `--json-body`.
+20. **Command names come from the HTTP verb, so a destructive PUT is named `update-*`.** UNFIXED — logged 2026-07-14 for separate triage. `_derive_command_name` maps the verb to the name, but Cisco models some deletes as PUT-with-a-delete-body. The live example is `location-call-handling update-access-codes`: its own `--help` title is *"Delete Outgoing Permission Access Code Location"*, its body is `{"deleteCodes":[...]}`, and on success the renderer prints **"Updated."** An agent asked to "update the access codes" will delete them and be told it updated them.
+
+    Detection: an operation whose `summary`/`operationId` starts with "Delete" but whose method is PUT/POST. Worth a renderer check that flags the mismatch, since the generator can see both.
+
+    Fix when triaged: pin a truthful name via `tag_overrides` -> `command_name_overrides` (per issue #18) and make the success message follow the operation's real semantics rather than the verb. Interim protection is documentation only — `configure-features/SKILL.md` Critical Rules #21-22 carry a trap table. That protects an agent that read the skill first; it does not protect anyone reading `--help` alone, and the "Updated." message actively misleads.
+
+21. **The renderer drops `requestBody` on DELETE, so scoped deletes silently become delete-everything.** UNFIXED — logged 2026-07-14, found while fixing doc flag drift. 10 tracked spec operations declare a DELETE request body; **none** of the generated commands can send one (no `--json-body`, no fields). The body is what *narrows* these deletes, so losing it does not fail — it widens the blast radius:
+
+    | Command | Body the spec defines | Effect without it |
+    |---------|----------------------|-------------------|
+    | `call-queue delete-supervisors-config` | `supervisors[]` | deletes **all supervisors in the org** |
+    | `device-settings delete-background-images` | `backgroundImages[]` | deletes **all background images** |
+    | `numbers delete` | phone numbers to remove | cannot name which numbers |
+    | `call-queue delete-dnis-queues` | `dnis[]` (**required**) | request is unsatisfiable |
+
+    This is the same family as #20 (a name/behaviour mismatch the generator can see but does not act on) and compounds it: the widened delete is reached through a command whose `--help` gives no hint the scoping input exists.
+
+    Detection: `op.get("requestBody")` on a `delete` operation, cross-referenced against the rendered command's flags — the check that surfaced this is ~10 lines.
+
+    Fix when triaged: render `--json-body` for DELETE bodies exactly as for PUT/POST (the renderer already knows how; the DELETE branch just never asks). Until then the CLI cannot scope these deletes at all, and the docs say so explicitly rather than showing a `--json-body` that does not exist — `manage-devices/SKILL.md` and `customer-assist/SKILL.md` carry the warning and the raw-HTTP fallback.
 
 ## Templates, Examples & Plans
 

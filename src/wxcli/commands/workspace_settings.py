@@ -3345,3 +3345,61 @@ def list_available_numbers_secondary(
         print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+@app.command("list-outbound-billing-plan")
+def list_outbound_billing_plan(
+    workspace_id: str = typer.Argument(help="workspaceId"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve a Workspace's Outbound Billing Plan."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/outboundBillingPlan"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    if output == "json":
+        print_json(items)
+    else:
+        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("update-outbound-billing-plan")
+def update_outbound_billing_plan(
+    workspace_id: str = typer.Argument(help="workspaceId"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify a Workspace's Outbound Billing Plan."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/outboundBillingPlan"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = json.loads(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    typer.echo(f"Updated.")
+
+

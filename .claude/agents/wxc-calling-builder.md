@@ -156,7 +156,7 @@ The query-live skill handles classification, domain routing, command execution, 
 Before asking the interview questions, check for an existing CUCM migration project:
 
 ```bash
-wxcli cucm status -o json 2>/dev/null
+wxcli cucm status 2>/dev/null
 ```
 
 **If the pipeline is at stage ANALYZED or later** (or a deployment plan exists at `docs/plans/*cucm-migration*`):
@@ -174,7 +174,7 @@ Walk them through the analysis pipeline conversationally. Do NOT tell them to ru
 > "Let's start by setting up a migration project. What would you like to name it? (e.g., your company name or site name)"
 
 ```bash
-wxcli cucm init -p <name>
+wxcli cucm init <name>
 ```
 
 Before asking for credentials, explain what's needed:
@@ -670,7 +670,7 @@ Overwrite this file at each boundary — it is a cursor, not a log. The migratio
 
 When spawned (regardless of what the prompt says):
 1. Check for active project state:
-   - `wxcli cucm status -o json 2>/dev/null` for CUCM workflows
+   - `wxcli cucm status 2>/dev/null` for CUCM workflows
    - `ls docs/plans/` for standard builds
 2. Read `session-state.md` if it exists
 3. Validate the prompt's claims against disk state (if the prompt says "pipeline is at ANALYZED" but `wxcli cucm status` says PLANNED, trust disk)

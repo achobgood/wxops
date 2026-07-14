@@ -196,31 +196,34 @@ Closed captions are the real-time captions captured during a meeting. They are d
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
-| List captions | `wxcli meeting-captions list-meeting-closed-captions` | GET /meetingClosedCaptions | List closed captions for a meeting |
-| List snippets | `wxcli meeting-captions list CAPTION_ID` | GET /meetingClosedCaptions/{closedCaptionId}/snippets | List individual caption segments |
-| Download | `wxcli meeting-captions list-download CAPTION_ID` | GET /meetingClosedCaptions/{closedCaptionId}/download | Download captions as VTT or TXT |
+| List captions | `wxcli meeting-captions list --meeting-id ID` | GET /meetingClosedCaptions | List closed captions for a meeting |
+| List snippets | `wxcli meeting-captions list-snippets CLOSED_CAPTION_ID --meeting-id ID` | GET /meetingClosedCaptions/{closedCaptionId}/snippets | List individual caption segments |
+| Download | `wxcli meeting-captions list-download CLOSED_CAPTION_ID --meeting-id ID` | GET /meetingClosedCaptions/{closedCaptionId}/download | Download captions as VTT or TXT |
 
 ### Key Parameters
-
-#### `meeting-captions list-meeting-closed-captions`
-
-| Option | Description |
-|--------|-------------|
-| `--meeting-id ID` | Meeting instance ID (required). Only works for ended meetings |
 
 #### `meeting-captions list`
 
 | Option | Description |
 |--------|-------------|
-| `--meeting-id ID` | Meeting instance ID. Only works for ended meetings |
+| `--meeting-id ID` | Meeting instance ID (required). Only works for ended meetings |
+
+#### `meeting-captions list-snippets`
+
+| Option | Description |
+|--------|-------------|
+| `CLOSED_CAPTION_ID` | Positional argument (required). Closed caption ID from `list` |
+| `--meeting-id ID` | Meeting instance ID (required). Only works for ended meetings |
 
 #### `meeting-captions list-download`
 
 | Option | Description |
 |--------|-------------|
+| `CLOSED_CAPTION_ID` | Positional argument (required). Closed caption ID from `list` |
 | `--format FORMAT` | Download format: `vtt` or `txt` |
-| `--meeting-id ID` | Meeting instance ID. Only works for ended meetings |
-| `--timezone TZ` | Timezone for timestamps (e.g., `UTC`, `America/New_York`). Passed as a header |
+| `--meeting-id ID` | Meeting instance ID (required). Only works for ended meetings |
+
+The `timezone` header shown in the Raw HTTP example below has no CLI flag equivalent.
 
 ### Raw HTTP
 
@@ -425,8 +428,8 @@ All 16 endpoints covered by the 5 CLI groups in this doc.
 | GET | /meetingTranscripts/{transcriptId}/snippets/{snippetId} | meeting-transcripts | `show` | User/Admin |
 | PUT | /meetingTranscripts/{transcriptId}/snippets/{snippetId} | meeting-transcripts | `update` | User/Admin |
 | DELETE | /meetingTranscripts/{transcriptId} | meeting-transcripts | `delete` | User/Admin |
-| GET | /meetingClosedCaptions | meeting-captions | `list-meeting-closed-captions` | User |
-| GET | /meetingClosedCaptions/{closedCaptionId}/snippets | meeting-captions | `list` | User |
+| GET | /meetingClosedCaptions | meeting-captions | `list` | User |
+| GET | /meetingClosedCaptions/{closedCaptionId}/snippets | meeting-captions | `list-snippets` | User |
 | GET | /meetingClosedCaptions/{closedCaptionId}/download | meeting-captions | `list-download` | User |
 | GET | /meetings/postMeetingChats | meeting-chats | `list` | User |
 | DELETE | /meetings/postMeetingChats | meeting-chats | `delete` | User/Admin |

@@ -781,7 +781,7 @@ Recovery procedure (from SKILL.md Step 4c and roadmap `26419ab`):
 
 If the user does NOT exist, it was a genuine failure — present fix+retry or skip options.
 
-This pattern applies to any create operation (locations, call queues, hunt groups) where the API is not atomic. Always check for the existing resource before retrying. See `→ docs/plans/cucm-migration-roadmap.md` Known Issues table (commit `26419ab` upstream data gaps) for the full history.
+This pattern applies to any create operation (locations, call queues, hunt groups) where the API is not atomic. Always check for the existing resource before retrying.
 
 ### Where Logs Live
 
@@ -923,7 +923,7 @@ Operator decision tree:
 
 ### Pattern 5: Orphaned Non-Calling User
 
-**Trigger:** The People API created the Webex user record successfully, but the subsequent calling-setup step failed, leaving a Webex user with no calling license or extension. A retry gets `409 Conflict` on the user create because the user already exists. Documented in `docs/plans/cucm-migration-roadmap.md:459`.
+**Trigger:** The People API created the Webex user record successfully, but the subsequent calling-setup step failed, leaving a Webex user with no calling license or extension. A retry gets `409 Conflict` on the user create because the user already exists.
 
 **Symptoms:** Execution log shows user create succeeded (HTTP 200 with a `personId`) but the following calling-assign step shows a 400 or 500. `wxcli cucm execution-status -p <project>` shows the user op as `failed`. `wxcli people list --email "<email>" --calling-data true -o json` returns the user but with no `phoneNumbers` or `extension` fields.
 

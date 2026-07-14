@@ -1224,7 +1224,7 @@ wxcli workspace-settings list-privacy <workspace_id>
 ```bash
 # ── Monitoring (BLF) ────────────────────────────────────────────
 # Show monitoring settings
-wxcli workspace-settings show-monitoring <workspace_id>
+wxcli workspace-settings list-monitoring <workspace_id>
 
 # ── Numbers ──────────────────────────────────────────────────────
 # List phone numbers assigned to a workspace

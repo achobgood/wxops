@@ -4,6 +4,10 @@ description: |
   Manage Webex identity and directory: SCIM user/group sync, SCIM bulk operations,
   domain verification (DNS TXT records), org contact import, directory entries,
   group membership, and directory cleanup.
+  Also covers org identity settings and login security (org rename, default language,
+  MFA, password policy, one-time passwords), org feature settings by key, admin role
+  lookup (resolve role name to role ID), bulk activation/invite email resend jobs,
+  archived (deleted) user lookup, and space classification labels.
   Guides from prerequisites through execution and verification.
   NOT for: Webex Calling user provisioning (use provision-calling skill) or
   license assignment (use manage-licensing skill).
@@ -49,7 +53,7 @@ wxcli organizations list
 
 ## Step 3: Determine the operation
 
-Ask the user which identity operation they need. The eight supported operations are:
+Ask the user which identity operation they need. The fourteen supported operations are:
 
 | Need | Operation | CLI Group | Prerequisites |
 |------|-----------|-----------|---------------|
@@ -61,6 +65,12 @@ Ask the user which identity operation they need. The eight supported operations 
 | Verify/claim a domain before sync | Domain verification | `domains` | `identity:organizations_rw` scope; DNS access |
 | Clean up stale/inactive users | Directory cleanup | `scim-users`, `scim-bulk` | `identity:people_rw` scope; org ID |
 | Check SCIM schema for field mapping | Schema introspection | `scim-schemas` | `identity:people_read` scope |
+| Rename org, set default language, MFA, password policy, issue a one-time password | Org identity settings | `identity-org` | `identity:organizations_rw` scope (see gotcha — PAT returns 404) |
+| Read/set an org-level feature setting by key | Org setting key/value | `org-settings` | `identity:organizations_read` (read) / `identity:organizations_rw` (write) |
+| Find the role ID to grant a user admin rights | Admin role lookup | `roles` | Admin token |
+| Resend activation/invite emails to users who never activated | Bulk activation email job | `activation-email` | `spark-admin:people_write` scope |
+| Look up the record of a user who was deleted from the org | Archived user lookup | `archive-users` | `spark-admin:people_read` scope (see gotcha — PAT returns 401) |
+| List DLP space classification labels | Space classifications | `classifications` | `spark-admin:classifications_read`; classification enabled for the org |
 
 Confirm with the user before proceeding:
 - **Which operation** from the table above
@@ -456,6 +466,132 @@ wxcli scim-schemas show -o json
 wxcli scim-schemas show-scim2 "urn:scim:schemas:extension:cisco:webexidentity:2.0:User" -o json
 ```
 
+### Operation I: Org Identity Settings, Login Security, and Password Policy
+
+The `identity-org` group manages the org record itself plus the login-security controls that apply
+to every user in the directory (MFA, "remember my login ID", password complexity). Use it when the
+ask is "turn on MFA", "require 12-character passwords", "rename the org", or "get a user back in".
+
+**None of these commands take an org ID** — the CLI resolves the org from the token and injects it.
+
+```bash
+# Read the org identity record (display name, preferred language, policies)
+wxcli identity-org show -o json
+
+# Rename the org / set the default language applied to newly created users
+wxcli identity-org update --display-name "Acme Corp"
+wxcli identity-org update --preferred-language "en_US"
+
+# Turn on multi-factor authentication org-wide
+wxcli identity-org update-authentication-config --mfa-enabled
+
+# Turn MFA off, and stop remembering login IDs
+wxcli identity-org update-authentication-config --no-mfa-enabled --no-remember-my-login-id
+
+# Set password complexity (all values are strings, per --help)
+wxcli identity-org update-password-policy --minimum-length "12" --minimum-numeric "1" \
+  --minimum-cap-alpha "1" --minimum-special "1" --history-count "5" --max-password-age "90"
+
+# Issue a one-time password for a user (first-time login / password reset)
+# USER_ID is the user's UUID, NOT an org ID -- this command takes ONE argument
+wxcli identity-org generate-otp "USER_UUID_HERE"
+```
+
+`--minimum-length` must be between 8 and 256. `--max-password-age` is in days. These are org-wide
+login-security changes affecting every user — always show the plan and get approval first.
+
+### Operation J: Org Feature Settings (key/value)
+
+The `org-settings` group reads and writes individual org-level feature toggles addressed by a
+**setting key**. Use it only when you already know the key you need; there is no "list all keys"
+command, and querying an unset key returns an error rather than a default.
+
+```bash
+# Read one setting by key (SETTING_KEY is the only argument -- no org ID)
+wxcli org-settings show "SETTING_KEY" -o json
+
+# Create or update a boolean setting (POST-as-upsert -- there is no separate update command)
+wxcli org-settings create --key "SETTING_KEY" --value
+
+# Set it to false
+wxcli org-settings create --key "SETTING_KEY" --no-value
+
+# Non-boolean values must go through --json-body; --value/--no-value is boolean-only
+wxcli org-settings create --json-body '{"key": "SETTING_KEY", "value": "someString"}'
+```
+
+### Operation K: Admin Role Lookup
+
+The `roles` group is read-only. Its purpose is to resolve a role **name** to the role **ID** you
+need when granting someone admin rights — the People API `roles` array takes IDs, not names.
+
+```bash
+# List every role in the org (ID + name)
+wxcli roles list
+
+# Full role metadata, and to get untruncated IDs (the table view truncates them)
+wxcli roles list -o json
+
+# Inspect one role
+wxcli roles show "ROLE_ID"
+```
+
+Typical flow: `roles list -o json` to find the ID for e.g. "Read-only Administrator", then hand that
+ID to the People API to assign it. Assigning the role is a `people` operation, not a `roles` one —
+the `roles` group cannot grant anything.
+
+### Operation L: Resend Activation Emails (bulk async job)
+
+After creating users (via SCIM, CSV, or `people create`), users who never clicked their invite stay
+unactivated. `activation-email create` starts an org-wide job that re-sends the invite to **all**
+pending users. It is an async job: initiate, poll, then check errors.
+
+**`activation-email create` takes no arguments and no body** — you cannot target a subset of users
+with it. It is all-or-nothing for the org. It sends real email to real people; always confirm with
+the user before running it.
+
+```bash
+# Step 1: Initiate the resend job -- returns a job ID
+wxcli activation-email create
+
+# Step 2: Poll for status using the job ID from step 1
+wxcli activation-email list "JOB_ID_HERE"
+
+# Step 3: Once complete, check which users failed
+wxcli activation-email list-errors "JOB_ID_HERE"
+```
+
+Job status lives in `latestExecutionStatus` (e.g. `STARTED`) and `latestExecutionExitCode`. The
+`counts` object reports `userResendInviteSent`, `userResendInviteFailed`, `userResendInviteSkipped`,
+and `totalUsers`. There is no webhook for completion — you must poll.
+
+### Operation M: Archived User Lookup
+
+`archive-users show` retrieves the retained record of a user who has been **deleted** from the org.
+Use it after a directory cleanup (Operation G) when someone asks "what was this deleted account?" or
+you need to confirm an offboarding actually removed a user.
+
+```bash
+# USERUUID is the deleted user's UUID -- the only argument
+wxcli archive-users show "USER_UUID_HERE" -o json
+```
+
+This is read-only; it cannot restore a user. To bring someone back, create them again (Operation C).
+
+### Operation N: Space Classification Labels
+
+`classifications list` is a read-only listing of the DLP labels that can be applied to Webex spaces
+(e.g. Public / Internal / Confidential). Use it to discover which labels exist before referencing
+one, or to confirm whether classification is turned on at all.
+
+```bash
+wxcli classifications list
+wxcli classifications list -o json
+```
+
+This lists labels only — it cannot create labels or apply one to a space. Space classification is an
+opt-in feature; if it is not enabled for the org the command errors (see Error Handling).
+
 ## Step 7: Verify results
 
 Always read back the created/updated resources to confirm.
@@ -490,6 +626,26 @@ wxcli domains verify-domain $ORG_ID --domain "example.com"
 ```bash
 # Search for imported contacts
 wxcli org-contacts list $ORG_ID --keyword "Smith"
+```
+
+### Verify org identity / security policy changes:
+```bash
+# Read the org record back and confirm displayName, MFA, and password policy took effect
+wxcli identity-org show -o json
+```
+
+### Verify an org setting:
+```bash
+# Read the key back -- confirm the value matches what you set
+wxcli org-settings show "SETTING_KEY" -o json
+```
+
+### Verify an activation email job:
+```bash
+# Confirm the job finished, then confirm the failure count is zero
+wxcli activation-email list "JOB_ID_HERE"
+wxcli activation-email list-errors "JOB_ID_HERE"
+# Check counts.userResendInviteSent vs counts.userResendInviteFailed
 ```
 
 ## Step 8: Report results
@@ -533,7 +689,9 @@ Next steps:
 
 9. **ALWAYS show plan before executing write operations** -- Never create, update, or delete users, groups, contacts, or domains without presenting the plan and getting user confirmation.
 
-10. **SCIM commands require org ID as positional argument** -- All `scim-users`, `scim-groups`, and `scim-bulk` commands require `ORG_ID` as the first positional argument. Webex REST API commands (`people`, `groups`) do not -- they use the org implied by the token.
+10. **The CLI injects the org ID for you — do NOT pass it as a positional argument.** Verified 2026-07-14 against the live CLI: `identity-org`, `org-settings`, `roles`, `archive-users`, `classifications`, and `activation-email` take **no** org ID. The CLI resolves the org from the token (`GET /v1/people/me`) and injects it into the request URL. Passing one anyway fails with `Got unexpected extra argument`. **Always run `wxcli <group> <command> --help` and pass only the arguments it lists.**
+
+    > **Known stale content — do not copy blindly.** Many `$ORG_ID` examples elsewhere in this skill (`scim-users`, `scim-groups`, `scim-bulk`, `org-contacts`, `domains`) predate org-ID auto-injection and will error with `Got unexpected extra argument` if run as written. `--help` is the source of truth; drop the `$ORG_ID` argument. This is a known gap pending a separate cleanup pass.
 
 11. **Identity scopes are separate from Calling scopes** -- SCIM endpoints require `identity:people_rw` / `identity:people_read`. Webex REST endpoints (`people`, `groups`) require `spark-admin:people_write` / `spark-admin:people_read`. Mixing them up produces 403 errors.
 
@@ -573,6 +731,11 @@ Identity-specific errors:
 - **400 on bulk operations**: Check per-operation status in the response. Individual operations may fail while others succeed.
 - **Domain verification failure**: DNS TXT record not yet propagated. Wait and retry after confirming TXT record is in place.
 - **400 on `org-contacts create`**: Missing `--schemas` or `--source`. Both are required. Schema value is always `"urn:cisco:codev:identity:contact:core:1.0"`. Source must be `CH` or `Webex4Broadworks`.
+- **404 on `identity-org show`/`update`**: Verified against a live org with a full-admin personal access token — the request URL and org ID were correct and the API still returned 404. Personal access tokens do not carry `identity:organizations_read`/`_rw`, and these endpoints answer missing identity scope with 404 rather than 403. Use an OAuth integration or service app with identity scopes granted. Do not chase this as a wrong-org-ID bug.
+- **401 on `archive-users show`**: Same root cause pattern as above — the token is not accepted for the identity API path this command uses. Needs `spark-admin:people_read` on a token that carries it (OAuth integration/service app), not a PAT.
+- **"Target item with key: X does not exist" on `org-settings show`**: The setting key is not set for this org, or the key name is wrong. There is no command to list valid keys — confirm the exact key with the user. An unset key errors rather than returning a default.
+- **"The space classification is not enabled for the org" on `classifications list`**: Not a permissions or CLI problem. Space classification is opt-in and is off for this org; it must be enabled in Control Hub first. Report this to the user rather than retrying.
+- **`activation-email` sends real email**: There is no dry-run and no way to scope it to a subset of users. If run by mistake, the job cannot be recalled — let it finish and report the counts.
 
 **SCIM update errors:**
 - **Accidental PUT data loss:** If `scim-users update` (PUT) was run with incomplete data and attributes were deleted, recover immediately:

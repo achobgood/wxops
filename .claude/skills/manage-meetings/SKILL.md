@@ -105,10 +105,11 @@ To check if meetings already exist in a time range:
 wxcli meetings list-meetings --from 2026-04-01T00:00:00Z --to 2026-04-30T23:59:59Z --output json
 ```
 
-For admin operations across the org:
+For admin operations across the org (this endpoint has no date filter — only
+`list-meetings` above supports `--from`/`--to`):
 
 ```bash
-wxcli meetings list --from 2026-04-01T00:00:00Z --to 2026-04-30T23:59:59Z --output json
+wxcli meetings list --output json
 ```
 
 ### 4b. Registrants
@@ -141,7 +142,7 @@ The meeting must have ended and have the relevant content available:
 
 ```bash
 # List transcripts for a specific meeting
-wxcli meeting-transcripts list-meeting-transcripts --meeting-id MEETING_ID --output json
+wxcli meeting-transcripts list --meeting-id MEETING_ID --output json
 
 # List captions
 wxcli meeting-captions list MEETING_ID --output json
@@ -353,11 +354,11 @@ wxcli meeting-invitees delete INVITEE_ID
 ### Transcripts and Content
 
 ```bash
-# List transcripts (compliance — all meetings)
-wxcli meeting-transcripts list --output json
+# List transcripts (compliance officer — all meetings; --site-url is required)
+wxcli meeting-transcripts list-meeting-transcripts --site-url https://acme.webex.com --output json
 
 # List transcripts for a specific meeting
-wxcli meeting-transcripts list-meeting-transcripts --meeting-id MEETING_ID --output json
+wxcli meeting-transcripts list --meeting-id MEETING_ID --output json
 
 # Download a transcript
 wxcli meeting-transcripts list-download TRANSCRIPT_ID --output json
