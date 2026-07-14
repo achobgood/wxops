@@ -12,12 +12,18 @@ from tools.postman_parser import (
     _derive_command_name,
     _dedup_command_names,
 )
+from tools.spec_overlay import apply_overlay
 
 
 def load_spec(path: str | Path) -> dict:
-    """Load an OpenAPI 3.0 JSON spec file."""
+    """Load an OpenAPI 3.0 JSON spec file, merging any additive overlay.
+
+    specs/ mirrors upstream verbatim, so endpoints upstream omits are supplied
+    by specs/overlays/<spec>.overlay.json at load time. See tools/spec_overlay.py.
+    """
     with open(path) as f:
-        return json.load(f)
+        spec = json.load(f)
+    return apply_overlay(spec, path)
 
 
 def resolve_ref(spec: dict, ref: str) -> dict:

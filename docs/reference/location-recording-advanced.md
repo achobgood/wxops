@@ -2,7 +2,7 @@
 # Location Recording, Supervisor, Guest Calling, Conference & Misc
 
 **CLI group:** `wxcli call-recording` (org-level recording vendor, compliance, per-location vendor assignment)
-**NOT:** `wxcli location-call-settings` (that group handles dial patterns for premise PSTN — completely different domain)
+**NOT:** `wxcli call-routing` (similar name, different domain — that group handles dial plans and dial patterns for premise PSTN)
 
 ## Sources
 
@@ -739,10 +739,11 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
   --json-body '{"agents": [{"id": "AGENT_ID", "action": "ADD"}]}'
 
 # Delete a specific supervisor
-wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --has-cx-essentials true --force
+wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
 
-# Delete supervisors in bulk
-wxcli call-queue delete-supervisors-config --has-cx-essentials true --force
+# Delete ALL supervisors in the org — no --has-cx-essentials, and no way to
+# scope it: the API takes a request body the generator drops (known issue #21)
+wxcli call-queue delete-supervisors-config --force
 
 # RECOMMENDED: Remove supervisor by removing all agents (more reliable)
 wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
@@ -821,7 +822,7 @@ class GuestCallingApi:
 
 ### 5.4 CLI Examples
 
-There is no dedicated `wxcli` guest-calling (click-to-call) command group. Use the SDK methods or Raw HTTP calls. The `guest-management` group covers a different feature (guest user creation), not click-to-call destinations.
+There is no dedicated `wxcli` command group for these org-level guest-calling settings. Use Raw HTTP calls against the `telephony/config/guestCalling` endpoints. The `guest-management` group covers a different feature (guest user creation), not click-to-call destinations; `wxcli my-call-settings list-numbers` reads only the caller's own guest-calling numbers (`/telephony/config/people/me/settings/guestCalling/numbers`), a person-level self-service endpoint, not this org-level config.
 
 ### 5.5 Key Behaviors
 

@@ -131,7 +131,7 @@ wxcli cdr list \
 wxcli cdr list \
   --start-time "2026-03-17T14:00:00.000Z" \
   --end-time "2026-03-17T16:00:00.000Z" \
-  --max 500 --limit 100
+  --limit 100
 
 # Pull near-real-time CDR stream
 wxcli cdr list-cdr_stream \
@@ -481,10 +481,10 @@ class ReportTemplate(ApiModel):
 
 ```bash
 # List all available report templates (JSON output)
-wxcli report-templates show
+wxcli report-templates list -o json
 
 # List report templates in table format
-wxcli report-templates show -o table
+wxcli report-templates list -o table
 ```
 
 ### Usage Example
@@ -524,7 +524,7 @@ wxcli reports create --template-id 25 \
 wxcli reports create --json-body '{"templateId": 130, "startDate": "2026-03-01", "endDate": "2026-03-15"}'
 ```
 
-**Note:** The CLI `reports` group has `list`, `create`, `show` (poll status/get download URL), and `delete`. To download report CSVs after getting the `downloadURL` from `wxcli reports show`, use `curl` or the SDK `ReportsApi.download()` method.
+**Note:** The CLI `reports` group has `list`, `create`, `show` (poll status/get download URL), and `delete`. There is no CLI download command — to download report CSVs, get the `downloadURL` from `wxcli reports show REPORT_ID -o json` and fetch it with `curl`.
 
 ### Create a Report
 
@@ -633,7 +633,7 @@ ReportsApi.delete(
 
 ### CallingCDR — Typed Report Download
 
-For Detailed Call History reports specifically, use `CallingCDR.from_dicts()` to get typed CDR objects instead of raw dicts:
+For Detailed Call History reports specifically, `CallingCDR.from_dicts()` parses a downloaded report into typed CDR objects instead of raw dicts:
 
 ```python
 from wxc_sdk.reports import CallingCDR
@@ -658,7 +658,7 @@ for cdr in cdrs:
 
 ```bash
 # Step 1: Discover available templates
-wxcli report-templates show -o json
+wxcli report-templates list -o json
 
 # Step 2: Create the report (use the template ID from step 1)
 wxcli reports create --template-id 130 \
@@ -670,7 +670,7 @@ wxcli reports show REPORT_ID -o json
 # Look for "status": "done" and "downloadURL" in the response
 
 # Step 4: Download the CSV ZIP from the downloadURL
-# Use curl or the SDK ReportsApi.download() method
+# No CLI download command — fetch the downloadURL with curl
 
 # Step 5: Delete the report to free quota (max 50 reports)
 wxcli reports delete REPORT_ID --force
@@ -836,7 +836,7 @@ wxcli cdr list \
   --end-time "2026-03-17T16:00:00.000Z" -o json
 
 # List calling recordings to check status
-wxcli recordings list --service-type calling --status available
+wxcli converged-recordings list --service-type calling --status available
 
 # Get recording audit summaries for compliance review
 wxcli recording-report list \
@@ -876,7 +876,7 @@ The SDK source code flags several discrepancies between Webex API documentation 
 - **Timezone:** All CDR timestamps are in UTC. The `site_timezone` field provides the offset in minutes if you need to convert to the user's local time.
 - **Report quota:** The 50-report limit is hard. Always delete reports after downloading to avoid hitting the cap.
 - **Pro Pack requirement:** The Reports API (templates, create, list, download, delete) requires the Pro Pack license. The CDR Feed API does not require Pro Pack but does require the admin role to be explicitly enabled.
-- **Async download not implemented:** The SDK's async variant of `ReportsApi.download()` raises `NotImplementedError`. Use the sync API for report downloads.
+- **No download command:** neither the CLI nor the Reports API has a download operation — fetch the `downloadURL` from `wxcli reports show REPORT_ID -o json` with `curl`. (The SDK's async `ReportsApi.download()` variant raises `NotImplementedError`.)
 - **`transfer_related_call_id` contains a `local_call_id`, NOT a Correlation ID.** To link two Correlation IDs across a transfer: find CDRs where `CDR1.transfer_related_call_id = CDR2.local_call_id` — their Correlation IDs are linked. Do not compare `transfer_related_call_id` directly to `correlation_id`.
 - **HG CDRs have both ORIGINATING and TERMINATING records.** The HuntGroup entity appears in CDRs as TERMINATING (receiving the inbound call) and ORIGINATING (dialing each agent). `Answered=true` on a HuntGroup CDR means the HG processed the call, not that a human answered. Do not count HG-typed CDRs when tallying human-answered calls.
 - **A single call can have multiple Correlation IDs.** Attended transfers, on-prem deflections that return to cloud, and some advanced forwarding scenarios create new Correlation IDs. Use `transfer_related_call_id`/`local_call_id` linkage to reconstruct the full call path.
@@ -1010,50 +1010,50 @@ api.session.rest_delete(f"{BASE}/reports/{report_id}")
 
 ```bash
 # List all available recordings
-wxcli recordings list
+wxcli converged-recordings list
 
 # List calling recordings in a date range
-wxcli recordings list \
+wxcli converged-recordings list \
   --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z" \
   --service-type calling
 
 # List recordings filtered by status and format
-wxcli recordings list --status available --format MP3
+wxcli converged-recordings list --status available --format MP3
 
 # List recordings by location and owner type
-wxcli recordings list --location-id "Y2lz...bG9j" --owner-type user
+wxcli converged-recordings list --location-id "Y2lz...bG9j" --owner-type user
 
 # List recordings in JSON format with pagination
-wxcli recordings list --service-type calling -o json --limit 50
+wxcli converged-recordings list --service-type calling -o json --limit 50
 
 # List recordings for admin/compliance (all users in org)
-wxcli recordings list-converged-recordings \
+wxcli converged-recordings list-converged-recordings \
   --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z"
 
 # Get details for a specific recording
-wxcli recordings show "Y2lz...cmVj"
+wxcli converged-recordings show "Y2lz...cmVj"
 
 # Get recording metadata
-wxcli recordings show-metadata "Y2lz...cmVj"
+wxcli converged-recordings show-metadata "Y2lz...cmVj"
 
 # Delete a recording
-wxcli recordings delete "Y2lz...cmVj"
+wxcli converged-recordings delete "Y2lz...cmVj"
 
 # Reassign recordings from one owner to another
-wxcli recordings create \
+wxcli converged-recordings create \
   --owner-email "oldowner@company.com" \
   --reassign-owner-email "newowner@company.com"
 
 # Move recordings to recycle bin
-wxcli recordings create-soft-delete \
+wxcli converged-recordings create-soft-delete \
   --json-body '{"trashAll": true, "ownerEmail": "user@company.com"}'
 
 # Restore recordings from recycle bin
-wxcli recordings create-restore \
+wxcli converged-recordings create-restore \
   --json-body '{"restoreAll": true, "ownerEmail": "user@company.com"}'
 
 # Purge recordings permanently from recycle bin
-wxcli recordings create-purge \
+wxcli converged-recordings create-purge \
   --json-body '{"purgeAll": true, "ownerEmail": "user@company.com"}'
 
 # Download a single recording's artifacts (transcript, AI notes, audio)

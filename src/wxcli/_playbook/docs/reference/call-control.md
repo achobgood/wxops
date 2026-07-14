@@ -373,7 +373,7 @@ wxcli call-controls list-history --type placed -o json
 
 ```bash
 # Dial on behalf of a user (Service App token required)
-wxcli call-controls create-dial <member_id> --destination "+12223334444"
+wxcli call-controls create-dial-members <member_id> --destination "+12223334444"
 
 # Answer a call on behalf of a user
 wxcli call-controls create-answer-members <member_id> --call-id Y2lzY29zcGFyay...
@@ -382,10 +382,10 @@ wxcli call-controls create-answer-members <member_id> --call-id Y2lzY29zcGFyay..
 wxcli call-controls create-hangup-members <member_id> --call-id Y2lzY29zcGFyay...
 
 # List active calls for a user
-wxcli call-controls list-calls <member_id>
+wxcli call-controls list-calls-members <member_id>
 
 # Get call details for a specific call on a user
-wxcli call-controls show-calls <member_id> Y2lzY29zcGFyay...
+wxcli call-controls show-calls-members <member_id> Y2lzY29zcGFyay...
 ```
 
 ### Hold, Consult, Transfer Pattern (CLI Workflow)
@@ -1099,6 +1099,8 @@ wxcli external-voicemail create --id <workspace_id> --action SET
 
 ## 7. Common Use Cases
 
+> **Executable path:** run these flows with `wxcli call-controls` (§3 CLI Examples — including the same Hold/Consult/Transfer and Park/Retrieve patterns) or the raw HTTP endpoints in §2. The Python below illustrates the call sequence and argument shape for each use case; this repo does not execute `wxc_sdk`.
+
 ### Click-to-Dial from CRM
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -1181,7 +1183,7 @@ result = members_api.dial(
 
 2. **Multi-Tenant only** -- Not applicable for UCM or Dedicated Instance users.
 
-3. **Service Apps cannot use CallsApi** -- Service Apps must use the `CallControlsMembersApi` (members endpoint) instead.
+3. **Service Apps cannot use the user-level call endpoints** -- Service Apps must use the members path (`POST /v1/telephony/calls/members/{memberId}/{action}`; CLI: the `wxcli call-controls *-members` commands) instead. See §5 for the supported action set.
 
 4. **`callId` vs `id`** -- The API returns `id` in direct call responses but `callId` in webhook events. The SDK's `TelephonyCall` model handles both aliases transparently via the `call_id` property.
 

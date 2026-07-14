@@ -3,11 +3,13 @@ name: manage-licensing
 description: |
   Audit, assign, and reclaim Webex licenses across the organization.
   Covers license inventory, usage analysis, unused license reports, capacity checks,
-  bulk assignment, and license reclamation from inactive users.
+  bulk assignment, and license reclamation from inactive users. Also covers resource
+  groups and resource group memberships, which partition license assignment across
+  hybrid services connector clusters.
   NOT for: initial user provisioning with licenses (use provision-calling) or
   resource deletion (use teardown).
 allowed-tools: Read, Grep, Glob, Bash
-argument-hint: [operation — e.g. "audit usage", "assign licenses", "reclaim unused", "check capacity"]
+argument-hint: [operation — e.g. "audit usage", "assign licenses", "reclaim unused", "check capacity", "move resource group"]
 ---
 
 # Manage Licensing Workflow
@@ -22,6 +24,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 1. Read `docs/reference/admin-licensing.md` for license API patterns, PATCH body schema, and error codes
 2. Read `docs/reference/provisioning.md` § "Licenses API" (and § "Provisioning Workflow" for how license assignment ties to user creation) — it has a Table of Contents with section anchors; load only those sections, not the whole doc
+3. For resource group operations (Operation J) only, read `docs/reference/admin-apps-data.md` § "Resource Group Assignment Flow" — skip this unless the user asks about resource groups or hybrid clusters
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
@@ -36,6 +39,8 @@ Before any licensing operation, confirm the token is valid and has the required 
 | List/view licenses | Admin token (full or read-only admin) |
 | Assign/remove licenses (PATCH) | Admin token (full admin) |
 | List people (for cross-reference) | `spark-admin:people_read` |
+| List resource groups / memberships | `spark-admin:resource_groups_read` |
+| Update a resource group membership | `spark-admin:resource_group_memberships_write` |
 
 ### Verification sequence
 
@@ -77,7 +82,7 @@ If the user's operation requires assignment or removal, confirm the token is a *
 
 ## Step 3: Determine the operation
 
-Ask the user which licensing operation they need. The six supported operations are:
+Ask the user which licensing operation they need. The seven supported operations are:
 
 | Operation | What It Does | CLI Group |
 |-----------|-------------|-----------|
@@ -87,6 +92,7 @@ Ask the user which licensing operation they need. The six supported operations a
 | **Usage audit** | Find unused/unassigned licenses | `licenses` + `people` (cross-reference) |
 | **Reclaim licenses** | Remove licenses from inactive users | `licenses update` + `people` |
 | **Calling license check** | Quick calling-focused license list | `licenses list -o json` + client-side filter (no --calling-only flag) |
+| **Resource group assignment** | See or change which hybrid cluster serves a user's licensed service | `resource-groups` + `resource-group-memberships` |
 
 > Group naming: `licenses` is the canonical group (generated). `licenses-api` still works as a deprecated alias for one release (renamed 2026-07-02).
 
@@ -361,6 +367,61 @@ done
 
 > **Note:** For large batches (50+ users), use the migration engine's async pattern for better performance with concurrent requests and automatic 429 retry handling. For smaller batches, shell loops with `sleep 1` suffice.
 
+### Operation J: Resource Groups and Memberships
+
+Resource groups partition license assignment in **hybrid services** deployments. A resource group represents an on-premises connector cluster (calendar, calling, or messaging). A *membership* binds one **(person + license)** pair to one resource group — that is what decides which cluster serves that user's licensed service. Orgs with no hybrid services typically have a single "Default resource group" and never need to touch this.
+
+Use this when the user asks which cluster serves a user, or wants to move a user's licensed service to a different cluster.
+
+**Read the groups (both commands are read-only — `resource-groups` has no create/update/delete):**
+
+```bash
+# List the resource groups (clusters) in the org
+wxcli resource-groups list
+
+# Get details for one group
+wxcli resource-groups show "RESOURCE_GROUP_ID"
+```
+
+**Read the memberships:**
+
+```bash
+# All memberships — use JSON; the table view renders a blank Name column
+wxcli resource-group-memberships list -o json
+
+# Which users/licenses are bound to a given license
+wxcli resource-group-memberships list --license-id "LICENSE_ID" -o json
+
+# Memberships for one person
+wxcli resource-group-memberships list --person-id "PERSON_ID" -o json
+
+# list-v2 adds a --type filter (User or Workspace); it takes --id, not --person-id
+wxcli resource-group-memberships list-v2 --type User -o json
+wxcli resource-group-memberships list-v2 --type Workspace -o json
+
+# One membership
+wxcli resource-group-memberships show "RESOURCE_GROUP_MEMBERSHIP_ID" -o json
+```
+
+Each membership returns exactly `id`, `resourceGroupId`, `licenseId`, `personId`, and `personOrgId` — the `licenseId` + `personId` pair is what ties this group to licensing.
+
+**`--status` is a silent-empty trap (verified live).** Both `list` and `list-v2` accept `--status pending|activated|error`, but on an org with 17 memberships all three values returned **0 results**, and no membership response carried a `status` field at all. If you filter by status and get nothing, that is not evidence the memberships are missing — re-run without `--status` before concluding anything. `--type` on `list-v2` does work (`User` returned all 17, `Workspace` returned 0).
+
+**Move a user's licensed service to a different cluster (write — show the plan first):**
+
+```bash
+wxcli resource-group-memberships update "RESOURCE_GROUP_MEMBERSHIP_ID" \
+  --resource-group-id "NEW_RESOURCE_GROUP_ID"
+```
+
+Verify the move by reading the membership back and confirming `resourceGroupId` now holds the new group ID:
+
+```bash
+wxcli resource-group-memberships show "RESOURCE_GROUP_MEMBERSHIP_ID" -o json
+```
+
+Do not verify via `--status` — see the trap above.
+
 ## Step 7: Verify results
 
 Always read back the modified resources to confirm.
@@ -447,6 +508,10 @@ Next steps:
 
 12. **Log all operations** -- Print what you are about to do before each CLI command, and print the result after. This creates an audit trail for troubleshooting.
 
+13. **`resource-group-memberships --status` returns 0 results for every value** -- Verified live: `pending`, `activated`, and `error` each returned nothing on an org with 17 memberships, and no membership response contains a `status` field. Filter with `--license-id`, `--person-id`, or `list-v2 --type` instead. An empty `--status` result is a filter artifact, not a finding — never report "no memberships" based on it.
+
+14. **Resource groups only matter for hybrid services** -- A membership binds a (person + license) pair to an on-premises connector cluster. Changing it re-homes that user's licensed service to a different cluster; it does NOT add, remove, or free a license. Orgs without hybrid services have a single default group and should not be touched. `resource-groups` is read-only (list/show only) -- groups themselves are created in Control Hub, not via the CLI.
+
 ---
 
 ## Error Handling
@@ -474,6 +539,7 @@ Licensing-specific errors:
 - 400 with code 400112: Cannot downgrade Calling Professional to Standard
 - 206: Partial success -- check which licenses in the array failed
 - 403: Token lacks admin write access -- verify admin role
+- Empty result from `resource-group-memberships list --status ...`: expected -- the status filter matches nothing for any value. Drop `--status` and re-run (Critical Rule 13)
 
 ---
 
@@ -484,6 +550,8 @@ Licensing-specific errors:
 | List/view licenses | Admin token (full or read-only admin) |
 | Assign/remove licenses (PATCH) | Admin token (full admin) |
 | List people (for cross-reference) | `spark-admin:people_read` |
+| List resource groups / memberships | `spark-admin:resource_groups_read` |
+| Update a resource group membership | `spark-admin:resource_group_memberships_write` |
 
 ---
 

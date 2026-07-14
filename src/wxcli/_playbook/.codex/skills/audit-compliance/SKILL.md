@@ -3,7 +3,9 @@ name: audit-compliance
 description: |
   Pull and analyze Webex audit logs, security events, and compliance data.
   Covers admin audit trail, security audit events, authorization review,
-  and service app credential management. Guides from query design through export.
+  service app credential management, and data sources (the JWT-authenticated
+  endpoints service apps register to receive streamed Webex data).
+  Guides from query design through export.
   NOT for: org health assessment (use org-health skill), CDR/call analytics (use reporting skill),
   or license auditing (use manage-licensing skill).
 allowed-tools: Read, Grep, Glob, Bash
@@ -21,6 +23,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/admin-audit-security.md` for audit event APIs, security audit scopes, event categories, and date parameter conventions
+2. For data source operations (Step 6f) only, read `docs/reference/admin-apps-data.md` § "Data Source Registration Flow" — skip this unless the user asks about data sources or streaming Webex data to a service app
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli audit-events list --help` and `wxcli security-audit --help` — date/range parameter names are spec-generated, not guessable). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
@@ -43,6 +46,7 @@ If this fails, stop and resolve authentication first (`wxcli configure`).
 | Platform events (compliance) | `events` | Standard admin token | `--from` / `--to` | Full or read-only admin. Compliance officer role also works. |
 | Authorizations review | `authorizations` | Standard admin token | N/A | Lists OAuth grants for users and the org. Full admin required for delete. |
 | Service app tokens | `service-apps` | Admin + service app credentials | N/A | Requires `client-id`, `client-secret`, and `target-org-id`. |
+| Data sources | `data-sources` | `spark-admin:datasource_read` / `_write` | N/A | **A full-admin PAT is not enough** — see the gotcha in Step 6f. `list-schemas` works without the scope; `list` returns 403. |
 
 ### Verification gate
 
@@ -84,6 +88,7 @@ Ask the user what they want to investigate. Present this decision matrix if they
 | Review OAuth grants and integrations | Authorization audit | `authorizations` |
 | Create/rotate service app credentials | Service app token | `service-apps` |
 | List available audit event categories | Category reference | `audit-events` |
+| Register/inspect where Webex streams data to a service app | Data source management | `data-sources` |
 
 ## Step 4: Check prerequisites
 
@@ -372,6 +377,66 @@ wxcli service-apps create APPLICATION_ID \
 
 The returned token is short-lived. Store it immediately -- the secret is only shown once at creation time.
 
+### 6f. Data sources (`data-sources`)
+
+Use `wxcli data-sources` to manage where Webex **pushes** data to a service app. This is the outbound counterpart to the pull-based audit APIs above: instead of you querying events, you register an endpoint and Webex streams data to it, authenticated with a JWT that Webex mints from the parameters you supply.
+
+A data source is always tied to a **schema**, which fixes the data type and transport. Discover schemas before registering anything — do not assume a schema exists for the data you want.
+
+**Discover the schemas this org supports:**
+
+```bash
+# List schema IDs available to the org
+wxcli data-sources list-schemas
+
+# Inspect one schema — returns serviceType, protocol, appType, and a link to the
+# schema definition on GitHub. Takes a SCHEMA_ID, not a data source ID.
+wxcli data-sources show "523e1b7f-4693-47bc-b84e-a7b7a505fb0b"
+```
+
+Verified against a live org, the returned schemas were `audio_forking_schema` (gRPC), `VoiceVirtualAgent_WebSocket` (web-socket), and `VA_service_schema` (gRPC) — all `appType: serviceApp`. These are real-time media/AI streaming schemas, not audit or compliance event feeds. **If the user wants message, call, or admin event history, this is the wrong API — use `events`, `audit-events`, or `security-audit` (Steps 6a-6c).**
+
+**Read registered data sources:**
+
+```bash
+# All data sources registered in the org
+wxcli data-sources list
+
+# One data source (takes a DATA_SOURCE_ID — note this is a different command
+# from `show`, which takes a SCHEMA_ID)
+wxcli data-sources show-data-sources "DATA_SOURCE_ID"
+```
+
+**Register a data source (write — show the plan first):**
+
+```bash
+wxcli data-sources create \
+  --schema-id "SCHEMA_ID_FROM_LIST_SCHEMAS" \
+  --url "https://your-endpoint.example.com/webex-data" \
+  --audience "your-service-app-name" \
+  --subject "data-source-purpose" \
+  --nonce "UNIQUE_NONCE_VALUE" \
+  --token-lifetime-minutes "1440"
+```
+
+**Maintain and remove:**
+
+```bash
+# Pause a data source without deleting it. --status takes `active` or `disabled`;
+# --error-message is what Control Hub displays while it is disabled.
+wxcli data-sources update "DATA_SOURCE_ID" \
+  --status "disabled" \
+  --error-message "Paused for maintenance window"
+
+# Re-enable
+wxcli data-sources update "DATA_SOURCE_ID" --status "active"
+
+# Delete permanently -- destructive, confirm with the user first
+wxcli data-sources delete "DATA_SOURCE_ID" --force
+```
+
+**Scope gotcha (verified live):** `data-sources list` returns **403 "missing required scopes"** even with a full-admin personal access token, while `data-sources list-schemas` succeeds with the same token. The data source APIs require `spark-admin:datasource_read` / `spark-admin:datasource_write`, which PATs do not carry. If you hit this 403, do not retry or assume the org has no data sources — the token is the problem. Use a service app or an OAuth integration with those scopes explicitly selected.
+
 ## Step 7: Verify
 
 After executing the query, verify the results are correct and complete.
@@ -482,6 +547,9 @@ for auth in data:
 9. **ISO 8601 datetime format required.** All date parameters expect ISO 8601 format: `2026-03-18T00:00:00.000Z`. Other formats return errors or unexpected results.
 10. **Event categories — treat as case-sensitive.** Always run `wxcli audit-events list-event-categories` first (Step 4b) to discover the exact category names before filtering. Use exact values from the list output.
 11. **`events list` resource types are not validated client-side.** Misspelled `--resource` values return empty result sets, not errors. Use the known resource types listed in Step 6c.
+12. **`data-sources` needs its own scopes -- a full-admin PAT gets 403.** `spark-admin:datasource_read`/`_write` are not carried by personal access tokens. `list-schemas` works without them, so a passing `list-schemas` does NOT mean `list` will work. Do not read a 403 here as "the org has no data sources."
+13. **`data-sources show` and `show-data-sources` take different IDs.** `show SCHEMA_ID` returns a schema definition. `show-data-sources DATA_SOURCE_ID` returns a registered data source. Passing the wrong ID type to either one fails.
+14. **Data sources push data out; they are not an audit query API.** They stream real-time media/AI payloads (audio forking, voice virtual agent) to a service app endpoint. For event history use `events`, `audit-events`, or `security-audit` instead.
 
 ---
 
@@ -492,6 +560,8 @@ for auth in data:
 | Standard admin token | Admin audit events (`wxcli audit-events`), platform events (`wxcli events`), authorizations (`wxcli authorizations`) |
 | `audit:events_read` | Security audit events (`wxcli security-audit`) |
 | Compliance officer role | Platform events with compliance-level access (`wxcli events`) |
+| `spark-admin:datasource_read` | List and retrieve data sources (`wxcli data-sources list`, `show-data-sources`) |
+| `spark-admin:datasource_write` | Register, update, delete data sources (`wxcli data-sources create`, `update`, `delete`) |
 
 ---
 
@@ -504,6 +574,8 @@ for auth in data:
 | 403 on `authorizations list` | Insufficient admin privileges | Requires full admin, not read-only |
 | Empty results from `audit-events list` | Date range too narrow or no admin activity | Widen the date range; verify org has admin activity in that period |
 | 400 on date parameters | Wrong date format or wrong parameter names for the API | Use ISO 8601 (`2026-03-18T00:00:00.000Z`); check Step 2 table for which date params the API expects |
+| 403 on `data-sources list` (but `list-schemas` works) | PAT does not carry `spark-admin:datasource_read` | Use a service app or OAuth integration with the datasource scopes selected — see Step 6f |
+| 404 / ID error on `data-sources show` | Passed a data source ID to the schema command | `show` takes a SCHEMA_ID; use `show-data-sources DATA_SOURCE_ID` for a registered source |
 
 ---
 

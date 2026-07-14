@@ -120,19 +120,27 @@ Monitor the availability of clusters and individual nodes over time.
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
-| List cluster availability | `wxcli video-mesh list-availability-clusters` | GET /videoMesh/clusters/availability | Availability for all clusters in the org |
-| Show cluster availability | `wxcli video-mesh show-availability-clusters --cluster-id ID` | GET /videoMesh/clusters/availability/{clusterId} | Availability for a single cluster |
-| List node availability | `wxcli video-mesh list-availability-nodes` | GET /videoMesh/nodes/availability | Availability for all nodes in the org |
-| Show node availability | `wxcli video-mesh show-availability-nodes --node-id ID` | GET /videoMesh/nodes/availability/{nodeId} | Availability for a single node |
+| List cluster availability | `wxcli video-mesh list --from FROM --to TO` | GET /videoMesh/clusters/availability | Availability for all clusters in the org |
+| Show cluster availability | `wxcli video-mesh show CLUSTER_ID --from FROM --to TO` | GET /videoMesh/clusters/availability/{clusterId} | Availability for a single cluster |
+| List node availability | `wxcli video-mesh list-availability --cluster-id ID --from FROM --to TO` | GET /videoMesh/nodes/availability | Availability for all nodes in one cluster |
+| Show node availability | `wxcli video-mesh show-availability NODE_ID --from FROM --to TO` | GET /videoMesh/nodes/availability/{nodeId} | Availability for a single node |
+
+Clusters and nodes are selected by using a **different command**, not by a flag: the bare
+`list`/`show` pair covers clusters, and the `list-availability`/`show-availability` pair covers
+nodes. Node listing is cluster-scoped -- `--cluster-id` is required, so there is no way to list
+availability for every node in the org in one call.
 
 ### Key Parameters (shared across availability commands)
 
 | Option | Description |
 |--------|-------------|
-| `--from DATETIME` | Start of time range (ISO 8601). Required for analytics queries. |
-| `--to DATETIME` | End of time range (ISO 8601). Required for analytics queries. |
-| `--org-id ORG_ID` | Organization ID (auto-injected from config) |
-| `--output table\|json` | Output format (default: table) |
+| `--from DATETIME` | Start of time range (ISO 8601). Required on all four commands. |
+| `--to DATETIME` | End of time range (ISO 8601). Required on all four commands. |
+| `--output table\|json` | Output format. Defaults to `table` on `list`/`list-availability`, `json` on `show`/`show-availability`. |
+
+The single-resource commands take their ID as a **positional argument** (`show CLUSTER_ID`,
+`show-availability NODE_ID`) -- there is no `--cluster-id`/`--node-id` flag on them. These commands
+have no `--org-id` option; they operate on the org from your token or config.
 
 ### Raw HTTP
 
@@ -336,45 +344,51 @@ Trigger diagnostic tests on specific nodes or clusters and retrieve results. On-
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
-| Trigger node test | `wxcli video-mesh create --node-id ID` | POST /videoMesh/triggerTest/nodes/{nodeId} | Trigger on-demand test for a node |
-| Trigger cluster test | `wxcli video-mesh create-clusters --cluster-id ID` | POST /videoMesh/triggerTest/clusters/{clusterId} | Trigger on-demand test for a cluster |
-| Get test results | `wxcli video-mesh list-test-results` | GET /videoMesh/testResults | Get triggered test results |
-| Get test status | `wxcli video-mesh list-test-status` | GET /videoMesh/testStatus | Get triggered test status |
+| Trigger node test | `wxcli video-mesh create-nodes NODE_ID --type NetworkTest` | POST /videoMesh/triggerTest/nodes/{nodeId} | Trigger on-demand test for a node |
+| Trigger cluster test | `wxcli video-mesh create CLUSTER_ID --type NetworkTest` | POST /videoMesh/triggerTest/clusters/{clusterId} | Trigger on-demand test for a cluster |
+| Get test results | `wxcli video-mesh list-test-results --command-id ID` | GET /videoMesh/testResults | Get triggered test results |
+| Get test status | `wxcli video-mesh list-test-status --command-id ID` | GET /videoMesh/testStatus | Get triggered test status |
+
+Note the naming: the bare `create` triggers a **cluster** test, while `create-nodes` triggers a
+**node** test. Both take their ID as a positional argument, not a flag.
 
 ### Key Parameters
 
-#### `create` (trigger node test)
+#### `create-nodes` (trigger node test)
 
 | Option | Required | Description |
 |--------|:--------:|-------------|
-| `--node-id ID` | Yes | Unique ID of the Video Mesh node to test |
-| `--org-id ORG_ID` | No | Organization ID (auto-injected from config) |
+| `NODE_ID` | Yes | Positional argument. Unique ID of the Video Mesh node to test |
+| `--type TYPE` | No | One of `ReachabilityTest`, `NetworkTest`, `MediaHealthMonitorTest` |
+| `--json-body JSON` | No | Full JSON body, overrides other options |
 
-#### `create-clusters` (trigger cluster test)
+#### `create` (trigger cluster test)
 
 | Option | Required | Description |
 |--------|:--------:|-------------|
-| `--cluster-id ID` | Yes | Unique ID of the Video Mesh cluster to test |
-| `--org-id ORG_ID` | No | Organization ID (auto-injected from config) |
+| `CLUSTER_ID` | Yes | Positional argument. Unique ID of the Video Mesh cluster to test |
+| `--type TYPE` | No | One of `ReachabilityTest`, `NetworkTest`, `MediaHealthMonitorTest` |
+| `--json-body JSON` | No | Full JSON body, overrides other options. Example: `'{"type":"ReachabilityTest","nodes":["..."]}'` |
 
-#### `list-test-results` and `list-test-status`
+#### `list-test-status` and `list-test-results`
 
-| Option | Description |
-|--------|-------------|
-| `--org-id ORG_ID` | Organization ID (auto-injected from config) |
-| `--output table\|json` | Output format (default: table) |
+| Option | Required | Description |
+|--------|:--------:|-------------|
+| `--command-id ID` | Yes | Command ID returned by `create` / `create-nodes` |
+| `--output table\|json` | No | Output format (default: table) |
 
 ### Workflow: Run an On-Demand Test
 
 ```bash
-# 1. Trigger an on-demand test for a node
-wxcli video-mesh create --node-id NODE_ID
+# 1. Trigger an on-demand test for a node (use `create CLUSTER_ID` for a cluster test).
+#    This prints the command ID used in the next two steps.
+wxcli video-mesh create-nodes NODE_ID --type NetworkTest
 
 # 2. Poll test status until complete
-wxcli video-mesh list-test-status --output json
+wxcli video-mesh list-test-status --command-id COMMAND_ID --output json
 
 # 3. Get the results once complete
-wxcli video-mesh list-test-results --output json
+wxcli video-mesh list-test-results --command-id COMMAND_ID --output json
 ```
 
 ### Raw HTTP
@@ -784,17 +798,17 @@ All 43 endpoints across the 3 CLI groups documented in this reference.
 | Endpoint | Method | CLI Command | Category |
 |----------|--------|------------|----------|
 | `/videoMesh/clusters` | GET | `video-mesh list-clusters-video-mesh` | Clusters |
-| `/videoMesh/clusters/{clusterId}` | GET | `video-mesh show` | Clusters |
-| `/videoMesh/clusters/availability` | GET | `video-mesh list-availability-clusters` | Availability |
-| `/videoMesh/clusters/availability/{clusterId}` | GET | `video-mesh show-availability-clusters` | Availability |
-| `/videoMesh/nodes/availability` | GET | `video-mesh list-availability-nodes` | Availability |
-| `/videoMesh/nodes/availability/{nodeId}` | GET | `video-mesh show-availability-nodes` | Availability |
+| `/videoMesh/clusters/{clusterId}` | GET | `video-mesh show-clusters` | Clusters |
+| `/videoMesh/clusters/availability` | GET | `video-mesh list` | Availability |
+| `/videoMesh/clusters/availability/{clusterId}` | GET | `video-mesh show` | Availability |
+| `/videoMesh/nodes/availability` | GET | `video-mesh list-availability` | Availability |
+| `/videoMesh/nodes/availability/{nodeId}` | GET | `video-mesh show-availability` | Availability |
 | `/videoMesh/utilization` | GET | `video-mesh list-utilization-video-mesh` | Utilization |
 | `/videoMesh/clusters/utilization` | GET | `video-mesh list-utilization-clusters` | Utilization |
 | `/videoMesh/cloudOverflow` | GET | `video-mesh list-cloud-overflow` | Overflow |
 | `/videoMesh/callRedirects` | GET | `video-mesh list-call-redirects-video-mesh` | Redirects |
 | `/videoMesh/clusters/callRedirects` | GET | `video-mesh list-call-redirects-clusters` | Redirects |
-| `/videoMesh/clientTypeDistribution` | GET | `video-mesh list` | Client Distribution |
+| `/videoMesh/clientTypeDistribution` | GET | `video-mesh list-client-type-distribution` | Client Distribution |
 | `/videoMesh/clientTypeDistribution/clusters` | GET | `video-mesh list-clusters-client-type-distribution` | Client Distribution |
 | `/videoMesh/testResults/networkTest` | GET | `video-mesh list-network-test` | Test Results |
 | `/videoMesh/testResults/networkTest/clusters` | GET | `video-mesh list-clusters-network-test` | Test Results |
@@ -805,8 +819,8 @@ All 43 endpoints across the 3 CLI groups documented in this reference.
 | `/videoMesh/testResults/mediaHealthMonitorTest` | GET | `video-mesh list-media-health-monitor-test` | Test Results |
 | `/videoMesh/testResults/mediaHealthMonitorTest/clusters` | GET | `video-mesh list-clusters-media-health-monitor-test` | Test Results |
 | `/videoMesh/testResults/mediaHealthMonitorTest/nodes` | GET | `video-mesh list-nodes-media-health-monitor-test` | Test Results |
-| `/videoMesh/triggerTest/nodes/{nodeId}` | POST | `video-mesh create` | On-Demand Tests |
-| `/videoMesh/triggerTest/clusters/{clusterId}` | POST | `video-mesh create-clusters` | On-Demand Tests |
+| `/videoMesh/triggerTest/nodes/{nodeId}` | POST | `video-mesh create-nodes` | On-Demand Tests |
+| `/videoMesh/triggerTest/clusters/{clusterId}` | POST | `video-mesh create` | On-Demand Tests |
 | `/videoMesh/testResults` | GET | `video-mesh list-test-results` | On-Demand Tests |
 | `/videoMesh/testStatus` | GET | `video-mesh list-test-status` | On-Demand Tests |
 | `/videoMesh/eventThresholds` | GET | `video-mesh list-event-thresholds` | Event Thresholds |
@@ -853,9 +867,9 @@ All 43 endpoints across the 3 CLI groups documented in this reference.
 
 5. **`create-reset` resets all thresholds to factory defaults with no undo.** The only way to restore custom thresholds after a reset is to manually re-apply them via `update`.
 
-6. **On-demand tests are asynchronous.** After triggering a test via `create` or `create-clusters`, you must poll `list-test-status` to check completion, then retrieve results via `list-test-results`. Tests may take several minutes to complete.
+6. **On-demand tests are asynchronous.** After triggering a test via `create` (cluster) or `create-nodes` (node), you must poll `list-test-status` to check completion, then retrieve results via `list-test-results`. Both polling commands require the `--command-id` returned by the trigger. Tests may take several minutes to complete.
 
-7. **The `list` command maps to client type distribution, not a general resource list.** `wxcli video-mesh list` returns client type distribution details (GET /videoMesh/clientTypeDistribution), which may be surprising. Use `list-clusters-video-mesh` to list clusters.
+7. **The generic command names do not mean what they look like.** `wxcli video-mesh list` returns *cluster availability* (GET /videoMesh/clusters/availability), not a list of clusters -- use `list-clusters-video-mesh` for that. Likewise `show` is cluster availability while `show-clusters` is cluster details, and `create` triggers a *cluster* test while `create-nodes` triggers a node test. Check `--help` before assuming.
 
 ### Meeting Participants
 

@@ -60,12 +60,10 @@ Two CLI groups cover licensing. Use the one that fits your workflow:
 
 | Group | Spec | Commands | Best For |
 |-------|------|----------|----------|
-| `licenses-api` | admin | 3 (list, show, update) | Full license management: inventory, assignment, removal |
-| `licenses` | calling | 2 (list, show) | Quick calling-license audit with `--calling-only` filter |
+| `licenses` | admin | 3 (list, show, update) | Full license management: inventory, assignment, removal |
+| `licenses-api` | admin | 3 (list, show, update) | Deprecated one-release alias for `licenses` |
 
-**When to use which:**
-- Use `licenses-api` when you need to assign or remove licenses, see assigned users, or work with non-calling licenses (Meetings, Messaging).
-- Use `licenses` when you just need a quick view of calling license counts. It wraps the SDK and supports `--calling-only` for filtering.
+**When to use which:** use `licenses`. Both names resolve to the same three commands (`list`, `show`, `update`) — `licenses-api` is a deprecated alias retained for one release and will be removed. Everything below documented under `licenses-api` applies unchanged to `licenses`.
 
 ---
 
@@ -205,26 +203,24 @@ wxcli licenses-api update --email "user@example.com" --json-body '{
 
 ---
 
-## 2. licenses (Calling Spec)
+## 2. licenses (Current Name)
 
-SDK-wrapped license listing with a `--calling-only` convenience filter.
+`licenses` is the current name for the group documented above; `licenses-api` is a deprecated alias for it. Both expose the same three commands.
 
 ### Commands
 
-| Command | Method | Description |
-|---------|--------|-------------|
-| `licenses list` | SDK `api.licenses.list()` | List licenses with optional calling filter |
-| `licenses show` | SDK `api.licenses.details()` | Show a single license |
+| Command | Method | Endpoint | Description |
+|---------|--------|----------|-------------|
+| `licenses list` | GET | `/v1/licenses` | List all licenses in the org |
+| `licenses show` | GET | `/v1/licenses/{licenseId}` | Get license details (optionally with assigned users) |
+| `licenses update` | PATCH | `/v1/licenses/users` | Assign or remove licenses for a user |
 
 ```bash
 # All licenses
 wxcli licenses list
 
-# Only calling-related licenses
-wxcli licenses list --calling-only
-
 # JSON output
-wxcli licenses list --calling-only -o json
+wxcli licenses list -o json
 
 # Show one license
 wxcli licenses show "Y2lzY29zcGFyazov..."
@@ -232,7 +228,7 @@ wxcli licenses show "Y2lzY29zcGFyazov..."
 
 **Table columns:** ID, Name, Total, Consumed.
 
-> **Gotcha — The `--calling-only` filter uses substring matching.** It filters for `"calling"` in the license name (case-insensitive). This may miss licenses with non-standard naming, or include unexpected matches.
+> **Gotcha — there is no `--calling-only` filter.** `licenses list` takes only `--output/-o`, `--limit`, `--offset`, and `--debug`. Earlier revisions of this doc described a `--calling-only` convenience flag; it is not present on the command. To narrow to calling licenses, filter the JSON output yourself (for example, `wxcli licenses list -o json | jq '[.[] | select(.name | test("calling"; "i"))]'` — the JSON output is a bare array, not an `items`-wrapped object), and note that name-substring matching may miss licenses with non-standard naming.
 
 ---
 

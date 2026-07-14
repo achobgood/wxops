@@ -941,7 +941,7 @@ def get_location_device_settings(
 
 > **Gotcha — Apply changes after updates:** After updating device settings, members, or layout, call `apply_changes()` (or `.../actions/applyChanges/invoke` via raw HTTP) to push the configuration to the physical device.
 
-> **Gotcha — Background image upload is multipart:** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only. Max 100 images per org. Use the SDK method for file handling rather than raw HTTP.
+> **Gotcha — Background image upload is multipart:** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only. Max 100 images per org. No CLI command covers the upload — `device-settings` exposes only `list-background-images` and `delete-background-images` — and `api.session.rest_post` sends JSON only. Post the multipart request directly; see [6.5 Background Images](#65-background-images).
 
 ### 3.5 CLI Examples
 
@@ -1337,11 +1337,15 @@ Before attempting to read or change device-level settings, determine which API s
 
 If the model is unknown or you want to be safe, query the telephony device details and check the `deviceSettingsConfigurationModelId` field:
 
-1. Get the device's telephony details to find its model info:
-   ```bash
-   wxcli device-settings list-supported-devices --output json
+1. Read the org's supported device list from `GET /v1/telephony/config/supportedDevices`:
+   ```python
+   from wxcli.auth import get_api
+   api = get_api()
+   devices = api.session.rest_get("https://webexapis.com/v1/telephony/config/supportedDevices")["devices"]
    ```
-   Each supported device model includes `deviceSettingsConfiguration`: one of `WEBEX_CALLING_DEVICE_CONFIGURATION`, `WEBEX_DEVICE_CONFIGURATION`, `WEBEX_CALLING_DYNAMIC_DEVICE_CONFIGURATION`, or `NONE`.
+   Each entry in `devices` includes `deviceSettingsConfiguration`: one of `WEBEX_CALLING_DEVICE_CONFIGURATION`, `WEBEX_DEVICE_CONFIGURATION`, `WEBEX_CALLING_DYNAMIC_DEVICE_CONFIGURATION`, or `NONE`.
+
+   > **CLI gotcha:** `wxcli device-dynamic-settings list` calls this same endpoint, but extracts the response's `upgradeChannelList` array instead of `devices` -- it returns `["STABLE_DELAY", "STABLE", "PREVIEW"]`, not the device list. Use raw HTTP until that is fixed.
 
 2. Match the device's `model` to the supported devices list and read its `deviceSettingsConfiguration` value.
 
@@ -1718,10 +1722,17 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/backgroundImages
 images = result.get("backgroundImages", [])
 # Each: {backgroundImageUrl, fileName, count}
 
-# Upload (multipart)
-api.session.rest_post(f"{BASE}/telephony/config/devices/{device_id}/actions/backgroundImageUpload/invoke",
-    # Requires multipart form upload -- use SDK method for file handling
-)
+# Upload (multipart -- rest_post sends JSON only, so post directly)
+import httpx
+from wxcli.config import get_token
+
+with open("logo.png", "rb") as fh:
+    response = httpx.post(
+        f"{BASE}/telephony/config/devices/{device_id}/actions/backgroundImageUpload/invoke",
+        headers={"Authorization": f"Bearer {get_token()}"},
+        files={"file": ("logo.png", fh, "image/png")},
+    )
+# Let httpx set Content-Type -- it adds the multipart boundary
 
 # Delete
 body = {"backgroundImages": [{"fileName": "logo.png", "forceDelete": True}]}

@@ -1227,7 +1227,7 @@ Voicemail Groups do not have explicit member lists. They are shared voicemail bo
 
 <!-- Updated by playbook session 2026-03-18 -->
 
-The Voicemail Groups CLI uses SDK methods (not raw HTTP) for most operations. The SDK base is `telephony/config/voicemailGroups`. The underlying API URLs are:
+The Voicemail Groups API base is `telephony/config/voicemailGroups`. The underlying API URLs are:
 
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -1269,7 +1269,7 @@ result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/voic
 vg_id = result["id"]
 ```
 
-**Gotcha**: The wxc_sdk `VoicemailGroupDetail.for_create()` method has a bug -- missing `by_alias=True`, which sends snake_case keys instead of camelCase. Workaround: `model_dump(mode='json', by_alias=True, exclude_unset=True)`.
+**Gotcha**: The create body must use camelCase keys. Send them explicitly, as the example above does -- or pass `--json-body` via the CLI.
 
 **Update Voicemail Group:**
 
@@ -1688,11 +1688,20 @@ wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
 wxcli cx-essentials list-available-agents LOCATION_ID
 
 # Get queue call recording settings
-wxcli cx-essentials show-queue-recording LOCATION_ID QUEUE_ID -o json
+wxcli cx-essentials show-call-recordings LOCATION_ID QUEUE_ID -o json
 
-# Update queue call recording settings
-wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
+# Update queue call recording settings (simple: enable + record mode)
+wxcli cx-essentials update-call-recordings LOCATION_ID QUEUE_ID \
   --enabled --record Always
+
+# Update nested recording settings (notification / repeat / announcement) via --json-body
+wxcli cx-essentials update-call-recordings LOCATION_ID QUEUE_ID --json-body '{
+  "enabled": true,
+  "record": "Always",
+  "notification": {"type": "Beep", "enabled": true},
+  "repeat": {"interval": 30, "enabled": true},
+  "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true}
+}'
 
 # --- Queue Discovery & Creation ---
 
@@ -1716,6 +1725,42 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 > **GOTCHA:** Creating a Customer Assist queue requires `callPolicies` in the request body via `--json-body`. Omitting `callPolicies` results in a 400 error. Minimum: `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
 
 > **GOTCHA:** `delete-supervisors-config-1` returns 204 but the supervisor persists. Use `update-supervisors` with `action: DELETE` on each agent instead — removing the last agent auto-removes the supervisor.
+
+### Queue Call Recording — data model
+
+Queue recording lives **only** at `telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings`. It is **not** part of the call queue object: `wxcli call-queue show ... --has-cx-essentials true` returns zero recording-related keys, so `call-queue update --json-body` can never read or write these settings.
+
+Cisco's published OpenAPI spec omits this path (it has never appeared in any revision), so the CLI commands are generated from an additive local spec overlay that re-supplies the missing endpoint after every upstream spec refresh. The endpoint is live and verified, but **unpublished** — Cisco makes no compatibility promise for it, so treat a sudden 404 here as the likely cause. Every field below was proven against the live API on 2026-07-14 by PUT-then-GET read-back.
+
+| Field | Type | Writable | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | `bool` | yes | Master switch for queue recording. |
+| `record` | `str` | yes | When to record. **Only `Always` is live-verified.** Other values are not documented here because they have not been tested. |
+| `notification.type` | `str` | yes | Live-verified: `None`, `Beep`. |
+| `notification.enabled` | `bool` | yes | |
+| `repeat.interval` | `int` | yes | Seconds between notification repeats. Live-verified: `15` (default), `30`. |
+| `repeat.enabled` | `bool` | yes | |
+| `startStopAnnouncement.internalCallsEnabled` | `bool` | yes | |
+| `startStopAnnouncement.pstnCallsEnabled` | `bool` | yes | |
+| `serviceProvider` | `str` | no | Read-only. Recording vendor service provider ID (BroadWorks-backed). |
+| `externalGroup` | `str` | no | Read-only. |
+| `externalIdentifier` | `str` | no | Read-only. |
+| `postCallRecordingSettings` | `object` | untested | Only returned once `enabled` is true. Writability not verified — do not assume. |
+| `announcements` | `object` | untested | Only returned once `enabled` is true. Writability not verified — do not assume. |
+
+> **GOTCHA:** This endpoint returns **204 for unknown fields and silently discards them**. A PUT of `{"bogusFieldXyz": "nonsense"}` returns 204 exactly like a valid write. A 2xx is therefore *not* evidence a setting applied — always read back with `show-call-recordings` to confirm.
+
+> **GOTCHA:** The PUT is a **partial merge, not a replace**. Fields omitted from the body keep their previous value (verified: `record` stayed `Always` across a PUT that omitted it). You do not need to resend the whole object to change one field.
+
+> **GOTCHA:** The response schema is **conditional on `enabled`**. When recording is off, `record`, `postCallRecordingSettings`, and `announcements` are absent entirely. Do not treat their absence as "unsupported".
+
+> **GOTCHA:** Queue recording uses `spark-admin:people_read` / `spark-admin:people_write` — *different* scopes from every other Customer Assist endpoint (which use `spark-admin:telephony_config_*`). A token that works for screen pop can still 403 here.
+
+> **HISTORY — this section was true when written, and a regen made it false.** Until 2026-07-14 it documented `show-queue-recording` / `update-queue-recording`. Those commands were **real**: hand-written on 2026-03-21 by an author who had correctly diagnosed that the endpoint is live but absent from the OpenAPI spec. They lived **two days**. On 2026-03-23 a routine regeneration ("regenerate all commands with orgId auto-injection") rewrote the module they lived in and silently deleted them — an 85-line deletion inside a 668-endpoint commit. They were never in a released version (the first tag postdates the regen), so no user ever had them; but the docs, accurate on the 21st, were quietly false from the 23rd onward.
+>
+> **The lesson is about mechanism, not diligence.** The March fix was right in its analysis and wrong in its placement: it put hand-written code inside a file the generator *owns*, so the next regen ate it. That is precisely why hand-written command modules must live in their own file and mount via `register(app)`. The current commands avoid the failure entirely by fixing the layer that was actually broken — the endpoint is supplied to the generator as an additive spec overlay, so a regen now *recreates* these commands instead of destroying them.
+>
+> Nothing caught the four-month gap because `docs/reference/**` was outside the drift gate's scan scope, even though CLAUDE.md's Mandatory Grounding Rule forces every agent to read these docs. Now fixed: the gate scans `docs/reference/**` and runs on every push and pull request, so a command named here that does not exist fails the build.
 
 ---
 
@@ -2041,7 +2086,7 @@ result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/annou
 items = result["usage"]
 ```
 
-**Note**: Announcement upload (create) requires multipart/form-data with the binary file. The raw HTTP `rest_post` method may not support file uploads directly -- use the SDK's upload methods or construct multipart requests manually.
+**Note**: Announcement upload (create) is exposed by the CLI -- use `wxcli announcements create` (org level) or `wxcli announcements create-announcements LOCATION_ID` (location level). Both take `--name`, `--file-uri`, `--file-name`, and `--is-text-to-speech`/`--no-is-text-to-speech`.
 
 #### Playlists
 
@@ -2125,7 +2170,7 @@ wxcli announcements delete-announcements --location-id <loc_id> --announcement-i
 wxcli announcements show
 
 # Get location-level repository usage
-wxcli announcements show-usage --location-id <loc_id>
+wxcli announcements show-usage-announcements <loc_id>
 ```
 
 #### Playlists
@@ -2522,13 +2567,13 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 - **Agent format differs by feature type** : Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays. Using `[{"id": ...}]` for pickup or paging returns 400 "Invalid field value: agents/targets". Reads always return full agent objects regardless.
 - **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` without a location argument returns empty. Must enumerate per-location during cleanup.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
-- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
+- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The create body must use camelCase keys; use `--json-body` via the CLI.
 - **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features. Error 28018 ("CX Essentials is not enabled for this Call center") means the target queue is not a Customer Assist queue.
 - **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
 - **CX queues hidden from default list**: `wxcli call-queue list` does not show Customer Assist queues. Pass `--has-cx-essentials true` to see them.
 - **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
-- **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
+- **Announcement upload takes a file URI, not a local file**: `wxcli announcements create` (org) and `wxcli announcements create-announcements LOCATION_ID` (location) send a JSON body with `fileUri`/`fileName` -- the file must already be reachable at a URI. There is no local-file upload flag.
 - **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2).
 - **No native PagingGroup AXL object type.** CUCM does not expose paging groups through AXL (`listPagingGroup`/`getPagingGroup` do not exist). Paging requires third-party systems (InformaCast, Cisco Paging Server). The migration pipeline's `CanonicalPagingGroup` type exists for manual/CSV import but cannot be auto-extracted from CUCM.
 

@@ -1,8 +1,10 @@
 # Provisioning Reference
 
-User, license, and location provisioning for Webex Calling via the `wxc_sdk` Python SDK. Each section includes both typed SDK methods and **Raw HTTP** examples using `api.session.rest_*()`.
+User, license, and location provisioning for Webex Calling.
 
-> **Prerequisite:** All examples assume a configured `WebexSimpleApi` instance. See `authentication.md` for token setup. For the raw HTTP pattern, see `archive/wxc-sdk-patterns.md` section 1.5.
+**Execution path:** `wxcli` commands are how this repo provisions — see the `provision-calling` skill. Raw HTTP is the documented fallback. The Python SDK method signatures kept below are **reference material for understanding the API shape only**; this repo does not execute them, and they are not a supported execution path. Where a signature and the CLI disagree, `wxcli <group> <command> --help` is the source of truth.
+
+> **Prerequisite:** a configured token — run `wxcli configure`, verify with `wxcli whoami`. See `authentication.md` for token types, OAuth flows, and per-endpoint scopes.
 
 ## Sources
 
@@ -269,7 +271,7 @@ wxcli people show <person_id>
 wxcli people show <person_id> -o table
 
 # ── Get current user details ──────────────────────────────────────
-wxcli people list-me --calling-data true
+wxcli people show-me --calling-data true
 
 # ── Create a person ───────────────────────────────────────────────
 wxcli people create --first-name "John" --last-name "Smith" \
@@ -552,10 +554,10 @@ api.session.rest_post(f"{BASE}/licenses/users", json=body)
 ### Gotchas
 
 **License ID assignment requires the full base64-encoded ID.**
-License IDs in Webex are long base64-encoded strings (e.g., `Y2lzY29zcGFyazov...`). Always retrieve them programmatically from `api.licenses.list()` -- never hardcode them, as they vary by organization and subscription.
+License IDs in Webex are long base64-encoded strings (e.g., `Y2lzY29zcGFyazov...`). Always retrieve them programmatically with `wxcli licenses list -o json` -- never hardcode them, as they vary by organization and subscription.
 
 **SCIM 2.0 is now the recommended path for user creation.**
-As of January 2024, Webex recommends SCIM 2.0 (`wxc_sdk.scim.ScimV2Api`) over the People API for user creation and management due to higher performance and standard connectors. Users created via SCIM can then be licensed using the `assign_licenses_to_users` PATCH method.
+As of January 2024, Webex recommends SCIM 2.0 (`wxcli scim-users`) over the People API for user creation and management due to higher performance and standard connectors. Users created via SCIM can then be licensed with `wxcli licenses update`.
 
 ---
 
@@ -1276,7 +1278,7 @@ Number port-in requests, LOA submission, porting status tracking, and new number
 
 Locations with Webex Calling enabled cannot be deleted directly via the public
 API (`409 Conflict: Location is being referenced`). The older guidance to
-"disable calling first" via a `wxcli location-call-settings update-location-calling`
+"disable calling first" via a `location-call-settings update-location-calling`
 command is stale for this repo:
 
 - that command does **not** exist in the current CLI

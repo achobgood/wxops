@@ -292,19 +292,19 @@ wxcli paging-group list
 wxcli paging-group list --location-id <loc_id>
 
 # Get details for a specific paging group
-wxcli paging-group show --location-id <loc_id> --paging-group-id <pg_id>
+wxcli paging-group show <loc_id> <pg_id>
 
 # Create a paging group
-wxcli paging-group create --location-id <loc_id> --name "Warehouse Page" --extension "8100"
+wxcli paging-group create <loc_id> --name "Warehouse Page" --extension "8100"
 
 # Update a paging group
-wxcli paging-group update --location-id <loc_id> --paging-group-id <pg_id> --name "Updated Page"
+wxcli paging-group update <loc_id> <pg_id> --name "Updated Page"
 
 # Delete a paging group
-wxcli paging-group delete --location-id <loc_id> --paging-group-id <pg_id>
+wxcli paging-group delete <loc_id> <pg_id>
 
 # List available phone numbers for paging group assignment
-wxcli paging-group list-available-numbers --location-id <loc_id>
+wxcli paging-group list-available-numbers <loc_id>
 ```
 
 ---
@@ -591,31 +591,31 @@ api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callParks/sett
 
 ```bash
 # List call parks at a location
-wxcli call-park list --location-id <loc_id>
+wxcli call-park list <loc_id>
 
 # Get details for a call park
-wxcli call-park show --location-id <loc_id> --call-park-id <park_id>
+wxcli call-park show <loc_id> <park_id>
 
 # Create a call park
-wxcli call-park create --location-id <loc_id> --name "Lobby Park" --json-body '{"recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
+wxcli call-park create <loc_id> --name "Lobby Park" --json-body '{"recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
 
 # Update a call park
-wxcli call-park update --location-id <loc_id> --call-park-id <park_id> --name "New Park Name"
+wxcli call-park update <loc_id> <park_id> --name "New Park Name"
 
 # Delete a call park
-wxcli call-park delete --location-id <loc_id> --call-park-id <park_id>
+wxcli call-park delete <loc_id> <park_id>
 
 # List available agents for call park
-wxcli call-park list-available-users --location-id <loc_id>
+wxcli call-park list-available-users <loc_id>
 
 # List available recall hunt groups
-wxcli call-park list-available-recall-hunt-groups --location-id <loc_id>
+wxcli call-park list-available-recall-hunt-groups <loc_id>
 
 # Get location-level call park settings
-wxcli call-park show-settings --location-id <loc_id>
+wxcli call-park show-settings <loc_id>
 
 # Update location-level call park settings
-wxcli call-park update-settings --location-id <loc_id> --json-body '{"callParkSettings": {"recallTime": 60}}'
+wxcli call-park update-settings <loc_id> --json-body '{"callParkSettings": {"recallTime": 60}}'
 ```
 
 ---
@@ -780,16 +780,16 @@ api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/callParkExt
 wxcli call-park list-call-park-extensions --location-id <loc_id>
 
 # Get details for a call park extension
-wxcli call-park show-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id>
+wxcli call-park show-call-park-extensions <loc_id> <cpe_id>
 
 # Create a call park extension
-wxcli call-park create-call-park-extensions --location-id <loc_id> --name "Park Slot 1" --extension "7001"
+wxcli call-park create-call-park-extensions <loc_id> --name "Park Slot 1" --extension "7001"
 
 # Update a call park extension
-wxcli call-park update-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id> --name "Park Slot A"
+wxcli call-park update-call-park-extensions <loc_id> <cpe_id> --name "Park Slot A"
 
 # Delete a call park extension
-wxcli call-park delete-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id>
+wxcli call-park delete-call-park-extensions <loc_id> <cpe_id>
 ```
 
 ---
@@ -990,22 +990,22 @@ items = result["availableUsers"]  # response key: "availableUsers"
 
 ```bash
 # List call pickups at a location
-wxcli call-pickup list --location-id <loc_id>
+wxcli call-pickup list <loc_id>
 
 # Get details for a call pickup group
-wxcli call-pickup show --location-id <loc_id> --call-pickup-id <pickup_id>
+wxcli call-pickup show <loc_id> <pickup_id>
 
 # Create a call pickup group
-wxcli call-pickup create --location-id <loc_id> --name "Sales Pickup"
+wxcli call-pickup create <loc_id> --name "Sales Pickup"
 
 # Update a call pickup group
-wxcli call-pickup update --location-id <loc_id> --call-pickup-id <pickup_id> --name "New Name"
+wxcli call-pickup update <loc_id> <pickup_id> --name "New Name"
 
 # Delete a call pickup group
-wxcli call-pickup delete --location-id <loc_id> --call-pickup-id <pickup_id>
+wxcli call-pickup delete <loc_id> <pickup_id>
 
 # List available agents for call pickup
-wxcli call-pickup list-available-users --location-id <loc_id>
+wxcli call-pickup list-available-users <loc_id>
 ```
 
 ---
@@ -1227,7 +1227,7 @@ Voicemail Groups do not have explicit member lists. They are shared voicemail bo
 
 <!-- Updated by playbook session 2026-03-18 -->
 
-The Voicemail Groups CLI uses SDK methods (not raw HTTP) for most operations. The SDK base is `telephony/config/voicemailGroups`. The underlying API URLs are:
+The Voicemail Groups API base is `telephony/config/voicemailGroups`. The underlying API URLs are:
 
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -1269,7 +1269,7 @@ result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/voic
 vg_id = result["id"]
 ```
 
-**Gotcha**: The wxc_sdk `VoicemailGroupDetail.for_create()` method has a bug -- missing `by_alias=True`, which sends snake_case keys instead of camelCase. Workaround: `model_dump(mode='json', by_alias=True, exclude_unset=True)`.
+**Gotcha**: The create body must use camelCase keys. Send them explicitly, as the example above does -- or pass `--json-body` via the CLI.
 
 **Update Voicemail Group:**
 
@@ -1309,24 +1309,24 @@ Voicemail Group commands are under the `location-voicemail` command group.
 wxcli location-voicemail list --location-id <loc_id>
 
 # Get details for a voicemail group
-wxcli location-voicemail show-voicemail-groups --location-id <loc_id> --voicemail-group-id <vg_id>
+wxcli location-voicemail show-voicemail-groups <loc_id> <vg_id>
 
 # Create a voicemail group
-wxcli location-voicemail create --location-id <loc_id> --name "Support VM" --extension "8200" \
+wxcli location-voicemail create <loc_id> --name "Support VM" --extension "8200" \
   --json-body '{"passcode": "740384", "languageCode": "en_us", "messageStorage": {"storageType": "INTERNAL"}, "notifications": {"enabled": false}, "faxMessage": {"enabled": false}, "transferToNumber": {"enabled": false}, "emailCopyOfMessage": {"enabled": false}}'
 
 # Update a voicemail group
-wxcli location-voicemail update-voicemail-groups --location-id <loc_id> --voicemail-group-id <vg_id> \
+wxcli location-voicemail update-voicemail-groups <loc_id> <vg_id> \
   --name "New Name"
 
 # Delete a voicemail group
-wxcli location-voicemail delete --location-id <loc_id> --voicemail-group-id <vg_id>
+wxcli location-voicemail delete <loc_id> <vg_id>
 
 # List available phone numbers for voicemail group assignment
-wxcli location-voicemail list-available-numbers-voicemail-groups --location-id <loc_id>
+wxcli location-voicemail list-available-numbers-voicemail-groups <loc_id>
 
 # List available phone numbers for fax message
-wxcli location-voicemail list-available-numbers-fax-message --location-id <loc_id>
+wxcli location-voicemail list-available-numbers-fax-message <loc_id>
 ```
 
 ---
@@ -1688,11 +1688,20 @@ wxcli cx-essentials update-screen-pop LOCATION_ID QUEUE_ID \
 wxcli cx-essentials list-available-agents LOCATION_ID
 
 # Get queue call recording settings
-wxcli cx-essentials show-queue-recording LOCATION_ID QUEUE_ID -o json
+wxcli cx-essentials show-call-recordings LOCATION_ID QUEUE_ID -o json
 
-# Update queue call recording settings
-wxcli cx-essentials update-queue-recording LOCATION_ID QUEUE_ID \
+# Update queue call recording settings (simple: enable + record mode)
+wxcli cx-essentials update-call-recordings LOCATION_ID QUEUE_ID \
   --enabled --record Always
+
+# Update nested recording settings (notification / repeat / announcement) via --json-body
+wxcli cx-essentials update-call-recordings LOCATION_ID QUEUE_ID --json-body '{
+  "enabled": true,
+  "record": "Always",
+  "notification": {"type": "Beep", "enabled": true},
+  "repeat": {"interval": 30, "enabled": true},
+  "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true}
+}'
 
 # --- Queue Discovery & Creation ---
 
@@ -1716,6 +1725,42 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 > **GOTCHA:** Creating a Customer Assist queue requires `callPolicies` in the request body via `--json-body`. Omitting `callPolicies` results in a 400 error. Minimum: `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
 
 > **GOTCHA:** `delete-supervisors-config-1` returns 204 but the supervisor persists. Use `update-supervisors` with `action: DELETE` on each agent instead — removing the last agent auto-removes the supervisor.
+
+### Queue Call Recording — data model
+
+Queue recording lives **only** at `telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings`. It is **not** part of the call queue object: `wxcli call-queue show ... --has-cx-essentials true` returns zero recording-related keys, so `call-queue update --json-body` can never read or write these settings.
+
+Cisco's published OpenAPI spec omits this path (it has never appeared in any revision), so the CLI commands are generated from an additive local spec overlay that re-supplies the missing endpoint after every upstream spec refresh. The endpoint is live and verified, but **unpublished** — Cisco makes no compatibility promise for it, so treat a sudden 404 here as the likely cause. Every field below was proven against the live API on 2026-07-14 by PUT-then-GET read-back.
+
+| Field | Type | Writable | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | `bool` | yes | Master switch for queue recording. |
+| `record` | `str` | yes | When to record. **Only `Always` is live-verified.** Other values are not documented here because they have not been tested. |
+| `notification.type` | `str` | yes | Live-verified: `None`, `Beep`. |
+| `notification.enabled` | `bool` | yes | |
+| `repeat.interval` | `int` | yes | Seconds between notification repeats. Live-verified: `15` (default), `30`. |
+| `repeat.enabled` | `bool` | yes | |
+| `startStopAnnouncement.internalCallsEnabled` | `bool` | yes | |
+| `startStopAnnouncement.pstnCallsEnabled` | `bool` | yes | |
+| `serviceProvider` | `str` | no | Read-only. Recording vendor service provider ID (BroadWorks-backed). |
+| `externalGroup` | `str` | no | Read-only. |
+| `externalIdentifier` | `str` | no | Read-only. |
+| `postCallRecordingSettings` | `object` | untested | Only returned once `enabled` is true. Writability not verified — do not assume. |
+| `announcements` | `object` | untested | Only returned once `enabled` is true. Writability not verified — do not assume. |
+
+> **GOTCHA:** This endpoint returns **204 for unknown fields and silently discards them**. A PUT of `{"bogusFieldXyz": "nonsense"}` returns 204 exactly like a valid write. A 2xx is therefore *not* evidence a setting applied — always read back with `show-call-recordings` to confirm.
+
+> **GOTCHA:** The PUT is a **partial merge, not a replace**. Fields omitted from the body keep their previous value (verified: `record` stayed `Always` across a PUT that omitted it). You do not need to resend the whole object to change one field.
+
+> **GOTCHA:** The response schema is **conditional on `enabled`**. When recording is off, `record`, `postCallRecordingSettings`, and `announcements` are absent entirely. Do not treat their absence as "unsupported".
+
+> **GOTCHA:** Queue recording uses `spark-admin:people_read` / `spark-admin:people_write` — *different* scopes from every other Customer Assist endpoint (which use `spark-admin:telephony_config_*`). A token that works for screen pop can still 403 here.
+
+> **HISTORY — this section was true when written, and a regen made it false.** Until 2026-07-14 it documented `show-queue-recording` / `update-queue-recording`. Those commands were **real**: hand-written on 2026-03-21 by an author who had correctly diagnosed that the endpoint is live but absent from the OpenAPI spec. They lived **two days**. On 2026-03-23 a routine regeneration ("regenerate all commands with orgId auto-injection") rewrote the module they lived in and silently deleted them — an 85-line deletion inside a 668-endpoint commit. They were never in a released version (the first tag postdates the regen), so no user ever had them; but the docs, accurate on the 21st, were quietly false from the 23rd onward.
+>
+> **The lesson is about mechanism, not diligence.** The March fix was right in its analysis and wrong in its placement: it put hand-written code inside a file the generator *owns*, so the next regen ate it. That is precisely why hand-written command modules must live in their own file and mount via `register(app)`. The current commands avoid the failure entirely by fixing the layer that was actually broken — the endpoint is supplied to the generator as an additive spec overlay, so a regen now *recreates* these commands instead of destroying them.
+>
+> Nothing caught the four-month gap because `docs/reference/**` was outside the drift gate's scan scope, even though CLAUDE.md's Mandatory Grounding Rule forces every agent to read these docs. Now fixed: the gate scans `docs/reference/**` and runs on every push and pull request, so a command named here that does not exist fails the build.
 
 ---
 
@@ -1836,36 +1881,36 @@ wxcli operating-modes list
 wxcli operating-modes list --limit-to-location-id <loc_id>
 
 # Get details for an operating mode
-wxcli operating-modes show --operating-mode-id <mode_id>
+wxcli operating-modes show <mode_id>
 
 # Create an operating mode
 wxcli operating-modes create --name "Business Hours" --type "SAME_HOURS_DAILY" --level "ORGANIZATION"
 
 # Update an operating mode
-wxcli operating-modes update --operating-mode-id <mode_id> --name "Updated Hours"
+wxcli operating-modes update <mode_id> --name "Updated Hours"
 
 # Delete an operating mode
-wxcli operating-modes delete --operating-mode-id <mode_id>
+wxcli operating-modes delete <mode_id>
 
 # Create a holiday on a HOLIDAY-type operating mode
-wxcli operating-modes create-holidays --operating-mode-id <mode_id> \
+wxcli operating-modes create-holidays <mode_id> \
   --name "Christmas 2026" --all-day-enabled --start-date "2026-12-25" --end-date "2026-12-25"
 
 # Get holiday details
-wxcli operating-modes show-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id>
+wxcli operating-modes show-holidays <mode_id> <holiday_id>
 
 # Update a holiday
-wxcli operating-modes update-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id> \
+wxcli operating-modes update-holidays <mode_id> <holiday_id> \
   --name "New Year" --start-date "2027-01-01" --end-date "2027-01-01"
 
 # Delete a holiday
-wxcli operating-modes delete-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id>
+wxcli operating-modes delete-holidays <mode_id> <holiday_id>
 
 # List available operating modes for a location
-wxcli operating-modes list-available-operating-modes --location-id <loc_id>
+wxcli operating-modes list-available-operating-modes <loc_id>
 
 # Get available call forward numbers for operating modes
-wxcli operating-modes list-available-numbers --location-id <loc_id>
+wxcli operating-modes list-available-numbers <loc_id>
 ```
 
 ### Gotchas
@@ -1924,10 +1969,10 @@ wxcli call-recording show
 wxcli call-recording update --json-body '{"enabled": true}'
 
 # Get call recording terms of service
-wxcli call-recording show-terms-of-service --vendor-id <vendor_id>
+wxcli call-recording show-terms-of-service <vendor_id>
 
 # Update call recording terms of service
-wxcli call-recording update-terms-of-service --vendor-id <vendor_id> --json-body '{"termsOfServiceEnabled": true}'
+wxcli call-recording update-terms-of-service <vendor_id> --json-body '{"termsOfServiceEnabled": true}'
 
 # Get org-level compliance announcement settings
 wxcli call-recording show-compliance-announcement-call-recording
@@ -1936,28 +1981,28 @@ wxcli call-recording show-compliance-announcement-call-recording
 wxcli call-recording update-compliance-announcement-call-recording --json-body '{"enabled": true}'
 
 # Get location-level compliance announcement settings
-wxcli call-recording show-compliance-announcement-call-recording-1 --location-id <loc_id>
+wxcli call-recording show-compliance-announcement-call-recording-1 <loc_id>
 
 # Update location-level compliance announcement settings
-wxcli call-recording update-compliance-announcement-call-recording-1 --location-id <loc_id> --json-body '{"enabled": true}'
+wxcli call-recording update-compliance-announcement-call-recording-1 <loc_id> --json-body '{"enabled": true}'
 
 # List call recording regions
 wxcli call-recording list
 
 # List call recording vendors for a location
-wxcli call-recording list-vendors --location-id <loc_id>
+wxcli call-recording list-vendors <loc_id>
 
 # Get org-level call recording vendors
 wxcli call-recording show-vendors
 
 # Set call recording vendor for a location
-wxcli call-recording update-vendor-call-recording --location-id <loc_id> --json-body '{"vendorId": "<vendor_id>"}'
+wxcli call-recording update-vendor-call-recording <loc_id> --json-body '{"vendorId": "<vendor_id>"}'
 
 # List call recording jobs
 wxcli call-recording list-call-recording
 
 # Get job status of a call recording job
-wxcli call-recording show-call-recording --job-id <job_id>
+wxcli call-recording show-call-recording <job_id>
 ```
 
 ---
@@ -2041,7 +2086,7 @@ result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/annou
 items = result["usage"]
 ```
 
-**Note**: Announcement upload (create) requires multipart/form-data with the binary file. The raw HTTP `rest_post` method may not support file uploads directly -- use the SDK's upload methods or construct multipart requests manually.
+**Note**: Announcement upload (create) is exposed by the CLI -- use `wxcli announcements create` (org level) or `wxcli announcements create-announcements LOCATION_ID` (location level). Both take `--name`, `--file-uri`, `--file-name`, and `--is-text-to-speech`/`--no-is-text-to-speech`.
 
 #### Playlists
 
@@ -2104,28 +2149,28 @@ api.session.rest_put(f"{BASE}/telephony/config/announcements/playlists/{playlist
 wxcli announcements list --location-id <loc_id>
 
 # Get org-level announcement details
-wxcli announcements show-announcements-config --announcement-id <ann_id>
+wxcli announcements show-announcements-config <ann_id>
 
 # Get location-level announcement details
-wxcli announcements show-announcements-locations --location-id <loc_id> --announcement-id <ann_id>
+wxcli announcements show-announcements-locations <loc_id> <ann_id>
 
 # Update an org-level announcement
-wxcli announcements update --announcement-id <ann_id> --json-body '{"name": "Updated Greeting"}'
+wxcli announcements update <ann_id> --json-body '{"name": "Updated Greeting"}'
 
 # Update a location-level announcement
-wxcli announcements update-announcements --location-id <loc_id> --announcement-id <ann_id> --json-body '{"name": "Updated"}'
+wxcli announcements update-announcements <loc_id> <ann_id> --json-body '{"name": "Updated"}'
 
 # Delete an org-level announcement
-wxcli announcements delete --announcement-id <ann_id>
+wxcli announcements delete <ann_id>
 
 # Delete a location-level announcement
-wxcli announcements delete-announcements --location-id <loc_id> --announcement-id <ann_id>
+wxcli announcements delete-announcements <loc_id> <ann_id>
 
 # Get org-level repository usage
 wxcli announcements show
 
 # Get location-level repository usage
-wxcli announcements show-usage --location-id <loc_id>
+wxcli announcements show-usage-announcements <loc_id>
 ```
 
 #### Playlists
@@ -2135,22 +2180,22 @@ wxcli announcements show-usage --location-id <loc_id>
 wxcli announcement-playlists list
 
 # Get playlist details
-wxcli announcement-playlists show --playlist-id <playlist_id>
+wxcli announcement-playlists show <playlist_id>
 
 # Create a playlist
 wxcli announcement-playlists create --name "Hold Music"
 
 # Update a playlist
-wxcli announcement-playlists update --playlist-id <playlist_id> --name "Updated Playlist"
+wxcli announcement-playlists update <playlist_id> --name "Updated Playlist"
 
 # Delete a playlist
-wxcli announcement-playlists delete --playlist-id <playlist_id>
+wxcli announcement-playlists delete <playlist_id>
 
 # List playlist locations
-wxcli announcement-playlists list-playlists --playlist-id <playlist_id>
+wxcli announcement-playlists list-playlists <playlist_id>
 
 # Update playlist locations
-wxcli announcement-playlists update-playlists --playlist-id <playlist_id> \
+wxcli announcement-playlists update-playlists <playlist_id> \
   --json-body '{"locationIds": ["<loc_id_1>", "<loc_id_2>"]}'
 ```
 
@@ -2228,25 +2273,25 @@ items = result["availableNumbers"]
 
 ```bash
 # Get single number reach settings for a person
-wxcli single-number-reach list-single-number-reach --person-id <person_id>
+wxcli single-number-reach list-single-number-reach <person_id>
 
 # Create a single number reach number for a person
-wxcli single-number-reach create --person-id <person_id> \
+wxcli single-number-reach create <person_id> \
   --json-body '{"phoneNumber": "+14155559999", "enabled": true, "name": "Mobile", "answerConfirmationEnabled": true}'
 
 # Update single number reach settings for a person
-wxcli single-number-reach update --person-id <person_id> \
+wxcli single-number-reach update <person_id> \
   --json-body '{"alertAllNumbersForClickToDialCallsEnabled": true}'
 
 # Update a specific single number reach number
-wxcli single-number-reach update-numbers --person-id <person_id> --number-id <number_id> \
+wxcli single-number-reach update-numbers <person_id> <number_id> \
   --json-body '{"enabled": false, "name": "Home"}'
 
 # Delete a single number reach number
-wxcli single-number-reach delete --person-id <person_id> --number-id <number_id>
+wxcli single-number-reach delete <person_id> <number_id>
 
 # List available phone numbers for single number reach
-wxcli single-number-reach list --location-id <loc_id>
+wxcli single-number-reach list <loc_id>
 ```
 
 ---
@@ -2389,16 +2434,16 @@ result = api.session.rest_post(
 wxcli virtual-extensions list --location-id <loc_id>
 
 # Get details for a virtual extension
-wxcli virtual-extensions show --virtual-extension-id <ext_id>
+wxcli virtual-extensions show <ext_id>
 
 # Create a virtual extension
 wxcli virtual-extensions create --display-name "Lobby Directory" --extension "9000" --location-id <loc_id>
 
 # Update a virtual extension
-wxcli virtual-extensions update --virtual-extension-id <ext_id> --display-name "New Name"
+wxcli virtual-extensions update <ext_id> --display-name "New Name"
 
 # Delete a virtual extension
-wxcli virtual-extensions delete --virtual-extension-id <ext_id>
+wxcli virtual-extensions delete <ext_id>
 
 # Get virtual extension settings (org-level)
 wxcli virtual-extensions show-settings
@@ -2417,17 +2462,17 @@ wxcli virtual-extensions validate-an-external --json-body '{"phoneNumbers": ["+1
 wxcli virtual-extensions list-virtual-extension-ranges --location-id <loc_id>
 
 # Get details for a virtual extension range
-wxcli virtual-extensions show-virtual-extension-ranges --virtual-extension-range-id <range_id>
+wxcli virtual-extensions show-virtual-extension-ranges <range_id>
 
 # Create a virtual extension range
 wxcli virtual-extensions create-virtual-extension-ranges --name "Sales Range" --prefix "90" --location-id <loc_id>
 
 # Update a virtual extension range
-wxcli virtual-extensions update-virtual-extension-ranges --virtual-extension-range-id <range_id> \
+wxcli virtual-extensions update-virtual-extension-ranges <range_id> \
   --json-body '{"name": "Updated Range", "prefix": "91", "action": "REPLACE"}'
 
 # Delete a virtual extension range
-wxcli virtual-extensions delete-virtual-extension-ranges --virtual-extension-range-id <range_id>
+wxcli virtual-extensions delete-virtual-extension-ranges <range_id>
 
 # Validate a range prefix
 wxcli virtual-extensions validate-the-prefix --json-body '{"locationId": "<loc_id>", "name": "Test Range", "prefix": "90"}'
@@ -2522,13 +2567,13 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 - **Agent format differs by feature type** : Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays. Using `[{"id": ...}]` for pickup or paging returns 400 "Invalid field value: agents/targets". Reads always return full agent objects regardless.
 - **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` without a location argument returns empty. Must enumerate per-location during cleanup.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
-- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The wxc_sdk `VoicemailGroupDetail.for_create()` has a bug (missing `by_alias=True`); use `--json-body` via CLI or `model_dump(by_alias=True)` via SDK.
+- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The create body must use camelCase keys; use `--json-body` via the CLI.
 - **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features. Error 28018 ("CX Essentials is not enabled for this Call center") means the target queue is not a Customer Assist queue.
 - **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
 - **CX queues hidden from default list**: `wxcli call-queue list` does not show Customer Assist queues. Pass `--has-cx-essentials true` to see them.
 - **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
-- **Announcement upload requires multipart/form-data**: The CLI and raw HTTP `rest_post` may not support binary file uploads directly. Use the SDK upload methods or construct multipart requests manually.
+- **Announcement upload takes a file URI, not a local file**: `wxcli announcements create` (org) and `wxcli announcements create-announcements LOCATION_ID` (location) send a JSON body with `fileUri`/`fileName` -- the file must already be reachable at a URI. There is no local-file upload flag.
 - **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2).
 - **No native PagingGroup AXL object type.** CUCM does not expose paging groups through AXL (`listPagingGroup`/`getPagingGroup` do not exist). Paging requires third-party systems (InformaCast, Cisco Paging Server). The migration pipeline's `CanonicalPagingGroup` type exists for manual/CSV import but cannot be auto-extracted from CUCM.
 

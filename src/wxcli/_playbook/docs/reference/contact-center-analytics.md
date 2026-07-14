@@ -265,17 +265,18 @@ Content-Type: application/json
 
 ## 5. Agent Summaries
 
-CLI group: `wxcli cc-agent-summaries` (2 commands)
+CLI group: `wxcli cc-agent-summaries` (1 command)
 
-Search and list agent interaction summaries. Both endpoints use POST (not GET) because
+Search agent interaction summaries. The endpoint uses POST (not GET) because
 the query parameters are passed in the request body.
+
+To list or fetch generated summaries by ID, use the `wxcli cc-summaries` group (section 4).
 
 ### Commands
 
 | CLI Command | HTTP | Description |
 |-------------|------|-------------|
 | `create` | POST `/generated-summaries/search` | Search summaries |
-| `create-list` | POST `/summary/list` | List summaries |
 
 ### Key Parameters
 
@@ -288,11 +289,6 @@ the query parameters are passed in the request body.
 wxcli cc-agent-summaries create --json-body '{
   "filter": {"agentId": "agent-456", "from": "2026-03-01T00:00:00Z"}
 }'
-
-# List summaries
-wxcli cc-agent-summaries create-list --json-body '{
-  "agentId": "agent-456"
-}'
 ```
 
 ### Raw HTTP
@@ -304,13 +300,6 @@ Authorization: Bearer {cc_token}
 Content-Type: application/json
 
 {"filter": {"agentId": "agent-456", "from": "2026-03-01T00:00:00Z"}}
-
-# List summaries
-POST https://api.wxcc-us1.cisco.com/summary/list
-Authorization: Bearer {cc_token}
-Content-Type: application/json
-
-{"agentId": "agent-456"}
 ```
 
 ---
@@ -337,13 +326,13 @@ contact being monitored, but delete uses `requestId`.
 
 | CLI Command | HTTP | Description |
 |-------------|------|-------------|
-| `create-monitor` | POST `/v1/monitor` | Create monitoring request |
+| `create` | POST `/v1/monitor` | Create monitoring request |
 | `list` | GET `/v1/monitor/sessions` | Fetch monitoring sessions |
 | `delete` | DELETE `/v1/monitor/{requestId}` | Delete monitoring request |
 | `create-barge-in` | POST `/v1/monitor/{taskId}/bargeIn` | Barge-in to monitored call |
 | `create-end` | POST `/v1/monitor/{taskId}/end` | End monitoring session |
 | `create-hold` | POST `/v1/monitor/{taskId}/hold` | Hold monitoring request |
-| `create` | POST `/v1/monitor/{taskId}/unhold` | Unhold monitoring request |
+| `create-unhold` | POST `/v1/monitor/{taskId}/unhold` | Unhold monitoring request |
 
 ### Key Parameters
 
@@ -354,8 +343,9 @@ contact being monitored, but delete uses `requestId`.
 ### CLI Examples
 
 ```bash
-# Create a monitoring session
-wxcli cc-call-monitoring create-monitor --json-body '{
+# Create a monitoring session (id and monitorType are required)
+wxcli cc-call-monitoring create --json-body '{
+  "id": "req-abc-123",
   "taskId": "task-789",
   "monitorType": "silentMonitor"
 }'
@@ -370,7 +360,7 @@ wxcli cc-call-monitoring create-barge-in task-789
 wxcli cc-call-monitoring create-hold task-789
 
 # Unhold monitoring
-wxcli cc-call-monitoring create task-789
+wxcli cc-call-monitoring create-unhold task-789
 
 # End monitoring session
 wxcli cc-call-monitoring create-end task-789
@@ -746,20 +736,20 @@ spans three API versions (v1, v2, v3).
 | `list-bulk-export` | GET `/organization/{orgid}/address-book/bulk-export` | Bulk export |
 | `create-entry` | POST `.../address-book/{addressBookId}/entry` | Create entry |
 | `create-bulk` | POST `.../address-book/{addressBookId}/entry/bulk` | Bulk save entries |
-| `show` | GET `/organization/{orgid}/address-book/{id}` | Get address book (v1) |
-| `update` | PUT `/organization/{orgid}/address-book/{id}` | Update address book (v1) |
-| `delete` | DELETE `/organization/{orgid}/address-book/{id}` | Delete address book (v1) |
+| `show-address-book-organization` | GET `/organization/{orgid}/address-book/{id}` | Get address book (v1) |
+| `update-address-book-organization` | PUT `/organization/{orgid}/address-book/{id}` | Update address book (v1) |
+| `delete-address-book-organization` | DELETE `/organization/{orgid}/address-book/{id}` | Delete address book (v1) |
 | `list-incoming-references` | GET `.../address-book/{id}/incoming-references` | Get references |
 | `list-address-book-v2` | GET `/organization/{orgid}/v2/address-book` | List (v2) |
 | `list-entry` | GET `.../v2/address-book/{addressBookId}/entry` | List entries (v2) |
-| `show-entry` | GET `.../address-book/{addressBookId}/entry/{id}` | Get entry |
-| `update-entry` | PUT `.../address-book/{addressBookId}/entry/{id}` | Update entry |
-| `delete-entry` | DELETE `.../address-book/{addressBookId}/entry/{id}` | Delete entry |
+| `show` | GET `.../address-book/{addressBookId}/entry/{id}` | Get entry |
+| `update` | PUT `.../address-book/{addressBookId}/entry/{id}` | Update entry |
+| `delete` | DELETE `.../address-book/{addressBookId}/entry/{id}` | Delete entry |
 | `list-address-book-v3` | GET `/organization/{orgid}/v3/address-book` | List (v3) |
 | `create-address-book` | POST `/organization/{orgid}/v3/address-book` | Create (v3) |
-| `show-address-book` | GET `/organization/{orgid}/v3/address-book/{id}` | Get (v3) |
-| `update-address-book` | PUT `/organization/{orgid}/v3/address-book/{id}` | Update (v3) |
-| `delete-address-book` | DELETE `/organization/{orgid}/v3/address-book/{id}` | Delete (v3) |
+| `show-address-book-v3` | GET `/organization/{orgid}/v3/address-book/{id}` | Get (v3) |
+| `update-address-book-v3` | PUT `/organization/{orgid}/v3/address-book/{id}` | Update (v3) |
+| `delete-address-book-v3` | DELETE `/organization/{orgid}/v3/address-book/{id}` | Delete (v3) |
 
 ### Key Parameters
 
@@ -801,11 +791,11 @@ wxcli cc-address-book list-bulk-export
 wxcli cc-address-book list-entry ab-001
 
 # Delete entry
-wxcli cc-address-book delete-entry ab-001 entry-001
+wxcli cc-address-book delete ab-001 entry-001
 
 # Check incoming references before deleting an address book
 wxcli cc-address-book list-incoming-references ab-001
-wxcli cc-address-book delete ab-001
+wxcli cc-address-book delete-address-book-v3 ab-001
 ```
 
 ### Raw HTTP

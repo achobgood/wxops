@@ -231,18 +231,33 @@ Collect from user:
 |-----------|:--------:|-------|
 | Location ID | Yes | Positional argument |
 | Queue ID | Yes | Positional argument |
-
-`wxcli customer-assist show-queue-recording` / `update-queue-recording` do NOT exist — there is no matching API operation in the generated CLI. Use the CX queue itself:
+| Enabled | Yes | `--enabled` / `--no-enabled` |
+| Record mode | No | `--record` — only `Always` is live-verified |
+| Notification / repeat / announcement | No | Nested objects — require `--json-body` |
 
 ```bash
-# View the CX queue payload — inspect for recording fields (see note below)
-wxcli call-queue show LOCATION_ID QUEUE_ID --has-cx-essentials true -o json
+# View current queue recording settings
+wxcli customer-assist show-call-recordings LOCATION_ID QUEUE_ID -o json
 
-# Apply changes via --json-body, using field names found in the show output
-wxcli call-queue update LOCATION_ID QUEUE_ID --json-body '{...}'
+# Simple: turn recording on for every call to the queue
+wxcli customer-assist update-call-recordings LOCATION_ID QUEUE_ID --enabled --record Always
+
+# Full: notification, repeat, and start/stop announcement (nested -> --json-body)
+wxcli customer-assist update-call-recordings LOCATION_ID QUEUE_ID --json-body '{
+  "enabled": true,
+  "record": "Always",
+  "notification": {"type": "Beep", "enabled": true},
+  "repeat": {"interval": 30, "enabled": true},
+  "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true}
+}'
+
+# ALWAYS read back — a 2xx does NOT mean the write applied (see rule 20)
+wxcli customer-assist show-call-recordings LOCATION_ID QUEUE_ID -o json
 ```
 
-> **NOTE:** Whether the CX queue payload carries queue-level recording fields is UNVERIFIED — the test org has zero Customer Assist queues to confirm against. Inspect the `call-queue show ... --has-cx-essentials true -o json` output for a recording-related block. If none is present, call recording is instead configured at the org/location level (`wxcli call-recording show`) or per-agent (see `manage-call-settings` skill).
+> **NOTE:** Recording settings live ONLY in this sub-resource. The call queue object carries no recording fields, so `call-queue show/update` cannot read or write them — verified live 2026-07-14. Do not fall back to `call-queue update --json-body`; it silently cannot work.
+
+> **NOTE:** Cisco's published OpenAPI spec omits this endpoint, so the commands are generated from a local additive overlay (`specs/overlays/webex-cloud-calling.overlay.json`). The endpoint is live and verified, but it is unpublished — Cisco makes no compatibility promise for it. If these commands ever start 404ing, that is the likely cause. Full data model + gotchas: `docs/reference/call-features-additional.md` → "Queue Call Recording — data model".
 
 ---
 
@@ -296,13 +311,13 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true --jso
 # --- Delete ---
 
 # Delete a specific supervisor
-wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --has-cx-essentials true --force
+wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
 
-# Delete supervisors in bulk
-wxcli call-queue delete-supervisors-config --has-cx-essentials true --force
+# Delete ALL supervisors in the org — the CLI cannot scope this (see WARNING)
+wxcli call-queue delete-supervisors-config --force
 ```
 
-> **WARNING:** `delete-supervisors-config --force` without specifying IDs may remove **all supervisors in the org**. Always confirm scope before executing. Omitting `--force` triggers a confirmation prompt.
+> **WARNING:** `delete-supervisors-config --force` removes **all supervisors in the org**, and the CLI offers no way to narrow it: the API scopes this delete with a request body, which the generator does not render for DELETE verbs (known issue #21). To remove specific supervisors, use `delete-supervisors-config-1 SUPERVISOR_ID` one at a time, or the raw HTTP fallback. Omitting `--force` triggers a confirmation prompt.
 
 > **NOTE:** `SUPERVISOR_ID` in these commands is the supervisor's **person ID**, not a separate supervisor entity ID. Use `wxcli call-queue list-supervisors --has-cx-essentials true` to find supervisor person IDs.
 
@@ -378,8 +393,8 @@ wxcli customer-assist show REASON_ID -o json
 # Verify wrap-up settings (per-queue)
 wxcli customer-assist list-settings LOCATION_ID QUEUE_ID -o json
 
-# Verify queue recording (inspect payload for recording fields — see Queue Call Recording note above)
-wxcli call-queue show LOCATION_ID QUEUE_ID --has-cx-essentials true -o json
+# Verify queue recording — the read-back IS the verification (see rule 20)
+wxcli customer-assist show-call-recordings LOCATION_ID QUEUE_ID -o json
 
 # Verify supervisors
 wxcli call-queue list-supervisors --has-cx-essentials true -o json
@@ -428,10 +443,13 @@ Next steps:
 13. **Runtime supervisor capabilities are automatic.** Silent monitor, whisper coach, barge in, and take over activate once the supervisor-agent relationship is configured. No additional API setup is needed.
 14. **Recording vendor must be configured first.** Queue call recording depends on an org-level or location-level recording vendor configuration. Check with `wxcli call-recording show -o json` before enabling queue recording.
 15. **Customer Assist queues are hidden from default `call-queue list`.** You must pass `--has-cx-essentials true` to see them. Without the flag, only regular (non-Customer Assist) queues are returned.
-16. **Queue recording schema is UNVERIFIED.** Earlier versions of this skill asserted nested recording objects (`notification`, `repeat`, `startStopAnnouncement`) in the queue payload — that schema came from a fabricated example tied to commands that never existed (2026-07-01 audit). Inspect a real CX queue payload (`wxcli call-queue show LOCATION_ID QUEUE_ID --has-cx-essentials true -o json`) before building any `--json-body`; if no recording fields appear, recording is org/location-level (`call-recording show`) or per-agent (manage-call-settings skill).
+16. **Queue recording schema is VERIFIED (2026-07-14).** `notification`, `repeat`, and `startStopAnnouncement` are real and writable — proven by live PUT-then-GET read-back. A previous audit (2026-07-01) called this schema "fabricated"; that verdict was **wrong on both counts**. The fields are real (they live in the separate `cxEssentials/callRecordings` sub-resource, which the audit never called — it only checked the call queue payload). And the old `show-queue-recording`/`update-queue-recording` commands were not fabricated either: git history shows they were hand-written on 2026-03-21 and silently destroyed by a regen two days later, because they had been placed inside a generator-owned file. Nothing here was invented — it was built, then overwritten, and the docs outlived the code. Full data model: `docs/reference/call-features-additional.md` → "Queue Call Recording — data model".
 17. **`create-supervisors` requires `id` in both `--id` flag and `--json-body`.** The `--id` flag is a required CLI option. When using `--json-body`, include `"id"` in the JSON body too, since `--json-body` overrides flag-built body fields.
 18. **To remove a Customer Assist supervisor, remove all their agents first.** The DELETE endpoint (`delete-supervisors-config-1`) returns 204 but the supervisor may persist. Instead, use `update-supervisors` with `action: DELETE` on each agent. When the last agent is removed, the supervisor is automatically deleted.
 19. **Customer Assist queue creation requires `callPolicies`.** Unlike regular queues, CX queues require the `callPolicies` field (e.g., `{"policy":"SIMULTANEOUS"}`). This must be passed via `--json-body` since it's not available as a CLI flag.
+20. **On queue recording, a success response proves NOTHING — always read back.** `update-call-recordings` returns 204 even when it silently discards what you sent. Live-verified: a PUT of `{"bogusFieldXyz": "nonsense"}` returned 204 and the field never appeared on read-back. Always follow any `update-call-recordings` with `show-call-recordings` and confirm the value you set is actually present. Never report queue recording as configured based on the update command's exit code alone.
+21. **Queue recording PUT is a partial merge, not a replace.** Omitted fields keep their previous value (verified: `record` stayed `Always` across a PUT that omitted it). You do not need to resend the full object to change one field — and you cannot clear a field by omitting it.
+22. **Queue recording's response schema changes with `enabled`.** When recording is off, the `record` field and the postCallRecordingSettings / announcements objects are absent from the GET entirely. Their absence does not mean "unsupported" — enable recording first, then re-read.
 
 ---
 

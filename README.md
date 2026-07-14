@@ -1,12 +1,12 @@
 # wxcli — Webex Calling CLI
 
-A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 178 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
+A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 176 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
 
 > **Unofficial community CLI — not affiliated with or endorsed by Cisco.**
 
 ## What It Does
 
-- **178 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
+- **176 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
 - **AI-guided playbook** — a Claude Code agent that interviews you about what to build, generates a deployment plan, executes commands, and verifies results
 - **CUCM-to-Webex migration** — 11-phase pipeline: discover a CUCM cluster via AXL, normalize, map, analyze, generate decisions, plan, and execute the migration with an async concurrent engine
 - **Org health assessment** — 18 automated checks across security posture, routing hygiene, feature utilization, and device health with a self-contained HTML report
@@ -23,7 +23,7 @@ wxops splits the problem into three layers, each killing one way an LLM fails:
 |-------|-----------|---------------------|
 | **Reference docs** (43 active) | De-conflated, authoritative API knowledge — data models, enums, license-tier distinctions, gotchas | **Hallucination** — the agent grounds on docs, never on training data |
 | **Skills** (24) | Encoded procedures for outcomes — prerequisites, ordering, intent disambiguation, known landmines | **Wrong sequence / wrong tool** — the agent follows a checklist, not a guess |
-| **CLI** (178 groups) | Tested, self-describing commands generated from 9 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
+| **CLI** (176 groups) | Tested, self-describing commands generated from 9 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
 
 The model only does what it's reliably good at — reasoning and orchestration. Facts come from the docs, procedure from the skills, execution from the tested CLI.
 
@@ -38,7 +38,7 @@ At every step the agent is forced back to an authoritative source: data model fr
 
 ### Why a CLI, not an MCP server?
 
-The natural question for an agent-driven tool: why not expose the API as MCP tools? Because at this surface area — 178 command groups and several hundred individual operations — one tool per endpoint breaks down:
+The natural question for an agent-driven tool: why not expose the API as MCP tools? Because at this surface area — 176 command groups and several hundred individual operations — one tool per endpoint breaks down:
 
 - **MCP tool schemas load eagerly, every turn.** Hundreds of operations means hundreds of JSON tool definitions sitting in the model's context *before it reads your request* — tens of thousands of tokens of overhead on every call. A CLI loads nothing up front; the model pulls a single command's schema on demand with `wxcli <group> <command> --help`. Just-in-time, not all-at-once.
 - **Tool-selection accuracy collapses well before hundreds.** Models reliably pick from a handful of tools, not a sea of near-duplicates — and this surface is full of overloaded names ("queue" means three different things across Calling, Contact Center, and Customer Assist). The skill layer disambiguates intent; a flat tool list just hands the model the ambiguity.
@@ -151,7 +151,7 @@ The AI playbook is optional — everything else works standalone:
 ## CLI Reference
 
 ```bash
-# See all 178 command groups
+# See all 176 command groups
 wxcli --help
 
 # List calling-enabled locations
@@ -189,7 +189,7 @@ wxcli locations create --help
 ### Finding IDs
 
 ```bash
-wxcli locations list --calling-only        # Get location IDs
+wxcli locations list                       # Get location IDs
 wxcli users list --location-id LOC_ID      # Get person IDs
 wxcli numbers list --location-id LOC_ID  # Get number inventory
 ```
@@ -234,7 +234,7 @@ wxcli numbers list --location-id LOC_ID  # Get number inventory
 | `cx-essentials` | Customer Assist (screen pop, wrap-up, supervisors) |
 | `cleanup` | Batch-delete resources in dependency-safe order |
 
-This table shows the most commonly used groups. Run `wxcli --help` to see all 178 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
+This table shows the most commonly used groups. Run `wxcli --help` to see all 176 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
 
 ---
 
@@ -245,7 +245,7 @@ A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environ
 ### Pipeline
 
 ```bash
-wxcli cucm init -p myproject              # Create project
+wxcli cucm init myproject                 # Create project
 wxcli cucm discover --host 10.0.0.1 \    # Extract from CUCM via AXL
   --username admin --password secret -p myproject
 wxcli cucm normalize -p myproject         # Normalize to canonical models
@@ -358,7 +358,7 @@ wxcli cleanup run --all --dry-run             # Preview without deleting
 ```
 wxops/
 ├── src/wxcli/                    # CLI source (Typer + httpx REST client)
-│   ├── main.py                   # Entry point — registers 178 command groups
+│   ├── main.py                   # Entry point — registers 176 command groups
 │   ├── auth.py                   # Token storage and API client init
 │   ├── output.py                 # Table/JSON output formatting
 │   ├── commands/                 # generated command modules (one per API tag) + _registry.py manifest
@@ -403,7 +403,7 @@ wxops/
 
 ### OAuth Scopes
 
-The CLI covers 178 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
+The CLI covers 176 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
 
 **Minimum scopes for Webex Calling admin operations:**
 
