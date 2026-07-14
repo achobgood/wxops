@@ -7,12 +7,19 @@ Checks (docs/arch/target-architecture.md §A6):
      command; every registered command URL maps to a live spec op or a
      keep_endpoints entry in tools/field_overrides.yaml.
   2. Reference existence: every `wxcli <group> [<command>]` token in code spans
-     of .claude/{skills,agents,rules}/**, CLAUDE.md, README.md resolves against
-     the built CLI.
+     of .claude/{skills,agents,rules}/**, docs/reference/**, CLAUDE.md,
+     README.md resolves against the built CLI. docs/reference/** is in scope
+     because CLAUDE.md's Mandatory Grounding Rule requires the agent to read
+     those docs before answering — they are the most load-bearing prose here.
   3. Published counts: "N command groups" / "N OpenAPI specs" claims in
-     CLAUDE.md / README.md match measured fresh-clone values.
+     CLAUDE.md / README.md match measured fresh-clone values. Groups are
+     counted as distinct command sets (aliases excluded — see
+     distinct_command_sets).
   4. Unreferenced groups: every registered group is referenced by the skills
      layer or declared on CLAUDE.md's out-of-skill-scope list.
+  5. Stale overlays: no specs/overlays/** path has been published upstream. An
+     overlay claims "live API serves this, published spec omits it"; once
+     upstream ships the path that claim is obsolete and the entry must go.
 
 Fresh-clone semantics: only git-tracked specs and command modules count
 (dev-only fs_* modules and specs/webex-flow-store.json are untracked).
@@ -24,6 +31,11 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+try:  # runnable as `python tools/drift_check.py` and as an imported module
+    from tools.spec_overlay import load_overlay, merge_overlay, superseded_paths
+except ImportError:  # pragma: no cover
+    from spec_overlay import load_overlay, merge_overlay, superseded_paths
 
 REPO = Path(__file__).resolve().parent.parent
 SPECS_DIR = REPO / "specs"
@@ -110,6 +122,9 @@ def load_spec_ops(skip_tags: dict) -> tuple[dict, dict]:
     for rel in sorted(tracked_files("specs/*.json")):
         spec_name = Path(rel).name
         spec = json.loads((REPO / rel).read_text())
+        # Overlays supply endpoints upstream omits but the live API serves, so
+        # the CLI built from them is parity-correct rather than "ahead of spec".
+        spec = merge_overlay(spec, load_overlay(REPO / rel))
         for path, methods in spec.get("paths", {}).items():
             for method, op in methods.items():
                 if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
@@ -208,10 +223,26 @@ def build_cli_surface() -> tuple[dict, set[str]]:
         surface["converged-recordings"].update(
             parse_module_commands("converged_recordings_export"))
     top_level = set()
+    main_src = MAIN_PY.read_text()
     for m in re.finditer(r"@app\.command\((?:\"([^\"]+)\")?\)\s*\ndef\s+(\w+)",
-                         MAIN_PY.read_text()):
+                         main_src):
         top_level.add(m.group(1) or m.group(2).replace("_", "-"))
+    # call-form registration — app.command(name="init")(init_command). Not a
+    # decorator, so the pattern above cannot see it; `init` is a real command.
+    for m in re.finditer(r"app\.command\(name=\"([^\"]+)\"\)\(", main_src):
+        top_level.add(m.group(1))
     return surface, top_level
+
+
+def distinct_command_sets() -> int:
+    """Distinct tracked command modules behind the registered groups.
+
+    Aliases (cx-essentials, users, licenses-api) mount an existing module under
+    a second name — the same commands, not a separate command set. Published
+    "N command groups" claims count command sets, so aliases are excluded.
+    """
+    tracked = {Path(f).stem for f in tracked_files("src/wxcli/commands/*.py")}
+    return len({m for m in parse_registrations().values() if m in tracked})
 
 
 # ------------------------------------------------------------------ check 1
@@ -244,7 +275,7 @@ def check_parity(surface: dict, spec_ops: dict, skipped_ops: dict,
 # ------------------------------------------------------------------ check 2
 
 SCAN_PATTERNS = (".claude/skills/**", ".claude/agents/**", ".claude/rules/**",
-                 "CLAUDE.md", "README.md")
+                 "docs/reference/**", "CLAUDE.md", "README.md")
 TOKEN = re.compile(r"wxcli\s+([a-z0-9][a-z0-9_-]*)(?:\s+([a-z0-9][a-z0-9_-]*))?")
 PLACEHOLDER = re.compile(r"[<>\[\]{}$|]")
 
@@ -308,7 +339,7 @@ def check_references(surface: dict, top_level: set[str]) -> tuple[list, dict]:
 # ------------------------------------------------------------------ check 3
 
 def check_counts(surface: dict) -> list:
-    measured_groups = len(surface)
+    measured_groups = distinct_command_sets()
     measured_specs = len(tracked_files("specs/*.json"))
     mismatches = []
     for rel in ("CLAUDE.md", "README.md"):
@@ -351,6 +382,24 @@ def check_unreferenced(group_refs: dict) -> list:
         g for g, count in group_refs.items()
         if count == 0 and not any(fnmatch.fnmatch(g, d) for d in declared)
     )
+
+
+# ------------------------------------------------------------------ check 5
+
+def check_overlays() -> list:
+    """Overlay paths upstream now publishes — the overlay entry must be deleted.
+
+    An overlay asserts "the live API serves this but the published spec omits
+    it". Once upstream publishes the path, that claim is obsolete and the
+    overlay would silently shadow Cisco's own definition. Failing here is what
+    stops an overlay outliving its purpose. See tools/spec_overlay.py rule 1.
+    """
+    stale = []
+    for rel in sorted(tracked_files("specs/*.json")):
+        raw = json.loads((REPO / rel).read_text())
+        for p in superseded_paths(raw, load_overlay(REPO / rel)):
+            stale.append({"spec": Path(rel).name, "path": p})
+    return stale
 
 
 # ---------------------------------------------------------- deliberate gaps
@@ -425,20 +474,24 @@ def main() -> int:
     dead_refs, group_refs = check_references(surface, top_level)
     count_mismatches = check_counts(surface)
     unreferenced = check_unreferenced(group_refs)
+    stale_overlays = check_overlays()
 
     results = {
         "1_spec_cli_parity": parity,
         "2_dead_references": dead_refs,
         "3_count_mismatches": count_mismatches,
         "4_undeclared_unreferenced_groups": unreferenced,
+        "5_stale_overlays": stale_overlays,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
-                  or dead_refs or count_mismatches or unreferenced)
+                  or dead_refs or count_mismatches or unreferenced
+                  or stale_overlays)
 
     if args.json:
         print(json.dumps(results, indent=2))
     else:
-        print(f"drift-check: {len(surface)} groups, "
+        print(f"drift-check: {distinct_command_sets()} command sets "
+              f"({len(surface)} registered names incl. aliases), "
               f"{sum(len(c) for c in surface.values())} commands, "
               f"{len(spec_ops)} non-skipped spec ops "
               f"({len(skipped_ops)} deliberately skipped)\n")
@@ -463,6 +516,9 @@ def main() -> int:
         print(f"[4] unreferenced groups not on the out-of-scope list: {len(unreferenced)}")
         if unreferenced:
             print(f"      {', '.join(unreferenced)}")
+        print(f"[5] stale overlays (upstream now publishes the path): {len(stale_overlays)}")
+        for s in stale_overlays:
+            print(f"      {s['spec']}: {s['path']} — delete this overlay entry")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
