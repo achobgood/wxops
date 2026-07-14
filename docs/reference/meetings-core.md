@@ -106,13 +106,13 @@ Meeting
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | List meetings | `wxcli meetings list-meetings` | GET /meetings | List meetings for the authenticated user |
-| Create meeting | `wxcli meetings create-meetings` | POST /meetings | Schedule a new meeting |
+| Create meeting | `wxcli meetings create` | POST /meetings | Schedule a new meeting |
 | Show meeting | `wxcli meetings show-meetings MEETING_ID` | GET /meetings/{meetingId} | Get meeting details |
-| Update meeting (full) | `wxcli meetings update-meetings MEETING_ID` | PUT /meetings/{meetingId} | Replace all meeting fields |
-| Update meeting (partial) | `wxcli meetings update-meetings-1 MEETING_ID` | PATCH /meetings/{meetingId} | Update only specified fields |
-| Delete meeting | `wxcli meetings delete-meetings MEETING_ID` | DELETE /meetings/{meetingId} | Cancel/delete a meeting |
-| List meetings (admin) | `wxcli meetings list-meetings-admin` | GET /admin/meetings | List any user's meetings (admin token) |
-| Show meeting (admin) | `wxcli meetings show-meetings-admin MEETING_ID` | GET /admin/meetings/{meetingId} | Get any meeting's details (admin token) |
+| Update meeting (full) | `wxcli meetings update MEETING_ID` | PUT /meetings/{meetingId} | Replace all meeting fields |
+| Update meeting (partial) | `wxcli meetings update-meetings MEETING_ID` | PATCH /meetings/{meetingId} | Update only specified fields |
+| Delete meeting | `wxcli meetings delete MEETING_ID` | DELETE /meetings/{meetingId} | Cancel/delete a meeting |
+| List meetings (admin) | `wxcli meetings list` | GET /admin/meetings | List any user's meetings (admin token) |
+| Show meeting (admin) | `wxcli meetings show MEETING_ID` | GET /admin/meetings/{meetingId} | Get any meeting's details (admin token) |
 
 ### Key Parameters
 
@@ -142,10 +142,11 @@ Meeting
 | `--site-url URL` | Webex site to query (default: user's default site) |
 | `--current` | Return only the current scheduled meeting in a series |
 | `--integration-tag TEXT` | Filter by integration application tag |
-| `--max N` | API-level page size (up to 100) |
+| `--limit N` | Max results (0 = all pages) |
+| `--offset N` | Start offset |
 | `--output table\|json` | Output format |
 
-#### `meetings create-meetings`
+#### `meetings create`
 
 | Option | Required | Description |
 |--------|:--------:|-------------|
@@ -161,7 +162,6 @@ Meeting
 | `--session-type-id TEXT` | No | Session type (from list-session-types) |
 | `--host-email EMAIL` | No | Admin: schedule on behalf of another user |
 | `--site-url URL` | No | Webex site (default: host's default site) |
-| `--invitees JSON` | No | Array of invitee objects (email, displayName, coHost) |
 | `--send-email` | No | Send email invitations to invitees |
 | `--enabled-join-before-host` | No | Allow attendees to join before host |
 | `--join-before-host-minutes N` | No | Minutes before start that attendees can join |
@@ -169,23 +169,28 @@ Meeting
 | `--enabled-breakout-sessions` | No | Enable breakout session capability |
 | `--enabled-webcast-view` | No | Enable webcast view for webinars |
 | `--room-id TEXT` | No | Associate with a Webex space |
-| `--json-body JSON` | No | Full JSON body (overrides all other options) |
+| `--json-body JSON` | No | Full JSON body (overrides all other options). Required for the `invitees` array — there is no `--invitees` flag |
 
-#### `meetings update-meetings` (PUT — full replace)
+#### `meetings update` (PUT — full replace)
 
-Same options as `create-meetings`. All fields must be provided; omitted fields revert to defaults.
+Same options as `create`. All fields must be provided; omitted fields revert to defaults.
 
-#### `meetings update-meetings-1` (PATCH — partial update)
+#### `meetings update-meetings` (PATCH — partial update)
 
-Same options as `create-meetings`. Only provided fields are updated; omitted fields remain unchanged.
+Same options as `create`. Only provided fields are updated; omitted fields remain unchanged.
 
-#### `meetings list-meetings-admin` / `meetings show-meetings-admin`
+#### `meetings list` / `meetings show` (admin)
 
-These admin endpoints accept the same filtering options as their user-level counterparts, plus:
+These are the admin-scoped commands (`GET /admin/meetings` and `GET /admin/meetings/{meetingId}`). They do **not** mirror the user-level filter set — `meetings list` accepts only the options below, and `meetings show` accepts only `--current` and `--output`.
 
 | Option | Description |
 |--------|-------------|
-| `--host-email EMAIL` | Required for admin queries — specifies which user's meetings to list |
+| `--meeting-number TEXT` | Filter by meeting number |
+| `--web-link TEXT` | Filter by meeting join link (URL-encoded) |
+| `--current TEXT` | Return only the current scheduled meeting in a series |
+| `--limit N` / `--offset N` | Pagination |
+
+There is no `--host-email` option on either admin command; the admin scope of the token determines which meetings are visible.
 
 ### Raw HTTP
 
@@ -234,7 +239,7 @@ resp = requests.get(f"{BASE}/admin/meetings", headers=headers,
 
 ### Gotchas
 
-- **`update-meetings` (PUT) is a full replace.** Every field you omit reverts to its default. Use `update-meetings-1` (PATCH) for partial updates.
+- **`update` (PUT) is a full replace.** Every field you omit reverts to its default. Use `update-meetings` (PATCH) for partial updates.
 - **`list-meetings` defaults to future meetings only.** To see past meetings, you must provide `--from` and `--to`.
 - **`state` filter only applies to certain meeting types.** For example, `ended` only applies to meeting instances, not series.
 - **Creating a recurring meeting** uses RFC 5545 RRULE syntax: `--recurrence "FREQ=WEEKLY;COUNT=10;BYDAY=MO"`.
@@ -323,7 +328,7 @@ Templates define default meeting settings (audio options, attendee privileges, m
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | List templates | `wxcli meetings list-templates` | GET /meetings/templates | List available meeting templates |
-| Show template | `wxcli meetings show TEMPLATE_ID` | GET /meetings/templates/{templateId} | Get template details |
+| Show template | `wxcli meetings show-templates TEMPLATE_ID` | GET /meetings/templates/{templateId} | Get template details |
 
 ### Key Parameters
 
@@ -369,7 +374,7 @@ Real-time controls for an active meeting. Only the meeting host can use these.
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | Show controls | `wxcli meetings show-controls` | GET /meetings/controls | Get lock and recording status |
-| Update controls | `wxcli meetings update` | PUT /meetings/controls | Lock/unlock meeting, start/pause recording |
+| Update controls | `wxcli meetings update-controls` | PUT /meetings/controls | Lock/unlock meeting, start/pause recording |
 
 ### Key Parameters
 
@@ -422,17 +427,17 @@ Registration forms and registrant management for webinar-type meetings. These en
 |---------|-----|------------|-------------|
 | Get form | `wxcli meetings list-registration MEETING_ID` | GET /meetings/{meetingId}/registration | Get the registration form configuration |
 | Update form | `wxcli meetings update-registration MEETING_ID` | PUT /meetings/{meetingId}/registration | Configure registration form fields |
-| Delete form | `wxcli meetings delete MEETING_ID` | DELETE /meetings/{meetingId}/registration | Remove registration form |
+| Delete form | `wxcli meetings delete-registration MEETING_ID` | DELETE /meetings/{meetingId}/registration | Remove registration form |
 
 ### Registrant Commands
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | List registrants | `wxcli meetings list-registrants MEETING_ID` | GET /meetings/{meetingId}/registrants | List all registrants |
-| Register one | `wxcli meetings create MEETING_ID` | POST /meetings/{meetingId}/registrants | Register a single person |
+| Register one | `wxcli meetings create-registrants MEETING_ID` | POST /meetings/{meetingId}/registrants | Register a single person |
 | Batch register | `wxcli meetings create-bulk-insert MEETING_ID` | POST /meetings/{meetingId}/registrants/bulkInsert | Register multiple people at once |
 | Show registrant | `wxcli meetings show-registrants MEETING_ID REGISTRANT_ID` | GET /meetings/{meetingId}/registrants/{registrantId} | Get registrant details |
-| Update registrant | `wxcli meetings create-registrants MEETING_ID REGISTRANT_ID` | POST /meetings/{meetingId}/registrants/{registrantId} | Update registrant status |
+| Update registrant status | _No CLI command_ — use the batch commands below, or raw HTTP | POST /meetings/{meetingId}/registrants/{registrantId} | Update a single registrant's status |
 | Delete registrant | `wxcli meetings delete-registrants MEETING_ID REGISTRANT_ID` | DELETE /meetings/{meetingId}/registrants/{registrantId} | Remove a registrant |
 | Query registrants | `wxcli meetings create-query MEETING_ID` | POST /meetings/{meetingId}/registrants/query | Query registrants with filters |
 | Batch approve | `wxcli meetings create-approve MEETING_ID` | POST /meetings/{meetingId}/registrants/approve | Approve multiple registrants |
@@ -511,8 +516,8 @@ resp = requests.post(f"{BASE}/meetings/{meeting_id}/registrants/query", headers=
 ### Gotchas
 
 - **Registration only applies to webinar-type meetings.** Standard meetings do not support registration forms.
-- **`create-registrants` (POST to `/{registrantId}`) is a status update, not a create.** Despite the CLI name, this updates an existing registrant's status (approve/reject/cancel).
-- **`delete` (registration form) uses a bare command name** because it maps to `DELETE /meetings/{meetingId}/registration` — not to be confused with `delete-meetings` which deletes the meeting itself.
+- **`create-registrants` registers a new person** (`POST /meetings/{meetingId}/registrants`). To change an existing registrant's status, use the batch commands (`create-approve`, `create-reject`, `create-cancel`).
+- **`delete-registration` removes the registration form; bare `delete` deletes the meeting itself.** `delete` maps to `DELETE /meetings/{meetingId}`, *not* to the registration form. Do not substitute one for the other.
 - **Batch operations (approve, reject, cancel, bulkDelete) accept arrays of registrant IDs** via `--json-body`.
 - **Custom questions and rules require `--json-body`** — the CLI does not expose individual flags for nested question objects.
 
@@ -670,8 +675,10 @@ Retrieve meeting surveys and survey results. Surveys are configured in the Webex
 
 | Option | Description |
 |--------|-------------|
-| `--meeting-id TEXT` | Meeting ID (required) |
-| `--max N` | API-level page size |
+| `MEETING_ID` | Positional argument (required) — not a `--meeting-id` flag |
+| `--meeting-start-time-from DATETIME` | Start of time range (ISO 8601, inclusive) |
+| `--meeting-start-time-to DATETIME` | End of time range (ISO 8601, exclusive) |
+| `--limit N` | Max results (0 = all pages) |
 | `--output table\|json` | Output format |
 
 #### `meetings create-survey-links`
@@ -760,7 +767,7 @@ These are read-only configuration endpoints. Session types define what meeting c
 |---------|-----|------------|-------------|
 | List session types | `wxcli meetings list-session-types` | GET /meetings/sessionTypes | List available session types |
 | Show session type | `wxcli meetings show-session-types SESSION_TYPE_ID` | GET /meetings/sessionTypes/{sessionTypeId} | Get session type details |
-| List tracking codes | `wxcli meetings list` | GET /meetings/trackingCodes | List tracking codes for the site |
+| List tracking codes | `wxcli meetings list-tracking-codes` | GET /meetings/trackingCodes | List tracking codes for the site |
 
 ### Key Parameters
 
@@ -812,13 +819,13 @@ Complete table of all 46 endpoints in the `meetings` CLI group.
 | HTTP Method | Path | CLI Command | Summary |
 |-------------|------|-------------|---------|
 | GET | /meetings | `list-meetings` | List Meetings |
-| POST | /meetings | `create-meetings` | Create a Meeting |
+| POST | /meetings | `create` | Create a Meeting |
 | GET | /meetings/{meetingId} | `show-meetings` | Get a Meeting |
-| PUT | /meetings/{meetingId} | `update-meetings` | Update a Meeting (full replace) |
-| PATCH | /meetings/{meetingId} | `update-meetings-1` | Patch a Meeting (partial update) |
-| DELETE | /meetings/{meetingId} | `delete-meetings` | Delete a Meeting |
-| GET | /admin/meetings | `list-meetings-admin` | List Meetings By an Admin |
-| GET | /admin/meetings/{meetingId} | `show-meetings-admin` | Get a Meeting By an Admin |
+| PUT | /meetings/{meetingId} | `update` | Update a Meeting (full replace) |
+| PATCH | /meetings/{meetingId} | `update-meetings` | Patch a Meeting (partial update) |
+| DELETE | /meetings/{meetingId} | `delete` | Delete a Meeting |
+| GET | /admin/meetings | `list` | List Meetings By an Admin |
+| GET | /admin/meetings/{meetingId} | `show` | Get a Meeting By an Admin |
 | POST | /meetings/join | `create-join` | Join a Meeting |
 | POST | /meetings/{meetingId}/end | `create-end` | End a Meeting |
 | POST | /meetings/reassignHost | `create-reassign-host` | Reassign Meetings to a New Host |
@@ -870,7 +877,7 @@ These issues span multiple meetings API surfaces. Check per-section Gotchas for 
 
 3. **`list-meetings` defaults to returning future meetings only.** If you do not specify `--from` and `--to`, the API returns only upcoming scheduled meetings. To see historical meetings, you must explicitly provide a date range. The maximum range is 90 days per query.
 
-4. **`update-meetings` (PUT) replaces all fields; `update-meetings-1` (PATCH) updates only specified fields.** Always use PATCH for partial updates. PUT with missing fields will reset those fields to defaults, potentially removing invitees, agenda text, and other configuration.
+4. **`update` (PUT) replaces all fields; `update-meetings` (PATCH) updates only specified fields.** The names are easy to invert — `update` is the destructive one. Always use `update-meetings` for partial updates. PUT with missing fields will reset those fields to defaults, potentially removing invitees, agenda text, and other configuration.
 
 5. **`create-join` can join by meetingId, meetingNumber, or webLink — exactly one must be provided.** If you pass multiple, the API returns an error. The `webLink` value must be URL-encoded.
 

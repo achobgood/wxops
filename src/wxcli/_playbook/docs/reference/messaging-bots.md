@@ -73,7 +73,7 @@ The `/people/me` endpoint (called by `wxcli whoami`) returns a `type` field:
 
 The key discriminator: if `type` is `bot`, it is a bot token. If `type` is `person`, check the intended scopes — admin vs. regular user depends on token scopes, not the `/people/me` type field.
 
-> **`wxcli whoami` does not display the `type` field.** It shows display name, email, org ID, roles, and token expiry. To distinguish bot from user via CLI, use `wxcli people list-me -o json` and check the `type` field in the JSON output, or call `/people/me` via Raw HTTP and inspect the `type` field directly.
+> **`wxcli whoami` does not display the `type` field.** It shows display name, email, org ID, roles, and token expiry. To distinguish bot from user via CLI, use `wxcli people show-me -o json` and check the `type` field in the JSON output, or call `/people/me` via Raw HTTP and inspect the `type` field directly.
 
 ---
 

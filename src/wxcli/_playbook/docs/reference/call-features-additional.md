@@ -2166,7 +2166,7 @@ wxcli announcements delete-announcements --location-id <loc_id> --announcement-i
 wxcli announcements show
 
 # Get location-level repository usage
-wxcli announcements show-usage --location-id <loc_id>
+wxcli announcements show-usage-announcements <loc_id>
 ```
 
 #### Playlists

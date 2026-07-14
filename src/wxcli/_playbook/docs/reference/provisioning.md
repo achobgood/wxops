@@ -269,7 +269,7 @@ wxcli people show <person_id>
 wxcli people show <person_id> -o table
 
 # ── Get current user details ──────────────────────────────────────
-wxcli people list-me --calling-data true
+wxcli people show-me --calling-data true
 
 # ── Create a person ───────────────────────────────────────────────
 wxcli people create --first-name "John" --last-name "Smith" \
@@ -1276,7 +1276,7 @@ Number port-in requests, LOA submission, porting status tracking, and new number
 
 Locations with Webex Calling enabled cannot be deleted directly via the public
 API (`409 Conflict: Location is being referenced`). The older guidance to
-"disable calling first" via a `wxcli location-call-settings update-location-calling`
+"disable calling first" via a `location-call-settings update-location-calling`
 command is stale for this repo:
 
 - that command does **not** exist in the current CLI

@@ -1241,7 +1241,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 ### Auto Attendant API Gotchas
 
-10. **`wxcli auto-attendants update` only supports basic fields** -- the CLI `update` command accepts `--name`, `--extension`, `--phone-number`, `--enabled` only. Menu configuration (`businessHoursMenu`, `afterHoursMenu`) requires raw HTTP PUT to `telephony/config/locations/{locationId}/autoAttendants/{aaId}`.
+10. **`wxcli auto-attendant update` option flags cover only scalar fields** -- the CLI `update` command takes `LOCATION_ID AUTO_ATTENDANT_ID` as positional arguments and accepts `--name`, `--phone-number`, `--extension`, `--first-name`, `--last-name`, `--language-code`, `--business-schedule`, `--holiday-schedule`, `--extension-dialing`, `--name-dialing`, `--time-zone`, `--dial-by-name`. There is no `--enabled` flag. Menu configuration (`businessHoursMenu`, `afterHoursMenu`) has no option flags -- pass it via `--json-body`, which the CLI sends verbatim as the PUT body to `telephony/config/locations/{locationId}/autoAttendants/{aaId}`. Raw HTTP is not required.
 
 11. **`keyConfigurations.value` is mandatory in PUT** -- even for actions that don't use a destination (`TRANSFER_TO_OPERATOR`, `REPEAT_MENU`, `NAME_DIALING`, `EXTENSION_DIALING`), the `value` field must be present. Use `""` (empty string) for these actions. Omitting `value` or sending `null` causes error `25008 Missing Mandatory field name: HoursMenu.keyConfigurations.value`.
 

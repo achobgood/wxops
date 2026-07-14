@@ -275,7 +275,7 @@ wxcli announcements show-announcements-config Y2lzY29zcGFyazovL_ANN_ID
 wxcli announcements show-announcements-locations Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_ANN_ID
 
 # Get repository usage for a specific location
-wxcli announcements show-usage Y2lzY29zcGFyazovL_LOC_ID
+wxcli announcements show-usage-announcements Y2lzY29zcGFyazovL_LOC_ID
 
 # Delete an org-level announcement
 wxcli announcements delete Y2lzY29zcGFyazovL_ANN_ID --force

@@ -1488,7 +1488,7 @@ result = api.session.rest_get(url)
 ## 15. Monitoring
 <!-- Updated by playbook session 2026-03-18 -->
 
-Configures which users, call parks, and shared lines a person monitors (busy lamp field / BLF). Present in the CLI but not yet in the wxc_sdk person_settings docs for this file.
+Configures which users, call parks, and shared lines a person monitors (busy lamp field / BLF). Full admin read/write CLI coverage via the `person-call-settings` group — see CLI Examples below.
 
 ### Raw HTTP
 
@@ -1500,27 +1500,49 @@ BASE = "https://webexapis.com/v1"
 # Read monitoring settings
 url = f"{BASE}/people/{person_id}/features/monitoring"
 result = api.session.rest_get(url)
-# Returns: {"enableCallParkNotification": true, "monitoredMembers": [...]}
+# Returns: {"enableCallParkNotification": true, "monitoredElements": [...]}
 
 # Update monitoring settings
 url = f"{BASE}/people/{person_id}/features/monitoring"
 body = {
     "enableCallParkNotification": True,
-    "monitoredMembers": [{"id": "<member-id>"}]  # use --json-body for full control
+    "monitoredElements": ["<member-id>", "<cpe-id>"]  # flat list of IDs
 }
 api.session.rest_put(url, json=body)
 ```
 
-**CLI**: `wxcli user-call-settings show-monitoring <personId>` / `update-monitoring <personId>`
-
 ### CLI Examples
 
 ```bash
-# List monitoring settings (BLF / busy lamp field) for a person
-wxcli user-settings list-monitoring <personId>
+# Read a person's monitoring settings (GET /people/{personId}/features/monitoring)
+wxcli person-call-settings list <personId> -o json
 
-# Update monitoring settings (use --json-body for member list)
-wxcli user-settings update-monitoring <personId> --json-body '{"enableCallParkNotification": true, "monitoredMembers": [{"id": "<member-id>"}]}'
+# Configure monitoring. monitoredElements is a nested array, so it needs --json-body
+# (the shape below is the example printed by `wxcli person-call-settings update --help`).
+wxcli person-call-settings update <personId> \
+  --json-body '{"enableCallParkNotification":true,"monitoredElements":["<member-id>","<cpe-id>"]}'
+
+# Toggle only the call park notification flag — the one field with a dedicated option
+wxcli person-call-settings update <personId> --enable-call-park-notification
+
+# Find members a person is eligible to monitor (supplies the monitoredElements IDs)
+wxcli user-settings list-available-members-monitoring <personId>
+wxcli user-settings list-available-members-monitoring <personId> --member-name "Alice" -o json
+
+# Read your OWN monitoring settings (user-level OAuth only — no personId)
+wxcli my-call-settings list-monitoring -o json
+```
+
+**Naming trap:** the read/write commands live in the `person-call-settings` group and are named
+just `list` and `update` — there is no `-monitoring` suffix, and they are not in `user-settings`
+where every other person setting lives. That group does nothing but monitoring, which is why the
+command names are bare. `user-settings` carries only the available-members lookup.
+
+Workspace monitoring lives in its own group — see `devices-workspaces.md`:
+
+```bash
+wxcli workspace-settings list-monitoring WORKSPACE_ID -o json
+wxcli workspace-settings update-monitoring WORKSPACE_ID --enable-call-park-notification
 ```
 
 ---

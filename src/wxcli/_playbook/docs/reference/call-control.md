@@ -373,7 +373,7 @@ wxcli call-controls list-history --type placed -o json
 
 ```bash
 # Dial on behalf of a user (Service App token required)
-wxcli call-controls create-dial <member_id> --destination "+12223334444"
+wxcli call-controls create-dial-members <member_id> --destination "+12223334444"
 
 # Answer a call on behalf of a user
 wxcli call-controls create-answer-members <member_id> --call-id Y2lzY29zcGFyay...
@@ -382,10 +382,10 @@ wxcli call-controls create-answer-members <member_id> --call-id Y2lzY29zcGFyay..
 wxcli call-controls create-hangup-members <member_id> --call-id Y2lzY29zcGFyay...
 
 # List active calls for a user
-wxcli call-controls list-calls <member_id>
+wxcli call-controls list-calls-members <member_id>
 
 # Get call details for a specific call on a user
-wxcli call-controls show-calls <member_id> Y2lzY29zcGFyay...
+wxcli call-controls show-calls-members <member_id> Y2lzY29zcGFyay...
 ```
 
 ### Hold, Consult, Transfer Pattern (CLI Workflow)

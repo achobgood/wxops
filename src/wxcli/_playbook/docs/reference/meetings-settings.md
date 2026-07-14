@@ -57,35 +57,36 @@ Meeting preferences control audio/video settings, scheduling options, delegate a
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
-| Get all preferences | `wxcli meeting-preferences list-meeting-preferences` | GET /meetingPreferences | Get complete meeting preference details |
+| Get all preferences | `wxcli meeting-preferences list` | GET /meetingPreferences | Get complete meeting preference details |
 | Get audio options | `wxcli meeting-preferences show` | GET /meetingPreferences/audio | Get audio preferences (call-in, VoIP, toll-free) |
-| Update audio options | `wxcli meeting-preferences update` | PUT /meetingPreferences/audio | Update audio preferences |
-| Get video options | `wxcli meeting-preferences list` | GET /meetingPreferences/video | Get video device preferences |
+| Update audio options | `wxcli meeting-preferences update-audio` | PUT /meetingPreferences/audio | Update audio preferences |
+| Get video options | `wxcli meeting-preferences list-video` | GET /meetingPreferences/video | Get video device preferences |
 | Update video options | `wxcli meeting-preferences update-video` | PUT /meetingPreferences/video | Update video device preferences |
 | Get scheduling options | `wxcli meeting-preferences list-scheduling-options` | GET /meetingPreferences/schedulingOptions | Get scheduling preferences (delegates, join-before-host) |
 | Update scheduling options | `wxcli meeting-preferences update-scheduling-options` | PUT /meetingPreferences/schedulingOptions | Update scheduling preferences |
-| Insert delegate emails | `wxcli meeting-preferences create-insert` | POST /meetingPreferences/schedulingOptions/delegateEmails/insert | Add delegate emails for scheduling |
-| Delete delegate emails | `wxcli meeting-preferences create` | POST /meetingPreferences/schedulingOptions/delegateEmails/delete | Remove delegate emails |
+| Insert delegate emails | `wxcli meeting-preferences create` | POST /meetingPreferences/schedulingOptions/delegateEmails/insert | Add delegate emails for scheduling |
+| Delete delegate emails | `wxcli meeting-preferences create-delete` | POST /meetingPreferences/schedulingOptions/delegateEmails/delete | Remove delegate emails |
 | Get site list | `wxcli meeting-preferences list-sites` | GET /meetingPreferences/sites | List available Webex sites and default site |
 | Update default site | `wxcli meeting-preferences update-sites` | PUT /meetingPreferences/sites | Change the user's default Webex site |
 | Get PMR options | `wxcli meeting-preferences list-personal-meeting-room` | GET /meetingPreferences/personalMeetingRoom | Get Personal Meeting Room settings |
-| Update PMR options | `wxcli meeting-preferences update-personal-meeting-room` | PUT /meetingPreferences/personalMeetingRoom | Update PMR settings (co-hosts, auto-lock, PIN) |
+| Update PMR options | `wxcli meeting-preferences update` | PUT /meetingPreferences/personalMeetingRoom | Update PMR settings (co-hosts, auto-lock, PIN) |
 | Batch refresh PMR IDs | `wxcli meeting-preferences create-refresh-id` | POST /admin/meetingPreferences/personalMeetingRoom/refreshId | Batch refresh PMR IDs for multiple users (admin) |
 
 ### Key Parameters
 
-#### Common Parameters (all preference endpoints)
+#### Common Parameters (all preference endpoints except `create-refresh-id`)
 
 | Option | Description |
 |--------|-------------|
 | `--user-email EMAIL` | Email of the target user. Admin-only -- acts on behalf of the specified user |
 | `--site-url URL` | URL of the Webex site to query. Defaults to the user's default site |
 
-#### `meeting-preferences update` (Audio Options)
+#### `meeting-preferences update-audio` (Audio Options)
 
 | Option | Description |
 |--------|-------------|
-| `--default-audio-type TEXT` | Default audio type: `voipOnly`, `phoneOnly`, `otherTeleconferenceService`, `none` |
+| `--default-audio-type TEXT` | Default audio type: `webexAudio`, `voipOnly`, `otherTeleconferenceService`, `none` |
+| `--other-teleconference-description TEXT` | Phone number and details for the teleconference provider |
 | `--enabled-toll-free / --no-enabled-toll-free` | Enable/disable toll-free call-in numbers |
 | `--enabled-global-call-in / --no-enabled-global-call-in` | Enable/disable global call-in numbers |
 | `--enabled-auto-connection / --no-enabled-auto-connection` | Auto-connect to audio on join |
@@ -108,13 +109,13 @@ Meeting preferences control audio/video settings, scheduling options, delegate a
 | `--enabled-webex-assistant-by-default / --no-enabled-webex-assistant-by-default` | Enable Webex Assistant by default |
 | `--json-body JSON` | Full JSON body (includes `delegateEmails` array) |
 
-#### `meeting-preferences create-insert` (Insert Delegate Emails)
+#### `meeting-preferences create` (Insert Delegate Emails)
 
 | Option | Description |
 |--------|-------------|
 | `--json-body JSON` | Required: `{"emails": ["delegate1@example.com", "delegate2@example.com"]}` |
 
-#### `meeting-preferences create` (Delete Delegate Emails)
+#### `meeting-preferences create-delete` (Delete Delegate Emails)
 
 | Option | Description |
 |--------|-------------|
@@ -124,10 +125,10 @@ Meeting preferences control audio/video settings, scheduling options, delegate a
 
 | Option | Description |
 |--------|-------------|
-| `--site-url URL` | URL of the site to set as default |
-| `--default-site / --no-default-site` | Whether to set this as the default site (must be `true`) |
+| `--site-url URL` | Access URL for the site |
+| `--default-site TEXT` | Required. Whether to set this as the user's default site |
 
-#### `meeting-preferences update-personal-meeting-room` (PMR Options)
+#### `meeting-preferences update` (PMR Options)
 
 | Option | Description |
 |--------|-------------|
@@ -146,7 +147,10 @@ Meeting preferences control audio/video settings, scheduling options, delegate a
 
 | Option | Description |
 |--------|-------------|
+| `--site-url URL` | Required. Site URL whose personal room IDs are refreshed |
 | `--json-body JSON` | Required: `{"siteUrl": "site.webex.com", "personalMeetingRoomIds": [{"email": "user@example.com", "personalMeetingRoomId": "newId", "systemGenerated": true}]}` |
+
+This is the only preference command that takes no `--user-email` — it is admin-scoped and batch-oriented.
 
 ### Raw HTTP
 
@@ -315,10 +319,10 @@ Tracking codes are custom metadata fields (e.g., department, project, cost cente
 | List tracking codes | `wxcli meeting-tracking-codes list` | GET /admin/meeting/config/trackingCodes | List site-level tracking code definitions |
 | Create tracking code | `wxcli meeting-tracking-codes create` | POST /admin/meeting/config/trackingCodes | Create a new tracking code definition |
 | Get tracking code | `wxcli meeting-tracking-codes show TRACKING_CODE_ID` | GET /admin/meeting/config/trackingCodes/{trackingCodeId} | Get a specific tracking code |
-| Update tracking code | `wxcli meeting-tracking-codes update-tracking-codes TRACKING_CODE_ID` | PUT /admin/meeting/config/trackingCodes/{trackingCodeId} | Update a tracking code definition |
+| Update tracking code | `wxcli meeting-tracking-codes update TRACKING_CODE_ID` | PUT /admin/meeting/config/trackingCodes/{trackingCodeId} | Update a tracking code definition |
 | Delete tracking code | `wxcli meeting-tracking-codes delete TRACKING_CODE_ID` | DELETE /admin/meeting/config/trackingCodes/{trackingCodeId} | Delete a tracking code |
 | Get user tracking codes | `wxcli meeting-tracking-codes list-tracking-codes` | GET /admin/meeting/userconfig/trackingCodes | Get tracking code values for a user |
-| Update user tracking codes | `wxcli meeting-tracking-codes update` | PUT /admin/meeting/userconfig/trackingCodes | Set tracking code values for a user |
+| Update user tracking codes | `wxcli meeting-tracking-codes update-tracking-codes` | PUT /admin/meeting/userconfig/trackingCodes | Set tracking code values for a user |
 
 ### Key Parameters
 
@@ -371,7 +375,7 @@ Create body example:
 | `--person-id ID` | User's person ID (at least one of personId or email required) |
 | `--email EMAIL` | User's email (passed as header) |
 
-#### `meeting-tracking-codes update` (Update User Tracking Codes)
+#### `meeting-tracking-codes update-tracking-codes` (Update User Tracking Codes)
 
 | Option | Description |
 |--------|-------------|
@@ -533,24 +537,24 @@ Read-only access to poll data from completed meeting instances. Retrieve poll qu
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
-| List polls | `wxcli meeting-polls list-polls` | GET /meetings/polls | List polls from a meeting instance |
-| Get poll results | `wxcli meeting-polls list` | GET /meetings/pollResults | Get poll results with answer summaries |
+| List polls | `wxcli meeting-polls list` | GET /meetings/polls | List polls from a meeting instance |
+| Get poll results | `wxcli meeting-polls list-poll-results` | GET /meetings/pollResults | Get poll results with answer summaries |
 | List respondents | `wxcli meeting-polls list-respondents POLL_ID QUESTION_ID` | GET /meetings/polls/{pollId}/questions/{questionId}/respondents | List individual respondent answers |
 
 ### Key Parameters
 
-#### `meeting-polls list-polls` (List Polls)
+#### `meeting-polls list` (List Polls)
 
 | Option | Description |
 |--------|-------------|
 | `--meeting-id ID` | Required. Meeting instance ID (ended meetings only) |
 
-#### `meeting-polls list` (Poll Results)
+#### `meeting-polls list-poll-results` (Poll Results)
 
 | Option | Description |
 |--------|-------------|
 | `--meeting-id ID` | Required. Meeting instance ID |
-| `--max N` | Maximum number of respondents per poll (up to 100) |
+| `--limit N` | Max results (0 = all pages) |
 
 #### `meeting-polls list-respondents` (Respondents)
 
@@ -559,7 +563,7 @@ Read-only access to poll data from completed meeting instances. Retrieve poll qu
 | `POLL_ID` | Positional argument -- the poll ID |
 | `QUESTION_ID` | Positional argument -- the question ID |
 | `--meeting-id ID` | Required. Meeting instance ID |
-| `--max N` | Maximum number of respondents (up to 100) |
+| `--limit N` | Max results (0 = all pages) |
 
 ### Raw HTTP
 
@@ -612,7 +616,7 @@ Read-only access to Q&A data from completed meeting instances. Retrieve question
 | Option | Description |
 |--------|-------------|
 | `--meeting-id ID` | Required. Meeting instance ID (ended meetings only) |
-| `--max N` | Maximum number of answers (up to 100) |
+| `--limit N` | Max results (0 = all pages) |
 
 #### `meeting-qa list-answers` (List Answers)
 
@@ -620,7 +624,7 @@ Read-only access to Q&A data from completed meeting instances. Retrieve question
 |--------|-------------|
 | `QUESTION_ID` | Positional argument -- the question ID |
 | `--meeting-id ID` | Required. Meeting instance ID |
-| `--max N` | Maximum number of answers (up to 100) |
+| `--limit N` | Max results (0 = all pages) |
 
 ### Raw HTTP
 
@@ -667,7 +671,7 @@ Meeting usage and attendee reports for site administrators. Returns meeting stat
 | `--service-type TEXT` | Filter by service: `MeetingCenter` (default), `EventCenter`, `SupportCenter`, `TrainingCenter` |
 | `--from DATETIME` | Start date/time (ISO 8601). Default: 7 days before `to` |
 | `--to DATETIME` | End date/time (ISO 8601). Default: current time |
-| `--max N` | Page size (1-1000) |
+| `--limit N` | Max results (0 = all pages) |
 
 #### `meeting-reports list-attendees` (Attendee Reports)
 
@@ -679,7 +683,7 @@ Meeting usage and attendee reports for site administrators. Returns meeting stat
 | `--meeting-title TEXT` | Filter by meeting title |
 | `--from DATETIME` | Start date/time (ISO 8601). Default: 7 days before `to` |
 | `--to DATETIME` | End date/time (ISO 8601). Default: current time |
-| `--max N` | Page size (1-1000) |
+| `--limit N` | Max results (0 = all pages) |
 
 **Date range constraints:** The interval between `from` and `to` cannot exceed 30 days. `from` cannot be earlier than 90 days ago.
 
@@ -776,19 +780,19 @@ All 34 endpoints across the 8 CLI groups, for quick reference.
 
 | # | Method | Path | CLI Group | CLI Command | Description |
 |---|--------|------|-----------|-------------|-------------|
-| 1 | GET | /meetingPreferences | meeting-preferences | `list-meeting-preferences` | Get all meeting preferences |
+| 1 | GET | /meetingPreferences | meeting-preferences | `list` | Get all meeting preferences |
 | 2 | GET | /meetingPreferences/audio | meeting-preferences | `show` | Get audio options |
-| 3 | PUT | /meetingPreferences/audio | meeting-preferences | `update` | Update audio options |
-| 4 | GET | /meetingPreferences/video | meeting-preferences | `list` | Get video options |
+| 3 | PUT | /meetingPreferences/audio | meeting-preferences | `update-audio` | Update audio options |
+| 4 | GET | /meetingPreferences/video | meeting-preferences | `list-video` | Get video options |
 | 5 | PUT | /meetingPreferences/video | meeting-preferences | `update-video` | Update video options |
 | 6 | GET | /meetingPreferences/schedulingOptions | meeting-preferences | `list-scheduling-options` | Get scheduling options |
 | 7 | PUT | /meetingPreferences/schedulingOptions | meeting-preferences | `update-scheduling-options` | Update scheduling options |
-| 8 | POST | /meetingPreferences/schedulingOptions/delegateEmails/insert | meeting-preferences | `create-insert` | Insert delegate emails |
-| 9 | POST | /meetingPreferences/schedulingOptions/delegateEmails/delete | meeting-preferences | `create` | Delete delegate emails |
+| 8 | POST | /meetingPreferences/schedulingOptions/delegateEmails/insert | meeting-preferences | `create` | Insert delegate emails |
+| 9 | POST | /meetingPreferences/schedulingOptions/delegateEmails/delete | meeting-preferences | `create-delete` | Delete delegate emails |
 | 10 | GET | /meetingPreferences/sites | meeting-preferences | `list-sites` | Get site list |
 | 11 | PUT | /meetingPreferences/sites | meeting-preferences | `update-sites` | Update default site |
 | 12 | GET | /meetingPreferences/personalMeetingRoom | meeting-preferences | `list-personal-meeting-room` | Get PMR options |
-| 13 | PUT | /meetingPreferences/personalMeetingRoom | meeting-preferences | `update-personal-meeting-room` | Update PMR options |
+| 13 | PUT | /meetingPreferences/personalMeetingRoom | meeting-preferences | `update` | Update PMR options |
 | 14 | POST | /admin/meetingPreferences/personalMeetingRoom/refreshId | meeting-preferences | `create-refresh-id` | Batch refresh PMR IDs |
 | 15 | GET | /admin/meeting/config/sessionTypes | meeting-session-types | `list` | List site session types |
 | 16 | GET | /admin/meeting/userconfig/sessionTypes | meeting-session-types | `list-session-types` | List user session types |
@@ -796,14 +800,14 @@ All 34 endpoints across the 8 CLI groups, for quick reference.
 | 18 | GET | /admin/meeting/config/trackingCodes | meeting-tracking-codes | `list` | List site tracking codes |
 | 19 | POST | /admin/meeting/config/trackingCodes | meeting-tracking-codes | `create` | Create tracking code |
 | 20 | GET | /admin/meeting/config/trackingCodes/{trackingCodeId} | meeting-tracking-codes | `show` | Get tracking code |
-| 21 | PUT | /admin/meeting/config/trackingCodes/{trackingCodeId} | meeting-tracking-codes | `update-tracking-codes` | Update tracking code |
+| 21 | PUT | /admin/meeting/config/trackingCodes/{trackingCodeId} | meeting-tracking-codes | `update` | Update tracking code |
 | 22 | DELETE | /admin/meeting/config/trackingCodes/{trackingCodeId} | meeting-tracking-codes | `delete` | Delete tracking code |
 | 23 | GET | /admin/meeting/userconfig/trackingCodes | meeting-tracking-codes | `list-tracking-codes` | Get user tracking codes |
-| 24 | PUT | /admin/meeting/userconfig/trackingCodes | meeting-tracking-codes | `update` | Update user tracking codes |
+| 24 | PUT | /admin/meeting/userconfig/trackingCodes | meeting-tracking-codes | `update-tracking-codes` | Update user tracking codes |
 | 25 | GET | /admin/meeting/config/commonSettings | meeting-site | `show` | Get site common settings |
 | 26 | PATCH | /admin/meeting/config/commonSettings | meeting-site | `update` | Update site common settings |
-| 27 | GET | /meetings/polls | meeting-polls | `list-polls` | List meeting polls |
-| 28 | GET | /meetings/pollResults | meeting-polls | `list` | Get meeting poll results |
+| 27 | GET | /meetings/polls | meeting-polls | `list` | List meeting polls |
+| 28 | GET | /meetings/pollResults | meeting-polls | `list-poll-results` | Get meeting poll results |
 | 29 | GET | /meetings/polls/{pollId}/questions/{questionId}/respondents | meeting-polls | `list-respondents` | List poll respondents |
 | 30 | GET | /meetings/q_and_a | meeting-qa | `list` | List meeting Q&A |
 | 31 | GET | /meetings/q_and_a/{questionId}/answers | meeting-qa | `list-answers` | List Q&A answers |
@@ -817,7 +821,12 @@ All 34 endpoints across the 8 CLI groups, for quick reference.
 
 1. **Preferences endpoints default to the authenticated user.** Pass `--user-email` to act on behalf of another user. This requires admin-level scopes (`meeting:admin_preferences_read`, `meeting:admin_preferences_write`). Without admin scopes, the parameter is silently ignored and the API operates on the caller.
 
-2. **`create` in meeting-preferences actually deletes delegate emails.** The CLI command `wxcli meeting-preferences create` maps to `POST /meetingPreferences/schedulingOptions/delegateEmails/delete`. This is a confusing auto-generated name because the generator maps all POST endpoints to `create`. To add delegates, use `create-insert` instead.
+2. **The bare `update` and `create` names in meeting-preferences do not mean what they look like — always check the table above before running one.** The generator assigns the unsuffixed name to whichever endpoint it processes first, so:
+   - `wxcli meeting-preferences update` updates **Personal Meeting Room** options (`PUT /meetingPreferences/personalMeetingRoom`), *not* audio. Audio is `update-audio`.
+   - `wxcli meeting-preferences list` returns **all** preferences (`GET /meetingPreferences`), *not* video. Video is `list-video`.
+   - `wxcli meeting-preferences create` **inserts** delegate emails (`.../delegateEmails/insert`). Deleting delegates is `create-delete`.
+
+   Running `update` expecting to change audio settings will instead overwrite the user's PMR configuration.
 
 3. **`create-refresh-id` is an admin-only batch endpoint.** It lives under `/admin/meetingPreferences/...` and refreshes PMR IDs for multiple users at once. Requires an admin token. The `personalMeetingRoomId` field in the request can be set to a custom value, or `systemGenerated: true` will auto-generate a new ID.
 
