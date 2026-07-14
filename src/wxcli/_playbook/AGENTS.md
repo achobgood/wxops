@@ -284,6 +284,29 @@ Detailed context in `.codex/rules/org-health.md` (auto-loaded when touching org 
 
 The migration tool is wired into the CLI as `wxcli cucm <command>`. Pipeline workflow, report generation, and advisory details are in `.codex/rules/cucm-migration.md`.
 
+## Out-of-Skill-Scope Command Groups
+
+These groups are registered in the CLI but deliberately have **no skill routing** — the playbook does not cover them. Drift-gate check 4 reads this list.
+
+Listing a group here is a commitment that we intentionally do not route to it. It is **not** a way to quiet the gate: if a group belongs in a skill, wire it into the skill instead. Every entry states a reason.
+
+> **Maintainer note:** only the group names in the left column may be backticked in this section. The gate harvests every backticked token between this heading and the next one, so a backticked group name in a *reason* would silently declare that group out of scope too.
+
+| Group | Why the playbook does not cover it |
+|-------|-----------------------------------|
+| `broadworks-billing-reports` | BroadWorks carrier billing. Service-provider tooling, not customer-org administration. No reference doc exists. |
+| `broadworks-enterprises` | BroadWorks carrier enterprise provisioning. Service-provider scope. No reference doc exists. |
+| `broadworks-subscribers` | BroadWorks carrier subscriber provisioning. Service-provider scope. No reference doc exists. |
+| `broadworks-workspaces` | BroadWorks carrier workspace provisioning. Service-provider scope. No reference doc exists. |
+| `wholesale-billing-reports` | Wholesale Route-to-Market carrier billing. Service-provider scope. No reference doc exists. |
+| `wholesale-provisioning` | Wholesale Route-to-Market customer/subscriber provisioning. Service-provider scope. No reference doc exists. |
+| `partner-admins` | Partner/VAR org administration. The playbook targets one customer org at a time; partner multi-org is handled by the switch-org top-level command, not by a skill. |
+| `partner-tags` | Partner/VAR org tagging. Same reason as partner-admins. |
+| `hybrid-clusters` | On-premises hybrid connector infrastructure (Expressway). Out of scope for a cloud-calling playbook. |
+| `hybrid-connectors` | On-premises hybrid connector infrastructure. Same reason as hybrid-clusters. |
+| `cc-legacy-flows` | Superseded by the current cc-flow group, which the contact-center skill already routes to. Retained for API parity only. |
+| `ucm-profile` | UCM calling-profile stub. The CUCM story in this repo is the migration pipeline (the cucm command group), not this group. |
+
 ## CLI Status & Known Issues
 
 **176 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.

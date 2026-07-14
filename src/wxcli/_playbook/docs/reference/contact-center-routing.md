@@ -691,7 +691,7 @@ wxcli cc-flow publish <flow-id> <project-id>
 
 ### Raw HTTP
 
-Paths below mirror what the CLI calls (see `src/wxcli/commands/cc_flow.py`).
+Paths below mirror what the CLI calls.
 
 ```bash
 # List flows

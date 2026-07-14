@@ -1730,7 +1730,7 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 
 Queue recording lives **only** at `telephony/config/locations/{locationId}/queues/{queueId}/cxEssentials/callRecordings`. It is **not** part of the call queue object: `wxcli call-queue show ... --has-cx-essentials true` returns zero recording-related keys, so `call-queue update --json-body` can never read or write these settings.
 
-Cisco's published OpenAPI spec omits this path (it has never appeared in any revision). The CLI commands are generated from an additive local overlay — see `specs/overlays/webex-cloud-calling.overlay.json` and `tools/spec_overlay.py`. Every field below was proven against the live API on 2026-07-14 by PUT-then-GET read-back.
+Cisco's published OpenAPI spec omits this path (it has never appeared in any revision), so the CLI commands are generated from an additive local spec overlay that re-supplies the missing endpoint after every upstream spec refresh. The endpoint is live and verified, but **unpublished** — Cisco makes no compatibility promise for it, so treat a sudden 404 here as the likely cause. Every field below was proven against the live API on 2026-07-14 by PUT-then-GET read-back.
 
 | Field | Type | Writable | Notes |
 |-------|------|:--------:|-------|
@@ -1756,7 +1756,7 @@ Cisco's published OpenAPI spec omits this path (it has never appeared in any rev
 
 > **GOTCHA:** Queue recording uses `spark-admin:people_read` / `spark-admin:people_write` — *different* scopes from every other Customer Assist endpoint (which use `spark-admin:telephony_config_*`). A token that works for screen pop can still 403 here.
 
-> **HISTORY:** Until 2026-07-14 this section documented two commands named `show-queue-recording` and `update-queue-recording`. **Neither ever existed in any released version.** The endpoint was real and even the flag names were right — only the command names were invented, and nobody ran them. The drift gate missed it for ~4 months because `docs/reference/**` was outside its scan scope, even though CLAUDE.md's Mandatory Grounding Rule forces every agent to read these docs. Now fixed: `tools/drift_check.py` `SCAN_PATTERNS` covers `docs/reference/**`, and the gate runs on every push/PR.
+> **HISTORY:** Until 2026-07-14 this section documented two commands named `show-queue-recording` and `update-queue-recording`. **Neither ever existed in any released version.** The endpoint was real and even the flag names were right — only the command names were invented, and nobody ran them. The drift gate missed it for ~4 months because `docs/reference/**` was outside its scan scope, even though CLAUDE.md's Mandatory Grounding Rule forces every agent to read these docs. Now fixed: the gate scans `docs/reference/**` and runs on every push and pull request, so a command named here that does not exist fails the build.
 
 ---
 

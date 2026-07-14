@@ -449,7 +449,7 @@ Next steps:
 19. **Customer Assist queue creation requires `callPolicies`.** Unlike regular queues, CX queues require the `callPolicies` field (e.g., `{"policy":"SIMULTANEOUS"}`). This must be passed via `--json-body` since it's not available as a CLI flag.
 20. **On queue recording, a success response proves NOTHING — always read back.** `update-call-recordings` returns 204 even when it silently discards what you sent. Live-verified: a PUT of `{"bogusFieldXyz": "nonsense"}` returned 204 and the field never appeared on read-back. Always follow any `update-call-recordings` with `show-call-recordings` and confirm the value you set is actually present. Never report queue recording as configured based on the update command's exit code alone.
 21. **Queue recording PUT is a partial merge, not a replace.** Omitted fields keep their previous value (verified: `record` stayed `Always` across a PUT that omitted it). You do not need to resend the full object to change one field — and you cannot clear a field by omitting it.
-22. **Queue recording's response schema changes with `enabled`.** When recording is off, `record`, `postCallRecordingSettings`, and `announcements` are absent from the GET entirely. Their absence does not mean "unsupported" — enable recording first, then re-read.
+22. **Queue recording's response schema changes with `enabled`.** When recording is off, the `record` field and the postCallRecordingSettings / announcements objects are absent from the GET entirely. Their absence does not mean "unsupported" — enable recording first, then re-read.
 
 ---
 
