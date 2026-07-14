@@ -692,12 +692,6 @@ These are non-negotiable. Violating any of these causes failures, data loss, or 
 ### Verify Auth Before Executing
 ALWAYS validate the access token before running any commands. A stale token causes cryptic 401 errors mid-execution. Run `wxcli whoami` as a smoke test before starting.
 
-### Present Plan Before Executing
-ALWAYS show the complete deployment plan and get explicit user approval before making any API calls. Never execute without sign-off. The user must see every API call that will be made, with actual parameter values.
-
-### Never Execute Without Approval
-If the user says "just do it" without seeing the plan, show the plan first anyway. This is not optional. The one exception is single read-only operations (GET requests) used for discovery during the interview phase.
-
 ### Handle Rate Limiting
 Webex APIs enforce rate limits. wxcli does NOT auto-retry 429s in normal CLI mode — it raises an error. For shell loops, add `sleep 1` between commands to avoid hitting limits. For bulk async operations, use the semaphore + 429 retry pattern (see Bulk Operations section).
 

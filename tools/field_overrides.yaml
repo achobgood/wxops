@@ -7,6 +7,7 @@
 #   table_columns       — display columns for CLI table output (per-group or per-command)
 #   skip_tags           — glob patterns for OpenAPI tags to skip entirely
 #   tag_merge           — merge split tags into one CLI group
+#   tag_op_excludes     — drop spurious tag/operation pairings (tag → path globs)
 #   cli_name_overrides  — human-friendly CLI group names (tag → CLI name)
 #   omit_query_params   — query params stripped from all commands
 #
@@ -595,6 +596,22 @@ skip_tags:
     - buid-info-controller     # build info endpoint
     - health-controller        # health check
     - prometheus-controller    # metrics endpoint
+
+# Drop spurious tag/operation pairings present in the upstream spec.
+# tag -> list of path globs that carry the tag but do not belong to it.
+tag_op_excludes:
+  webex-cloud-calling.json:
+    # Upstream tags all 24 /telephony/calls/* call-control ops with a second
+    # "External Voicemail" tag. They are call control (dial, answer, hangup)
+    # and already render into the call-controls group; the only real External
+    # Voicemail endpoint is /telephony/externalVoicemail/mwi. Without this
+    # filter, per-tag dedup renders all 24 into external-voicemail and the
+    # "dial" op wins the bare `create` name, so `external-voicemail create`
+    # silently dials a call instead of setting the message-waiting indicator.
+    # That exact break shipped once — see known issue #22 in tools/CLAUDE.md.
+    "External Voicemail":
+      - "/telephony/calls"
+      - "/telephony/calls/*"
 
 # Merge split tags into a single CLI group
 tag_merge:

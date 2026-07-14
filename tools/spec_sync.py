@@ -43,9 +43,11 @@ def run(cmd: list[str], **kwargs) -> None:
 
 
 def tracked_specs() -> list[str]:
+    # git ls-files with pathspec "specs/*.json" matches files directly in specs/,
+    # not in subdirectories. Filter to exclude overlay files (specs/overlays/*.overlay.json).
     out = subprocess.run(["git", "ls-files", "--", "specs/*.json"],
                          capture_output=True, text=True, cwd=REPO, check=True)
-    names = [Path(line).name for line in out.stdout.splitlines() if line]
+    names = [Path(line).name for line in out.stdout.splitlines() if line and not line.endswith(".overlay.json")]
     ordered = [n for n in PREFERRED_ORDER if n in names]
     ordered += sorted(n for n in names if n not in PREFERRED_ORDER)
     return ordered

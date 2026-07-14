@@ -1,4 +1,5 @@
 """Parse OpenAPI 3.0 spec JSON into normalized Endpoint dataclasses."""
+import fnmatch
 import json
 import re
 from pathlib import Path
@@ -513,11 +514,18 @@ def parse_tag(
     omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
     seen_operation_ids: set[str] | None = None,
+    exclude_paths: list[str] | None = None,
 ) -> tuple[list[Endpoint], list[str]]:
     """Parse all operations for a given tag into Endpoint list.
 
     Skips operations already in seen_operation_ids (handles multi-tagged ops).
     Skips formdata/multipart upload operations.
+    Skips operations whose path matches an ``exclude_paths`` glob — used to
+    drop spurious tag/operation pairings in the upstream spec.
+
+    Command names are derived primary-tag-first: an operation that lists this
+    tag second or later (i.e. the tag is not its ``tags[0]``) can never claim a
+    bare name like ``create`` ahead of an operation canonical to this tag.
     Returns (endpoints, skipped_uploads).
     """
     if seen_operation_ids is None:
@@ -526,6 +534,8 @@ def parse_tag(
     endpoints: list[Endpoint] = []
     skipped_uploads: list[str] = []
     seen_types: dict[str, int] = {}
+    # (endpoint, is_primary) in spec order; names are derived in a later pass.
+    pending: list[tuple[Endpoint, bool]] = []
 
     for path, path_obj in spec.get("paths", {}).items():
         for method in ("get", "post", "put", "patch", "delete"):
@@ -536,6 +546,12 @@ def parse_tag(
             # Check if this operation belongs to the requested tag
             op_tags = op.get("tags", [])
             if tag not in op_tags:
+                continue
+
+            # Drop spurious tag/operation pairings (upstream spec artifacts)
+            if exclude_paths and any(
+                fnmatch.fnmatch(path, pat) for pat in exclude_paths
+            ):
                 continue
 
             # Skip already-processed operations (multi-tag dedup)
@@ -573,10 +589,18 @@ def parse_tag(
                 op = {**op, "parameters": merged}
 
             ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params)
-            ep.command_name = _derive_command_name(
-                ep.command_type, ep.raw_path, ep.name, seen_types
-            )
             endpoints.append(ep)
+            pending.append((ep, op_tags[0] == tag))
+
+    # Derive names primary-tag-first so a secondary-tag operation cannot take a
+    # bare name from an operation this tag actually owns. `endpoints` keeps spec
+    # order, so the emitted file order is unaffected.
+    for is_primary in (True, False):
+        for ep, ep_primary in pending:
+            if ep_primary is is_primary:
+                ep.command_name = _derive_command_name(
+                    ep.command_type, ep.raw_path, ep.name, seen_types
+                )
 
     _dedup_command_names(endpoints)
     return endpoints, skipped_uploads
