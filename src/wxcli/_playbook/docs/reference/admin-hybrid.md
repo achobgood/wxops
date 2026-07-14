@@ -246,7 +246,7 @@ wxcli meeting-qualities list --meeting-id "a]b1c2d3e4f5"
 wxcli meeting-qualities list --meeting-id "a1b2c3d4e5f6" -o json
 
 # Limit results
-wxcli meeting-qualities list --meeting-id "a1b2c3d4e5f6" --max 10
+wxcli meeting-qualities list --meeting-id "a1b2c3d4e5f6" --limit 10
 ```
 
 ### Raw HTTP Fallback

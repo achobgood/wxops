@@ -42,7 +42,7 @@ These are the only operator-facing docs for this migration tool. If the operator
 
 1. **Check project exists and pipeline is complete:**
    ```bash
-   wxcli cucm status -o json
+   wxcli cucm status
    ```
    Verify stage is `ANALYZED` or later. If not, tell the admin which pipeline stages remain.
 

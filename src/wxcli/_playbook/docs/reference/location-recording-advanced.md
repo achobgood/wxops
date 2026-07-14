@@ -739,10 +739,11 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
   --json-body '{"agents": [{"id": "AGENT_ID", "action": "ADD"}]}'
 
 # Delete a specific supervisor
-wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --has-cx-essentials true --force
+wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
 
-# Delete supervisors in bulk
-wxcli call-queue delete-supervisors-config --has-cx-essentials true --force
+# Delete ALL supervisors in the org — no --has-cx-essentials, and no way to
+# scope it: the API takes a request body the generator drops (known issue #21)
+wxcli call-queue delete-supervisors-config --force
 
 # RECOMMENDED: Remove supervisor by removing all agents (more reliable)
 wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \

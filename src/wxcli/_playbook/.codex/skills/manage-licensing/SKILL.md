@@ -121,7 +121,7 @@ wxcli licenses list -o json
 wxcli people list --email user@example.com -o json
 
 # 3. For calling licenses: verify location exists
-wxcli locations list --calling-only
+wxcli locations list
 ```
 
 ### For license reclamation:

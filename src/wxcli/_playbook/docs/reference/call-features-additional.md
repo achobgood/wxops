@@ -292,19 +292,19 @@ wxcli paging-group list
 wxcli paging-group list --location-id <loc_id>
 
 # Get details for a specific paging group
-wxcli paging-group show --location-id <loc_id> --paging-group-id <pg_id>
+wxcli paging-group show <loc_id> <pg_id>
 
 # Create a paging group
-wxcli paging-group create --location-id <loc_id> --name "Warehouse Page" --extension "8100"
+wxcli paging-group create <loc_id> --name "Warehouse Page" --extension "8100"
 
 # Update a paging group
-wxcli paging-group update --location-id <loc_id> --paging-group-id <pg_id> --name "Updated Page"
+wxcli paging-group update <loc_id> <pg_id> --name "Updated Page"
 
 # Delete a paging group
-wxcli paging-group delete --location-id <loc_id> --paging-group-id <pg_id>
+wxcli paging-group delete <loc_id> <pg_id>
 
 # List available phone numbers for paging group assignment
-wxcli paging-group list-available-numbers --location-id <loc_id>
+wxcli paging-group list-available-numbers <loc_id>
 ```
 
 ---
@@ -591,31 +591,31 @@ api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callParks/sett
 
 ```bash
 # List call parks at a location
-wxcli call-park list --location-id <loc_id>
+wxcli call-park list <loc_id>
 
 # Get details for a call park
-wxcli call-park show --location-id <loc_id> --call-park-id <park_id>
+wxcli call-park show <loc_id> <park_id>
 
 # Create a call park
-wxcli call-park create --location-id <loc_id> --name "Lobby Park" --json-body '{"recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
+wxcli call-park create <loc_id> --name "Lobby Park" --json-body '{"recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
 
 # Update a call park
-wxcli call-park update --location-id <loc_id> --call-park-id <park_id> --name "New Park Name"
+wxcli call-park update <loc_id> <park_id> --name "New Park Name"
 
 # Delete a call park
-wxcli call-park delete --location-id <loc_id> --call-park-id <park_id>
+wxcli call-park delete <loc_id> <park_id>
 
 # List available agents for call park
-wxcli call-park list-available-users --location-id <loc_id>
+wxcli call-park list-available-users <loc_id>
 
 # List available recall hunt groups
-wxcli call-park list-available-recall-hunt-groups --location-id <loc_id>
+wxcli call-park list-available-recall-hunt-groups <loc_id>
 
 # Get location-level call park settings
-wxcli call-park show-settings --location-id <loc_id>
+wxcli call-park show-settings <loc_id>
 
 # Update location-level call park settings
-wxcli call-park update-settings --location-id <loc_id> --json-body '{"callParkSettings": {"recallTime": 60}}'
+wxcli call-park update-settings <loc_id> --json-body '{"callParkSettings": {"recallTime": 60}}'
 ```
 
 ---
@@ -780,16 +780,16 @@ api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/callParkExt
 wxcli call-park list-call-park-extensions --location-id <loc_id>
 
 # Get details for a call park extension
-wxcli call-park show-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id>
+wxcli call-park show-call-park-extensions <loc_id> <cpe_id>
 
 # Create a call park extension
-wxcli call-park create-call-park-extensions --location-id <loc_id> --name "Park Slot 1" --extension "7001"
+wxcli call-park create-call-park-extensions <loc_id> --name "Park Slot 1" --extension "7001"
 
 # Update a call park extension
-wxcli call-park update-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id> --name "Park Slot A"
+wxcli call-park update-call-park-extensions <loc_id> <cpe_id> --name "Park Slot A"
 
 # Delete a call park extension
-wxcli call-park delete-call-park-extensions --location-id <loc_id> --call-park-extension-id <cpe_id>
+wxcli call-park delete-call-park-extensions <loc_id> <cpe_id>
 ```
 
 ---
@@ -990,22 +990,22 @@ items = result["availableUsers"]  # response key: "availableUsers"
 
 ```bash
 # List call pickups at a location
-wxcli call-pickup list --location-id <loc_id>
+wxcli call-pickup list <loc_id>
 
 # Get details for a call pickup group
-wxcli call-pickup show --location-id <loc_id> --call-pickup-id <pickup_id>
+wxcli call-pickup show <loc_id> <pickup_id>
 
 # Create a call pickup group
-wxcli call-pickup create --location-id <loc_id> --name "Sales Pickup"
+wxcli call-pickup create <loc_id> --name "Sales Pickup"
 
 # Update a call pickup group
-wxcli call-pickup update --location-id <loc_id> --call-pickup-id <pickup_id> --name "New Name"
+wxcli call-pickup update <loc_id> <pickup_id> --name "New Name"
 
 # Delete a call pickup group
-wxcli call-pickup delete --location-id <loc_id> --call-pickup-id <pickup_id>
+wxcli call-pickup delete <loc_id> <pickup_id>
 
 # List available agents for call pickup
-wxcli call-pickup list-available-users --location-id <loc_id>
+wxcli call-pickup list-available-users <loc_id>
 ```
 
 ---
@@ -1309,24 +1309,24 @@ Voicemail Group commands are under the `location-voicemail` command group.
 wxcli location-voicemail list --location-id <loc_id>
 
 # Get details for a voicemail group
-wxcli location-voicemail show-voicemail-groups --location-id <loc_id> --voicemail-group-id <vg_id>
+wxcli location-voicemail show-voicemail-groups <loc_id> <vg_id>
 
 # Create a voicemail group
-wxcli location-voicemail create --location-id <loc_id> --name "Support VM" --extension "8200" \
+wxcli location-voicemail create <loc_id> --name "Support VM" --extension "8200" \
   --json-body '{"passcode": "740384", "languageCode": "en_us", "messageStorage": {"storageType": "INTERNAL"}, "notifications": {"enabled": false}, "faxMessage": {"enabled": false}, "transferToNumber": {"enabled": false}, "emailCopyOfMessage": {"enabled": false}}'
 
 # Update a voicemail group
-wxcli location-voicemail update-voicemail-groups --location-id <loc_id> --voicemail-group-id <vg_id> \
+wxcli location-voicemail update-voicemail-groups <loc_id> <vg_id> \
   --name "New Name"
 
 # Delete a voicemail group
-wxcli location-voicemail delete --location-id <loc_id> --voicemail-group-id <vg_id>
+wxcli location-voicemail delete <loc_id> <vg_id>
 
 # List available phone numbers for voicemail group assignment
-wxcli location-voicemail list-available-numbers-voicemail-groups --location-id <loc_id>
+wxcli location-voicemail list-available-numbers-voicemail-groups <loc_id>
 
 # List available phone numbers for fax message
-wxcli location-voicemail list-available-numbers-fax-message --location-id <loc_id>
+wxcli location-voicemail list-available-numbers-fax-message <loc_id>
 ```
 
 ---
@@ -1881,36 +1881,36 @@ wxcli operating-modes list
 wxcli operating-modes list --limit-to-location-id <loc_id>
 
 # Get details for an operating mode
-wxcli operating-modes show --operating-mode-id <mode_id>
+wxcli operating-modes show <mode_id>
 
 # Create an operating mode
 wxcli operating-modes create --name "Business Hours" --type "SAME_HOURS_DAILY" --level "ORGANIZATION"
 
 # Update an operating mode
-wxcli operating-modes update --operating-mode-id <mode_id> --name "Updated Hours"
+wxcli operating-modes update <mode_id> --name "Updated Hours"
 
 # Delete an operating mode
-wxcli operating-modes delete --operating-mode-id <mode_id>
+wxcli operating-modes delete <mode_id>
 
 # Create a holiday on a HOLIDAY-type operating mode
-wxcli operating-modes create-holidays --operating-mode-id <mode_id> \
+wxcli operating-modes create-holidays <mode_id> \
   --name "Christmas 2026" --all-day-enabled --start-date "2026-12-25" --end-date "2026-12-25"
 
 # Get holiday details
-wxcli operating-modes show-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id>
+wxcli operating-modes show-holidays <mode_id> <holiday_id>
 
 # Update a holiday
-wxcli operating-modes update-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id> \
+wxcli operating-modes update-holidays <mode_id> <holiday_id> \
   --name "New Year" --start-date "2027-01-01" --end-date "2027-01-01"
 
 # Delete a holiday
-wxcli operating-modes delete-holidays --operating-mode-id <mode_id> --holiday-id <holiday_id>
+wxcli operating-modes delete-holidays <mode_id> <holiday_id>
 
 # List available operating modes for a location
-wxcli operating-modes list-available-operating-modes --location-id <loc_id>
+wxcli operating-modes list-available-operating-modes <loc_id>
 
 # Get available call forward numbers for operating modes
-wxcli operating-modes list-available-numbers --location-id <loc_id>
+wxcli operating-modes list-available-numbers <loc_id>
 ```
 
 ### Gotchas
@@ -1969,10 +1969,10 @@ wxcli call-recording show
 wxcli call-recording update --json-body '{"enabled": true}'
 
 # Get call recording terms of service
-wxcli call-recording show-terms-of-service --vendor-id <vendor_id>
+wxcli call-recording show-terms-of-service <vendor_id>
 
 # Update call recording terms of service
-wxcli call-recording update-terms-of-service --vendor-id <vendor_id> --json-body '{"termsOfServiceEnabled": true}'
+wxcli call-recording update-terms-of-service <vendor_id> --json-body '{"termsOfServiceEnabled": true}'
 
 # Get org-level compliance announcement settings
 wxcli call-recording show-compliance-announcement-call-recording
@@ -1981,28 +1981,28 @@ wxcli call-recording show-compliance-announcement-call-recording
 wxcli call-recording update-compliance-announcement-call-recording --json-body '{"enabled": true}'
 
 # Get location-level compliance announcement settings
-wxcli call-recording show-compliance-announcement-call-recording-1 --location-id <loc_id>
+wxcli call-recording show-compliance-announcement-call-recording-1 <loc_id>
 
 # Update location-level compliance announcement settings
-wxcli call-recording update-compliance-announcement-call-recording-1 --location-id <loc_id> --json-body '{"enabled": true}'
+wxcli call-recording update-compliance-announcement-call-recording-1 <loc_id> --json-body '{"enabled": true}'
 
 # List call recording regions
 wxcli call-recording list
 
 # List call recording vendors for a location
-wxcli call-recording list-vendors --location-id <loc_id>
+wxcli call-recording list-vendors <loc_id>
 
 # Get org-level call recording vendors
 wxcli call-recording show-vendors
 
 # Set call recording vendor for a location
-wxcli call-recording update-vendor-call-recording --location-id <loc_id> --json-body '{"vendorId": "<vendor_id>"}'
+wxcli call-recording update-vendor-call-recording <loc_id> --json-body '{"vendorId": "<vendor_id>"}'
 
 # List call recording jobs
 wxcli call-recording list-call-recording
 
 # Get job status of a call recording job
-wxcli call-recording show-call-recording --job-id <job_id>
+wxcli call-recording show-call-recording <job_id>
 ```
 
 ---
@@ -2149,22 +2149,22 @@ api.session.rest_put(f"{BASE}/telephony/config/announcements/playlists/{playlist
 wxcli announcements list --location-id <loc_id>
 
 # Get org-level announcement details
-wxcli announcements show-announcements-config --announcement-id <ann_id>
+wxcli announcements show-announcements-config <ann_id>
 
 # Get location-level announcement details
-wxcli announcements show-announcements-locations --location-id <loc_id> --announcement-id <ann_id>
+wxcli announcements show-announcements-locations <loc_id> <ann_id>
 
 # Update an org-level announcement
-wxcli announcements update --announcement-id <ann_id> --json-body '{"name": "Updated Greeting"}'
+wxcli announcements update <ann_id> --json-body '{"name": "Updated Greeting"}'
 
 # Update a location-level announcement
-wxcli announcements update-announcements --location-id <loc_id> --announcement-id <ann_id> --json-body '{"name": "Updated"}'
+wxcli announcements update-announcements <loc_id> <ann_id> --json-body '{"name": "Updated"}'
 
 # Delete an org-level announcement
-wxcli announcements delete --announcement-id <ann_id>
+wxcli announcements delete <ann_id>
 
 # Delete a location-level announcement
-wxcli announcements delete-announcements --location-id <loc_id> --announcement-id <ann_id>
+wxcli announcements delete-announcements <loc_id> <ann_id>
 
 # Get org-level repository usage
 wxcli announcements show
@@ -2180,22 +2180,22 @@ wxcli announcements show-usage-announcements <loc_id>
 wxcli announcement-playlists list
 
 # Get playlist details
-wxcli announcement-playlists show --playlist-id <playlist_id>
+wxcli announcement-playlists show <playlist_id>
 
 # Create a playlist
 wxcli announcement-playlists create --name "Hold Music"
 
 # Update a playlist
-wxcli announcement-playlists update --playlist-id <playlist_id> --name "Updated Playlist"
+wxcli announcement-playlists update <playlist_id> --name "Updated Playlist"
 
 # Delete a playlist
-wxcli announcement-playlists delete --playlist-id <playlist_id>
+wxcli announcement-playlists delete <playlist_id>
 
 # List playlist locations
-wxcli announcement-playlists list-playlists --playlist-id <playlist_id>
+wxcli announcement-playlists list-playlists <playlist_id>
 
 # Update playlist locations
-wxcli announcement-playlists update-playlists --playlist-id <playlist_id> \
+wxcli announcement-playlists update-playlists <playlist_id> \
   --json-body '{"locationIds": ["<loc_id_1>", "<loc_id_2>"]}'
 ```
 
@@ -2273,25 +2273,25 @@ items = result["availableNumbers"]
 
 ```bash
 # Get single number reach settings for a person
-wxcli single-number-reach list-single-number-reach --person-id <person_id>
+wxcli single-number-reach list-single-number-reach <person_id>
 
 # Create a single number reach number for a person
-wxcli single-number-reach create --person-id <person_id> \
+wxcli single-number-reach create <person_id> \
   --json-body '{"phoneNumber": "+14155559999", "enabled": true, "name": "Mobile", "answerConfirmationEnabled": true}'
 
 # Update single number reach settings for a person
-wxcli single-number-reach update --person-id <person_id> \
+wxcli single-number-reach update <person_id> \
   --json-body '{"alertAllNumbersForClickToDialCallsEnabled": true}'
 
 # Update a specific single number reach number
-wxcli single-number-reach update-numbers --person-id <person_id> --number-id <number_id> \
+wxcli single-number-reach update-numbers <person_id> <number_id> \
   --json-body '{"enabled": false, "name": "Home"}'
 
 # Delete a single number reach number
-wxcli single-number-reach delete --person-id <person_id> --number-id <number_id>
+wxcli single-number-reach delete <person_id> <number_id>
 
 # List available phone numbers for single number reach
-wxcli single-number-reach list --location-id <loc_id>
+wxcli single-number-reach list <loc_id>
 ```
 
 ---
@@ -2434,16 +2434,16 @@ result = api.session.rest_post(
 wxcli virtual-extensions list --location-id <loc_id>
 
 # Get details for a virtual extension
-wxcli virtual-extensions show --virtual-extension-id <ext_id>
+wxcli virtual-extensions show <ext_id>
 
 # Create a virtual extension
 wxcli virtual-extensions create --display-name "Lobby Directory" --extension "9000" --location-id <loc_id>
 
 # Update a virtual extension
-wxcli virtual-extensions update --virtual-extension-id <ext_id> --display-name "New Name"
+wxcli virtual-extensions update <ext_id> --display-name "New Name"
 
 # Delete a virtual extension
-wxcli virtual-extensions delete --virtual-extension-id <ext_id>
+wxcli virtual-extensions delete <ext_id>
 
 # Get virtual extension settings (org-level)
 wxcli virtual-extensions show-settings
@@ -2462,17 +2462,17 @@ wxcli virtual-extensions validate-an-external --json-body '{"phoneNumbers": ["+1
 wxcli virtual-extensions list-virtual-extension-ranges --location-id <loc_id>
 
 # Get details for a virtual extension range
-wxcli virtual-extensions show-virtual-extension-ranges --virtual-extension-range-id <range_id>
+wxcli virtual-extensions show-virtual-extension-ranges <range_id>
 
 # Create a virtual extension range
 wxcli virtual-extensions create-virtual-extension-ranges --name "Sales Range" --prefix "90" --location-id <loc_id>
 
 # Update a virtual extension range
-wxcli virtual-extensions update-virtual-extension-ranges --virtual-extension-range-id <range_id> \
+wxcli virtual-extensions update-virtual-extension-ranges <range_id> \
   --json-body '{"name": "Updated Range", "prefix": "91", "action": "REPLACE"}'
 
 # Delete a virtual extension range
-wxcli virtual-extensions delete-virtual-extension-ranges --virtual-extension-range-id <range_id>
+wxcli virtual-extensions delete-virtual-extension-ranges <range_id>
 
 # Validate a range prefix
 wxcli virtual-extensions validate-the-prefix --json-body '{"locationId": "<loc_id>", "name": "Test Range", "prefix": "90"}'
