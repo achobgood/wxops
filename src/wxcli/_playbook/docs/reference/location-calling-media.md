@@ -287,7 +287,7 @@ wxcli announcements delete-announcements Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyaz
 wxcli announcements update Y2lzY29zcGFyazovL_ANN_ID --json-body '{"name": "Updated Greeting"}'
 ```
 
-> **Note:** File upload (creating new announcements) requires `multipart/form-data` which the CLI does not support. Use the SDK `upload_announcement()` method or raw HTTP with `curl` for uploads.
+> **Note:** The CLI does create announcements: `wxcli announcements create` (org level) and `wxcli announcements create-announcements LOCATION_ID` (location level). Both require `--name`, `--file-uri`, `--file-name`, and `--is-text-to-speech`, and send a JSON body (`fileUri`/`fileName`/`isTextToSpeech`) to `POST /telephony/config/announcements` -- not a `multipart/form-data` upload. `--file-uri` takes a **URI** referencing the file, so these commands do not push local binary `.wav` bytes; for that, use the manual multipart raw HTTP path noted above. `update` / `update-announcements` modify an existing announcement with the same fields.
 
 ### 1.4 Key Patterns
 

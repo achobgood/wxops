@@ -524,7 +524,7 @@ wxcli reports create --template-id 25 \
 wxcli reports create --json-body '{"templateId": 130, "startDate": "2026-03-01", "endDate": "2026-03-15"}'
 ```
 
-**Note:** The CLI `reports` group has `list`, `create`, `show` (poll status/get download URL), and `delete`. To download report CSVs after getting the `downloadURL` from `wxcli reports show`, use `curl` or the SDK `ReportsApi.download()` method.
+**Note:** The CLI `reports` group has `list`, `create`, `show` (poll status/get download URL), and `delete`. There is no CLI download command — to download report CSVs, get the `downloadURL` from `wxcli reports show REPORT_ID -o json` and fetch it with `curl`.
 
 ### Create a Report
 
@@ -633,7 +633,7 @@ ReportsApi.delete(
 
 ### CallingCDR — Typed Report Download
 
-For Detailed Call History reports specifically, use `CallingCDR.from_dicts()` to get typed CDR objects instead of raw dicts:
+For Detailed Call History reports specifically, `CallingCDR.from_dicts()` parses a downloaded report into typed CDR objects instead of raw dicts:
 
 ```python
 from wxc_sdk.reports import CallingCDR
@@ -670,7 +670,7 @@ wxcli reports show REPORT_ID -o json
 # Look for "status": "done" and "downloadURL" in the response
 
 # Step 4: Download the CSV ZIP from the downloadURL
-# Use curl or the SDK ReportsApi.download() method
+# No CLI download command — fetch the downloadURL with curl
 
 # Step 5: Delete the report to free quota (max 50 reports)
 wxcli reports delete REPORT_ID --force
@@ -876,7 +876,7 @@ The SDK source code flags several discrepancies between Webex API documentation 
 - **Timezone:** All CDR timestamps are in UTC. The `site_timezone` field provides the offset in minutes if you need to convert to the user's local time.
 - **Report quota:** The 50-report limit is hard. Always delete reports after downloading to avoid hitting the cap.
 - **Pro Pack requirement:** The Reports API (templates, create, list, download, delete) requires the Pro Pack license. The CDR Feed API does not require Pro Pack but does require the admin role to be explicitly enabled.
-- **Async download not implemented:** The SDK's async variant of `ReportsApi.download()` raises `NotImplementedError`. Use the sync API for report downloads.
+- **No download command:** neither the CLI nor the Reports API has a download operation — fetch the `downloadURL` from `wxcli reports show REPORT_ID -o json` with `curl`. (The SDK's async `ReportsApi.download()` variant raises `NotImplementedError`.)
 - **`transfer_related_call_id` contains a `local_call_id`, NOT a Correlation ID.** To link two Correlation IDs across a transfer: find CDRs where `CDR1.transfer_related_call_id = CDR2.local_call_id` — their Correlation IDs are linked. Do not compare `transfer_related_call_id` directly to `correlation_id`.
 - **HG CDRs have both ORIGINATING and TERMINATING records.** The HuntGroup entity appears in CDRs as TERMINATING (receiving the inbound call) and ORIGINATING (dialing each agent). `Answered=true` on a HuntGroup CDR means the HG processed the call, not that a human answered. Do not count HG-typed CDRs when tallying human-answered calls.
 - **A single call can have multiple Correlation IDs.** Attended transfers, on-prem deflections that return to cloud, and some advanced forwarding scenarios create new Correlation IDs. Use `transfer_related_call_id`/`local_call_id` linkage to reconstruct the full call path.

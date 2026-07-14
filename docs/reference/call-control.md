@@ -1099,6 +1099,8 @@ wxcli external-voicemail create --id <workspace_id> --action SET
 
 ## 7. Common Use Cases
 
+> **Executable path:** run these flows with `wxcli call-controls` (§3 CLI Examples — including the same Hold/Consult/Transfer and Park/Retrieve patterns) or the raw HTTP endpoints in §2. The Python below illustrates the call sequence and argument shape for each use case; this repo does not execute `wxc_sdk`.
+
 ### Click-to-Dial from CRM
 ```python
 from wxc_sdk import WebexSimpleApi
@@ -1181,7 +1183,7 @@ result = members_api.dial(
 
 2. **Multi-Tenant only** -- Not applicable for UCM or Dedicated Instance users.
 
-3. **Service Apps cannot use CallsApi** -- Service Apps must use the `CallControlsMembersApi` (members endpoint) instead.
+3. **Service Apps cannot use the user-level call endpoints** -- Service Apps must use the members path (`POST /v1/telephony/calls/members/{memberId}/{action}`; CLI: the `wxcli call-controls *-members` commands) instead. See §5 for the supported action set.
 
 4. **`callId` vs `id`** -- The API returns `id` in direct call responses but `callId` in webhook events. The SDK's `TelephonyCall` model handles both aliases transparently via the `call_id` property.
 

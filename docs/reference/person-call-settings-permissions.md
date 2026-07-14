@@ -675,7 +675,7 @@ api.session.rest_post(
 
 ### CLI Examples
 
-> **Note:** Feature access controls do not have dedicated `wxcli` commands yet. Use `curl` with the REST endpoints above, or use the wxc_sdk Python methods.
+> **Note:** Feature access controls do not have dedicated `wxcli` commands (verified across all 179 command groups). The `my-call-settings list-feature-access-code-settings` command is a different endpoint -- it lists a user's own FAC star codes (`/telephony/config/people/me/settings/featureAccessCode`), not the `featureAccessCodes` access controls below. Use `curl` with the REST endpoints above, or raw HTTP via `WebexSession`.
 
 ```bash
 # Read org-level default feature access settings
