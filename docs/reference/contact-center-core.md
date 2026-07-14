@@ -983,14 +983,14 @@ Desktop layouts define the Agent Desktop UI: widget placement, header, navigatio
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
 | POST | `/organization/{orgid}/desktop-layout` | `create` | Create |
-| POST | `/organization/{orgid}/desktop-layout/bulk` | `create` | Bulk save |
-| GET | `/organization/{orgid}/desktop-layout/bulk-export` | `list-bulk-export` | Bulk export |
+| POST | `/organization/{orgid}/desktop-layout/bulk` | `create-bulk` | Bulk save |
+| GET | `/organization/{orgid}/desktop-layout/bulk-export` | _(no CLI command)_ | Bulk export |
 | POST | `/organization/{orgid}/desktop-layout/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/desktop-layout/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/desktop-layout/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/desktop-layout/{id}` | `update` | Update |
-| GET | `/organization/{orgid}/desktop-layout/{id}/incoming-references` | `list-incoming-references` | List references |
-| GET | `/organization/{orgid}/v2/desktop-layout` | `list` | List (v2) |
+| GET | `/organization/{orgid}/desktop-layout/{id}/incoming-references` | `list` | List references |
+| GET | `/organization/{orgid}/v2/desktop-layout` | `list-desktop-layout` | List (v2) |
 
 ### Key Parameters
 
@@ -1049,8 +1049,8 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 |--------|------|-------------|-------------|
 | GET | `/organization/{orgid}/agent-profile` | `list` | List |
 | POST | `/organization/{orgid}/agent-profile` | `create` | Create |
-| POST | `/organization/{orgid}/agent-profile/bulk` | `create` | Bulk save |
-| GET | `/organization/{orgid}/agent-profile/bulk-export` | `list-bulk-export` | Bulk export |
+| POST | `/organization/{orgid}/agent-profile/bulk` | `create-bulk` | Bulk save |
+| GET | `/organization/{orgid}/agent-profile/bulk-export` | _(no CLI command)_ | Bulk export |
 | POST | `/organization/{orgid}/agent-profile/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/agent-profile/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/agent-profile/{id}` | `delete` | Delete |
