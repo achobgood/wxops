@@ -20,11 +20,17 @@ Checks (docs/arch/target-architecture.md §A6):
   5. Stale overlays: no specs/overlays/** path has been published upstream. An
      overlay claims "live API serves this, published spec omits it"; once
      upstream ships the path that claim is obsolete and the entry must go.
+  6. Flag existence: every `--flag` cited after a resolvable `wxcli <group>
+     <command>` in those same code spans is accepted by that command. Check 2
+     proves the command name resolves; it never looks at flags, so docs could
+     (and did) tell an operator to type options the generator had made
+     positional arguments.
 
 Fresh-clone semantics: only git-tracked specs and command modules count
 (dev-only fs_* modules and specs/webex-flow-store.json are untracked).
 """
 import argparse
+import ast
 import fnmatch
 import json
 import re
@@ -219,6 +225,72 @@ def parse_module_commands(module: str) -> dict[str, list[tuple[str, str]]]:
     return commands
 
 
+def _command_name(node: ast.FunctionDef) -> str | None:
+    """Command name from an @app.command(...) decorator, or None if undecorated."""
+    for deco in node.decorator_list:
+        call = deco if isinstance(deco, ast.Call) else None
+        func = call.func if call else deco
+        if not (isinstance(func, ast.Attribute) and func.attr == "command"):
+            continue
+        if call and call.args and isinstance(call.args[0], ast.Constant):
+            return call.args[0].value
+        for kw in (call.keywords if call else []):
+            if kw.arg == "name" and isinstance(kw.value, ast.Constant):
+                return kw.value.value
+        return node.name.replace("_", "-")
+    return None
+
+
+def parse_module_flags(module: str) -> dict[str, set[str]]:
+    """Parse a command module with ast: command name -> accepted flags.
+
+    ast rather than the regex used by parse_module_commands: flag decls sit in
+    help-string company (escaped quotes, "):" inside prose) that desyncs naive
+    quote matching, and only the parse tree distinguishes typer.Option (a flag)
+    from typer.Argument (positional — citing it as --flag is the bug this check
+    exists to catch).
+    """
+    path = COMMANDS_DIR / f"{module}.py"
+    if not path.exists():
+        return {}
+    out: dict[str, set[str]] = {}
+    for node in ast.walk(ast.parse(path.read_text())):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        name = _command_name(node)
+        if name is None:
+            continue
+        flags = {"--help"}  # typer adds it to every command
+        for default in node.args.defaults + list(node.args.kw_defaults):
+            if not (isinstance(default, ast.Call)
+                    and isinstance(default.func, ast.Attribute)
+                    and default.func.attr == "Option"):
+                continue
+            # typer.Option(default, "--flag", "-f", ...) — args[0] is the
+            # default value; every later positional string is a param decl.
+            for arg in default.args[1:]:
+                if not (isinstance(arg, ast.Constant) and isinstance(arg.value, str)):
+                    continue
+                # boolean pairs declare both names at once: "--x/--no-x"
+                flags.update(p for p in arg.value.split("/") if p.startswith("-"))
+        out.setdefault(name, set()).update(flags)
+    return out
+
+
+def build_flag_surface() -> dict[str, dict[str, set[str]]]:
+    """{group: {command: {flags}}} for tracked modules — mirrors build_cli_surface."""
+    tracked_modules = {Path(f).stem for f in tracked_files("src/wxcli/commands/*.py")}
+    surface = {}
+    for group, module in parse_registrations().items():
+        if module not in tracked_modules:
+            continue
+        surface[group] = parse_module_flags(module)
+    if "converged-recordings" in surface:
+        surface["converged-recordings"].update(
+            parse_module_flags("converged_recordings_export"))
+    return surface
+
+
 def build_cli_surface() -> tuple[dict, set[str]]:
     """Return ({group: {command: [(METHOD, path)]}} for tracked modules,
     top-level command names from main.py)."""
@@ -291,19 +363,43 @@ TOKEN = re.compile(r"wxcli\s+([a-z0-9][a-z0-9_-]*)(?:\s+([a-z0-9][a-z0-9_-]*))?"
 PLACEHOLDER = re.compile(r"[<>\[\]{}$|]")
 
 
-def code_spans(text: str):
-    """Yield (line_number, span_text) for fenced blocks and inline code."""
+def code_spans(text: str, join_continuations: bool = False):
+    """Yield (line_number, span_text) for fenced blocks and inline code.
+
+    join_continuations merges shell line-continuations into one span, reported
+    at the first line. Check 6 needs it (a flag wrapped onto a `\\` line still
+    belongs to the command above it); check 2 leaves it off, since the
+    `wxcli <group> <command>` head it reads is always on the first line.
+    """
     fence_open = None
+    pending, pending_line = None, None
     for lineno, line in enumerate(text.splitlines(), 1):
         if line.lstrip().startswith("```"):
             fence_open = None if fence_open else lineno
+            if pending is not None:  # unterminated continuation at fence close
+                yield pending_line, pending
+                pending, pending_line = None, None
             continue
         if fence_open:
-            if not line.lstrip().startswith("#"):  # shell comments are prose
+            if line.lstrip().startswith("#"):  # shell comments are prose
+                continue
+            if not join_continuations:
                 yield lineno, line
+                continue
+            if pending is None:
+                pending, pending_line = line.rstrip(), lineno
+            else:
+                pending += " " + line.strip()
+            if pending.endswith("\\"):
+                pending = pending[:-1]
+                continue
+            yield pending_line, pending
+            pending, pending_line = None, None
         else:
             for span in re.findall(r"`([^`]+)`", line):
                 yield lineno, span
+    if pending is not None:
+        yield pending_line, pending
 
 
 def load_allowlist() -> set[str]:
@@ -413,6 +509,79 @@ def check_overlays() -> list:
     return stale
 
 
+# ------------------------------------------------------------------ check 6
+
+# two literal words: a truncated head (`wxcli cc-<group> list`) cannot match,
+# which is how check 6 stays out of check 2's territory without PLACEHOLDER.
+FLAG_CMD = re.compile(r"wxcli\s+([a-z0-9][a-z0-9_-]*)\s+([a-z0-9][a-z0-9_-]*)")
+FLAG_CITE = re.compile(r"(?<![\w=/-])(--[a-z0-9][a-z0-9-]*|-[a-zA-Z])(?![\w-])")
+
+
+def arg_region(rest: str) -> str:
+    """The argument text belonging to this command — stop at a shell pipe,
+    redirect, or chain, so flags past a `|` are not blamed on this command.
+
+    `>` only ends the region OUTSIDE an angle-bracket placeholder: examples are
+    written `--location-id <loc_id> --paging-id <pg_id>`, so treating the `>` of
+    `<loc_id>` as a redirect would truncate the line and silently skip every
+    flag after the first placeholder — which is most of them.
+    """
+    depth, quote = 0, None
+    for i, ch in enumerate(rest):
+        if quote:
+            if ch == quote:
+                quote = None
+            continue
+        if ch in "'\"":
+            quote = ch
+        elif ch == "<":
+            depth += 1
+        elif ch == ">":
+            if depth:
+                depth -= 1
+            else:
+                return rest[:i]
+        elif ch in "|;" or rest.startswith("&&", i) or rest.startswith("$(", i):
+            return rest[:i]
+    return rest
+
+
+def check_flags(surface: dict, flag_surface: dict) -> list:
+    """Flags cited against a command that does not accept them.
+
+    Deliberately does NOT skip PLACEHOLDER spans the way check 2 does:
+    `--location-id <loc_id>` is the shape a copy-pasteable example takes, so
+    skipping placeholders would blind this check to exactly the citations most
+    likely to be typed.
+    """
+    dead = []
+    allow = load_allowlist()
+    for rel in sorted(f for pat in SCAN_PATTERNS for f in tracked_files(pat)
+                      if f.endswith(".md")):
+        text = (REPO / rel).read_text()
+        for lineno, span in code_spans(text, join_continuations=True):
+            for m in FLAG_CMD.finditer(span):
+                group, command = m.group(1), m.group(2)
+                if group in allow or f"{group} {command}" in allow:
+                    continue
+                if group not in surface or command not in surface[group]:
+                    continue  # check 2 owns names that don't resolve
+                real = flag_surface.get(group, {}).get(command)
+                if real is None:
+                    continue  # a mounted sub-typer, not a leaf command
+                rest = arg_region(span[m.end():])
+                nxt = rest.find("wxcli")
+                if nxt != -1:
+                    rest = rest[:nxt]
+                for fm in FLAG_CITE.finditer(rest):
+                    flag = fm.group(1)
+                    if flag in real or f"{group} {command} {flag}" in allow:
+                        continue
+                    dead.append({"file": rel, "line": lineno,
+                                 "ref": f"wxcli {group} {command}", "flag": flag})
+    return dead
+
+
 # ---------------------------------------------------------- deliberate gaps
 
 GAPS_DOC = REPO / "docs" / "arch" / "deliberate-gaps.md"
@@ -486,6 +655,7 @@ def main() -> int:
     count_mismatches = check_counts(surface)
     unreferenced = check_unreferenced(group_refs)
     stale_overlays = check_overlays()
+    dead_flags = check_flags(surface, build_flag_surface())
 
     results = {
         "1_spec_cli_parity": parity,
@@ -493,10 +663,11 @@ def main() -> int:
         "3_count_mismatches": count_mismatches,
         "4_undeclared_unreferenced_groups": unreferenced,
         "5_stale_overlays": stale_overlays,
+        "6_dead_flags": dead_flags,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
-                  or stale_overlays)
+                  or stale_overlays or dead_flags)
 
     if args.json:
         print(json.dumps(results, indent=2))
@@ -530,6 +701,11 @@ def main() -> int:
         print(f"[5] stale overlays (upstream now publishes the path): {len(stale_overlays)}")
         for s in stale_overlays:
             print(f"      {s['spec']}: {s['path']} — delete this overlay entry")
+        print(f"[6] non-existent flags cited: {len(dead_flags)}")
+        for f in dead_flags[:20]:
+            print(f"      {f['file']}:{f['line']}  {f['ref']}  {f['flag']}")
+        if len(dead_flags) > 20:
+            print(f"      ... and {len(dead_flags) - 20} more (--json for all)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

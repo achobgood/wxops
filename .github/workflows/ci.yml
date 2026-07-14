@@ -45,8 +45,8 @@ jobs:
     # independent signals and must be able to fail independently.
     #
     # Deliberately does NOT `pip install` anything: drift_check.py reads the CLI
-    # surface statically (regex over tracked sources) and shells out to
-    # `git ls-files`. Dependency-free means it cannot be broken by a dependency
+    # surface statically (regex + stdlib ast over tracked sources) and shells out
+    # to `git ls-files`. Dependency-free means it cannot be broken by a dependency
     # resolution problem, and it runs in seconds.
     steps:
       - uses: actions/checkout@v4
