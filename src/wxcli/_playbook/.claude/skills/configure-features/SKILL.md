@@ -543,14 +543,16 @@ wxcli announcements tts-voices --output json
 # 2. Generate the prompt
 wxcli announcements tts-generate --voice VOICE_ID --text "Thank you for calling. Please hold." --language-code en_US
 
-# 3. Poll generation status using the returned ttsId
+# 3. Check generation status (tts-status requires a ttsId)
 wxcli announcements tts-status TTS_ID --output json
 
 # 4. Check TTS quota/consumption for the org
 wxcli announcements tts-usage --output json
 ```
 
-`tts-generate` is asynchronous — it returns a `ttsId`. Poll `tts-status` until generation completes before wiring the prompt into a feature.
+All four flags on `tts-generate` (`--voice`, `--text`, `--language-code`, plus `--json-body`) are optional per `--help`, but voice and text are needed for a usable prompt. Use `tts-voices` to get a valid `--voice` ID and `--language-code` rather than guessing.
+
+> **Unverified — confirm on first run:** the existence of a separate `tts-status TTS_ID` command implies generation is asynchronous and that `tts-generate` returns a `ttsId` to poll, but this flow has not been executed live. Capture the actual `tts-generate` output on first use and check the prompt reached a completed state before wiring it into a feature.
 
 ---
 
@@ -953,7 +955,7 @@ Next steps:
 27. **`caller-reputation` is org-level and uses `--organization-id`**, not the standard orgId injection. Score thresholds are **strings** — quote them (`--call-block-score-threshold "80"`).
 28. **`external-voicemail create` requires a Service App token** with `spark-admin:calls_write`. Admin tokens and PATs fail. It has no read-back command.
 29. **Announcement `create` takes a file URI, not a local path.** `--file-uri`, `--file-name`, `--name`, and the `--is-text-to-speech`/`--no-is-text-to-speech` flag are all required. For a spoken prompt without an audio file, use the `tts-generate` flow instead.
-30. **`tts-generate` is async.** It returns a `ttsId` — poll `wxcli announcements tts-status TTS_ID` until generation completes before referencing the prompt in a feature.
+30. **The TTS flow is not live-verified.** The `tts-generate` → `tts-status` sequence is inferred from the command surface, not from an executed run. Capture the real `tts-generate` output on first use, confirm the prompt completed, and correct this skill if the flow differs.
 
 ---
 
