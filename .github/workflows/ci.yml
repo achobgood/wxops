@@ -33,8 +33,32 @@ jobs:
           # to stub aiohttp. It is declared nowhere else, so a dev with it
           # installed sees green locally while CI cannot even collect them.
           pip install pytest pytest-asyncio aioresponses
+          # aiohttp is pinned HERE and not in pyproject on purpose: nothing is
+          # wrong with the CLI on aiohttp 3.14 — the break is in the test double.
+          # aioresponses 0.7.9 builds a ClientResponse by hand and does not pass
+          # `stream_writer`, which aiohttp 3.14 made a required kwarg, so every
+          # test that stubs aiohttp dies with TypeError at request time. Its own
+          # metadata claims `aiohttp<4.0,>=3.8`, so pip will not resolve away
+          # from it and the pin has to be ours. Pinning the runtime dep in
+          # pyproject instead would constrain USERS for a test-only defect.
+          # Drop this the moment aioresponses supports 3.14 (28 tests, all in
+          # tests/migration/execute/, will tell you immediately).
+          pip install 'aiohttp<3.14'
 
       - name: Run tests (excluding live API tests)
+        # TERM=dumb, not NO_COLOR=1. rich special-cases GitHub Actions as a
+        # colour-capable terminal, so `--help` output comes back wrapped in ANSI
+        # and `assert "--host" in result.output` fails on text that renders
+        # correctly. NO_COLOR is the wrong knob and was measured failing: it
+        # suppresses colour but NOT bold/dim, so rich still emits `\x1b[1m`
+        # between the dashes and still splits the flag. TERM=dumb makes
+        # rich's is_terminal false, which is what actually yields plain text.
+        # COLUMNS is set for the same reason the repo drives every real
+        # `--help` as `COLUMNS=400 TERM=dumb`: at 80 cols rich wraps a long flag
+        # declaration onto a second line and a substring assertion misses it.
+        env:
+          TERM: dumb
+          COLUMNS: "400"
         run: |
           pytest tests/ -m "not live" -v --tb=short
 
