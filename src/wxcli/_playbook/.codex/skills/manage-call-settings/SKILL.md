@@ -6,8 +6,11 @@ description: |
   permissions, and behavior & devices. Includes phone number add/remove/reassign,
   executive-assistant delegation, hoteling, shared line appearance, simultaneous ring,
   sequential ring, single number reach, receptionist client, and workspace hoteling.
+  Also covers virtual line settings (65+ commands), person monitoring/BLF, hot desking
+  members, operating mode management (admin assignment + user switching), MS Teams
+  client settings (org and per-person), outbound billing plans, and guest issuer tokens.
   Use when the user wants to read, change, or audit call settings for one or more
-  users/workspaces.
+  users/workspaces/virtual lines.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [person-email-or-workspace-name]
 ---
@@ -125,6 +128,146 @@ wxcli user-settings list-assigned-assistants EXEC_ID -o json
 - Type assignment uses `people_write` scope; assigned-assistants linkage uses `telephony_config_write` scope.
 - Rollback: set both to `--type UNASSIGNED` (auto-unlinks).
 
+### Virtual line settings (65+ commands — `virtual-line-settings`)
+
+Virtual lines are person-like calling identities with no user account (shared/fax/hotline lines). They have their **own** command group that mirrors most `user-settings` features. **Do NOT use `user-settings` commands on a virtual line ID.**
+
+**Always discover first — do not guess a command name:**
+```bash
+wxcli virtual-line-settings --help          # 65+ commands, grouped by theme below
+```
+
+| Theme | Representative commands |
+|-------|------------------------|
+| Lifecycle | `list`, `create`, `show-virtual-lines`, `update-virtual-lines`, `delete` |
+| Call handling | `show-call-forwarding`/`update-call-forwarding`, `show-call-waiting`/`update-call-waiting`, `show-do-not-disturb`/`update-do-not-disturb`, `show-intercept`/`update-intercept` |
+| Voicemail | `show-voicemail`/`update-voicemail`, `configure-busy-voicemail`, `configure-no-answer`, `reset-voicemail-pin`, `update-passcode` |
+| Permissions | `show-incoming-permission`/`update-incoming-permission`, `list-outgoing-permission`/`update-outgoing-permission`, `*-access-codes`, `*-auto-transfer-numbers`, `*-digit-patterns*` |
+| Media & privacy | `show-music-on-hold`/`update-music-on-hold`, `list-privacy`/`update-privacy`, `show-barge-in`/`update-barge-in`, `list-push-to-talk`/`update-push-to-talk`, `show-call-bridge`/`update-call-bridge` |
+| Caller ID | `list-caller-id`/`update-caller-id-virtual-lines`, `show-caller-id`/`update-caller-id-agent`, `list-available-caller-ids` |
+| Devices & numbers | `show-number`, `list-devices`, `list-dect-networks`, `update-directory-search`, `list-available-numbers-*` |
+| Billing | `list-outbound-billing-plan`/`update-outbound-billing-plan` |
+
+```bash
+wxcli virtual-line-settings list --location-id LOCATION_ID -o json      # find virtual lines
+wxcli virtual-line-settings show-virtual-lines VIRTUAL_LINE_ID -o json  # detail (NOT `show`)
+wxcli virtual-line-settings create --first-name "Front" --last-name "Desk" --location-id LOCATION_ID --extension 1000
+wxcli virtual-line-settings show-call-forwarding VIRTUAL_LINE_ID -o json
+wxcli virtual-line-settings update-do-not-disturb VIRTUAL_LINE_ID --enabled --ring-splash-enabled
+```
+- **Bare-name trap:** `show` / `update` are **Call Recording**, NOT the virtual line detail. Detail is `show-virtual-lines` / `update-virtual-lines`.
+- `create` requires `--first-name`, `--last-name`, `--location-id`.
+- `delete` prompts for confirmation; pass `--force` to skip.
+
+### Person monitoring / BLF (`person-call-settings` — bare `list`/`update`)
+
+The `person-call-settings` group does **ONLY monitoring** (`/people/{id}/features/monitoring`), which is why its commands are bare-named. **It is the ONLY CLI path to read or write person monitoring** — there is no `user-settings list-monitoring` / `update-monitoring` (verified: those names do not exist).
+
+```bash
+wxcli person-call-settings list PERSON_ID -o json                              # read monitoring
+wxcli person-call-settings update PERSON_ID --json-body '{"enableCallParkNotification": true, "monitoredElements": ["ID1", "ID2"]}'
+wxcli person-call-settings update PERSON_ID --enable-call-park-notification    # flag form
+
+# Helpers live in user-settings (search candidates BEFORE writing the list above)
+wxcli user-settings list-available-members-monitoring PERSON_ID -o json
+wxcli user-settings list-available-members-speed-dials PERSON_ID -o json
+```
+- **Do NOT read the bare names as "all person call settings."** `wxcli person-call-settings list` returns monitoring only.
+- **Do NOT claim "no CLI exists for person monitoring"** — it exists, under this non-obvious group name. Equally, do not reach for `user-settings list-monitoring`; it is not a real command.
+- The read/write pair and the available-member helpers are split across **two different groups** — that split is the reason this feature is easy to miss.
+- `update` is a PUT — `monitoredElements` replaces the whole list. Max 50 elements (people, places, call park extensions).
+
+### Hot desking members (person-level line assignment)
+
+Assigns which member lines appear on a person's hot desking device (`/telephony/config/people/{id}/features/hotDesking/members`). This is **separate** from the hoteling guest toggle (`user-settings update-hoteling`) and from workspace hot desking (`device-settings`).
+
+**Two groups hit the identical endpoint — they are aliases. Prefer `user-settings` (clearer names):**
+
+| Endpoint | `user-settings` (preferred) | `hot-desking-members` (alias) |
+|----------|----------------------------|------------------------------|
+| `.../hotDesking/members` (GET) | `list-members-hot-desking` | `list-members` |
+| `.../hotDesking/members` (PUT) | `update-members-hot-desking` | `update` |
+| `.../hotDesking/availableMembers` (GET) | `list-available-members-hot-desking` | `list` |
+
+```bash
+wxcli user-settings list-available-members-hot-desking PERSON_ID --location-id LOCATION_ID -o json
+wxcli user-settings list-members-hot-desking PERSON_ID -o json
+wxcli user-settings update-members-hot-desking PERSON_ID --json-body '{"members":[{"id":"MEMBER_ID","port":1,"primaryOwner":"false","lineType":"SHARED_CALL_APPEARANCE","lineWeight":1}]}'
+```
+- **Bare-name trap:** `hot-desking-members list` is **search available members**, NOT the assigned list. Assigned list is `list-members`.
+- `update` is a PUT — read the current members first and send the complete list.
+- Search filters on the available-members command: `--location-id`, `--member-name`, `--phone-number`, `--extension`, `--order`.
+
+### Mode management (admin assigns; user switches)
+
+Operating modes (e.g. holiday/after-hours override on an AA or hunt group) are split across **two groups with two different token types**. Getting this wrong is the #1 mode-management failure.
+
+| Step | Who | Command group | Token |
+|------|-----|--------------|-------|
+| Assign which features a user may mode-manage | Admin | `user-settings *-mode-management` | Admin token |
+| Actually switch/extend the mode | The user | `mode-management` | **User-level OAuth only** |
+
+```bash
+# ADMIN side — /telephony/config/people/{id}/modeManagement/... (admin token works)
+wxcli user-settings list-available-features PERSON_ID -o json   # mode-manageable features (NOT a generic feature list)
+wxcli user-settings list-mode-management PERSON_ID -o json      # features currently assigned
+wxcli user-settings update-mode-management PERSON_ID --json-body '{"featureIds":["FEATURE_ID"]}'
+
+# USER side — /telephony/config/people/me/settings/modeManagement/... (user OAuth ONLY)
+wxcli mode-management list -o json                              # features the signed-in user can manage
+wxcli mode-management show FEATURE_ID -o json
+wxcli mode-management list-common-modes --feature-ids "ID1,ID2" -o json
+wxcli mode-management switch-mode-for-invoke-1 FEATURE_ID --operating-mode-id MODE_ID --is-manual-switchback-enabled true
+wxcli mode-management switch-mode-for-invoke --operating-mode-name "Holiday"   # multiple features at once
+wxcli mode-management switch-to-normal FEATURE_ID
+wxcli mode-management extend-current-operating FEATURE_ID --operating-mode-id MODE_ID --extension-time 30
+```
+- **Every `mode-management` command is a `/people/me/` endpoint → admin tokens get 404 (error 4008).** This is Known Issue #3: this group is the *user's own* self-service view and needs user-level OAuth.
+- **An admin CAN switch a feature's mode — just not through this group.** Use the per-feature admin commands, which are location-scoped (`POST /telephony/config/locations/{locationId}/<feature>/{id}/callForwarding/actions/switchMode/invoke`): `auto-attendant switch-mode-for`, `call-queue switch-mode-for`, `hunt-group switch-mode-for`. Those live in the `configure-features` skill. Do not conclude from this group's 404 that mode switching has no admin path — it does.
+- `--extension-time` must be a multiple of 30 (minutes).
+- **Bare-name trap:** `user-settings list-available-features` is mode-management-specific (`modeManagement/availableFeatures`), not a general feature list.
+- The location/feature side of operating modes (creating the modes themselves) lives in the `configure-features` skill under `operating-modes`.
+
+### MS Teams settings (org-level vs person-level)
+
+Two groups, two scopes, **different allowed setting names** — verified via `--help`:
+
+```bash
+# ORG-wide — /telephony/config/settings/msTeams — supports HIDE_WEBEX_APP *and* PRESENCE_SYNC
+wxcli client-settings list -o json
+wxcli client-settings update --setting-name HIDE_WEBEX_APP --value
+wxcli client-settings update --setting-name PRESENCE_SYNC --no-value
+
+# PERSON — /telephony/config/people/{id}/settings/msTeams — HIDE_WEBEX_APP ONLY
+wxcli user-settings list-ms-teams PERSON_ID -o json
+wxcli user-settings update-ms-teams PERSON_ID --setting-name HIDE_WEBEX_APP --value
+```
+- `PRESENCE_SYNC` is **org-level only** — `user-settings update-ms-teams` accepts only `HIDE_WEBEX_APP`. Asking for per-person presence sync is not possible; set it org-wide.
+- `client-settings` has no person/workspace argument — it is org-scoped and affects everyone.
+
+### Outbound billing plan (person / workspace / virtual line)
+
+Same setting at three scopes, `/outboundBillingPlan` on each:
+```bash
+wxcli user-settings list-outbound-billing-plan PERSON_ID -o json
+wxcli user-settings update-outbound-billing-plan PERSON_ID --json-body '{...}'
+wxcli workspace-settings list-outbound-billing-plan WORKSPACE_ID -o json
+wxcli virtual-line-settings list-outbound-billing-plan VIRTUAL_LINE_ID -o json
+```
+- All three `update-outbound-billing-plan` commands are **`--json-body` only** — no field flags are generated. Read the current plan first and send the modified object back.
+
+### Guest calling tokens (`guest-management`) — read this before using it
+
+`guest-management` is the **Webex Guest Issuer API** (`/v1/guests/token`, `/v1/guests/count`), NOT a per-person call setting. It mints guest identities for guest calling/SDK embedding.
+
+```bash
+wxcli guest-management list -o json                                        # guest count for the org
+wxcli guest-management create --subject "ext-user-42" --display-name "Jane Guest"
+```
+- Requires a **Guest Issuer application** (JWT-signed credentials), not a normal admin token. A standard admin/PAT will not mint guest tokens.
+- `create` outputs the guest token id by default; use `-o json` for the full token payload. Treat the output as a **credential** — do not echo it into logs or reports.
+- **Do NOT confuse with `guestCalling`**, the person setting in Known Issue #4 — that one is user-only (`my-call-settings`) and unrelated to this group.
+
 ### Command group mapping (do NOT guess — use this table)
 | Setting domain | wxcli group | NOT this group |
 |---------------|-------------|----------------|
@@ -134,6 +277,14 @@ wxcli user-settings list-assigned-assistants EXEC_ID -o json
 | Workspace settings | `workspace-settings` | — |
 | Workspace hoteling | `device-settings` | ~~workspace-settings~~ |
 | Self-service voicemail/hoteling (Phase 5) | `call-settings-for-me-phase-5` | ~~my-call-settings~~ |
+| **Virtual line settings** (any setting on a virtual line) | `virtual-line-settings` | ~~user-settings~~ |
+| **Person monitoring / BLF** | `person-call-settings` (read/write) + `user-settings list-available-members-monitoring` (candidates) | ~~`user-settings list-monitoring`~~ (does not exist) |
+| **Person hot desking members** | `user-settings *-hot-desking` (or alias `hot-desking-members`) | ~~device-settings~~ (that's workspace hot desking) |
+| **Mode switching (user)** | `mode-management` — user OAuth only | ~~user-settings~~ |
+| **Mode feature assignment (admin)** | `user-settings *-mode-management` | ~~mode-management~~ |
+| **MS Teams — org-wide** | `client-settings` | ~~user-settings~~ |
+| **MS Teams — per person** | `user-settings *-ms-teams` | ~~client-settings~~ |
+| **Guest issuer tokens** | `guest-management` (Guest Issuer app required) | ~~user-settings~~ |
 
 ---
 
@@ -254,6 +405,7 @@ For small batches, use a shell loop. For large batches (50+ users), use the migr
 |--------|--------------|-------------|---------|
 | A specific **person** | `wxcli user-settings` | `spark-admin:people_read/write` | `wxcli user-settings show-voicemail PERSON_ID` |
 | A specific **workspace** | `wxcli workspace-settings` | `spark-admin:workspaces_read/write` | `wxcli workspace-settings show-voicemail WORKSPACE_ID` |
+| A specific **virtual line** | `wxcli virtual-line-settings` | `spark-admin:telephony_config_read/write` | `wxcli virtual-line-settings show-voicemail VIRTUAL_LINE_ID` |
 | All people/workspaces at a **location** | `wxcli location-voicemail` / `wxcli location-settings` | `spark-admin:telephony_config_read/write` | `wxcli location-voicemail show LOCATION_ID` |
 | **Org-wide** recording vendor | `wxcli call-recording` | `spark-admin:telephony_config_read/write` | `wxcli call-recording show` |
 | **Self** (own settings) | `wxcli my-call-settings` or `wxcli call-settings-for-me-phase-5` | `spark:people_read/write` | `wxcli call-settings-for-me-phase-5 show` |
@@ -263,6 +415,10 @@ For small batches, use a shell loop. For large batches (50+ users), use the migr
 | Setting | Person | Workspace | Location | Org | Self-Service |
 |---------|--------|-----------|----------|-----|-------------|
 | **Voicemail** | `user-settings show-voicemail PERSON_ID` | `workspace-settings show-voicemail WS_ID` | `location-voicemail show LOC_ID` (policies) | — | `call-settings-for-me-phase-5 show` |
+| **Virtual line (any setting)** | — | — | — | — | Use `virtual-line-settings <cmd> VIRTUAL_LINE_ID` — its own group, mirrors most person settings |
+| **Outbound Billing Plan** | `user-settings list-outbound-billing-plan PERSON_ID` | `workspace-settings list-outbound-billing-plan WS_ID` | — | — | — |
+| **MS Teams** | `user-settings list-ms-teams PERSON_ID` (HIDE_WEBEX_APP only) | — | — | `client-settings list` (adds PRESENCE_SYNC) | — |
+| **Mode Management** | `user-settings list-mode-management PERSON_ID` (assign) | — | — | — | `mode-management list` (switch — user OAuth only) |
 | **Voicemail PIN** | `user-settings reset-voicemail-pin PERSON_ID` | — | — | — | `call-settings-for-me-phase-5 update-pin` |
 | **Voicemail PIN Rules** | — | — | — | — | `call-settings-for-me-phase-5 show-rules` |
 | **Call Recording** | `user-settings show-call-recording PERSON_ID` | `workspace-settings show-call-recordings WS_ID` | — | `call-recording show` (vendor config) | — |
@@ -322,7 +478,7 @@ Present the user with the settings categories. Ask which settings they want to r
 | Barge-In | `show-barge-in` | `update-barge-in` | Enables FAC-based barge-in across locations |
 | Call Recording | `show-call-recording` | `update-call-recording` | **Read scope is `people_read` not `people_write` (SDK doc bug)**; inherits from location recording vendor config |
 | Call Intercept | `show-intercept` | `update-intercept` | Takes phone out of service; greeting upload via `configure-call-intercept` |
-| Monitoring | `list-monitoring` | `update-monitoring` | Max 50 monitored elements (people, places, call park extensions) |
+| Monitoring | `person-call-settings list` | `person-call-settings update` | **NOT in `user-settings`** — `list-monitoring`/`update-monitoring` do not exist. Use the `person-call-settings` group (monitoring ONLY). Candidate lookup: `user-settings list-available-members-monitoring`. Max 50 elements |
 | Push-to-Talk | `list-push-to-talk` | `update-push-to-talk` | One-way or two-way intercom; allow/block member lists |
 | Music on Hold | — | — | **Requires location-level MoH enabled first**; uses `telephony_config` scopes (SDK only for now) |
 
@@ -348,8 +504,10 @@ Present the user with the settings categories. Ask which settings they want to r
 | Receptionist Client | `list-reception` | `update-reception` | `receptionEnabled` must be `true` if members set. Path: `/features/reception` (NOT receptionist) |
 | Numbers | `list-numbers` | — | Primary + alternate numbers; distinctive ring patterns |
 | Preferred Answer Endpoint | — | — | Which device/app answers by default (SDK only for now) |
-| MS Teams | — | — | HIDE_WEBEX_APP, PRESENCE_SYNC (SDK only for now) |
-| Mode Management | — | — | Operating mode assignments (SDK only for now) |
+| MS Teams | `list-ms-teams` | `update-ms-teams` | Person-level accepts **HIDE_WEBEX_APP only**. For PRESENCE_SYNC use org-level `wxcli client-settings update` |
+| Mode Management | `list-mode-management` | `update-mode-management` | Admin path assigns *which features* a user may mode-manage (`list-available-features` lists candidates). **Switching** a mode is user-OAuth-only via the `mode-management` group |
+| Hot Desking Members | `list-members-hot-desking` | `update-members-hot-desking` | Member lines on the person's hot desk device. `list-available-members-hot-desking` searches candidates. Alias group: `hot-desking-members` |
+| Outbound Billing Plan | `list-outbound-billing-plan` | `update-outbound-billing-plan` | `--json-body` only (no field flags). Also exists on `workspace-settings` and `virtual-line-settings` |
 | Personal Assistant | — | — | Away status, transfer, alerting (SDK only for now) |
 | Emergency Callback Number | — | — | DIRECT_LINE, LOCATION_ECBN, or LOCATION_MEMBER_NUMBER (SDK only for now) |
 
@@ -361,7 +519,9 @@ All CLI commands above are under `wxcli user-settings` unless otherwise noted. R
 SimRing, SequentialRing, PriorityAlert, CallNotify, AnonymousCallReject, CallPolicies (person-level).
 These ONLY work at `/telephony/config/people/me/settings/{feature}` with a user token. Admin tokens get 404.
 
-For other settings marked "SDK only" above (Music on Hold, Feature Access Controls, Preferred Answer, MS Teams, Mode Management, Personal Assistant, ECBN), use the raw HTTP fallback pattern with an **admin** token:
+**MS Teams and Mode Management are NOT SDK-only** — both have verified CLI commands (`user-settings list-ms-teams`/`update-ms-teams`, `user-settings list-mode-management`/`update-mode-management`, plus org-level `client-settings` and user-level `mode-management`). See the Quick Recipes above. Virtual lines likewise have a full 65-command group (`virtual-line-settings`) — do not fall back to raw HTTP for them.
+
+For settings still marked "SDK only" above (Music on Hold, Feature Access Controls, Preferred Answer, Personal Assistant, ECBN), use the raw HTTP fallback pattern with an **admin** token:
 
 ```bash
 # Read the current setting value
@@ -374,7 +534,7 @@ curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/j
   -d '{ ... }'
 ```
 
-Consult `docs/reference/person-call-settings-handling.md` (SimRing, SeqRing, Priority Alert, Selective features) or `docs/reference/person-call-settings-behavior.md` (ECBN, Mode Management, MS Teams, Personal Assistant, Preferred Answer) for the exact endpoint paths, required fields, and gotchas for each setting.
+Consult `docs/reference/person-call-settings-handling.md` (SimRing, SeqRing, Priority Alert, Selective features) or `docs/reference/person-call-settings-behavior.md` (ECBN, Personal Assistant, Preferred Answer) for the exact endpoint paths, required fields, and gotchas for each setting. Those docs also cover Mode Management and MS Teams — read them for API background only; **use the CLI commands above, not raw HTTP, for those two.**
 
 ## Step 4: Check prerequisites
 
@@ -710,7 +870,13 @@ All 3 changes applied successfully.
 - **Numbers API split endpoints** — read uses `people/{id}/features/numbers`, update uses `telephony/config/people/{id}/numbers` (different paths)
 - **Receptionist validation** — `enabled` must be `True` if `monitored_members` is set
 - **Use --output json** — always pass `--output json` on show/list commands to get structured data for comparison and scripting
+- **Virtual lines use their own group** — never run `user-settings` commands against a virtual line ID; use `wxcli virtual-line-settings` (65+ commands mirroring person settings)
+- **Beware bare-named commands** — a bare `list`/`update`/`show` rarely means "everything." `person-call-settings list` = monitoring only; `virtual-line-settings show`/`update` = call recording only; `hot-desking-members list` = *available* members, not assigned ones. Always confirm with `--help` before assuming a bare name is generic.
+- **Mode management is split by token type** — admin assigns features (`user-settings update-mode-management`); only the user can switch a mode (`mode-management`, user OAuth). Admin tokens get 404 on every `mode-management` command.
+- **PRESENCE_SYNC is org-only** — per-person MS Teams settings accept `HIDE_WEBEX_APP` only; use `client-settings` for PRESENCE_SYNC (affects the whole org)
+- **`guest-management` is not a call setting** — it is the Guest Issuer token API and needs a Guest Issuer app, not an admin token. Treat its output as a credential.
 - **Run `wxcli user-settings --help`** — to discover all available commands and their exact names
+- **Run `wxcli virtual-line-settings --help`** — to discover the 65+ virtual line commands rather than guessing
 - **Run `wxcli call-settings-for-me-phase-5 --help`** — to discover all 7 self-service commands
 
 ---
@@ -745,6 +911,10 @@ Common errors:
 - **405 "Invalid Professional Place" on workspace settings:** The workspace has a Basic license. Most `/telephony/config/workspaces/{id}/` settings require Professional. Only `musicOnHold` and `doNotDisturb` work on Basic. Use the `/workspaces/{id}/features/` path family for Basic workspaces (callForwarding, callWaiting, callerId, intercept, monitoring).
 - **403 on Single Number Reach:** SNR uses `spark-admin:telephony_config_read/write` scopes, not `spark-admin:people_read/write`. Check token scopes.
 - **Empty/no-effect on MoH:** Both location-level `moh_location_enabled` AND person-level `moh_enabled` must be `true`. If either is false, no music plays. Check both levels.
+- **404 (error 4008) on any `mode-management` command:** Every command in that group is a `/telephony/config/people/me/` endpoint — admin tokens always 404 (Known Issue #3). Use a user-level OAuth token. If you only need to assign mode-manageable features, use the admin path `user-settings update-mode-management PERSON_ID` instead.
+- **404 on `virtual-line-settings` commands:** Confirm the ID is a `VIRTUAL_LINE` ID from `wxcli virtual-line-settings list`, not a person ID. Note the separate `virtual-extensions` group uses a different ID type entirely (Known Issue #9).
+- **`person-call-settings list` returns only monitoring data:** That is correct behavior, not a bug — the group covers `/people/{id}/features/monitoring` only. For other person settings use `user-settings`.
+- **`guest-management create` fails with 401/403 on an admin token:** Guest tokens require a Guest Issuer application (JWT-signed credentials). A standard admin token or PAT cannot mint them.
 - **404 on `call-settings-for-me-phase-5` commands:** The authenticated user must have a Webex Calling license. These are `/people/me/` endpoints and require user-level OAuth tokens (`spark:people_read` / `spark:people_write`), not admin tokens.
 
 ---

@@ -4,12 +4,15 @@ description: |
   Provision Webex Calling users, locations, and licenses via the wxcli CLI.
   Also covers People API profile updates (alternate phone numbers, display name,
   phoneNumbers array including alternate1/alternate2), number inventory management,
-  and bulk CSV import. Guides through auth verification, prerequisite checks,
+  and bulk CSV import. Also covers org-wide calling service defaults (announcement
+  language list, org voicemail settings and passcode rules, org music on hold,
+  large org status, org call captions) via the calling-service group.
+  Guides through auth verification, prerequisite checks,
   deployment planning, execution, and result verification for any provisioning operation.
   Use for: create, enable, assign, bulk provision, update user profile fields.
   For teardown/delete/cleanup operations, use the teardown skill instead.
 allowed-tools: Read, Grep, Glob, Bash
-argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision"]
+argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision", "org calling defaults"]
 ---
 
 <!-- Updated by playbook session 2026-03-18 -->
@@ -25,6 +28,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 ## Step 1: Load references
 
 1. Read `docs/reference/provisioning.md` for People, Licenses, and Locations API patterns
+2. For org-level calling defaults (Operation G) only, read `docs/reference/location-calling-core.md` § "CLI: `calling-service` (Org-Level Calling Service Settings)" — skip this unless the user asks about org-wide voicemail, music on hold, or call captions
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
@@ -43,7 +47,7 @@ If this fails with 401/403, stop and troubleshoot auth before proceeding. Common
 
 ## Step 3: Determine the operation
 
-Ask the user which provisioning operation they need. The six supported operations are:
+Ask the user which provisioning operation they need. The seven supported operations are:
 
 | Operation | What It Does | Prerequisites |
 |-----------|-------------|---------------|
@@ -53,6 +57,7 @@ Ask the user which provisioning operation they need. The six supported operation
 | **Enable user for calling** | Assign calling license + location + extension to existing user | Location must exist; calling license available |
 | **Assign/change licenses** | Add or remove licenses on a user | License with available capacity |
 | **Bulk provision** | Provision multiple users in one run | All of the above |
+| **Org-wide calling defaults** | Read/set org voicemail, music on hold, call captions; look up valid announcement language codes | Admin token with `spark-admin:telephony_config_write` |
 
 Confirm with the user before proceeding:
 - **Which operation** from the table above
@@ -169,6 +174,14 @@ wxcli location-settings create \
 
 **Important:** `announcement_language` must be lowercase (`en_us` not `en_US`) or the API rejects with "Invalid Language Code".
 
+To confirm a language code before using it, list the announcement languages the org supports — the `code` field is the exact value to pass to `--announcement-language`, already lowercase:
+
+```bash
+wxcli calling-service list
+```
+
+Verified live: returns 42 languages as `{"name": "Italian", "code": "it_it"}` pairs. See Operation G for the rest of the `calling-service` group.
+
 **Warning:** Do not promise an API-based "disable calling" step during teardown. Use CLI/API to clear visible blockers first, but final delete of a calling-enabled location may still require Control Hub if the backend continues to hold the telephony reference.
 
 ### Operation C: Create a New User
@@ -264,6 +277,81 @@ done
 
 Delete-related critical rules (13-15) below still apply.
 
+### Operation G: Org-Wide Calling Service Defaults
+
+The `calling-service` group holds calling settings that apply to the **whole org**, not to a location and not to a person. These are the defaults new locations and users inherit, so they are worth reading during org bootstrap and before bulk provisioning.
+
+Scope check: if the setting is per-location, use the `configure-features` skill. If it is per-person, use `manage-call-settings`. Only org-wide defaults live here.
+
+| Command | What it reads/sets | When you need it |
+|---------|-------------------|------------------|
+| `calling-service list` | Announcement languages (`name` + `code`) | Look up a valid `--announcement-language` code (Operation B) |
+| `calling-service show` / `update` | Org voicemail settings — message expiry, strict deletion, email forwarding | Set org voicemail retention before provisioning users |
+| `calling-service show-rules` / `update-rules` | Org voicemail passcode policy — default PIN, expiry, reuse blocking | Set the PIN policy new users inherit |
+| `calling-service show-settings` / `update-settings` | Org default music on hold | Choose `OPUS` or `LEGACY` org-wide |
+| `calling-service show-large-org-status` | Whether the org crosses the large-org threshold | Check before bulk provisioning — large orgs behave differently |
+| `calling-service show-call-captions` / `update-call-captions` | Org closed captions and transcripts | Enable/disable captions org-wide |
+
+**Read the current org defaults (all read-only, safe to run during prerequisite checks):**
+
+```bash
+# Announcement languages — returns {"name": "Italian", "code": "it_it"} pairs
+wxcli calling-service list
+
+# TTS-capable languages only (--tts-language is a boolean filter)
+wxcli calling-service list --tts-language true
+
+# Org voicemail settings
+wxcli calling-service show
+
+# Org voicemail passcode rules
+wxcli calling-service show-rules
+
+# Org default music on hold
+wxcli calling-service show-settings
+
+# Large org status
+wxcli calling-service show-large-org-status
+
+# Org call captions / transcripts
+wxcli calling-service show-call-captions
+```
+
+**Change org defaults (write — these hit every user in the org; show the plan and get approval first):**
+
+```bash
+# Expire voicemail messages after 30 days
+wxcli calling-service update --message-expiry-enabled --number-of-days-for-message-expiry 30
+
+# Turn message expiry back off (paired --no- flags exist for every boolean here)
+wxcli calling-service update --no-message-expiry-enabled
+
+# Set the org default music on hold — valid values are OPUS or LEGACY
+wxcli calling-service update-settings --default-org-moh "OPUS"
+
+# Enable org-level closed captions and transcripts
+wxcli calling-service update-call-captions --org-closed-captions-enabled --org-transcripts-enabled
+```
+
+`update-rules` (voicemail passcode policy) has nested fields that the flags do not cover — use `--json-body`:
+
+```bash
+wxcli calling-service update-rules --json-body '{
+  "defaultVoicemailPinEnabled": true,
+  "expirePasscode": {"enabled": true, "numberOfDays": 90},
+  "changePasscode": {"enabled": true, "numberOfDays": 1},
+  "blockPreviousPasscodes": {"enabled": true, "numberOfPasscodes": 3}
+}'
+```
+
+Read back after any write — every one of these is a `show` away:
+
+```bash
+wxcli calling-service show
+wxcli calling-service show-settings
+wxcli calling-service show-call-captions
+```
+
 ## Step 7: Verify results
 
 Always read back the created/updated resources to confirm.
@@ -339,6 +427,10 @@ Next steps:
 14. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
 
 15. **Routing delete commands use PLURAL names** — `delete-route-groups`, `delete-trunks`, `delete-route-lists`. The singular form (`delete-route-group`) does not exist.
+
+16. **`calling-service` is org-wide, not per-location** — Every `update*` in that group changes the default for the entire org, including users you did not provision. There is no location or person argument to scope it. Treat these as high-blast-radius writes and get explicit approval.
+
+17. **`calling-service` command names do not say what they touch** — The generated names are generic: `show`/`update` are **voicemail** settings, `show-settings`/`update-settings` are **music on hold**, and `list` is **announcement languages**. Read the Operation G table before running any of them; the name alone will mislead you.
 
 ---
 
