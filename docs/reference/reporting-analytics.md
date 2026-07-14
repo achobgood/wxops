@@ -131,7 +131,7 @@ wxcli cdr list \
 wxcli cdr list \
   --start-time "2026-03-17T14:00:00.000Z" \
   --end-time "2026-03-17T16:00:00.000Z" \
-  --max 500 --limit 100
+  --limit 100
 
 # Pull near-real-time CDR stream
 wxcli cdr list-cdr_stream \

@@ -189,7 +189,7 @@ wxcli locations create --help
 ### Finding IDs
 
 ```bash
-wxcli locations list --calling-only        # Get location IDs
+wxcli locations list                       # Get location IDs
 wxcli users list --location-id LOC_ID      # Get person IDs
 wxcli numbers list --location-id LOC_ID  # Get number inventory
 ```
@@ -245,7 +245,7 @@ A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environ
 ### Pipeline
 
 ```bash
-wxcli cucm init -p myproject              # Create project
+wxcli cucm init myproject                 # Create project
 wxcli cucm discover --host 10.0.0.1 \    # Extract from CUCM via AXL
   --username admin --password secret -p myproject
 wxcli cucm normalize -p myproject         # Normalize to canonical models

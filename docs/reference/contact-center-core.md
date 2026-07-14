@@ -157,7 +157,7 @@ Manage agent personal greeting files. Supports three API versions (v1, v2, v3) w
 wxcli cc-agent-greetings list
 
 # Get a specific greeting (v2)
-wxcli cc-agent-greetings show --id "greeting-uuid"
+wxcli cc-agent-greetings show "greeting-uuid"
 
 # Create a greeting (v2)
 wxcli cc-agent-greetings create --json-body '{
@@ -167,7 +167,7 @@ wxcli cc-agent-greetings create --json-body '{
 }'
 
 # Delete a greeting (v2)
-wxcli cc-agent-greetings delete --id "greeting-uuid"
+wxcli cc-agent-greetings delete "greeting-uuid"
 
 # List greetings (v3 -- enhanced filtering)
 wxcli cc-agent-greetings list-agent-personal-greeting
@@ -212,7 +212,7 @@ Monitor and manage agent burnout detection. Mixes config paths (`/organization/{
 wxcli cc-agent-wellbeing list
 
 # Get burnout config for a specific agent
-wxcli cc-agent-wellbeing show --id "burnout-uuid"
+wxcli cc-agent-wellbeing show "burnout-uuid"
 
 # Subscribe for realtime burnout events
 wxcli cc-agent-wellbeing create --json-body '{
@@ -598,8 +598,8 @@ Runtime queue statistics. Uses the runtime path family (`/v1/queues/`), separate
 # Get queue statistics
 wxcli cc-queue-stats list --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
 
-# Get statistics for a specific queue
-wxcli cc-queue-stats list --queue-id "queue-uuid"
+# Get statistics for a specific queue (--from/--to are required on every call)
+wxcli cc-queue-stats list --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" --queue-ids "queue-uuid"
 ```
 
 ### Raw HTTP
@@ -658,10 +658,10 @@ wxcli cc-entry-point show "ep-uuid"
 wxcli cc-entry-point list-bulk-export
 
 # Delete an entry point
-wxcli cc-entry-point delete --id "ep-uuid"
+wxcli cc-entry-point delete "ep-uuid"
 
 # List references (what uses this entry point)
-wxcli cc-entry-point list-incoming-references --id "ep-uuid"
+wxcli cc-entry-point list-incoming-references "ep-uuid"
 ```
 
 ### Raw HTTP
@@ -718,7 +718,7 @@ wxcli cc-team create --json-body '{
 }'
 
 # Get a specific team
-wxcli cc-team show --id "team-uuid"
+wxcli cc-team show "team-uuid"
 
 # Bulk save multiple teams
 wxcli cc-team create-bulk --json-body '[
@@ -727,10 +727,10 @@ wxcli cc-team create-bulk --json-body '[
 ]'
 
 # Delete a team
-wxcli cc-team delete --id "team-uuid"
+wxcli cc-team delete "team-uuid"
 
 # See what references this team
-wxcli cc-team list-incoming-references --id "team-uuid"
+wxcli cc-team list-incoming-references "team-uuid"
 ```
 
 ### Raw HTTP
@@ -807,10 +807,10 @@ wxcli cc-skill create --json-body '{
 }'
 
 # Get a specific skill
-wxcli cc-skill show --id "skill-uuid"
+wxcli cc-skill show "skill-uuid"
 
 # Delete a skill
-wxcli cc-skill delete --id "skill-uuid"
+wxcli cc-skill delete "skill-uuid"
 
 # Populate JSON attributes for a skill
 wxcli cc-skill create-populate-json-attr "skill-uuid"
@@ -878,7 +878,7 @@ wxcli cc-skill-profile show "profile-uuid"
 wxcli cc-skill-profile list
 
 # Delete a skill profile
-wxcli cc-skill-profile delete --id "profile-uuid"
+wxcli cc-skill-profile delete "profile-uuid"
 ```
 
 ### Raw HTTP
@@ -952,10 +952,10 @@ wxcli cc-multimedia-profile create --json-body '{
 }'
 
 # Get a specific profile
-wxcli cc-multimedia-profile show --id "mm-profile-uuid"
+wxcli cc-multimedia-profile show "mm-profile-uuid"
 
 # Delete a profile
-wxcli cc-multimedia-profile delete --id "mm-profile-uuid"
+wxcli cc-multimedia-profile delete "mm-profile-uuid"
 ```
 
 ### Raw HTTP
@@ -1144,10 +1144,10 @@ wxcli cc-business-hour create --json-body '{
 }'
 
 # Get specific business hours
-wxcli cc-business-hour show --id "bh-uuid"
+wxcli cc-business-hour show "bh-uuid"
 
 # Delete business hours
-wxcli cc-business-hour delete --id "bh-uuid"
+wxcli cc-business-hour delete "bh-uuid"
 ```
 
 ### Raw HTTP
@@ -1212,10 +1212,10 @@ wxcli cc-holiday-list create --json-body '{
 }'
 
 # Get a specific holiday list
-wxcli cc-holiday-list show --id "hl-uuid"
+wxcli cc-holiday-list show "hl-uuid"
 
 # Delete a holiday list
-wxcli cc-holiday-list delete --id "hl-uuid"
+wxcli cc-holiday-list delete "hl-uuid"
 ```
 
 ### Raw HTTP
@@ -1291,7 +1291,7 @@ wxcli cc-aux-code update --json-body '[
 ]'
 
 # Delete an aux code
-wxcli cc-aux-code delete --id "code-uuid"
+wxcli cc-aux-code delete "code-uuid"
 ```
 
 ### Raw HTTP
@@ -1341,10 +1341,10 @@ wxcli cc-work-types create --json-body '{
 }'
 
 # Get a specific work type
-wxcli cc-work-types show --id "wt-uuid"
+wxcli cc-work-types show "wt-uuid"
 
 # Delete a work type
-wxcli cc-work-types delete --id "wt-uuid"
+wxcli cc-work-types delete "wt-uuid"
 ```
 
 ### Raw HTTP
@@ -1397,13 +1397,13 @@ wxcli cc-site list-site
 wxcli cc-site create --json-body '{"name": "US East Coast"}'
 
 # Get a specific site
-wxcli cc-site show --id "site-uuid"
+wxcli cc-site show "site-uuid"
 
 # Check what references this site
-wxcli cc-site list-incoming-references --id "site-uuid"
+wxcli cc-site list-incoming-references "site-uuid"
 
 # Delete a site (must have no team references)
-wxcli cc-site delete --id "site-uuid"
+wxcli cc-site delete "site-uuid"
 ```
 
 ### Raw HTTP
@@ -1467,10 +1467,10 @@ wxcli cc-global-vars create --json-body '{
 }'
 
 # Get a specific variable
-wxcli cc-global-vars show --id "var-uuid"
+wxcli cc-global-vars show "var-uuid"
 
 # Delete a variable
-wxcli cc-global-vars delete --id "var-uuid"
+wxcli cc-global-vars delete "var-uuid"
 ```
 
 ### Raw HTTP
