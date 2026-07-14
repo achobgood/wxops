@@ -42,7 +42,7 @@ Mock server URLs (public, no auth required — return saved response examples):
 
 ## CLI Test Status
 
-178 command groups (171 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+176 command groups (171 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ## Generator Rules
 
