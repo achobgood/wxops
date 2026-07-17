@@ -14,10 +14,12 @@ argument-hint: [device-platform-operation]
 # Device Platform Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. Do 9800-series phones (9811/9821/9841/9851/9861/9871) use telephony device settings or RoomOS config keys? (Answer: RoomOS config keys — they are NOT configured via `wxcli device-settings` or telephony settings APIs.)
-2. What CLI group handles xAPI commands for device control? (Answer: `wxcli xapi` — covers both command execution and status queries on devices.)
+1. Do 9800-series phones (9811/9821/9841/9851/9861/9871) use telephony device settings or PhoneOS config keys? (Answer: PhoneOS config keys via the Device Configurations API (`wxcli device-configurations`) — they are NOT configured via `wxcli device-settings` or telephony settings APIs.)
+2. What CLI group handles xAPI commands for device control? (Answer: `wxcli xapi` — covers schema discovery (`list`), status queries (`show`), and command execution (`create`).)
+3. You need a key name (command, status, or config) and don't know it. What do you do FIRST? (Answer: dump the device's full namespace to disk with `"*"` and grep it — see 6c. Do NOT guess a namespace, do NOT use training data, do NOT send the user to a website.)
+4. You grep all three dumps and the key isn't there. What do you report? (Answer: "this device does not expose it" — NOT "the feature doesn't exist." Coverage varies by model and firmware.)
 
-If you cannot answer both, you skipped reading this skill. Go back and read it.
+If you cannot answer all four, you skipped reading this skill. Go back and read it.
 
 ## Step 1: Load references
 
@@ -202,7 +204,68 @@ wxcli workspace-personalization show WORKSPACE_ID
 - Common error: "Device is offline" -- the workspace device must be online and registered
 - **Do not tell the user it is done until `show` returns `success: true`**
 
-### 6c. xAPI -- Status Queries
+### 6c. Discover the Namespace -- Dump, Then Grep
+
+**Do this FIRST whenever you do not already know the exact key name. Do NOT guess a namespace, and do NOT rely on your training data for xAPI key names.**
+
+The device reports its own complete namespace. Dump all three surfaces to disk, then grep locally:
+
+**One device per dump. Always namespace the filenames by device.** Namespaces differ by model and firmware — a key on one device may be absent on the next.
+
+```bash
+# Pick a short unique tag per device (e.g. its displayName, slugified). ONE device per file.
+TAG=roombarpro   # <- change per device; never reuse across devices
+
+wxcli xapi list --device-id DEVICE_ID --status  "*" -o json > /tmp/${TAG}_status.json
+wxcli xapi list --device-id DEVICE_ID --command "*" -o json > /tmp/${TAG}_commands.json
+
+# Configurations -- DIFFERENT API, see the surface table below
+wxcli device-configurations show --device-id DEVICE_ID -o json > /tmp/${TAG}_configs.json
+
+# Search ONE device's dumps at a time -- never glob across devices
+grep -io '"[A-Za-z][A-Za-z0-9._[]]*Background[A-Za-z0-9._[]]*"' /tmp/${TAG}_*.json | sort -u
+```
+
+**NEVER `Read` these dumps.** Verified live on a Room Bar Pro: 535 statuses + 453 commands + 1,218 configs, ~1.4 MB combined (~350k tokens). Grep them; never open them.
+
+**Multi-device rules — violating these is how you execute against the wrong box:**
+
+- **Never grep across devices** (no `/tmp/*_status.json` globs). A hit tells you a key exists *somewhere*, not on the device you're about to call. Re-grep that device's own dump before executing.
+- `--device-id` accepts up to **5 device IDs** per request, and the response is an array where each item carries its own `deviceId`. If you ever query more than one at a time, you **must** parse per `deviceId` — a flat grep destroys the attribution the API gave you.
+- **Fleet-wide work:** dump each device separately, grep each separately, and treat "device A has it" as zero evidence about device B. Report per-device results, not a single fleet-wide answer.
+- **Mixed fleets: xAPI is RoomOS-only.** Room/Board/Desk series support xAPI; PhoneOS 9800-series and MPP phones do not. On a 9800-series phone, skip the `xapi` dumps entirely and use `device-configurations` (6a) — that API serves both RoomOS and PhoneOS. A failed xAPI call on a phone is expected, not a bug; do not report it as the device being broken, and do not retry it.
+
+**Why dump instead of filter:** filtering requires guessing the first word, and that guess is a coin flip. `Camera.*` and `Cameras.*` are BOTH real, distinct namespaces on the same device — a filtered query on the wrong one returns a confident, complete-looking, wrong answer. Dumping has no such failure mode. Once you know the namespace, filtering (`--command "Camera.*"`) is a fine optimization.
+
+**Three surfaces, two APIs — a key lives in exactly one:**
+
+| Surface | API | Command | Example |
+|---------|-----|---------|---------|
+| Command (do a thing) | xAPI | `wxcli xapi list --command`, `xapi create` | `Camera.PositionReset` |
+| Status (read a live value) | xAPI | `wxcli xapi list --status`, `xapi show` | `SystemUnit.ProductPlatform` |
+| Configuration (persistent setting) | Device Configurations | `wxcli device-configurations show/update` (6a) | `Video.Input.CameraConfigMode` |
+
+`xapi list` **cannot see configurations** — `/xapi/schema` accepts only `--status` and `--command`. If you search only xAPI for a setting, you will wrongly conclude it does not exist. Search all three dumps.
+
+**Verified behaviors — do not re-derive these:**
+
+- **`-o json` is mandatory.** The default table output renders a single `Device Id` column and silently drops every command, argument, and schema. It does not error — it just looks like the device has nothing.
+- **The dumps contain NO descriptions.** Checked across all 2,206 keys on a live device: zero `description`/`help`/`summary`/`doc` fields. A command returns only `arguments` (each with `required` + a JSON Schema) and a `resultSchema`; a config returns only `value`, `source`, `sources`, `valueSpace`, `appliedConfigurationValue`. **The device tells you a key's shape, never its meaning.** Do not tell the user what a key does based on a dump alone — say you have the name and shape but not the semantics.
+- `--device-id` is required (max 5 per request). Discovery needs a live, online, cloud-registered device.
+- Scopes differ: `spark:xapi_commands` for `--command`, `spark:xapi_statuses` for `--status`. Configurations use `spark-admin:devices_read/write`.
+
+**Absence in a dump means "not on THIS device" — never "does not exist."**
+Coverage varies sharply by model and firmware. A real example: the virtual-background keys (`Cameras.Background.*`) exist on Cisco hardware but are absent from a Room Bar Pro's dump entirely. If you grep and find nothing, report *"this device does not expose it"* and name the device — do NOT tell the user the feature does not exist. A confident false negative is worse than no answer.
+
+**Worked example -- "reset the camera position on device XYZ":**
+
+1. Dump + grep: `grep -io '"Camera[^"]*"' /tmp/dev_commands.json | sort -u` -> finds `Camera.PositionReset`
+2. Read that key's object: `CameraId` (required, integer 1-15) and `Axis` (optional enum `All`/`Focus`/`PanTilt`/`Zoom`, default `All`). *(Verified live.)*
+3. Execute: `wxcli xapi create Camera.PositionReset --device-id XYZ --json-body '{"deviceId": "XYZ", "arguments": {"CameraId": 1}}'`
+
+Argument names and value ranges vary by model and firmware. Trust the dump for the device in front of you over any example in this skill.
+
+### 6d. xAPI -- Status Queries
 
 ```bash
 # Query a single status value
@@ -227,7 +290,7 @@ wxcli xapi show --device-id DEVICE_ID --name "Audio.Volume,SystemUnit.State.Numb
 | `Peripherals.ConnectedDevice[*].Name` | Connected peripherals |
 | `Standby.State` | Standby/active state |
 
-### 6d. xAPI -- Command Execution
+### 6e. xAPI -- Command Execution
 
 ```bash
 # Simple command with no arguments (deviceId auto-populated from --device-id)
@@ -260,7 +323,7 @@ wxcli xapi create UserInterface.Message.Alert.Display --device-id DEVICE_ID --js
 | `Message.Send` | `Text` | Display on-screen message |
 | `UserInterface.Message.Alert.Display` | `Title`, `Text`, `Duration` | Show alert popup |
 
-**Do not enumerate the full xAPI namespace.** The namespace is huge. Ask the user what they want to DO, then look up the specific command name. Point them to https://roomos.cisco.com/xapi for the full reference.
+**Do not paste the namespace into context — but do dump it.** An unfiltered `xapi list` returns hundreds of keys (~350k tokens across all three surfaces). Redirect it to a file and grep (6c); never `Read` it. https://roomos.cisco.com/xapi documents the namespace for humans and is the only source of *prose* for what a key means, but it is not a substitute for 6c — only the device knows what it actually exposes.
 
 ### Error handling
 
@@ -268,7 +331,7 @@ wxcli xapi create UserInterface.Message.Alert.Display --device-id DEVICE_ID --js
 |-------|-------|-----|
 | 401/403 | Token expired or insufficient scopes | Run `wxcli configure` to re-authenticate |
 | 400 "device not found" | Invalid device ID or device not cloud-registered | Verify with `wxcli devices list` |
-| 400 on xAPI command | Device offline, wrong command name, or missing arguments | Check device is online, verify command name at roomos.cisco.com/xapi |
+| 400 on xAPI command | Device offline, wrong command name, or missing arguments | Check device is online, then confirm the command name and its required arguments against the device with a filtered `wxcli xapi list` (6c) |
 | 400 on device-configurations update | Invalid path, bad JSON Patch format, or non-editable key | Verify path ends in `/sources/configured/value`, check key is editable |
 | Personalization "Device is offline" | Workspace device not online | Device must be powered on and cloud-registered |
 
@@ -355,7 +418,7 @@ Next steps:
 
 6. **Configuration update PATCH content type.** The API uses `application/json-patch+json`, not `application/json`. The CLI handles this automatically. If the user falls back to raw HTTP (curl), they must set the `Content-Type` header correctly.
 
-7. **Do not enumerate xAPI commands.** The xAPI namespace is huge. Ask the user what they want to DO, then look up the specific command name. Point them to https://roomos.cisco.com/xapi for the full command reference.
+7. **Never guess a key name — dump the device's namespace and grep it (6c).** Filtering on a guessed namespace is a coin flip: `Camera.*` and `Cameras.*` are both real and distinct, so a wrong guess returns a confident, complete-looking, wrong answer. Dump all three surfaces with `"*"` to disk and grep. Never `Read` the dumps (~350k tokens). Do not substitute training data or a link to roomos.cisco.com for the lookup. The device is authoritative for its own model and firmware — but only about itself: absence means "not on this device," not "does not exist."
 
 8. **Scope mismatch between device-configurations and xAPI.** Device configurations use admin scopes (`spark-admin:devices_read`/`spark-admin:devices_write`). xAPI uses user-level scopes (`spark:xapi_statuses`/`spark:xapi_commands`). A token may have one set but not the other. Diagnose scope issues early in Step 2.
 
