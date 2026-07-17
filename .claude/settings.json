@@ -14,24 +14,13 @@
     ]
   },
   "hooks": {
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "f=/tmp/.wxcli-agent-active; [ -f \"$f\" ] || exit 0; t=$(mktemp); tail -n +2 \"$f\" > \"$t\"; mv \"$t\" \"$f\"; [ -s \"$f\" ] || rm -f \"$f\"",
-            "timeout": 3
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "input=$(cat); cmd=$(echo \"$input\" | jq -r '.tool_input.command // \"\"'); f=/tmp/.wxcli-agent-active; if [ -f \"$f\" ]; then t=$(mktemp); while IFS= read -r p; do [ -n \"$p\" ] && kill -0 \"$p\" 2>/dev/null && echo \"$p\"; done < \"$f\" > \"$t\"; mv \"$t\" \"$f\"; [ -s \"$f\" ] || rm -f \"$f\"; fi; first=$(echo \"$cmd\" | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]+[[:space:]]+)*//' | awk '{print $1}'); if [ \"$first\" = \"wxcli\" ] && [ ! -s \"$f\" ]; then jq -nc --arg c \"$cmd\" '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:(\"wxcli commands must go through the wxc-calling-builder agent. REQUIRED ACTION: Do NOT attempt to run wxcli directly again. Instead, spawn the wxc-calling-builder agent (subagent_type=\\\"wxc-calling-builder\\\") and pass it this intent: \" + $c + \" — The agent handles auth, planning, execution, and verification. Only exception: the user explicitly asks you to run a raw CLI command for debugging.\")}}'; else echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'; fi",
+            "command": "sh /Users/ahobgood/Documents/webexCalling/.claude/hooks/wxcli-gate.sh",
             "timeout": 5
           }
         ]

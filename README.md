@@ -4,6 +4,13 @@ A command-line tool and AI-assisted playbook for provisioning, managing, migrati
 
 > **Unofficial community CLI — not affiliated with or endorsed by Cisco.**
 
+> **Use at your own risk.** This software is provided "AS IS", without warranty
+> of any kind, and the authors accept no liability for any damage, data loss, or
+> service disruption arising from its use (see [LICENSE](LICENSE), Apache 2.0
+> §7–8). It performs **write and delete operations against live production
+> Webex Calling and CUCM environments**, driven in part by non-deterministic AI.
+> You are responsible for reviewing every action before it runs.
+
 ## What It Does
 
 - **176 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
@@ -455,6 +462,46 @@ The CLI covers 176 command groups across calling, admin, device, messaging, meet
 | `spark:xsi` | XSI events and call monitoring |
 
 See [`docs/reference/authentication.md`](docs/reference/authentication.md) for full details on token types, OAuth flows, and scope requirements per endpoint.
+
+## Disclaimer & Safe Use
+
+wxcli is an unofficial, community-maintained tool. It is **not affiliated with,
+endorsed by, or supported by Cisco.** "Webex", "Webex Calling", and "CUCM" are
+Cisco trademarks, used here only to describe interoperability.
+
+**This tool changes and deletes real telephony configuration.** The AI playbook
+reasons and orchestrates using a large language model, which is non-deterministic:
+the same prompt can produce different actions, and the agent can select the wrong
+resource. The layered design (docs → skills → tested CLI, with read-back
+verification) is built to reduce this, but **cannot eliminate it.**
+
+Before running anything against a production org:
+
+- **Preview first.** Use `--dry-run` (cleanup, migration) and review the plan.
+- **Verify emergency services.** E911 / emergency-callback misconfiguration is a
+  life-safety risk. Independently confirm every emergency address and ECBN after
+  any change — do not rely on the tool's read-back alone.
+- **`cleanup run --all` is irreversible** and deletes an entire org's calling
+  config. There is no undo.
+- **Test in a lab or sandbox org first**, especially for CUCM migrations.
+- **You are the operator of record.** You are responsible for reviewing and
+  authorizing every action, and for compliance with your own change-control,
+  regulatory (e.g. Kari's Law / RAY BAUM's Act), and data-handling obligations.
+
+By using this tool you accept these risks and the terms of the Apache 2.0 License.
+
+### Credentials, secrets, and API usage
+
+- **Tokens are stored locally in plaintext** in your wxcli config file. Treat that
+  file like a password — it grants full admin access to your Webex org. Personal
+  access tokens expire after 12 hours; OAuth/service-app tokens live longer, so
+  guard them accordingly.
+- **CUCM AXL credentials** passed inline to `wxcli cucm discover --username/--password`
+  land in your shell history. Prefer a prompt-based flow or a throwaway shell, and
+  clear the history afterward.
+- **The AI playbook can generate many API calls in a loop.** Long agent runs and
+  large migrations may hit Webex API rate limits; the tool retries, but you own the
+  API-usage footprint against your org.
 
 ## License
 

@@ -16,17 +16,25 @@
 ## Command Recipes
 
 ### List users (org-wide or filtered)
+
+**Always pass `--calling-data true` when the question touches extension, location, or
+any calling attribute.** Without it the API omits those fields entirely — the command
+still exits 0 and returns every person, so a count built from it silently reports zero.
+
 ```bash
-wxcli people list -o json
-wxcli people list --location-id LOCATION_ID -o json
-wxcli people list --display-name "John Smith" -o json
-wxcli people list --email "john@example.com" -o json
+wxcli people list --calling-data true -o json
+wxcli people list --calling-data true --location-id LOCATION_ID -o json
+wxcli people list --calling-data true --display-name "John Smith" -o json
+wxcli people list --calling-data true --email "john@example.com" -o json
 ```
+
+Omit `--calling-data` only for pure directory questions (name, email, roles, licenses).
 
 ### Show a specific user
 ```bash
-wxcli people show PERSON_ID -o json
+wxcli people show PERSON_ID --calling-data true -o json
 ```
+Same rule as `list`: without `--calling-data true`, `extension` and `locationId` are absent.
 
 ### Voicemail settings
 ```bash
@@ -92,13 +100,14 @@ wxcli user-settings show-hoteling PERSON_ID -o json
 
 **Finding users at a location by name:**
 1. `wxcli locations list -o json` → search for location name → get ID
-2. `wxcli people list --location-id <locationId> -o json`
+2. `wxcli people list --calling-data true --location-id <locationId> -o json`
 
 ## Join Patterns
 
 **Audit query** ("Which users at Austin don't have voicemail?"):
 1. Resolve location name → ID: `wxcli locations list -o json`
-2. List users at location: `wxcli people list --location-id <locationId> -o json`
+2. List users at location: `wxcli people list --calling-data true --location-id <locationId> -o json`
+   (`--calling-data true` is required — the audit report prints each user's extension)
 3. For each user, fetch setting: `wxcli user-settings show-voicemail <personId> -o json`
 4. Filter to matches (enabled=false or missing)
 5. Format as audit table
