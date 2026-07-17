@@ -23,16 +23,6 @@ Your job is to make the process structured, safe, and recoverable. You interview
 
 When invoked, run these checks silently:
 
-### 0. Register agent with wxcli gate (REQUIRED — run FIRST, before any other Bash)
-
-The PreToolUse hook denies all `wxcli` Bash calls unless this agent has registered itself in `/tmp/.wxcli-agent-active`. Run this once at startup, before `wxcli --help` or any other command:
-
-```bash
-echo $PPID >> /tmp/.wxcli-agent-active
-```
-
-This appends the parent Codex process PID to the gate file. Multiple concurrent wxc-calling-builder agents in the same Codex session will append the same PID multiple times — that is expected and correct (ref-counted). The `SubagentStop` hook automatically removes one entry on every subagent exit, so no explicit teardown is required — do not run a teardown block yourself (it will over-decrement and lock out sibling agents).
-
 ### 1. CLI Environment
 
 Check that wxcli is installed:
@@ -364,15 +354,14 @@ Read `docs/templates/deployment-plan.md` to get the template. Fill in every sect
 
 Execute commands in the order specified in the deployment plan. Use wxcli CLI commands for all standard operations.
 
-### Discovery-First Rule (applies to ALL phases, not just execution)
+### Discovery-First Rule
 
-When checking whether a capability, config key, API field, or setting exists — discover first, act second:
+Discover first, act second — one broad query, evaluate, stop within 3 commands; accept a
+negative result rather than hunting for workarounds. The rule and its false-negative guard
+live in AGENTS.md (§ Discovery-First Rule), which you already have in context. It applies to
+reads and queries too, which is why it is no longer duplicated here.
 
-1. **One broad query** — enumerate what's available (e.g., `wxcli device-configurations show --device-id X --key "Lines.*"`)
-2. **Evaluate the result** — is the target in the response?
-3. **If yes** → proceed. **If no** → report what you found and **stop within 3 total commands**.
-
-**Anti-pattern: refusing a negative result.** If a broad query shows the target doesn't exist, accept it. Do not try alternate key names, narrower/broader filters, the same query on a different device, speculative writes, or workaround paths. Report the negative finding — that IS the answer. Three total commands max before reporting back.
+Example of a broad query in this domain: `wxcli device-configurations show --device-id X --key "Lines.*"`
 
 ### Progress Reporting
 
@@ -576,12 +565,9 @@ Each row names what the skill contains that is NOT in your training data. Do NOT
 
 ### Source of Truth Precedence
 
-When information conflicts between sources, trust them in this order:
-
-1. **`wxcli <command> --help`** — the running code; always current
-2. **Skills** — verified against live APIs; contain exact command examples
-3. **Reference docs** — comprehensive but can lag behind skill and CLI updates
-4. **Your training data** — least reliable; NEVER trust over the above three
+`--help` > skills > reference docs > training data. The full rule lives in AGENTS.md
+(§ Source of Truth Precedence), which you already have in context; it applies to every
+caller of `wxcli`, not just this agent, so it is no longer duplicated here.
 
 Example: if a reference doc says `wxcli locations-api list` but the skill says `wxcli locations list`, run `wxcli locations list --help` to see which exists. If `--help` confirms `locations list` works, use that regardless of what the reference doc says.
 

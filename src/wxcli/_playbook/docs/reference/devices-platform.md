@@ -24,7 +24,7 @@ Before using any of the three APIs documented here, you need:
 
 1. **A working auth token.** Verify with `wxcli whoami`. Token type (admin, user, service app) affects which scopes are available — see the Scopes section below.
 
-2. **At least one cloud-registered RoomOS device** (for device-configurations and xAPI). This means a Cisco Room, Board, or Desk series device registered to Webex cloud. MPP phones do not support device-configurations key management or xAPI.
+2. **At least one cloud-registered RoomOS device or PhoneOS 9800-series phone.** Device-configurations works on either: a Cisco Room, Board, or Desk series device (RoomOS) or a 9800-series phone (9811/9821/9841/9851/9861/9871, PhoneOS) registered to Webex cloud. xAPI requires a RoomOS device specifically. MPP phones (68xx/78xx/88xx) support neither — they use the telephony device settings API instead (see [devices-core.md](devices-core.md)).
 
 3. **At least one workspace with a device** (for workspace-personalization). The workspace must already exist and have a device assigned to it.
 
@@ -61,7 +61,7 @@ The Device Configurations API reads and writes RoomOS configuration keys on a sp
 
 Changes are applied via JSON Patch operations (`replace` to set a value, `remove` to revert to the schema default). The API supports filtering by key name, wildcard patterns, and index ranges.
 
-This API targets RoomOS devices only (Room, Board, Desk series). MPP phones do not expose configuration keys through this interface.
+This API targets RoomOS devices (Room, Board, Desk series) and PhoneOS 9800-series phones. The API surface is shared between the two platforms, but the reported config-key schemas differ by platform and firmware (see gotcha #11). MPP phones do not expose configuration keys through this interface.
 
 ### CLI Commands
 

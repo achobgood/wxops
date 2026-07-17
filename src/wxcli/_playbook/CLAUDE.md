@@ -15,6 +15,47 @@ For every question — capability, configuration, behavior, limits, or anything 
 
 The reference docs and skills are the authoritative source for this project. Training data about Cisco/Webex products is unreliable — product tiers get conflated, feature names change, and capabilities vary by license. If the answer isn't in the docs or skills, say so explicitly rather than filling the gap from training data.
 
+## Source of Truth Precedence
+
+Applies to everyone touching `wxcli` — main session, skills, and agents alike. When
+sources conflict, trust them in this order:
+
+1. **`wxcli <command> --help`** — the running code; always current
+2. **Skills** — verified against live APIs; contain exact command examples
+3. **Reference docs** — comprehensive but can lag behind skill and CLI updates
+4. **Your training data** — least reliable; NEVER trust over the above three
+
+This refines the grounding rule above: skills and docs outrank your training, but
+`--help` outranks *them*. A skill's recipe is a starting point, not a guarantee — recipes
+are hand-written and drift as the CLI regenerates. When a recipe and `--help` disagree,
+`--help` wins, and the stale recipe should be fixed, not worked around.
+
+**A read-only command can be silently wrong.** Real case: the query-live recipe said
+`wxcli people list -o json`, but Webex omits `extension` and `locationId` unless
+`--calling-data true` is passed. The command exits 0 and returns every user, so
+"how many users have extensions?" answers **0** instead of the true count. No error, no
+warning. Before trusting a read, confirm via `--help` that the command was actually
+capable of returning the field you are about to draw a conclusion from.
+
+## Discovery-First Rule
+
+Applies to ALL work — reads, queries, and builds — not just execution. When checking
+whether a capability, config key, API field, or setting exists, discover first, act second:
+
+1. **One broad query** — enumerate what's available
+2. **Evaluate the result** — is the target in the response?
+3. **If yes** → proceed. **If no** → report what you found and **stop within 3 total commands**.
+
+**Anti-pattern: refusing a negative result.** If a broad query shows the target doesn't
+exist, accept it. Do not try alternate key names, narrower/broader filters, the same query
+on a different resource, speculative writes, or workaround paths. Report the negative
+finding — that IS the answer. Three total commands max before reporting back.
+
+**Guard on that rule: only accept a negative once the query could have returned a positive.**
+An absent field may mean "not configured" or may mean "you didn't ask for it" (see the
+`--calling-data` case above). Confirm the command surfaces the field before reporting
+"none found" — a false negative delivered confidently is worse than no answer.
+
 ## Plain-English Communication Rule
 
 The target user has ZERO platform experience. When explaining findings, trade-offs, or decisions — or asking the user to choose between options — do NOT lead with jargon, acronyms, or internal feature-names. Instead:

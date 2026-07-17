@@ -98,6 +98,9 @@ tools/reassign_dids_to_cc.py
 README.md.bak
 src/wxcli/_version.py
 
+# Org-health scan output (contains live org data — person IDs, numbers, devices)
+org-health-output/
+
 # Remotion video production (local build artifact)
 remotion-video/
 
