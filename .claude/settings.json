@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh /Users/ahobgood/Documents/webexCalling/.claude/hooks/wxcli-gate.sh",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/wxcli-gate.sh\"",
             "timeout": 5
           }
         ]
