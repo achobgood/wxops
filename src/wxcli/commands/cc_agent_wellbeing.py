@@ -13,9 +13,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-agent-wellbeing.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Client-defined string naming the subscription."),
     description: str = typer.Option(None, "--description", help="Client-defined string describing the subscription."),
-    destination_url: str = typer.Option(None, "--destination-url", help="(required) URL to which webhooks will be posted. Must be HTTPS on an IA"),
-    secret: str = typer.Option(None, "--secret", help="Secret string used to sign payloads sent to the destination"),
-    org_id: str = typer.Option(None, "--org-id", help="Organization ID to be used for this operation. If unspecifie"),
+    destination_url: str = typer.Option(None, "--destination-url", help="(required) URL to which webhooks will be posted. Must be HTTPS on an IANA-listed top-level domain name (e.g. .com) with a path (at least /). No query parameters, userinfo, non-443 ports, or fragments allowed. We do not treat this field as sensitive data, so do not use secrets in this URL such as tokens or API..."),
+    secret: str = typer.Option(None, "--secret", help="Secret string used to sign payloads sent to the destination URL."),
+    org_id: str = typer.Option(None, "--org-id", help="Organization ID to be used for this operation. If unspecified, the Organization ID is inferred from the token. The token must have permission to interact with the organization."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -59,10 +59,10 @@ def create(
 
 @app.command("create-action")
 def create_action(
-    interaction_id: str = typer.Option(None, "--interaction-id", help="A unique identifier for each interaction or contact within t"),
-    agent_id: str = typer.Option(None, "--agent-id", help="The identifier for the agent whose burnout index has been ca"),
-    client_id: str = typer.Option(None, "--client-id", help="The name of the client initiating the action related to the"),
-    action_type: str = typer.Option(None, "--action-type", help="Specifies the type of action initiated based on the agent bu"),
+    interaction_id: str = typer.Option(None, "--interaction-id", help="A unique identifier for each interaction or contact within the contact center."),
+    agent_id: str = typer.Option(None, "--agent-id", help="The identifier for the agent whose burnout index has been calculated."),
+    client_id: str = typer.Option(None, "--client-id", help="The name of the client initiating the action related to the agent burnout index. The name is limited to a maximum of 20 characters."),
+    action_type: str = typer.Option(None, "--action-type", help="Specifies the type of action initiated based on the agent burnout index"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -128,10 +128,10 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Used to toggle the state of the agent burnout  configuration"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Used to toggle the state of the agent burnout configuration from active to inactive and vice-versa. Mandatory for create/update operation."),
     agent_inclusion_type: str = typer.Option(None, "--agent-inclusion-type", help="Choices: ALL, SPECIFIC"),
     wellness_break_reminders: str = typer.Option(None, "--wellness-break-reminders", help="Choices: DISABLED, ENABLED"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
@@ -174,10 +174,10 @@ def update(
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

@@ -12,9 +12,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-ewt.")
 @app.command("show")
 def show(
     queue_id: str = typer.Option(..., "--queue-id", help="Id of the queue for which the EWT is to be returned"),
-    lookback_minutes: str = typer.Option(..., "--lookback-minutes", help="Integer between 5 and 240 (4 hours) signifying how long back"),
-    max_cv: str = typer.Option(None, "--max-cv", help="This an optional parameter. Maximum value of Coefficient of"),
-    min_valid_samples: str = typer.Option(None, "--min-valid-samples", help="This an optional parameter. Minimum value of percentage of v"),
+    lookback_minutes: str = typer.Option(..., "--lookback-minutes", help="Integer between 5 and 240 (4 hours) signifying how long back to look at the data points to determine EWT for this queue"),
+    max_cv: str = typer.Option(None, "--max-cv", help="This an optional parameter. Maximum value of Coefficient of Variance in a subset of samples (wait times for tasks that got connected to agent in one minute interval) to determine whether the average of such values should be treated as a valid sample for EWT computation. If its not passed it takes..."),
+    min_valid_samples: str = typer.Option(None, "--min-valid-samples", help="This an optional parameter. Minimum value of percentage of valid samples (with respect to total number of samples) in the specified lookbackMinutes minutes. If its not passed it takes the default value of 40 %"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):

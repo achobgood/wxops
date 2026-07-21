@@ -12,9 +12,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-dnc.")
 @app.command("create")
 def create(
     dnc_list_name: str = typer.Argument(help="dncListName"),
-    phone_number: str = typer.Option(None, "--phone-number", help="(required) The phone number to add to the DNC list. Must be in E.164 fo"),
-    source: str = typer.Option(None, "--source", help="(required) The source or origin of the DNC entry. This helps track wher"),
-    reason: str = typer.Option(None, "--reason", help="Optional reason for adding the phone number to the DNC list."),
+    phone_number: str = typer.Option(None, "--phone-number", help="(required) The phone number to add to the DNC list. Must be in E.164 format (e.g., +1234567890)."),
+    source: str = typer.Option(None, "--source", help="(required) The source or origin of the DNC entry. This helps track where the request originated from."),
+    reason: str = typer.Option(None, "--reason", help="Optional reason for adding the phone number to the DNC list. This can help with compliance documentation."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

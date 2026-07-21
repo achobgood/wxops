@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Calling webhooks.")
 
 @app.command("list")
 def cmd_list(
-    owned_by: str = typer.Option(None, "--owned-by", help="Limit the result list to org wide webhooks. Only allowed val"),
+    owned_by: str = typer.Option(None, "--owned-by", help="Limit the result list to org wide webhooks. Only allowed value is `org`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -46,11 +46,11 @@ def cmd_list(
 def create(
     name: str = typer.Option(None, "--name", help="(required) A user-friendly name for the webhook."),
     target_url: str = typer.Option(None, "--target-url", help="(required) URL that receives POST requests for each event."),
-    resource: str = typer.Option(None, "--resource", help="(required) Resource type for the webhook. Creating a webhook requires ' (use --help for choices)"),
+    resource: str = typer.Option(None, "--resource", help="(required) Resource type for the webhook. Creating a webhook requires 'read' scope on the resource the webhook is for. * `attachmentActions` - [Attachment Actions](/docs/api/v1/attachment-actions) resource. * `dataSources` - [data sources](/docs/api/v1/data-sources) resource. * `memberships` -... (use --help for choices)"),
     event: str = typer.Option(None, "--event", help="(required) Choices: created, updated, deleted, started, ended, joined, left, migrated, authorized, deauthorized, statusChanged"),
-    filter_param: str = typer.Option(None, "--filter", help="Filter that defines the webhook scope. See [Filtering Webhoo"),
+    filter_param: str = typer.Option(None, "--filter", help="Filter that defines the webhook scope. See [Filtering Webhooks](/docs/api/guides/webhooks#filtering-webhooks) for more information. Please note that if a filter of `hostEmail`, `hostUserId`, `ownerEmail` or `ownerId` is specified, `ownedBy` must be set to `org`."),
     secret: str = typer.Option(None, "--secret", help="Secret used to generate payload signature."),
-    owned_by: str = typer.Option(None, "--owned-by", help="Specify `org` when creating an org/admin level webhook. Supp"),
+    owned_by: str = typer.Option(None, "--owned-by", help="Specify `org` when creating an org/admin level webhook. Supported for `meetings`, `recordings`, `convergedRecordings`,`meetingParticipants`, `meetingTranscripts`, `videoMeshAlerts`, `controlHubAlerts`, `rooms`, `messaging` and `adminBatchJobs` (for Compliance Officers and messages with file..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -126,7 +126,7 @@ def update(
     name: str = typer.Option(None, "--name", help="A user-friendly name for the webhook."),
     target_url: str = typer.Option(None, "--target-url", help="URL that receives POST requests for each event."),
     secret: str = typer.Option(None, "--secret", help="Secret used to generate payload signature."),
-    owned_by: str = typer.Option(None, "--owned-by", help="Specify `org` when creating an org/admin level webhook. Supp"),
+    owned_by: str = typer.Option(None, "--owned-by", help="Specify `org` when creating an org/admin level webhook. Supported for `meetings`, `recordings`, `convergedRecordings`, `meetingParticipants`, `meetingTranscripts`, `videoMeshAlerts`, `controlHubAlerts`, `rooms`, `messaging` and `adminBatchJobs` (for Compliance Officers and messages with file..."),
     status: str = typer.Option(None, "--status", help="Choices: active"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),

@@ -12,8 +12,8 @@ app = typer.Typer(help="Manage Webex Calling call-park.")
 @app.command("list")
 def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
-    order: str = typer.Option(None, "--order", help="Sort the list of call parks by name, either ASC or DSC. Defa"),
-    name: str = typer.Option(None, "--name", help="Return the list of call parks that contains the given name."),
+    order: str = typer.Option(None, "--order", help="Sort the list of call parks by name, either ASC or DSC. Default is ASC."),
+    name: str = typer.Option(None, "--name", help="Return the list of call parks that contains the given name. The maximum length is 80."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -52,7 +52,7 @@ def cmd_list(
 def create(
     location_id: str = typer.Argument(help="locationId"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call park. The maximum length is 80."),
-    park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a desti"),
+    park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a destination."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -126,7 +126,7 @@ def update(
     location_id: str = typer.Argument(help="locationId"),
     call_park_id: str = typer.Argument(help="callParkId"),
     name: str = typer.Option(None, "--name", help="Unique name for the call park. The maximum length is 80."),
-    park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a desti"),
+    park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a destination."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -180,10 +180,10 @@ def delete(
 @app.command("list-available-users")
 def list_available_users(
     location_id: str = typer.Argument(help="locationId"),
-    call_park_name: str = typer.Option(None, "--call-park-name", help="Only return available agents from call parks with the matchi"),
+    call_park_name: str = typer.Option(None, "--call-park-name", help="Only return available agents from call parks with the matching name."),
     name: str = typer.Option(None, "--name", help="Only return available agents with the matching name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary numbe"),
-    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary number."),
+    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated fields. Up to three vertical bar (|) separated sort order fields may be specified. Available sort fields: fname, lname, number and extension. The maximum supported sort order value is 3."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -225,8 +225,8 @@ def list_available_users(
 @app.command("list-available-recall-hunt-groups")
 def list_available_recall_hunt_groups(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help="Only return available recall hunt groups with the matching n"),
-    order: str = typer.Option(None, "--order", help="Order the available recall hunt groups according to the desi"),
+    name: str = typer.Option(None, "--name", help="Only return available recall hunt groups with the matching name."),
+    order: str = typer.Option(None, "--order", help="Order the available recall hunt groups according to the designated fields. Available sort fields: lname."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -318,10 +318,10 @@ def update_settings(
 @app.command("list-call-park-extensions")
 def list_call_park_extensions(
     location_id: str = typer.Option(None, "--location-id", help="Only return call park extensions with matching location ID."),
-    extension: str = typer.Option(None, "--extension", help="Only return call park extensions with the matching extension"),
-    location_name: str = typer.Option(None, "--location-name", help="Only return call park extensions with the matching extension"),
+    extension: str = typer.Option(None, "--extension", help="Only return call park extensions with the matching extension."),
+    location_name: str = typer.Option(None, "--location-name", help="Only return call park extensions with the matching extension."),
     name: str = typer.Option(None, "--name", help="Only return call park extensions with the matching name."),
-    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
+    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated fields. Available sort fields: `groupName`, `callParkExtension`, `callParkExtensionName`, `callParkExtensionExternalId`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -399,7 +399,7 @@ def update_call_park_extensions(
     location_id: str = typer.Argument(help="locationId"),
     call_park_extension_id: str = typer.Argument(help="callParkExtensionId"),
     name: str = typer.Option(None, "--name", help="Name for the call park extension. The maximum length is 30."),
-    extension: str = typer.Option(None, "--extension", help="Unique extension which will be assigned to call park extensi"),
+    extension: str = typer.Option(None, "--extension", help="Unique extension which will be assigned to call park extension. The minimum length is 2, maximum length is 10."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -454,7 +454,7 @@ def delete_call_park_extensions(
 def create_call_park_extensions(
     location_id: str = typer.Argument(help="locationId"),
     name: str = typer.Option(None, "--name", help="(required) Name for the call park extension. The maximum length is 30."),
-    extension: str = typer.Option(None, "--extension", help="(required) Unique extension which will be assigned to call park extensi"),
+    extension: str = typer.Option(None, "--extension", help="(required) Unique extension which will be assigned to call park extension. The minimum length is 2, maximum length is 10."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

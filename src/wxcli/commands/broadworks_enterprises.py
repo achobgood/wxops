@@ -10,9 +10,9 @@ app = typer.Typer(help="Manage Webex Calling broadworks-enterprises.")
 
 @app.command("show")
 def show(
-    sp_enterprise_id: str = typer.Option(None, "--sp-enterprise-id", help="The Service Provider supplied unique identifier for the subs"),
-    starts_with: str = typer.Option(None, "--starts-with", help="The starting string of the enterprise identifiers to match a"),
-    max: str = typer.Option(None, "--max", help="Limit the number of enterprises returned in the search, up t"),
+    sp_enterprise_id: str = typer.Option(None, "--sp-enterprise-id", help="The Service Provider supplied unique identifier for the subscriber's enterprise."),
+    starts_with: str = typer.Option(None, "--starts-with", help="The starting string of the enterprise identifiers to match against."),
+    max: str = typer.Option(None, "--max", help="Limit the number of enterprises returned in the search, up to 1000."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -70,7 +70,7 @@ def show_broadworks_directory_sync(
 @app.command("create")
 def create(
     id: str = typer.Argument(help="id"),
-    sync_status: str = typer.Option(None, "--sync-status", help="(required) At this time, the only value allowed for this attribute is `"),
+    sync_status: str = typer.Option(None, "--sync-status", help="(required) At this time, the only value allowed for this attribute is `SYNC_NOW` which will trigger the directory sync for the BroadWorks enterprise."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -130,7 +130,7 @@ def update(
 @app.command("create-external-user")
 def create_external_user(
     id: str = typer.Argument(help="id"),
-    user_id: str = typer.Option(None, "--user-id", help="The user ID of the Broadworks user to be synced (A non-webex"),
+    user_id: str = typer.Option(None, "--user-id", help="The user ID of the Broadworks user to be synced (A non-webex user)."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

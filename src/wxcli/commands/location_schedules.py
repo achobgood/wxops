@@ -222,7 +222,7 @@ def update_events(
     end_date: str = typer.Option(None, "--end-date", help="End date of event."),
     start_time: str = typer.Option(None, "--start-time", help="Start time of event. Mandatory if the event is not all day."),
     end_time: str = typer.Option(None, "--end-time", help="End time of event. Mandatory if the event is not all day."),
-    all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="An indication of whether given event is an all-day event or"),
+    all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="An indication of whether given event is an all-day event or not. Mandatory if the `startTime` and `endTime` are not defined."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -293,7 +293,7 @@ def create_events(
     end_date: str = typer.Option(None, "--end-date", help="(required) End Date of Event."),
     start_time: str = typer.Option(None, "--start-time", help="Start time of event. Mandatory if the event is not all day."),
     end_time: str = typer.Option(None, "--end-time", help="End time of event. Mandatory if the event is not all day."),
-    all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="An indication of whether given event is an all-day event or"),
+    all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="An indication of whether given event is an all-day event or not. Mandatory if the `startTime` and `endTime` are not defined."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

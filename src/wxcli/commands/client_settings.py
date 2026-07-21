@@ -44,7 +44,7 @@ def cmd_list(
 @app.command("update")
 def update(
     setting_name: str = typer.Option(None, "--setting-name", help="Choices: HIDE_WEBEX_APP, PRESENCE_SYNC"),
-    value: bool = typer.Option(None, "--value/--no-value", help="The boolean value, either `true` or `false`, for the respect"),
+    value: bool = typer.Option(None, "--value/--no-value", help="The boolean value, either `true` or `false`, for the respective `settingName` to be updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

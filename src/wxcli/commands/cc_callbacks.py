@@ -11,8 +11,8 @@ app = typer.Typer(help="Manage Webex Contact Center cc-callbacks.")
 
 @app.command("list")
 def cmd_list(
-    callback_number: str = typer.Option(None, "--callback-number", help="The callback customer number to filter the scheduled callbac"),
-    assignee_agent: str = typer.Option(None, "--assignee-agent", help="The unique identifier of the agent assigned to handle the ca"),
+    callback_number: str = typer.Option(None, "--callback-number", help="The callback customer number to filter the scheduled callbacks. Only an exact match will yield the result. Allows an optional country code followed by digits (0-9) and the special characters: space, hyphen -, parentheses ( and ), and period ., ensuring the total length is between 7 and 15..."),
+    assignee_agent: str = typer.Option(None, "--assignee-agent", help="The unique identifier of the agent assigned to handle the callback. Must be in UUID format. This parameter is optional, but at least one of assigneeAgent or callbackNumber must be provided."),
     page: str = typer.Option(None, "--page", help="The page number to retrieve."),
     page_size: str = typer.Option(None, "--page-size", help="The number of items per page."),
     sort_by: str = typer.Option(None, "--sort-by", help="Choices: customerName, scheduledTime, assignedTime"),
@@ -60,16 +60,16 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    customer_name: str = typer.Option(None, "--customer-name", help="(required) Name of the Customer for which callback has to be scheduled."),
-    callback_number: str = typer.Option(None, "--callback-number", help="(required) Customer's phone number for the callback. Allows an optional"),
+    customer_name: str = typer.Option(None, "--customer-name", help="(required) Name of the Customer for which callback has to be scheduled. Max customer name length should be 250 character"),
+    callback_number: str = typer.Option(None, "--callback-number", help="(required) Customer's phone number for the callback. Allows an optional country code followed by digits (0-9) and the special characters: space, hyphen -, parentheses ( and ), and period ., ensuring the total length is between 7 and 15 characters."),
     timezone: str = typer.Option(None, "--timezone", help="(required) Valid IANA timezone name"),
-    schedule_date: str = typer.Option(None, "--schedule-date", help="(required) Scheduled date in ISO-8601 (YYYY-MM-DD) format. This must be"),
-    start_time: str = typer.Option(None, "--start-time", help="(required) Scheduled start time in ISO-8601 (HH:mm:ss) format. Start ti"),
-    end_time: str = typer.Option(None, "--end-time", help="(required) Scheduled end time in ISO-8601 (HH:mm:ss) format. End time m"),
-    queue_id: str = typer.Option(None, "--queue-id", help="(required) Unique identifier for the queue to which the callback is ass"),
-    callback_reason: str = typer.Option(None, "--callback-reason", help="Reason for the callback request. This is optional and can be"),
-    source_interaction: str = typer.Option(None, "--source-interaction", help="Source interaction ID for the callback. This is optional and"),
-    assignee_agent: str = typer.Option(None, "--assignee-agent", help="The unique identifier of the specific agent (CI userId), who"),
+    schedule_date: str = typer.Option(None, "--schedule-date", help="(required) Scheduled date in ISO-8601 (YYYY-MM-DD) format. This must be a valid date in local time zone and within 31 days from current date"),
+    start_time: str = typer.Option(None, "--start-time", help="(required) Scheduled start time in ISO-8601 (HH:mm:ss) format. Start time must be at least 30 minutes in the future from current time."),
+    end_time: str = typer.Option(None, "--end-time", help="(required) Scheduled end time in ISO-8601 (HH:mm:ss) format. End time must be at least 30 minutes after the startTime and must not exceed 8 hours after startTime."),
+    queue_id: str = typer.Option(None, "--queue-id", help="(required) Unique identifier for the queue to which the callback is associated."),
+    callback_reason: str = typer.Option(None, "--callback-reason", help="Reason for the callback request. This is optional and can be used to provide additional context."),
+    source_interaction: str = typer.Option(None, "--source-interaction", help="Source interaction ID for the callback. This is optional and can be used to link the callback to a specific interaction. This should be a valid UUID."),
+    assignee_agent: str = typer.Option(None, "--assignee-agent", help="The unique identifier of the specific agent (CI userId), who should be assigned to handle the callback. This field is optional and is primarily used for personal callbacks."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

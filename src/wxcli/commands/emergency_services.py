@@ -12,11 +12,11 @@ app = typer.Typer(help="Manage Webex Calling emergency-services.")
 @app.command("update")
 def update(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the service is enabled."),
-    company_id: str = typer.Option(None, "--company-id", help="The RedSky company ID, which can be retrieved from the RedSk"),
-    secret: str = typer.Option(None, "--secret", help="The company secret key, which can be found in the RedSky por"),
-    external_tenant_enabled: bool = typer.Option(None, "--external-tenant-enabled/--no-external-tenant-enabled", help="`true` if the RedSky reseller customer is not under a Cisco"),
-    email: str = typer.Option(None, "--email", help="The email for the RedSky account. `email` is required if `ex"),
-    password: str = typer.Option(None, "--password", help="The password for the RedSky account. `password` is required"),
+    company_id: str = typer.Option(None, "--company-id", help="The RedSky company ID, which can be retrieved from the RedSky portal."),
+    secret: str = typer.Option(None, "--secret", help="The company secret key, which can be found in the RedSky portal."),
+    external_tenant_enabled: bool = typer.Option(None, "--external-tenant-enabled/--no-external-tenant-enabled", help="`true` if the RedSky reseller customer is not under a Cisco account."),
+    email: str = typer.Option(None, "--email", help="The email for the RedSky account. `email` is required if `externalTenantEnabled` is true."),
+    password: str = typer.Option(None, "--password", help="The password for the RedSky account. `password` is required if `externalTenantEnabled` is true."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -83,7 +83,7 @@ def show(
 def create(
     org_prefix: str = typer.Option(None, "--org-prefix", help="Choices: wxc, wxc-whs"),
     email: str = typer.Option(None, "--email", help="(required) The email for the RedSky account administrator."),
-    partner_redsky_org_id: str = typer.Option(None, "--partner-redsky-org-id", help="New organization is created under this partner organization"),
+    partner_redsky_org_id: str = typer.Option(None, "--partner-redsky-org-id", help="New organization is created under this partner organization ID if present, otherwise it will be created under a Cisco partner."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -181,9 +181,9 @@ def update_status_red_sky(
 
 @app.command("show-compliance-status")
 def show_compliance_status(
-    start: str = typer.Option(None, "--start", help="Specifies the offset from the first result that you want to"),
-    max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fet"),
-    order: str = typer.Option(None, "--order", help="Sort the list of locations in ascending or descending order."),
+    start: str = typer.Option(None, "--start", help="Specifies the offset from the first result that you want to fetch."),
+    max: str = typer.Option(None, "--max", help="Specifies the maximum number of records that you want to fetch."),
+    order: str = typer.Option(None, "--order", help="Sort the list of locations in ascending or descending order. To sort in descending order append `-desc` to possible sort order values. Possible sort order values are `locationName` and `locationState`."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -220,7 +220,7 @@ def show_compliance_status(
 def login_to_a(
     email: str = typer.Option(None, "--email", help="Email for the RedSky account."),
     password: str = typer.Option(None, "--password", help="Password for the RedSky account."),
-    red_sky_org_id: str = typer.Option(None, "--red-sky-org-id", help="The RedSky organization ID for the organization which can be"),
+    red_sky_org_id: str = typer.Option(None, "--red-sky-org-id", help="The RedSky organization ID for the organization which can be found in the RedSky portal."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -338,7 +338,7 @@ def update_status_red_sky_1(
 @app.command("create-building")
 def create_building(
     location_id: str = typer.Argument(help="locationId"),
-    alerting_email: str = typer.Option(None, "--alerting-email", help="(required) Email that is used to create alerts in RedSky. At least one"),
+    alerting_email: str = typer.Option(None, "--alerting-email", help="(required) Email that is used to create alerts in RedSky. At least one email is mandatory."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -430,9 +430,9 @@ def show_emergency_call_notification_config(
 
 @app.command("update-emergency-call-notification-config")
 def update_emergency_call_notification_config(
-    emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help="When true sends an email to the specified email address when"),
+    emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help="When true sends an email to the specified email address when a call is made to emergency services."),
     allow_email_notification_all_location_enabled: bool = typer.Option(None, "--allow-email-notification-all-location-enabled/--no-allow-email-notification-all-location-enabled", help="Send an emergency call notification email for all locations."),
-    email_address: str = typer.Option(None, "--email-address", help="When `emergencyCallNotificationEnabled` is true, the emergen"),
+    email_address: str = typer.Option(None, "--email-address", help="When `emergencyCallNotificationEnabled` is true, the emergency notification email is sent to the specified email address."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -493,8 +493,8 @@ def show_emergency_call_notification_locations(
 @app.command("update-emergency-call-notification-locations")
 def update_emergency_call_notification_locations(
     location_id: str = typer.Argument(help="locationId"),
-    emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help="When true sends an email to the specified email address when"),
-    email_address: str = typer.Option(None, "--email-address", help="Sends an email to this email address when a call is made fro"),
+    emergency_call_notification_enabled: bool = typer.Option(None, "--emergency-call-notification-enabled/--no-emergency-call-notification-enabled", help="When true sends an email to the specified email address when a call is made from this location to emergency services."),
+    email_address: str = typer.Option(None, "--email-address", help="Sends an email to this email address when a call is made from this location to emergency services and `emergencyCallNotificationEnabled` is true."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -583,9 +583,9 @@ def show_emergency_callback_number_people(
 def update_emergency_callback_number_people(
     person_id: str = typer.Argument(help="personId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
-    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
-    elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this person is allowed to use an Emergency"),
-    elin_for_webex_app_enabled: bool = typer.Option(None, "--elin-for-webex-app-enabled/--no-elin-for-webex-app-enabled", help="Indicates whether this member is allowed to use an Emergency"),
+    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."),
+    elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this person is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of their devices."),
+    elin_for_webex_app_enabled: bool = typer.Option(None, "--elin-for-webex-app-enabled/--no-elin-for-webex-app-enabled", help="Indicates whether this member is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made using Webex App."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -678,8 +678,8 @@ def show_emergency_callback_number_workspaces(
 def update_emergency_callback_number_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
-    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
-    elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this workspace is allowed to use an Emerge"),
+    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."),
+    elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this workspace is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of its devices."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -799,7 +799,7 @@ def show_emergency_callback_number_virtual_lines(
 def update_emergency_callback_number_virtual_lines(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
-    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within"),
+    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

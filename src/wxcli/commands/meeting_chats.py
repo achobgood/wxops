@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-chats.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meeting"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) to which the chats belong. The meeting ID of a scheduled [personal room](https://help.webex.com/en-us/article/nul0wut/Webex-Personal-Rooms-in-Webex-Meetings) meeting is not..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -42,7 +42,7 @@ def cmd_list(
 
 @app.command("delete")
 def delete(
-    meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meeting"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) to which the chats belong. Meeting IDs of a scheduled [personal room](https://help.webex.com/en-us/article/nul0wut/Webex-Personal-Rooms-in-Webex-Meetings) meeting are not supported."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):

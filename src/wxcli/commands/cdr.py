@@ -10,9 +10,9 @@ app = typer.Typer(help="Manage Webex Calling cdr.")
 
 @app.command("list")
 def cmd_list(
-    start_time: str = typer.Option(..., "--start-time", help="Time of the first report you wish to collect. (Report time i"),
-    end_time: str = typer.Option(..., "--end-time", help="Time of the last report you wish to collect. (Report time is"),
-    locations: str = typer.Option(None, "--locations", help="Name of the location (as shown in Control Hub). Up to 10 com"),
+    start_time: str = typer.Option(..., "--start-time", help="Time of the first report you wish to collect. (Report time is the time the call finished). **Note:** The specified time must be between 5 minutes ago and 48 hours ago, and formatted as `YYYY-MM-DDTHH:MM:SS.mmmZ`."),
+    end_time: str = typer.Option(..., "--end-time", help="Time of the last report you wish to collect. (Report time is the time the call finished). **Note:** The specified time should be later than `startTime` but no later than 48 hours, and formatted as `YYYY-MM-DDTHH:MM:SS.mmmZ`."),
+    locations: str = typer.Option(None, "--locations", help="Name of the location (as shown in Control Hub). Up to 10 comma-separated locations can be provided. Allows you to query reports by location."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -50,9 +50,9 @@ def cmd_list(
 
 @app.command("list-cdr_stream")
 def list_cdr_stream(
-    start_time: str = typer.Option(..., "--start-time", help="The start date-time of the first record you wish to collect"),
-    end_time: str = typer.Option(..., "--end-time", help="The end date-time of the last record you wish to collect in"),
-    locations: str = typer.Option(None, "--locations", help="Name of the location (as shown in Control Hub). Up to 10 com"),
+    start_time: str = typer.Option(..., "--start-time", help="The start date-time of the first record you wish to collect in UTC time. It would be the earliest time at which the data was inserted into the Webex Calling cloud for the records you wish to collect. Format must be as `YYYY-MM-DDTHH:MM:SS.mmmZ`. `startTime` can't be older than 12 hours from your..."),
+    end_time: str = typer.Option(..., "--end-time", help="The end date-time of the last record you wish to collect in UTC time. It would be the latest time at which the data was inserted into the Webex Calling cloud for the records you wish to collect. Format must be as `YYYY-MM-DDTHH:MM:SS.mmmZ`. `endTime` must be 1 minute ago from your current UTC time..."),
+    locations: str = typer.Option(None, "--locations", help="Name of the location (as shown in Control Hub). Up to 10 comma-separated locations can be provided. Allows you to query reports by location."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

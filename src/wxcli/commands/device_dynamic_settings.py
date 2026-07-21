@@ -11,8 +11,8 @@ app = typer.Typer(help="Manage Webex Calling device-dynamic-settings.")
 
 @app.command("list")
 def cmd_list(
-    allow_configure_layout_enabled: str = typer.Option(None, "--allow-configure-layout-enabled", help="List supported devices that allow the user to configure the"),
-    type_param: str = typer.Option(None, "--type", help="List supported devices of a specific type. To excluded devic"),
+    allow_configure_layout_enabled: str = typer.Option(None, "--allow-configure-layout-enabled", help="List supported devices that allow the user to configure the layout."),
+    type_param: str = typer.Option(None, "--type", help="List supported devices of a specific type. To excluded device types from a request or query, add `type=not:DEVICE_TYPE`. For example, `type=not:MPP`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -53,7 +53,7 @@ def cmd_list(
 
 @app.command("list-settings-groups")
 def list_settings_groups(
-    family_or_model_display_name: str = typer.Option(None, "--family-or-model-display-name", help="Device family or model display name to filter the `settingsG"),
+    family_or_model_display_name: str = typer.Option(None, "--family-or-model-display-name", help="Device family or model display name to filter the `settingsGroups`."),
     include_settings_type: str = typer.Option(None, "--include-settings-type", help="Choices: TABS, GROUPS, ALL"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -91,7 +91,7 @@ def list_settings_groups(
 
 @app.command("get-customer-device")
 def get_customer_device(
-    family_or_model_display_name: str = typer.Option(..., "--family-or-model-display-name", help="The family or model name for the device. If no tag is specif"),
+    family_or_model_display_name: str = typer.Option(..., "--family-or-model-display-name", help="The family or model name for the device. If no tag is specified, all tags related to `familyOrModelDisplayName` are returned."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -119,7 +119,7 @@ def get_customer_device(
 @app.command("get-location-device")
 def get_location_device(
     location_id: str = typer.Argument(help="locationId"),
-    family_or_model_display_name: str = typer.Option(..., "--family-or-model-display-name", help="The family or model name for the device. If no tag is specif"),
+    family_or_model_display_name: str = typer.Option(..., "--family-or-model-display-name", help="The family or model name for the device. If no tag is specified, all tags related to `familyOrModelDisplayName` are returned."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -228,7 +228,7 @@ def list_dynamic_device_settings(
 
 @app.command("create")
 def create(
-    location_id: str = typer.Option(None, "--location-id", help="If present, the requested settings will be updated to device"),
+    location_id: str = typer.Option(None, "--location-id", help="If present, the requested settings will be updated to devices under this location."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

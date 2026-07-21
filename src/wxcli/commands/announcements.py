@@ -12,11 +12,11 @@ app = typer.Typer(help="Manage Webex Calling announcements.")
 @app.command("list")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Choices: all, locations, Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx"),
-    order: str = typer.Option(None, "--order", help="Sort the list according to fileName or fileSize. The default"),
+    order: str = typer.Option(None, "--order", help="Sort the list according to fileName or fileSize. The default sort will be in Ascending order."),
     file_name: str = typer.Option(None, "--file-name", help="Return the list of announcements with the given fileName."),
     file_type: str = typer.Option(None, "--file-type", help="Return the list of announcement files for this fileType."),
-    media_file_type: str = typer.Option(None, "--media-file-type", help="Return the list of announcement files for this mediaFileType"),
-    name: str = typer.Option(None, "--name", help="Return the list of announcement files for this announcement"),
+    media_file_type: str = typer.Option(None, "--media-file-type", help="Return the list of announcement files for this mediaFileType."),
+    name: str = typer.Option(None, "--name", help="Return the list of announcement files for this announcement label."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -398,9 +398,9 @@ def delete_announcements(
 
 @app.command("tts-generate")
 def tts_generate(
-    voice: str = typer.Option(None, "--voice", help="The voice ID used to generate the audio prompt. Use the List"),
+    voice: str = typer.Option(None, "--voice", help="The voice ID used to generate the audio prompt. Use the List Text-to-Speech Voices API to retrieve available voices."),
     text: str = typer.Option(None, "--text", help="The text to convert to speech."),
-    language_code: str = typer.Option(None, "--language-code", help="The language code used to generate the audio prompt. Use the"),
+    language_code: str = typer.Option(None, "--language-code", help="The language code used to generate the audio prompt. Use the Read the List of Announcement Languages API to retrieve supported language codes."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-slido.")
 @app.command("list")
 def cmd_list(
     session_org_id: str = typer.Option(..., "--session-org-id", help="Webex organization UUID."),
-    session_id: str = typer.Option(..., "--session-id", help="Webex meeting instance ID (`{meetingSeriesId}_I_{conferenceI"),
+    session_id: str = typer.Option(..., "--session-id", help="Webex meeting instance ID (`{meetingSeriesId}_I_{conferenceId}`)."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

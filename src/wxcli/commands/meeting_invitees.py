@@ -10,9 +10,9 @@ app = typer.Typer(help="Manage Webex Meetings meeting-invitees.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the meeting for which invitees are bei"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    panelist: str = typer.Option(None, "--panelist", help="Filter invitees or attendees for webinars only. If `true`, r"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the meeting for which invitees are being requested. The meeting can be a meeting series, a scheduled meeting, or a meeting instance which has ended or is ongoing. The meeting ID of a scheduled [personal..."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return meeting invitees that are hosted by that user."),
+    panelist: str = typer.Option(None, "--panelist", help="Filter invitees or attendees for webinars only. If `true`, returns invitees. If `false`, returns attendees. If `null`, returns both invitees and attendees."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -50,13 +50,13 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="(required) Unique identifier for the meeting to which a person is being"),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="(required) Unique identifier for the meeting to which a person is being invited. This attribute only applies to meeting series and scheduled meeting. If it's a meeting series, the meeting invitee is invited to the entire meeting series; if it's a scheduled meeting, the meeting invitee is invited to this..."),
     email: str = typer.Option(None, "--email", help="(required) Email address for meeting invitee."),
-    display_name: str = typer.Option(None, "--display-name", help="Display name for meeting invitee. The maximum length of `dis"),
-    co_host: bool = typer.Option(None, "--co-host/--no-co-host", help="Whether or not the invitee is a designated alternate host fo"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
+    display_name: str = typer.Option(None, "--display-name", help="Display name for meeting invitee. The maximum length of `displayName` is 128 characters. In the Webex app, if the email has been associated with an existing Webex account, the display name associated with the Webex account will be used; otherwise, the `email` will be used as `displayName`. In a..."),
+    co_host: bool = typer.Option(None, "--co-host/--no-co-host", help="Whether or not the invitee is a designated alternate host for the meeting. See [Add Alternate Hosts for Cisco Webex Meetings](https://help.webex.com/b5z6he/) for more details."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin on-behalf-of scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true`, send an email to the invitee."),
-    panelist: bool = typer.Option(None, "--panelist/--no-panelist", help="If `true`, the invitee is a designated panelist for the even"),
+    panelist: bool = typer.Option(None, "--panelist/--no-panelist", help="If `true`, the invitee is a designated panelist for the event meeting."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -103,8 +103,8 @@ def create(
 
 @app.command("create-bulk-insert")
 def create_bulk_insert(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="(required) Unique identifier for the meeting to which the people are be"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="(required) Unique identifier for the meeting to which the people are being invited. This attribute only applies to meeting series and scheduled meetings. If it's a meeting series, the meeting invitees are invited to the entire meeting series; if it's a scheduled meeting, the meeting invitees are invited to..."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin on-behalf-of scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -142,7 +142,7 @@ def create_bulk_insert(
 @app.command("show")
 def show(
     meeting_invitee_id: str = typer.Argument(help="meetingInviteeId"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting invitee that is hosted by that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -172,11 +172,11 @@ def show(
 def update(
     meeting_invitee_id: str = typer.Argument(help="meetingInviteeId"),
     email: str = typer.Option(None, "--email", help="Email address for meeting invitee."),
-    display_name: str = typer.Option(None, "--display-name", help="Display name for meeting invitee. The maximum length of `dis"),
-    co_host: bool = typer.Option(None, "--co-host/--no-co-host", help="Whether or not the invitee is a designated alternate host fo"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
+    display_name: str = typer.Option(None, "--display-name", help="Display name for meeting invitee. The maximum length of `displayName` is 128 characters. In the Webex app, if the email has been associated with an existing Webex account, the display name associated with the Webex account will be used; otherwise, the `email` will be used as `displayName`. In a..."),
+    co_host: bool = typer.Option(None, "--co-host/--no-co-host", help="Whether or not the invitee is a designated alternate host for the meeting. See [Add Alternate Hosts for Cisco Webex Meetings](https://help.webex.com/b5z6he/) for more details."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin on-behalf-of scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true`, send an email to the invitee."),
-    panelist: bool = typer.Option(None, "--panelist/--no-panelist", help="If `true`, the invitee is a designated panelist for the even"),
+    panelist: bool = typer.Option(None, "--panelist/--no-panelist", help="If `true`, the invitee is a designated panelist for the event meeting."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -210,7 +210,7 @@ def update(
 @app.command("delete")
 def delete(
     meeting_invitee_id: str = typer.Argument(help="meetingInviteeId"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will delete a meeting invitee that is hosted by that user."),
     send_email: str = typer.Option(None, "--send-email", help="If `true`, send an email to the invitee."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),

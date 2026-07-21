@@ -124,10 +124,10 @@ def update_person_id_workspace_id_1(
 def show(
     workspace_id: str = typer.Argument(help="workspaceId"),
     person_id: str = typer.Option(None, "--person-id", help="Person ID"),
-    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be f"),
+    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort By Field"),
     sort: str = typer.Option(None, "--sort", help="Sort direction"),
-    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched.  Results are ret"),
+    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched. Results are returned in blocks of pageSize elements. This parameter specifies which page number to retrieve. The page numbering starts with 0."),
     page_size: str = typer.Option(None, "--page-size", help="Number of items to be displayed on a page"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -235,7 +235,7 @@ def create_primary_person_id(
 @app.command("create-workspace-id-merge-identities")
 def create_workspace_id_merge_identities(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    override: bool = typer.Option(None, "--override/--no-override", help="Override flag which will override the existing person with t"),
+    override: bool = typer.Option(None, "--override/--no-override", help="Override flag which will override the existing person with the new data if set to true. Default is false."),
     first_name: str = typer.Option(None, "--first-name", help="firstName"),
     last_name: str = typer.Option(None, "--last-name", help="lastName"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -277,7 +277,7 @@ def show_aliases(
     aliases: str = typer.Argument(help="aliases"),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort By Field"),
     sort: str = typer.Option(None, "--sort", help="Sort direction"),
-    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched.  Results are ret"),
+    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched. Results are returned in blocks of pageSize elements. This parameter specifies which page number to retrieve.The page numbering starts with 0."),
     page_size: str = typer.Option(None, "--page-size", help="Number of items to be displayed on a page."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -452,10 +452,10 @@ def delete_template_id(
 @app.command("show-workspace-id-profile-view-template")
 def show_workspace_id_profile_view_template(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be f"),
+    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
     sort: str = typer.Option(None, "--sort", help="Sort direction"),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort By Field"),
-    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched.  Results are ret"),
+    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched. Results are returned in blocks of pageSize elements. This parameter specifies which page number to retrieve.The page numbering starts with 0."),
     page_size: str = typer.Option(None, "--page-size", help="Number of items to be displayed on a page."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -726,12 +726,12 @@ def show_template_id_identity_1(
 @app.command("show-workspace-id-events")
 def show_workspace_id_events(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    identity: str = typer.Option(None, "--identity", help="Identity to search events for.    In case the identity conta"),
+    identity: str = typer.Option(None, "--identity", help="Identity to search events for. In case the identity contains non-uri-encodable characters, eg: '+', '>' etc, you can URL-encode the same and then pass it as parameter."),
     sort_by: str = typer.Option(None, "--sort-by", help="sort By Field"),
     sort: str = typer.Option(None, "--sort", help="sort direction"),
-    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be f"),
-    data: str = typer.Option(None, "--data", help="Optional filter on data filed which can be applied to the el"),
-    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched.  Results are ret"),
+    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
+    data: str = typer.Option(None, "--data", help="Optional filter on data filed which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
+    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched. Results are returned in blocks of pageSize elements. This parameter specifies which page number to retrieve.The page numbering starts with 0."),
     page_size: str = typer.Option(None, "--page-size", help="Number of items to be displayed on a page."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -775,8 +775,8 @@ def show_workspace_id_events(
 def show_identity(
     workspace_id: str = typer.Argument(help="workspaceId"),
     identity: str = typer.Argument(help="identity"),
-    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be f"),
-    data: str = typer.Option(None, "--data", help="Optional filter on data filed which can be applied to the el"),
+    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
+    data: str = typer.Option(None, "--data", help="Optional filter on data filed which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -886,7 +886,7 @@ def show_workspace_id_journey_actions(
     workspace_id: str = typer.Argument(help="workspaceId"),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort By Field"),
     sort: str = typer.Option(None, "--sort", help="Sort direction"),
-    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched.  Results are ret"),
+    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched. Results are returned in blocks of pageSize elements. This parameter specifies which page number to retrieve. The page numbering starts with 0."),
     page_size: str = typer.Option(None, "--page-size", help="Number of items to be displayed on a page."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1178,10 +1178,10 @@ def delete_workspace_id_api(
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be f"),
+    filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort By Field"),
     sort: str = typer.Option(None, "--sort", help="Sort direction"),
-    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched.  Results are ret"),
+    page: str = typer.Option(None, "--page", help="Index of the page of results to be fetched. Results are returned in blocks of pageSize elements. This parameter specifies which page number to retrieve.The page numbering starts with 0."),
     page_size: str = typer.Option(None, "--page-size", help="Number of items to be displayed on a page."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),

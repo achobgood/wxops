@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling device-configurations.")
 @app.command("show")
 def show(
     device_id: str = typer.Option(..., "--device-id", help="List device configurations by device ID."),
-    key: str = typer.Option(None, "--key", help="This can optionally be used to filter configurations. Keys a"),
+    key: str = typer.Option(None, "--key", help="This can optionally be used to filter configurations. Keys are composed of segments. It's possible to use absolute paths, wildcards or ranges. - **Absolute** gives only one configuration as a result. `Conference.MaxReceiveCallRate` for example gives the Conference `MaxReceiveCallRate`..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -43,7 +43,7 @@ def show(
 def update(
     device_id: str = typer.Option(..., "--device-id", help="Update device configurations by device ID."),
     op: str = typer.Option(None, "--op", help="Choices: remove, replace"),
-    path: str = typer.Option(None, "--path", help="Only paths ending in `/sources/configured/value` are support"),
+    path: str = typer.Option(None, "--path", help="Only paths ending in `/sources/configured/value` are supported."),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),

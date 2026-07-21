@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-tracking-codes.")
 
 @app.command("list")
 def cmd_list(
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking c"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking code from. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list)..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -42,7 +42,7 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(None, "--name", help="(required) Name for tracking code. The name cannot be empty and the max"),
+    name: str = typer.Option(None, "--name", help="(required) Name for tracking code. The name cannot be empty and the maximum size is 120 characters."),
     site_url: str = typer.Option(None, "--site-url", help="(required) Site URL for the tracking code."),
     input_mode: str = typer.Option(None, "--input-mode", help="(required) Choices: text, select, editableSelect, hostProfileSelect"),
     host_profile_code: str = typer.Option(None, "--host-profile-code", help="(required) Choices: optional, required, adminSet, notUsed"),
@@ -87,7 +87,7 @@ def create(
 @app.command("show")
 def show(
     tracking_code_id: str = typer.Argument(help="trackingCodeId"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking c"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking code from. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and the preferred sites of a user can be retrieved by the [Get Site..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -115,7 +115,7 @@ def show(
 
 @app.command("update")
 def update(
-    name: str = typer.Option(None, "--name", help="Name for tracking code. The name cannot be empty and the max"),
+    name: str = typer.Option(None, "--name", help="Name for tracking code. The name cannot be empty and the maximum size is 120 characters."),
     site_url: str = typer.Option(None, "--site-url", help="Site URL for the tracking code."),
     input_mode: str = typer.Option(None, "--input-mode", help="Choices: text, select, editableSelect, hostProfileSelect"),
     host_profile_code: str = typer.Option(None, "--host-profile-code", help="Choices: optional, required, adminSet, notUsed"),
@@ -148,7 +148,7 @@ def update(
 @app.command("delete")
 def delete(
     tracking_code_id: str = typer.Argument(help="trackingCodeId"),
-    site_url: str = typer.Option(..., "--site-url", help="URL of the Webex site from which the API deletes the trackin"),
+    site_url: str = typer.Option(..., "--site-url", help="URL of the Webex site from which the API deletes the tracking code. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -170,8 +170,8 @@ def delete(
 
 @app.command("list-tracking-codes")
 def list_tracking_codes(
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API retrieves the track"),
-    person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user whose tracking codes are bein"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API retrieves the tracking code. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list)..."),
+    person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user whose tracking codes are being retrieved. The admin user can specify the `personId` of a user on a site they manage and the API returns details for the user's tracking codes. At least one parameter of `personId` or `email` is required."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -206,8 +206,8 @@ def list_tracking_codes(
 @app.command("update-tracking-codes")
 def update_tracking_codes(
     site_url: str = typer.Option(None, "--site-url", help="Site URL for the tracking code."),
-    person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user. At least one parameter of `p"),
-    email: str = typer.Option(None, "--email", help="Email address for the user. At least one parameter of `perso"),
+    person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user. At least one parameter of `personId` or `email` is required. `personId` must precede `email` if both are specified."),
+    email: str = typer.Option(None, "--email", help="Email address for the user. At least one parameter of `personId` or `email` is required. `personId` must precede `email` if both are specified."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -11,8 +11,8 @@ app = typer.Typer(help="Manage Webex Calling memberships.")
 @app.command("list")
 def cmd_list(
     room_id: str = typer.Option(None, "--room-id", help="List memberships associated with a room, by ID."),
-    person_id: str = typer.Option(None, "--person-id", help="List memberships associated with a person, by ID. The `roomI"),
-    person_email: str = typer.Option(None, "--person-email", help="List memberships associated with a person, by email address."),
+    person_id: str = typer.Option(None, "--person-id", help="List memberships associated with a person, by ID. The `roomId` parameter is required when using this parameter."),
+    person_email: str = typer.Option(None, "--person-email", help="List memberships associated with a person, by email address. The `roomId` parameter is required when using this parameter."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -121,7 +121,7 @@ def show(
 def update(
     membership_id: str = typer.Argument(help="membershipId"),
     is_moderator: bool = typer.Option(None, "--is-moderator/--no-is-moderator", help="Whether or not the participant is a room moderator."),
-    is_room_hidden: bool = typer.Option(None, "--is-room-hidden/--no-is-room-hidden", help="When set to true, hides direct spaces in the teams client. A"),
+    is_room_hidden: bool = typer.Option(None, "--is-room-hidden/--no-is-room-hidden", help="When set to true, hides direct spaces in the teams client. Any new message will make the room visible again."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

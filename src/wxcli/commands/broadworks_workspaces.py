@@ -10,12 +10,12 @@ app = typer.Typer(help="Manage Webex Calling broadworks-workspaces.")
 
 @app.command("create")
 def create(
-    provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) Provisioning ID that defines how this workspace is to be pro"),
+    provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) Provisioning ID that defines how this workspace is to be provisioned for Cisco Webex Services. Each Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."),
     user_id: str = typer.Option(None, "--user-id", help="(required) The user ID of the workspace on BroadWorks."),
-    sp_enterprise_id: str = typer.Option(None, "--sp-enterprise-id", help="(required) The Service Provider supplied unique identifier for the work"),
+    sp_enterprise_id: str = typer.Option(None, "--sp-enterprise-id", help="(required) The Service Provider supplied unique identifier for the workspace's enterprise."),
     display_name: str = typer.Option(None, "--display-name", help="(required) The display name of the workspace."),
-    primary_phone_number: str = typer.Option(None, "--primary-phone-number", help="The primary phone number configured against the workspace on"),
-    extension: str = typer.Option(None, "--extension", help="The extension number configured against the workspace on Bro"),
+    primary_phone_number: str = typer.Option(None, "--primary-phone-number", help="The primary phone number configured against the workspace on BroadWorks."),
+    extension: str = typer.Option(None, "--extension", help="The extension number configured against the workspace on BroadWorks."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -62,8 +62,8 @@ def create(
 def update(
     workspace_id: str = typer.Argument(help="workspaceId"),
     user_id: str = typer.Option(None, "--user-id", help="The user ID of the workspace on BroadWorks."),
-    primary_phone_number: str = typer.Option(None, "--primary-phone-number", help="The primary phone number configured against the workspace on"),
-    extension: str = typer.Option(None, "--extension", help="The extension number configured against the workspace on Bro"),
+    primary_phone_number: str = typer.Option(None, "--primary-phone-number", help="The primary phone number configured against the workspace on BroadWorks."),
+    extension: str = typer.Option(None, "--extension", help="The extension number configured against the workspace on BroadWorks."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

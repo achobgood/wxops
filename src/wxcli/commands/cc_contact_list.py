@@ -12,8 +12,8 @@ app = typer.Typer(help="Manage Webex Contact Center cc-contact-list.")
 @app.command("create")
 def create(
     campaign_id: str = typer.Argument(help="campaignId"),
-    activation_time_lag_minutes: str = typer.Option(None, "--activation-time-lag-minutes", help="Contact list activation time lag in minutes (0 = immediate a"),
-    activation_date_time: str = typer.Option(None, "--activation-date-time", help="Contact list activation DateTimeStamp (format: YYYY-MM-DDTHH"),
+    activation_time_lag_minutes: str = typer.Option(None, "--activation-time-lag-minutes", help="Contact list activation time lag in minutes (0 = immediate activation, 180 = 3 hours delay). Required if activationDateTime is not provided."),
+    activation_date_time: str = typer.Option(None, "--activation-date-time", help="Contact list activation DateTimeStamp (format: YYYY-MM-DDTHH:MM). Required if activationTimeLagMinutes is not provided."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -109,7 +109,7 @@ def update(
 def update_status(
     campaign_id: str = typer.Argument(help="campaignId"),
     contact_list_id: str = typer.Argument(help="contactListId"),
-    contact_list_status: str = typer.Option(None, "--contact-list-status", help="Contact List Status (e.g., EXPIRED). Note: This value is not"),
+    contact_list_status: str = typer.Option(None, "--contact-list-status", help="Contact List Status (e.g., EXPIRED). Note: This value is not case-sensitive."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

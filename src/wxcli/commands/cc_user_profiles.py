@@ -12,9 +12,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-user-profiles.")
 @app.command("list")
 def cmd_list(
     id: str = typer.Argument(help="id"),
-    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -52,11 +52,11 @@ def cmd_list(
 
 @app.command("list-user-profile")
 def list_user_profile(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, userProfileAppModules, entryPoints, sites, queues, teams, editableFolderIds, viewableFolderIds, nonViewableFolderIds, createdTime, lastUpdatedTime The examples below show some search..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (entryPoints,sites, queues, teams, userProfileAppModules,editableFolderIds, viewableFolderIds, nonViewableFolderIds)"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name, profileType, description) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\",\"description\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -98,16 +98,16 @@ def list_user_profile(
 
 @app.command("create")
 def create(
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="(required) The name of the user profile."),
     description: str = typer.Option(None, "--description", help="An optional description of the profile."),
     profile_type: str = typer.Option(None, "--profile-type", help="(required) Choices: ADMINISTRATOR, ADMINISTRATOR_ONLY, SUPERVISOR, PREMIUM_AGENT, STANDARD_AGENT, ANALYZER_ADMINISTRATOR, ANALYZER_SUPERVISOR, ANALYZER_USER"),
     active: bool = typer.Option(None, "--active/--no-active", help="(required) Specify whether the User profile is active or not."),
     permission_access_level: str = typer.Option(None, "--permission-access-level", help="(required) Choices: SPECIFIC, ALL, PROVISIONED_VALUE, NONE"),
     resource_access_level: str = typer.Option(None, "--resource-access-level", help="(required) Choices: SPECIFIC, ALL, PROVISIONED_VALUE, NONE"),
-    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
     default_resource_collection_id: str = typer.Option(None, "--default-resource-collection-id", help="Specifies the default resource collection for this profile"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
@@ -233,16 +233,16 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="The name of the user profile."),
     description: str = typer.Option(None, "--description", help="An optional description of the profile."),
     profile_type: str = typer.Option(None, "--profile-type", help="Choices: ADMINISTRATOR, ADMINISTRATOR_ONLY, SUPERVISOR, PREMIUM_AGENT, STANDARD_AGENT, ANALYZER_ADMINISTRATOR, ANALYZER_SUPERVISOR, ANALYZER_USER"),
     active: bool = typer.Option(None, "--active/--no-active", help="Specify whether the User profile is active or not."),
     permission_access_level: str = typer.Option(None, "--permission-access-level", help="Choices: SPECIFIC, ALL, PROVISIONED_VALUE, NONE"),
     resource_access_level: str = typer.Option(None, "--resource-access-level", help="Choices: SPECIFIC, ALL, PROVISIONED_VALUE, NONE"),
-    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
     default_resource_collection_id: str = typer.Option(None, "--default-resource-collection-id", help="Specifies the default resource collection for this profile"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
@@ -316,7 +316,7 @@ def delete(
 @app.command("list-acl")
 def list_acl(
     id: str = typer.Argument(help="id"),
-    names: str = typer.Option(None, "--names", help="Default all resources are returned in the ACL.     If yo"),
+    names: str = typer.Option(None, "--names", help="Default all resources are returned in the ACL. If you want to filter the ACL by specific resources, provide a comma-separated list of resource names to filter the ACL. Ex: /url?names=site,team"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

@@ -11,15 +11,15 @@ app = typer.Typer(help="Manage Webex Calling scim-groups.")
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="The url encoded filter. The example content is 'displayName"),
+    filter_param: str = typer.Option(None, "--filter", help="The url encoded filter. The example content is 'displayName Eq \"group1@example.com\" or displayName Eq \"group2@example.com\"'. For more filter patterns, see https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2. If the value is empty, the API returns all groups under the organization."),
     attributes: str = typer.Option(None, "--attributes", help="The attributes to return."),
     excluded_attributes: str = typer.Option(None, "--excluded-attributes", help="Attributes to be excluded from the return."),
-    sort_by: str = typer.Option(None, "--sort-by", help="A string indicating the attribute whose value be used to ord"),
-    sort_order: str = typer.Option(None, "--sort-order", help="A string indicating the order in which the `sortBy` paramete"),
-    start_index: str = typer.Option(None, "--start-index", help="An integer indicating the 1-based index of the first query r"),
-    count: str = typer.Option(None, "--count", help="An integer indicating the desired maximum number of query re"),
+    sort_by: str = typer.Option(None, "--sort-by", help="A string indicating the attribute whose value be used to order the returned responses. Now we only allow `displayName, id, meta.lastModified` to sort."),
+    sort_order: str = typer.Option(None, "--sort-order", help="A string indicating the order in which the `sortBy` parameter is applied. Allowed values are `ascending` and `descending`."),
+    start_index: str = typer.Option(None, "--start-index", help="An integer indicating the 1-based index of the first query result. The default is 1."),
+    count: str = typer.Option(None, "--count", help="An integer indicating the desired maximum number of query results per page. The default is 100."),
     include_members: str = typer.Option(None, "--include-members", help="Default \"false\". If false, no members returned."),
-    member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `mac"),
+    member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `machine`, `group`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -69,7 +69,7 @@ def cmd_list(
 @app.command("create")
 def create(
     display_name: str = typer.Option(None, "--display-name", help="(required) A human-readable name for the Group."),
-    external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisionin"),
+    external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisioning client."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -139,7 +139,7 @@ def show(
 def update(
     group_id: str = typer.Argument(help="groupId"),
     display_name: str = typer.Option(None, "--display-name", help="A human-readable name for the group."),
-    external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisionin"),
+    external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisioning client."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -209,8 +209,8 @@ def delete(
 def list_members(
     group_id: str = typer.Argument(help="groupId"),
     start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
-    count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of se"),
-    member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `mac"),
+    count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of search results per page. The maximum value for the count is 500."),
+    member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `machine`, `group`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

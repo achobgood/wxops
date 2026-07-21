@@ -10,15 +10,15 @@ app = typer.Typer(help="Manage Webex Calling converged-recordings.")
 
 @app.command("list")
 def cmd_list(
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to retu"),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
     status: str = typer.Option(None, "--status", help="Choices: available, deleted"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: calling, customerAssist"),
     format_param: str = typer.Option(None, "--format", help="Choices: MP3"),
     owner_type: str = typer.Option(None, "--owner-type", help="Choices: user, place, virtualLine, callQueue"),
     storage_region: str = typer.Option(None, "--storage-region", help="Choices: US, SG, GB, JP, DE, AU, IN, CA"),
-    location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling loc"),
-    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
+    location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling location (as configured in Control Hub)."),
+    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings by topic in a case-insensitive manner."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -68,17 +68,17 @@ def cmd_list(
 
 @app.command("list-converged-recordings")
 def list_converged_recordings(
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to retu"),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`. The interval between `from` and `to` must be within 30 days."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`. The interval between `from` and `to` must be within 30 days."),
     status: str = typer.Option(None, "--status", help="Choices: available, deleted, purged"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: calling, customerAssist"),
     format_param: str = typer.Option(None, "--format", help="Choices: MP3"),
     owner_id: str = typer.Option(None, "--owner-id", help="Webex user Id to fetch recordings for a particular user."),
-    owner_email: str = typer.Option(None, "--owner-email", help="Webex email address to fetch recordings for a particular use"),
+    owner_email: str = typer.Option(None, "--owner-email", help="Webex email address to fetch recordings for a particular user."),
     owner_type: str = typer.Option(None, "--owner-type", help="Choices: user, place, virtualLine, callQueue"),
     storage_region: str = typer.Option(None, "--storage-region", help="Choices: US, SG, GB, JP, DE, AU, IN, CA"),
-    location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling loc"),
-    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
+    location_id: str = typer.Option(None, "--location-id", help="Fetch recordings for users in a particular Webex Calling location (as configured in Control Hub)."),
+    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings by topic in a case-insensitive manner."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -158,8 +158,8 @@ def show(
 @app.command("delete")
 def delete(
     recording_id: str = typer.Argument(help="recordingId"),
-    reason: str = typer.Option(None, "--reason", help="Reason for deleting a recording. Only required when a Compli"),
-    comment: str = typer.Option(None, "--comment", help="Compliance Officer's explanation for deleting a recording. T"),
+    reason: str = typer.Option(None, "--reason", help="Reason for deleting a recording. Only required when a Compliance Officer is operating on another user's recording."),
+    comment: str = typer.Option(None, "--comment", help="Compliance Officer's explanation for deleting a recording. The comment can be a maximum of 255 characters long."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -188,7 +188,7 @@ def delete(
 @app.command("show-metadata")
 def show_metadata(
     recording_id: str = typer.Argument(help="recordingId"),
-    show_all_types: str = typer.Option(None, "--show-all-types", help="If `showAllTypes` is `true`, all attributes will be shown. I"),
+    show_all_types: str = typer.Option(None, "--show-all-types", help="If `showAllTypes` is `true`, all attributes will be shown. If it's `false` or not specified, the following attributes of the metadata will be hidden. serviceData.callActivity.mediaStreams serviceData.callActivity.participants serviceData.callActivity.redirectInfo..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -217,7 +217,7 @@ def show_metadata(
 @app.command("create")
 def create(
     owner_email: str = typer.Option(None, "--owner-email", help="Recording owner email."),
-    owner_id: str = typer.Option(None, "--owner-id", help="Recording owner ID. Can be a user, a virtual line, or a work"),
+    owner_id: str = typer.Option(None, "--owner-id", help="Recording owner ID. Can be a user, a virtual line, or a workspace."),
     reassign_owner_email: str = typer.Option(None, "--reassign-owner-email", help="(required) New owner of the recordings."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -257,8 +257,8 @@ def create(
 
 @app.command("create-soft-delete")
 def create_soft_delete(
-    trash_all: bool = typer.Option(None, "--trash-all/--no-trash-all", help="If not specified or `false`, moves the recordings specified"),
-    owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is onl"),
+    trash_all: bool = typer.Option(None, "--trash-all/--no-trash-all", help="If not specified or `false`, moves the recordings specified by `recordingIds` to the recycle bin. If `true`, moves all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` to the recycle bin."),
+    owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `trashAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -291,8 +291,8 @@ def create_soft_delete(
 
 @app.command("create-restore")
 def create_restore(
-    restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specifi"),
-    owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is onl"),
+    restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specified by `recordingIds` from the recycle bin. If `true`, restores all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` from the recycle bin."),
+    owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `restoreAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -325,8 +325,8 @@ def create_restore(
 
 @app.command("create-purge")
 def create_purge(
-    purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified"),
-    owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is onl"),
+    purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified by `recordingIds` from the recycle bin. If `true`, purges all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` from the recycle bin."),
+    owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `purgeAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

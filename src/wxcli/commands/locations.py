@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling locations.")
 
 @app.command("list")
 def cmd_list(
-    name: str = typer.Option(None, "--name", help="List locations whose name contains this string (case-insensi"),
+    name: str = typer.Option(None, "--name", help="List locations whose name contains this string (case-insensitive)."),
     id_param: str = typer.Option(None, "--id", help="List locations by ID."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -51,8 +51,8 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    name: str = typer.Option(None, "--name", help="(required) The name of the location. Supports up to 256 characters, but"),
-    time_zone: str = typer.Option(None, "--time-zone", help="(required) Time zone associated with this location, refer to this link"),
+    name: str = typer.Option(None, "--name", help="(required) The name of the location. Supports up to 256 characters, but locations enabled for Webex Calling are limited to 80 characters maximum."),
+    time_zone: str = typer.Option(None, "--time-zone", help="(required) Time zone associated with this location, refer to this link (https://developer.webex.com/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) for format."),
     preferred_language: str = typer.Option(None, "--preferred-language", help="(required) Default email language."),
     announcement_language: str = typer.Option(None, "--announcement-language", help="(required) Location's phone announcement language."),
     latitude: str = typer.Option(None, "--latitude", help="Latitude"),
@@ -138,8 +138,8 @@ def show(
 @app.command("update")
 def update(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help="The name of the location. Supports up to 256 characters, but"),
-    time_zone: str = typer.Option(None, "--time-zone", help="Time zone associated with this location, refer to this link"),
+    name: str = typer.Option(None, "--name", help="The name of the location. Supports up to 256 characters, but locations enabled for Webex Calling are limited to 80 characters maximum."),
+    time_zone: str = typer.Option(None, "--time-zone", help="Time zone associated with this location, refer to this link (https://developer.webex.com/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) for format."),
     preferred_language: str = typer.Option(None, "--preferred-language", help="Default email language."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),

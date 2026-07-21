@@ -39,11 +39,11 @@ def show(
 @app.command("update")
 def update(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Indicates if the caller reputation provider service is enabl"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Indicates if the caller reputation provider service is enabled. when set to true, all other fields are required except clientSecret."),
     id_param: str = typer.Option(None, "--id", help="Unique identifier for the reputation provider."),
     name: str = typer.Option(None, "--name", help="Name of the reputation provider."),
     client_id: str = typer.Option(None, "--client-id", help="Client ID used for integration with the reputation provider."),
-    client_secret: str = typer.Option(None, "--client-secret", help="Client secret used for integration with the reputation provi"),
+    client_secret: str = typer.Option(None, "--client-secret", help="Client secret used for integration with the reputation provider."),
     call_block_score_threshold: str = typer.Option(None, "--call-block-score-threshold", help="Score threshold for blocking calls."),
     call_allow_score_threshold: str = typer.Option(None, "--call-allow-score-threshold", help="Score threshold for allowing calls."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),

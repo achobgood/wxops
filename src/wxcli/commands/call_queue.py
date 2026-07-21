@@ -13,11 +13,11 @@ app = typer.Typer(help="Manage Webex Calling call-queue.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Returns the list of call queues in this location."),
     name: str = typer.Option(None, "--name", help="Returns only the call queues matching the given name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Returns only the call queues matching the given primary phon"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Returns only the call queues matching the given primary phone number or extension."),
     department_id: str = typer.Option(None, "--department-id", help="Returns only call queues matching the given department ID."),
     department_name: str = typer.Option(None, "--department-name", help="Returns only call queues matching the given department name."),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist li"),
-    digital_inbox_enabled: str = typer.Option(None, "--digital-inbox-enabled", help="Returns only the list of call queues with digital inbox enab"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist license when `true`, otherwise returns the list of Customer Experience Basic call queues."),
+    digital_inbox_enabled: str = typer.Option(None, "--digital-inbox-enabled", help="Returns only the list of call queues with digital inbox enabled when `true`, or disabled when `false`. This query parameter is only valid when `hasCxEssentials` is `true`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -94,11 +94,11 @@ def show_org_settings(
 
 @app.command("update-org-settings")
 def update_org_settings(
-    maintain_queue_position_for_sim_ring_enabled: bool = typer.Option(None, "--maintain-queue-position-for-sim-ring-enabled/--no-maintain-queue-position-for-sim-ring-enabled", help="Indicates whether callers keep their queue position when sim"),
-    force_agent_unavailable_on_bounced_enabled: bool = typer.Option(None, "--force-agent-unavailable-on-bounced-enabled/--no-force-agent-unavailable-on-bounced-enabled", help="Indicates whether Customer Assist agents are changed to unav"),
-    play_tone_to_agent_for_barge_in_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-barge-in-enabled/--no-play-tone-to-agent-for-barge-in-enabled", help="Organization-wide default that plays a tone to agents when a"),
-    play_tone_to_agent_for_silent_monitoring_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-silent-monitoring-enabled/--no-play-tone-to-agent-for-silent-monitoring-enabled", help="Organization-wide default that plays a tone to agents when a"),
-    play_tone_to_agent_for_supervisor_coaching_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-supervisor-coaching-enabled/--no-play-tone-to-agent-for-supervisor-coaching-enabled", help="Organization-wide default that plays a tone to agents when a"),
+    maintain_queue_position_for_sim_ring_enabled: bool = typer.Option(None, "--maintain-queue-position-for-sim-ring-enabled/--no-maintain-queue-position-for-sim-ring-enabled", help="Indicates whether callers keep their queue position when simultaneous ringing routes a call to multiple agents."),
+    force_agent_unavailable_on_bounced_enabled: bool = typer.Option(None, "--force-agent-unavailable-on-bounced-enabled/--no-force-agent-unavailable-on-bounced-enabled", help="Indicates whether Customer Assist agents are changed to unavailable after bounced calls."),
+    play_tone_to_agent_for_barge_in_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-barge-in-enabled/--no-play-tone-to-agent-for-barge-in-enabled", help="Organization-wide default that plays a tone to agents when a supervisor joins an active call using barge in."),
+    play_tone_to_agent_for_silent_monitoring_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-silent-monitoring-enabled/--no-play-tone-to-agent-for-silent-monitoring-enabled", help="Organization-wide default that plays a tone to agents when a supervisor monitors their active call without joining."),
+    play_tone_to_agent_for_supervisor_coaching_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-supervisor-coaching-enabled/--no-play-tone-to-agent-for-supervisor-coaching-enabled", help="Organization-wide default that plays a tone to agents when a supervisor coaches an agent during an active call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -134,20 +134,20 @@ def update_org_settings(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist call queue, when `true`. This requ"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist call queue, when `true`. This requires Customer Assist licensed agents."),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call queue."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue. Either a `phoneNumbe"),
-    extension: str = typer.Option(None, "--extension", help="Primary phone extension of the call queue. Either a `phoneNu"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue. Either a `phoneNumber` or `extension` is mandatory."),
+    extension: str = typer.Option(None, "--extension", help="Primary phone extension of the call queue. Either a `phoneNumber` or extension is mandatory."),
     language_code: str = typer.Option(None, "--language-code", help="Language code."),
-    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this"),
-    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this c"),
+    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this call queue. Defaults to \".\". This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this call queue. Defaults to `phoneNumber` if set, otherwise defaults to call group name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the call queue."),
     calling_line_id_policy: str = typer.Option(None, "--calling-line-id-policy", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
-    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help="Calling line ID Phone number which will be shown if CUSTOM i"),
+    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help="Calling line ID Phone number which will be shown if CUSTOM is selected."),
     allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help="Whether or not to allow agents to join or unjoin a queue."),
-    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows"),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters o"),
-    digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable fo"),
+    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
+    digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -214,7 +214,7 @@ def create(
 def show(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a call queue w"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a call queue with Customer Assist license. This can otherwise be ommited or set to `false`."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -250,18 +250,18 @@ def update(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the call queue is enabled."),
     name: str = typer.Option(None, "--name", help="Unique name for the call queue."),
     language_code: str = typer.Option(None, "--language-code", help="Language code."),
-    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this"),
-    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this c"),
+    first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this call queue. Defaults to `.`. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this call queue. Defaults to the `phoneNumber` if set, otherwise defaults to call group name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the hunt group."),
     phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue."),
     extension: str = typer.Option(None, "--extension", help="Extension of the call queue."),
     calling_line_id_policy: str = typer.Option(None, "--calling-line-id-policy", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
-    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help="Calling line ID Phone number which will be shown if CUSTOM i"),
+    calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help="Calling line ID Phone number which will be shown if CUSTOM is selected."),
     allow_call_waiting_for_agents_enabled: bool = typer.Option(None, "--allow-call-waiting-for-agents-enabled/--no-allow-call-waiting-for-agents-enabled", help="Flag to indicate whether call waiting is enabled for agents."),
     allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help="Whether or not to allow agents to join or unjoin a queue."),
-    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows"),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
-    digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable fo"),
+    phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
+    digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -459,8 +459,8 @@ def create_selective_rules(
     queue_id: str = typer.Argument(help="queueId"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
-    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -541,8 +541,8 @@ def update_selective_rules(
     rule_id: str = typer.Argument(help="ruleId"),
     name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines whe"),
-    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines wh"),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -636,12 +636,12 @@ def list_holiday_service(
 def update_holiday_service(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    holiday_service_enabled: bool = typer.Option(None, "--holiday-service-enabled/--no-holiday-service-enabled", help="Enable or Disable the call queue holiday service routing pol"),
+    holiday_service_enabled: bool = typer.Option(None, "--holiday-service-enabled/--no-holiday-service-enabled", help="Enable or Disable the call queue holiday service routing policy."),
     action: str = typer.Option(None, "--action", help="Choices: BUSY, TRANSFER"),
     holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
-    holiday_schedule_name: str = typer.Option(None, "--holiday-schedule-name", help="Name of the schedule configured for a holiday service as one"),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
-    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before th"),
+    holiday_schedule_name: str = typer.Option(None, "--holiday-schedule-name", help="Name of the schedule configured for a holiday service as one of from `holidaySchedules` list."),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
+    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before the action is applied."),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -719,11 +719,11 @@ def update_night_service(
     queue_id: str = typer.Argument(help="queueId"),
     night_service_enabled: bool = typer.Option(None, "--night-service-enabled/--no-night-service-enabled", help="Enable or disable call queue night service routing policy."),
     action: str = typer.Option(None, "--action", help="Choices: BUSY, TRANSFER"),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
-    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before th"),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
+    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before the action is applied."),
     announcement_mode: str = typer.Option(None, "--announcement-mode", help="Choices: NORMAL, MANUAL"),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
-    business_hours_name: str = typer.Option(None, "--business-hours-name", help="Name of the schedule configured for a night service as one o"),
+    business_hours_name: str = typer.Option(None, "--business-hours-name", help="Name of the schedule configured for a night service as one of from `businessHourSchedules` list."),
     business_hours_level: str = typer.Option(None, "--business-hours-level", help="Choices: ORGANIZATION, LOCATION"),
     force_night_service_enabled: bool = typer.Option(None, "--force-night-service-enabled/--no-force-night-service-enabled", help="Force night service regardless of business hour schedule."),
     manual_audio_message_selection: str = typer.Option(None, "--manual-audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
@@ -807,9 +807,9 @@ def list_forced_forward(
 def update_forced_forward(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    forced_forward_enabled: bool = typer.Option(None, "--forced-forward-enabled/--no-forced-forward-enabled", help="Enable or disable call forced forward service routing policy"),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
-    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before th"),
+    forced_forward_enabled: bool = typer.Option(None, "--forced-forward-enabled/--no-forced-forward-enabled", help="Enable or disable call forced forward service routing policy."),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
+    play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before the action is applied."),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -880,9 +880,9 @@ def update_stranded_calls(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     action: str = typer.Option(None, "--action", help="Choices: NONE, BUSY, TRANSFER, NIGHT_SERVICE, RINGING, ANNOUNCEMENT"),
-    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `"),
+    transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
-    trigger_policy_when_all_agents_are_unreachable_enabled: bool = typer.Option(None, "--trigger-policy-when-all-agents-are-unreachable-enabled/--no-trigger-policy-when-all-agents-are-unreachable-enabled", help="Trigger stranded calls queue policy when all agents are unre"),
+    trigger_policy_when_all_agents_are_unreachable_enabled: bool = typer.Option(None, "--trigger-policy-when-all-agents-are-unreachable-enabled/--no-trigger-policy-when-all-agents-are-unreachable-enabled", help="Trigger stranded calls queue policy when all agents are unreachable."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -916,7 +916,7 @@ def update_stranded_calls(
 @app.command("list-available-numbers-queues")
 def list_available_numbers_queues(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -952,7 +952,7 @@ def list_available_numbers_queues(
 @app.command("list-available-numbers-alternate")
 def list_available_numbers_alternate(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -988,9 +988,9 @@ def list_available_numbers_alternate(
 @app.command("list-available-numbers-call-forwarding")
 def list_available_numbers_call_forwarding(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1029,10 +1029,10 @@ def list_available_numbers_call_forwarding(
 
 @app.command("list-available-agents-queues")
 def list_available_agents_queues(
-    location_id: str = typer.Option(..., "--location-id", help="The location ID of the call queue. Temporary mandatory query"),
+    location_id: str = typer.Option(..., "--location-id", help="The location ID of the call queue. Temporary mandatory query parameter, used for performance reasons only and not a filter."),
     name: str = typer.Option(None, "--name", help="Search based on name (user first and last name combination)."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search based on number or extension."),
-    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
+    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated fields. Up to three comma-separated sort order fields may be specified. Available sort fields are: `userId`, `fname`, `firstname`, `lname`, `lastname`, `dn`, and `extension`. Sort order can be added together with each field using a hyphen, `-`...."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1074,9 +1074,9 @@ def list_available_agents_queues(
 @app.command("list-supervisors")
 def list_supervisors(
     name: str = typer.Option(None, "--name", help="Only return the supervisors that match the given name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone numbe"),
-    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of supervisors with Customer Assist li"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
+    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of supervisors with Customer Assist license, when `true`. Otherwise returns the list of supervisors with Customer Experience Basic license."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1117,7 +1117,7 @@ def list_supervisors(
 
 @app.command("create-supervisors")
 def create_supervisors(
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist queue supervisor, when `true`. Cus"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist queue supervisor, when `true`. Customer Assist queue supervisors must have a Customer Assist license."),
     id_param: str = typer.Option(None, "--id", help="(required) A unique identifier for the supervisor."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -1159,8 +1159,8 @@ def create_supervisors(
 
 @app.command("delete-supervisors-config")
 def delete_supervisors_config(
-    has_cx_essentials: bool = typer.Option(None, "--has-cx-essentials/--no-has-cx-essentials", help="Delete the Customer Assist supervisors, when `true`. Otherwi"),
-    delete_all: bool = typer.Option(None, "--delete-all/--no-delete-all", help="If present the `supervisorIds` array is ignored, and all sup"),
+    has_cx_essentials: bool = typer.Option(None, "--has-cx-essentials/--no-has-cx-essentials", help="Delete the Customer Assist supervisors, when `true`. Otherwise delete the Call Queue supervisors. The default value is `false`."),
+    delete_all: bool = typer.Option(None, "--delete-all/--no-delete-all", help="If present the `supervisorIds` array is ignored, and all supervisors in the context are deleted. **WARNING**: This will remove all supervisors from the organization."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1198,11 +1198,11 @@ def delete_supervisors_config(
 def show_supervisors(
     supervisor_id: str = typer.Argument(help="supervisorId"),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
-    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objec"),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objects."),
     name: str = typer.Option(None, "--name", help="Only return the agents that match the given name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Only return agents that match the given phone number, extens"),
-    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a supervisor w"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return agents that match the given phone number, extension, or ESN."),
+    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1244,7 +1244,7 @@ def show_supervisors(
 @app.command("update-supervisors")
 def update_supervisors(
     supervisor_id: str = typer.Argument(help="supervisorId"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer A"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1295,9 +1295,9 @@ def delete_supervisors_config_1(
 @app.command("list-available-supervisors")
 def list_available_supervisors(
     name: str = typer.Option(None, "--name", help="Only return the supervisors that match the given name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone numbe"),
-    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available supervisors with Customer"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
+    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available supervisors with Customer Assist license, when `true`. When ommited or set to 'false', will return the list of available supervisors with Customer Experience Basic license."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1339,9 +1339,9 @@ def list_available_supervisors(
 @app.command("list-available-agents-supervisors")
 def list_available_agents_supervisors(
     name: str = typer.Option(None, "--name", help="Returns only the agents that match the given name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Returns only the agents that match the phone number, extensi"),
-    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Assi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Returns only the agents that match the phone number, extension, or ESN."),
+    order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Assist license, when `true`. When ommited or set to `false`, will return the list of available agents with Customer Experience Basic license."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1384,11 +1384,11 @@ def list_available_agents_supervisors(
 def list_agents(
     location_id: str = typer.Option(None, "--location-id", help="Return only the call queue agents in this location."),
     queue_id: str = typer.Option(None, "--queue-id", help="Only return call queue agents with the matching queue ID."),
-    name: str = typer.Option(None, "--name", help="Returns only the list of call queue agents that match the gi"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Returns only the list of call queue agents that match the gi"),
-    join_enabled: str = typer.Option(None, "--join-enabled", help="Returns only the list of call queue agents that match the gi"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist li"),
-    order: str = typer.Option(None, "--order", help="Sort results alphabetically by call queue agent's name, in a"),
+    name: str = typer.Option(None, "--name", help="Returns only the list of call queue agents that match the given name."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Returns only the list of call queue agents that match the given phone number or extension."),
+    join_enabled: str = typer.Option(None, "--join-enabled", help="Returns only the list of call queue agents that match the given `joinEnabled` value."),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist license when `true`, otherwise returns the list of Customer Experience Basic call queues."),
+    order: str = typer.Option(None, "--order", help="Sort results alphabetically by call queue agent's name, in ascending or descending order."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1438,9 +1438,9 @@ def list_agents(
 @app.command("show-agents")
 def show_agents(
     id: str = typer.Argument(help="id"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to view the details of an agent with C"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to view the details of an agent with Customer Assist license. This can otherwise be ommited or set to `false`."),
     max: str = typer.Option(..., "--max", help="Limit the number of objects returned to this maximum count."),
-    start: str = typer.Option(..., "--start", help="Start at the zero-based offset in the list of matching objec"),
+    start: str = typer.Option(..., "--start", help="Start at the zero-based offset in the list of matching objects."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1476,7 +1476,7 @@ def show_agents(
 @app.command("update-settings-agents")
 def update_settings_agents(
     id: str = typer.Argument(help="id"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer A"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer Assist license. This can otherwise be ommited or set to `false`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1566,8 +1566,8 @@ def create_dnis(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     name: str = typer.Option(None, "--name", help="(required) Name of the DNIS. Must be unique across the call queue."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Must be a valid phone number from"),
-    extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Either phoneNumber or extension is re"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Must be a valid phone number from the same location. Either phoneNumber or extension is required."),
+    extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Either phoneNumber or extension is required."),
     ring_pattern: str = typer.Option(None, "--ring-pattern", help="(required) Choices: NORMAL, LONG_LONG, SHORT_SHORT_LONG, SHORT_LONG_SHORT"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -1681,8 +1681,8 @@ def update_dnis(
     queue_id: str = typer.Argument(help="queueId"),
     dnis_id: str = typer.Argument(help="dnisId"),
     name: str = typer.Option(None, "--name", help="Name of the DNIS. Must be unique across the call queue."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Set to `null` to remove the phone"),
-    extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Set to `null` to remove the extension"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Set to `null` to remove the phone number."),
+    extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Set to `null` to remove the extension."),
     ring_pattern: str = typer.Option(None, "--ring-pattern", help="Choices: NORMAL, LONG_LONG, SHORT_SHORT_LONG, SHORT_LONG_SHORT"),
     custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Use custom announcement settings for the DNIS."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -1840,7 +1840,7 @@ def update_announcements(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     dnis_id: str = typer.Argument(help="dnisId"),
-    custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Whether custom DNIS announcement settings are enabled for th"),
+    custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Whether custom DNIS announcement settings are enabled for this DNIS."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

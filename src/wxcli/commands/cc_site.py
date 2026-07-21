@@ -11,8 +11,8 @@ app = typer.Typer(help="Manage Webex Contact Center cc-site.")
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -48,14 +48,14 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the site. Generally, it is the name of"),
-    active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates the status of the site whether it is active(when t"),
-    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="(required) Indicates the multimedia profile for the site. It is require"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the site. Generally, it is the name of the geographical location. It is required only during a create or an update operation."),
+    active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates the status of the site whether it is active(when true) or not active(when false). It is required only during a create or an update operation."),
+    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="(required) Indicates the multimedia profile for the site. It is required only during a create or an update operation."),
     description: str = typer.Option(None, "--description", help=""),
-    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -142,8 +142,8 @@ def create_bulk(
 
 @app.command("list-bulk-export")
 def list_bulk_export(
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -179,7 +179,7 @@ def list_bulk_export(
 
 @app.command("create-purge-inactive-entities")
 def create_purge_inactive_entities(
-    next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge ba"),
+    next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch with be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -237,14 +237,14 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    name: str = typer.Option(None, "--name", help="Indicates the name of the site. Generally, it is the name of"),
-    active: bool = typer.Option(None, "--active/--no-active", help="Indicates the status of the site whether it is active(when t"),
-    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="Indicates the multimedia profile for the site. It is require"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="Indicates the name of the site. Generally, it is the name of the geographical location. It is required only during a create or an update operation."),
+    active: bool = typer.Option(None, "--active/--no-active", help="Indicates the status of the site whether it is active(when true) or not active(when false). It is required only during a create or an update operation."),
+    multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="Indicates the multimedia profile for the site. It is required only during a create or an update operation."),
     description: str = typer.Option(None, "--description", help=""),
-    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or"),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -311,9 +311,9 @@ def delete(
 @app.command("list-incoming-references")
 def list_incoming_references(
     id: str = typer.Argument(help="id"),
-    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -351,11 +351,11 @@ def list_incoming_references(
 
 @app.command("list-site")
 def list_site(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

@@ -11,10 +11,10 @@ app = typer.Typer(help="Manage Webex Contact Center cc-tasks.")
 
 @app.command("list")
 def cmd_list(
-    channel_types: str = typer.Option(None, "--channel-types", help="Task channel type(s) permitted in response. Separate values"),
-    from_param: str = typer.Option(..., "--from", help="Filters tasks created after the given epoch timestamp (in mi"),
-    to: str = typer.Option(None, "--to", help="Filters tasks created before the given epoch timestamp (in m"),
-    page_size: str = typer.Option(None, "--page-size", help="Maximum page size in the response. Maximum allowed value is"),
+    channel_types: str = typer.Option(None, "--channel-types", help="Task channel type(s) permitted in response. Separate values with commas. Use lowercase. By default, there is no channelType filtering."),
+    from_param: str = typer.Option(..., "--from", help="Filters tasks created after the given epoch timestamp (in milliseconds)."),
+    to: str = typer.Option(None, "--to", help="Filters tasks created before the given epoch timestamp (in milliseconds); queries up to the present if timestamp is not specified."),
+    page_size: str = typer.Option(None, "--page-size", help="Maximum page size in the response. Maximum allowed value is 1000. Defaults to 100 items per page."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -56,11 +56,11 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    destination: str = typer.Option(None, "--destination", help="(required) A valid customer DN, on which the response is expected, maxi"),
-    entry_point_id: str = typer.Option(None, "--entry-point-id", help="(required) An entryPointId for respective task. For ```CALLBACK``` and"),
-    outbound_type: str = typer.Option(None, "--outbound-type", help="The outbound type for the task. Supported values are ```CALL"),
-    media_type: str = typer.Option(None, "--media-type", help="(required) The media type for the request. The ```telephony``` type is"),
-    origin: str = typer.Option(None, "--origin", help="The contact center number, which is an ANI Outdial number, t"),
+    destination: str = typer.Option(None, "--destination", help="(required) A valid customer DN, on which the response is expected, maximum length 36 characters."),
+    entry_point_id: str = typer.Option(None, "--entry-point-id", help="(required) An entryPointId for respective task. For ```CALLBACK``` and ```OUTDIAL``` this should be an outboundEP. For ```EXECUTE_FLOW``` this should be an inboundEP which is mapped to a flow that will be triggered, maximum length 36 characters."),
+    outbound_type: str = typer.Option(None, "--outbound-type", help="The outbound type for the task. Supported values are ```CALLBACK```, ```OUTDIAL```, and ```EXECUTE_FLOW```. Use ```OUTDIAL``` when the user is logged into the Agent Desktop and needs to make an outbound call to the customer. Use ```CALLBACK``` when the user is not logged in and needs to schedule a..."),
+    media_type: str = typer.Option(None, "--media-type", help="(required) The media type for the request. The ```telephony``` type is required for ```EXECUTE_FLOW``` and ```CALLBACK```. The supported value is ```telephony```."),
+    origin: str = typer.Option(None, "--origin", help="The contact center number, which is an ANI Outdial number, that will be used while making a call to the customer. This field is mandatory for ```EXECUTE_FLOW``` and ```OUTDIAL``` type while it is optional for ```CALLBACK```. If not provided for ```CALLBACK``` type, default out-dial ANI..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -187,8 +187,8 @@ def create_end_tasks(
 @app.command("create-wrapup")
 def create_wrapup(
     task_id: str = typer.Argument(help="taskId"),
-    aux_code_id: str = typer.Option(None, "--aux-code-id", help="(required) Auxiliary codes are status codes which an agent can select i"),
-    wrap_up_reason: str = typer.Option(None, "--wrap-up-reason", help="(required) Every wrap up reason will have an unique auxillary code. Use"),
+    aux_code_id: str = typer.Option(None, "--aux-code-id", help="(required) Auxiliary codes are status codes which an agent can select in Webex Contact Center Agent Desktop. They are of two types: ```Idle``` and ```Wrap-Up``` codes, and every agent profile must have one of each for the agent to use. Idle codes are used to explain an agent's unavailability to take customer..."),
+    wrap_up_reason: str = typer.Option(None, "--wrap-up-reason", help="(required) Every wrap up reason will have an unique auxillary code. Use this field to specify the reason for wrapping up the call, maximum length 128 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -227,7 +227,7 @@ def create_wrapup(
 @app.command("create-hold")
 def create_hold(
     task_id: str = typer.Argument(help="taskId"),
-    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 c"),
+    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -264,7 +264,7 @@ def create_hold(
 @app.command("create-unhold")
 def create_unhold(
     task_id: str = typer.Argument(help="taskId"),
-    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 c"),
+    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -301,7 +301,7 @@ def create_unhold(
 @app.command("create-reject")
 def create_reject(
     task_id: str = typer.Argument(help="taskId"),
-    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 c"),
+    media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 characters"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -368,7 +368,7 @@ def create_pause(
 @app.command("create-resume")
 def create_resume(
     task_id: str = typer.Argument(help="taskId"),
-    auto_resumed: bool = typer.Option(None, "--auto-resumed/--no-auto-resumed", help="(required) The setting to mention if the recording has to resume automa"),
+    auto_resumed: bool = typer.Option(None, "--auto-resumed/--no-auto-resumed", help="(required) The setting to mention if the recording has to resume automatically."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -405,8 +405,8 @@ def create_resume(
 @app.command("create-transfer-tasks")
 def create_transfer_tasks(
     task_id: str = typer.Argument(help="taskId"),
-    to: str = typer.Option(None, "--to", help="(required) The user destination ID or the entry point ID to transfer, m"),
-    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another user in the team(```agent``"),
+    to: str = typer.Option(None, "--to", help="(required) The user destination ID or the entry point ID to transfer, maximum length 43 characters."),
+    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another user in the team(```agent```), queue(```queue```), dial number(```dialNumber```), entry point(```entrypointDialNumber```)."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -446,8 +446,8 @@ def create_transfer_tasks(
 def create_consult(
     task_id: str = typer.Argument(help="taskId"),
     to: str = typer.Option(None, "--to", help="(required) The destination ID to consult, maximum length 36 characters."),
-    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can consult to another user in the team(```agent```"),
-    hold_participants: bool = typer.Option(None, "--hold-participants/--no-hold-participants", help="This allows the caller to specify their preference for wheth"),
+    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can consult to another user in the team(```agent```), queue(```queue```), entry point(```entryPoint```) or dial number(```dialNumber```). When consulting an Entry Point (EP) that is associated with multiple Directory Numbers (DNs), the consult typically goes to one of the associated DNs."),
+    hold_participants: bool = typer.Option(None, "--hold-participants/--no-hold-participants", help="This allows the caller to specify their preference for whether the main call should be placed on hold or not during consult."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -490,7 +490,7 @@ def create_conference(
     task_id: str = typer.Argument(help="taskId"),
     agent_id: str = typer.Option(None, "--agent-id", help="The unique Id of the user logged in as an agent."),
     to: str = typer.Option(None, "--to", help="(required) The destination ID to consult, maximum length 36 characters."),
-    destination_type: str = typer.Option(None, "--destination-type", help="The user can consult to another user in the team(```agent```"),
+    destination_type: str = typer.Option(None, "--destination-type", help="The user can consult to another user in the team(```agent```), dial number(```dialNumber```), entry point(```entryPoint```)."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -531,8 +531,8 @@ def create_conference(
 @app.command("create-transfer-consult")
 def create_transfer_consult(
     task_id: str = typer.Argument(help="taskId"),
-    to: str = typer.Option(None, "--to", help="(required) The consulted user destination ID to transfer, maximum lengt"),
-    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another consulted user in the team("),
+    to: str = typer.Option(None, "--to", help="(required) The consulted user destination ID to transfer, maximum length 36 characters."),
+    destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another consulted user in the team(```agent```), dial number(```dialNumber```), entry point(```entryPoint```)"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -631,7 +631,7 @@ def create_assign(
 @app.command("create-end-consult")
 def create_end_consult(
     task_id: str = typer.Argument(help="taskId"),
-    queue_id: str = typer.Option(None, "--queue-id", help="The unique ID of a particular queue, maximum length 36 chara"),
+    queue_id: str = typer.Option(None, "--queue-id", help="The unique ID of a particular queue, maximum length 36 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

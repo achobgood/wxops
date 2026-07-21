@@ -11,9 +11,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-resource-collection.")
 
 @app.command("create")
 def create(
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="(required) The name of the resource collection."),
     description: str = typer.Option(None, "--description", help="An optional description of the resource collection."),
     resource_count: str = typer.Option(None, "--resource-count", help="The total count of resources in this collection"),
@@ -159,9 +159,9 @@ def show(
 @app.command("update-resource-collection")
 def update_resource_collection(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="The name of the resource collection."),
     description: str = typer.Option(None, "--description", help="An optional description of the resource collection."),
     resource_count: str = typer.Option(None, "--resource-count", help="The total count of resources in this collection"),
@@ -227,9 +227,9 @@ def delete(
 @app.command("list")
 def cmd_list(
     id: str = typer.Argument(help="id"),
-    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -267,11 +267,11 @@ def cmd_list(
 
 @app.command("list-resource-collection")
 def list_resource_collection(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

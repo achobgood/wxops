@@ -53,8 +53,8 @@ def cmd_list(
 @app.command("create")
 def create(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) This Provisioning ID defines how this customer is to be prov"),
-    org_id: str = typer.Option(None, "--org-id", help="The organization ID of the enterprise in Webex. Mandatory fo"),
+    provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) This Provisioning ID defines how this customer is to be provisioned for Webex Services. Each Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template on [Webex Control Hub](https://admin.webex.com)."),
+    org_id: str = typer.Option(None, "--org-id", help="The organization ID of the enterprise in Webex. Mandatory for existing customers."),
     external_id: str = typer.Option(None, "--external-id", help="(required) External ID of the Wholesale customer."),
     sub_partner_admin_email: str = typer.Option(None, "--sub-partner-admin-email", help="The email of the sub partner organization admin."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -102,7 +102,7 @@ def create(
 def show(
     customer_id: str = typer.Argument(help="customerId"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    include_package_license_info: str = typer.Option(None, "--include-package-license-info", help="If specified as true, a list of licenseIds will be returned"),
+    include_package_license_info: str = typer.Option(None, "--include-package-license-info", help="If specified as true, a list of licenseIds will be returned for all provisioned packages"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -187,7 +187,7 @@ def delete(
 @app.command("create-validate-customers")
 def create_validate_customers(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale customer is to be provisioned for"),
+    provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale customer is to be provisioned for Cisco Webex Services. Each Customer Template will have its unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."),
     org_id: str = typer.Option(None, "--org-id", help="The organization ID of the enterprise in Cisco Webex."),
     external_id: str = typer.Option(None, "--external-id", help="External ID of the Wholesale customer."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -260,13 +260,13 @@ def list_sub_partners(
 @app.command("list-subscribers")
 def list_subscribers(
     customer_id: str = typer.Option(None, "--customer-id", help="Wholesale customer ID."),
-    person_id: str = typer.Option(None, "--person-id", help="The person ID of the subscriber used in the [/v1/people API]"),
+    person_id: str = typer.Option(None, "--person-id", help="The person ID of the subscriber used in the [/v1/people API](/docs/api/v1/people)."),
     external_customer_id: str = typer.Option(None, "--external-customer-id", help="Customer external ID."),
     email: str = typer.Option(None, "--email", help="The email address of the subscriber."),
     status: str = typer.Option(None, "--status", help="The provisioning status of the subscriber."),
-    after: str = typer.Option(None, "--after", help="Only include subscribers created after this date and time. E"),
-    last_status_change: str = typer.Option(None, "--last-status-change", help="Only include subscribers with a provisioning status change a"),
-    sort_by: str = typer.Option(None, "--sort-by", help="Supported `sortBy` attributes are `created` and `lastStatusC"),
+    after: str = typer.Option(None, "--after", help="Only include subscribers created after this date and time. Epoch time (in milliseconds) preferred, but ISO 8601 date format also accepted."),
+    last_status_change: str = typer.Option(None, "--last-status-change", help="Only include subscribers with a provisioning status change after this date and time. Epoch time (in milliseconds) preferred, but ISO 8601 date format also accepted."),
+    sort_by: str = typer.Option(None, "--sort-by", help="Supported `sortBy` attributes are `created` and `lastStatusChange`. Default is `created`."),
     sort_order: str = typer.Option(None, "--sort-order", help="Sort by `ASC` (ascending) or `DESC` (descending)."),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -320,7 +320,7 @@ def list_subscribers(
 def create_subscribers(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     customer_id: str = typer.Option(None, "--customer-id", help="(required) ID of the Provisioned Customer for Webex Wholesale."),
-    email: str = typer.Option(None, "--email", help="(required) The email address of the subscriber (mandatory for the trust"),
+    email: str = typer.Option(None, "--email", help="(required) The email address of the subscriber (mandatory for the trusted email provisioning flow)."),
     package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -444,7 +444,7 @@ def delete_subscribers(
 @app.command("create-validate-subscribers")
 def create_validate_subscribers(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale subscriber is to be provisioned f"),
+    provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale subscriber is to be provisioned for Cisco Webex Services. Each Customer template has its unique provisioning ID. This ID is displayed under the chosen customer template on Cisco Webex Control Hub."),
     customer_id: str = typer.Option(None, "--customer-id", help="ID of the Provisioned Customer for Webex Wholesale."),
     email: str = typer.Option(None, "--email", help="(required) The email address of the subscriber."),
     package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard"),

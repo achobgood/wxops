@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-audio-files.")
 @app.command("show")
 def show(
     id: str = typer.Argument(help="id"),
-    include_url: str = typer.Option(None, "--include-url", help="Indicates if the URL for downloading Audio Fileshould be inc"),
+    include_url: str = typer.Option(None, "--include-url", help="Indicates if the URL for downloading Audio Fileshould be included in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -64,9 +64,9 @@ def delete(
 @app.command("list")
 def cmd_list(
     id: str = typer.Argument(help="id"),
-    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -104,11 +104,11 @@ def cmd_list(
 
 @app.command("list-audio-file")
 def list_audio_file(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported except URL"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

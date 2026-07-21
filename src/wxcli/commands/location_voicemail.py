@@ -102,9 +102,9 @@ def update_voice_portal(
     language_code: str = typer.Option(None, "--language-code", help="Language code for voicemail group audio announcement."),
     extension: str = typer.Option(None, "--extension", help="Extension of incoming call."),
     phone_number: str = typer.Option(None, "--phone-number", help="Phone Number of incoming call."),
-    first_name: str = typer.Option(None, "--first-name", help="Caller ID First Name. This field has been deprecated. Please"),
-    last_name: str = typer.Option(None, "--last-name", help="Caller ID Last Name. This field has been deprecated. Please"),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
+    first_name: str = typer.Option(None, "--first-name", help="Caller ID First Name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    last_name: str = typer.Option(None, "--last-name", help="Caller ID Last Name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -248,14 +248,14 @@ def update_voicemail_groups(
     name: str = typer.Option(None, "--name", help="Set the name of the voicemail group."),
     phone_number: str = typer.Option(None, "--phone-number", help="Set voicemail group phone number."),
     extension: str = typer.Option(None, "--extension", help="Set unique voicemail group extension number."),
-    first_name: str = typer.Option(None, "--first-name", help="Set the voicemail group caller ID first name. This field has"),
-    last_name: str = typer.Option(None, "--last-name", help="Set the voicemail group called ID last name. This field has"),
+    first_name: str = typer.Option(None, "--first-name", help="Set the voicemail group caller ID first name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    last_name: str = typer.Option(None, "--last-name", help="Set the voicemail group called ID last name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to `true` to enable the voicemail group."),
     passcode: str = typer.Option(None, "--passcode", help="Set passcode to access voicemail group when calling."),
     language_code: str = typer.Option(None, "--language-code", help="Language code for the voicemail group audio announcement."),
     greeting: str = typer.Option(None, "--greeting", help="Choices: DEFAULT, CUSTOM"),
     greeting_description: str = typer.Option(None, "--greeting-description", help="CUSTOM greeting for previously uploaded."),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -327,14 +327,14 @@ def delete(
 @app.command("create")
 def create(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help="(required) Set name to create new voicemail group for a particular loca"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Set voicemail group phone number for this particular locatio"),
-    extension: str = typer.Option(None, "--extension", help="(required) Set unique voicemail group extension number for this particu"),
-    first_name: str = typer.Option(None, "--first-name", help="Set voicemail group caller ID first name. This field has bee"),
-    last_name: str = typer.Option(None, "--last-name", help="Set voicemail group called ID last name. This field has been"),
+    name: str = typer.Option(None, "--name", help="(required) Set name to create new voicemail group for a particular location for a customer."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Set voicemail group phone number for this particular location."),
+    extension: str = typer.Option(None, "--extension", help="(required) Set unique voicemail group extension number for this particular location."),
+    first_name: str = typer.Option(None, "--first-name", help="Set voicemail group caller ID first name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    last_name: str = typer.Option(None, "--last-name", help="Set voicemail group called ID last name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     passcode: str = typer.Option(None, "--passcode", help="(required) Set passcode to access voicemail group when calling."),
     language_code: str = typer.Option(None, "--language-code", help="(required) Language code for voicemail group audio announcement."),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions.  Characters"),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -388,7 +388,7 @@ def create(
 @app.command("list-available-numbers-fax-message")
 def list_available_numbers_fax_message(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -424,7 +424,7 @@ def list_available_numbers_fax_message(
 @app.command("list-available-numbers-voicemail-groups")
 def list_available_numbers_voicemail_groups(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -460,7 +460,7 @@ def list_available_numbers_voicemail_groups(
 @app.command("list-available-numbers-voice-portal")
 def list_available_numbers_voice_portal(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

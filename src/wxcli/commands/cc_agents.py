@@ -11,11 +11,11 @@ app = typer.Typer(help="Manage Webex Contact Center cc-agents.")
 
 @app.command("create")
 def create(
-    dial_number: str = typer.Option(None, "--dial-number", help="(required) A dialNumber field contains the number to dial such as a rou"),
-    team_id: str = typer.Option(None, "--team-id", help="The unique ID representing a team of users. Leaving this fie"),
-    is_extension: bool = typer.Option(None, "--is-extension/--no-is-extension", help="It indicates if the dialNumber field is full number or exten"),
-    device_type: str = typer.Option(None, "--device-type", help="It represents the way to differentiate type of login request"),
-    device_id: str = typer.Option(None, "--device-id", help="It is equal to dialNumber for AGENT_DN & EXTENSION deviceTyp"),
+    dial_number: str = typer.Option(None, "--dial-number", help="(required) A dialNumber field contains the number to dial such as a route point or extension, maximum length 43 characters."),
+    team_id: str = typer.Option(None, "--team-id", help="The unique ID representing a team of users. Leaving this field blank is valid for supervisor role but invalid for agent role, maximum length 36 characters."),
+    is_extension: bool = typer.Option(None, "--is-extension/--no-is-extension", help="It indicates if the dialNumber field is full number or extension. It is set to false by default."),
+    device_type: str = typer.Option(None, "--device-type", help="It represents the way to differentiate type of login request (```AGENT_DN```, ```EXTENSION```, ```BROWSER```). Leaving this field is valid for supervisor role but invalid for agent role."),
+    device_id: str = typer.Option(None, "--device-id", help="It is equal to dialNumber for AGENT_DN & EXTENSION deviceType and for BROWSER it is populated as webrtc-AgentUUID, maximum length 43 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -59,8 +59,8 @@ def create(
 
 @app.command("update")
 def update(
-    logout_reason: str = typer.Option(None, "--logout-reason", help="The reason for performing logout operation, maximum length 1"),
-    agent_id: str = typer.Option(None, "--agent-id", help="Unique ID of the user who is being logged out, maximum lengt"),
+    logout_reason: str = typer.Option(None, "--logout-reason", help="The reason for performing logout operation, maximum length 128 characters."),
+    agent_id: str = typer.Option(None, "--agent-id", help="Unique ID of the user who is being logged out, maximum length 36 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -86,10 +86,10 @@ def update(
 
 @app.command("update-state-session")
 def update_state_session(
-    state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to `"),
-    aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select i"),
-    last_state_change_reason: str = typer.Option(None, "--last-state-change-reason", help="It represents the reason of the last state change request, m"),
-    agent_id: str = typer.Option(None, "--agent-id", help="User for which state change is initiated, maximum length 36"),
+    state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to ```Available``` or ```Idle```."),
+    aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select in Webex Contact Center Agent Desktop. They are of two types: ```Idle``` and ```Wrap-Up``` codes, and every agent profile must have one of each for the agent to use. Idle codes are used to explain an agent's unavailability to take customer..."),
+    last_state_change_reason: str = typer.Option(None, "--last-state-change-reason", help="It represents the reason of the last state change request, maximum length 128 characters."),
+    agent_id: str = typer.Option(None, "--agent-id", help="User for which state change is initiated, maximum length 36 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -148,9 +148,9 @@ def create_reload_agents(
 
 @app.command("create-buddy-list")
 def create_buddy_list(
-    agent_profile_id: str = typer.Option(None, "--agent-profile-id", help="(required) The profile ID of a particular agent. Can be obtained from ["),
-    media_type: str = typer.Option(None, "--media-type", help="(required) The media type for the request. The supported values are ```"),
-    state: str = typer.Option(None, "--state", help="It represents the current state of the returned agents which"),
+    agent_profile_id: str = typer.Option(None, "--agent-profile-id", help="(required) The profile ID of a particular agent. Can be obtained from [Users API](/docs/users), maximum length 36 characters."),
+    media_type: str = typer.Option(None, "--media-type", help="(required) The media type for the request. The supported values are ```telephony```, ```chat```, ```social```, ```email```, ```workItem``` and ```customMessaging```."),
+    state: str = typer.Option(None, "--state", help="It represents the current state of the returned agents which can be either ```Available``` or ```Idle```. If state is omitted from the payload, the API will return a list of both available and idle agents. This is useful for consult scenarios, since consulting an idle agent is also supported."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -190,13 +190,13 @@ def create_buddy_list(
 
 @app.command("list")
 def cmd_list(
-    agent_ids: str = typer.Option(None, "--agent-ids", help="Filter agent activities by agent ids separated with commas i"),
-    team_ids: str = typer.Option(None, "--team-ids", help="Filter agent activities by team ids separated with commas if"),
-    channel_types: str = typer.Option(None, "--channel-types", help="Channel type(s) permitted in response. Separate values with"),
-    from_param: str = typer.Option(..., "--from", help="Filter agent activities created after given epoch timestamp"),
-    to: str = typer.Option(None, "--to", help="Filter agent activities created before given epoch timestamp"),
-    page_size: str = typer.Option(None, "--page-size", help="Maximum page size in response. Maximum allowed value is 1000"),
-    page: str = typer.Option(None, "--page", help="Page number to be passed. Maximum number of records that can"),
+    agent_ids: str = typer.Option(None, "--agent-ids", help="Filter agent activities by agent ids separated with commas if more than one value (max 100). By default, there is no agent filtering."),
+    team_ids: str = typer.Option(None, "--team-ids", help="Filter agent activities by team ids separated with commas if more than one value (max 100). By default, there is no team filtering."),
+    channel_types: str = typer.Option(None, "--channel-types", help="Channel type(s) permitted in response. Separate values with commas. Must be lowercase. By default, there is no channelType filtering."),
+    from_param: str = typer.Option(..., "--from", help="Filter agent activities created after given epoch timestamp in UTC (in milliseconds)."),
+    to: str = typer.Option(None, "--to", help="Filter agent activities created before given epoch timestamp in UTC (in milliseconds). If unspecified, queries up to the present. The difference between to and from timestamps must be less than 24 hours (86400000 milli seconds)"),
+    page_size: str = typer.Option(None, "--page-size", help="Maximum page size in response. Maximum allowed value is 1000. Defaults to 100 items per page."),
+    page: str = typer.Option(None, "--page", help="Page number to be passed. Maximum number of records that can be fetched for the given from and to is 10,000. So maximum page number allowed is based on it. Defaults to 0."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -244,10 +244,10 @@ def cmd_list(
 
 @app.command("list-statistics")
 def list_statistics(
-    from_param: str = typer.Option(..., "--from", help="Start time for the query (in epoch milliseconds). Any epoch"),
-    to: str = typer.Option(..., "--to", help="End time for the query (in epoch milliseconds). Any epoch ti"),
-    interval: str = typer.Option(None, "--interval", help="Time interval (in minutes) to chunk statistics by i.e. break"),
-    agent_ids: str = typer.Option(None, "--agent-ids", help="Comma-separated list of agent IDs. A maximum of 100 values i"),
+    from_param: str = typer.Option(..., "--from", help="Start time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:05 will be rounded down to 12:00."),
+    to: str = typer.Option(..., "--to", help="End time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:55 will be rounded down to 12:45. The difference between to and from time must be less than 24 hours (86400000..."),
+    interval: str = typer.Option(None, "--interval", help="Time interval (in minutes) to chunk statistics by i.e. break up the entire from-to timeframe by this interval amount so that statistics can be viewed incrementally. Supported values are 15, 30, or 60."),
+    agent_ids: str = typer.Option(None, "--agent-ids", help="Comma-separated list of agent IDs. A maximum of 100 values is permitted. If values are not provided, all agents of an organization are returned."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -289,11 +289,11 @@ def list_statistics(
 
 @app.command("create-login")
 def create_login(
-    dial_number: str = typer.Option(None, "--dial-number", help="(required) A dialNumber field contains the number to dial such as a rou"),
-    team_id: str = typer.Option(None, "--team-id", help="The unique ID representing a team of users. Leaving this fie"),
-    is_extension: bool = typer.Option(None, "--is-extension/--no-is-extension", help="It indicates if the dialNumber field is full number or exten"),
-    device_type: str = typer.Option(None, "--device-type", help="It represents the way to differentiate type of login request"),
-    device_id: str = typer.Option(None, "--device-id", help="It is equal to dialNumber for AGENT_DN & EXTENSION deviceTyp"),
+    dial_number: str = typer.Option(None, "--dial-number", help="(required) A dialNumber field contains the number to dial such as a route point or extension, maximum length 43 characters."),
+    team_id: str = typer.Option(None, "--team-id", help="The unique ID representing a team of users. Leaving this field blank is valid for supervisor role but invalid for agent role, maximum length 36 characters."),
+    is_extension: bool = typer.Option(None, "--is-extension/--no-is-extension", help="It indicates if the dialNumber field is full number or extension. It is set to false by default."),
+    device_type: str = typer.Option(None, "--device-type", help="It represents the way to differentiate type of login request (```AGENT_DN```, ```EXTENSION```, ```BROWSER```). Leaving this field is valid for supervisor role but invalid for agent role."),
+    device_id: str = typer.Option(None, "--device-id", help="It is equal to dialNumber for AGENT_DN & EXTENSION deviceType and for BROWSER it is populated as webrtc-AgentUUID, maximum length 43 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -337,8 +337,8 @@ def create_login(
 
 @app.command("update-logout")
 def update_logout(
-    logout_reason: str = typer.Option(None, "--logout-reason", help="The reason for performing logout operation, maximum length 1"),
-    agent_id: str = typer.Option(None, "--agent-id", help="Unique ID of the user who is being logged out, maximum lengt"),
+    logout_reason: str = typer.Option(None, "--logout-reason", help="The reason for performing logout operation, maximum length 128 characters."),
+    agent_id: str = typer.Option(None, "--agent-id", help="Unique ID of the user who is being logged out, maximum length 36 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -364,10 +364,10 @@ def update_logout(
 
 @app.command("update-state-session-1")
 def update_state_session_1(
-    state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to `"),
-    aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select i"),
-    reason: str = typer.Option(None, "--reason", help="It represents the reason of the last agent channel state cha"),
-    agent_id: str = typer.Option(None, "--agent-id", help="User for which agent channel state change is initiated, maxi"),
+    state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to ```Available``` or ```Idle``` or ```LoggedOut``` or ```Reserved``` or ```Engaged``` or or ```EngagedOther``` ."),
+    aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select in Webex Contact Center Agent Desktop. They are of two types: ```Idle``` and ```Wrap-Up``` codes, and every agent profile must have one of each for the agent to use. Idle codes are used to explain an agent's unavailability to take customer..."),
+    reason: str = typer.Option(None, "--reason", help="It represents the reason of the last agent channel state change request, maximum length 128 characters."),
+    agent_id: str = typer.Option(None, "--agent-id", help="User for which agent channel state change is initiated, maximum length 36 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

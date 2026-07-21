@@ -204,14 +204,29 @@ def _dedup_enum_values(values: list[str]) -> list[str]:
     return list(seen.values())
 
 
-def _enum_help(field: EndpointField, max_desc: int = 60) -> str:
+def _clean_desc(text: str, max_desc: int = 300) -> str:
+    """Collapse whitespace and truncate on a word boundary, never mid-word.
+
+    Replaces the old blind `description[:60]` slice, which cut mid-word and
+    routinely dropped the trailing "Default: X" clause — the single most useful
+    fact in most field descriptions. The cap is generous enough to keep those
+    trailing defaults; only genuinely long prose is trimmed, and then only at a
+    word boundary with an ellipsis so nothing is chopped mid-token.
+    """
+    collapsed = " ".join((text or "").split())
+    if len(collapsed) <= max_desc:
+        return collapsed
+    return collapsed[:max_desc].rsplit(" ", 1)[0] + "..."
+
+
+def _enum_help(field: EndpointField, max_desc: int = 300) -> str:
     """Build help text for a field, showing enum choices if available."""
     if field.enum_values:
         deduped = _dedup_enum_values(field.enum_values)
         if len(deduped) <= 12:
             return _escape_help(f"Choices: {', '.join(deduped)}")
-        return _escape_help(f"{field.description[:max_desc]} (use --help for choices)")
-    return _escape_help(field.description[:max_desc])
+        return _escape_help(f"{_clean_desc(field.description, max_desc)} (use --help for choices)")
+    return _escape_help(_clean_desc(field.description, max_desc))
 
 
 def _render_query_params(ep: Endpoint) -> tuple[list[str], list[str]]:

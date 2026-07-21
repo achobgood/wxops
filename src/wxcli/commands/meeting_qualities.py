@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-qualities.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the specific meeting instance. **Note:"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the specific meeting instance. **Note:** The `meetingId` can be obtained via the Meeting List API when meetingType=meeting. The `id` attribute in the Meeting List Response is what is needed, for example, `e5dba9613a9d455aa49f6ffdafb6e7db_I_191395283063545470`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

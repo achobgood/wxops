@@ -11,11 +11,11 @@ app = typer.Typer(help="Manage Webex Calling workspaces.")
 
 @app.command("list")
 def cmd_list(
-    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Values must originat"),
-    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Location associated with the workspace. Both values from the"),
+    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Values must originate from the /locations API and not the legacy /workspaceLocations API."),
+    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Location associated with the workspace. Both values from the /locations API and the legacy /workspaceLocations API are supported. This field is deprecated and integrations should prefer `locationId` going forward."),
     floor_id: str = typer.Option(None, "--floor-id", help="Floor associated with the workspace."),
     display_name: str = typer.Option(None, "--display-name", help="List workspaces by display name."),
-    capacity: str = typer.Option(None, "--capacity", help="List workspaces with the given capacity. Must be -1 or highe"),
+    capacity: str = typer.Option(None, "--capacity", help="List workspaces with the given capacity. Must be -1 or higher. A value of -1 lists workspaces with no capacity set."),
     type_param: str = typer.Option(None, "--type", help="Choices: notSet, focus, huddle, meetingRoom, open, desk, other"),
     calling: str = typer.Option(None, "--calling", help="Choices: freeCalling, hybridCalling, webexCalling, webexEdgeForDevices, thirdPartySipCalling, none"),
     supported_devices: str = typer.Option(None, "--supported-devices", help="Choices: collaborationDevices, phones"),
@@ -23,8 +23,8 @@ def cmd_list(
     device_hosted_meetings_enabled: str = typer.Option(None, "--device-hosted-meetings-enabled", help="List workspaces enabled for device hosted meetings."),
     device_platform: str = typer.Option(None, "--device-platform", help="Choices: cisco, microsoftTeamsRoom"),
     health_level: str = typer.Option(None, "--health-level", help="Choices: error, warning, info, ok"),
-    include_devices: str = typer.Option(None, "--include-devices", help="Flag identifying whether to include the devices associated w"),
-    include_capabilities: str = typer.Option(None, "--include-capabilities", help="Flag identifying whether to include the workspace capabiliti"),
+    include_devices: str = typer.Option(None, "--include-devices", help="Flag identifying whether to include the devices associated with the workspace in the response."),
+    include_capabilities: str = typer.Option(None, "--include-capabilities", help="Flag identifying whether to include the workspace capabilities in the response."),
     planned_maintenance: str = typer.Option(None, "--planned-maintenance", help="Choices: off, on, upcoming"),
     custom_attribute: str = typer.Option(None, "--custom-attribute", help="List workspaces with given custom attribute key."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -92,13 +92,13 @@ def cmd_list(
 @app.command("create")
 def create(
     display_name: str = typer.Option(None, "--display-name", help="(required) A friendly name for the workspace."),
-    org_id: str = typer.Option(None, "--org-id", help="`OrgId` associated with the workspace. Only admin users of a"),
-    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Must be provided whe"),
-    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Legacy workspace location ID associated with the workspace."),
+    org_id: str = typer.Option(None, "--org-id", help="`OrgId` associated with the workspace. Only admin users of another organization (such as partners) may use this parameter."),
+    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Must be provided when the `floorId` is set."),
+    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Legacy workspace location ID associated with the workspace. Prefer `locationId`."),
     floor_id: str = typer.Option(None, "--floor-id", help="Floor associated with the workspace."),
-    capacity: str = typer.Option(None, "--capacity", help="How many people the workspace is suitable for. If set, must"),
+    capacity: str = typer.Option(None, "--capacity", help="How many people the workspace is suitable for. If set, must be 0 or higher."),
     type_param: str = typer.Option(None, "--type", help="Choices: notSet, focus, huddle, meetingRoom, open, desk, other"),
-    sip_address: str = typer.Option(None, "--sip-address", help="The `sipAddress` field can only be provided when calling typ"),
+    sip_address: str = typer.Option(None, "--sip-address", help="The `sipAddress` field can only be provided when calling type is `thirdPartySipCalling`."),
     notes: str = typer.Option(None, "--notes", help="Notes associated to the workspace."),
     hotdesking_status: str = typer.Option(None, "--hotdesking-status", help="Choices: on, off"),
     supported_devices: str = typer.Option(None, "--supported-devices", help="Choices: collaborationDevices, phones"),
@@ -157,8 +157,8 @@ def create(
 @app.command("show")
 def show(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    include_devices: str = typer.Option(None, "--include-devices", help="Flag identifying whether to include the devices associated w"),
-    include_capabilities: str = typer.Option(None, "--include-capabilities", help="Flag identifying whether to include the workspace capabiliti"),
+    include_devices: str = typer.Option(None, "--include-devices", help="Flag identifying whether to include the devices associated with the workspace in the response."),
+    include_capabilities: str = typer.Option(None, "--include-capabilities", help="Flag identifying whether to include the workspace capabilities in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -190,12 +190,12 @@ def show(
 def update(
     workspace_id: str = typer.Argument(help="workspaceId"),
     display_name: str = typer.Option(None, "--display-name", help="A friendly name for the workspace."),
-    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Must be provided whe"),
-    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Legacy workspace location ID associated with the workspace."),
+    location_id: str = typer.Option(None, "--location-id", help="Location associated with the workspace. Must be provided when the `floorId` is set."),
+    workspace_location_id: str = typer.Option(None, "--workspace-location-id", help="Legacy workspace location ID associated with the workspace. Prefer `locationId`."),
     floor_id: str = typer.Option(None, "--floor-id", help="Floor associated with the workspace."),
-    capacity: str = typer.Option(None, "--capacity", help="How many people the workspace is suitable for. If set, must"),
+    capacity: str = typer.Option(None, "--capacity", help="How many people the workspace is suitable for. If set, must be 0 or higher."),
     type_param: str = typer.Option(None, "--type", help="Choices: notSet, focus, huddle, meetingRoom, open, desk, other"),
-    sip_address: str = typer.Option(None, "--sip-address", help="The `sipAddress` field can only be provided when calling typ"),
+    sip_address: str = typer.Option(None, "--sip-address", help="The `sipAddress` field can only be provided when calling type is `thirdPartySipCalling`."),
     notes: str = typer.Option(None, "--notes", help="Notes associated to the workspace."),
     hotdesking_status: str = typer.Option(None, "--hotdesking-status", help="Choices: on, off"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),

@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling xapi.")
 @app.command("show")
 def show(
     device_id: str = typer.Option(..., "--device-id", help="The unique identifier for the Webex RoomOS Device."),
-    name: str = typer.Option(..., "--name", help="A list of status expressions used to query the Webex RoomOS"),
+    name: str = typer.Option(..., "--name", help="A list of status expressions used to query the Webex RoomOS Device. See the [xAPI section of the Device Developers Guide](/docs/api/guides/device-developers-guide#xapi) for a description of status expressions. A request can contain at most 10 different status expressions."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -41,9 +41,9 @@ def show(
 
 @app.command("list")
 def cmd_list(
-    device_id: str = typer.Option(..., "--device-id", help="A list of device IDs to query schemas from. A request can co"),
-    status: str = typer.Option(None, "--status", help="A list of status key expressions to query schemas for. Suppo"),
-    command: str = typer.Option(None, "--command", help="A list of command key expressions to query schemas for. Supp"),
+    device_id: str = typer.Option(..., "--device-id", help="A list of device IDs to query schemas from. A request can contain at most 5 device IDs."),
+    status: str = typer.Option(None, "--status", help="A list of status key expressions to query schemas for. Supports patterns. Requires the `spark:xapi_statuses` scope."),
+    command: str = typer.Option(None, "--command", help="A list of command key expressions to query schemas for. Supports patterns. Requires the `spark:xapi_commands` scope."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

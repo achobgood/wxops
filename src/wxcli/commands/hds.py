@@ -201,8 +201,8 @@ def list_tenants(
 @app.command("list-alarms")
 def list_alarms(
     node_id: str = typer.Argument(help="nodeId"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -270,8 +270,8 @@ def list_network_test(
 @app.command("list-resource-usage")
 def list_resource_usage(
     node_id: str = typer.Argument(help="nodeId"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -306,8 +306,8 @@ def list_resource_usage(
 @app.command("list-availability")
 def list_availability(
     cluster_id: str = typer.Argument(help="clusterId"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The 'from' value cannot be later than the 'to' value, and it cannot be more than 1 day older than the current date and time."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
