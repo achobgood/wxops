@@ -11,10 +11,10 @@ app = typer.Typer(help="Manage Webex Contact Center cc-address-book.")
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -54,11 +54,11 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="(required) A name for the address book."),
-    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="(required) Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
@@ -115,8 +115,8 @@ def create(
 
 @app.command("list-bulk-export")
 def list_bulk_export(
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -153,9 +153,9 @@ def list_bulk_export(
 @app.command("create-entry")
 def create_entry(
     address_book_id: str = typer.Argument(help="addressBookId"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="(required) A name for the address book entry."),
     number: str = typer.Option(None, "--number", help="(required) The phone number for the entry."),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
@@ -269,9 +269,9 @@ def show(
 def update(
     address_book_id: str = typer.Argument(help="addressBookId"),
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="A name for the address book entry."),
     number: str = typer.Option(None, "--number", help="The phone number for the entry."),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
@@ -362,11 +362,11 @@ def show_address_book_organization(
 @app.command("update-address-book-organization")
 def update_address_book_organization(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="A name for the address book."),
-    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
@@ -433,9 +433,9 @@ def delete_address_book_organization(
 @app.command("list-incoming-references")
 def list_incoming_references(
     id: str = typer.Argument(help="id"),
-    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -473,11 +473,11 @@ def list_incoming_references(
 
 @app.command("list-address-book-v2")
 def list_address_book_v2(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name, description) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\",\"description\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -520,11 +520,11 @@ def list_address_book_v2(
 @app.command("list-entry")
 def list_entry(
     address_book_id: str = typer.Argument(help="addressBookId"),
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name, number) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\",\"number\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -566,11 +566,11 @@ def list_entry(
 
 @app.command("list-address-book-v3")
 def list_address_book_v3(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes"),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name, number) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\",\"number\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -612,11 +612,11 @@ def list_address_book_v3(
 
 @app.command("create-address-book")
 def create_address_book(
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="(required) A name for the address book."),
-    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="(required) Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
@@ -701,11 +701,11 @@ def show_address_book_v3(
 @app.command("update-address-book-v3")
 def update_address_book_v3(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to def"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="A name for the address book."),
-    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address bo"),
+    description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
     created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),

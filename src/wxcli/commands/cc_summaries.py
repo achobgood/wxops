@@ -39,12 +39,12 @@ def show(
 @app.command("update")
 def update(
     id: str = typer.Argument(help="id"),
-    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is require"),
-    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specifi"),
-    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource,"),
-    call_drop_summaries_enabled: bool = typer.Option(None, "--call-drop-summaries-enabled/--no-call-drop-summaries-enabled", help="Used to toggle the enable/disable call drop summaries for Ge"),
-    virtual_agent_transfer_summaries_enabled: bool = typer.Option(None, "--virtual-agent-transfer-summaries-enabled/--no-virtual-agent-transfer-summaries-enabled", help="Used to toggle the enable/disable virtual agent transfer sum"),
-    consult_transfer_summaries_enabled: bool = typer.Option(None, "--consult-transfer-summaries-enabled/--no-consult-transfer-summaries-enabled", help="Used to toggle the enable/disable mid call consult/transfer"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    call_drop_summaries_enabled: bool = typer.Option(None, "--call-drop-summaries-enabled/--no-call-drop-summaries-enabled", help="Used to toggle the enable/disable call drop summaries for Generated Summaries configuration. Mandatory for create/update operation. If the value is missing in response, the consumer should assume a value as false."),
+    virtual_agent_transfer_summaries_enabled: bool = typer.Option(None, "--virtual-agent-transfer-summaries-enabled/--no-virtual-agent-transfer-summaries-enabled", help="Used to toggle the enable/disable virtual agent transfer summaries for Generated Summaries configuration. Mandatory for create/update operation. If the value is missing in response, the consumer should assume a value as false."),
+    consult_transfer_summaries_enabled: bool = typer.Option(None, "--consult-transfer-summaries-enabled/--no-consult-transfer-summaries-enabled", help="Used to toggle the enable/disable mid call consult/transfer summaries in Generated Summaries configuration. Mandatory for create/update operation. If the value is missing in response, the consumer should assume a value as false."),
     agent_inclusion_type: str = typer.Option(None, "--agent-inclusion-type", help="Choices: ALL, SPECIFIC"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
@@ -88,10 +88,10 @@ def update(
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

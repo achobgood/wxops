@@ -45,8 +45,8 @@ def cmd_list(
 def show(
     license_id: str = typer.Argument(help="licenseId"),
     include_assigned_to: str = typer.Option(None, "--include-assigned-to", help="Choices: user"),
-    next: str = typer.Option(None, "--next", help="List the next set of users. Applicable only if `includeAssig"),
-    limit: str = typer.Option(None, "--limit", help="A limit on the number of users to be returned in the respons"),
+    next: str = typer.Option(None, "--next", help="List the next set of users. Applicable only if `includeAssignedTo` is populated."),
+    limit: str = typer.Option(None, "--limit", help="A limit on the number of users to be returned in the response. Applicable only if `includeAssignedTo` is populated. limit cannot be more than 300."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -80,7 +80,7 @@ def show(
 def update(
     email: str = typer.Option(None, "--email", help="Email address of the user."),
     person_id: str = typer.Option(None, "--person-id", help="A unique identifier for the user."),
-    org_id: str = typer.Option(None, "--org-id", help="The ID of the organization to which the licenses and siteUrl"),
+    org_id: str = typer.Option(None, "--org-id", help="The ID of the organization to which the licenses and siteUrls belong. If not specified, the organization ID from the OAuth token is used."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

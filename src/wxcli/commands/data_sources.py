@@ -10,11 +10,11 @@ app = typer.Typer(help="Manage Webex Calling data-sources.")
 
 @app.command("create")
 def create(
-    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app n"),
+    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
     nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
     schema_id: str = typer.Option(None, "--schema-id", help="The schema id used for the data exchange."),
-    subject: str = typer.Option(None, "--subject", help="Rhe subject field in the JWT token. Usually, an indication o"),
-    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the tok"),
+    subject: str = typer.Option(None, "--subject", help="Rhe subject field in the JWT token. Usually, an indication of the app's function"),
+    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440."),
     url: str = typer.Option(None, "--url", help="The URL of the endpoint where Webex will send the data."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -165,13 +165,13 @@ def show_data_sources(
 @app.command("update")
 def update(
     data_source_id: str = typer.Argument(help="dataSourceId"),
-    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app n"),
-    error_message: str = typer.Option(None, "--error-message", help="Error Message shown in Control Hub when status is set to `di"),
+    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
+    error_message: str = typer.Option(None, "--error-message", help="Error Message shown in Control Hub when status is set to `disabled`."),
     nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
     schema_id: str = typer.Option(None, "--schema-id", help="The schema id used for the data exchange."),
     status: str = typer.Option(None, "--status", help="The status of the Data Source; `active` or `disabled`."),
-    subject: str = typer.Option(None, "--subject", help="The subject field in the JWT token. Usually, an indication o"),
-    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the tok"),
+    subject: str = typer.Option(None, "--subject", help="The subject field in the JWT token. Usually, an indication of the app's function"),
+    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440."),
     url: str = typer.Option(None, "--url", help="The URL of the endpoint where Webex will send the data."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),

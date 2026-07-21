@@ -11,15 +11,15 @@ app = typer.Typer(help="Manage Webex Calling virtual-line-settings.")
 
 @app.command("list")
 def cmd_list(
-    location_id: str = typer.Option(None, "--location-id", help="Return the list of virtual lines matching these location ids"),
-    id_param: str = typer.Option(None, "--id", help="Return the list of virtual lines matching these virtualLineI"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of virtual lines matching these owner names."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Return the list of virtual lines matching these phone number"),
-    location_name: str = typer.Option(None, "--location-name", help="Return the list of virtual lines matching the location names"),
-    order: str = typer.Option(None, "--order", help="Return the list of virtual lines based on the order. Default"),
-    has_device_assigned: str = typer.Option(None, "--has-device-assigned", help="If `true`, includes only virtual lines with devices assigned"),
-    has_extension_assigned: str = typer.Option(None, "--has-extension-assigned", help="If `true`, includes only virtual lines with an extension ass"),
-    has_dn_assigned: str = typer.Option(None, "--has-dn-assigned", help="If `true`, includes only virtual lines with an assigned dire"),
+    location_id: str = typer.Option(None, "--location-id", help="Return the list of virtual lines matching these location ids. Example for multiple values - `?locationId=locId1&locationId=locId2`."),
+    id_param: str = typer.Option(None, "--id", help="Return the list of virtual lines matching these virtualLineIds. Example for multiple values - `?id=id1&id=id2`."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of virtual lines matching these owner names. Example for multiple values - `?ownerName=name1&ownerName=name2`."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Return the list of virtual lines matching these phone numbers. Example for multiple values - `?phoneNumber=number1&phoneNumber=number2`."),
+    location_name: str = typer.Option(None, "--location-name", help="Return the list of virtual lines matching the location names. Example for multiple values - `?locationName=loc1&locationName=loc2`."),
+    order: str = typer.Option(None, "--order", help="Return the list of virtual lines based on the order. Default sort will be in an Ascending order. Maximum 3 orders allowed at a time. Example for multiple values - `?order=order1&order=order2`."),
+    has_device_assigned: str = typer.Option(None, "--has-device-assigned", help="If `true`, includes only virtual lines with devices assigned. When not explicitly specified, the default includes both virtual lines with devices assigned and not assigned."),
+    has_extension_assigned: str = typer.Option(None, "--has-extension-assigned", help="If `true`, includes only virtual lines with an extension assigned. When not explicitly specified, the default includes both virtual lines with extension assigned and not assigned."),
+    has_dn_assigned: str = typer.Option(None, "--has-dn-assigned", help="If `true`, includes only virtual lines with an assigned directory number, also known as a Dn. When not explicitly specified, the default includes both virtual lines with a Dn assigned and not assigned."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -72,15 +72,15 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    first_name: str = typer.Option(None, "--first-name", help="(required) First name defined for a virtual line. Minimum length is 1."),
-    last_name: str = typer.Option(None, "--last-name", help="(required) Last name defined for a virtual line. Minimum length is 1. M"),
+    first_name: str = typer.Option(None, "--first-name", help="(required) First name defined for a virtual line. Minimum length is 1. Maximum length is 30."),
+    last_name: str = typer.Option(None, "--last-name", help="(required) Last name defined for a virtual line. Minimum length is 1. Maximum length is 30."),
     display_name: str = typer.Option(None, "--display-name", help="Display name defined for a virtual line."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of a virtual line. Minimum length is 1. Maximum"),
-    extension: str = typer.Option(None, "--extension", help="Extension of a virtual line. Minimum length is 2. Maximum le"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of a virtual line. Minimum length is 1. Maximum length is 23. Either `phoneNumber` or `extension` is mandatory."),
+    extension: str = typer.Option(None, "--extension", help="Extension of a virtual line. Minimum length is 2. Maximum length is 10. Either `phoneNumber` or `extension` is mandatory."),
     location_id: str = typer.Option(None, "--location-id", help="(required) ID of location for virtual line."),
-    caller_id_last_name: str = typer.Option(None, "--caller-id-last-name", help="Last name used in the Calling Line ID and for dial-by-name f"),
-    caller_id_first_name: str = typer.Option(None, "--caller-id-first-name", help="First name used in the Calling Line ID and for dial-by-name"),
-    caller_id_number: str = typer.Option(None, "--caller-id-number", help="Phone number to appear as the CLID for all calls. Minimum le"),
+    caller_id_last_name: str = typer.Option(None, "--caller-id-last-name", help="Last name used in the Calling Line ID and for dial-by-name functions. Minimum length is 1. Maximum length is 30."),
+    caller_id_first_name: str = typer.Option(None, "--caller-id-first-name", help="First name used in the Calling Line ID and for dial-by-name functions. Minimum length is 1. Maximum length is 30."),
+    caller_id_number: str = typer.Option(None, "--caller-id-number", help="Phone number to appear as the CLID for all calls. Minimum length is 1. Maximum length is 23."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -228,15 +228,15 @@ def show_virtual_lines(
 @app.command("update-virtual-lines")
 def update_virtual_lines(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    first_name: str = typer.Option(None, "--first-name", help="First name defined for a virtual line. Minimum length is 1."),
-    last_name: str = typer.Option(None, "--last-name", help="Last name defined for a virtual line. Minimum length is 1. M"),
+    first_name: str = typer.Option(None, "--first-name", help="First name defined for a virtual line. Minimum length is 1. Maximum length is 64."),
+    last_name: str = typer.Option(None, "--last-name", help="Last name defined for a virtual line. Minimum length is 1. Maximum length is 64."),
     display_name: str = typer.Option(None, "--display-name", help="Display name defined for a virtual line."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of a virtual line. Minimum length is 1. Maximum"),
-    extension: str = typer.Option(None, "--extension", help="Extension of a virtual line. Minimum length is 2. Maximum le"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Phone number of a virtual line. Minimum length is 1. Maximum length is 23. Either `phoneNumber` or `extension` is mandatory."),
+    extension: str = typer.Option(None, "--extension", help="Extension of a virtual line. Minimum length is 2. Maximum length is 10. Either `phoneNumber` or `extension` is mandatory."),
     announcement_language: str = typer.Option(None, "--announcement-language", help="Virtual Line's announcement language."),
-    caller_id_last_name: str = typer.Option(None, "--caller-id-last-name", help="Last name used in the Calling Line ID and for dial-by-name f"),
-    caller_id_first_name: str = typer.Option(None, "--caller-id-first-name", help="First name used in the Calling Line ID and for dial-by-name"),
-    caller_id_number: str = typer.Option(None, "--caller-id-number", help="Phone number to appear as the CLID for all calls. Minimum le"),
+    caller_id_last_name: str = typer.Option(None, "--caller-id-last-name", help="Last name used in the Calling Line ID and for dial-by-name functions. Minimum length is 1. Maximum length is 64."),
+    caller_id_first_name: str = typer.Option(None, "--caller-id-first-name", help="First name used in the Calling Line ID and for dial-by-name functions. Minimum length is 1. Maximum length is 128."),
+    caller_id_number: str = typer.Option(None, "--caller-id-number", help="Phone number to appear as the CLID for all calls. Minimum length is 1. Maximum length is 23."),
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone defined for the virtual line."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -335,7 +335,7 @@ def show_number(
 @app.command("update-directory-search")
 def update_directory_search(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the directory search for a virtual line is en"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the directory search for a virtual line is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -463,17 +463,17 @@ def list_caller_id(
 def update_caller_id_virtual_lines(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
-    custom_number: str = typer.Option(None, "--custom-number", help="Custom number which will be shown if CUSTOM is selected. Thi"),
-    first_name: str = typer.Option(None, "--first-name", help="Virtual line's Caller ID first name. The characters `%`,  `+"),
-    last_name: str = typer.Option(None, "--last-name", help="Virtual line's Caller ID last name. The characters `%`,  `+`"),
+    custom_number: str = typer.Option(None, "--custom-number", help="Custom number which will be shown if CUSTOM is selected. This value must be a number from the virtual line's location or from another location with the same country, PSTN provider, and zone (only applicable for India locations) as the virtual line's location."),
+    first_name: str = typer.Option(None, "--first-name", help="Virtual line's Caller ID first name. The characters `%`, `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByFirstName` instead."),
+    last_name: str = typer.Option(None, "--last-name", help="Virtual line's Caller ID last name. The characters `%`, `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByLastName` instead."),
     block_in_forward_calls_enabled: bool = typer.Option(None, "--block-in-forward-calls-enabled/--no-block-in-forward-calls-enabled", help="Block this virtual line's identity when receiving a call."),
     external_caller_id_name_policy: str = typer.Option(None, "--external-caller-id-name-policy", help="Choices: DIRECT_LINE, LOCATION, OTHER"),
-    custom_external_caller_id_name: str = typer.Option(None, "--custom-external-caller-id-name", help="Custom external caller ID name which will be shown if extern"),
-    additional_external_caller_id_direct_line_enabled: bool = typer.Option(None, "--additional-external-caller-id-direct-line-enabled/--no-additional-external-caller-id-direct-line-enabled", help="Set the virtual line's direct line number as additional exte"),
-    additional_external_caller_id_location_number_enabled: bool = typer.Option(None, "--additional-external-caller-id-location-number-enabled/--no-additional-external-caller-id-location-number-enabled", help="Set the Location main number as additional external caller I"),
-    additional_external_caller_id_custom_number: str = typer.Option(None, "--additional-external-caller-id-custom-number", help="To set a custom number as additional external caller ID for"),
-    dial_by_first_name: str = typer.Option(None, "--dial-by-first-name", help="Sets or clears the first name to be used for dial-by-name fu"),
-    dial_by_last_name: str = typer.Option(None, "--dial-by-last-name", help="Sets or clears the last name to be used for dial-by-name fun"),
+    custom_external_caller_id_name: str = typer.Option(None, "--custom-external-caller-id-name", help="Custom external caller ID name which will be shown if external caller ID name policy is `OTHER`."),
+    additional_external_caller_id_direct_line_enabled: bool = typer.Option(None, "--additional-external-caller-id-direct-line-enabled/--no-additional-external-caller-id-direct-line-enabled", help="Set the virtual line's direct line number as additional external caller ID."),
+    additional_external_caller_id_location_number_enabled: bool = typer.Option(None, "--additional-external-caller-id-location-number-enabled/--no-additional-external-caller-id-location-number-enabled", help="Set the Location main number as additional external caller ID for the virtual line."),
+    additional_external_caller_id_custom_number: str = typer.Option(None, "--additional-external-caller-id-custom-number", help="To set a custom number as additional external caller ID for the virtual line. This value must be a number from the virtual line's location or from another location with the same country, PSTN provider, and zone (only applicable for India locations) as the virtual line's location."),
+    dial_by_first_name: str = typer.Option(None, "--dial-by-first-name", help="Sets or clears the first name to be used for dial-by-name functions. To clear the `dialByFirstName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
+    dial_by_last_name: str = typer.Option(None, "--dial-by-last-name", help="Sets or clears the last name to be used for dial-by-name functions. To clear the `dialByLastName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -663,7 +663,7 @@ def show_incoming_permission(
 @app.command("update-incoming-permission")
 def update_incoming_permission(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this virtual line uses the specifi"),
+    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this virtual line uses the specified calling permissions for receiving inbound calls rather than the organizational defaults."),
     external_transfer: str = typer.Option(None, "--external-transfer", help="Choices: ALLOW_ALL_EXTERNAL, ALLOW_ONLY_TRANSFERRED_EXTERNAL, BLOCK_ALL_EXTERNAL"),
     internal_calls_enabled: bool = typer.Option(None, "--internal-calls-enabled/--no-internal-calls-enabled", help="Internal calls are allowed to be received."),
     collect_calls_enabled: bool = typer.Option(None, "--collect-calls-enabled/--no-collect-calls-enabled", help="Collect calls are allowed to be received."),
@@ -733,8 +733,8 @@ def list_outgoing_permission(
 @app.command("update-outgoing-permission")
 def update_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this user uses the shared control"),
-    use_custom_permissions: bool = typer.Option(None, "--use-custom-permissions/--no-use-custom-permissions", help="When true, indicates that this user uses the specified outgo"),
+    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this user uses the shared control that applies to all outgoing call settings categories when placing outbound calls."),
+    use_custom_permissions: bool = typer.Option(None, "--use-custom-permissions/--no-use-custom-permissions", help="When true, indicates that this user uses the specified outgoing calling permissions when placing outbound calls."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -917,10 +917,10 @@ def show_auto_transfer_numbers(
 @app.command("update-auto-transfer-numbers")
 def update_auto_transfer_numbers(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    use_custom_transfer_numbers: bool = typer.Option(None, "--use-custom-transfer-numbers/--no-use-custom-transfer-numbers", help="When `true`, use custom settings for the transfer numbers ca"),
-    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="When calling a specific call type, this workspace will be au"),
-    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="When calling a specific call type, this workspace will be au"),
-    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="When calling a specific call type, this workspace will be au"),
+    use_custom_transfer_numbers: bool = typer.Option(None, "--use-custom-transfer-numbers/--no-use-custom-transfer-numbers", help="When `true`, use custom settings for the transfer numbers category of outbound permissions."),
+    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
+    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
+    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1036,7 +1036,7 @@ def create_digit_patterns(
 @app.command("update-digit-patterns-outgoing-permission")
 def update_digit_patterns_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help="When `true`, use custom settings for the digit patterns cate"),
+    use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help="When `true`, use custom settings for the digit patterns category of outgoing call permissions."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1319,7 +1319,7 @@ def show_caller_id(
 @app.command("update-caller-id-agent")
 def update_caller_id_agent(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    selected_caller_id: str = typer.Option(None, "--selected-caller-id", help="The unique identifier of the call queue or hunt group to use"),
+    selected_caller_id: str = typer.Option(None, "--selected-caller-id", help="The unique identifier of the call queue or hunt group to use for the agent's caller ID. Set to null to use the agent's own caller ID."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1475,7 +1475,7 @@ def reset_voicemail_pin(
 @app.command("update-passcode")
 def update_passcode(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcod"),
+    passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcode is 6 and the maximum length is 30."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1659,7 +1659,7 @@ def show_call_bridge(
 @app.command("update-call-bridge")
 def update_call_bridge(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    warning_tone_enabled: bool = typer.Option(None, "--warning-tone-enabled/--no-warning-tone-enabled", help="Set to enable or disable a stutter dial tone being played to"),
+    warning_tone_enabled: bool = typer.Option(None, "--warning-tone-enabled/--no-warning-tone-enabled", help="Set to enable or disable a stutter dial tone being played to all the participants when a virtual line is bridged on the active shared line call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1717,7 +1717,7 @@ def show_barge_in(
 def update_barge_in(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to enable or disable the Barge In feature."),
-    tone_enabled: bool = typer.Option(None, "--tone-enabled/--no-tone-enabled", help="Set to enable or disable a stutter dial tone being played wh"),
+    tone_enabled: bool = typer.Option(None, "--tone-enabled/--no-tone-enabled", help="Set to enable or disable a stutter dial tone being played when a virtual line is barging in on the active call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1781,9 +1781,9 @@ def list_privacy(
 def update_privacy(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     aa_extension_dialing_enabled: bool = typer.Option(None, "--aa-extension-dialing-enabled/--no-aa-extension-dialing-enabled", help="When `true` auto attendant extension dialing is enabled."),
-    aa_naming_dialing_enabled: bool = typer.Option(None, "--aa-naming-dialing-enabled/--no-aa-naming-dialing-enabled", help="When `true` auto attendant dialing by first or last name is"),
+    aa_naming_dialing_enabled: bool = typer.Option(None, "--aa-naming-dialing-enabled/--no-aa-naming-dialing-enabled", help="When `true` auto attendant dialing by first or last name is enabled."),
     enable_phone_status_directory_privacy: bool = typer.Option(None, "--enable-phone-status-directory-privacy/--no-enable-phone-status-directory-privacy", help="When `true` phone status directory privacy is enabled."),
-    enable_phone_status_pickup_barge_in_privacy: bool = typer.Option(None, "--enable-phone-status-pickup-barge-in-privacy/--no-enable-phone-status-pickup-barge-in-privacy", help="When `true` privacy is enforced for call pickup and barge-in"),
+    enable_phone_status_pickup_barge_in_privacy: bool = typer.Option(None, "--enable-phone-status-pickup-barge-in-privacy/--no-enable-phone-status-pickup-barge-in-privacy", help="When `true` privacy is enforced for call pickup and barge-in. Only members specified by `monitoringAgents` can pickup or barge-in on the call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1817,7 +1817,7 @@ def update_privacy(
 @app.command("list-available-numbers-fax-message")
 def list_available_numbers_fax_message(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1853,9 +1853,9 @@ def list_available_numbers_fax_message(
 @app.command("list-available-numbers-call-forwarding")
 def list_available_numbers_call_forwarding(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1894,8 +1894,8 @@ def list_available_numbers_call_forwarding(
 
 @app.command("list-available-numbers-virtual-lines")
 def list_available_numbers_virtual_lines(
-    location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within th"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within the given organization. The maximum length is 36."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1933,8 +1933,8 @@ def list_available_numbers_virtual_lines(
 @app.command("list-available-numbers-emergency-callback-number")
 def list_available_numbers_emergency_callback_number(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1972,9 +1972,9 @@ def list_available_numbers_emergency_callback_number(
 @app.command("list-available-numbers-call-intercept")
 def list_available_numbers_call_intercept(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -2044,7 +2044,7 @@ def show_do_not_disturb(
 def update_do_not_disturb(
     virtual_line_id: str = typer.Argument(help="virtualLineId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the DoNotDisturb feature is enabled."),
-    ring_splash_enabled: bool = typer.Option(None, "--ring-splash-enabled/--no-ring-splash-enabled", help="When `true`, enables ring reminder when you receive an incom"),
+    ring_splash_enabled: bool = typer.Option(None, "--ring-splash-enabled/--no-ring-splash-enabled", help="When `true`, enables ring reminder when you receive an incoming call while on Do Not Disturb."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

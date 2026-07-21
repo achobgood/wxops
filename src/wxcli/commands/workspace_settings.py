@@ -157,14 +157,14 @@ def cmd_list(
 def update_caller_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
-    custom_number: str = typer.Option(None, "--custom-number", help="Custom number which is shown if CUSTOM is selected. This val"),
-    display_name: str = typer.Option(None, "--display-name", help="Workspace's caller ID display name. This field has been depr"),
-    display_detail: str = typer.Option(None, "--display-detail", help="Workspace's caller ID display details. This field has been d"),
+    custom_number: str = typer.Option(None, "--custom-number", help="Custom number which is shown if CUSTOM is selected. This value must be a number from the workspace's location or from another location with the same country, PSTN provider, and zone (only applicable for India locations) as the workspace's location."),
+    display_name: str = typer.Option(None, "--display-name", help="Workspace's caller ID display name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    display_detail: str = typer.Option(None, "--display-detail", help="Workspace's caller ID display details. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     block_in_forward_calls_enabled: bool = typer.Option(None, "--block-in-forward-calls-enabled/--no-block-in-forward-calls-enabled", help="Block this workspace's identity when receiving a call."),
     external_caller_id_name_policy: str = typer.Option(None, "--external-caller-id-name-policy", help="Choices: DIRECT_LINE, LOCATION, OTHER"),
-    custom_external_caller_id_name: str = typer.Option(None, "--custom-external-caller-id-name", help="Custom external caller ID name which is shown if external ca"),
-    location_external_caller_id_name: str = typer.Option(None, "--location-external-caller-id-name", help="Location's external caller ID name which is shown if externa"),
-    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name function"),
+    custom_external_caller_id_name: str = typer.Option(None, "--custom-external-caller-id-name", help="Custom external caller ID name which is shown if external caller ID name policy is `OTHER`."),
+    location_external_caller_id_name: str = typer.Option(None, "--location-external-caller-id-name", help="Location's external caller ID name which is shown if external caller ID name policy is `LOCATION`."),
+    dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -272,7 +272,7 @@ def list_available_members_speed_dials(
     location_id: str = typer.Option(None, "--location-id", help="Search for the available speed dials in the location ID."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
-    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort d"),
+    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -317,7 +317,7 @@ def list_available_members_monitoring(
     location_id: str = typer.Option(None, "--location-id", help="Search for the available members in the location ID."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
-    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort d"),
+    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -421,9 +421,9 @@ def show_incoming_permission(
 @app.command("update-incoming-permission")
 def update_incoming_permission(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="Incoming Permission state. If disabled, the default settings"),
+    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="Incoming Permission state. If disabled, the default settings are used."),
     external_transfer: str = typer.Option(None, "--external-transfer", help="Choices: ALLOW_ALL_EXTERNAL, ALLOW_ONLY_TRANSFERRED_EXTERNAL, BLOCK_ALL_EXTERNAL"),
-    internal_calls_enabled: bool = typer.Option(None, "--internal-calls-enabled/--no-internal-calls-enabled", help="Flag to indicate if the workspace can receive internal calls"),
+    internal_calls_enabled: bool = typer.Option(None, "--internal-calls-enabled/--no-internal-calls-enabled", help="Flag to indicate if the workspace can receive internal calls."),
     collect_calls_enabled: bool = typer.Option(None, "--collect-calls-enabled/--no-collect-calls-enabled", help="Flag to indicate if the workspace can receive collect calls."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -491,8 +491,8 @@ def list_outgoing_permission(
 @app.command("update-outgoing-permission")
 def update_outgoing_permission(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When `true`, indicates that this workspace uses the shared c"),
-    use_custom_permissions: bool = typer.Option(None, "--use-custom-permissions/--no-use-custom-permissions", help="When `true`, indicates that this workspace uses the specifie"),
+    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When `true`, indicates that this workspace uses the shared control that applies to all outgoing call settings categories when placing outbound calls."),
+    use_custom_permissions: bool = typer.Option(None, "--use-custom-permissions/--no-use-custom-permissions", help="When `true`, indicates that this workspace uses the specified outgoing calling permissions when placing outbound calls."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -732,10 +732,10 @@ def show_auto_transfer_numbers(
 @app.command("update-auto-transfer-numbers")
 def update_auto_transfer_numbers(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    use_custom_transfer_numbers: bool = typer.Option(None, "--use-custom-transfer-numbers/--no-use-custom-transfer-numbers", help="When `true`, use custom settings for the transfer numbers ca"),
-    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="When calling a specific call type, this workspace will be au"),
-    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="When calling a specific call type, this workspace will be au"),
-    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="When calling a specific call type, this workspace will be au"),
+    use_custom_transfer_numbers: bool = typer.Option(None, "--use-custom-transfer-numbers/--no-use-custom-transfer-numbers", help="When `true`, use custom settings for the transfer numbers category of outbound permissions."),
+    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
+    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
+    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -935,7 +935,7 @@ def create_digit_patterns(
 @app.command("update-digit-patterns-outgoing-permission")
 def update_digit_patterns_outgoing_permission(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help="When `true`, use custom settings for the digit patterns cate"),
+    use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help="When `true`, use custom settings for the digit patterns category of outgoing call permissions."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1165,8 +1165,8 @@ def update_call_recordings(
 
 @app.command("list-available-numbers-workspaces")
 def list_available_numbers_workspaces(
-    location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within th"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within the given organization. The maximum length is 36."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1204,8 +1204,8 @@ def list_available_numbers_workspaces(
 @app.command("list-available-numbers-emergency-callback-number")
 def list_available_numbers_emergency_callback_number(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1243,9 +1243,9 @@ def list_available_numbers_emergency_callback_number(
 @app.command("list-available-numbers-call-forwarding")
 def list_available_numbers_call_forwarding(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1285,9 +1285,9 @@ def list_available_numbers_call_forwarding(
 @app.command("list-available-numbers-call-intercept")
 def list_available_numbers_call_intercept(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1414,7 +1414,7 @@ def show_barge_in(
 def update_barge_in(
     workspace_id: str = typer.Argument(help="workspaceId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the Barge In feature is enabled."),
-    tone_enabled: bool = typer.Option(None, "--tone-enabled/--no-tone-enabled", help="When `true`, a tone is played when someone barges into a cal"),
+    tone_enabled: bool = typer.Option(None, "--tone-enabled/--no-tone-enabled", help="When `true`, a tone is played when someone barges into a call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1474,7 +1474,7 @@ def show_do_not_disturb(
 def update_do_not_disturb(
     workspace_id: str = typer.Argument(help="workspaceId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the DoNotDisturb feature is enabled."),
-    ring_splash_enabled: bool = typer.Option(None, "--ring-splash-enabled/--no-ring-splash-enabled", help="When `true`, enables ring reminder when you receive an incom"),
+    ring_splash_enabled: bool = typer.Option(None, "--ring-splash-enabled/--no-ring-splash-enabled", help="When `true`, enables ring reminder when you receive an incoming call while on Do Not Disturb."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1662,9 +1662,9 @@ def list_privacy(
 def update_privacy(
     workspace_id: str = typer.Argument(help="workspaceId"),
     aa_extension_dialing_enabled: bool = typer.Option(None, "--aa-extension-dialing-enabled/--no-aa-extension-dialing-enabled", help="When `true` auto attendant extension dialing is enabled."),
-    aa_naming_dialing_enabled: bool = typer.Option(None, "--aa-naming-dialing-enabled/--no-aa-naming-dialing-enabled", help="When `true` auto attendant dialing by first or last name is"),
+    aa_naming_dialing_enabled: bool = typer.Option(None, "--aa-naming-dialing-enabled/--no-aa-naming-dialing-enabled", help="When `true` auto attendant dialing by first or last name is enabled."),
     enable_phone_status_directory_privacy: bool = typer.Option(None, "--enable-phone-status-directory-privacy/--no-enable-phone-status-directory-privacy", help="When `true` phone status directory privacy is enabled."),
-    enable_phone_status_pickup_barge_in_privacy: bool = typer.Option(None, "--enable-phone-status-pickup-barge-in-privacy/--no-enable-phone-status-pickup-barge-in-privacy", help="When `true` privacy is enforced for call pickup and barge-in"),
+    enable_phone_status_pickup_barge_in_privacy: bool = typer.Option(None, "--enable-phone-status-pickup-barge-in-privacy/--no-enable-phone-status-pickup-barge-in-privacy", help="When `true` privacy is enforced for call pickup and barge-in. Only members specified by `monitoringAgents` can pickup or barge-in on the call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1755,7 +1755,7 @@ def update_voicemail(
 @app.command("update-passcode")
 def update_passcode(
     place_id: str = typer.Argument(help="placeId"),
-    passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcod"),
+    passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcode is 6 and the maximum length is 30."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1814,13 +1814,13 @@ def show_criteria_sequential_ring(
 def update_criteria_sequential_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the sequential ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: SELECT_PHONE_NUMBERS, ANY_PHONE_NUMBER"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allo"),
-    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="When set to `true` sequential ringing is enabled for calls t"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="When set to `true` sequential ringing is enabled for calls that meet the current criteria. Criteria with `ringEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1991,13 +1991,13 @@ def configure_no_answer(
 @app.command("create-criteria-sequential-ring")
 def create_criteria_sequential_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the sequential ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: SELECT_PHONE_NUMBERS, ANY_PHONE_NUMBER"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allo"),
-    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` sequential ringing is enabled for calls t"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` sequential ringing is enabled for calls that meet the current criteria. Criteria with `ringEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -2083,9 +2083,9 @@ def list_sequential_ring(
 def update_sequential_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="When set to `true` sequential ring is enabled."),
-    ring_base_location_first_enabled: bool = typer.Option(None, "--ring-base-location-first-enabled/--no-ring-base-location-first-enabled", help="When set to `true`, the webex calling primary line will ring"),
-    base_location_number_of_rings: str = typer.Option(None, "--base-location-number-of-rings", help="The number of times the primary line will ring. `baseLocatio"),
-    continue_if_base_location_is_busy_enabled: bool = typer.Option(None, "--continue-if-base-location-is-busy-enabled/--no-continue-if-base-location-is-busy-enabled", help="When set to `true` and the primary line is busy, the system"),
+    ring_base_location_first_enabled: bool = typer.Option(None, "--ring-base-location-first-enabled/--no-ring-base-location-first-enabled", help="When set to `true`, the webex calling primary line will ring first."),
+    base_location_number_of_rings: str = typer.Option(None, "--base-location-number-of-rings", help="The number of times the primary line will ring. `baseLocationNumberOfRings` must be between 2 and 20, inclusive."),
+    continue_if_base_location_is_busy_enabled: bool = typer.Option(None, "--continue-if-base-location-is-busy-enabled/--no-continue-if-base-location-is-busy-enabled", help="When set to `true` and the primary line is busy, the system redirects calls to the numbers configured for sequential ringing."),
     calls_to_voicemail_enabled: bool = typer.Option(None, "--calls-to-voicemail-enabled/--no-calls-to-voicemail-enabled", help="When set to `true` calls are directed to voicemail."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -2156,8 +2156,8 @@ def list_simultaneous_ring(
 def update_simultaneous_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Simultaneous Ring is enabled or not."),
-    do_not_ring_if_on_call_enabled: bool = typer.Option(None, "--do-not-ring-if-on-call-enabled/--no-do-not-ring-if-on-call-enabled", help="When set to `true`, the configured phone numbers won't ring"),
-    criterias_enabled: bool = typer.Option(None, "--criterias-enabled/--no-criterias-enabled", help="When `true`, enables the selected schedule for simultaneous"),
+    do_not_ring_if_on_call_enabled: bool = typer.Option(None, "--do-not-ring-if-on-call-enabled/--no-do-not-ring-if-on-call-enabled", help="When set to `true`, the configured phone numbers won't ring when on a call."),
+    criterias_enabled: bool = typer.Option(None, "--criterias-enabled/--no-criterias-enabled", help="When `true`, enables the selected schedule for simultaneous ring."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2220,13 +2220,13 @@ def show_criteria_simultaneous_ring(
 def update_criteria_simultaneous_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the si"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="When set to `true` simultaneous ringing criteria is enabled"),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="When set to `true` simultaneous ringing criteria is enabled for calls that meet the current criteria. Criteria with `ringEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2290,13 +2290,13 @@ def delete_criteria_simultaneous_ring(
 @app.command("create-criteria-simultaneous-ring")
 def create_criteria_simultaneous_ring(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the si"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` simultaneous ringing criteria is enabled"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` simultaneous ringing criteria is enabled for calls that meet the current criteria. Criteria with `ringEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -2440,13 +2440,13 @@ def show_criteria_selective_reject(
 def update_criteria_selective_reject(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective reject is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="Choose to reject (if `rejectEnabled` = `true`) or not to rej"),
+    reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="Choose to reject (if `rejectEnabled` = `true`) or not to reject (if `rejectEnabled` = `false`) the calls that fit within these parameters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2510,13 +2510,13 @@ def delete_criteria_selective_reject(
 @app.command("create-criteria-selective-reject")
 def create_criteria_selective_reject(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the selective reject is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="(required) Choose to reject (if `rejectEnabled` = `true`) or not to rej"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="(required) Choose to reject (if `rejectEnabled` = `true`) or not to reject (if `rejectEnabled` = `false`) the calls that fit within these parameters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -2688,13 +2688,13 @@ def show_criteria_selective_accept(
 def update_criteria_selective_accept(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective accept is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="Choose to accept (if `acceptEnabled` = `true`) or not to acc"),
+    accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="Choose to accept (if `acceptEnabled` = `true`) or not to accept (if `acceptEnabled` = `false`) the calls that fit within these parameters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2758,13 +2758,13 @@ def delete_criteria_selective_accept(
 @app.command("create-criteria-selective-accept")
 def create_criteria_selective_accept(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the se"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the selective accept is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="(required) Choose to accept (if `acceptEnabled` = `true`) or not to acc"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="(required) Choose to accept (if `acceptEnabled` = `true`) or not to accept (if `acceptEnabled` = `false`) the calls that fit within these parameters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -2908,13 +2908,13 @@ def show_criteria_priority_alert(
 def update_criteria_priority_alert(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the pr"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the priority alert is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="When set to `true` priority alerting criteria is enabled for"),
+    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="When set to `true` priority alerting criteria is enabled for calls that meet the current criteria. Criteria with `notificationEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2978,13 +2978,13 @@ def delete_criteria_priority_alert(
 @app.command("create-criteria-priority-alert")
 def create_criteria_priority_alert(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the pr"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the priority alert is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="(required) When set to `true` priority alerting criteria is enabled for"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="(required) When set to `true` priority alerting criteria is enabled for calls that meet the current criteria. Criteria with `notificationEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -3070,9 +3070,9 @@ def list_selective_forward(
 def update_selective_forward(
     workspace_id: str = typer.Argument(help="workspaceId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the Selective Forward feature is enabled."),
-    default_phone_number_to_forward: str = typer.Option(None, "--default-phone-number-to-forward", help="Enter the phone number to forward calls to during this sched"),
+    default_phone_number_to_forward: str = typer.Option(None, "--default-phone-number-to-forward", help="Enter the phone number to forward calls to during this schedule."),
     ring_reminder_enabled: bool = typer.Option(None, "--ring-reminder-enabled/--no-ring-reminder-enabled", help="When `true`, enables a ring reminder for such calls."),
-    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option i"),
+    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option is only available for internal phone numbers or extensions."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3138,14 +3138,14 @@ def update_criteria_selective_forward(
     workspace_id: str = typer.Argument(help="workspaceId"),
     id: str = typer.Argument(help="id"),
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward calls to during this schedule."),
-    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option i"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option is only available for internal phone numbers or extensions."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective forward is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymo"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the calle"),
-    forward_enabled: bool = typer.Option(None, "--forward-enabled/--no-forward-enabled", help="Indicates whether the calls, that fit within these parameter"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymous callers."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the callers are unavailable."),
+    forward_enabled: bool = typer.Option(None, "--forward-enabled/--no-forward-enabled", help="Indicates whether the calls, that fit within these parameters, will be forwarded (if forwardEnabled = `true`) or not (if forwardEnabled = `false`)."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3214,14 +3214,14 @@ def delete_criteria_selective_forward(
 def create_criteria_selective_forward(
     workspace_id: str = typer.Argument(help="workspaceId"),
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward calls to during this schedule."),
-    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option i"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the se"),
+    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option is only available for internal phone numbers or extensions."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective forward is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymo"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the calle"),
-    forward_enabled: bool = typer.Option(None, "--forward-enabled/--no-forward-enabled", help="Indicates whether the calls, that fit within these parameter"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymous callers."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the callers are unavailable."),
+    forward_enabled: bool = typer.Option(None, "--forward-enabled/--no-forward-enabled", help="Indicates whether the calls, that fit within these parameters, will be forwarded (if forwardEnabled = `true`) or not (if forwardEnabled = `false`)."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -3277,7 +3277,7 @@ def create_criteria_selective_forward(
 @app.command("list-available-numbers-fax-message")
 def list_available_numbers_fax_message(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -3313,7 +3313,7 @@ def list_available_numbers_fax_message(
 @app.command("list-available-numbers-secondary")
 def list_available_numbers_secondary(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

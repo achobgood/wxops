@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-session-types.")
 
 @app.command("list")
 def cmd_list(
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. If siteUrl is not specified,"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. If siteUrl is not specified, the query will use the default site for the admin's authorization token used to make the call."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

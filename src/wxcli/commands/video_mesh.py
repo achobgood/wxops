@@ -11,8 +11,8 @@ app = typer.Typer(help="Manage Webex Calling video-mesh.")
 
 @app.command("list")
 def cmd_list(
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -50,8 +50,8 @@ def cmd_list(
 @app.command("show")
 def show(
     cluster_id: str = typer.Argument(help="clusterId"),
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -81,8 +81,8 @@ def show(
 
 @app.command("list-availability")
 def list_availability(
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     cluster_id: str = typer.Option(..., "--cluster-id", help="The unique Video Mesh cluster ID."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -120,8 +120,8 @@ def list_availability(
 @app.command("show-availability")
 def show_availability(
     node_id: str = typer.Argument(help="nodeId"),
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -152,8 +152,8 @@ def show_availability(
 @app.command("list-media-health-monitor-test")
 def list_media_health_monitor_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -194,8 +194,8 @@ def list_media_health_monitor_test(
 def list_clusters_media_health_monitor_test(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -235,8 +235,8 @@ def list_clusters_media_health_monitor_test(
 def list_nodes_media_health_monitor_test(
     node_id: str = typer.Option(..., "--node-id", help="Unique ID of the Video Mesh node."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -274,8 +274,8 @@ def list_nodes_media_health_monitor_test(
 
 @app.command("list-cloud-overflow")
 def list_cloud_overflow(
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -312,8 +312,8 @@ def list_cloud_overflow(
 
 @app.command("list-call-redirects-video-mesh")
 def list_call_redirects_video_mesh(
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -350,8 +350,8 @@ def list_call_redirects_video_mesh(
 
 @app.command("list-call-redirects-clusters")
 def list_call_redirects_clusters(
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     cluster_id: str = typer.Option(..., "--cluster-id", help="The unique Video Mesh Cluster ID."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -388,8 +388,8 @@ def list_call_redirects_clusters(
 
 @app.command("list-utilization-video-mesh")
 def list_utilization_video_mesh(
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -426,8 +426,8 @@ def list_utilization_video_mesh(
 
 @app.command("list-utilization-clusters")
 def list_utilization_clusters(
-    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO"),
-    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8"),
+    from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     cluster_id: str = typer.Option(..., "--cluster-id", help="The unique Video Mesh Cluster ID."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -465,8 +465,8 @@ def list_utilization_clusters(
 @app.command("list-reachability-test")
 def list_reachability_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -507,8 +507,8 @@ def list_reachability_test(
 def list_clusters_reachability_test(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -548,8 +548,8 @@ def list_clusters_reachability_test(
 def list_nodes_reachability_test(
     node_id: str = typer.Option(..., "--node-id", help="Unique ID of the Video Mesh node."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -708,7 +708,7 @@ def create_nodes(
 
 @app.command("list-test-status")
 def list_test_status(
-    command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test"),
+    command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -740,7 +740,7 @@ def list_test_status(
 
 @app.command("list-test-results")
 def list_test_results(
-    command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test"),
+    command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -773,8 +773,8 @@ def list_test_results(
 @app.command("list-network-test")
 def list_network_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -815,8 +815,8 @@ def list_network_test(
 def list_clusters_network_test(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -856,8 +856,8 @@ def list_clusters_network_test(
 def list_nodes_network_test(
     node_id: str = typer.Option(..., "--node-id", help="Unique ID of the Video Mesh node."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -895,9 +895,9 @@ def list_nodes_network_test(
 
 @app.command("list-client-type-distribution")
 def list_client_type_distribution(
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
-    device_type: str = typer.Option(..., "--device-type", help="Device type(s).  - Possible values:  `webexDevices` `webexAp"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
+    device_type: str = typer.Option(..., "--device-type", help="Device type(s). - Possible values: `webexDevices` `webexAppVdi` `webexForMobile` `sipEndpoint` `webexForDesktop`"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -937,9 +937,9 @@ def list_client_type_distribution(
 @app.command("list-clusters-client-type-distribution")
 def list_clusters_client_type_distribution(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
-    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 86"),
-    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601"),
-    device_type: str = typer.Option(..., "--device-type", help="Device type(s).  - Possible values:     `webexDevices` `webe"),
+    from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
+    to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
+    device_type: str = typer.Option(..., "--device-type", help="Device type(s). - Possible values: `webexDevices` `webexAppVdi` `webexForMobile` `sipEndpoint` `webexForDesktop`"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

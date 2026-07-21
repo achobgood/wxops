@@ -71,10 +71,10 @@ def show(
 
 @app.command("update")
 def update(
-    message_expiry_enabled: bool = typer.Option(None, "--message-expiry-enabled/--no-message-expiry-enabled", help="Set to `true` to enable voicemail deletion and set the delet"),
+    message_expiry_enabled: bool = typer.Option(None, "--message-expiry-enabled/--no-message-expiry-enabled", help="Set to `true` to enable voicemail deletion and set the deletion conditions for expired messages."),
     number_of_days_for_message_expiry: str = typer.Option(None, "--number-of-days-for-message-expiry", help="Number of days after which messages expire."),
-    strict_deletion_enabled: bool = typer.Option(None, "--strict-deletion-enabled/--no-strict-deletion-enabled", help="Set to `true` to delete all read and unread voicemail messag"),
-    voice_message_forwarding_enabled: bool = typer.Option(None, "--voice-message-forwarding-enabled/--no-voice-message-forwarding-enabled", help="Set to `true` to allow people to configure the email forward"),
+    strict_deletion_enabled: bool = typer.Option(None, "--strict-deletion-enabled/--no-strict-deletion-enabled", help="Set to `true` to delete all read and unread voicemail messages based on the time frame you set. Set to `false` to keep all the unread voicemail messages."),
+    voice_message_forwarding_enabled: bool = typer.Option(None, "--voice-message-forwarding-enabled/--no-voice-message-forwarding-enabled", help="Set to `true` to allow people to configure the email forwarding of voicemails."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -193,7 +193,7 @@ def show_settings(
 
 @app.command("update-settings")
 def update_settings(
-    default_org_moh: str = typer.Option(None, "--default-org-moh", help="Default org level Music on Hold option, can be one of two op"),
+    default_org_moh: str = typer.Option(None, "--default-org-moh", help="Default org level Music on Hold option, can be one of two options: Choose between Opus Number 1 (Music On Hold used in other Cisco products like UCM) and existing legacy Music On Hold."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

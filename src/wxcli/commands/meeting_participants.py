@@ -10,13 +10,13 @@ app = typer.Typer(help="Manage Webex Meetings meeting-participants.")
 
 @app.command("list")
 def cmd_list(
-    meeting_id: str = typer.Option(..., "--meeting-id", help="The unique identifier for the meeting. Please note that curr"),
-    breakout_session_id: str = typer.Option(None, "--breakout-session-id", help="The unique identifier for a breakout session which happened"),
-    meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Meetings start from the specified date and time(exclusive) i"),
-    meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="Meetings start before the specified date and time(exclusive)"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    join_time_from: str = typer.Option(None, "--join-time-from", help="The time participants join a meeting starts from the specifi"),
-    join_time_to: str = typer.Option(None, "--join-time-to", help="The time participants join a meeting before the specified da"),
+    meeting_id: str = typer.Option(..., "--meeting-id", help="The unique identifier for the meeting. Please note that currently meeting ID of a scheduled [personal room](https://help.webex.com/en-us/article/nul0wut/Webex-Personal-Rooms-in-Webex-Meetings) meeting is not supported for this API."),
+    breakout_session_id: str = typer.Option(None, "--breakout-session-id", help="The unique identifier for a breakout session which happened during an ended meeting instance. If the `breakoutSessionId` is specified, the operation returns participants who joined the breakout session. Only applies to ended meeting instances."),
+    meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Meetings start from the specified date and time(exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `meetingStartTimeFrom` is not specified, it equals `meetingStartTimeTo` minus 1 month; if `meetingStartTimeTo` is also not specified, the default value for..."),
+    meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="Meetings start before the specified date and time(exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `meetingStartTimeTo` is not specified, it equals the result of a comparison, `meetingStartTimeFrom` plus one month and the current time, and the result is the..."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes, the admin may specify the email of a user in a site they manage and the API will return meeting participants of the meetings that are hosted by that user."),
+    join_time_from: str = typer.Option(None, "--join-time-from", help="The time participants join a meeting starts from the specified date and time (inclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `joinTimeFrom` is not specified, it equals `joinTimeTo` minus 7 days."),
+    join_time_to: str = typer.Option(None, "--join-time-to", help="The time participants join a meeting before the specified date and time (exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `joinTimeTo` is not specified, it equals `joinTimeFrom` plus 7 days. The interval between `joinTimeFrom` and `joinTimeTo` must be within..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -61,11 +61,11 @@ def cmd_list(
 @app.command("create")
 def create(
     meeting_id: str = typer.Option(..., "--meeting-id", help="The unique identifier for the meeting."),
-    meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Meetings start from the specified date and time(exclusive) i"),
-    meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="Meetings start before the specified date and time(exclusive)"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    join_time_from: str = typer.Option(None, "--join-time-from", help="The time participants join a meeting starts from the specifi"),
-    join_time_to: str = typer.Option(None, "--join-time-to", help="The time participants join a meeting before the specified da"),
+    meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Meetings start from the specified date and time(exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `meetingStartTimeFrom` is not specified, it equals `meetingStartTimeTo` minus 1 month; if `meetingStartTimeTo` is also not specified, the default value for..."),
+    meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="Meetings start before the specified date and time(exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `meetingStartTimeTo` is not specified, it equals the result of a comparison, `meetingStartTimeFrom` plus one month and the current time, and the result is the..."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes, the admin may specify the email of a user in a site they manage and the API will return meeting participants of the meetings that are hosted by that user."),
+    join_time_from: str = typer.Option(None, "--join-time-from", help="The time participants join a meeting starts from the specified date and time (inclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `joinTimeFrom` is not specified, it equals `joinTimeTo` minus 7 days."),
+    join_time_to: str = typer.Option(None, "--join-time-to", help="The time participants join a meeting before the specified date and time (exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `joinTimeTo` is not specified, it equals `joinTimeFrom` plus 7 days. The interval between `joinTimeFrom` and `joinTimeTo` must be within..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -108,7 +108,7 @@ def create(
 @app.command("show")
 def show(
     participant_id: str = typer.Argument(help="participantId"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes, the admin may specify the email of a user in a site they manage and the API will return meeting participants of the meetings that are hosted by that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -138,7 +138,7 @@ def show(
 def update(
     participant_id: str = typer.Argument(help="participantId"),
     muted: bool = typer.Option(None, "--muted/--no-muted", help="If `true`, participant is muted."),
-    admit: bool = typer.Option(None, "--admit/--no-admit", help="If `true` the participant admit a participant in the lobby t"),
+    admit: bool = typer.Option(None, "--admit/--no-admit", help="If `true` the participant admit a participant in the lobby to the meeting. Has no effect if the participant is not in the lobby or when the value is set to `false`."),
     expel: bool = typer.Option(None, "--expel/--no-expel", help="If `true` the participant is expelled from the meeting."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -194,12 +194,12 @@ def create_admit(
 
 @app.command("create-callout")
 def create_callout(
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier of the meeting to which the SIP participan"),
-    meeting_number: str = typer.Option(None, "--meeting-number", help="Number of the meeting to which the SIP participant is to be"),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier of the meeting to which the SIP participant is to be called out. Either `meetingId` or `meetingNumber` must be specified."),
+    meeting_number: str = typer.Option(None, "--meeting-number", help="Number of the meeting to which the SIP participant is to be called out. Either `meetingId` or `meetingNumber` must be specified."),
     address: str = typer.Option(None, "--address", help="(required) SIP address of the invited SIP participant."),
     address_type: str = typer.Option(None, "--address-type", help="Choices: sipAddress"),
-    invitation_correlation_id: str = typer.Option(None, "--invitation-correlation-id", help="An internal ID that is associated with the call-out invitati"),
-    display_name: str = typer.Option(None, "--display-name", help="(required) The display name of the invited SIP participant. The maximum"),
+    invitation_correlation_id: str = typer.Option(None, "--invitation-correlation-id", help="An internal ID that is associated with the call-out invitation. Only UUIDs with hyphens are supported. The letters in the UUID must be in lowercase. A random UUID will be generated automatically if not specified."),
+    display_name: str = typer.Option(None, "--display-name", help="(required) The display name of the invited SIP participant. The maximum length is 32 characters."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -244,7 +244,7 @@ def create_callout(
 
 @app.command("create-cancel-callout")
 def create_cancel_callout(
-    participant_id: str = typer.Option(None, "--participant-id", help="(required) ID of the SIP participant on whom the callout is to be cance"),
+    participant_id: str = typer.Option(None, "--participant-id", help="(required) ID of the SIP participant on whom the callout is to be cancelled. It can be retrieved from the response of the \"Call Out a SIP Participant\" API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

@@ -11,13 +11,13 @@ app = typer.Typer(help="Manage Webex Calling virtual-extensions.")
 
 @app.command("list")
 def cmd_list(
-    order: str = typer.Option(None, "--order", help="Order the list of virtual extensions in ascending or descend"),
+    order: str = typer.Option(None, "--order", help="Order the list of virtual extensions in ascending or descending order. Default is ascending."),
     extension: str = typer.Option(None, "--extension", help="Filter the list of virtual extensions by extension number."),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter the list of virtual extensions by phone number."),
-    name: str = typer.Option(None, "--name", help="Filter the list of virtual extensions by name. This can be e"),
-    location_name: str = typer.Option(None, "--location-name", help="Filter the list of virtual extensions by location name.(Only"),
+    name: str = typer.Option(None, "--name", help="Filter the list of virtual extensions by name. This can be either first name or last name."),
+    location_name: str = typer.Option(None, "--location-name", help="Filter the list of virtual extensions by location name.(Only one of the locationName, locationId, and OrgLevelOnly query parameters is allowed at the same time.)"),
     location_id: str = typer.Option(None, "--location-id", help="Filter the list of virtual extensions by location ID."),
-    org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extensions by organization level."),
+    org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extensions by organization level. If orgLevelOnly is true, return only the organization level virtual extensions."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -69,7 +69,7 @@ def create(
     display_name: str = typer.Option(None, "--display-name", help="(required) Display name of the person at the virtual extension."),
     phone_number: str = typer.Option(None, "--phone-number", help="(required) Directory number of the virtual extension."),
     extension: str = typer.Option(None, "--extension", help="(required) Extension of the virtual extension."),
-    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension is assigne"),
+    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension is assigned. The location ID is a unique identifier for the location in Webex Calling."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -289,11 +289,11 @@ def validate_an_external(
 
 @app.command("list-virtual-extension-ranges")
 def list_virtual_extension_ranges(
-    order: str = typer.Option(None, "--order", help="Sort the list of virtual extension ranges by name or prefix,"),
+    order: str = typer.Option(None, "--order", help="Sort the list of virtual extension ranges by name or prefix, either ASC or DSC. Default sort order is ASC."),
     name: str = typer.Option(None, "--name", help="Filter the list of virtual extension ranges by name."),
     prefix: str = typer.Option(None, "--prefix", help="Filter the list of virtual extension ranges by prefix."),
-    location_id: str = typer.Option(None, "--location-id", help="Filter the list of virtual extension ranges by location ID."),
-    org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extension ranges by organization"),
+    location_id: str = typer.Option(None, "--location-id", help="Filter the list of virtual extension ranges by location ID. Only one of the `locationId` and `OrgLevelOnly` query parameters is allowed at the same time."),
+    org_level_only: str = typer.Option(None, "--org-level-only", help="Filter the list of virtual extension ranges by organization level. If `orgLevelOnly` is true, return only the organization level virtual extension ranges."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -336,9 +336,9 @@ def list_virtual_extension_ranges(
 
 @app.command("create-virtual-extension-ranges")
 def create_virtual_extension_ranges(
-    name: str = typer.Option(None, "--name", help="(required) Name of the virtual extension range. This is a unique name f"),
-    prefix: str = typer.Option(None, "--prefix", help="(required) Prefix used for a virtual extension range. Prefix works in S"),
-    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is a"),
+    name: str = typer.Option(None, "--name", help="(required) Name of the virtual extension range. This is a unique name for the virtual extension range."),
+    prefix: str = typer.Option(None, "--prefix", help="(required) Prefix used for a virtual extension range. Prefix works in Standard and Enhanced modes. In Standard mode, it must be E.164 and unique. In Enhanced mode, it can be E.164 or non-E.164."),
+    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is assigned. The location ID is a unique identifier for the location in Webex Calling. This is set only when location level virtual extension range is added."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -434,7 +434,7 @@ def delete_virtual_extension_ranges(
 @app.command("update-virtual-extension-ranges")
 def update_virtual_extension_ranges(
     extension_range_id: str = typer.Argument(help="extensionRangeId"),
-    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name f"),
+    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name for the virtual extension range."),
     prefix: str = typer.Option(None, "--prefix", help="Prefix used for a virtual extension range."),
     action: str = typer.Option(None, "--action", help="Choices: ADD, REMOVE, REPLACE"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -467,10 +467,10 @@ def update_virtual_extension_ranges(
 
 @app.command("validate-the-prefix")
 def validate_the_prefix(
-    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is a"),
-    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name f"),
+    location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is assigned. The location ID is a unique identifier for the location in Webex Calling."),
+    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name for the virtual extension range."),
     prefix: str = typer.Option(None, "--prefix", help="Prefix used for a virtual extension range."),
-    range_id: str = typer.Option(None, "--range-id", help="ID of the virtual extension range. This is mandatory when va"),
+    range_id: str = typer.Option(None, "--range-id", help="ID of the virtual extension range. This is mandatory when validating for an existing virtual extension range, not present when validating a new virtual extension range before adding it."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):

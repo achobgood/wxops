@@ -10,8 +10,8 @@ app = typer.Typer(help="Manage Webex Meetings meeting-preferences.")
 
 @app.command("list")
 def cmd_list(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the required [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -45,8 +45,8 @@ def cmd_list(
 
 @app.command("list-personal-meeting-room")
 def list_personal_meeting_room(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -80,17 +80,17 @@ def list_personal_meeting_room(
 
 @app.command("update")
 def update(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update Personal..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     topic: str = typer.Option(None, "--topic", help="Personal Meeting Room topic to be updated."),
-    host_pin: str = typer.Option(None, "--host-pin", help="Updated PIN for joining the room as host. The host PIN must"),
-    enabled_auto_lock: bool = typer.Option(None, "--enabled-auto-lock/--no-enabled-auto-lock", help="Update for option to automatically lock the Personal Room a"),
-    auto_lock_minutes: str = typer.Option(None, "--auto-lock-minutes", help="Updated number of minutes after which the Personal Room is l"),
-    enabled_notify_host: bool = typer.Option(None, "--enabled-notify-host/--no-enabled-notify-host", help="Update for flag to enable notifying the owner of a Personal"),
-    support_co_host: bool = typer.Option(None, "--support-co-host/--no-support-co-host", help="Update for flag allowing other invitees to host a meetingCoH"),
-    support_anyone_as_co_host: bool = typer.Option(None, "--support-anyone-as-co-host/--no-support-anyone-as-co-host", help="Whether or not to allow any attendee with a host account on"),
-    allow_first_user_to_be_co_host: bool = typer.Option(None, "--allow-first-user-to-be-co-host/--no-allow-first-user-to-be-co-host", help="Whether or not to allow the first attendee with a host accou"),
-    allow_authenticated_devices: bool = typer.Option(None, "--allow-authenticated-devices/--no-allow-authenticated-devices", help="Whether or not to allow authenticated video devices in the u"),
+    host_pin: str = typer.Option(None, "--host-pin", help="Updated PIN for joining the room as host. The host PIN must be digits of a predefined length, e.g. 4 digits. It cannot contain sequential digits, such as 1234 or 4321, or repeated digits of the predefined length, such as 1111. The predefined length for host PIN can be viewed in user's `My Personal..."),
+    enabled_auto_lock: bool = typer.Option(None, "--enabled-auto-lock/--no-enabled-auto-lock", help="Update for option to automatically lock the Personal Room a number of minutes after a meeting starts. When a room is locked, invitees cannot enter until the owner admits them. The period after which the meeting is locked is defined by `autoLockMinutes`."),
+    auto_lock_minutes: str = typer.Option(None, "--auto-lock-minutes", help="Updated number of minutes after which the Personal Room is locked if `enabledAutoLock` is enabled. Valid options are 0, 5, 10, 15 and 20."),
+    enabled_notify_host: bool = typer.Option(None, "--enabled-notify-host/--no-enabled-notify-host", help="Update for flag to enable notifying the owner of a Personal Room when someone enters the Personal Room lobby while the owner is not in the room."),
+    support_co_host: bool = typer.Option(None, "--support-co-host/--no-support-co-host", help="Update for flag allowing other invitees to host a meetingCoHost in the Personal Room without the owner."),
+    support_anyone_as_co_host: bool = typer.Option(None, "--support-anyone-as-co-host/--no-support-anyone-as-co-host", help="Whether or not to allow any attendee with a host account on the target site to become a cohost when joining the Personal Room. The target site is user's preferred site."),
+    allow_first_user_to_be_co_host: bool = typer.Option(None, "--allow-first-user-to-be-co-host/--no-allow-first-user-to-be-co-host", help="Whether or not to allow the first attendee with a host account on the target site to become a cohost when joining the Personal Room. The target site is user's preferred site."),
+    allow_authenticated_devices: bool = typer.Option(None, "--allow-authenticated-devices/--no-allow-authenticated-devices", help="Whether or not to allow authenticated video devices in the user's organization to start or join the meeting without a prompt."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -134,8 +134,8 @@ def update(
 
 @app.command("show")
 def show(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -165,14 +165,14 @@ def show(
 
 @app.command("update-audio")
 def update_audio(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update audio..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     default_audio_type: str = typer.Option(None, "--default-audio-type", help="Choices: webexAudio, voipOnly, otherTeleconferenceService, none"),
-    other_teleconference_description: str = typer.Option(None, "--other-teleconference-description", help="Phone number and other information for the teleconference pr"),
-    enabled_global_call_in: bool = typer.Option(None, "--enabled-global-call-in/--no-enabled-global-call-in", help="Flag to enable/disable global call ins. ***Note***: If the s"),
-    enabled_toll_free: bool = typer.Option(None, "--enabled-toll-free/--no-enabled-toll-free", help="Flag to enable/disable call-ins from toll-free numbers.  ***"),
-    enabled_auto_connection: bool = typer.Option(None, "--enabled-auto-connection/--no-enabled-auto-connection", help="Flag to enable/disable automatically connecting to audio usi"),
-    audio_pin: str = typer.Option(None, "--audio-pin", help="PIN to provide a secondary level of authentication for calls"),
+    other_teleconference_description: str = typer.Option(None, "--other-teleconference-description", help="Phone number and other information for the teleconference provider to be used, along with instructions for invitees. This attribute can be modified with the with the [Update Audio Options](/docs/api/v1/meeting-preferences/update-audio-options) API."),
+    enabled_global_call_in: bool = typer.Option(None, "--enabled-global-call-in/--no-enabled-global-call-in", help="Flag to enable/disable global call ins. ***Note***: If the site does not support global call-ins, you cannot set this option. This attribute can be modified with the with the [Update Audio Options](/docs/api/v1/meeting-preferences/update-audio-options) API."),
+    enabled_toll_free: bool = typer.Option(None, "--enabled-toll-free/--no-enabled-toll-free", help="Flag to enable/disable call-ins from toll-free numbers. ***Note***: If the site does not support calls from toll-free numbers, you cannot set this option. This attribute can be modified with the with the [Update Audio Options](/docs/api/v1/meeting-preferences/update-audio-options) API."),
+    enabled_auto_connection: bool = typer.Option(None, "--enabled-auto-connection/--no-enabled-auto-connection", help="Flag to enable/disable automatically connecting to audio using a computer. The meeting host can enable/disable this option. When this option is set to `true`, the user is automatically connected to audio via a computer when they start or join a Webex Meetings meeting on a desktop. This attribute..."),
+    audio_pin: str = typer.Option(None, "--audio-pin", help="PIN to provide a secondary level of authentication for calls where the host is using the phone and may need to invite additional invitees. It must be exactly 4 digits. It cannot contain sequential digits, such as 1234 or 4321, or repeat a digit 4 times, such as 1111. This attribute can be modified..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -210,8 +210,8 @@ def update_audio(
 
 @app.command("list-video")
 def list_video(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -245,8 +245,8 @@ def list_video(
 
 @app.command("update-video")
 def update_video(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update video..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -272,8 +272,8 @@ def update_video(
 
 @app.command("list-scheduling-options")
 def list_scheduling_options(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -307,12 +307,12 @@ def list_scheduling_options(
 
 @app.command("update-scheduling-options")
 def update_scheduling_options(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
-    enabled_join_before_host: bool = typer.Option(None, "--enabled-join-before-host/--no-enabled-join-before-host", help="Flag to enable/disable ***Join Before Host***. The period du"),
-    join_before_host_minutes: str = typer.Option(None, "--join-before-host-minutes", help="Number of minutes before the start time that an invitee can"),
-    enabled_auto_share_recording: bool = typer.Option(None, "--enabled-auto-share-recording/--no-enabled-auto-share-recording", help="Flag to enable/disable the automatic sharing of the meeting"),
-    enabled_webex_assistant_by_default: bool = typer.Option(None, "--enabled-webex-assistant-by-default/--no-enabled-webex-assistant-by-default", help="Flag to automatically enable Webex Assistant whenever you st"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
+    enabled_join_before_host: bool = typer.Option(None, "--enabled-join-before-host/--no-enabled-join-before-host", help="Flag to enable/disable ***Join Before Host***. The period during which invitees can join before the start time is defined by `autoLockMinutes`. This attribute can be modified with the [Update Scheduling Options](/docs/api/v1/meeting-preferences/update-scheduling-options) API. ***Note***: This..."),
+    join_before_host_minutes: str = typer.Option(None, "--join-before-host-minutes", help="Number of minutes before the start time that an invitee can join a meeting if `enabledJoinBeforeHost` is true. Valid options are 0, 5, 10 and 15. This attribute can be modified with the [Update Scheduling Options](/docs/api/v1/meeting-preferences/update-scheduling-options) API."),
+    enabled_auto_share_recording: bool = typer.Option(None, "--enabled-auto-share-recording/--no-enabled-auto-share-recording", help="Flag to enable/disable the automatic sharing of the meeting recording with invitees when it is available. This attribute can be modified with the [Update Scheduling Options](/docs/api/v1/meeting-preferences/update-scheduling-options) API."),
+    enabled_webex_assistant_by_default: bool = typer.Option(None, "--enabled-webex-assistant-by-default/--no-enabled-webex-assistant-by-default", help="Flag to automatically enable Webex Assistant whenever you start a meeting. This attribute can be modified with the [Update Scheduling Options](/docs/api/v1/meeting-preferences/update-scheduling-options) API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -346,8 +346,8 @@ def update_scheduling_options(
 
 @app.command("create")
 def create(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -381,8 +381,8 @@ def create(
 
 @app.command("create-delete")
 def create_delete(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -412,8 +412,8 @@ def create_delete(
 
 @app.command("list-sites")
 def list_sites(
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. If `siteUrl` is not specifie"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user and the API will return the list of Webex sites for..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. If `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -447,8 +447,8 @@ def list_sites(
 
 @app.command("update-sites")
 def update_sites(
-    default_site: str = typer.Option(..., "--default-site", help="Whether or not to change user's default site. ***Note***: `d"),
-    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if t"),
+    default_site: str = typer.Option(..., "--default-site", help="Whether or not to change user's default site. ***Note***: `defaultSite` should be set to true for the user's single default site"),
+    user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update default..."),
     site_url: str = typer.Option(None, "--site-url", help="Access URL for the site."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),

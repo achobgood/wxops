@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-legacy-flows.")
 def cmd_list(
     flow_id: str = typer.Argument(help="flowId"),
     project_id: str = typer.Argument(help="projectId"),
-    version: str = typer.Option(None, "--version", help="Version ID. Possible values are 'draft', 'latest' or version"),
+    version: str = typer.Option(None, "--version", help="Version ID. Possible values are 'draft', 'latest' or version ID like '64b92c004ccd9f3d1c680709'. Defaulted to 'latest'."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),

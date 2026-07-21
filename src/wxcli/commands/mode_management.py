@@ -39,7 +39,7 @@ def cmd_list(
 
 @app.command("list-common-modes")
 def list_common_modes(
-    feature_ids: str = typer.Option(..., "--feature-ids", help="List of feature IDs (comma-separated) for auto attendants, c"),
+    feature_ids: str = typer.Option(..., "--feature-ids", help="List of feature IDs (comma-separated) for auto attendants, call queues, or hunt groups"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -71,7 +71,7 @@ def list_common_modes(
 
 @app.command("switch-mode-for-invoke")
 def switch_mode_for_invoke(
-    operating_mode_name: str = typer.Option(None, "--operating-mode-name", help="Name of the common operating mode to be set as current opera"),
+    operating_mode_name: str = typer.Option(None, "--operating-mode-name", help="Name of the common operating mode to be set as current operating mode"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -193,7 +193,7 @@ def switch_to_normal(
 def switch_mode_for_invoke_1(
     feature_id: str = typer.Argument(help="featureId"),
     operating_mode_id: str = typer.Option(None, "--operating-mode-id", help="Operating mode ID to switch to"),
-    is_manual_switchback_enabled: str = typer.Option(None, "--is-manual-switchback-enabled", help="Determines if switch back will be manual (if true) or automa"),
+    is_manual_switchback_enabled: str = typer.Option(None, "--is-manual-switchback-enabled", help="Determines if switch back will be manual (if true) or automatic (if false or omitted from request)"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -219,8 +219,8 @@ def switch_mode_for_invoke_1(
 @app.command("extend-current-operating")
 def extend_current_operating(
     feature_id: str = typer.Argument(help="featureId"),
-    operating_mode_id: str = typer.Option(None, "--operating-mode-id", help="Unique identifier for the operating mode for which the exten"),
-    extension_time: str = typer.Option(None, "--extension-time", help="Extension time in minutes (must be multiple of 30). If not s"),
+    operating_mode_id: str = typer.Option(None, "--operating-mode-id", help="Unique identifier for the operating mode for which the extension is being configured."),
+    extension_time: str = typer.Option(None, "--extension-time", help="Extension time in minutes (must be multiple of 30). If not sent, mode is extended with manual switch back exception"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):

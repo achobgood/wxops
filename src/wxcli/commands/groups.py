@@ -11,11 +11,11 @@ app = typer.Typer(help="Manage Webex Calling groups.")
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Searches the group by `displayName` with an operator and a v"),
+    filter_param: str = typer.Option(None, "--filter", help="Searches the group by `displayName` with an operator and a value. The available operators are `eq` (equal) and `sw` (starts with). Only `displayName` can be used to filter results."),
     attributes: str = typer.Option(None, "--attributes", help="The attributes to return."),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort the results based by group `displayName`."),
-    sort_order: str = typer.Option(None, "--sort-order", help="Sort results alphabetically by group display name, in ascend"),
-    include_members: str = typer.Option(None, "--include-members", help="Optionally return group members in the response. The maximum"),
+    sort_order: str = typer.Option(None, "--sort-order", help="Sort results alphabetically by group display name, in ascending or descending order."),
+    include_members: str = typer.Option(None, "--include-members", help="Optionally return group members in the response. The maximum number of members returned is 500."),
     start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
     count: str = typer.Option(None, "--count", help="Specifies the desired number of search results per page."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -65,7 +65,7 @@ def cmd_list(
 @app.command("create")
 def create(
     display_name: str = typer.Option(None, "--display-name", help="(required) A human-readable name for the Group."),
-    external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisionin"),
+    external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisioning client."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -173,7 +173,7 @@ def delete(
 def list_members(
     group_id: str = typer.Argument(help="groupId"),
     start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
-    count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of se"),
+    count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of search results per page. Maximum value for the count is 500."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

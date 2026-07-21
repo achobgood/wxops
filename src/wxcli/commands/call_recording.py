@@ -96,7 +96,7 @@ def show_terms_of_service(
 @app.command("update-terms-of-service")
 def update_terms_of_service(
     vendor_id: str = typer.Argument(help="vendorId"),
-    terms_of_service_enabled: bool = typer.Option(None, "--terms-of-service-enabled/--no-terms-of-service-enabled", help="Whether or not the call recording terms of service are enabl"),
+    terms_of_service_enabled: bool = typer.Option(None, "--terms-of-service-enabled/--no-terms-of-service-enabled", help="Whether or not the call recording terms of service are enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -151,11 +151,11 @@ def show_compliance_announcement_call_recording(
 
 @app.command("update-compliance-announcement-call-recording")
 def update_compliance_announcement_call_recording(
-    inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP annou"),
-    outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP annou"),
-    outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played a"),
-    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance anno"),
-    use_custom_announcement_enabled: bool = typer.Option(None, "--use-custom-announcement-enabled/--no-use-custom-announcement-enabled", help="Flag to indicate whether to use the custom compliance announ"),
+    inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP announcement is played to an inbound caller."),
+    outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP announcement is played to an outbound caller."),
+    outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played after a specified delay in seconds."),
+    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance announcement."),
+    use_custom_announcement_enabled: bool = typer.Option(None, "--use-custom-announcement-enabled/--no-use-custom-announcement-enabled", help="Flag to indicate whether to use the custom compliance announcement. If true it uses the organization's custom compliance announcement file, and if false default compliance announcement used."),
     audio_announcement_file_id: str = typer.Option(None, "--audio-announcement-file-id", help="Unique identifier for the custom audio announcement file."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -223,12 +223,12 @@ def show_compliance_announcement_call_recording_1(
 @app.command("update-compliance-announcement-call-recording-1")
 def update_compliance_announcement_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
-    inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP annou"),
-    use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help="Flag to indicate whether to use the customer level complianc"),
-    outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP annou"),
-    outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played a"),
-    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance anno"),
-    use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level custo"),
+    inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP announcement is played to an inbound caller."),
+    use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help="Flag to indicate whether to use the customer level compliance announcement default settings."),
+    outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP announcement is played to an outbound caller."),
+    outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played after a specified delay in seconds."),
+    delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance announcement."),
+    use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level custom compliance announcement. If this flag is set to true, takes the organization's announcement setting. If this flag is set to false, takes the location's custom announcement."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -567,7 +567,7 @@ def show_vendors(
 @app.command("update-vendor-call-recording-1")
 def update_vendor_call_recording_1(
     vendor_id: str = typer.Option(None, "--vendor-id", help="Unique identifier of the vendor."),
-    storage_region: str = typer.Option(None, "--storage-region", help="Call recording storage region. Only applicable for Webex as"),
+    storage_region: str = typer.Option(None, "--storage-region", help="Call recording storage region. Only applicable for Webex as a vendor and isn't used for other vendors."),
     failure_behavior: str = typer.Option(None, "--failure-behavior", help="Call recording failure behavior."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -681,7 +681,7 @@ def show_announcements_call_recording_1(
 @app.command("update-announcements-call-recording-1")
 def update_announcements_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
-    use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level call"),
+    use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level call recording announcement settings. If the flag is set to true, indicates that the callRecordingAnnouncementSelection setting is inherited from the organization-level configuration. If the flag is set to false, indicates that the..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -10,13 +10,13 @@ app = typer.Typer(help="Manage Webex Calling admin-recordings.")
 
 @app.command("list")
 def cmd_list(
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to retu"),
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled m"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists recordings. I"),
-    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
-    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled meeting, or meeting instance for which recordings are being requested. If a meeting series ID is specified, the operation returns an array of recordings for the specified meeting series. If a scheduled meeting ID is specified, the operation..."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists recordings. If not specified, the API lists recordings from all of a user's sites. All available Webex sites and the preferred site of the user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
+    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration application. This parameter is used by the integration application to query recordings by a key in its own domain, such as a Zendesk ticket ID, a Jira ID, a Salesforce Opportunity ID, etc. An integrationTag created by one client cannot be..."),
+    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings by topic in a case-insensitive manner."),
     format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
     status: str = typer.Option(None, "--status", help="Choices: available, deleted, purged"),
@@ -71,14 +71,14 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    max: str = typer.Option(None, "--max", help="Maximum number of recordings to return in a single page. `ma"),
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for query recordings to ret"),
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled m"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists recordings. I"),
-    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This property is only us"),
-    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings"),
+    max: str = typer.Option(None, "--max", help="Maximum number of recordings to return in a single page. `max` must be equal to or greater than `1` and equal to or less than `100`."),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for query recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled meeting, or meeting instance for which recordings are being requested. If a meeting series ID is specified, the operation returns an array of recordings for the specified meeting series. If a scheduled meeting ID is specified, the operation..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists recordings. If not specified, the API lists recordings from all of a user's sites. All available Webex sites and the preferred site of the user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
+    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration application. This parameter is used by the integration application to query recordings by a key in its own domain, such as a Zendesk ticket ID, a Jira ID, a Salesforce Opportunity ID, etc. An integrationTag created by one client cannot be..."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This property is only used if the caller has admin-level meeting scopes. If set, the admin may specify the email of a user in a site they manage and the API will return recordings of that user."),
+    topic: str = typer.Option(None, "--topic", help="Recording's topic. If specified, the API filters recordings by topic in a case-insensitive manner."),
     format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
     status: str = typer.Option(None, "--status", help="Choices: available, deleted, purged"),
@@ -132,12 +132,12 @@ def create(
 
 @app.command("list-recordings-admin")
 def list_recordings_admin(
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to retu"),
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled m"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. I"),
-    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
-    topic: str = typer.Option(None, "--topic", help="Recording topic. If specified, the API filters recordings by"),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`. The interval between `from` and `to` must be within 30 days. If `to` is specified, the default value for `from` is `to` minus 7 days...."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`. The interval between `from` and `to` must be within 30 days. If `from` is specified, the default value for `to` is `from` plus 7..."),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled meeting, or meeting instance for which recordings are being requested. If a meeting series ID is specified, the operation returns an array of recordings for the specified meeting series. If a scheduled meeting ID is specified, the operation..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. If not specified, the API lists recordings from user's preferred site. All available Webex sites and preferred site of the user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
+    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration application. This parameter is used by the integration application to query recordings by a key in its own domain such as a Zendesk ticket ID, a Jira ID, a Salesforce Opportunity ID, etc. An integrationTag created by one client cannot be..."),
+    topic: str = typer.Option(None, "--topic", help="Recording topic. If specified, the API filters recordings by topic in a case-insensitive manner."),
     format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
     status: str = typer.Option(None, "--status", help="Choices: available, deleted, purged"),
@@ -190,17 +190,17 @@ def list_recordings_admin(
 
 @app.command("create-query")
 def create_query(
-    max: str = typer.Option(None, "--max", help="Maximum number of recordings to return in a single page. `ma"),
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for query recordings to ret"),
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled m"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. I"),
-    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
-    topic: str = typer.Option(None, "--topic", help="Recording topic. If specified, the API filters recordings by"),
+    max: str = typer.Option(None, "--max", help="Maximum number of recordings to return in a single page. `max` must be equal to or greater than `1` and equal to or less than `100`."),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for query recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the parent meeting series, scheduled meeting, or meeting instance for which recordings are being requested. If a meeting series ID is specified, the operation returns an array of recordings for the specified meeting series. If a scheduled meeting ID is specified, the operation..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. If not specified, the API lists recordings from user's preferred site. All available Webex sites and preferred site of the user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
+    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration application. This parameter is used by the integration application to query recordings by a key in its own domain such as a Zendesk ticket ID, a Jira ID, a Salesforce Opportunity ID, etc. An integrationTag created by one client cannot be..."),
+    topic: str = typer.Option(None, "--topic", help="Recording topic. If specified, the API filters recordings by topic in a case-insensitive manner."),
     format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
     status: str = typer.Option(None, "--status", help="Choices: available, deleted, purged"),
-    timezone: str = typer.Option(None, "--timezone", help="Optional timezone override for the request (if not provided,"),
+    timezone: str = typer.Option(None, "--timezone", help="Optional timezone override for the request (if not provided, UTC is used)."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -271,7 +271,7 @@ def delete(
 @app.command("show")
 def show(
     recording_id: str = typer.Argument(help="recordingId"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage, and the API will return..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -300,9 +300,9 @@ def show(
 @app.command("delete-recordings")
 def delete_recordings(
     recording_id: str = typer.Argument(help="recordingId"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
-    reason: str = typer.Option(None, "--reason", help="Reason for deleting a recording. Only required when a Compli"),
-    comment: str = typer.Option(None, "--comment", help="Compliance Officer's explanation for deleting a recording. T"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will delete a..."),
+    reason: str = typer.Option(None, "--reason", help="Reason for deleting a recording. Only required when a Compliance Officer is operating on another user's recording."),
+    comment: str = typer.Option(None, "--comment", help="Compliance Officer's explanation for deleting a recording. The comment can be a maximum of 255 characters long."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),
@@ -333,8 +333,8 @@ def delete_recordings(
 
 @app.command("create-soft-delete")
 def create_soft_delete(
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API deletes recordings."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will move..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API deletes recordings. If not specified, the API deletes recordings from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -368,9 +368,9 @@ def create_soft_delete(
 
 @app.command("create-restore")
 def create_restore(
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specifi"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API restores recordings"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the..."),
+    restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specified by `recordingIds`. If `true`, restores all recordings from the recycle bin."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API restores recordings. If not specified, the API restores recordings from a user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -406,9 +406,9 @@ def create_restore(
 
 @app.command("create-purge")
 def create_purge(
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or"),
-    purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API purges recordings."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will purge..."),
+    purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified by `recordingIds`. If `true`, purges all recordings from the recycle bin."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API purges recordings. If not specified, the API purges recordings from user's preferred site. All available Webex sites and preferred sites of the user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -441,8 +441,8 @@ def create_purge(
 @app.command("create-access-list-recordings")
 def create_access_list_recordings(
     recording_id: str = typer.Argument(help="recordingId"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
-    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether to send email notifications to the users being share"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin-level scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host. The field is not editable and is only used to share or..."),
+    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether to send email notifications to the users being shared. The default is `true`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -475,9 +475,9 @@ def create_access_list_recordings(
 
 @app.command("create-access-list-recordings-1")
 def create_access_list_recordings_1(
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should on"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin-level scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host. The field is not editable and is only used to share or..."),
     web_share_link: str = typer.Option(None, "--web-share-link", help="The link for the recording to be shared or unshared."),
-    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether to send email notifications to the users being share"),
+    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether to send email notifications to the users being shared. The default is `true`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -512,11 +512,11 @@ def create_access_list_recordings_1(
 
 @app.command("list-recordings-group")
 def list_recordings_group(
-    person_id: str = typer.Option(None, "--person-id", help="Person ID of the user whose recordings will be retrieved. Th"),
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return,"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to retu"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. I"),
-    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration"),
+    person_id: str = typer.Option(None, "--person-id", help="Person ID of the user whose recordings will be retrieved. The person ID can be retrieved from the [People APIs](/docs/api/v1/people), e.g. [Lit People](/docs/api/v1/people/list-people). Note that a person ID retrieved from the People APIs is a Base64-encoded string, e.g...."),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`. The interval between `from` and `to` must be within 30 days."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`. The interval between `from` and `to` must be within 30 days."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists recordings from. If not specified, the API lists recordings from user's preferred site. All available Webex sites and preferred site of the user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
+    integration_tag: str = typer.Option(None, "--integration-tag", help="External key of the parent meeting created by an integration application. This parameter is used by the integration application to query recordings by a key in its own domain such as a Zendesk ticket ID, a Jira ID, a Salesforce Opportunity ID, etc. An integrationTag created by one client cannot be..."),
     format_param: str = typer.Option(None, "--format", help="Choices: MP4, ARF"),
     service_type: str = typer.Option(None, "--service-type", help="Choices: MeetingCenter, EventCenter, SupportCenter, TrainingCenter"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -565,7 +565,7 @@ def list_recordings_group(
 @app.command("show-recordings")
 def show_recordings(
     recording_id: str = typer.Argument(help="recordingId"),
-    person_id: str = typer.Option(None, "--person-id", help="Person ID of the user whose recordings will be retrieved. Th"),
+    person_id: str = typer.Option(None, "--person-id", help="Person ID of the user whose recordings will be retrieved. The person ID can be retrieved from the [People APIs](/docs/api/v1/people), e.g. [Lit People](/docs/api/v1/people/list-people). Note that a person ID retrieved from the People APIs is a Base64-encoded string, e.g...."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):

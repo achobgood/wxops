@@ -11,11 +11,11 @@ app = typer.Typer(help="Manage Webex Calling call-routing.")
 
 @app.command("test-call-routing")
 def test_call_routing(
-    originator_id: str = typer.Option(None, "--originator-id", help="This element is used to identify the originating party. It c"),
+    originator_id: str = typer.Option(None, "--originator-id", help="This element is used to identify the originating party. It can be a person ID or a trunk ID."),
     originator_type: str = typer.Option(None, "--originator-type", help="Choices: PEOPLE, TRUNK"),
-    originator_number: str = typer.Option(None, "--originator-number", help="Only used when `originatorType` is `TRUNK`. The `originatorN"),
-    destination: str = typer.Option(None, "--destination", help="This element specifies the called party. It can be any diala"),
-    include_applied_services: str = typer.Option(None, "--include-applied-services", help="This element is used to retrieve if any translation pattern,"),
+    originator_number: str = typer.Option(None, "--originator-number", help="Only used when `originatorType` is `TRUNK`. The `originatorNumber` can be a phone number or URI."),
+    destination: str = typer.Option(None, "--destination", help="This element specifies the called party. It can be any dialable string, for example, an ESN number, E.164 number, hosted user DN, extension, extension with location code, URL, or FAC code."),
+    include_applied_services: str = typer.Option(None, "--include-applied-services", help="This element is used to retrieve if any translation pattern, call intercept, permission by type or permission by digit pattern is present for the called party."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -51,7 +51,7 @@ def test_call_routing(
 @app.command("list")
 def cmd_list(
     trunk_id: str = typer.Argument(help="trunkId"),
-    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
+    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields. Available sort fields are `name`, and `locationName`. Sort order is ascending by default"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -237,9 +237,9 @@ def validate_a_dial(
 @app.command("list-dial-plans")
 def list_dial_plans(
     dial_plan_name: str = typer.Option(None, "--dial-plan-name", help="Return the list of dial plans matching the dial plan name."),
-    route_group_name: str = typer.Option(None, "--route-group-name", help="Return the list of dial plans matching the Route group name."),
+    route_group_name: str = typer.Option(None, "--route-group-name", help="Return the list of dial plans matching the Route group name.."),
     trunk_name: str = typer.Option(None, "--trunk-name", help="Return the list of dial plans matching the Trunk name.."),
-    order: str = typer.Option(None, "--order", help="Order the dial plans according to the designated fields.  Av"),
+    order: str = typer.Option(None, "--order", help="Order the dial plans according to the designated fields. Available sort fields: `name`, `routeName`, `routeType`. Sort order is ascending by default"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -447,7 +447,7 @@ def list_trunks(
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names."),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of trunks matching the location names."),
     trunk_type: str = typer.Option(None, "--trunk-type", help="Return the list of trunks matching the trunk type."),
-    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
+    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields. Available sort fields: name, locationName. Sort order is ascending by default"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -491,13 +491,13 @@ def create_trunks(
     name: str = typer.Option(None, "--name", help="(required) A unique name for the trunk."),
     location_id: str = typer.Option(None, "--location-id", help="(required) ID of location associated with the trunk."),
     password: str = typer.Option(None, "--password", help="(required) A password to use on the trunk."),
-    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Dual Identity Support setting impacts the handling of the Fr"),
+    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Dual Identity Support setting impacts the handling of the From header and P-Asserted-Identity header when sending an initial SIP `INVITE` to the trunk for an outbound call."),
     trunk_type: str = typer.Option(None, "--trunk-type", help="(required) Choices: REGISTERING, CERTIFICATE_BASED"),
     device_type: str = typer.Option(None, "--device-type", help="Device type assosiated with trunk."),
-    address: str = typer.Option(None, "--address", help="FQDN or SRV address. Required to create a static certificate"),
-    domain: str = typer.Option(None, "--domain", help="Domain name. Required to create a static certificate based t"),
-    port: str = typer.Option(None, "--port", help="FQDN port. Required to create a static certificate-based tru"),
-    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate"),
+    address: str = typer.Option(None, "--address", help="FQDN or SRV address. Required to create a static certificate-based trunk."),
+    domain: str = typer.Option(None, "--domain", help="Domain name. Required to create a static certificate based trunk."),
+    port: str = typer.Option(None, "--port", help="FQDN port. Required to create a static certificate-based trunk."),
+    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate based trunk."),
     p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="Choices: DISABLED, ASSERTED_IDENTITY, CONFIGURABLE_CHARGE_NUMBER"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -589,8 +589,8 @@ def update_trunks(
     trunk_id: str = typer.Argument(help="trunkId"),
     name: str = typer.Option(None, "--name", help="A unique name for the dial plan."),
     password: str = typer.Option(None, "--password", help="A password to use on the trunk."),
-    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Determines the behavior of the From and PAI headers on outbo"),
-    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate"),
+    dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Determines the behavior of the From and PAI headers on outbound calls."),
+    max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate-based trunk."),
     p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="Choices: DISABLED, ASSERTED_IDENTITY, CONFIGURABLE_CHARGE_NUMBER"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -681,8 +681,8 @@ def list_trunk_types(
 
 @app.command("list-route-groups")
 def list_route_groups(
-    name: str = typer.Option(None, "--name", help="Return the list of route groups matching the Route group nam"),
-    order: str = typer.Option(None, "--order", help="Order the route groups according to designated fields.  Avai"),
+    name: str = typer.Option(None, "--name", help="Return the list of route groups matching the Route group name.."),
+    order: str = typer.Option(None, "--order", help="Order the route groups according to designated fields. Available sort orders are `asc` and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -869,7 +869,7 @@ def show_usage(
 def list_usage_call_to_extension_route_groups(
     route_group_id: str = typer.Argument(help="routeGroupId"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
-    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -908,7 +908,7 @@ def list_usage_call_to_extension_route_groups(
 def list_usage_dial_plan(
     route_group_id: str = typer.Argument(help="routeGroupId"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
-    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -947,7 +947,7 @@ def list_usage_dial_plan(
 def list_usage_pstn_connection_route_groups(
     route_group_id: str = typer.Argument(help="routeGroupId"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
-    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -986,7 +986,7 @@ def list_usage_pstn_connection_route_groups(
 def list_usage_route_list(
     route_group_id: str = typer.Argument(help="routeGroupId"),
     name: str = typer.Option(None, "--name", help="Return the list of locations matching the location name."),
-    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields.  Availab"),
+    order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1023,7 +1023,7 @@ def list_usage_route_list(
 
 @app.command("list-route-lists")
 def list_route_lists(
-    order: str = typer.Option(None, "--order", help="Order the Route List according to the designated fields. Ava"),
+    order: str = typer.Option(None, "--order", help="Order the Route List according to the designated fields. Available sort fields are `name`, and `locationId`. Sort order is ascending by default"),
     name: str = typer.Option(None, "--name", help="Return the list of Route List matching the route list name."),
     location_id: str = typer.Option(None, "--location-id", help="Return the list of Route Lists matching the location id."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -1194,7 +1194,7 @@ def delete_route_lists(
 def list_numbers(
     route_list_id: str = typer.Argument(help="routeListId"),
     number: str = typer.Option(None, "--number", help="Number assigned to the route list."),
-    order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or desc"),
+    order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or descending."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1232,7 +1232,7 @@ def list_numbers(
 @app.command("update-numbers")
 def update_numbers(
     route_list_id: str = typer.Argument(help="routeListId"),
-    delete_all_numbers: bool = typer.Option(None, "--delete-all-numbers/--no-delete-all-numbers", help="If present, the numbers array is ignored and all numbers in"),
+    delete_all_numbers: bool = typer.Option(None, "--delete-all-numbers/--no-delete-all-numbers", help="If present, the numbers array is ignored and all numbers in the route list are deleted."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1260,7 +1260,7 @@ def update_numbers(
 @app.command("list-usage-call-to-extension-trunks")
 def list_usage_call_to_extension_trunks(
     trunk_id: str = typer.Argument(help="trunkId"),
-    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields.  Availa"),
+    order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields. Available sort fields are `name`, and `locationName`. Sort order is ascending by default"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -1298,11 +1298,11 @@ def list_usage_call_to_extension_trunks(
 
 @app.command("list-translation-patterns")
 def list_translation_patterns(
-    limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="When a location ID is passed, then return only the correspon"),
-    limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="When set to be `true`, then return only the organization-lev"),
-    order: str = typer.Option(None, "--order", help="Sort the list of translation patterns according to translati"),
+    limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="When a location ID is passed, then return only the corresponding location level translation patterns."),
+    limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="When set to be `true`, then return only the organization-level translation patterns."),
+    order: str = typer.Option(None, "--order", help="Sort the list of translation patterns according to translation pattern name, ascending or descending."),
     name: str = typer.Option(None, "--name", help="Only return translation patterns with the matching `name`."),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help="Only return translation patterns with the matching `matching"),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="Only return translation patterns with the matching `matchingPattern`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1346,8 +1346,8 @@ def list_translation_patterns(
 @app.command("create-translation-patterns-call-routing")
 def create_translation_patterns_call_routing(
     name: str = typer.Option(None, "--name", help="(required) Name given to a translation pattern for an organization."),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) Matching pattern given to a translation pattern for an organ"),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) Replacement pattern given to a translation pattern for an or"),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) Matching pattern given to a translation pattern for an organization."),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) Replacement pattern given to a translation pattern for an organization."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1421,8 +1421,8 @@ def show_translation_patterns_call_routing(
 def update_translation_patterns_call_routing(
     translation_id: str = typer.Argument(help="translationId"),
     name: str = typer.Option(None, "--name", help="Name given to a translation pattern for an organization."),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help="Matching pattern given to a translation pattern for an organ"),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="Replacement pattern given to a translation pattern for an or"),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="Matching pattern given to a translation pattern for an organization."),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="Replacement pattern given to a translation pattern for an organization."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1478,8 +1478,8 @@ def delete_translation_patterns_call_routing(
 def create_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
     name: str = typer.Option(None, "--name", help="(required) A name given to a translation pattern for a location."),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) A matching pattern given to a translation pattern for a loca"),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) A replacement pattern given to a translation pattern for a l"),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) A matching pattern given to a translation pattern for a location."),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) A replacement pattern given to a translation pattern for a location."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1555,8 +1555,8 @@ def update_translation_patterns_call_routing_1(
     location_id: str = typer.Argument(help="locationId"),
     translation_id: str = typer.Argument(help="translationId"),
     name: str = typer.Option(None, "--name", help="A name given to a translation pattern for a location."),
-    matching_pattern: str = typer.Option(None, "--matching-pattern", help="A matching pattern given to a translation pattern for a loca"),
-    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="A replacement pattern given to a translation pattern for a l"),
+    matching_pattern: str = typer.Option(None, "--matching-pattern", help="A matching pattern given to a translation pattern for a location."),
+    replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="A replacement pattern given to a translation pattern for a location."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

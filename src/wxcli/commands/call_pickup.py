@@ -12,8 +12,8 @@ app = typer.Typer(help="Manage Webex Calling call-pickup.")
 @app.command("list")
 def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
-    order: str = typer.Option(None, "--order", help="Sort the list of call pickups by name, either ASC or DSC. De"),
-    name: str = typer.Option(None, "--name", help="Return the list of call pickups that contains the given name"),
+    order: str = typer.Option(None, "--order", help="Sort the list of call pickups by name, either ASC or DSC. Default is ASC."),
+    name: str = typer.Option(None, "--name", help="Return the list of call pickups that contains the given name. The maximum length is 80."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -53,7 +53,7 @@ def create(
     location_id: str = typer.Argument(help="locationId"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call pickup. The maximum length is 80."),
     notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
-    notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayT"),
+    notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayTimerSeconds` has elapsed, notify every member of the call pickup group when an incoming call goes unanswered. The `notificationType` field specifies the notification method. Default: 6."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -130,7 +130,7 @@ def update(
     call_pickup_id: str = typer.Argument(help="callPickupId"),
     name: str = typer.Option(None, "--name", help="Unique name for the call pickup. The maximum length is 80."),
     notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
-    notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayT"),
+    notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayTimerSeconds` has elapsed, notify every member of the call pickup group when an incoming call goes unanswered. The `notificationType` field specifies the notification method. Default: 6."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -186,10 +186,10 @@ def delete(
 @app.command("list-available-users")
 def list_available_users(
     location_id: str = typer.Argument(help="locationId"),
-    call_pickup_name: str = typer.Option(None, "--call-pickup-name", help="Only return available agents from call pickups with the matc"),
+    call_pickup_name: str = typer.Option(None, "--call-pickup-name", help="Only return available agents from call pickups with the matching name."),
     name: str = typer.Option(None, "--name", help="Only return available agents with the matching name."),
-    phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary numbe"),
-    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated field"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary number."),
+    order: str = typer.Option(None, "--order", help="Order the available agents according to the designated fields. Up to three vertical bar (|) separated sort order fields may be specified. Available sort fields: `fname`, `lname`, `extension`, `number`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

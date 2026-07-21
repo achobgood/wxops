@@ -42,7 +42,7 @@ def cmd_list(
 def create(
     name: str = typer.Option(None, "--name", help="(required) Name of the wrap-up reason."),
     description: str = typer.Option(None, "--description", help="Description of the wrap-up reason."),
-    assign_all_queues_enabled: bool = typer.Option(None, "--assign-all-queues-enabled/--no-assign-all-queues-enabled", help="Denotes whether all queues are assigned to the wrap-up reaso"),
+    assign_all_queues_enabled: bool = typer.Option(None, "--assign-all-queues-enabled/--no-assign-all-queues-enabled", help="Denotes whether all queues are assigned to the wrap-up reason."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -109,8 +109,8 @@ def update(
     wrapup_reason_id: str = typer.Argument(help="wrapupReasonId"),
     name: str = typer.Option(None, "--name", help="Name of the wrap-up reason."),
     description: str = typer.Option(None, "--description", help="Description of the wrap-up reason."),
-    assign_all_queues_enabled: bool = typer.Option(None, "--assign-all-queues-enabled/--no-assign-all-queues-enabled", help="Denotes whether all queues are assigned to the wrap-up reaso"),
-    unassign_all_queues_enabled: bool = typer.Option(None, "--unassign-all-queues-enabled/--no-unassign-all-queues-enabled", help="Denotes whether all queues are unassigned from the wrap-up r"),
+    assign_all_queues_enabled: bool = typer.Option(None, "--assign-all-queues-enabled/--no-assign-all-queues-enabled", help="Denotes whether all queues are assigned to the wrap-up reason."),
+    unassign_all_queues_enabled: bool = typer.Option(None, "--unassign-all-queues-enabled/--no-unassign-all-queues-enabled", help="Denotes whether all queues are unassigned from the wrap-up reason."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -306,7 +306,7 @@ def update_screen_pop(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/disable screen pop."),
-    screen_pop_url: str = typer.Option(None, "--screen-pop-url", help="The screen pop URL that integrates Webex calls with other bu"),
+    screen_pop_url: str = typer.Option(None, "--screen-pop-url", help="The screen pop URL that integrates Webex calls with other business apps like CRM, ticketing tools, and order entry systems."),
     desktop_label: str = typer.Option(None, "--desktop-label", help="A label for the screen pop configuration."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -339,7 +339,7 @@ def update_screen_pop(
 @app.command("list-available-agents")
 def list_available_agents(
     location_id: str = typer.Argument(help="locationId"),
-    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Assi"),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Assist license when `true`, otherwise returns the list of available agents with Customer Experience Basic license."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -407,7 +407,7 @@ def update_call_recordings(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether call recording is enabled for the queue."),
-    record: str = typer.Option(None, "--record", help="When to record. Live-verified value: `Always`. Other values"),
+    record: str = typer.Option(None, "--record", help="When to record. Live-verified value: `Always`. Other values are not asserted here because they have not been verified against the live API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

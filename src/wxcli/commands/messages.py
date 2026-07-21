@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling messages.")
 def cmd_list(
     room_id: str = typer.Option(..., "--room-id", help="List messages in a room, by ID."),
     parent_id: str = typer.Option(None, "--parent-id", help="List messages with a parent, by ID."),
-    mentioned_people: str = typer.Option(None, "--mentioned-people", help="List messages with these people mentioned, by ID. Use `me` a"),
+    mentioned_people: str = typer.Option(None, "--mentioned-people", help="List messages with these people mentioned, by ID. Use `me` as a shorthand for the current API user. Only `me` or the person ID of the current user may be specified. Bots must include this parameter to list messages in group rooms (spaces)."),
     before: str = typer.Option(None, "--before", help="List messages sent before a date and time."),
     before_message: str = typer.Option(None, "--before-message", help="List messages sent before a message, by ID."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
@@ -58,10 +58,10 @@ def cmd_list(
 def create(
     room_id: str = typer.Option(None, "--room-id", help="The room ID of the message."),
     parent_id: str = typer.Option(None, "--parent-id", help="The parent message to reply to."),
-    to_person_id: str = typer.Option(None, "--to-person-id", help="The person ID of the recipient when sending a private 1:1 me"),
-    to_person_email: str = typer.Option(None, "--to-person-email", help="The email address of the recipient when sending a private 1:"),
-    text: str = typer.Option(None, "--text", help="The message, in plain text. If `markdown` is specified this"),
-    markdown: str = typer.Option(None, "--markdown", help="The message, in Markdown format. The maximum message length"),
+    to_person_id: str = typer.Option(None, "--to-person-id", help="The person ID of the recipient when sending a private 1:1 message."),
+    to_person_email: str = typer.Option(None, "--to-person-email", help="The email address of the recipient when sending a private 1:1 message."),
+    text: str = typer.Option(None, "--text", help="The message, in plain text. If `markdown` is specified this parameter may be *optionally* used to provide alternate text for UI clients that do not support rich text. The maximum message length is 7439 bytes."),
+    markdown: str = typer.Option(None, "--markdown", help="The message, in Markdown format. The maximum message length is 7439 bytes."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -167,8 +167,8 @@ def show(
 def update(
     message_id: str = typer.Argument(help="messageId"),
     room_id: str = typer.Option(None, "--room-id", help="The room ID of the message."),
-    text: str = typer.Option(None, "--text", help="The message, in plain text. If `markdown` is specified this"),
-    markdown: str = typer.Option(None, "--markdown", help="The message, in Markdown format. If this attribute is set en"),
+    text: str = typer.Option(None, "--text", help="The message, in plain text. If `markdown` is specified this parameter may be *optionally* used to provide alternate text for UI clients that do not support rich text. The maximum message length is 7439 bytes."),
+    markdown: str = typer.Option(None, "--markdown", help="The message, in Markdown format. If this attribute is set ensure that the request does NOT contain an `html` attribute."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -10,11 +10,11 @@ app = typer.Typer(help="Manage Webex Meetings meeting-transcripts.")
 
 @app.command("list")
 def cmd_list(
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to ret"),
-    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists transcripts."),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
+    meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) to which the transcript belongs. Please note that currently the meeting ID of a scheduled [personal..."),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the `admin-level` scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user. If `meetingId`..."),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API lists transcripts. If not specified, the API lists transcripts from user's preferred site. All available Webex sites and the preferred site of the user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -54,8 +54,8 @@ def cmd_list(
 
 @app.command("list-meeting-transcripts")
 def list_meeting_transcripts(
-    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return"),
-    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to ret"),
+    from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
+    to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
     site_url: str = typer.Option(..., "--site-url", help="URL of the Webex site from which the API lists transcripts."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -94,7 +94,7 @@ def list_meeting_transcripts(
 def list_download(
     transcript_id: str = typer.Argument(help="transcriptId"),
     format_param: str = typer.Option(None, "--format", help="Choices: vtt, txt"),
-    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only u"),
+    host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the `admin-level` scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -186,7 +186,7 @@ def show(
 def update(
     transcript_id: str = typer.Argument(help="transcriptId"),
     snippet_id: str = typer.Argument(help="snippetId"),
-    reason: str = typer.Option(None, "--reason", help="Reason for snippet update; only required for Compliance Offi"),
+    reason: str = typer.Option(None, "--reason", help="Reason for snippet update; only required for Compliance Officers."),
     text: str = typer.Option(None, "--text", help="Text for the snippet."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -213,8 +213,8 @@ def update(
 @app.command("delete")
 def delete(
     transcript_id: str = typer.Argument(help="transcriptId"),
-    reason: str = typer.Option(None, "--reason", help="Reason for deleting a transcript. Only required when a Compl"),
-    comment: str = typer.Option(None, "--comment", help="Explanation for deleting a transcript. The comment can be a"),
+    reason: str = typer.Option(None, "--reason", help="Reason for deleting a transcript. Only required when a Compliance Officer is operating on another user's transcript."),
+    comment: str = typer.Option(None, "--comment", help="Explanation for deleting a transcript. The comment can be a maximum of 255 characters long."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     debug: bool = typer.Option(False, "--debug"),

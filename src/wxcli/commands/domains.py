@@ -36,8 +36,8 @@ def get_domain_verification(
 @app.command("verify-domain")
 def verify_domain(
     domain: str = typer.Option(None, "--domain", help="The domain name to be verified."),
-    claim_domain: str = typer.Option(None, "--claim-domain", help="A boolean to specify whether the domain needs to be claimed."),
-    reserve_domain: str = typer.Option(None, "--reserve-domain", help="For FedRAMP only: If true, add the domain to the FedRAMP res"),
+    claim_domain: str = typer.Option(None, "--claim-domain", help="A boolean to specify whether the domain needs to be claimed. The default value is false. If false, the domain will be verified but not claimed."),
+    reserve_domain: str = typer.Option(None, "--reserve-domain", help="For FedRAMP only: If true, add the domain to the FedRAMP reserved domain list. The default value is false."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -65,8 +65,8 @@ def verify_domain(
 
 @app.command("claim-domain")
 def claim_domain(
-    force_domain_claim: str = typer.Option(None, "--force-domain-claim", help="Indicate if the domain should be claimed when there are user"),
-    claim_domain_only: str = typer.Option(None, "--claim-domain-only", help="Indicate to just claim the domain only without searching/mar"),
+    force_domain_claim: str = typer.Option(None, "--force-domain-claim", help="Indicate if the domain should be claimed when there are users outside the organization using the same domain. The default is true."),
+    claim_domain_only: str = typer.Option(None, "--claim-domain-only", help="Indicate to just claim the domain only without searching/marking external users as transient. The default is false."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -93,7 +93,7 @@ def claim_domain(
 @app.command("unverify-domain")
 def unverify_domain(
     domain: str = typer.Option(None, "--domain", help="Domain name to be verified."),
-    remove_pending: str = typer.Option(None, "--remove-pending", help="Specify whether to remove pending domain. Default is false ("),
+    remove_pending: str = typer.Option(None, "--remove-pending", help="Specify whether to remove pending domain. Default is false (backward compatibility). If true, domains will be deleted from pending domain list."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
 ):

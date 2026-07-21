@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Calling wholesale-billing-reports.")
 
 @app.command("list")
 def cmd_list(
-    billing_start_date: str = typer.Option(None, "--billing-start-date", help="Only include billing reports having this billing `startDate`"),
+    billing_start_date: str = typer.Option(None, "--billing-start-date", help="Only include billing reports having this billing `startDate`."),
     billing_end_date: str = typer.Option(None, "--billing-end-date", help="Only include billing reports having this billing `endDate`."),
     type_param: str = typer.Option(None, "--type", help="Choices: PARTNER, CUSTOMER, USER"),
     sort_by: str = typer.Option(None, "--sort-by", help="Choices: id, billingStartDate, billingEndDate, status"),
@@ -57,11 +57,11 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    billing_start_date: str = typer.Option(None, "--billing-start-date", help="(required) The `startDate` (`YYYY-MM-DD`) for which the partner request"),
-    billing_end_date: str = typer.Option(None, "--billing-end-date", help="(required) The `endDate` (`YYYY-MM-DD`) for which the partner requests"),
-    type_param: str = typer.Option(None, "--type", help="Create report of the given type, `PARTNER`, `CUSTOMER`, or `"),
+    billing_start_date: str = typer.Option(None, "--billing-start-date", help="(required) The `startDate` (`YYYY-MM-DD`) for which the partner requests the billing report."),
+    billing_end_date: str = typer.Option(None, "--billing-end-date", help="(required) The `endDate` (`YYYY-MM-DD`) for which the partner requests the billing report."),
+    type_param: str = typer.Option(None, "--type", help="Create report of the given type, `PARTNER`, `CUSTOMER`, or `USER`. Default: `PARTNER`."),
     sub_partner_org_id: str = typer.Option(None, "--sub-partner-org-id", help="The Organization ID of the sub partner on Cisco Webex."),
-    internal: bool = typer.Option(None, "--internal/--no-internal", help="If true or selected, internal orgs will be included in the b"),
+    internal: bool = typer.Option(None, "--internal/--no-internal", help="If true or selected, internal orgs will be included in the billing report. Default: false."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

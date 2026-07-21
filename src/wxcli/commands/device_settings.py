@@ -75,7 +75,7 @@ def list_available_members(
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier for the location."),
     extension: str = typer.Option(None, "--extension", help="Search (Contains) based on extension."),
     usage_type: str = typer.Option(None, "--usage-type", help="Choices: DEVICE_OWNER, SHARED_LINE"),
-    order: str = typer.Option(None, "--order", help="Sort the list of available members on the device in ascendin"),
+    order: str = typer.Option(None, "--order", help="Sort the list of available members on the device in ascending order by name, use either last name `lname` or first name `fname`. Default: last name in ascending order."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -169,8 +169,8 @@ def show_count_available_members(
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier for the location."),
     extension: str = typer.Option(None, "--extension", help="Search (Contains) based on extension."),
     usage_type: str = typer.Option(None, "--usage-type", help="Choices: DEVICE_OWNER, SHARED_LINE"),
-    exclude_virtual_line: str = typer.Option(None, "--exclude-virtual-line", help="If true, filters out virtual lines from the available member"),
-    device_location_id: str = typer.Option(None, "--device-location-id", help="Unique identifier for the device's location. When specified,"),
+    exclude_virtual_line: str = typer.Option(None, "--exclude-virtual-line", help="If true, filters out virtual lines from the available members list."),
+    device_location_id: str = typer.Option(None, "--device-location-id", help="Unique identifier for the device's location. When specified, filters available members to those in the same location as the device."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -239,7 +239,7 @@ def apply_changes_for(
 @app.command("show-settings-devices")
 def show_settings_devices(
     device_id: str = typer.Argument(help="deviceId"),
-    device_model: str = typer.Option(None, "--device-model", help="The model type of the device. The corresponding device model"),
+    device_model: str = typer.Option(None, "--device-model", help="The model type of the device. The corresponding device model display name sometimes called the product name, can also be used to specify the model."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -271,8 +271,8 @@ def show_settings_devices(
 @app.command("update-settings-devices")
 def update_settings_devices(
     device_id: str = typer.Argument(help="deviceId"),
-    device_model: str = typer.Option(None, "--device-model", help="The model type of the device. The corresponding device model"),
-    custom_enabled: bool = typer.Option(None, "--custom-enabled/--no-custom-enabled", help="Indicates if customization is allowed at a device level. If"),
+    device_model: str = typer.Option(None, "--device-model", help="The model type of the device. The corresponding device model display name sometimes called the product name, can also be used to specify the model."),
+    custom_enabled: bool = typer.Option(None, "--custom-enabled/--no-custom-enabled", help="Indicates if customization is allowed at a device level. If true, customized at a device level. If false, not customized; uses customer-level configuration."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -479,9 +479,9 @@ def list_devices_workspaces(
 @app.command("update-devices-workspaces")
 def update_devices_workspaces(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/Disable hoteling Host. Enabling the device for hoteli"),
-    limit_guest_use: bool = typer.Option(None, "--limit-guest-use/--no-limit-guest-use", help="Enable limiting the time a guest can use the device. The tim"),
-    guest_hours_limit: str = typer.Option(None, "--guest-hours-limit", help="Time Limit in hours until hoteling is enabled. Mandatory if"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/Disable hoteling Host. Enabling the device for hoteling means that a guest(end user) can log into this host(workspace device) and use this device as if it were their own. This is useful when traveling to a remote office but still needing to place/receive calls with their telephone number and..."),
+    limit_guest_use: bool = typer.Option(None, "--limit-guest-use/--no-limit-guest-use", help="Enable limiting the time a guest can use the device. The time limit is configured via `guestHoursLimit`."),
+    guest_hours_limit: str = typer.Option(None, "--guest-hours-limit", help="Time Limit in hours until hoteling is enabled. Mandatory if `limitGuestUse` is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -573,7 +573,7 @@ def list_line_key_templates(
 @app.command("create")
 def create(
     template_name: str = typer.Option(None, "--template-name", help="(required) Name of the Line Key Template."),
-    device_model: str = typer.Option(None, "--device-model", help="(required) The model of the device for which the Line Key Template is a"),
+    device_model: str = typer.Option(None, "--device-model", help="(required) The model of the device for which the Line Key Template is applicable. The corresponding device model display name sometimes called the product name, can also be used to specify the model."),
     user_reorder_enabled: bool = typer.Option(None, "--user-reorder-enabled/--no-user-reorder-enabled", help="User Customization Enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -995,8 +995,8 @@ def list_call_device_settings(
 
 @app.command("create-call-device-settings")
 def create_call_device_settings(
-    location_id: str = typer.Option(None, "--location-id", help="Location within an organization where changes of device seti"),
-    location_customizations_enabled: bool = typer.Option(None, "--location-customizations-enabled/--no-location-customizations-enabled", help="Indicates if all the devices within this location will be cu"),
+    location_id: str = typer.Option(None, "--location-id", help="Location within an organization where changes of device setings will be applied to all the devices within it."),
+    location_customizations_enabled: bool = typer.Option(None, "--location-customizations-enabled/--no-location-customizations-enabled", help="Indicates if all the devices within this location will be customized with new requested customizations(if set to `true`) or will be overridden with the one at organization level (if set to `false` or any other value). This field has no effect when the job is being triggered at organization level."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

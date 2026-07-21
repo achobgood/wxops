@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-search.")
 
 @app.command("create")
 def create(
-    query: str = typer.Option(None, "--query", help="A graphQL query specifying the task attributes needed in the"),
+    query: str = typer.Option(None, "--query", help="A graphQL query specifying the task attributes needed in the response for the specified time window. from: Start time for the query (in epoch milliseconds) and it cannot be older than 36 months from the current time. to: End time for the query (in epoch milliseconds) and it cannot be greater than..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

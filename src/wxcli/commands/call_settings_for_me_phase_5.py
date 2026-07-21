@@ -36,11 +36,11 @@ def show(
 def update(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/Disable the personal assistant feature."),
     presence: str = typer.Option(None, "--presence", help="Choices: BUSINESS_TRIP, GONE_FOR_THE_DAY, LUNCH, MEETING, OUT_OF_OFFICE, TEMPORARILY_OUT, TRAINING, UNAVAILABLE, VACATION"),
-    until_date_time: str = typer.Option(None, "--until-date-time", help="Date and time until which the personal assistant is active ("),
-    transfer_enabled: bool = typer.Option(None, "--transfer-enabled/--no-transfer-enabled", help="Enable/Disable call transfer when personal assistant is acti"),
+    until_date_time: str = typer.Option(None, "--until-date-time", help="Date and time until which the personal assistant is active (ISO 8601 format)."),
+    transfer_enabled: bool = typer.Option(None, "--transfer-enabled/--no-transfer-enabled", help="Enable/Disable call transfer when personal assistant is active."),
     transfer_number: str = typer.Option(None, "--transfer-number", help="Phone number to transfer calls to when transfer is enabled."),
     alerting: str = typer.Option(None, "--alerting", help="Choices: ALERT_ME_FIRST, PLAY_RING_REMINDER, NONE"),
-    alert_me_first_number_of_rings: str = typer.Option(None, "--alert-me-first-number-of-rings", help="Number of rings before transferring the call when alerting i"),
+    alert_me_first_number_of_rings: str = typer.Option(None, "--alert-me-first-number-of-rings", help="Number of rings before transferring the call when alerting is set to ALERT_ME_FIRST."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -99,7 +99,7 @@ def show_rules(
 
 @app.command("update-pin")
 def update_pin(
-    passcode: str = typer.Option(None, "--passcode", help="Person voicemail PIN. The PIN must comply with the passcode"),
+    passcode: str = typer.Option(None, "--passcode", help="Person voicemail PIN. The PIN must comply with the passcode rules defined for the organization."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -146,10 +146,10 @@ def show_guest(
 
 @app.command("update-guest")
 def update_guest(
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/Disable hoteling guest functionality for the person."),
-    association_limit_enabled: bool = typer.Option(None, "--association-limit-enabled/--no-association-limit-enabled", help="When enabled, the person's hoteling guest association will b"),
-    association_limit_hours: str = typer.Option(None, "--association-limit-hours", help="Time limit in hours for the hoteling guest association (1-99"),
-    host_id: str = typer.Option(None, "--host-id", help="Unique identifier of the hoteling host person or workspace t"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/Disable hoteling guest functionality for the person. When enabled, the person can associate themselves with a hoteling host device."),
+    association_limit_enabled: bool = typer.Option(None, "--association-limit-enabled/--no-association-limit-enabled", help="When enabled, the person's hoteling guest association will be automatically removed after the specified time period."),
+    association_limit_hours: str = typer.Option(None, "--association-limit-hours", help="Time limit in hours for the hoteling guest association (1-999). Applicable when associationLimitEnabled is true."),
+    host_id: str = typer.Option(None, "--host-id", help="Unique identifier of the hoteling host person or workspace to associate with. Required when enabling hoteling guest functionality."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -178,7 +178,7 @@ def update_guest(
 
 @app.command("list")
 def cmd_list(
-    name: str = typer.Option(None, "--name", help="Filter hosts by name (first name or last name). Partial matc"),
+    name: str = typer.Option(None, "--name", help="Filter hosts by name (first name or last name). Partial match is supported."),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter hosts by phone number. Partial match is supported."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),

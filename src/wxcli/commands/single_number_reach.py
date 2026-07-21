@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling single-number-reach.")
 @app.command("list")
 def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -51,8 +51,8 @@ def create(
     phone_number: str = typer.Option(None, "--phone-number", help="(required) Personal phone number used as single Number Reach."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="(required) A flag to enable or disable single Number Reach."),
     name: str = typer.Option(None, "--name", help="(required) Name of the single number reach phone number entry."),
-    do_not_forward_calls_enabled: bool = typer.Option(None, "--do-not-forward-calls-enabled/--no-do-not-forward-calls-enabled", help="If enabled, the call forwarding settings of provided phone N"),
-    answer_confirmation_enabled: bool = typer.Option(None, "--answer-confirmation-enabled/--no-answer-confirmation-enabled", help="If enabled, the call recepient will be prompted to press a k"),
+    do_not_forward_calls_enabled: bool = typer.Option(None, "--do-not-forward-calls-enabled/--no-do-not-forward-calls-enabled", help="If enabled, the call forwarding settings of provided phone Number will not be applied."),
+    answer_confirmation_enabled: bool = typer.Option(None, "--answer-confirmation-enabled/--no-answer-confirmation-enabled", help="If enabled, the call recepient will be prompted to press a key before being connected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -126,7 +126,7 @@ def list_single_number_reach(
 @app.command("update")
 def update(
     person_id: str = typer.Argument(help="personId"),
-    alert_all_numbers_for_click_to_dial_calls_enabled: bool = typer.Option(None, "--alert-all-numbers-for-click-to-dial-calls-enabled/--no-alert-all-numbers-for-click-to-dial-calls-enabled", help="Flag to enable alerting single number reach numbers for clic"),
+    alert_all_numbers_for_click_to_dial_calls_enabled: bool = typer.Option(None, "--alert-all-numbers-for-click-to-dial-calls-enabled/--no-alert-all-numbers-for-click-to-dial-calls-enabled", help="Flag to enable alerting single number reach numbers for click to dial calls."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -152,10 +152,10 @@ def update_numbers(
     person_id: str = typer.Argument(help="personId"),
     id: str = typer.Argument(help="id"),
     phone_number: str = typer.Option(None, "--phone-number", help="Personal phone number used as single Number Reach."),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="A flag to enable or disable single Number Reach phone number"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="A flag to enable or disable single Number Reach phone number."),
     name: str = typer.Option(None, "--name", help="Name of the single number reach phone number entry."),
-    do_not_forward_calls_enabled: bool = typer.Option(None, "--do-not-forward-calls-enabled/--no-do-not-forward-calls-enabled", help="If enabled, the call forwarding settings of provided phone N"),
-    answer_confirmation_enabled: bool = typer.Option(None, "--answer-confirmation-enabled/--no-answer-confirmation-enabled", help="If enabled, the call recepient will be prompted to press a k"),
+    do_not_forward_calls_enabled: bool = typer.Option(None, "--do-not-forward-calls-enabled/--no-do-not-forward-calls-enabled", help="If enabled, the call forwarding settings of provided phone Number will not be applied."),
+    answer_confirmation_enabled: bool = typer.Option(None, "--answer-confirmation-enabled/--no-answer-confirmation-enabled", help="If enabled, the call recepient will be prompted to press a key before being connected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling broadworks-billing-reports.")
 def cmd_list(
     before: str = typer.Option(None, "--before", help="Only include billing reports created before this date."),
     after: str = typer.Option(None, "--after", help="Only include billing reports created after this date."),
-    sort_by: str = typer.Option(None, "--sort-by", help="Sort the reports.  + Members:     + id     + status     + bi"),
+    sort_by: str = typer.Option(None, "--sort-by", help="Sort the reports. + Members: + id + status + billingPeriod"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -48,7 +48,7 @@ def cmd_list(
 
 @app.command("create")
 def create(
-    billing_period: str = typer.Option(None, "--billing-period", help="(required) The year and month (`YYYY-MM`) for which the billing report"),
+    billing_period: str = typer.Option(None, "--billing-period", help="(required) The year and month (`YYYY-MM`) for which the billing report is to be generated."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

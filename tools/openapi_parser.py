@@ -129,7 +129,7 @@ def parse_parameters(
                 continue
             field_type = _openapi_type_to_field_type(schema)
             enum_values = schema.get("enum")
-            desc = param.get("description", "")[:120]
+            desc = param.get("description", "")
             required = param.get("required", False)
             query_params.append(
                 EndpointField(
@@ -264,7 +264,7 @@ def parse_request_body(
                         name=name,
                         python_name=camel_to_kebab(name),
                         field_type="object",
-                        description=prop.get("description", "")[:120],
+                        description=prop.get("description", ""),
                         required=name in required_fields,
                     )
                 )
@@ -272,7 +272,7 @@ def parse_request_body(
 
         field_type = _openapi_type_to_field_type(prop)
         enum_values = prop.get("enum")
-        desc = prop.get("description", "")[:120]
+        desc = prop.get("description", "")
 
         fields.append(
             EndpointField(

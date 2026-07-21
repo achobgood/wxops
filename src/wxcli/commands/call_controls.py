@@ -11,10 +11,10 @@ app = typer.Typer(help="Manage Webex Calling call-controls.")
 
 @app.command("create")
 def create(
-    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
-    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mu"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, and `sip:user@company.domain`."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -58,8 +58,8 @@ def create(
 @app.command("create-answer-calls")
 def create_answer_calls(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be answered."),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -99,8 +99,8 @@ def create_answer_calls(
 @app.command("create-reject")
 def create_reject(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
-    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action i"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action is applied if no specific action is provided."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -140,7 +140,7 @@ def create_reject(
 @app.command("create-hangup-calls")
 def create_hangup_calls(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hangup."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -178,7 +178,7 @@ def create_hangup_calls(
 @app.command("create-hold")
 def create_hold(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hold."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -216,7 +216,7 @@ def create_hold(
 @app.command("create-resume")
 def create_resume(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to resume."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -254,7 +254,7 @@ def create_resume(
 @app.command("create-mute")
 def create_mute(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to mute."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -292,7 +292,7 @@ def create_mute(
 @app.command("create-unmute")
 def create_unmute(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to unmute."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -330,9 +330,9 @@ def create_unmute(
 @app.command("create-divert")
 def create_divert(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to divert."),
-    destination: str = typer.Option(None, "--destination", help="The destination to divert the call to. If toVoicemail is fal"),
-    to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help="If set to true, the call is diverted to voicemail. If no des"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    destination: str = typer.Option(None, "--destination", help="The destination to divert the call to. If toVoicemail is false, destination is required. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help="If set to true, the call is diverted to voicemail. If no destination is specified, the call is diverted to the user's own voicemail. If a destination is specified, the call is diverted to the specified user's voicemail."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -373,10 +373,10 @@ def create_divert(
 
 @app.command("create-transfer")
 def create_transfer(
-    call_id1: str = typer.Option(None, "--call-id1", help="The call identifier of the first call to transfer. This para"),
-    call_id2: str = typer.Option(None, "--call-id2", help="The call identifier of the second call to transfer. This par"),
-    destination: str = typer.Option(None, "--destination", help="The destination to be transferred to. The destination can be"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    call_id1: str = typer.Option(None, "--call-id1", help="The call identifier of the first call to transfer. This parameter is mandatory if either `callId2` or `destination` is provided."),
+    call_id2: str = typer.Option(None, "--call-id2", help="The call identifier of the second call to transfer. This parameter is mandatory if `callId1` is provided and `destination` is not provided."),
+    destination: str = typer.Option(None, "--destination", help="The destination to be transferred to. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`. This parameter is mandatory if `callId1` is provided and `callId2` is not..."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -416,9 +416,9 @@ def create_transfer(
 @app.command("create-park")
 def create_park(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to park."),
-    destination: str = typer.Option(None, "--destination", help="Identifes where the call is to be parked. If not provided, t"),
-    is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help="If set to`true`, the call is parked against an automatically"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    destination: str = typer.Option(None, "--destination", help="Identifes where the call is to be parked. If not provided, the call is parked against the parking user. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help="If set to`true`, the call is parked against an automatically selected member of the user's call park group and the destination parameter is ignored."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -459,10 +459,10 @@ def create_park(
 
 @app.command("create-retrieve")
 def create_retrieve(
-    destination: str = typer.Option(None, "--destination", help="Identifies where the call is parked. The number field from t"),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval"),
-    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the retrieva"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    destination: str = typer.Option(None, "--destination", help="Identifies where the call is parked. The number field from the park command response can be used as the destination for the retrieve command. If not provided, the call parked against the retrieving user is retrieved. The destination can be digits or a URI. Some examples for destination include:..."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the retrieval. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -502,7 +502,7 @@ def create_retrieve(
 @app.command("create-start-recording")
 def create_start_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to start recording."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -536,7 +536,7 @@ def create_start_recording(
 @app.command("create-stop-recording")
 def create_stop_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to stop recording."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -570,7 +570,7 @@ def create_stop_recording(
 @app.command("create-pause-recording")
 def create_pause_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to pause recording."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -604,7 +604,7 @@ def create_pause_recording(
 @app.command("create-resume-recording")
 def create_resume_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to resume recording."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -638,8 +638,8 @@ def create_resume_recording(
 @app.command("create-transmit-dtmf")
 def create_transmit_dtmf(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to transmit DTMF digits for."),
-    dtmf: str = typer.Option(None, "--dtmf", help="The DTMF digits to transmit. Each digit must be part of the"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    dtmf: str = typer.Option(None, "--dtmf", help="The DTMF digits to transmit. Each digit must be part of the following set: `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, *, #, A, B, C, D]`. A comma \",\" may be included to indicate a pause between digits. For the value '1,234' the DTMF 1 digit is initially sent. After a pause, the DTMF 2, 3, and 4 digits are..."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -675,7 +675,7 @@ def create_transmit_dtmf(
 @app.command("create-push")
 def create_push(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to push."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -708,10 +708,10 @@ def create_push(
 
 @app.command("create-pickup")
 def create_pickup(
-    target: str = typer.Option(None, "--target", help="Identifies the user to pickup an incoming call from. If not"),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the pickup. T"),
-    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the pickup."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    target: str = typer.Option(None, "--target", help="Identifies the user to pickup an incoming call from. If not provided, an incoming call to the user's call pickup group is picked up. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`,..."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the pickup. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the pickup. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -750,10 +750,10 @@ def create_pickup(
 
 @app.command("create-barge-in")
 def create_barge_in(
-    target: str = typer.Option(None, "--target", help="(required) Identifies the user to barge-in on. The target can be digits"),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in."),
-    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the barge-in"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    target: str = typer.Option(None, "--target", help="(required) Identifies the user to barge-in on. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the barge-in. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -796,7 +796,7 @@ def create_barge_in(
 
 @app.command("list")
 def cmd_list(
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -829,7 +829,7 @@ def cmd_list(
 @app.command("show")
 def show(
     call_id: str = typer.Argument(help="callId"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -889,8 +889,8 @@ def list_history(
 
 @app.command("create-pull")
 def create_pull(
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -926,9 +926,9 @@ def create_pull(
 @app.command("create-dial-members")
 def create_dial_members(
     member_id: str = typer.Argument(help="memberId"),
-    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
-    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mu"),
+    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, and `sip:user@company.domain`."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mutually exclusive with `endpointId`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -975,7 +975,7 @@ def create_dial_members(
 def create_answer_members(
     member_id: str = typer.Argument(help="memberId"),
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be answered."),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1119,10 +1119,10 @@ def show_calls_members(
 
 @app.command("create-dial-me")
 def create_dial_me(
-    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits"),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The"),
-    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mu"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    destination: str = typer.Option(None, "--destination", help="(required) The destination to be dialed. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, and `sip:user@company.domain`."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the call. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the call. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1166,8 +1166,8 @@ def create_dial_me(
 @app.command("create-answer-me")
 def create_answer_me(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be answered."),
-    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. T"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to answer the call on. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1207,7 +1207,7 @@ def create_answer_me(
 @app.command("create-hangup-me")
 def create_hangup_me(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hangup."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1244,7 +1244,7 @@ def create_hangup_me(
 
 @app.command("list-calls-me")
 def list_calls_me(
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1277,7 +1277,7 @@ def list_calls_me(
 @app.command("show-calls-me")
 def show_calls_me(
     call_id: str = typer.Argument(help="callId"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):

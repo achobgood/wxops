@@ -41,13 +41,13 @@ def show(
 @app.command("update")
 def update(
     person_id: str = typer.Argument(help="personId"),
-    ring_devices_for_click_to_dial_calls_enabled: bool = typer.Option(None, "--ring-devices-for-click-to-dial-calls-enabled/--no-ring-devices-for-click-to-dial-calls-enabled", help="When `true`, indicates to ring devices for outbound Click to"),
-    ring_devices_for_group_page_enabled: bool = typer.Option(None, "--ring-devices-for-group-page-enabled/--no-ring-devices-for-group-page-enabled", help="When `true`, indicates to ring devices for inbound Group Pag"),
-    ring_devices_for_call_park_enabled: bool = typer.Option(None, "--ring-devices-for-call-park-enabled/--no-ring-devices-for-call-park-enabled", help="When `true`, indicates to ring devices for Call Park recalle"),
-    browser_client_enabled: bool = typer.Option(None, "--browser-client-enabled/--no-browser-client-enabled", help="If `true`, the browser Webex Calling application is enabled"),
-    desktop_client_enabled: bool = typer.Option(None, "--desktop-client-enabled/--no-desktop-client-enabled", help="If `true`, the desktop Webex Calling application is enabled"),
-    tablet_client_enabled: bool = typer.Option(None, "--tablet-client-enabled/--no-tablet-client-enabled", help="If `true`, the tablet Webex Calling application is enabled f"),
-    mobile_client_enabled: bool = typer.Option(None, "--mobile-client-enabled/--no-mobile-client-enabled", help="If `true`, the mobile Webex Calling application is enabled f"),
+    ring_devices_for_click_to_dial_calls_enabled: bool = typer.Option(None, "--ring-devices-for-click-to-dial-calls-enabled/--no-ring-devices-for-click-to-dial-calls-enabled", help="When `true`, indicates to ring devices for outbound Click to Dial calls."),
+    ring_devices_for_group_page_enabled: bool = typer.Option(None, "--ring-devices-for-group-page-enabled/--no-ring-devices-for-group-page-enabled", help="When `true`, indicates to ring devices for inbound Group Pages."),
+    ring_devices_for_call_park_enabled: bool = typer.Option(None, "--ring-devices-for-call-park-enabled/--no-ring-devices-for-call-park-enabled", help="When `true`, indicates to ring devices for Call Park recalled."),
+    browser_client_enabled: bool = typer.Option(None, "--browser-client-enabled/--no-browser-client-enabled", help="If `true`, the browser Webex Calling application is enabled for use."),
+    desktop_client_enabled: bool = typer.Option(None, "--desktop-client-enabled/--no-desktop-client-enabled", help="If `true`, the desktop Webex Calling application is enabled for use."),
+    tablet_client_enabled: bool = typer.Option(None, "--tablet-client-enabled/--no-tablet-client-enabled", help="If `true`, the tablet Webex Calling application is enabled for use."),
+    mobile_client_enabled: bool = typer.Option(None, "--mobile-client-enabled/--no-mobile-client-enabled", help="If `true`, the mobile Webex Calling application is enabled for use."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -117,7 +117,7 @@ def show_barge_in(
 def update_barge_in(
     person_id: str = typer.Argument(help="personId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to enable or disable the Barge In feature."),
-    tone_enabled: bool = typer.Option(None, "--tone-enabled/--no-tone-enabled", help="Set to enable or disable a stutter dial tone being played wh"),
+    tone_enabled: bool = typer.Option(None, "--tone-enabled/--no-tone-enabled", help="Set to enable or disable a stutter dial tone being played when a virtual line is barging in on the active call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -437,17 +437,17 @@ def cmd_list(
 def update_caller_id_features(
     person_id: str = typer.Argument(help="personId"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
-    custom_number: str = typer.Option(None, "--custom-number", help="Custom number which will be shown if CUSTOM is selected. Thi"),
-    first_name: str = typer.Option(None, "--first-name", help="Virtual line's Caller ID first name. The characters `%`,  `+"),
-    last_name: str = typer.Option(None, "--last-name", help="Virtual line's Caller ID last name. The characters `%`,  `+`"),
+    custom_number: str = typer.Option(None, "--custom-number", help="Custom number which will be shown if CUSTOM is selected. This value must be a number from the virtual line's location or from another location with the same country, PSTN provider, and zone (only applicable for India locations) as the virtual line's location."),
+    first_name: str = typer.Option(None, "--first-name", help="Virtual line's Caller ID first name. The characters `%`, `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByFirstName` instead."),
+    last_name: str = typer.Option(None, "--last-name", help="Virtual line's Caller ID last name. The characters `%`, `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByLastName` instead."),
     block_in_forward_calls_enabled: bool = typer.Option(None, "--block-in-forward-calls-enabled/--no-block-in-forward-calls-enabled", help="Block this virtual line's identity when receiving a call."),
     external_caller_id_name_policy: str = typer.Option(None, "--external-caller-id-name-policy", help="Choices: DIRECT_LINE, LOCATION, OTHER"),
-    custom_external_caller_id_name: str = typer.Option(None, "--custom-external-caller-id-name", help="Custom external caller ID name which will be shown if extern"),
-    additional_external_caller_id_direct_line_enabled: bool = typer.Option(None, "--additional-external-caller-id-direct-line-enabled/--no-additional-external-caller-id-direct-line-enabled", help="Set the virtual line's direct line number as additional exte"),
-    additional_external_caller_id_location_number_enabled: bool = typer.Option(None, "--additional-external-caller-id-location-number-enabled/--no-additional-external-caller-id-location-number-enabled", help="Set the Location main number as additional external caller I"),
-    additional_external_caller_id_custom_number: str = typer.Option(None, "--additional-external-caller-id-custom-number", help="To set a custom number as additional external caller ID for"),
-    dial_by_first_name: str = typer.Option(None, "--dial-by-first-name", help="Sets or clears the first name to be used for dial-by-name fu"),
-    dial_by_last_name: str = typer.Option(None, "--dial-by-last-name", help="Sets or clears the last name to be used for dial-by-name fun"),
+    custom_external_caller_id_name: str = typer.Option(None, "--custom-external-caller-id-name", help="Custom external caller ID name which will be shown if external caller ID name policy is `OTHER`."),
+    additional_external_caller_id_direct_line_enabled: bool = typer.Option(None, "--additional-external-caller-id-direct-line-enabled/--no-additional-external-caller-id-direct-line-enabled", help="Set the virtual line's direct line number as additional external caller ID."),
+    additional_external_caller_id_location_number_enabled: bool = typer.Option(None, "--additional-external-caller-id-location-number-enabled/--no-additional-external-caller-id-location-number-enabled", help="Set the Location main number as additional external caller ID for the virtual line."),
+    additional_external_caller_id_custom_number: str = typer.Option(None, "--additional-external-caller-id-custom-number", help="To set a custom number as additional external caller ID for the virtual line. This value must be a number from the virtual line's location or from another location with the same country, PSTN provider, and zone (only applicable for India locations) as the virtual line's location."),
+    dial_by_first_name: str = typer.Option(None, "--dial-by-first-name", help="Sets or clears the first name to be used for dial-by-name functions. To clear the `dialByFirstName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
+    dial_by_last_name: str = typer.Option(None, "--dial-by-last-name", help="Sets or clears the last name to be used for dial-by-name functions. To clear the `dialByLastName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -527,7 +527,7 @@ def show_calling_behavior(
 def update_calling_behavior(
     person_id: str = typer.Argument(help="personId"),
     behavior_type: str = typer.Option(None, "--behavior-type", help="Choices: NATIVE_WEBEX_TEAMS_CALLING, CALL_WITH_APP_REGISTERED_FOR_CISCOTEL, CALL_WITH_APP_REGISTERED_FOR_TEL, CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL, NATIVE_SIP_CALL_TO_UCM"),
-    profile_id: str = typer.Option(None, "--profile-id", help="The UC Manager Profile ID. Specifying null results in the or"),
+    profile_id: str = typer.Option(None, "--profile-id", help="The UC Manager Profile ID. Specifying null results in the organizational default being applied. In addition, when `behaviorType` is set to `CALL_WITH_APP_REGISTERED_FOR_CISCOTEL`, then the profile ID value will be cleared irrespective of any value being passed."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -587,8 +587,8 @@ def show_do_not_disturb(
 def update_do_not_disturb(
     person_id: str = typer.Argument(help="personId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the Do Not Disturb feature is enabled."),
-    ring_splash_enabled: bool = typer.Option(None, "--ring-splash-enabled/--no-ring-splash-enabled", help="Enables a Ring Reminder to play a brief tone on your desktop"),
-    webex_go_override_enabled: bool = typer.Option(None, "--webex-go-override-enabled/--no-webex-go-override-enabled", help="`true` if a mobile device will still ring even if Do Not Dis"),
+    ring_splash_enabled: bool = typer.Option(None, "--ring-splash-enabled/--no-ring-splash-enabled", help="Enables a Ring Reminder to play a brief tone on your desktop phone when you receive incoming calls."),
+    webex_go_override_enabled: bool = typer.Option(None, "--webex-go-override-enabled/--no-webex-go-override-enabled", help="`true` if a mobile device will still ring even if Do Not Disturb is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -706,7 +706,7 @@ def show_hoteling(
 @app.command("update-hoteling")
 def update_hoteling(
     person_id: str = typer.Argument(help="personId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="When `true`, allow this person to connect to a Hoteling host"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="When `true`, allow this person to connect to a Hoteling host device."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -737,7 +737,7 @@ def list_available_members_speed_dials(
     location_id: str = typer.Option(None, "--location-id", help="Search for the available speed dials in the location ID."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
-    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort d"),
+    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`. Example: `lastName-asc` or `firstName-desc`. Default sort is ascending order."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -782,7 +782,7 @@ def list_available_members_monitoring(
     location_id: str = typer.Option(None, "--location-id", help="Search for the available members in the location ID."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
-    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort d"),
+    order: str = typer.Option(None, "--order", help="Sort response based on `firstName` or `lastName` with sort direction `asc` or `desc`. Example: `lastName-asc` or `firstName-desc`. Default sort is ascending order."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -853,7 +853,7 @@ def show_incoming_permission(
 @app.command("update-incoming-permission")
 def update_incoming_permission(
     person_id: str = typer.Argument(help="personId"),
-    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this virtual line uses the specifi"),
+    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this virtual line uses the specified calling permissions for receiving inbound calls rather than the organizational defaults."),
     external_transfer: str = typer.Option(None, "--external-transfer", help="Choices: ALLOW_ALL_EXTERNAL, ALLOW_ONLY_TRANSFERRED_EXTERNAL, BLOCK_ALL_EXTERNAL"),
     internal_calls_enabled: bool = typer.Option(None, "--internal-calls-enabled/--no-internal-calls-enabled", help="Internal calls are allowed to be received."),
     collect_calls_enabled: bool = typer.Option(None, "--collect-calls-enabled/--no-collect-calls-enabled", help="Collect calls are allowed to be received."),
@@ -923,8 +923,8 @@ def list_outgoing_permission(
 @app.command("update-outgoing-permission")
 def update_outgoing_permission(
     person_id: str = typer.Argument(help="personId"),
-    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this user uses the shared control"),
-    use_custom_permissions: bool = typer.Option(None, "--use-custom-permissions/--no-use-custom-permissions", help="When true, indicates that this user uses the specified outgo"),
+    use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this user uses the shared control that applies to all outgoing call settings categories when placing outbound calls."),
+    use_custom_permissions: bool = typer.Option(None, "--use-custom-permissions/--no-use-custom-permissions", help="When true, indicates that this user uses the specified outgoing calling permissions when placing outbound calls."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1024,9 +1024,9 @@ def list_privacy(
 def update_privacy(
     person_id: str = typer.Argument(help="personId"),
     aa_extension_dialing_enabled: bool = typer.Option(None, "--aa-extension-dialing-enabled/--no-aa-extension-dialing-enabled", help="When `true` auto attendant extension dialing is enabled."),
-    aa_naming_dialing_enabled: bool = typer.Option(None, "--aa-naming-dialing-enabled/--no-aa-naming-dialing-enabled", help="When `true` auto attendant dailing by first or last name is"),
+    aa_naming_dialing_enabled: bool = typer.Option(None, "--aa-naming-dialing-enabled/--no-aa-naming-dialing-enabled", help="When `true` auto attendant dailing by first or last name is enabled."),
     enable_phone_status_directory_privacy: bool = typer.Option(None, "--enable-phone-status-directory-privacy/--no-enable-phone-status-directory-privacy", help="When `true` phone status directory privacy is enabled."),
-    enable_phone_status_pickup_barge_in_privacy: bool = typer.Option(None, "--enable-phone-status-pickup-barge-in-privacy/--no-enable-phone-status-pickup-barge-in-privacy", help="When `true` privacy is enforced for call pickup and barge-in"),
+    enable_phone_status_pickup_barge_in_privacy: bool = typer.Option(None, "--enable-phone-status-pickup-barge-in-privacy/--no-enable-phone-status-pickup-barge-in-privacy", help="When `true` privacy is enforced for call pickup and barge-in. Only members specified by `monitoringAgents` can pickup or barge-in on the call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -1188,8 +1188,8 @@ def update_reception(
 @app.command("list-schedules")
 def list_schedules(
     person_id: str = typer.Argument(help="personId"),
-    name: str = typer.Option(None, "--name", help="Specifies the case insensitive substring to be matched again"),
-    type_param: str = typer.Option(None, "--type", help="Specifies the schedule event type to be matched on the given"),
+    name: str = typer.Option(None, "--name", help="Specifies the case insensitive substring to be matched against the schedule names. The maximum length is 40."),
+    type_param: str = typer.Option(None, "--type", help="Specifies the schedule event type to be matched on the given type."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1401,10 +1401,10 @@ def update_events(
     event_id: str = typer.Argument(help="eventId"),
     new_name: str = typer.Option(None, "--new-name", help="New name for the event."),
     name: str = typer.Option(None, "--name", help="Name for the event."),
-    start_date: str = typer.Option(None, "--start-date", help="Start date of the event, or first occurrence if repeating, i"),
-    end_date: str = typer.Option(None, "--end-date", help="End date of the event, or first occurrence if repeating, in"),
-    start_time: str = typer.Option(None, "--start-time", help="Start time of the event in the format of HH:MM (24 hours for"),
-    end_time: str = typer.Option(None, "--end-time", help="End time of the event in the format of HH:MM (24 hours forma"),
+    start_date: str = typer.Option(None, "--start-date", help="Start date of the event, or first occurrence if repeating, in the format of YYYY-MM-DD. This field is required if the `allDayEnabled` field is present."),
+    end_date: str = typer.Option(None, "--end-date", help="End date of the event, or first occurrence if repeating, in the format of YYYY-MM-DD. This field is required if the `allDayEnabled` field is present."),
+    start_time: str = typer.Option(None, "--start-time", help="Start time of the event in the format of HH:MM (24 hours format). This field is required if the `allDayEnabled` field is false or omitted."),
+    end_time: str = typer.Option(None, "--end-time", help="End time of the event in the format of HH:MM (24 hours format). This field is required if the `allDayEnabled` field is false or omitted."),
     all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="True if it is all-day event."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1474,10 +1474,10 @@ def create_events(
     schedule_type: str = typer.Argument(help="scheduleType"),
     schedule_id: str = typer.Argument(help="scheduleId"),
     name: str = typer.Option(None, "--name", help="(required) Name for the event."),
-    start_date: str = typer.Option(None, "--start-date", help="(required) Start date of the event, or first occurrence if repeating, i"),
-    end_date: str = typer.Option(None, "--end-date", help="(required) End date of the event, or first occurrence if repeating, in"),
-    start_time: str = typer.Option(None, "--start-time", help="(required) Start time of the event in the format of `HH:MM` (24 hours f"),
-    end_time: str = typer.Option(None, "--end-time", help="(required) End time of the event in the format of `HH:MM` (24 hours for"),
+    start_date: str = typer.Option(None, "--start-date", help="(required) Start date of the event, or first occurrence if repeating, in the format of `YYYY-MM-DD`. This field is required if the `allDayEnabled` field is present."),
+    end_date: str = typer.Option(None, "--end-date", help="(required) End date of the event, or first occurrence if repeating, in the format of `YYYY-MM-DD`. This field is required if the `allDayEnabled` field is present."),
+    start_time: str = typer.Option(None, "--start-time", help="(required) Start time of the event in the format of `HH:MM` (24 hours format). This field is required if the `allDayEnabled` field is false or omitted."),
+    end_time: str = typer.Option(None, "--end-time", help="(required) End time of the event in the format of `HH:MM` (24 hours format). This field is required if the `allDayEnabled` field is false or omitted."),
     all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="True if it is all-day event."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -2051,10 +2051,10 @@ def show_auto_transfer_numbers(
 @app.command("update-auto-transfer-numbers")
 def update_auto_transfer_numbers(
     person_id: str = typer.Argument(help="personId"),
-    use_custom_transfer_numbers: bool = typer.Option(None, "--use-custom-transfer-numbers/--no-use-custom-transfer-numbers", help="When `true`, use custom settings for the transfer numbers ca"),
-    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="When calling a specific call type, this workspace will be au"),
-    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="When calling a specific call type, this workspace will be au"),
-    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="When calling a specific call type, this workspace will be au"),
+    use_custom_transfer_numbers: bool = typer.Option(None, "--use-custom-transfer-numbers/--no-use-custom-transfer-numbers", help="When `true`, use custom settings for the transfer numbers category of outbound permissions."),
+    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
+    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
+    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2170,7 +2170,7 @@ def create_digit_patterns(
 @app.command("update-digit-patterns-outgoing-permission")
 def update_digit_patterns_outgoing_permission(
     person_id: str = typer.Argument(help="personId"),
-    use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help="When `true`, use custom settings for the digit patterns cate"),
+    use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help="When `true`, use custom settings for the digit patterns category of outgoing call permissions."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2501,7 +2501,7 @@ def update_members_applications(
 @app.command("update-passcode")
 def update_passcode(
     person_id: str = typer.Argument(help="personId"),
-    passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcod"),
+    passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcode is 6 and the maximum length is 30."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2552,7 +2552,7 @@ def show_summary(
 
 @app.command("list-voice-messages")
 def list_voice_messages(
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -2603,8 +2603,8 @@ def delete_voice_messages(
 
 @app.command("create-mark-as-read")
 def create_mark_as_read(
-    message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as r"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as read. If the `messageId` is not provided, then all voicemail messages for the user are marked as read."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -2637,8 +2637,8 @@ def create_mark_as_read(
 
 @app.command("create-mark-as-unread")
 def create_mark_as_unread(
-    message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as u"),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there"),
+    message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as unread. If the `messageId` is not provided, then all voicemail messages for the user are marked as unread."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -2730,7 +2730,7 @@ def show_caller_id(
 @app.command("update-caller-id-agent")
 def update_caller_id_agent(
     person_id: str = typer.Argument(help="personId"),
-    selected_caller_id: str = typer.Option(None, "--selected-caller-id", help="The unique identifier of the call queue or hunt group to use"),
+    selected_caller_id: str = typer.Option(None, "--selected-caller-id", help="The unique identifier of the call queue or hunt group to use for the agent's caller ID. Set to null to use the agent's own caller ID."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2783,7 +2783,7 @@ def show_call_bridge(
 @app.command("update-call-bridge")
 def update_call_bridge(
     person_id: str = typer.Argument(help="personId"),
-    warning_tone_enabled: bool = typer.Option(None, "--warning-tone-enabled/--no-warning-tone-enabled", help="Set to enable or disable a stutter dial tone being played to"),
+    warning_tone_enabled: bool = typer.Option(None, "--warning-tone-enabled/--no-warning-tone-enabled", help="Set to enable or disable a stutter dial tone being played to all the participants when a virtual line is bridged on the active shared line call."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -2811,7 +2811,7 @@ def update_call_bridge(
 @app.command("list-available-numbers-secondary")
 def list_available_numbers_secondary(
     person_id: str = typer.Argument(help="personId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -2847,7 +2847,7 @@ def list_available_numbers_secondary(
 @app.command("list-available-numbers-fax-message")
 def list_available_numbers_fax_message(
     person_id: str = typer.Argument(help="personId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -2883,9 +2883,9 @@ def list_available_numbers_fax_message(
 @app.command("list-available-numbers-call-forwarding")
 def list_available_numbers_call_forwarding(
     person_id: str = typer.Argument(help="personId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -2924,8 +2924,8 @@ def list_available_numbers_call_forwarding(
 
 @app.command("list-available-numbers-primary")
 def list_available_numbers_primary(
-    location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within th"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within the given organization. The maximum length is 36."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     license_type: str = typer.Option(None, "--license-type", help="Choices: Webex Calling Professional, Webex Calling Standard"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -2966,8 +2966,8 @@ def list_available_numbers_primary(
 @app.command("list-available-numbers-emergency-callback-number")
 def list_available_numbers_emergency_callback_number(
     person_id: str = typer.Argument(help="personId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -3005,9 +3005,9 @@ def list_available_numbers_emergency_callback_number(
 @app.command("list-available-numbers-call-intercept")
 def list_available_numbers_call_intercept(
     person_id: str = typer.Argument(help="personId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `exten"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -3081,7 +3081,7 @@ def list_ms_teams(
 def update_ms_teams(
     person_id: str = typer.Argument(help="personId"),
     setting_name: str = typer.Option(None, "--setting-name", help="Choices: HIDE_WEBEX_APP"),
-    value: bool = typer.Option(None, "--value/--no-value", help="The boolean value to update the `HIDE_WEBEX_APP` setting, ei"),
+    value: bool = typer.Option(None, "--value/--no-value", help="The boolean value to update the `HIDE_WEBEX_APP` setting, either `true` or `false`. Set to `null` to delete the `HIDE_WEBEX_APP` setting."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3146,7 +3146,7 @@ def update_personal_assistant(
     transfer_enabled: bool = typer.Option(None, "--transfer-enabled/--no-transfer-enabled", help="If `true`, allows transfer and forwarding for the call type."),
     transfer_number: str = typer.Option(None, "--transfer-number", help="Number to transfer to."),
     alerting: str = typer.Option(None, "--alerting", help="Choices: ALERT_ME_FIRST, PLAY_RING_REMINDER, NONE"),
-    alert_me_first_number_of_rings: str = typer.Option(None, "--alert-me-first-number-of-rings", help="Number of rings for alert type: ALERT_ME_FIRST; available ra"),
+    alert_me_first_number_of_rings: str = typer.Option(None, "--alert-me-first-number-of-rings", help="Number of rings for alert type: ALERT_ME_FIRST; available range is 2-20."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3187,9 +3187,9 @@ def update_personal_assistant(
 def list_available_features(
     person_id: str = typer.Argument(help="personId"),
     name: str = typer.Option(None, "--name", help="List features whose `name` contains this string."),
-    phone_number: str = typer.Option(None, "--phone-number", help="List features whose phoneNumber contains this matching strin"),
-    extension: str = typer.Option(None, "--extension", help="List features whose `extension` contains this matching strin"),
-    order: str = typer.Option(None, "--order", help="Sort the list of features based on `name`, `phoneNumber`, or"),
+    phone_number: str = typer.Option(None, "--phone-number", help="List features whose phoneNumber contains this matching string."),
+    extension: str = typer.Option(None, "--extension", help="List features whose `extension` contains this matching string."),
+    order: str = typer.Option(None, "--order", help="Sort the list of features based on `name`, `phoneNumber`, or `extension`, either `asc`, or `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -3354,8 +3354,8 @@ def create_criteria_selective_accept(
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, privat"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavai"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="(required) Boolean flag indicating if selective call accept is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -3443,9 +3443,9 @@ def update_criteria_selective_accept(
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, privat"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavai"),
-    accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="Boolean flag to enable/disable the selective accept criteria"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
+    accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="Boolean flag to enable/disable the selective accept criteria."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3574,8 +3574,8 @@ def create_criteria_selective_reject(
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, privat"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavai"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="(required) Boolean flag to enable/disable rejection."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
@@ -3663,8 +3663,8 @@ def update_criteria_selective_reject(
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, privat"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavai"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="Boolean flag to enable/disable rejection."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -3763,9 +3763,9 @@ def list_selective_forward(
 def update_selective_forward(
     person_id: str = typer.Argument(help="personId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the Selective Forward feature is enabled."),
-    default_phone_number_to_forward: str = typer.Option(None, "--default-phone-number-to-forward", help="Enter the phone number to forward calls to during this sched"),
+    default_phone_number_to_forward: str = typer.Option(None, "--default-phone-number-to-forward", help="Enter the phone number to forward calls to during this schedule."),
     ring_reminder_enabled: bool = typer.Option(None, "--ring-reminder-enabled/--no-ring-reminder-enabled", help="When `true`, enables a ring reminder for such calls."),
-    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option i"),
+    destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option is only available for internal phone numbers or extensions."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -3900,8 +3900,8 @@ def update_criteria_selective_forward(
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, privat"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavai"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     forward_enabled: bool = typer.Option(None, "--forward-enabled/--no-forward-enabled", help="Boolean flag to enable/disable selective call forwarding."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -3970,7 +3970,7 @@ def delete_criteria_selective_forward(
 @app.command("list-available-members-applications-1")
 def list_available_members_applications_1(
     person_id: str = typer.Argument(help="personId"),
-    order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or desc"),
+    order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or descending."),
     location: str = typer.Option(None, "--location", help="Location ID for the user."),
     name: str = typer.Option(None, "--name", help="Search for users with names that match the query."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for users with numbers that match the query."),
@@ -4138,7 +4138,7 @@ def update_call_captions(
     person_id: str = typer.Argument(help="personId"),
     user_closed_captions_enabled: bool = typer.Option(None, "--user-closed-captions-enabled/--no-user-closed-captions-enabled", help="Enable or disable user-level closed captions."),
     user_transcripts_enabled: bool = typer.Option(None, "--user-transcripts-enabled/--no-user-transcripts-enabled", help="Enable or disable user-level transcripts."),
-    use_location_settings_enabled: bool = typer.Option(None, "--use-location-settings-enabled/--no-use-location-settings-enabled", help="If `useLocationSettingsEnabled` is `true`, location settings"),
+    use_location_settings_enabled: bool = typer.Option(None, "--use-location-settings-enabled/--no-use-location-settings-enabled", help="If `useLocationSettingsEnabled` is `true`, location settings will control the user's closed captions and transcripts. Otherwise, user-level settings are used."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4203,7 +4203,7 @@ def list_call_filtering(
 @app.command("update-call-filtering")
 def update_call_filtering(
     person_id: str = typer.Argument(help="personId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to `true` to enable executive call filtering or `false`"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to `true` to enable executive call filtering or `false` to disable it."),
     filter_type: str = typer.Option(None, "--filter-type", help="Choices: CUSTOM_CALL_FILTERS, ALL_CALLS, ALL_INTERNAL_CALLS, ALL_EXTERNAL_CALLS"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
@@ -4270,8 +4270,8 @@ def update_criteria_call_filtering(
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Set to enable or disable the criteria for anonymous callers."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Set to enable or disable the criteria for unavailable caller"),
-    filter_enabled: bool = typer.Option(None, "--filter-enabled/--no-filter-enabled", help="Controls the action when this criteria matches a call. When"),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Set to enable or disable the criteria for unavailable callers."),
+    filter_enabled: bool = typer.Option(None, "--filter-enabled/--no-filter-enabled", help="Controls the action when this criteria matches a call. When `true`, matching calls are filtered and will alert the executive's assistants. When `false`, matching calls are not filtered and will not alert the executive's assistants. Criteria with `filterEnabled` as `false` take precedence over other..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4341,8 +4341,8 @@ def create_criteria_call_filtering(
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Set to enable or disable the criteria for anonymous callers."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Set to enable or disable the criteria for unavailable caller"),
-    filter_enabled: bool = typer.Option(None, "--filter-enabled/--no-filter-enabled", help="(required) Controls the action when this criteria matches a call. When"),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Set to enable or disable the criteria for unavailable callers."),
+    filter_enabled: bool = typer.Option(None, "--filter-enabled/--no-filter-enabled", help="(required) Controls the action when this criteria matches a call. When `true`, matching calls are filtered and will alert the executive's assistants. When `false`, matching calls are not filtered and will not alert the executive's assistants. Criteria with `filterEnabled` as `false` take precedence over other..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -4426,16 +4426,16 @@ def show_alert(
 def update_alert(
     person_id: str = typer.Argument(help="personId"),
     alerting_mode: str = typer.Option(None, "--alerting-mode", help="Choices: SEQUENTIAL, SIMULTANEOUS"),
-    next_assistant_number_of_rings: str = typer.Option(None, "--next-assistant-number-of-rings", help="Number of rings before alerting the next assistant when `ale"),
-    rollover_enabled: bool = typer.Option(None, "--rollover-enabled/--no-rollover-enabled", help="Controls whether the rollover timer (`rolloverWaitTimeInSecs"),
+    next_assistant_number_of_rings: str = typer.Option(None, "--next-assistant-number-of-rings", help="Number of rings before alerting the next assistant when `alertingMode` is `SEQUENTIAL`."),
+    rollover_enabled: bool = typer.Option(None, "--rollover-enabled/--no-rollover-enabled", help="Controls whether the rollover timer (`rolloverWaitTimeInSecs`) is enabled. When set to `true`, rollover will trigger after the timer expires, even if assistants are still available. When `false`, rollover only occurs when no assistants remain."),
     rollover_action: str = typer.Option(None, "--rollover-action", help="Choices: VOICE_MESSAGING, NO_ANSWER_PROCESSING, FORWARD"),
-    rollover_forward_to_phone_number: str = typer.Option(None, "--rollover-forward-to-phone-number", help="Phone number to forward calls to when rollover action is set"),
-    rollover_wait_time_in_secs: str = typer.Option(None, "--rollover-wait-time-in-secs", help="Time in seconds to wait before applying the rollover action"),
+    rollover_forward_to_phone_number: str = typer.Option(None, "--rollover-forward-to-phone-number", help="Phone number to forward calls to when rollover action is set to `FORWARD`."),
+    rollover_wait_time_in_secs: str = typer.Option(None, "--rollover-wait-time-in-secs", help="Time in seconds to wait before applying the rollover action when `rolloverEnabled` is `true`."),
     clid_name_mode: str = typer.Option(None, "--clid-name-mode", help="Choices: EXECUTIVE_ORIGINATOR, ORIGINATOR_EXECUTIVE, EXECUTIVE, ORIGINATOR, CUSTOM"),
-    custom_clid_name: str = typer.Option(None, "--custom-clid-name", help="Custom caller ID name to display when `clidNameMode` is set"),
-    custom_clid_name_in_unicode: str = typer.Option(None, "--custom-clid-name-in-unicode", help="Unicode Custom caller ID name to display when `clidNameMode`"),
+    custom_clid_name: str = typer.Option(None, "--custom-clid-name", help="Custom caller ID name to display when `clidNameMode` is set to `CUSTOM` (deprecated)."),
+    custom_clid_name_in_unicode: str = typer.Option(None, "--custom-clid-name-in-unicode", help="Unicode Custom caller ID name to display when `clidNameMode` is set to `CUSTOM`."),
     clid_phone_number_mode: str = typer.Option(None, "--clid-phone-number-mode", help="Choices: EXECUTIVE, ORIGINATOR, CUSTOM"),
-    custom_clid_phone_number: str = typer.Option(None, "--custom-clid-phone-number", help="Custom caller ID phone number to display on assistant's phon"),
+    custom_clid_phone_number: str = typer.Option(None, "--custom-clid-phone-number", help="Custom caller ID phone number to display on assistant's phone when `clidPhoneNumberMode` is set to `CUSTOM`."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4541,8 +4541,8 @@ def update_assigned_assistants(
 @app.command("list-available-assistants")
 def list_available_assistants(
     person_id: str = typer.Argument(help="personId"),
-    name: str = typer.Option(None, "--name", help="Only return people with the matching name (person's first an"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Only return people with the matching phone number or extensi"),
+    name: str = typer.Option(None, "--name", help="Only return people with the matching name (person's first and last name combination)."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Only return people with the matching phone number or extension."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -4613,8 +4613,8 @@ def list_assistant(
 @app.command("update-assistant")
 def update_assistant(
     person_id: str = typer.Argument(help="personId"),
-    forward_filtered_calls_enabled: bool = typer.Option(None, "--forward-filtered-calls-enabled/--no-forward-filtered-calls-enabled", help="If `true`, filtered calls to assistant are forwarded to the"),
-    forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward the filtered calls to. Mandatory if"),
+    forward_filtered_calls_enabled: bool = typer.Option(None, "--forward-filtered-calls-enabled/--no-forward-filtered-calls-enabled", help="If `true`, filtered calls to assistant are forwarded to the `forwardToPhoneNumber`."),
+    forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward the filtered calls to. Mandatory if `forwardFilteredCallsEnabled` is set to true."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4675,9 +4675,9 @@ def update_screening(
     person_id: str = typer.Argument(help="personId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to enable or disable executive screening."),
     alert_type: str = typer.Option(None, "--alert-type", help="Choices: SILENT, RING_SPLASH"),
-    alert_anywhere_location_enabled: bool = typer.Option(None, "--alert-anywhere-location-enabled/--no-alert-anywhere-location-enabled", help="Indicates if alerts are enabled for Single Number Reach loca"),
+    alert_anywhere_location_enabled: bool = typer.Option(None, "--alert-anywhere-location-enabled/--no-alert-anywhere-location-enabled", help="Indicates if alerts are enabled for Single Number Reach locations."),
     alert_mobility_location_enabled: bool = typer.Option(None, "--alert-mobility-location-enabled/--no-alert-mobility-location-enabled", help="Indicates if alerts are enabled for Webex Go locations."),
-    alert_shared_call_appearance_location_enabled: bool = typer.Option(None, "--alert-shared-call-appearance-location-enabled/--no-alert-shared-call-appearance-location-enabled", help="Indicates if alerts are enabled for Shared Call Appearance l"),
+    alert_shared_call_appearance_location_enabled: bool = typer.Option(None, "--alert-shared-call-appearance-location-enabled/--no-alert-shared-call-appearance-location-enabled", help="Indicates if alerts are enabled for Shared Call Appearance locations."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4743,7 +4743,7 @@ def show_people(
 def update_people(
     person_id: str = typer.Argument(help="personId"),
     announcement_language: str = typer.Option(None, "--announcement-language", help="Person's phone announcement language."),
-    time_zone: str = typer.Option(None, "--time-zone", help="Timezone associated with the person for calling configuratio"),
+    time_zone: str = typer.Option(None, "--time-zone", help="Timezone associated with the person for calling configuration. Refer to the Get Country Configuration API to retrieve the list of available timezones for a specific country."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4831,7 +4831,7 @@ def show_anonymous_call_reject(
 @app.command("update-anonymous-call-reject")
 def update_anonymous_call_reject(
     person_id: str = typer.Argument(help="personId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable or disable Anonymous Call Rejection. When set to true"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable or disable Anonymous Call Rejection. When set to true, incoming calls from callers who have blocked their caller ID will be automatically rejected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4925,9 +4925,9 @@ def list_simultaneous_ring(
 @app.command("update-simultaneous-ring")
 def update_simultaneous_ring(
     person_id: str = typer.Argument(help="personId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="When set to `true`, simultaneous ring is enabled for this pe"),
-    do_not_ring_if_on_call_enabled: bool = typer.Option(None, "--do-not-ring-if-on-call-enabled/--no-do-not-ring-if-on-call-enabled", help="When set to `true`, the configured phone numbers won't ring"),
-    criterias_enabled: bool = typer.Option(None, "--criterias-enabled/--no-criterias-enabled", help="When `true`, enables the selected schedule for simultaneous"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="When set to `true`, simultaneous ring is enabled for this person."),
+    do_not_ring_if_on_call_enabled: bool = typer.Option(None, "--do-not-ring-if-on-call-enabled/--no-do-not-ring-if-on-call-enabled", help="When set to `true`, the configured phone numbers won't ring when you are on a call."),
+    criterias_enabled: bool = typer.Option(None, "--criterias-enabled/--no-criterias-enabled", help="When `true`, enables the selected schedule for simultaneous ring."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -4959,13 +4959,13 @@ def update_simultaneous_ring(
 @app.command("create-criteria-simultaneous-ring")
 def create_criteria_simultaneous_ring(
     person_id: str = typer.Argument(help="personId"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: LOCATION, PEOPLE"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, the criteria applies to calls from anonymous ca"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, the criteria applies to calls from unavailable"),
-    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` simultaneous ringing is enabled for calls"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, the criteria applies to calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, the criteria applies to calls from unavailable callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="(required) When set to `true` simultaneous ringing is enabled for calls that meet this criteria. Criteria with `ringEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -5048,13 +5048,13 @@ def show_criteria_simultaneous_ring(
 def update_criteria_simultaneous_ring(
     person_id: str = typer.Argument(help="personId"),
     id: str = typer.Argument(help="id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: LOCATION, PEOPLE"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, the criteria applies to calls from anonymous ca"),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, the criteria applies to calls from unavailable"),
-    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="When set to `true` simultaneous ringing is enabled for calls"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, the criteria applies to calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, the criteria applies to calls from unavailable callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
+    ring_enabled: bool = typer.Option(None, "--ring-enabled/--no-ring-enabled", help="When set to `true` simultaneous ringing is enabled for calls that meet this criteria. Criteria with `ringEnabled` set to `false` take priority."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -5122,7 +5122,7 @@ def list_available_members_hot_desking(
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by phone number."),
     extension: str = typer.Option(None, "--extension", help="Search for available members by extension."),
-    order: str = typer.Option(None, "--order", help="Sort order for the available member list. Multiple order val"),
+    order: str = typer.Option(None, "--order", help="Sort order for the available member list. Multiple order values may be provided."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

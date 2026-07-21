@@ -11,10 +11,10 @@ app = typer.Typer(help="Manage Webex Contact Center cc-queue-stats.")
 
 @app.command("list")
 def cmd_list(
-    from_param: str = typer.Option(..., "--from", help="Start time for the query (in epoch milliseconds). Any epoch"),
-    to: str = typer.Option(..., "--to", help="End time for the query (in epoch milliseconds). Any epoch ti"),
-    interval: str = typer.Option(None, "--interval", help="Time interval (in minutes) to chunk statistics by i.e. break"),
-    queue_ids: str = typer.Option(None, "--queue-ids", help="Comma-separated list of queue IDs. A maximum of 100 values i"),
+    from_param: str = typer.Option(..., "--from", help="Start time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:05 will be rounded down to 12:00."),
+    to: str = typer.Option(..., "--to", help="End time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:55 will be rounded down to 12:45. The difference between to and from time must be less than 24 hours (86400000..."),
+    interval: str = typer.Option(None, "--interval", help="Time interval (in minutes) to chunk statistics by i.e. break up the entire from-to timeframe by this interval amount so that statistics can be viewed incrementally. Supported values are 15, 30, or 60."),
+    queue_ids: str = typer.Option(None, "--queue-ids", help="Comma-separated list of queue IDs. A maximum of 100 values is permitted. If values are not provided, all queues for an organization are returned."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

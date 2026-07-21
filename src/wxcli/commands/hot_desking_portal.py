@@ -41,7 +41,7 @@ def show(
 @app.command("update")
 def update(
     location_id: str = typer.Argument(help="locationId"),
-    voice_portal_hot_desk_sign_in_enabled: bool = typer.Option(None, "--voice-portal-hot-desk-sign-in-enabled/--no-voice-portal-hot-desk-sign-in-enabled", help="If `true`, hot desking sign in via the Voice Portal is enabl"),
+    voice_portal_hot_desk_sign_in_enabled: bool = typer.Option(None, "--voice-portal-hot-desk-sign-in-enabled/--no-voice-portal-hot-desk-sign-in-enabled", help="If `true`, hot desking sign in via the Voice Portal is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -98,7 +98,7 @@ def show_guest(
 @app.command("update-guest")
 def update_guest(
     person_id: str = typer.Argument(help="personId"),
-    voice_portal_hot_desk_sign_in_enabled: bool = typer.Option(None, "--voice-portal-hot-desk-sign-in-enabled/--no-voice-portal-hot-desk-sign-in-enabled", help="If `true`, hot desking sign in via the Voice Portal is enabl"),
+    voice_portal_hot_desk_sign_in_enabled: bool = typer.Option(None, "--voice-portal-hot-desk-sign-in-enabled/--no-voice-portal-hot-desk-sign-in-enabled", help="If `true`, hot desking sign in via the Voice Portal is enabled."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

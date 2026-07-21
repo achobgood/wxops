@@ -16,7 +16,7 @@ def cmd_list(
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by phone number."),
     extension: str = typer.Option(None, "--extension", help="Search for available members by extension."),
-    order: str = typer.Option(None, "--order", help="Sort order for the available member list. Multiple order val"),
+    order: str = typer.Option(None, "--order", help="Sort order for the available member list. Multiple order values may be provided."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

@@ -11,7 +11,7 @@ app = typer.Typer(help="Manage Webex Calling scim-bulk.")
 
 @app.command("create")
 def create(
-    fail_on_errors: str = typer.Option(None, "--fail-on-errors", help="(required) An integer specifying the maximum number of errors that the"),
+    fail_on_errors: str = typer.Option(None, "--fail-on-errors", help="(required) An integer specifying the maximum number of errors that the service provider will accept before the operation is terminated and an error response is returned."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),

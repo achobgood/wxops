@@ -38,7 +38,7 @@ def create(
 @app.command("show")
 def show(
     id: str = typer.Argument(help="id"),
-    include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file"),
+    include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file should be included in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -89,12 +89,12 @@ def delete(
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true, projection, filtering"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported fields are: firstName, lastName, email, ciUserId, and attributeTag. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email, attributeTag) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"email\");value==\"Cisco\""),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
+    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true, projection, filtering, searching, and sorting on the agent's firstName, lastName, and email will be enabled."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -139,7 +139,7 @@ def cmd_list(
 @app.command("show-agent-personal-greeting")
 def show_agent_personal_greeting(
     id: str = typer.Argument(help="id"),
-    include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file"),
+    include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file should be included in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -190,12 +190,12 @@ def delete_agent_personal_greeting(
 
 @app.command("list-agent-personal-greeting")
 def list_agent_personal_greeting(
-    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched."),
-    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search col"),
-    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attri"),
-    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts"),
-    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If th"),
-    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true, projection, filtering"),
+    filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported fields are: firstName, lastName, email, ciUserId, and attributeTag. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email, attributeTag) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"email\");value==\"Cisco\""),
+    attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
+    include_agent_details: str = typer.Option(None, "--include-agent-details", help="If includeAgentDetails is set to true, projection, filtering, searching, and sorting on the agent's firstName, lastName, and email will be enabled."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),

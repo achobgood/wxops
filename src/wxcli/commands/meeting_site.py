@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage Webex Meetings meeting-site.")
 
 @app.command("show")
 def show(
-    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API queries common settings"),
+    site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API queries common settings of the meeting's configuration from. If not specified, the API will query from the site administrator's preferred site. All available Webex sites and the preferred site of the user can be retrieved by the [Get Site..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):

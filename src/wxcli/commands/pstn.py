@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling pstn.")
 @app.command("list")
 def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
-    service_types: str = typer.Option(None, "--service-types", help="Use the `serviceTypes` parameter to fetch connections for th"),
+    service_types: str = typer.Option(None, "--service-types", help="Use the `serviceTypes` parameter to fetch connections for the following services * `MOBILE_NUMBERS`"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -77,9 +77,9 @@ def list_connection(
 @app.command("update")
 def update(
     location_id: str = typer.Argument(help="locationId"),
-    id_param: str = typer.Option(None, "--id", help="A unique identifier for the connection. This is required for"),
-    premise_route_type: str = typer.Option(None, "--premise-route-type", help="Premise route type. The possible types are TRUNK and ROUTE_G"),
-    premise_route_id: str = typer.Option(None, "--premise-route-id", help="Premise route ID. This refers to either a Trunk ID or a Rout"),
+    id_param: str = typer.Option(None, "--id", help="A unique identifier for the connection. This is required for non-integrated CCP."),
+    premise_route_type: str = typer.Option(None, "--premise-route-type", help="Premise route type. The possible types are TRUNK and ROUTE_GROUP. This is required for the local gateway."),
+    premise_route_id: str = typer.Option(None, "--premise-route-id", help="Premise route ID. This refers to either a Trunk ID or a Route Group ID and is required for the local gateway."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -137,7 +137,7 @@ def update_emergency_address(
 def create(
     location_id: str = typer.Argument(help="locationId"),
     address1: str = typer.Option(None, "--address1", help="Primary street information for the emergency address."),
-    address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the"),
+    address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the emergency address."),
     city: str = typer.Option(None, "--city", help="City for the emergency address."),
     state: str = typer.Option(None, "--state", help="State or Province or Region for the emergency address."),
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),
@@ -188,7 +188,7 @@ def create(
 def create_emergency_address(
     location_id: str = typer.Argument(help="locationId"),
     address1: str = typer.Option(None, "--address1", help="Primary street information for the emergency address."),
-    address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the"),
+    address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the emergency address."),
     city: str = typer.Option(None, "--city", help="City for the emergency address."),
     state: str = typer.Option(None, "--state", help="State or Province or Region for the emergency address."),
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),
@@ -240,7 +240,7 @@ def update_emergency_addresses(
     location_id: str = typer.Argument(help="locationId"),
     address_id: str = typer.Argument(help="addressId"),
     address1: str = typer.Option(None, "--address1", help="Primary street information for the emergency address."),
-    address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the"),
+    address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the emergency address."),
     city: str = typer.Option(None, "--city", help="City for the emergency address."),
     state: str = typer.Option(None, "--state", help="State or Province or Region for the emergency address."),
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),

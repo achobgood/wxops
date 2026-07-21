@@ -12,8 +12,8 @@ app = typer.Typer(help="Manage Webex Calling location-settings.")
 @app.command("list")
 def cmd_list(
     dial_plan_id: str = typer.Argument(help="dialPlanId"),
-    dial_pattern: str = typer.Option(None, "--dial-pattern", help="An enterprise dial pattern is represented by a sequence of d"),
-    order: str = typer.Option(None, "--order", help="Order the dial patterns according to the designated fields."),
+    dial_pattern: str = typer.Option(None, "--dial-pattern", help="An enterprise dial pattern is represented by a sequence of digits (1-9), followed by optional wildcard characters. Valid wildcard characters are `!` (matches any sequence of digits) and `X` (matches a single digit, 0-9). The `!` wildcard can only occur once at the end and only in an E.164 pattern"),
+    order: str = typer.Option(None, "--order", help="Order the dial patterns according to the designated fields. Available sort fields: `dialPattern`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -51,7 +51,7 @@ def cmd_list(
 @app.command("list-1")
 def list_1(
     name: str = typer.Option(None, "--name", help="List locations whose name contains this string."),
-    order: str = typer.Option(None, "--order", help="Sort the list of locations based on `name`, either asc or de"),
+    order: str = typer.Option(None, "--order", help="Sort the list of locations based on `name`, either asc or desc."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -92,7 +92,7 @@ def list_1(
 def create(
     id_param: str = typer.Option(None, "--id", help="(required) A unique identifier for the location."),
     name: str = typer.Option(None, "--name", help="(required) The name of the location."),
-    time_zone: str = typer.Option(None, "--time-zone", help="(required) Time zone associated with this location. Refer to this link"),
+    time_zone: str = typer.Option(None, "--time-zone", help="(required) Time zone associated with this location. Refer to this link (https://developer.webex.com/docs/api/guides/webex-for-broadworks-developers-guide#webex-meetings-site-timezone) for the format."),
     preferred_language: str = typer.Option(None, "--preferred-language", help="(required) Default email language."),
     announcement_language: str = typer.Option(None, "--announcement-language", help="(required) Location's phone announcement language."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
@@ -173,11 +173,11 @@ def update(
     location_id: str = typer.Argument(help="locationId"),
     announcement_language: str = typer.Option(None, "--announcement-language", help="Location's phone announcement language."),
     external_caller_id_name: str = typer.Option(None, "--external-caller-id-name", help="External caller ID name value. Unicode characters."),
-    p_access_network_info: str = typer.Option(None, "--p-access-network-info", help="Emergency Location Identifier for a location. The `pAccessNe"),
+    p_access_network_info: str = typer.Option(None, "--p-access-network-info", help="Emergency Location Identifier for a location. The `pAccessNetworkInfo` is set only when the location's country is Belgium(`BE`), Germany(`DE`), or France(`FR`)."),
     outside_dial_digit: str = typer.Option(None, "--outside-dial-digit", help="Must dial to reach an outside line. Default is none."),
-    enforce_outside_dial_digit: bool = typer.Option(None, "--enforce-outside-dial-digit/--no-enforce-outside-dial-digit", help="True when enforcing outside dial digit at location level to"),
-    routing_prefix: str = typer.Option(None, "--routing-prefix", help="Must dial a prefix when calling between locations having sam"),
-    charge_number: str = typer.Option(None, "--charge-number", help="Set the chargeable number for the line placing the call.  Wh"),
+    enforce_outside_dial_digit: bool = typer.Option(None, "--enforce-outside-dial-digit/--no-enforce-outside-dial-digit", help="True when enforcing outside dial digit at location level to make PSTN calls."),
+    routing_prefix: str = typer.Option(None, "--routing-prefix", help="Must dial a prefix when calling between locations having same extension within same location, should be numeric."),
+    charge_number: str = typer.Option(None, "--charge-number", help="Set the chargeable number for the line placing the call. When set and [useChargeNumberForPChargeInfo field (GET location)](/docs/api/v1/beta-location-call-settings-with-p-charge-info-support/get-location-webex-calling-details) is true for the location, all PSTN calls placed from this location will..."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -307,8 +307,8 @@ def show_errors(
 @app.command("change-announcement-language")
 def change_announcement_language(
     location_id: str = typer.Argument(help="locationId"),
-    agent_enabled: str = typer.Option(None, "--agent-enabled", help="Set to `true` to change announcement language for existing p"),
-    service_enabled: str = typer.Option(None, "--service-enabled", help="Set to `true` to change announcement language for existing f"),
+    agent_enabled: str = typer.Option(None, "--agent-enabled", help="Set to `true` to change announcement language for existing people and workspaces."),
+    service_enabled: str = typer.Option(None, "--service-enabled", help="Set to `true` to change announcement language for existing feature configurations."),
     announcement_language_code: str = typer.Option(None, "--announcement-language-code", help="Language code."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
     debug: bool = typer.Option(False, "--debug"),
@@ -371,8 +371,8 @@ def show_emergency_callback_number(
 def update_emergency_callback_number(
     location_id: str = typer.Argument(help="locationId"),
     selected: str = typer.Option(None, "--selected", help="Choices: LOCATION_NUMBER, LOCATION_MEMBER_NUMBER"),
-    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of user/place/virtual line/hunt group within the l"),
-    elin_expiry_time_minutes: str = typer.Option(None, "--elin-expiry-time-minutes", help="ELIN (Emergency Location Identification Number) provides loc"),
+    location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of user/place/virtual line/hunt group within the location. Required if `LOCATION_MEMBER_NUMBER` is selected."),
+    elin_expiry_time_minutes: str = typer.Option(None, "--elin-expiry-time-minutes", help="ELIN (Emergency Location Identification Number) provides location-specific callback information to emergency responders. This field indicates the time in minutes that the ELIN association remains active after being established. Valid values are between 10 and 1440 minutes."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -569,9 +569,9 @@ def update_private_network_connect(
 
 @app.command("list-route-choices")
 def list_route_choices(
-    route_group_name: str = typer.Option(None, "--route-group-name", help="Return the list of route identities matching the Route group"),
+    route_group_name: str = typer.Option(None, "--route-group-name", help="Return the list of route identities matching the Route group name."),
     trunk_name: str = typer.Option(None, "--trunk-name", help="Return the list of route identities matching the Trunk name."),
-    order: str = typer.Option(None, "--order", help="Order the route identities according to the designated field"),
+    order: str = typer.Option(None, "--order", help="Order the route identities according to the designated fields. Available sort fields: `routeName`, `routeType`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -611,9 +611,9 @@ def list_route_choices(
 @app.command("list-available-numbers-external-caller-id")
 def list_available_numbers_external_caller_id(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the provided list in the `phon"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    person_id: str = typer.Option(None, "--person-id", help="Retrieve available external caller ID numbers for this perso"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the provided list in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    person_id: str = typer.Option(None, "--person-id", help="Retrieve available external caller ID numbers for this person. If `personId` is not provided it may result in the unsuccessful assignment of the returned number. This parameter has no effect when workspace or virtual line ID is used."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -653,8 +653,8 @@ def list_available_numbers_external_caller_id(
 @app.command("list-available-numbers-locations")
 def list_available_numbers_locations(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -692,7 +692,7 @@ def list_available_numbers_locations(
 @app.command("list-available-numbers-webex-go")
 def list_available_numbers_webex_go(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -728,8 +728,8 @@ def list_available_numbers_webex_go(
 @app.command("list-available-numbers-emergency-callback-number")
 def list_available_numbers_emergency_callback_number(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -767,9 +767,9 @@ def list_available_numbers_emergency_callback_number(
 @app.command("list-available-numbers-call-intercept")
 def list_available_numbers_call_intercept(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
-    extension: str = typer.Option(None, "--extension", help="Returns the list of phone numbers with the given `extension`"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
+    extension: str = typer.Option(None, "--extension", help="Returns the list of phone numbers with the given `extension`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -842,7 +842,7 @@ def list_directories(
 @app.command("create-directories")
 def create_directories(
     location_id: str = typer.Argument(help="locationId"),
-    name: str = typer.Option(None, "--name", help="(required) Receptionist Contact Directory name. The directory name shou"),
+    name: str = typer.Option(None, "--name", help="(required) Receptionist Contact Directory name. The directory name should be greater than 0 and less than 41 characters in length."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -883,12 +883,12 @@ def create_directories(
 def show_directories(
     location_id: str = typer.Argument(help="locationId"),
     directory_id: str = typer.Argument(help="directoryId"),
-    search_criteria_mode_or: str = typer.Option(None, "--search-criteria-mode-or", help="When `true`, results matching any one of the search criteria"),
-    first_name: str = typer.Option(None, "--first-name", help="Search for directories that contain people with the indicate"),
-    last_name: str = typer.Option(None, "--last-name", help="Search for directories that contain people with the indicate"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Search for directories that contain people with the indicate"),
-    extension: str = typer.Option(None, "--extension", help="Search for directories that contain people with the indicate"),
-    person_id: str = typer.Option(None, "--person-id", help="Search for directories that contain people with the indicate"),
+    search_criteria_mode_or: str = typer.Option(None, "--search-criteria-mode-or", help="When `true`, results matching any one of the search criteria are included. The value can only be `true` or not included in the request. Specifying `searchCriteriaModeOr` without any search criteria, or setting it to `false` results in an `ErrorResponse`. If no search criteria is specified, all..."),
+    first_name: str = typer.Option(None, "--first-name", help="Search for directories that contain people with the indicated first name."),
+    last_name: str = typer.Option(None, "--last-name", help="Search for directories that contain people with the indicated last name."),
+    phone_number: str = typer.Option(None, "--phone-number", help="Search for directories that contain people with the indicated phone number."),
+    extension: str = typer.Option(None, "--extension", help="Search for directories that contain people with the indicated extension."),
+    person_id: str = typer.Option(None, "--person-id", help="Search for directories that contain people with the indicated person ID."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -931,7 +931,7 @@ def show_directories(
 def update_directories(
     location_id: str = typer.Argument(help="locationId"),
     directory_id: str = typer.Argument(help="directoryId"),
-    name: str = typer.Option(None, "--name", help="Receptionist Contact Directory name. The directory name shou"),
+    name: str = typer.Option(None, "--name", help="Receptionist Contact Directory name. The directory name should be greater than 0 and less than 41 characters in length."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -983,8 +983,8 @@ def delete(
 @app.command("list-available-numbers-charge-number")
 def list_available_numbers_charge_number(
     location_id: str = typer.Argument(help="locationId"),
-    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provi"),
-    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given"),
+    phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
+    owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
@@ -1055,7 +1055,7 @@ def list_delete_calling_location(
 def create_delete_calling_location(
     location_id: str = typer.Option(None, "--location-id", help="(required) Unique identifier for the calling location to disable."),
     location_name: str = typer.Option(None, "--location-name", help="Name of the calling location to disable."),
-    force_delete: bool = typer.Option(None, "--force-delete/--no-force-delete", help="Force delete is only applicable when calling features like c"),
+    force_delete: bool = typer.Option(None, "--force-delete/--no-force-delete", help="Force delete is only applicable when calling features like call queues, hunt groups, virtual lines, etc or a trunk that is not in use exists in the calling location and customer still wants to disable the calling location."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1267,7 +1267,7 @@ def update_call_captions(
     location_id: str = typer.Argument(help="locationId"),
     location_closed_captions_enabled: bool = typer.Option(None, "--location-closed-captions-enabled/--no-location-closed-captions-enabled", help="Enable or disable location-level closed captions."),
     location_transcripts_enabled: bool = typer.Option(None, "--location-transcripts-enabled/--no-location-transcripts-enabled", help="Enable or disable location-level transcripts."),
-    use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help="If `useOrgSettingsEnabled` is `true`, organization-level set"),
+    use_org_settings_enabled: bool = typer.Option(None, "--use-org-settings-enabled/--no-use-org-settings-enabled", help="If `useOrgSettingsEnabled` is `true`, organization-level settings will control the location's closed captions and transcripts. Otherwise, location-level settings are used."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

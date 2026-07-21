@@ -66,7 +66,7 @@ def show(
 @app.command("update")
 def update(
     location_id: str = typer.Argument(help="locationId"),
-    enable_unknown_extension_route_policy: bool = typer.Option(None, "--enable-unknown-extension-route-policy/--no-enable-unknown-extension-route-policy", help="When enabled, calls made by users at the location to an unkn"),
+    enable_unknown_extension_route_policy: bool = typer.Option(None, "--enable-unknown-extension-route-policy/--no-enable-unknown-extension-route-policy", help="When enabled, calls made by users at the location to an unknown extension (between 2-6 digits) are routed to the selected route group/trunk as premises calls."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -123,7 +123,7 @@ def show_intercept(
 @app.command("update-intercept")
 def update_intercept(
     location_id: str = typer.Argument(help="locationId"),
-    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/disable location intercept. Enable this feature to ov"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/disable location intercept. Enable this feature to override any location's Call Intercept settings that a person configures."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -238,9 +238,9 @@ def show_auto_transfer_numbers(
 @app.command("update-auto-transfer-numbers")
 def update_auto_transfer_numbers(
     location_id: str = typer.Argument(help="locationId"),
-    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="Calls placed meeting the criteria in an outbound rule whose"),
-    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="Calls placed meeting the criteria in an outbound rule whose"),
-    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="Calls placed meeting the criteria in an outbound rule whose"),
+    auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="Calls placed meeting the criteria in an outbound rule whose `action` is `TRANSFER_NUMBER_1` will be transferred to this number."),
+    auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="Calls placed meeting the criteria in an outbound rule whose `action` is `TRANSFER_NUMBER_2` will be transferred to this number."),
+    auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="Calls placed meeting the criteria in an outbound rule whose `action` is `TRANSFER_NUMBER_3` will be transferred to this number."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):

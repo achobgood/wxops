@@ -14,7 +14,7 @@ def cmd_list(
     type_param: str = typer.Option(None, "--type", help="Choices: created, updated, deleted, ended"),
     actor_id: str = typer.Option(None, "--actor-id", help="List events performed by this person, by person ID."),
     from_param: str = typer.Option(None, "--from", help="List events which occurred after a specific date and time."),
-    to: str = typer.Option(None, "--to", help="List events that occurred before a specific date and time. I"),
+    to: str = typer.Option(None, "--to", help="List events that occurred before a specific date and time. If not specified, events up to the present time will be listed. Cannot be set to a future date relative to the current time."),
     service_type: str = typer.Option(None, "--service-type", help="Choices: calling"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),

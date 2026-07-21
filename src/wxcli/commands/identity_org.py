@@ -37,7 +37,7 @@ def show(
 @app.command("update")
 def update(
     display_name: str = typer.Option(None, "--display-name", help="New full name of the organization."),
-    preferred_language: str = typer.Option(None, "--preferred-language", help="It is the default preferredLanguage for user creation in thi"),
+    preferred_language: str = typer.Option(None, "--preferred-language", help="It is the default preferredLanguage for user creation in this org. It is set in ISO639 format."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -64,8 +64,8 @@ def update(
 @app.command("update-authentication-config")
 def update_authentication_config(
     remember_my_login_id: bool = typer.Option(None, "--remember-my-login-id/--no-remember-my-login-id", help="Login Id set to true if it should be remembered."),
-    remember_my_login_id_duration: str = typer.Option(None, "--remember-my-login-id-duration", help="Specifies the number of days the user's login ID is remember"),
-    mfa_enabled: bool = typer.Option(None, "--mfa-enabled/--no-mfa-enabled", help="Enable/ Disable multi-factor authentication on an organizati"),
+    remember_my_login_id_duration: str = typer.Option(None, "--remember-my-login-id-duration", help="Specifies the number of days the user's login ID is remembered. Must be between 1 and 120 (inclusive)."),
+    mfa_enabled: bool = typer.Option(None, "--mfa-enabled/--no-mfa-enabled", help="Enable/ Disable multi-factor authentication on an organization."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -94,12 +94,12 @@ def update_authentication_config(
 @app.command("update-password-policy")
 def update_password_policy(
     minimum_numeric: str = typer.Option(None, "--minimum-numeric", help="Minimum number of numeric characters in password"),
-    minimum_cap_alpha: str = typer.Option(None, "--minimum-cap-alpha", help="Minimum number of uppercase alphabetic character letters in"),
-    minimum_low_alpha: str = typer.Option(None, "--minimum-low-alpha", help="Minimum number of lowercase alphabetic character letters in"),
-    minimum_special: str = typer.Option(None, "--minimum-special", help="Minimum number of special characters included \"~!@#$%^&*()-_"),
-    minimum_length: str = typer.Option(None, "--minimum-length", help="Minimum length of password. Must be between 8 and 256, inclu"),
-    history_count: str = typer.Option(None, "--history-count", help="The number of former passwords in history, the new password"),
-    max_password_age: str = typer.Option(None, "--max-password-age", help="The password expired time, unit: day, that means user need t"),
+    minimum_cap_alpha: str = typer.Option(None, "--minimum-cap-alpha", help="Minimum number of uppercase alphabetic character letters in password"),
+    minimum_low_alpha: str = typer.Option(None, "--minimum-low-alpha", help="Minimum number of lowercase alphabetic character letters in password"),
+    minimum_special: str = typer.Option(None, "--minimum-special", help="Minimum number of special characters included \"~!@#$%^&*()-_=+[]{}|;:,.<>/?\" in password"),
+    minimum_length: str = typer.Option(None, "--minimum-length", help="Minimum length of password. Must be between 8 and 256, inclusive."),
+    history_count: str = typer.Option(None, "--history-count", help="The number of former passwords in history, the new password can't be any one of them. Must be between 1 and 5, inclusive."),
+    max_password_age: str = typer.Option(None, "--max-password-age", help="The password expired time, unit: day, that means user need to change password every \"X\" days. Must be between 90 and 1825, inclusive."),
     not_acceptable_strings: str = typer.Option(None, "--not-acceptable-strings", help="The password can not be any one in this string list."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
     debug: bool = typer.Option(False, "--debug"),
