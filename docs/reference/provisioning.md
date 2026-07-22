@@ -203,7 +203,7 @@ wxcli people delete <person_id> --force
 **CLI notes:**
 - `wxcli people list` defaults to table output (`-o table`); use `-o json` for full JSON.
 - `wxcli people show` defaults to JSON output; use `-o table` for a summary view.
-- The `--calling-data true` flag is the CLI equivalent of `calling_data=True` in the SDK. Pass it when you need calling fields (locationId, extension, phoneNumbers).
+- The `--calling-data true` flag is the CLI equivalent of the API's `callingData=true` query parameter. Pass it when you need calling fields (locationId, extension, phoneNumbers).
 - For create/update operations with complex nested fields (emails, licenses, phoneNumbers), use `--json-body` with the full JSON payload.
 - The `--limit` and `--offset` flags control client-side pagination of results.
 
@@ -238,15 +238,14 @@ Base path: `/v1/licenses`
 
 ### Finding Specific Licenses
 
-The `License` model has convenience properties for common license types:
+Common Webex Calling license types and their exact `name` strings (match against the `name` field returned by `GET /v1/licenses`):
 
-| Property | License Name Matched |
-|----------|---------------------|
-| `lic.webex_calling_professional` | `"Webex Calling - Professional"` |
-| `lic.webex_calling_basic` | `"Webex Calling - Basic"` |
-| `lic.webex_calling_workspaces` | `"Webex Calling - Workspaces"` |
-| `lic.webex_calling` | Any of the above three |
-| `lic.cx_essentials` | `"Customer Experience - Essential"` |
+| License type | Exact `name` string |
+|--------------|---------------------|
+| Webex Calling Professional | `"Webex Calling - Professional"` |
+| Webex Calling Basic | `"Webex Calling - Basic"` |
+| Webex Calling Workspaces | `"Webex Calling - Workspaces"` |
+| Customer Experience Essentials | `"Customer Experience - Essential"` |
 
 ### Assigning Licenses to Users (PATCH Method)
 
@@ -412,7 +411,7 @@ api.session.rest_post(  # POST — not PUT; URL path should be verified against 
 - `announcementLanguage` returns `None` from the locations details endpoint even when set -- always set it explicitly before enabling calling (gotcha #14)
 - Calling-enabled locations **cannot be deleted via API** -- returns `409 Conflict: Location is being referenced, cannot be deleted`. Must use Control Hub (gotcha #15)
 - The `safe_delete_check` response uses field `locationDeleteStatus` (not `status`), with value `"UNBLOCKED"` or `"BLOCKED"` (gotcha #17)
-- The `address` field in raw HTTP is a nested object with `address1`, `city`, `state`, `postalCode`, `country`. The SDK flattens these to top-level kwargs in `locations.create()`.
+- The `address` field in raw HTTP is a nested object with `address1`, `city`, `state`, `postalCode`, `country`.
 
 ### CLI Examples
 
@@ -471,10 +470,10 @@ Locations enabled for Webex Calling must have names of **80 characters or fewer*
 The telephony `enable_for_calling` API rejects `en_US` (mixed case) for `announcement_language` with error `Invalid Language Code`. Use `en_us` (all lowercase). The general Locations API stores `preferredLanguage` as `en_US` but the telephony backend expects lowercase.
 
 **`announcement_language` returns None from details endpoint.**
-`LocationsApi.details()` returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly before calling `enable_for_calling`.
+Fetching location details returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly when enabling a location for Webex Calling.
 
 **Cannot delete calling-enabled locations via API.**
-`LocationsApi.delete()` returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location**, and a Location with Calling enabled cannot be deleted outside of Control Hub. The `safe_delete_check_before_disabling_calling_location` precheck may return `UNBLOCKED` but the delete still fails due to the telephony reference.
+Deleting a location (`DELETE /v1/locations/{id}`) returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location**, and a Location with Calling enabled cannot be deleted outside of Control Hub.
 
 Calling-enabled locations can only be deleted from Control Hub.
 
@@ -698,7 +697,7 @@ Note: `work_extension` values include the location **routing prefix** prepended 
 - `webex_calling_workspaces` -- True if name is `"Webex Calling - Workspaces"`
 - `cx_essentials` -- True if name is `"Customer Experience - Essential"`
 
-> **Note — "Basic" vs. "Standard" tier naming:** The `"Webex Calling - Basic"` name matched by `lic.webex_calling_basic` may be stale for newer orgs. Cisco's current tier naming uses **Standard** (not Basic). Any code doing exact string matching on `"Webex Calling - Basic"` may miss Standard-tier licenses. The SDK property `lic.webex_calling_basic` is an internal convenience name and may still resolve correctly depending on SDK version, but verify the actual license name string returned by `GET /v1/licenses` in your org before relying on exact string matches.
+> **Note — "Basic" vs. "Standard" tier naming:** The `"Webex Calling - Basic"` license name may be stale for newer orgs. Cisco's current tier naming uses **Standard** (not Basic). Any code doing exact string matching on `"Webex Calling - Basic"` may miss Standard-tier licenses. Verify the actual license name string returned by `GET /v1/licenses` in your org before relying on exact string matches.
 
 ### LicenseRequest (for PATCH assignment)
 
