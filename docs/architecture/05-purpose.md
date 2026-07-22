@@ -74,8 +74,7 @@ wxcli is a standalone project. It is not part of a product suite, not a componen
 ### Cisco's official tooling
 
 - **Control Hub** is the web-based admin portal. wxcli operates against the same APIs that Control Hub uses, but from the terminal. They share the same underlying platform and the same authentication (OAuth tokens from developer.webex.com or admin accounts).
-- **wxc_sdk** (Cisco's official Python SDK) was an early dependency that has been fully removed. wxcli uses raw HTTP via its own `WebexSession` client. The SDK's typed API methods cover a subset of the surface and lag behind API releases by weeks to months. Reference docs still describe wxc_sdk patterns for educational purposes.
-- **wxcadm** (community admin library) is used selectively for XSI real-time events and capabilities that have no REST API equivalent. It's not a dependency in `pyproject.toml` — it's an optional tool the builder agent can invoke when needed.
+- **A typed Python SDK** (Cisco's official one) was an early dependency that has been fully removed. wxcli uses raw HTTP via its own `WebexSession` client. The SDK's typed API methods cover a subset of the surface and lag behind API releases by weeks to months.
 - **Cisco's Postman collections** serve as a source of truth for understanding the API surface. The OpenAPI specs in `specs/` are the primary input to the code generator.
 
 ### Strategic position
@@ -90,7 +89,7 @@ wxcli occupies a specific niche: **programmatic Webex Calling administration for
 
 This project is Apache 2.0 licensed open source, built by an independent practitioner, not by Cisco. It consumes public Webex APIs through officially documented OAuth scopes. It does not use internal Cisco APIs, proprietary Cisco code, or information obtained under NDA.
 
-The OpenAPI specs in `specs/` are derived from Cisco's publicly available API documentation. The reference docs in `docs/reference/` were originally built from the publicly available wxc_sdk and wxcadm source code (both open source), then maintained and extended independently with wxcli-specific examples and gotchas.
+The OpenAPI specs in `specs/` are derived from Cisco's publicly available API documentation. The reference docs in `docs/reference/` are maintained independently with wxcli-specific examples and gotchas, grounded in Cisco's publicly available API documentation and OpenAPI specs.
 
 The CUCM migration pipeline connects to customer CUCM clusters via AXL (Administrative XML Layer) — Cisco's supported programmatic interface for CUCM administration. No reverse engineering, screen scraping, or unsupported interfaces are involved.
 

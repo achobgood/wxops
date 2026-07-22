@@ -1,13 +1,12 @@
 # docs/reference — Webex API Reference Docs
 
-48 reference docs originally built from wxc_sdk (v1.30.0), wxcadm (v4.6.1), and 7 OpenAPI 3.0 specs. Each doc covers wxcli CLI examples and raw HTTP fallback; calling/admin/device docs also include SDK method signatures. These docs serve the CLI, the playbook agent, and the CUCM migration tool's mapper/executor designs.
+Webex API reference docs grounded in the Webex OpenAPI specs and live API behavior. Each doc covers wxcli CLI examples and raw HTTP fallback. These docs serve the CLI, the playbook agent, and the CUCM migration tool's mapper/executor designs.
 
 ## Doc Families
 
 - **Person call settings** (5): `person-call-settings-{handling,media,permissions,behavior}.md`, `self-service-call-settings.md`
 - **Location calling** (3): `location-calling-core.md`, `location-calling-media.md`, `location-recording-advanced.md`
 - **Devices** (4): `devices-{core,dect,workspaces,platform}.md`
-- **wxcadm** (1): `wxcadm-xsi-realtime.md` (XSI streaming has no wxcli path; used by call-control). The other 7 wxcadm docs + `wxc-sdk-patterns.md` are archived in `archive/` — historical Python SDK object-model docs this repo does not execute.
 - **Admin** (7): `admin-{org-management,identity-scim,licensing,audit-security,hybrid,partner,apps-data}.md`
 - **Meetings** (4): `meetings-{core,content,settings,infrastructure}.md`
 - **Messaging** (2): `messaging-{spaces,bots}.md`

@@ -6,7 +6,7 @@ Documentation hub for the Webex Calling Playbook project. Subdirectories each ha
 
 | Path | Contents |
 |------|----------|
-| `reference/` | Webex API reference docs — grounded in wxc_sdk, wxcadm source, and OpenAPI specs |
+| `reference/` | Webex API reference docs — grounded in the Webex OpenAPI specs and live API behavior |
 | `plans/` | Migration design specs and build planning for the CUCM-to-Webex migration tool |
 | `prompts/` | Design and build execution prompts that drive Claude Code sessions |
 | `templates/` | Report templates (deployment plan, execution report) used by the builder agent |

@@ -188,7 +188,7 @@ A subagent can die mid-work when a long-running tool call (e.g. a Python polling
 | `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
 | `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
 | `.claude/skills/device-platform/` | Skill: manage PhoneOS/RoomOS device configs, workspace personalization, xAPI; 9800-series phones (9811/9821/9841/9851/9861/9871) use PhoneOS (not RoomOS) |
-| `.claude/skills/call-control/` | Skill: real-time call control, webhooks, XSI |
+| `.claude/skills/call-control/` | Skill: real-time call control, webhooks |
 | `.claude/skills/reporting/` | Skill: CDR query engine (75 recipes + composition guide), report templates, recordings |
 | `.claude/skills/reporting-cc/` | Skill: Contact Center analytics (queue stats, agent stats, EWT, summaries) |
 | `.claude/skills/reporting-meetings/` | Skill: meetings quality, workspace metrics, historical analytics, live monitoring |
@@ -288,14 +288,6 @@ Common admin goals that span multiple skills. When the user states one of these 
 | `docs/reference/reporting-analytics.md` | CDR, report templates, call quality, queue/AA stats |
 | `docs/reference/virtual-lines.md` | Virtual line/extension settings, voicemail, recording |
 | `docs/reference/emergency-services.md` | E911, emergency addresses, ECBN |
-
-### Reference Docs — XSI Real-Time (wxcadm)
-
-| Path | Purpose |
-|------|---------|
-| `docs/reference/wxcadm-xsi-realtime.md` | XSI events, real-time call monitoring (used by call-control skill) |
-
-Historical SDK object-model docs (wxcadm core/person/locations/features/devices-workspaces/routing/advanced, wxc-sdk-patterns) live in `docs/reference/archive/` — they document Python SDKs this repo does not execute. Resurrect deliberately if a future skill needs RedSky-portal/Meraki/CP-API facts.
 
 ### Reference Docs — Admin & Identity APIs
 

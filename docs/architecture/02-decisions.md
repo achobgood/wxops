@@ -18,7 +18,7 @@ The Webex API surface spans 9 OpenAPI specs covering calling, admin, device, mes
 
 1. **Fully hand-written commands.** Maximum control, custom UX per endpoint. Unscalable at 800+ endpoints; updates lag behind API changes indefinitely.
 2. **Use an existing CLI generator (e.g., AutoRest, openapi-generator-cli).** Lower initial effort. But these tools produce generic clients without the specific UX decisions wxcli needs (output formatting, orgId injection, pagination, table columns). Customization would fight the tool.
-3. **Typed SDK wrapper (wxc_sdk's API classes).** Already exists upstream. But SDK coverage lags the API by weeks to months, and typed methods cover a subset of the surface. Would create a hard dependency on SDK release cadence.
+3. **Typed SDK wrapper.** A typed Python SDK's API classes already exist upstream. But SDK coverage lags the API by weeks to months, and typed methods cover a subset of the surface. Would create a hard dependency on SDK release cadence.
 
 ### Rationale
 
@@ -67,11 +67,11 @@ now generated, with a one-release `licenses-api` alias.)
 
 ### Decision
 
-Use synchronous `httpx` via a thin `WebexSession` wrapper for all CLI command HTTP calls, rather than wxc_sdk's typed API methods (e.g., `api.telephony.auto_attendants.list(...)`). The SDK dependency was subsequently removed entirely from `pyproject.toml`.
+Use synchronous `httpx` via a thin `WebexSession` wrapper for all CLI command HTTP calls, rather than a typed Python SDK's API methods (e.g., `api.telephony.auto_attendants.list(...)`). That typed-SDK dependency was subsequently removed entirely from `pyproject.toml`.
 
 ### Context
 
-wxc_sdk (Cisco's official Python SDK) provides typed methods with Pydantic models for a subset of the Webex API surface. However, the CLI needs to cover the *full* API surface — including endpoints the SDK hasn't implemented yet, Contact Center APIs on a different host, and recently-added endpoints. The SDK also imposes its own auth patterns, pagination logic, and error types that would compete with the CLI's own conventions.
+Cisco's official typed Python SDK provides typed methods with Pydantic models for a subset of the Webex API surface. However, the CLI needs to cover the *full* API surface — including endpoints the SDK hasn't implemented yet, Contact Center APIs on a different host, and recently-added endpoints. The SDK also imposes its own auth patterns, pagination logic, and error types that would compete with the CLI's own conventions.
 
 ### Alternatives Considered
 
@@ -82,7 +82,7 @@ wxc_sdk (Cisco's official Python SDK) provides typed methods with Pydantic model
 
 ### Rationale
 
-From `docs/reference/wxc-sdk-patterns.md`: "The REST client gives us access to every endpoint from day one. Typed methods lag behind the API by weeks to months." Using raw HTTP means one code path for all commands — generated and hand-written alike. The generated command template constructs URLs, injects parameters, and formats output without any SDK abstraction in between.
+The REST client gives access to every endpoint from day one, whereas typed SDK methods lag behind the API by weeks to months. Using raw HTTP means one code path for all commands — generated and hand-written alike. The generated command template constructs URLs, injects parameters, and formats output without any SDK abstraction in between.
 
 The `WebexSession` wrapper provides five verbs: `rest_get()`, `rest_post()`, `rest_put()`, `rest_patch()` (added 2026-07-01, with `content_type` support for JSON-Patch), `rest_delete()`, plus `follow_pagination()` for list commands — all sharing one bounded-retry request path. This thin surface is a stable interface every command module depends on.
 
@@ -101,11 +101,11 @@ The `WebexSession` wrapper provides five verbs: `rest_get()`, `rest_post()`, `re
 
 **Gotchas:**
 - Two independent HTTP stacks now exist: `httpx` (CLI commands) and `aiohttp` (migration engine). A breaking change in one doesn't affect the other, but bug fixes must be applied independently.
-- The stale `requirements.txt` still references `wxc-sdk` as a transitive dependency — needs cleanup.
+- The stale `requirements.txt` still references the removed typed-SDK package as a transitive dependency — needs cleanup.
 
 ### Status
 
-**Active.** The `wxc-sdk` dependency was removed from `pyproject.toml` (commit e4dfb22). All source files use `WebexSession` directly. Reference docs still describe wxc_sdk patterns for educational purposes.
+**Active.** The typed-SDK dependency was removed from `pyproject.toml` (commit e4dfb22). All source files use `WebexSession` directly.
 
 ---
 

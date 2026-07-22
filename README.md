@@ -459,7 +459,7 @@ The CLI covers 176 command groups across calling, admin, device, messaging, meet
 | `spark:calls_write` | Call control (answer, hold, transfer, park) |
 | `spark:people_read` | Read own user info |
 | `spark:people_write` | Modify own call settings |
-| `spark:xsi` | XSI events and call monitoring |
+| `spark:xsi` | XSI scope for Webex Calling resources |
 
 See [`docs/reference/authentication.md`](docs/reference/authentication.md) for full details on token types, OAuth flows, and scope requirements per endpoint.
 

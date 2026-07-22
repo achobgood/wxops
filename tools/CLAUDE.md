@@ -168,24 +168,20 @@ Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in `.claude/settings.json`.
 
 ## Reference Doc Sources
 
-All reference docs are grounded in actual source code and official documentation:
+All reference docs are grounded in official API specs and documentation:
 
-- **wxc_sdk v1.30.0** (github.com/jeokrohn/wxc_sdk) — historical source used to build reference docs; cloned at `../wxc_sdk_reference/`
-- **wxcadm v4.6.1** (github.com/kctrey/wxcadm) — cloned at `../wxcadm_reference/`
 - **OpenAPI 3.0 specs** — `specs/webex-cloud-calling.json` (calling), `specs/webex-admin.json` (admin), `specs/webex-device.json` (devices), `specs/webex-messaging.json` (messaging), `specs/webex-meetings.json` (meetings), `specs/webex-contact-center.json` (contact center)
 - **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — legacy reference, 22.5MB, 1,079 endpoints
 - **developer.webex.com** — Official API docs, guides, and blog posts
 - **Cisco Live LTRCOL-2574** — Hands-on provisioning lab
 
-**Execution pattern:** wxcli CLI commands are the primary execution method. Reference docs contain both SDK method signatures (for understanding) and Raw HTTP sections (for fallback). All Raw HTTP sections were added 2026-03-18.
-
-Known bugs found in wxcadm source are documented in the reference docs.
+**Execution pattern:** wxcli CLI commands are the primary execution method; reference docs provide Raw HTTP sections for fallback. All Raw HTTP sections were added 2026-03-18.
 
 Maintainers: update reference docs when you discover new gotchas or API changes.
 
 ## Reference Doc Sync Protocol
 
-This repo contains authoritative reference docs at `docs/reference/` that document every Webex Calling API surface. These docs were originally built from wxc_sdk and wxcadm source code and serve both the CLI and the playbook agent.
+This repo contains authoritative reference docs at `docs/reference/` that document every Webex Calling API surface. These docs serve both the CLI and the playbook agent.
 
 ### When you learn something new
 
