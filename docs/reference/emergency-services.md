@@ -912,6 +912,12 @@ api.session.rest_put(
 
 ---
 
+## Third-Party E911 Provider Portal (RedSky / Intrado)
+
+The Webex-side RedSky integration endpoints above (`/telephony/config/redSky/*`) manage the *link* between Webex and a third-party dynamic-E911 provider from the Webex API, using your Webex token. The provider itself (RedSky / Intrado) also runs its **own** portal and API (`api.wxc.e911cloud.com`) with a **separate login** — not a Webex token — used to manage buildings, dispatchable locations, network wire-maps, and device tracking. That portal is outside the Webex API surface; configure it in the provider's own console. Webex-native E911 (emergency call notifications, emergency addresses, ECBN) is fully covered above and needs no third-party portal.
+
+---
+
 ## See Also
 
 - **[person-call-settings-behavior.md](person-call-settings-behavior.md)** — ECBN configuration is shared between person, workspace, and virtual line settings. That doc covers the same ECBN endpoints from the person-settings perspective, including how ECBN integrates with other call behavior settings.
