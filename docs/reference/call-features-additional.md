@@ -2,50 +2,29 @@
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Call Features APIs
 
-Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Extensions, Call Pickup, Voicemail Groups, Customer Assist (formerly CX Essentials), Operating Modes, Call Recording, Announcements/Playlists, Single Number Reach, and Virtual Extensions using the `wxc_sdk`. Each section includes both SDK signatures and Raw HTTP examples.
+Comprehensive reference for Webex Calling Paging Groups, Call Park, Call Park Extensions, Call Pickup, Voicemail Groups, Customer Assist (formerly CX Essentials), Operating Modes, Call Recording, Announcements/Playlists, Single Number Reach, and Virtual Extensions. Each section includes both API signatures and Raw HTTP examples.
 
 ---
 
 ## Table of Contents
 
-1. [SDK Access Paths](#sdk-access-paths)
-2. [Required Scopes](#required-scopes)
-3. [Paging Groups](#paging-groups)
-4. [Call Park](#call-park)
-5. [Call Park Extensions](#call-park-extensions)
-6. [Call Pickup](#call-pickup)
-7. [Voicemail Groups](#voicemail-groups)
-8. [Customer Assist (CX Essentials)](#customer-assist-cx-essentials)
-9. [Operating Modes](#operating-modes)
-10. [Call Recording (Org-Level)](#call-recording-org-level)
-11. [Announcements & Playlists](#announcements--playlists)
-12. [Single Number Reach](#single-number-reach)
-13. [Virtual Extensions](#virtual-extensions)
-14. [Data Models Quick Reference](#data-models-quick-reference)
-15. [Dependencies & Relationships](#dependencies--relationships)
-
----
-
-## SDK Access Paths
-
-All features in this document are accessed through the `TelephonyApi` instance:
-
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi(tokens='...')
-
-api.telephony.paging                # PagingApi
-api.telephony.callpark              # CallParkApi
-api.telephony.callpark_extension    # CallparkExtensionApi
-api.telephony.callpickup            # CallPickupApi
-api.telephony.voicemail_groups      # VoicemailGroupsApi
-api.telephony.cx_essentials         # CustomerExperienceEssentialsApi
-```
+1. [Required Scopes](#required-scopes)
+2. [Paging Groups](#paging-groups)
+3. [Call Park](#call-park)
+4. [Call Park Extensions](#call-park-extensions)
+5. [Call Pickup](#call-pickup)
+6. [Voicemail Groups](#voicemail-groups)
+7. [Customer Assist (CX Essentials)](#customer-assist-cx-essentials)
+8. [Operating Modes](#operating-modes)
+9. [Call Recording (Org-Level)](#call-recording-org-level)
+10. [Announcements & Playlists](#announcements--playlists)
+11. [Single Number Reach](#single-number-reach)
+12. [Virtual Extensions](#virtual-extensions)
+13. [Data Models Quick Reference](#data-models-quick-reference)
+14. [Dependencies & Relationships](#dependencies--relationships)
 
 ---
 
@@ -71,104 +50,6 @@ All APIs accept an optional `org_id` parameter, allowing partner administrators 
 Group Paging allows a person to place a **one-way call or group page** to up to **75 people and/or workspaces** by dialing a number or extension assigned to a specific paging group. The paging service makes a simultaneous call to all assigned targets.
 
 Use cases: overhead announcements, warehouse pages, emergency notifications to a group of phones.
-
-### SDK API Class
-
-```python
-class PagingApi(ApiChild, base='telephony/config')
-```
-
-### API Operations
-
-#### List Paging Groups
-
-Returns all paging groups across the organization (or filtered by location).
-
-```python
-def list(
-    self,
-    location_id: str = None,
-    name: str = None,
-    phone_number: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[Paging, None, None]
-```
-
-- `location_id`: Filter to a specific location. Default is all locations.
-- `name`: Filter by matching name.
-- `phone_number`: Filter by matching primary phone number or extension.
-- Returns paginated results with item key `locationPaging`.
-
-#### Get Paging Group Details
-
-```python
-def details(
-    self,
-    location_id: str,
-    paging_id: str,
-    org_id: str = None
-) -> Paging
-```
-
-Returns the full `Paging` object including `originators` and `targets` with detailed agent info (first/last name, phone number, extension, type).
-
-#### Create Paging Group
-
-```python
-def create(
-    self,
-    location_id: str,
-    settings: Paging,
-    org_id: str = None
-) -> str  # returns new paging group ID
-```
-
-**Validation rule**: If `originators` are provided, `originator_caller_id_enabled` is **required** (raises `TypeError` otherwise).
-
-Convenience factory:
-
-```python
-settings = Paging.create(name='Warehouse Page', extension='8100')
-paging_id = api.telephony.paging.create(location_id=loc_id, settings=settings)
-```
-
-#### Update Paging Group
-
-```python
-def update(
-    self,
-    location_id: str,
-    update: Paging,
-    paging_id: str,
-    org_id: str = None
-) -> None
-```
-
-#### Delete Paging Group
-
-```python
-def delete_paging(
-    self,
-    location_id: str,
-    paging_id: str,
-    org_id: str = None
-) -> None
-```
-
-#### Get Available Phone Numbers
-
-```python
-def primary_available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
-
-Lists service and standard numbers available for assignment as the paging group's primary phone number. Numbers are associated with the specified location, can be active or inactive, and must be unassigned.
 
 ### Key Data Models
 
@@ -208,8 +89,8 @@ Lists service and standard numbers available for assignment as the paging group'
 
 ### Phone Number / Extension Assignment
 
-- Either `phone_number` or `extension` is mandatory (enforced by `Paging.create()` factory).
-- Use `primary_available_phone_numbers()` to find unassigned numbers at a location.
+- Either `phone_number` or `extension` is mandatory on create.
+- Use the Get Available Phone Numbers endpoint (see Raw HTTP) to find unassigned numbers at a location.
 - The `toll_free_number` flag is read-only and reflects whether the assigned number is toll-free.
 
 ### Member Management
@@ -223,8 +104,8 @@ Lists service and standard numbers available for assignment as the paging group'
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -317,136 +198,6 @@ Call Park allows a call recipient to place a call **on hold at a designated park
 
 Use cases: front-desk parks a call, employee picks it up from their desk phone; warehouse environments where users move between stations.
 
-### SDK API Class
-
-```python
-class CallParkApi(ApiChild, base='telephony/config/callParks')
-```
-
-### API Operations
-
-#### List Call Parks
-
-```python
-def list(
-    self,
-    location_id: str,
-    order: str = None,       # 'ASC' or 'DSC'
-    name: str = None,        # filter by name (max 80 chars)
-    org_id: str = None,
-    **params
-) -> Generator[CallPark, None, None]
-```
-
-**NOTE**: The Call Park ID will change upon modification of the Call Park name.
-
-#### Get Call Park Details
-
-```python
-def details(
-    self,
-    location_id: str,
-    callpark_id: str,
-    org_id: str = None
-) -> CallPark
-```
-
-#### Create Call Park
-
-```python
-def create(
-    self,
-    location_id: str,
-    settings: CallPark,
-    org_id: str = None
-) -> str  # returns new call park ID
-```
-
-Convenience factory (minimal call park with recall to parking user only):
-
-```python
-settings = CallPark.default(name='Lobby Park')
-park_id = api.telephony.callpark.create(location_id=loc_id, settings=settings)
-```
-
-#### Update Call Park
-
-```python
-def update(
-    self,
-    location_id: str,
-    callpark_id: str,
-    settings: CallPark,
-    org_id: str = None
-) -> str  # returns updated call park ID
-```
-
-**NOTE**: The Call Park ID changes when the name is modified. The returned ID is the new one.
-
-#### Delete Call Park
-
-```python
-def delete_callpark(
-    self,
-    location_id: str,
-    callpark_id: str,
-    org_id: str = None
-) -> None
-```
-
-#### Get Available Agents
-
-```python
-def available_agents(
-    self,
-    location_id: str,
-    call_park_name: str = None,
-    name: str = None,
-    phone_number: str = None,
-    order: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[PersonPlaceAgent, None, None]
-```
-
-Returns people and workspaces eligible to be added as call park agents. Sort fields: `fname`, `lname`, `number`, `extension` (pipe-separated, max 3).
-
-#### Get Available Recall Hunt Groups
-
-```python
-def available_recalls(
-    self,
-    location_id: str,
-    name: str = None,
-    order: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableRecallHuntGroup, None, None]
-```
-
-Lists hunt groups that can be used as recall destinations.
-
-#### Get Location Call Park Settings
-
-```python
-def call_park_settings(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> LocationCallParkSettings
-```
-
-#### Update Location Call Park Settings
-
-```python
-def update_call_park_settings(
-    self,
-    location_id: str,
-    settings: LocationCallParkSettings,
-    org_id: str = None
-) -> None
-```
-
 ### Key Data Models
 
 #### `CallPark`
@@ -490,7 +241,7 @@ def update_call_park_settings(
 
 #### `LocationCallParkSettings`
 
-Wraps `call_park_recall` (`RecallHuntGroup`) and `call_park_settings` (`CallParkSettings`) into a single object for location-level configuration.
+Location-level call park configuration combines the recall setting (`call_park_recall`) and park settings (`call_park_settings`).
 
 ### Phone Number / Extension Assignment
 
@@ -500,16 +251,16 @@ Call Parks themselves do not have phone numbers or extensions directly. They are
 
 - **Agents**: People and workspaces eligible to receive parked calls. Added via the `agents` field (list of IDs on create/update).
 - **Call Park Extensions**: Dedicated extensions for parking. Added via `call_park_extensions` field (list of IDs on create/update).
-- Use `available_agents()` to discover eligible agents at a location.
-- Use `available_recalls()` to discover hunt groups eligible as recall destinations.
+- Use the Get Available Agents endpoint (see Raw HTTP) to discover eligible agents at a location.
+- Use the Get Available Recall Hunt Groups endpoint (see Raw HTTP) to discover hunt groups eligible as recall destinations.
 
 ### Raw HTTP
 
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -628,85 +379,9 @@ Call Park Extensions are **dedicated extensions defined within the Call Park ser
 
 The Call Park service is enabled for all users by default.
 
-### SDK API Class
-
-```python
-class CallparkExtensionApi(ApiChild, base='telephony')
-```
-
-### API Operations
-
-#### List Call Park Extensions
-
-```python
-def list(
-    self,
-    extension: str = None,
-    name: str = None,
-    location_id: str = None,
-    location_name: str = None,
-    order: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[CallParkExtension, None, None]
-```
-
-Lists across all locations if `location_id` is not specified. Sort fields: `groupName`, `callParkExtension`, `callParkExtensionName`, `callParkExtensionExternalId`.
-
-#### Get Call Park Extension Details
-
-```python
-def details(
-    self,
-    location_id: str,
-    cpe_id: str,
-    org_id: str = None
-) -> CallParkExtension
-```
-
-Returns `CallParkExtension` with `name` and `extension` fields.
-
-#### Create Call Park Extension
-
-```python
-def create(
-    self,
-    location_id: str,
-    name: str,           # max 30 chars
-    extension: str,      # 2-10 chars, must be unique
-    org_id: str = None
-) -> str  # returns new call park extension ID
-```
-
-#### Update Call Park Extension
-
-```python
-def update(
-    self,
-    location_id: str,
-    cpe_id: str,
-    name: str = None,
-    extension: str = None,
-    org_id: str = None
-) -> None
-```
-
-Both `name` and `extension` are optional -- only the provided fields are updated.
-
-#### Delete Call Park Extension
-
-```python
-def delete(
-    self,
-    location_id: str,
-    cpe_id: str,
-    org_id: str = None
-) -> None
-```
-
 ### Key Data Models
 
-#### `CallParkExtension` (from `wxc_sdk.common`)
+#### `CallParkExtension`
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -714,7 +389,7 @@ def delete(
 | `name` | `str` | Max 30 chars |
 | `extension` | `str` | 2-10 chars, must be unique within location |
 
-This is a lightweight model -- just a name and extension. The `CallParkExtension` model is shared from `wxc_sdk.common` and also used within the `CallPark` model to list assigned park extensions.
+This is a lightweight model -- just a name and extension. The `CallParkExtension` model is also used within the `CallPark` model to list assigned park extensions.
 
 ### Phone Number / Extension Assignment
 
@@ -731,8 +406,8 @@ Call Park Extensions do not have members. They are simple extension holders assi
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -802,93 +477,6 @@ Call Pickup enables a user (agent) to **answer any ringing line within their pic
 
 Use cases: small offices where team members cover each other's calls; receptionist groups.
 
-### SDK API Class
-
-```python
-class CallPickupApi(ApiChild, base='telephony/config/callPickups')
-```
-
-### API Operations
-
-#### List Call Pickups
-
-```python
-def list(
-    self,
-    location_id: str,
-    order: Literal['ASC', 'DSC'] = None,
-    name: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[CallPickup, None, None]
-```
-
-**NOTE**: The Call Pickup ID will change upon modification of the Call Pickup name.
-
-#### Get Call Pickup Details
-
-```python
-def details(
-    self,
-    location_id: str,
-    pickup_id: str,
-    org_id: str = None
-) -> CallPickup
-```
-
-#### Create Call Pickup
-
-```python
-def create(
-    self,
-    location_id: str,
-    settings: CallPickup,
-    org_id: str = None
-) -> str  # returns new call pickup ID
-```
-
-#### Update Call Pickup
-
-```python
-def update(
-    self,
-    location_id: str,
-    pickup_id: str,
-    settings: CallPickup,
-    org_id: str = None
-) -> str  # returns updated call pickup ID
-```
-
-**NOTE**: The Call Pickup ID changes when the name is modified.
-
-#### Delete Call Pickup
-
-```python
-def delete_pickup(
-    self,
-    location_id: str,
-    pickup_id: str,
-    org_id: str = None
-) -> None
-```
-
-#### Get Available Agents
-
-```python
-def available_agents(
-    self,
-    location_id: str,
-    call_pickup_name: str = None,
-    name: str = None,
-    phone_number: str = None,
-    order: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[PersonPlaceAgent, None, None]
-```
-
-Returns people, workspaces, and virtual lines eligible to be added to pickup groups. Sort fields: `fname`, `lname`, `number`, `extension` (pipe-separated, max 3).
-
 ### Key Data Models
 
 #### `CallPickup`
@@ -921,7 +509,7 @@ Call Pickup groups do not have their own phone numbers or extensions. They are g
 ### Member Management
 
 - **Agents**: People, workspaces, and virtual lines. Set via the `agents` field (list of IDs on create/update).
-- Use `available_agents()` to discover eligible agents at a location that are not yet assigned to another pickup group. The API excludes already-assigned agents from the results.
+- Use the Get Available Agents endpoint (see Raw HTTP) to discover eligible agents at a location that are not yet assigned to another pickup group. The API excludes already-assigned agents from the results.
 - A user can only belong to **one** call pickup group at a time. Attempting to add an already-assigned user returns error 4471: "User ... is already assigned to pickup group ...".
 
 ### Raw HTTP
@@ -929,8 +517,8 @@ Call Pickup groups do not have their own phone numbers or extensions. They are g
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1016,118 +604,6 @@ wxcli call-pickup list-available-users <loc_id>
 
 Voicemail Groups provide a **shared voicemail box** (and optional inbound fax box) that can be assigned to users or call routing features like auto attendants, call queues, or hunt groups. They are useful for team-level voicemail where multiple people need access to the same messages.
 
-### SDK API Class
-
-```python
-class VoicemailGroupsApi(ApiChild, base='telephony/config/voicemailGroups')
-```
-
-### API Operations
-
-#### List Voicemail Groups
-
-```python
-def list(
-    self,
-    location_id: str = None,
-    name: str = None,
-    phone_number: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[VoicemailGroup, None, None]
-```
-
-- `name`: Search (contains) based on voicemail group name.
-- `phone_number`: Search (contains) based on number or extension.
-
-#### Get Voicemail Group Details
-
-```python
-def details(
-    self,
-    location_id: str,
-    voicemail_group_id: str,
-    org_id: str = None
-) -> VoicemailGroupDetail
-```
-
-#### Create Voicemail Group
-
-```python
-def create(
-    self,
-    location_id: str,
-    settings: VoicemailGroupDetail,
-    org_id: str = None
-) -> str  # returns new voicemail group ID
-```
-
-Convenience factory with sensible defaults (internal storage, all notifications disabled):
-
-```python
-settings = VoicemailGroupDetail.create(
-    name='Support VM',
-    extension='8200',
-    first_name='Support',
-    last_name='Team',
-    passcode=740384,
-    language_code='en_us',
-    phone_number='+14155551234'  # optional
-)
-vmg_id = api.telephony.voicemail_groups.create(
-    location_id=loc_id, settings=settings
-)
-```
-
-#### Update Voicemail Group
-
-```python
-def update(
-    self,
-    location_id: str,
-    voicemail_group_id: str,
-    settings: VoicemailGroupDetail,
-    org_id: str = None
-) -> None
-```
-
-#### Delete Voicemail Group
-
-```python
-def delete(
-    self,
-    location_id: str,
-    voicemail_group_id: str,
-    org_id: str = None
-) -> None
-```
-
-#### Get Available Phone Numbers
-
-```python
-def available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
-
-#### Get Fax Message Available Phone Numbers
-
-```python
-def fax_message_available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
-
-Lists numbers available to be assigned as the voicemail group's fax message phone number.
-
 ### Key Data Models
 
 #### `VoicemailGroup` (List Model)
@@ -1167,7 +643,7 @@ Lists numbers available to be assigned as the voicemail group's fax message phon
 | `transfer_to_number` | `VoicemailTransferToNumber` | **Yes** (set by factory) | Transfer settings |
 | `email_copy_of_message` | `VoicemailCopyOfMessage` | **Yes** (set by factory) | Email copy settings |
 | `voice_message_forwarding_enabled` | `bool` | No | Enable/disable voice message forwarding |
-| `time_zone` | `str` | No | Undocumented field -- present in API response and wxc_sdk model (`# TODO: undocumented`) but absent from OpenAPI spec `GetLocationVoicemailGroupObject` schema.  |
+| `time_zone` | `str` | No | Undocumented field -- present in API response but absent from OpenAPI spec `GetLocationVoicemailGroupObject` schema.  |
 | `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Replaces deprecated first/last name |
 | `dial_by_name` | `str` | No | Name for dial-by-name directory |
 
@@ -1206,7 +682,7 @@ Lists numbers available to be assigned as the voicemail group's fax message phon
 | `enabled` | `bool` | Whether email copies of voicemail are sent |
 | `email_id` | `str` | Email address to receive message copies |
 
-The `VoicemailGroupDetail.create()` factory sets these defaults:
+If not explicitly provided on create, these fields default to:
 - `message_storage`: `StorageType.internal`
 - `notifications`: disabled
 - `fax_message`: disabled
@@ -1217,7 +693,7 @@ The `VoicemailGroupDetail.create()` factory sets these defaults:
 
 - `extension` is **required** on create.
 - `phone_number` is optional.
-- Use `available_phone_numbers()` and `fax_message_available_phone_numbers()` to find unassigned numbers at a location.
+- Use the Get Available Phone Numbers and Get Fax Message Available Phone Numbers endpoints (see Raw HTTP) to find unassigned numbers at a location.
 
 ### Member Management
 
@@ -1230,8 +706,8 @@ Voicemail Groups do not have explicit member lists. They are shared voicemail bo
 The Voicemail Groups API base is `telephony/config/voicemailGroups`. The underlying API URLs are:
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1346,46 +822,9 @@ Webex **Customer Assist** (formerly Customer Experience Essentials / CX Essentia
 
 These APIs are distinct from Customer Experience Basic and require Customer Assist licensing.
 
-### SDK API Class
-
-```python
-@dataclass(init=False, repr=False)
-class CustomerExperienceEssentialsApi(ApiChild, base='telephony/config')
-```
-
-Sub-APIs:
-
-```python
-api.telephony.cx_essentials.callqueue_recording   # QueueCallRecordingSettingsApi
-api.telephony.cx_essentials.wrapup_reasons         # WrapupReasonApi
-```
-
 ### Screen Pop Configuration
 
 Screen pop lets agents view customer-related info in a pop-up window when receiving a call from a queue.
-
-#### Get Screen Pop Configuration
-
-```python
-def get_screen_pop_configuration(
-    self,
-    location_id: str = None,
-    queue_id: str = None,
-    org_id: str = None
-) -> ScreenPopConfiguration
-```
-
-#### Modify Screen Pop Configuration
-
-```python
-def modify_screen_pop_configuration(
-    self,
-    location_id: str,
-    queue_id: str,
-    settings: ScreenPopConfiguration,
-    org_id: str = None
-) -> None
-```
 
 #### `ScreenPopConfiguration` Model
 
@@ -1398,17 +837,6 @@ def modify_screen_pop_configuration(
 
 ### Available Agents
 
-#### List Customer Assist Available Agents
-
-```python
-def available_agents(
-    self,
-    location_id: str,
-    has_cx_essentials: bool = None,
-    org_id: str = None
-) -> Generator[AvailableAgent, None, None]
-```
-
 - `has_cx_essentials=True`: Returns only agents with Customer Assist (formerly CX Essentials) license.
 - `has_cx_essentials=False`: Returns only agents with CX Basic license.
 - Omit for all agents.
@@ -1416,33 +844,6 @@ def available_agents(
 ### Queue Call Recording
 
 Hosted call recording for queues. Records calls placed and received on the platform for replay and archival.
-
-#### Read Queue Call Recording Settings
-
-```python
-def read(
-    self,
-    location_id: str,
-    queue_id: str,
-    org_id: str = None
-) -> CallRecordingSetting
-```
-
-**Scope**: `spark-admin:people_read`
-
-#### Configure Queue Call Recording Settings
-
-```python
-def configure(
-    self,
-    location_id: str,
-    queue_id: str,
-    recording: CallRecordingSetting,
-    org_id: str = None
-) -> None
-```
-
-**Scope**: `spark-admin:people_write`
 
 **Note**: A person with a Webex Calling Standard license is eligible for call recording only when the recording vendor is Webex.
 
@@ -1461,116 +862,13 @@ Scope: `spark-admin:people_read` (GET), `spark-admin:people_write` (PUT).
 
 Wrap-up reasons let agents categorize the outcome of a call after it ends. Admins configure reasons and assign them to queues. A configurable timer (default 60 seconds) dictates how long agents have to select a reason post-call.
 
-#### List Wrap-Up Reasons (Org-Level)
-
-```python
-def list(self) -> List[WrapUpReason]
-```
-
-Returns all wrap-up reasons configured for the organization. No parameters needed.
-
-#### Get Wrap-Up Reason Details
-
-```python
-def details(
-    self,
-    wrapup_reason_id: str
-) -> WrapUpReasonDetails
-```
-
-Returns the reason details including assigned queues.
-
-#### Create Wrap-Up Reason
-
-```python
-def create(
-    self,
-    name: str,
-    description: str = None,
-    queues: List[str] = None,
-    assign_all_queues_enabled: bool = None
-) -> str  # returns wrap-up reason ID
-```
-
-- `queues`: List of queue IDs to assign.
-- `assign_all_queues_enabled`: Assign to all queues at once.
-
 #### Update Wrap-Up Reason
-
-```python
-def update(
-    self,
-    wrapup_reason_id: str,
-    name: str = None,
-    description: str = None,
-    queues_to_assign: List[str] = None,
-    queues_to_unassign: List[str] = None,
-    assign_all_queues_enabled: bool = None,
-    unassign_all_queues_enabled: bool = None
-) -> None
-```
 
 Queue assignment is **incremental** -- you can assign and unassign specific queues without replacing the full list.
 
-#### Delete Wrap-Up Reason
-
-```python
-def delete(
-    self,
-    wrapup_reason_id: str
-) -> None
-```
-
-#### Validate Wrap-Up Reason Name
-
-```python
-def validate(
-    self,
-    name: str
-) -> None
-```
-
-Check if a wrap-up reason name is valid (not already taken). Raises an error on conflict.
-
-#### Read Queue Wrap-Up Settings
-
-```python
-def read_queue_settings(
-    self,
-    location_id: str,
-    queue_id: str
-) -> QueueWrapupReasonSettings
-```
-
-Returns wrap-up configuration for a specific queue: timer settings and assigned reasons.
-
 #### Update Queue Wrap-Up Settings
 
-```python
-def update_queue_settings(
-    self,
-    location_id: str,
-    queue_id: str,
-    wrapup_reasons: list[str] = None,
-    default_wrapup_reason_id: str = None,
-    wrapup_timer_enabled: bool = None,
-    wrapup_timer: int = None
-) -> None
-```
-
 - `default_wrapup_reason_id`: Set as `''` (empty string) to clear the default.
-- `wrapup_timer`: Timer value in seconds (default is 60).
-
-#### Get Available Queues for Wrap-Up Reason
-
-```python
-def available_queues(
-    self,
-    wrapup_reason_id: str
-) -> List[AvailableQueue]
-```
-
-Returns queues that are not yet assigned to this wrap-up reason and can be added.
 
 ### Customer Assist Data Models
 
@@ -1639,8 +937,8 @@ Returns queues that are not yet assigned to this wrap-up reason and can be added
 Customer Assist (formerly CX Essentials) APIs operate on call queues. The base URL pattern is `telephony/config/cxEssentials/...` or queue-scoped paths.
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1779,8 +1077,8 @@ Types: `SAME_HOURS_DAILY`, `DIFFERENT_HOURS_DAILY`, `HOLIDAY`.
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1934,8 +1232,8 @@ Organization-level call recording settings control global recording behavior. Pe
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -2018,8 +1316,8 @@ The Announcement Repository stores binary audio greeting files (WAV, WMA) used b
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -2212,8 +1510,8 @@ Single Number Reach (Office Anywhere) allows a person to receive calls on altern
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -2307,8 +1605,8 @@ Virtual Extensions are directory entries with extensions (and optionally phone n
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -2482,7 +1780,7 @@ wxcli virtual-extensions validate-the-prefix --json-body '{"locationId": "<loc_i
 
 ## Data Models Quick Reference
 
-### Shared Models (from `wxc_sdk.common`)
+### Shared Models
 
 | Model | Used By | Description |
 |-------|---------|-------------|
@@ -2554,7 +1852,7 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 1. **Call Park requires Call Park Extensions**: You create Call Park Extensions first, then assign them to Call Park groups.
 2. **Call Park recall requires Hunt Groups**: If using `ALERT_PARKING_USER_FIRST_THEN_HUNT_GROUP` or `ALERT_HUNT_GROUP_ONLY`, a Hunt Group must exist at the location.
 3. **Customer Assist requires Call Queues**: Screen pop, queue recording, and wrap-up reasons are all per-queue configurations. Call queues must be created first.
-4. **Customer Assist requires licensing**: The `has_cx_essentials` filter on `available_agents()` distinguishes between Customer Assist and CX Basic licensed agents.
+4. **Customer Assist requires licensing**: The `has_cx_essentials` filter on the List Available Agents endpoint distinguishes between Customer Assist and CX Basic licensed agents.
 5. **Voicemail Groups are location-scoped**: Created within a location, but listed org-wide.
 6. **Paging Groups are location-scoped**: Created within a location, but can be listed org-wide.
 7. **ID instability for Call Park and Call Pickup**: The IDs for Call Park and Call Pickup entities change when their names are modified. Always re-fetch the ID after a name change.

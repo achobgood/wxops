@@ -1,10 +1,9 @@
 # Call Features: Auto Attendants, Call Queues, and Hunt Groups
 
-Reference for Webex Calling's three major call-routing features. Sourced from the `wxc_sdk` Python SDK.
+Reference for Webex Calling's three major call-routing features.
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Call Features APIs
 
@@ -30,19 +29,6 @@ Auto attendants play customized prompts and provide callers with menu options fo
 
 Use an auto attendant when you need an IVR-style front door: "Press 1 for Sales, 2 for Support..."
 
-**SDK access path:** `api.telephony.auto_attendant`
-
-### API Operations
-
-| Operation | Method | Signature |
-|-----------|--------|-----------|
-| **List** | `list()` | `list(org_id=None, location_id=None, name=None, phone_number=None, **params) -> Generator[AutoAttendant]` |
-| **Get by name** | `by_name()` | `by_name(name, location_id=None, org_id=None) -> Optional[AutoAttendant]` |
-| **Get details** | `details()` | `details(location_id, auto_attendant_id, org_id=None) -> AutoAttendant` |
-| **Create** | `create()` | `create(location_id, settings: AutoAttendant, org_id=None) -> str` (returns new ID) |
-| **Update** | `update()` | `update(location_id, auto_attendant_id, settings: AutoAttendant, org_id=None) -> None` |
-| **Delete** | `delete_auto_attendant()` | `delete_auto_attendant(location_id, auto_attendant_id, org_id=None) -> None` |
-
 ### Key Data Models
 
 #### `AutoAttendant`
@@ -64,13 +50,6 @@ Use an auto attendant when you need an IVR-style front door: "Press 1 for Sales,
 | `first_name` / `last_name` | `str` | No | **Deprecated** -- use `direct_line_caller_id_name` and `dial_by_name` instead |
 | `direct_line_caller_id_name` | `DirectLineCallerIdName` | No | Not supported in FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions. |
 | `dial_by_name` | `str` | No | Not supported in FedRAMP. See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions. |
-
-**Convenience constructor:**
-```python
-AutoAttendant.create(name="Main Menu",
-                     business_schedule="Business Hours",
-                     extension="1000")
-```
 
 #### `AutoAttendantMenu`
 
@@ -121,27 +100,21 @@ AutoAttendant.create(name="Main Menu",
 ### Phone Number/Extension Assignment
 
 - Must provide at least one of `phone_number` or `extension` at creation.
-- Available numbers for assignment:
-  - `primary_available_phone_numbers(location_id, ...)` -- unassigned numbers at the location
-  - `alternate_available_phone_numbers(location_id, ...)` -- numbers for alternate number assignment
-  - `call_forward_available_phone_numbers(location_id, ...)` -- assigned numbers available for forwarding
 
 ### Announcements
 
-- `list_announcement_files(location_id, auto_attendant_id, org_id=None) -> list[AnnAudioFile]`
-- `delete_announcement_file(location_id, auto_attendant_id, file_name, org_id=None)`
 - **Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-calling-media.md](location-calling-media.md) section 1.
 
 ### Forwarding
 
-Auto attendants have a `forwarding` sub-API (instance of `ForwardingApi` with `FeatureSelector.auto_attendants`). See [Shared Forwarding API](#4-shared-forwarding-api).
+Auto attendants have a `forwarding` sub-resource. See [Shared Forwarding API](#4-shared-forwarding-api).
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -277,22 +250,6 @@ Call queues temporarily hold calls in the cloud when all assigned agents are una
 
 Use a call queue when callers should wait on hold until an agent is free (support lines, order lines, etc.).
 
-**SDK access path:** `api.telephony.callqueue`
-
-### API Operations
-
-| Operation | Method | Signature |
-|-----------|--------|-----------|
-| **List** | `list()` | `list(location_id=None, name=None, phone_number=None, department_id=None, department_name=None, has_cx_essentials=None, org_id=None, **params) -> Generator[CallQueue]` |
-| **Get by name** | `by_name()` | `by_name(name, location_id=None, has_cx_essentials=None, org_id=None) -> Optional[CallQueue]` |
-| **Get details** | `details()` | `details(location_id, queue_id, has_cx_essentials=None, org_id=None) -> CallQueue` |
-| **Create** | `create()` | `create(location_id, settings: CallQueue, has_cx_essentials=None, org_id=None) -> str` |
-| **Update** | `update()` | `update(location_id, queue_id, update: CallQueue, org_id=None) -> None` |
-| **Delete** | `delete_queue()` | `delete_queue(location_id, queue_id, org_id=None) -> None` |
-| **Org-level settings** | `get_call_queue_settings()` | `get_call_queue_settings(org_id=None) -> CallQueueSettings` |
-| **Update org settings** | `update_call_queue_settings()` | `update_call_queue_settings(settings: CallQueueSettings, org_id=None) -> None` |
-| **Available agents** | `available_agents()` | `available_agents(location_id, name=None, phone_number=None, order=None, org_id=None) -> Generator[AvailableAgent]` |
-
 ### Key Data Models
 
 #### `CallQueue` (extends `HGandCQ`)
@@ -313,14 +270,6 @@ Use a call queue when callers should wait on hold until an agent is free (suppor
 | `phone_number_for_outgoing_calls_enabled` | `bool` | No | Allow queue number for outbound caller ID |
 | `department` | `IdAndName` | No | |
 | `has_cx_essentials` | `bool` | No | Customer Assist (formerly CX Essentials) license flag |
-
-**Convenience constructor:**
-```python
-CallQueue.create(name="Support Queue",
-                 agents=[Agent(agent_id=user.person_id) for user in members],
-                 queue_size=10,
-                 extension="2000")
-```
 
 #### `CallQueueCallPolicies`
 
@@ -440,7 +389,7 @@ CallQueue.create(name="Support Queue",
 
 ### Agent/Member Management
 
-Agents can be people, workspaces, or virtual lines. The `Agent` model (from `hg_and_cq`):
+Agents can be people, workspaces, or virtual lines. The `Agent` model:
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -449,48 +398,13 @@ Agents can be people, workspaces, or virtual lines. The `Agent` model (from `hg_
 | `skill_level` | `int` | Only for SKILL_BASED routing |
 | `join_enabled` | `bool` | Only for call queues -- agent's join status |
 
-**Agents sub-API** (`api.telephony.callqueue.agents`):
-
-| Method | Signature | Notes |
-|--------|-----------|-------|
-| `list()` | `list(location_id=None, queue_id=None, name=None, phone_number=None, join_enabled=None, has_cx_essentials=None, order=None, org_id=None) -> Generator[CallQueueAgent]` | List all agents across queues |
-| `details()` | `details(id, has_cx_essentials=None, max_=50, start=0, org_id=None) -> CallQueueAgentDetail` | Get agent detail with their queue assignments |
-| `update_call_queue_settings()` | `update_call_queue_settings(id, settings: list[AgentCallQueueSetting], has_cx_essentials=None, org_id=None)` | Update an agent's join status across multiple queues |
-
 **Known SDK note:** The decoded value of the agent's `id` and the `type` returned are always `PEOPLE`, even for workspaces or virtual lines. This is a known platform issue that persists as of 2026-03-19. The OpenAPI spec defines `MemberType` as `["PEOPLE", "PLACE"]` and `GetPersonPlaceVirtualLineCallQueueObject.type` as `["PEOPLE", "PLACE", "VIRTUAL_LINE"]`, but the live API returns `"type": "PEOPLE"` for all agent types in queue detail responses. The `availableUsers` endpoint correctly returns `PLACE` and `VIRTUAL_LINE` types, but once assigned to a queue the type collapses to `PEOPLE`.
 
-**Adding/removing agents from a queue** (from examples):
-```python
-# Add agents
-details = api.telephony.callqueue.details(location_id=loc_id, queue_id=q_id)
-details.agents.append(Agent(agent_id=person.person_id))
-update = CallQueue(agents=details.agents)
-api.telephony.callqueue.update(location_id=loc_id, queue_id=q_id, update=update)
-
-# Remove agents
-details.agents = [a for a in details.agents if a.agent_id != target_id]
-update = CallQueue(agents=details.agents)
-api.telephony.callqueue.update(location_id=loc_id, queue_id=q_id, update=update)
-
-# Toggle join/unjoin
-for agent in details.agents:
-    agent.join_enabled = True  # or False
-update = CallQueue(agents=details.agents)
-api.telephony.callqueue.update(location_id=loc_id, queue_id=q_id, update=update)
-```
-
 ### Call Queue Policy Sub-API
-
-**SDK access path:** `api.telephony.callqueue.policy`
 
 These are additional routing policies that sit alongside the main queue configuration:
 
 #### Holiday Service
-
-| Method | Signature |
-|--------|-----------|
-| `holiday_service_details()` | `holiday_service_details(location_id, queue_id, org_id=None) -> HolidayService` |
-| `holiday_service_update()` | `holiday_service_update(location_id, queue_id, update: HolidayService, org_id=None)` |
 
 `HolidayService` fields:
 - `holiday_service_enabled`: bool
@@ -504,11 +418,6 @@ These are additional routing policies that sit alongside the main queue configur
 
 #### Night Service
 
-| Method | Signature |
-|--------|-----------|
-| `night_service_detail()` | `night_service_detail(location_id, queue_id, org_id=None) -> NightService` |
-| `night_service_update()` | `night_service_update(location_id, queue_id, update: NightService, org_id=None)` |
-
 `NightService` fields:
 - `night_service_enabled`: bool
 - `action`: `CPActionType` -- `BUSY` or `TRANSFER`
@@ -519,11 +428,6 @@ These are additional routing policies that sit alongside the main queue configur
 - Separate `audio_message_selection` / `audio_files` for NORMAL mode and `manual_audio_message_selection` / `manual_audio_files` for MANUAL mode
 
 #### Stranded Calls
-
-| Method | Signature |
-|--------|-----------|
-| `stranded_calls_details()` | `stranded_calls_details(location_id, queue_id, org_id=None) -> StrandedCalls` |
-| `stranded_calls_update()` | `stranded_calls_update(location_id, queue_id, update: StrandedCalls, org_id=None)` |
 
 Handles calls when all agents log off or become unavailable.
 
@@ -539,11 +443,6 @@ Handles calls when all agents log off or become unavailable.
 
 #### Forced Forward
 
-| Method | Signature |
-|--------|-----------|
-| `forced_forward_details()` | `forced_forward_details(location_id, queue_id, org_id=None) -> ForcedForward` |
-| `forced_forward_update()` | `forced_forward_update(location_id, queue_id, update: ForcedForward, org_id=None)` |
-
 Temporarily diverts all incoming calls to a destination. Calls already in the queue remain queued.
 
 `ForcedForward` fields:
@@ -555,23 +454,13 @@ Temporarily diverts all incoming calls to a destination. Calls already in the qu
 
 ### Announcement Files Sub-API
 
-**SDK access path:** `api.telephony.callqueue.announcement`
-
-| Method | Signature |
-|--------|-----------|
-| `list()` | `list(location_id, queue_id, org_id=None) -> Generator[Announcement]` |
-| `delete_announcement()` | `delete_announcement(location_id, queue_id, file_name, org_id=None)` |
-
 `Announcement` model: `name` (alias: `fileName`), `size` (alias: `fileSize`)
 
 **Upload is supported via the Announcement Repository API** (`POST /telephony/config/announcements` or `POST /telephony/config/locations/{locationId}/announcements` with multipart/form-data). See [location-calling-media.md](location-calling-media.md) section 1.
 
 ### Phone Number/Extension Assignment
 
-Same pattern as auto attendants:
-- `primary_available_phone_numbers(location_id, ...)`
-- `alternate_available_phone_numbers(location_id, ...)`
-- `call_forward_available_phone_numbers(location_id, ...)`
+Same pattern as auto attendants.
 
 ### Org-Level Call Queue Settings
 
@@ -589,8 +478,8 @@ Same pattern as auto attendants:
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -759,19 +648,6 @@ Hunt groups route incoming calls to a group of people or workspaces using a conf
 
 Use a hunt group when calls should ring agents directly without queuing (small teams, on-call groups).
 
-**SDK access path:** `api.telephony.huntgroup`
-
-### API Operations
-
-| Operation | Method | Signature |
-|-----------|--------|-----------|
-| **List** | `list()` | `list(org_id=None, location_id=None, name=None, phone_number=None, **params) -> Generator[HuntGroup]` |
-| **Get by name** | `by_name()` | `by_name(name, location_id=None, org_id=None) -> Optional[HuntGroup]` |
-| **Get details** | `details()` | `details(location_id, huntgroup_id, org_id=None) -> HuntGroup` |
-| **Create** | `create()` | `create(location_id, settings: HuntGroup, org_id=None) -> str` |
-| **Update** | `update()` | `update(location_id, huntgroup_id, update: HuntGroup, org_id=None) -> None` |
-| **Delete** | `delete_huntgroup()` | `delete_huntgroup(location_id, huntgroup_id, org_id=None) -> None` |
-
 ### Key Data Models
 
 #### `HuntGroup` (extends `HGandCQ`)
@@ -788,14 +664,6 @@ Use a hunt group when calls should ring agents directly without queuing (small t
 | `time_zone` | `str` | No | |
 | `alternate_numbers` | `list[AlternateNumber]` | No | Up to 10 |
 | `hunt_group_caller_id_for_outgoing_calls_enabled` | `bool` | No | Use hunt group as outbound caller ID |
-
-**Convenience constructor:**
-```python
-HuntGroup.create(name="Sales Team",
-                 extension="3000")
-# Creates a minimal hunt group with no agents.
-# call_policies defaults to CIRCULAR on API create().
-```
 
 #### `HGCallPolicies`
 
@@ -831,32 +699,20 @@ HuntGroup.create(name="Sales Team",
 
 ### Agent/Member Management
 
-Hunt group agents use the same `Agent` model as call queues. To modify agents, update the hunt group with the new agent list:
-
-```python
-hg = api.telephony.huntgroup.details(location_id=loc_id, huntgroup_id=hg_id)
-hg.agents.append(Agent(agent_id=new_person_id))
-api.telephony.huntgroup.update(location_id=loc_id, huntgroup_id=hg_id, update=hg)
-```
+Hunt group agents use the same `Agent` model as call queues. To modify agents, update the hunt group with the new agent list -- see the raw HTTP add/remove agents example further below in this section.
 
 **Key difference from call queues:** Hunt groups do not have a `join_enabled` toggle on agents. All agents in the group receive calls (subject to the `waiting_enabled` setting).
 
-### Phone Number/Extension Assignment
-
-- `primary_available_phone_numbers(location_id, ...)`
-- `alternate_available_phone_numbers(location_id, ...)`
-- `forward_available_phone_numbers(location_id, ...)` -- note the method name differs slightly from CQ/AA
-
 ### Forwarding
 
-Hunt groups have a `forwarding` sub-API (instance of `ForwardingApi` with `FeatureSelector.huntgroups`). See [Shared Forwarding API](#4-shared-forwarding-api).
+Hunt groups have a `forwarding` sub-resource. See [Shared Forwarding API](#4-shared-forwarding-api).
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -990,26 +846,11 @@ wxcli hunt-group create-selective-rules Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazo
 
 ## 4. Shared Forwarding API
 
-All three features (auto attendants, call queues, hunt groups) share the same `ForwardingApi` class, instantiated with a different `FeatureSelector`.
-
-**SDK access paths:**
-- `api.telephony.auto_attendant.forwarding`
-- `api.telephony.callqueue.forwarding`
-- `api.telephony.huntgroup.forwarding`
+All three features (auto attendants, call queues, hunt groups) use the same call-forwarding endpoint pattern, differing only in the feature path segment.
 
 ### API Endpoints
 
 Base: `telephony/config/locations/{locationId}/{feature}/{featureId}/callForwarding`
-
-| Method | Signature | Notes |
-|--------|-----------|-------|
-| `settings()` | `settings(location_id, feature_id, org_id=None) -> CallForwarding` | Get forwarding settings |
-| `update()` | `update(location_id, feature_id, forwarding: CallForwarding, org_id=None)` | Update forwarding settings |
-| `create_call_forwarding_rule()` | `create_call_forwarding_rule(location_id, feature_id, forwarding_rule: ForwardingRuleDetails, org_id=None) -> str` | Create selective rule; returns rule ID |
-| `call_forwarding_rule()` | `call_forwarding_rule(location_id, feature_id, rule_id, org_id=None) -> ForwardingRuleDetails` | Get rule details |
-| `update_call_forwarding_rule()` | `update_call_forwarding_rule(location_id, feature_id, rule_id, forwarding_rule: ForwardingRuleDetails, org_id=None) -> str` | Update rule; **rule ID changes if name changes** |
-| `delete_call_forwarding_rule()` | `delete_call_forwarding_rule(location_id, feature_id, rule_id, org_id=None)` | Delete a selective rule |
-| `switch_mode_for_call_forwarding()` | `switch_mode_for_call_forwarding(location_id, feature_id, org_id=None)` | Switch to normal operating mode |
 
 ### Key Data Models
 

@@ -1,20 +1,17 @@
 # Location Call Settings — Core Settings & Voicemail
 
 ## Sources
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Location Call Settings APIs
 
-Reference document covering the SDK APIs for location-level call settings, voicemail policies (location and org), voicemail rules, voice messaging, and voice portal configuration.
-
-**SDK source module:** `wxc_sdk.telephony.location` (and related telephony modules)
+Reference document covering the APIs for location-level call settings, voicemail policies (location and org), voicemail rules, voice messaging, and voice portal configuration.
 
 ---
 
 ## Table of Contents
 
 1. [Location-Level Call Settings](#1-location-level-call-settings)
-   - [TelephonyLocationApi — Main API Class](#telephonylocationapi--main-api-class)
+   - [Location Call Settings — API Surface](#location-call-settings--api-surface)
    - [Data Models](#location-data-models)
    - [Enable / List / Get / Update Locations](#enable--list--get--update-locations)
    - [Caller ID](#caller-id)
@@ -39,24 +36,15 @@ Reference document covering the SDK APIs for location-level call settings, voice
 
 ## 1. Location-Level Call Settings
 
-### TelephonyLocationApi -- Main API Class
+### Location Call Settings — API Surface
 
-The main entry point is `TelephonyLocationApi`, accessible at `api.telephony.location`. It aggregates several child APIs as attributes:
+Location-level Webex Calling settings are configured under the REST base path:
 
 ```
 base = 'telephony/config/locations'
 ```
 
-| Attribute | Type | Purpose |
-|-----------|------|---------|
-| `emergency_services` | `LocationEmergencyServicesApi` | Emergency services config |
-| `intercept` | `LocationInterceptApi` | Call intercept settings |
-| `internal_dialing` | `InternalDialingApi` | Internal dialing / unknown extension routing |
-| `moh` | `LocationMoHApi` | Music on hold settings |
-| `number` | `LocationNumbersApi` | Phone number management (add/remove/activate) |
-| `permissions_out` | `OutgoingPermissionsApi` | Outgoing call permissions |
-| `voicemail` | `LocationVoicemailSettingsApi` | Location VM settings (transcription toggle) |
-| `receptionist_contacts_directory` | `ReceptionistContactsDirectoryApi` | Receptionist contact directories |
+This covers emergency services, call intercept, internal dialing, music on hold, phone number management, outgoing permissions, location voicemail settings, and receptionist contact directories -- each documented in its own section below.
 
 ---
 
@@ -109,14 +97,6 @@ The core model representing a Webex Calling-enabled location.
 
 Enable a location for Webex Calling. Adds calling support to a location created via the locations API.
 
-```python
-def enable_for_calling(
-    self,
-    location: Location,
-    org_id: str = None
-) -> str
-```
-
 **Returns:** The new location ID.
 
 **Scope:** `spark-admin:telephony_config_write`
@@ -126,15 +106,6 @@ def enable_for_calling(
 #### `list`
 
 List all Webex Calling locations with telephony details.
-
-```python
-def list(
-    self,
-    name: str = None,
-    order: str = None,
-    org_id: str = None
-) -> Generator[TelephonyLocation, None, None]
-```
 
 | Parameter | Description |
 |-----------|-------------|
@@ -149,14 +120,6 @@ def list(
 
 Get Webex Calling details for a single location.
 
-```python
-def details(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> TelephonyLocation
-```
-
 **Scope:** `spark-admin:telephony_config_read`
 
 ---
@@ -165,28 +128,7 @@ def details(
 
 Update Webex Calling details for a location. Only non-read-only fields in `TelephonyLocation` are sent.
 
-```python
-def update(
-    self,
-    location_id: str,
-    settings: TelephonyLocation,
-    org_id: str = None
-) -> Optional[str]
-```
-
 **Returns:** `batchJobId` if an async update job is created, otherwise `None`.
-
-**Example:**
-```python
-api.telephony.location.update(
-    location_id=location_id,
-    settings=TelephonyLocation(
-        calling_line_id=CallingLineId(phone_number=tn),
-        routing_prefix=routing_prefix,
-        outside_dial_digit='9'
-    )
-)
-```
 
 **Scope:** `spark-admin:telephony_config_write`
 
@@ -234,18 +176,6 @@ Caller ID is configured through the `CallingLineId` object embedded in `Telephon
 
 List phone numbers available for external caller ID usage by a Webex Calling entity within a location.
 
-```python
-def phone_numbers_available_for_external_caller_id(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    owner_name: str = None,
-    person_id: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
-
 Numbers from the specified location and cross-location numbers (same country, PSTN provider, zone) are returned. When `person_id` is specified for a Cisco PSTN location user with a mobile primary DN and no billing plan, only that mobile number is returned.
 
 **Scope:** `spark-admin:telephony_config_read`
@@ -254,7 +184,7 @@ Numbers from the specified location and cross-location numbers (same country, PS
 
 ### Internal Dialing
 
-**API path:** `api.telephony.location.internal_dialing`
+**REST path:** `telephony/config/locations/{locationId}/internalDialing`
 
 Controls routing of calls to unknown extensions (2-6 digits) to a premises PBX via a trunk or route group.
 
@@ -267,26 +197,9 @@ Controls routing of calls to unknown extensions (2-6 digits) to a premises PBX v
 
 #### `read`
 
-```python
-def read(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> InternalDialing
-```
-
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `update`
-
-```python
-def update(
-    self,
-    location_id: str,
-    update: InternalDialing,
-    org_id: str = None
-)
-```
 
 **Scope:** `spark-admin:telephony_config_write`
 
@@ -310,51 +223,23 @@ wxcli location-call-handling update Y2lzY29zcGFyazovL... \
 
 ### Call Intercept
 
-**API path:** `api.telephony.location.intercept`
+**REST path:** `telephony/config/locations/{locationId}/intercept`
 
 Intercept incoming or outgoing calls for all persons at a location. Intercepted calls are routed to a designated number or to voicemail.
 
-Uses the shared `InterceptSetting` model from `wxc_sdk.person_settings.call_intercept`.
+Uses the shared `InterceptSetting` model.
 
 #### `read`
-
-```python
-def read(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> InterceptSetting
-```
 
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `configure`
 
-```python
-def configure(
-    self,
-    location_id: str,
-    settings: InterceptSetting,
-    org_id: str = None
-)
-```
-
 **Scope:** `spark-admin:telephony_config_write`
 
 #### `call_intercept_available_phone_numbers`
 
-(On `TelephonyLocationApi` directly.) List service and standard numbers available to be assigned as the location's call intercept number.
-
-```python
-def call_intercept_available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    owner_name: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
+List service and standard numbers available to be assigned as the location's call intercept number.
 
 **Scope:** `spark-admin:telephony_config_read`
 
@@ -382,7 +267,7 @@ wxcli location-settings list-available-numbers-call-intercept Y2lzY29zcGFyazovL.
 
 ### Music on Hold
 
-**API path:** `api.telephony.location.moh`
+**REST path:** `telephony/config/locations/{locationId}/musicOnHold`
 
 Controls music played when a call is on hold or parked at the location.
 
@@ -405,26 +290,9 @@ Controls music played when a call is on hold or parked at the location.
 
 #### `read`
 
-```python
-def read(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> LocationMoHSetting
-```
-
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `update`
-
-```python
-def update(
-    self,
-    location_id: str,
-    settings: LocationMoHSetting,
-    org_id: str = None
-)
-```
 
 **Scope:** `spark-admin:telephony_config_write`
 
@@ -447,8 +315,6 @@ wxcli location-settings update-music-on-hold Y2lzY29zcGFyazovL... \
 
 ### Location Numbers
 
-**API path:** `api.telephony.location.number`
-
 Manage phone numbers assigned to a location (add, remove, activate, deactivate).
 
 #### Key Models
@@ -461,59 +327,17 @@ Manage phone numbers assigned to a location (add, remove, activate, deactivate).
 
 #### `add`
 
-```python
-def add(
-    self,
-    location_id: str,
-    phone_numbers: list[str],
-    number_type: TelephoneNumberType = None,
-    number_usage_type: NumberUsageType = None,
-    state: NumberState = NumberState.inactive,
-    subscription_id: str = None,
-    carrier_id: str = None,
-    org_id: str = None
-) -> NumberAddResponse
-```
-
 Only supported for non-integrated PSTN (LGW, Non-integrated CPP). Max 20 mobile numbers per request. Numbers already at the location are silently ignored.
 
 #### `remove`
-
-```python
-def remove(
-    self,
-    location_id: str,
-    phone_numbers: list[str],
-    org_id: str = None
-)
-```
 
 A location's main number cannot be removed. Only non-integrated PSTN.
 
 #### `activate`
 
-```python
-def activate(
-    self,
-    location_id: str,
-    phone_numbers: list[str],
-    org_id: str = None
-)
-```
-
 Does not activate mobile numbers (those activate on user assignment).
 
 #### `manage_number_state`
-
-```python
-def manage_number_state(
-    self,
-    location_id: str,
-    phone_numbers: list[str],
-    action: NumbersRequestAction = None,
-    org_id: str = None
-)
-```
 
 Unified activate/deactivate. Deactivate limitations: max 500 numbers, must be unassigned, not ECBN, not mobile, non-integrated PSTN only.
 
@@ -523,27 +347,9 @@ Unified activate/deactivate. Deactivate limitations: max 500 numbers, must be un
 
 #### `read_ecbn`
 
-```python
-def read_ecbn(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> LocationECBN
-```
-
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `update_ecbn`
-
-```python
-def update_ecbn(
-    self,
-    location_id: str,
-    selected: CallBackSelected,
-    location_member_id: str = None,
-    org_id: str = None
-)
-```
 
 | `CallBackSelected` Value | Description |
 |--------------------------|-------------|
@@ -553,17 +359,6 @@ def update_ecbn(
 **Scope:** `spark-admin:telephony_config_write`
 
 #### `ecbn_available_phone_numbers`
-
-```python
-def ecbn_available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    owner_name: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
 
 #### `LocationECBN` Model
 
@@ -600,17 +395,6 @@ wxcli location-settings list-available-numbers-emergency-callback-number Y2lzY29
 
 Change the announcement language for existing people/workspaces and/or feature configurations at a location. Does **not** change the default language for new entities.
 
-```python
-def change_announcement_language(
-    self,
-    location_id: str,
-    language_code: str,
-    agent_enabled: bool = None,
-    service_enabled: bool = None,
-    org_id: str = None
-)
-```
-
 | Parameter | Description |
 |-----------|-------------|
 | `language_code` | Language code to set |
@@ -645,26 +429,9 @@ wxcli location-settings change-announcement-language Y2lzY29zcGFyazovL... \
 
 **Note:** Not supported for locations in India.
 
-#### `get_call_captions_settings`
+#### Read call captions settings
 
-```python
-def get_call_captions_settings(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> LocationCallCaptions
-```
-
-#### `update_call_captions_settings`
-
-```python
-def update_call_captions_settings(
-    self,
-    location_id: str,
-    settings: LocationCallCaptions,
-    org_id: str = None
-)
-```
+#### Update call captions settings
 
 Only location-level fields and `use_org_settings_enabled` are sent on update; org-level fields are excluded.
 
@@ -689,17 +456,7 @@ wxcli location-settings update-call-captions Y2lzY29zcGFyazovL... \
 
 ### Device Settings
 
-#### `device_settings`
-
 Get device override settings for a location.
-
-```python
-def device_settings(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> DeviceCustomization
-```
 
 **Scope:** `spark-admin:telephony_config_read`
 
@@ -710,14 +467,6 @@ def device_settings(
 #### `safe_delete_check_before_disabling_calling_location`
 
 Check whether a calling location can be safely disabled. Returns blockers and warnings.
-
-```python
-def safe_delete_check_before_disabling_calling_location(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> SafeDeleteCheckResponse
-```
 
 #### `SafeDeleteCheckResponse` Model
 
@@ -743,29 +492,11 @@ wxcli location-settings safe-delete-check Y2lzY29zcGFyazovL...
 
 #### `validate_extensions`
 
-```python
-def validate_extensions(
-    self,
-    location_id: str,
-    extensions: list[str],
-    org_id: str = None
-) -> ValidateExtensionsResponse
-```
-
 **Scope:** `spark-admin:telephony_config_write`
 
 #### `generate_password`
 
 Generate an example SIP password using the location's effective password settings. Used during trunk creation.
-
-```python
-def generate_password(
-    self,
-    location_id: str,
-    generate: list[str] = None,
-    org_id: str = None
-) -> str
-```
 
 **Returns:** The generated example SIP password string.
 
@@ -788,8 +519,8 @@ wxcli location-call-handling generate-example-password Y2lzY29zcGFyazovL...
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()  # auth via WEBEX_ACCESS_TOKEN env var
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1178,63 +909,11 @@ wxcli location-settings delete Y2lzY29zcGFyazovL...
 
 ---
 
-### Additional Location-Level APIs on TelephonyLocationApi
-
-#### `phone_numbers`
-
-List service and standard PSTN numbers available to be assigned as the location's main number.
-
-```python
-def phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    owner_name: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
-
-#### `webex_go_available_phone_numbers`
-
-List standard numbers available for Webex Go assignment at a location.
-
-```python
-def webex_go_available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
-
-#### `charge_number_available_phone_numbers`
-
-List non-toll-free, non-mobile numbers available as the location's charge number.
-
-```python
-def charge_number_available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: List[str] = None,
-    owner_name: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
+### Additional Location-Level APIs
 
 #### Receptionist Contact Directories
 
-These methods manage named directories of users and location features (Auto Attendant, Call Queue, Hunt Group, Single Number Reach, Paging Group):
-
-```python
-def create_receptionist_contact_directory(location_id, name, contacts, org_id=None) -> str
-def list_receptionist_contact_directories(location_id, org_id=None) -> List[IdAndName]
-def receptionist_contact_directory_details(location_id, directory_id, ...) -> List[ContactDetails]
-def delete_receptionist_contact_directory(location_id, directory_id, org_id=None)
-def modify_receptionist_contact_directory(location_id, directory_id, name, contacts, org_id=None) -> str
-```
+These operations manage named directories of users and location features (Auto Attendant, Call Queue, Hunt Group, Single Number Reach, Paging Group).
 
 Note: `modify` performs a **full replacement** of the contacts list (not incremental). The details API is supported for orgs with fewer than 2000 users or location-based calling features; orgs exceeding this threshold get error 25395.
 
@@ -1244,9 +923,7 @@ Note: `modify` performs a **full replacement** of the contacts list (not increme
 
 ### Location Voicemail Settings
 
-**API path:** `api.telephony.location.voicemail`
-
-**Source:** `wxc_sdk.telephony.location.vm`
+**REST path:** `telephony/config/locations/{locationId}/voicemail`
 
 Currently limited to enabling/disabling voicemail transcription at the location level.
 
@@ -1258,26 +935,9 @@ Currently limited to enabling/disabling voicemail transcription at the location 
 
 #### `read`
 
-```python
-def read(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> LocationVoiceMailSettings
-```
-
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `update`
-
-```python
-def update(
-    self,
-    location_id: str,
-    settings: LocationVoiceMailSettings,
-    org_id: str = None
-)
-```
 
 **Scope:** `spark-admin:telephony_config_write`
 
@@ -1315,10 +975,6 @@ api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/voicemail", js
 
 ### Organisation Voicemail Settings
 
-**API path:** `api.telephony.organisation_voicemail`
-
-**Source:** `wxc_sdk.telephony.organisation_vm`
-
 **Base endpoint:** `telephony/config/voicemail/settings`
 
 Controls org-wide voicemail message expiry and forwarding policies.
@@ -1332,7 +988,7 @@ Controls org-wide voicemail message expiry and forwarding policies.
 | `strict_deletion_enabled` | `bool` | When enabled, both read and unread messages are deleted based on expiry. When disabled, unread messages are kept. |
 | `voice_message_forwarding_enabled` | `bool` | Allow people to configure email forwarding of voicemails |
 
-**Defaults** (from `OrganisationVoicemailSettings.default()`):
+**Default values:**
 ```python
 message_expiry_enabled = False
 number_of_days_for_message_expiry = 15
@@ -1342,24 +998,9 @@ voice_message_forwarding_enabled = False
 
 #### `read`
 
-```python
-def read(
-    self,
-    org_id: str = None
-) -> OrganisationVoicemailSettings
-```
-
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `update`
-
-```python
-def update(
-    self,
-    settings: OrganisationVoicemailSettings,
-    org_id: str = None
-)
-```
 
 **Scope:** `spark-admin:telephony_config_write`
 
@@ -1389,10 +1030,6 @@ api.session.rest_put(f"{BASE}/telephony/config/voicemail/settings", json=body)
 ---
 
 ## 3. Voicemail Rules (Org-Level Passcode Policy)
-
-**API path:** `api.telephony.voicemail_rules`
-
-**Source:** `wxc_sdk.telephony.vm_rules`
 
 **Base endpoint:** `telephony/config/voicemail/rules`
 
@@ -1457,7 +1094,7 @@ Defines org-wide default voicemail passcode requirements.
 | `enabled` | `bool` | Feature on/off |
 | `number_of_days` | `int` | Number of days for expiry/change window |
 
-### Defaults (from `VoiceMailRules.default()`)
+### Default passcode rules
 
 ```python
 expire_passcode:        enabled=True,  number_of_days=180
@@ -1471,28 +1108,11 @@ pin_length:             min=6, max=30
 default_voicemail_pin:  disabled
 ```
 
-### Methods
-
 #### `read`
-
-```python
-def read(
-    self,
-    org_id: str = None
-) -> VoiceMailRules
-```
 
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `update`
-
-```python
-def update(
-    self,
-    settings: VoiceMailRules,
-    org_id: str = None
-)
-```
 
 **Important:** The `default_voicemail_pin_rules` field is **excluded** from the update payload. To set a default pin, use `default_voicemail_pin_enabled` and `default_voicemail_pin` on the `VoiceMailRules` object directly. If you enable a default pin, communicate it to your users -- they must reset it before accessing voicemail.
 
@@ -1527,10 +1147,6 @@ api.session.rest_put(f"{BASE}/telephony/config/voicemail/rules", json=body)
 ---
 
 ## 4. Voice Messaging (User-Level)
-
-**API path:** `api.telephony.voice_messaging`
-
-**Source:** `wxc_sdk.telephony.voice_messaging`
 
 **Base endpoint:** `telephony/voiceMessages`
 
@@ -1570,25 +1186,11 @@ User-scoped API (not admin). Handles voicemail message retrieval, deletion, and 
 | `place_id` | `str` | Place ID (absent if privacy enabled) |
 | `privacy_enabled` | `bool` | Whether privacy is on |
 
-### Methods
-
 #### `summary`
-
-```python
-def summary(self) -> MessageSummary
-```
 
 Get voicemail message counts. **Scope:** `spark:calls_read`
 
 #### `list`
-
-```python
-def list(
-    self,
-    line_owner_id: str = None,
-    **params
-) -> Generator[VoiceMessageDetails, None, None]
-```
 
 List all voicemail messages. `line_owner_id` supports secondary lines on shared devices.
 
@@ -1596,33 +1198,13 @@ List all voicemail messages. `line_owner_id` supports secondary lines on shared 
 
 #### `delete`
 
-```python
-def delete(self, message_id: str)
-```
-
 Delete a specific voicemail message. **Scope:** `spark:calls_write`
 
 #### `mark_as_read`
 
-```python
-def mark_as_read(
-    self,
-    message_id: str,
-    line_owner_id: str = None
-)
-```
-
 Mark a specific message (or all messages if `message_id` semantics allow) as read. **Scope:** `spark:calls_write`
 
 #### `mark_as_unread`
-
-```python
-def mark_as_unread(
-    self,
-    message_id: str,
-    line_owner_id: str = None
-)
-```
 
 Mark a specific message (or all messages) as unread. **Scope:** `spark:calls_write`
 
@@ -1660,10 +1242,6 @@ api.session.rest_put(f"{BASE}/telephony/voiceMessages/{message_id}/markAsUnread"
 
 ## 5. Voice Portal
 
-**API path:** `api.telephony.voiceportal`
-
-**Source:** `wxc_sdk.telephony.voiceportal`
-
 **Base endpoint:** `telephony/config/locations/{locationId}/voicePortal`
 
 Voice portals provide an interactive voice response (IVR) system so administrators can manage auto attendant announcements. Each location has one voice portal.
@@ -1700,61 +1278,23 @@ Voice portal passcode rules (separate from the org-level voicemail rules).
 | `block_repeated_patterns_enabled` | `bool` | Block repeated patterns |
 | `block_reversed_old_passcode_enabled` | `bool` | Block reversed old passcode |
 
-### Methods
-
 #### `read`
-
-```python
-def read(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> VoicePortalSettings
-```
 
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `update`
 
-```python
-def update(
-    self,
-    location_id: str,
-    settings: VoicePortalSettings,
-    passcode: str = None,
-    org_id: str = None
-)
-```
-
-Update voice portal settings. Pass `passcode` to change the portal passcode (SDK sends both `newPasscode` and `confirmPasscode` automatically). The `portal_id` and `language` fields are excluded from the update payload.
+Update voice portal settings. Pass `passcode` to change the portal passcode. The `portal_id` and `language` fields are excluded from the update payload.
 
 **Scope:** `spark-admin:telephony_config_write`
 
 #### `available_phone_numbers`
-
-```python
-def available_phone_numbers(
-    self,
-    location_id: str,
-    phone_number: list[str] = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableNumber, None, None]
-```
 
 List numbers available to be assigned as the voice portal's phone number.
 
 **Scope:** `spark-admin:telephony_config_read`
 
 #### `passcode_rules`
-
-```python
-def passcode_rules(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> PasscodeRules
-```
 
 Retrieve the voice portal passcode rules for a location.
 
@@ -1803,7 +1343,7 @@ body = {
 api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/voicePortal", json=body)
 ```
 
-> **Gotcha:** To change the portal passcode via raw HTTP, include `newPasscode` and `confirmPasscode` in the body (the SDK wraps this for you, but raw HTTP requires both fields).
+> **Gotcha:** To change the portal passcode via raw HTTP, include `newPasscode` and `confirmPasscode` in the body.
 
 **Read voice portal passcode rules:**
 ```python
@@ -1915,31 +1455,6 @@ wxcli location-voicemail list-available-numbers-fax-message Y2lzY29zcGFyazovL...
 
 ---
 
-## API Access Path Summary
-
-| Setting | SDK Access Path | Scope |
-|---------|----------------|-------|
-| Location telephony details | `api.telephony.location.details()` | read |
-| Location list | `api.telephony.location.list()` | read |
-| Enable calling | `api.telephony.location.enable_for_calling()` | write |
-| Update location | `api.telephony.location.update()` | write |
-| Internal dialing | `api.telephony.location.internal_dialing.read/update()` | read/write |
-| Call intercept | `api.telephony.location.intercept.read/configure()` | read/write |
-| Music on hold | `api.telephony.location.moh.read/update()` | read/write |
-| Location numbers | `api.telephony.location.number.add/remove/activate/manage_number_state()` | write |
-| Location voicemail | `api.telephony.location.voicemail.read/update()` | read/write |
-| ECBN | `api.telephony.location.read_ecbn/update_ecbn()` | read/write |
-| Call captions | `api.telephony.location.get_call_captions_settings/update_call_captions_settings()` | read/write |
-| Announcement language | `api.telephony.location.change_announcement_language()` | write |
-| Device settings | `api.telephony.location.device_settings()` | read |
-| Safe delete check | `api.telephony.location.safe_delete_check_before_disabling_calling_location()` | read |
-| Org voicemail settings | `api.telephony.organisation_voicemail.read/update()` | read/write |
-| Voicemail rules | `api.telephony.voicemail_rules.read/update()` | read/write |
-| Voice messaging (user) | `api.telephony.voice_messaging.summary/list/delete/mark_as_read/mark_as_unread()` | calls_read/write |
-| Voice portal | `api.telephony.voiceportal.read/update/passcode_rules/available_phone_numbers()` | read/write |
-
----
-
 ## Raw HTTP URL Pattern Summary
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -1975,7 +1490,7 @@ wxcli location-voicemail list-available-numbers-fax-message Y2lzY29zcGFyazovL...
 
 1. **Lowercase language codes** -- The API rejects `en_US`; use `en_us` instead. Applies to both `announcementLanguage` on location updates and `announcementLanguageCode` on the language change action.
 2. **`announcementLanguage` returns None** -- Even when a language is set, the GET response may return `null` for this field. This is a known API quirk.
-3. **Voice portal passcode requires two fields** -- When changing passcode via raw HTTP, you must send both `newPasscode` and `confirmPasscode`. The SDK handles this automatically but raw HTTP does not.
+3. **Voice portal passcode requires two fields** -- When changing passcode via raw HTTP, you must send both `newPasscode` and `confirmPasscode`.
 4. **Receptionist directory modify is full replacement** -- PUT on a directory replaces the entire contacts list. Always include the full desired contacts array.
 5. **No auto-pagination** -- All list endpoints require manual `max` and `start` params. Set `max=1000` for maximum page size.
 6. **Action endpoints use POST** -- `validateExtensions`, `modifyAnnouncementLanguage`, `precheckForDeletion`, job pause/resume all use POST, not GET or PUT.

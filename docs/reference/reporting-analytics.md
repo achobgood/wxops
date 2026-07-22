@@ -6,8 +6,6 @@ CDR feed, report templates, report generation/download, and call quality/queue/A
 
 ## Sources
 
-- `wxc_sdk.cdr` — SDK source for Detailed CDR API (`../wxc_sdk_reference/wxc_sdk/cdr/__init__.py`)
-- `wxc_sdk.reports` — SDK source for Reports API (`../wxc_sdk_reference/wxc_sdk/reports/__init__.py`)
 - [Exploring the Webex Calling Reports and Analytics APIs](https://developer.webex.com/blog/exploring-the-webex-calling-reports-and-analytics-apis)
 - [Webex CDR field reference](https://help.webex.com/en-us/article/nmug598/Reports-for-Your-Cloud-Collaboration-Portfolio)
 
@@ -74,38 +72,7 @@ If the region's servers do not host the organization's data, an **HTTP 451** is 
 
 ### Pagination
 
-The API returns paginated results via the standard `items` key. The SDK method `session.follow_pagination()` handles automatic page traversal.
-
-### SDK Method
-
-```python
-DetailedCDRApi.get_cdr_history(
-    start_time: Union[str, datetime] = None,   # Default: ~48 hours ago
-    end_time: Union[str, datetime] = None,      # Default: ~5 minutes ago
-    locations: list[str] = None,                # Up to 10 location names
-    host: str = 'analytics-calling.webexapis.com',
-    stream: bool = False,                       # True = use cdr_stream instead of cdr_feed
-    **params
-) -> Generator[CDR, None, None]
-```
-
-When `start_time` and `end_time` are omitted, the SDK defaults to a window of approximately 48 hours ago through 5 minutes ago.
-
-**Usage example:**
-
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi(tokens='<access_token>')
-
-# Pull last 2 hours of CDRs
-from datetime import datetime, timedelta, timezone
-end = datetime.now(timezone.utc) - timedelta(minutes=5)
-start = end - timedelta(hours=2)
-
-for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end):
-    print(f"{cdr.start_time} | {cdr.direction} | {cdr.calling_number} -> {cdr.called_number} | {cdr.duration}s")
-```
+The API returns paginated results via the standard `items` key; `api.session.follow_pagination()` handles automatic page traversal.
 
 ### CLI Examples
 
@@ -147,7 +114,7 @@ wxcli cdr list-cdr_stream \
 
 ### CDR Record Fields
 
-The `CDR` model (class `wxc_sdk.cdr.CDR`) contains 55+ fields. Field names arrive from the API in space-separated format (e.g., "Answer time") and are normalized to snake_case by the SDK.
+The CDR record contains 55+ fields. Field names arrive from the API in space-separated format (e.g., "Answer time") and are normalized to snake_case in the tables below.
 
 #### Core Call Fields
 
@@ -440,27 +407,7 @@ Values: `AutomatedAttendantVideo`, `Anchor`, `BroadworksAnywhere`, `VoiceMailRet
 
 Report templates define the available report types. You must list templates to get the `templateId` needed to create a report.
 
-### SDK Method
-
-```python
-ReportsApi.list_templates() -> list[ReportTemplate]
-```
-
 **REST equivalent:** `GET https://webexapis.com/v1/report/templates`
-
-### ReportTemplate Model
-
-```python
-class ReportTemplate(ApiModel):
-    id: Optional[int]           # Unique template identifier (API key: "Id")
-    title: Optional[str]        # Template name
-    service: Optional[str]      # Service name (e.g., "Webex Calling")
-    max_days: Optional[int]     # Maximum date range allowed
-    start_date: Optional[date]  # Earliest available data date
-    end_date: Optional[date]    # Latest available data date
-    identifier: Optional[str]   # Template reference key
-    validations: Optional[list[ValidationRules]]  # Required fields for report creation
-```
 
 ### Standard Webex Calling Report Templates
 
@@ -475,7 +422,7 @@ class ReportTemplate(ApiModel):
 | **Auto-attendant Stats Summary** | AA call volume and menu usage | Call volume, handling metrics, caller menu selections |
 | **Auto-attendant Business & After-Hours Key Details** | AA interaction patterns by time period | Business hours vs. after-hours key press patterns |
 
-**Note:** Template IDs are dynamic and may vary by organization. Always use `list_templates()` (or the `GET /report/templates` endpoint) to discover IDs at runtime. The OpenAPI spec example shows ID 130, but actual IDs should not be hardcoded.
+**Note:** Template IDs are dynamic and may vary by organization. Always use the `GET /report/templates` endpoint (or `wxcli report-templates list`) to discover IDs at runtime. The OpenAPI spec example shows ID 130, but actual IDs should not be hardcoded.
 
 ### CLI Examples
 
@@ -485,15 +432,6 @@ wxcli report-templates list -o json
 
 # List report templates in table format
 wxcli report-templates list -o table
-```
-
-### Usage Example
-
-```python
-templates = api.reports.list_templates()
-calling_templates = [t for t in templates if t.service and 'Calling' in t.service]
-for t in calling_templates:
-    print(f"ID: {t.id} | {t.title} | max {t.max_days} days")
 ```
 
 ---
@@ -528,15 +466,6 @@ wxcli reports create --json-body '{"templateId": 130, "startDate": "2026-03-01",
 
 ### Create a Report
 
-```python
-ReportsApi.create(
-    template_id: int,           # From list_templates()
-    start_date: date = None,    # Data start date (YYYY-MM-DD)
-    end_date: date = None,      # Data end date (YYYY-MM-DD)
-    site_list: str = None       # Required for site-based templates (Webex Meetings)
-) -> str                        # Returns report ID
-```
-
 **REST equivalent:** `POST https://webexapis.com/v1/reports`
 
 **Request body:**
@@ -559,61 +488,21 @@ ReportsApi.create(
 
 ### List Reports
 
-```python
-ReportsApi.list(
-    report_id: str = None,      # Filter by report ID
-    service: str = None,        # Filter by service name
-    template_id: str = None,    # Filter by template ID
-    from_date: date = None,     # Reports created on or after this date
-    to_date: date = None        # Reports created before this date
-) -> Generator[Report, None, None]
-```
-
 **REST equivalent:** `GET https://webexapis.com/v1/reports`
 
-Note: `from_date` and `to_date` must be provided together.
+Note: the `from` and `to` query parameters must be provided together.
 
 ### Get Report Details (Poll Status)
 
-```python
-ReportsApi.details(
-    report_id: str              # Report ID from create()
-) -> Report
-```
-
 **REST equivalent:** `GET https://webexapis.com/v1/reports/{reportId}`
 
-### Report Model
-
-```python
-class Report(ApiModel):
-    id: Optional[str]               # Report identifier (API key: "Id")
-    title: Optional[str]            # Report template name
-    service: Optional[str]          # Service name
-    start_date: Optional[date]      # Data range start
-    end_date: Optional[date]        # Data range end
-    site_list: Optional[str]        # Site (Webex Meetings only)
-    created: Optional[datetime]     # Creation timestamp
-    created_by: Optional[str]       # Creator's user ID
-    schedule_from: Optional[str]    # "api" or "controlHub"
-    status: Optional[str]           # "done" or "In progress"
-    download_domain: Optional[str]  # Download host
-    download_url: Optional[str]     # Full download URL (API key: "downloadURL")
-```
-
 **Status values:**
-- `"done"` — Report is ready for download. `download_url` is populated.
+- `"done"` — Report is ready for download. `downloadURL` is populated.
 - `"In progress"` — Report is still generating. Poll again.
 
 ### Download a Report
 
-```python
-ReportsApi.download(
-    url: str                    # The download_url from Report details
-) -> Generator[dict, None, None]
-```
-
-The SDK handles:
+Downloading a report requires:
 1. Authenticated GET request to the download URL
 2. Reading the ZIP archive from the response
 3. Extracting the first CSV file
@@ -623,32 +512,7 @@ The SDK handles:
 
 ### Delete a Report
 
-```python
-ReportsApi.delete(
-    report_id: str              # Report ID to remove
-)
-```
-
 **REST equivalent:** `DELETE https://webexapis.com/v1/reports/{reportId}`
-
-### CallingCDR — Typed Report Download
-
-For Detailed Call History reports specifically, `CallingCDR.from_dicts()` parses a downloaded report into typed CDR objects instead of raw dicts:
-
-```python
-from wxc_sdk.reports import CallingCDR
-
-# Get the download URL from a completed report
-report = api.reports.details(report_id='<id>')
-assert report.status == 'done'
-
-# Download and parse into typed CDR objects
-cdrs = list(CallingCDR.from_dicts(api.reports.download(url=report.download_url)))
-for cdr in cdrs:
-    print(f"{cdr.start_time} | {cdr.user} | {cdr.duration}s | {cdr.call_outcome}")
-```
-
-`CallingCDR` extends `CDR` — all 55+ fields from Section 1 are available.
 
 ---
 
@@ -674,44 +538,6 @@ wxcli reports show REPORT_ID -o json
 
 # Step 5: Delete the report to free quota (max 50 reports)
 wxcli reports delete REPORT_ID --force
-```
-
-### SDK Workflow
-
-```python
-from wxc_sdk import WebexSimpleApi
-from datetime import date
-import time
-
-api = WebexSimpleApi(tokens='<access_token>')
-
-# Step 1: Find the template
-templates = api.reports.list_templates()
-cq_template = next(t for t in templates if t.title and 'Call Queue Stats' in t.title)
-print(f"Using template: {cq_template.id} — {cq_template.title} (max {cq_template.max_days} days)")
-
-# Step 2: Create the report
-report_id = api.reports.create(
-    template_id=cq_template.id,
-    start_date=date(2024, 2, 1),
-    end_date=date(2024, 2, 28)
-)
-print(f"Report created: {report_id}")
-
-# Step 3: Poll until done
-while True:
-    report = api.reports.details(report_id=report_id)
-    print(f"Status: {report.status}")
-    if report.status == 'done':
-        break
-    time.sleep(30)
-
-# Step 4: Download
-rows = list(api.reports.download(url=report.download_url))
-print(f"Downloaded {len(rows)} rows")
-
-# Step 5: Clean up (free the 50-report quota)
-api.reports.delete(report_id=report_id)
 ```
 
 ---
@@ -748,21 +574,6 @@ wxcli reports create --template-id 26 \
   --start-date "2026-03-01" --end-date "2026-03-15"
 ```
 
-```python
-# Find calls with poor outcomes in the last hour
-from datetime import datetime, timedelta, timezone
-
-end = datetime.now(timezone.utc) - timedelta(minutes=5)
-start = end - timedelta(hours=1)
-
-failed_calls = [
-    cdr for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end)
-    if cdr.call_outcome in ('Failure', 'Refusal')
-]
-for c in failed_calls:
-    print(f"{c.start_time} | {c.user} | {c.call_outcome}: {c.call_outcome_reason}")
-```
-
 ### Agent Performance (Call Queue Agent Stats)
 
 Generate a **Call Queue Agent Stats** report:
@@ -771,16 +582,6 @@ Generate a **Call Queue Agent Stats** report:
 # Create a Call Queue Agent Stats report
 wxcli reports create --template-id 131 \
   --start-date "2026-02-01" --end-date "2026-02-28"
-```
-
-```python
-agent_template = next(t for t in templates if t.title and 'Agent Stats' in t.title)
-report_id = api.reports.create(
-    template_id=agent_template.id,
-    start_date=date(2024, 2, 1),
-    end_date=date(2024, 2, 28)
-)
-# Poll, download, analyze per-agent metrics
 ```
 
 ### Queue Analytics (Call Queue Stats)
@@ -809,13 +610,6 @@ wxcli reports create --template-id 132 \
 
 Filter CDR records by `call_type` to separate international, toll-free, premium, and national calls:
 
-```python
-international = [
-    cdr for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end)
-    if cdr.call_type and cdr.call_type.value == 'SIP_INTERNATIONAL'
-]
-```
-
 PSTN vendor fields (`pstn_vendor_name`, `pstn_legal_entity`, `pstn_provider_id`) provide carrier-level detail for cost attribution.
 
 ```bash
@@ -843,18 +637,11 @@ wxcli recording-report list \
   --from "2026-03-01T00:00:00Z" --to "2026-03-17T00:00:00Z"
 ```
 
-```python
-failed_recordings = [
-    cdr for cdr in api.cdr.get_cdr_history(start_time=start, end_time=end)
-    if cdr.call_recording_result == 'failed'
-]
-```
-
 ---
 
-## 7. Known API Documentation Bugs (from SDK source)
+## 7. Known API Documentation Bugs
 
-The SDK source code flags several discrepancies between Webex API documentation and actual behavior:
+The following are known discrepancies between Webex API documentation and actual behavior:
 
 1. **Report Templates response:** Documentation says `"Template Attributes"` but actual key is `"items"`.
 2. **Report Templates `id` field:** Documentation says `"id"` but actual key is `"Id"`.
@@ -871,12 +658,11 @@ The SDK source code flags several discrepancies between Webex API documentation 
 
 - **Regional routing:** If the CDR endpoint returns HTTP 451, parse the response body for the correct regional endpoint URL and retry.
 - **12-hour window limit:** CDR Feed requests cannot span more than 12 hours. For longer ranges, issue multiple sequential requests.
-- **Empty/NA normalization:** The SDK converts empty strings and `"NA"` values to `None` automatically.
-- **Field name aliasing:** Several CDR fields use non-standard aliases in the API (e.g., `"Route list calls overage"`, `"Original Called Party UUID"`, `"Queue Type"`). The SDK handles these via Pydantic `Field(alias=...)`.
+- **Field name aliasing:** Several CDR fields use non-standard aliases in the API (e.g., `"Route list calls overage"`, `"Original Called Party UUID"`, `"Queue Type"`).
 - **Timezone:** All CDR timestamps are in UTC. The `site_timezone` field provides the offset in minutes if you need to convert to the user's local time.
 - **Report quota:** The 50-report limit is hard. Always delete reports after downloading to avoid hitting the cap.
 - **Pro Pack requirement:** The Reports API (templates, create, list, download, delete) requires the Pro Pack license. The CDR Feed API does not require Pro Pack but does require the admin role to be explicitly enabled.
-- **No download command:** neither the CLI nor the Reports API has a download operation — fetch the `downloadURL` from `wxcli reports show REPORT_ID -o json` with `curl`. (The SDK's async `ReportsApi.download()` variant raises `NotImplementedError`.)
+- **No download command:** neither the CLI nor the Reports API has a download operation — fetch the `downloadURL` from `wxcli reports show REPORT_ID -o json` with `curl`.
 - **`transfer_related_call_id` contains a `local_call_id`, NOT a Correlation ID.** To link two Correlation IDs across a transfer: find CDRs where `CDR1.transfer_related_call_id = CDR2.local_call_id` — their Correlation IDs are linked. Do not compare `transfer_related_call_id` directly to `correlation_id`.
 - **HG CDRs have both ORIGINATING and TERMINATING records.** The HuntGroup entity appears in CDRs as TERMINATING (receiving the inbound call) and ORIGINATING (dialing each agent). `Answered=true` on a HuntGroup CDR means the HG processed the call, not that a human answered. Do not count HG-typed CDRs when tallying human-answered calls.
 - **A single call can have multiple Correlation IDs.** Attended transfers, on-prem deflections that return to cloud, and some advanced forwarding scenarios create new Correlation IDs. Use `transfer_related_call_id`/`local_call_id` linkage to reconstruct the full call path.
@@ -888,11 +674,11 @@ The SDK source code flags several discrepancies between Webex API documentation 
 ## 9. Raw HTTP Endpoints
 <!-- Updated by playbook session 2026-03-18 -->
 
-All endpoints below use the `api.session.rest_*` methods from `wxc_sdk`. URLs confirmed from working CLI implementations.
+All endpoints below use the `api.session.rest_*` methods. URLs confirmed from working CLI implementations.
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi(tokens='<token>')
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
