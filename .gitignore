@@ -43,6 +43,8 @@ docs/reports/
 docs/team-prompts/
 docs/archive/
 docs/arch/
+# Historical SDK object-model reference (kept locally, out of git and the shipped bundle)
+docs/reference/archive/
 docs/webex-api-feedback.html
 docs/webex-api-feedback-for-cisco-collab-bu.md
 
