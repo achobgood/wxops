@@ -1,14 +1,6 @@
 # Person Call Settings — Permissions, Executive & Feature Access
 
-Reference for managing incoming/outgoing call permissions, feature access controls, executive/assistant pairing, and call policy settings via `wxc_sdk`.
-
-**Source files:**
-- `wxc_sdk/person_settings/permissions_in.py`
-- `wxc_sdk/person_settings/permissions_out.py`
-- `wxc_sdk/person_settings/feature_access/__init__.py`
-- `wxc_sdk/person_settings/executive/__init__.py`
-- `wxc_sdk/person_settings/exec_assistant.py`
-- `wxc_sdk/person_settings/call_policy.py`
+Reference for managing incoming/outgoing call permissions, feature access controls, executive/assistant pairing, and call policy settings.
 
 ---
 
@@ -77,8 +69,8 @@ Update incoming permission settings for a person/entity.
 | Update | PUT | `people/{personId}/features/incomingPermission` |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read incoming permissions
@@ -228,7 +220,7 @@ One `Optional[CallTypePermission]` field for each call type (e.g., `internal_cal
 | Field | Type | Description |
 |-------|------|-------------|
 | `use_custom_access_codes` | `Optional[bool]` | Use custom access code settings |
-| `access_codes` | `Optional[list[AuthCode]]` | List of access codes (from `wxc_sdk.common.AuthCode`) |
+| `access_codes` | `Optional[list[AuthCode]]` | List of access codes |
 
 ### Methods — Main Outgoing Permissions
 
@@ -417,8 +409,8 @@ Delete all digit patterns for the entity.
 > **Note:** Main outgoing permissions and transfer numbers/access codes use the `people/{personId}/features/...` base path. Digit patterns use the `telephony/config/people/{personId}/...` base path. The transfer numbers endpoint path is `autoTransferNumbers` (not `transferNumbers`).
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read outgoing permissions
@@ -647,8 +639,8 @@ Reset a person's feature access configuration back to org defaults. This is a PO
 | Reset to org defaults | POST | `telephony/config/people/{personId}/featureAccessCodes/actions/reset/invoke` |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read org-level default feature access settings
@@ -974,8 +966,8 @@ Two different base paths are used:
 | Update screening | PUT | `telephony/config/people/{personId}/executive/screening` |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # --- Exec/Assistant Type Assignment ---
@@ -1114,7 +1106,7 @@ Controls Connected Line Identification Privacy on redirected calls.
 **API class:** `CallPolicyApi` (extends `PersonSettingsApiChild`)
 - Feature path segment: `callPolicies`
 
-> **Important:** This API is only available for **professional licensed workspaces** when accessed via admin tokens. The scopes shown (`workspaces_read/write`) are workspace-specific. There is no admin-level `people/{personId}` callPolicies endpoint. However, calling-licensed users can access their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies`) with the `spark:telephony_config_read/write` scope. The wxc_sdk only wires `CallPolicyApi` into `workspace_settings`, not `person_settings`.
+> **Important:** This API is only available for **professional licensed workspaces** when accessed via admin tokens. The scopes shown (`workspaces_read/write`) are workspace-specific. There is no admin-level `people/{personId}` callPolicies endpoint. However, calling-licensed users can access their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies`) with the `spark:telephony_config_read/write` scope.
 
 ### Data Models
 
@@ -1161,8 +1153,8 @@ def configure(self, entity_id: str,
 | Update (self) | PUT | `telephony/config/people/me/settings/callPolicies` | User (calling-licensed) |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read call policy for a workspace (admin token)
@@ -1228,84 +1220,9 @@ curl -s -H "Authorization: Bearer $USER_TOKEN" \
 
 ---
 
-## Usage Patterns
-
-### Setting per-call-type outgoing permissions
-
-```python
-from wxc_sdk.person_settings.permissions_out import (
-    OutgoingPermissions, CallingPermissions, Action, OutgoingPermissionCallType
-)
-
-# Start with defaults (blocks international + premium)
-perms = CallingPermissions.default()
-
-# Also block operator-assisted
-op = perms.for_call_type(OutgoingPermissionCallType.operator_assisted)
-op.action = Action.block
-op.transfer_enabled = False
-
-settings = OutgoingPermissions(
-    use_custom_enabled=True,
-    use_custom_permissions=True,
-    calling_permissions=perms
-)
-
-api.person_settings.permissions_out.configure(person_id, settings)
-```
-
-### Assigning an executive and assistant
-
-```python
-from wxc_sdk.person_settings.exec_assistant import ExecAssistantType
-
-# Mark person as executive
-api.person_settings.exec_assistant.configure(exec_person_id, ExecAssistantType.executive)
-
-# Mark another person as assistant
-api.person_settings.exec_assistant.configure(asst_person_id, ExecAssistantType.executive_assistant)
-
-# Assign assistant to executive
-api.person_settings.executive.update_assigned_assistants(exec_person_id, assistant_ids=[asst_person_id])
-```
-
-### Configuring executive alerting
-
-```python
-from wxc_sdk.person_settings.executive import (
-    ExecAlert, ExecAlertingMode, ExecAlertRolloverAction
-)
-
-alert = ExecAlert(
-    alerting_mode=ExecAlertingMode.sequential,
-    next_assistant_number_of_rings=4,
-    rollover_enabled=True,
-    rollover_action=ExecAlertRolloverAction.voice_messaging,
-    rollover_wait_time_in_secs=20
-)
-
-api.person_settings.executive.update_alert_settings(exec_person_id, alert)
-```
-
-### Restricting feature access for a user
-
-```python
-from wxc_sdk.person_settings.feature_access import FeatureAccessSettings, FeatureAccessLevel
-
-settings = FeatureAccessSettings(
-    call_forwarding=FeatureAccessLevel.no_access,
-    simultaneous_ring=FeatureAccessLevel.no_access,
-    voicemail=FeatureAccessLevel.full_access
-)
-
-api.person_settings.feature_access.update(person_id, settings)
-```
-
----
-
 ## Gotchas (Cross-Cutting)
 
-1. **Outgoing permissions `callingPermissions` is a list, not a dict.** The API returns and expects `callingPermissions` as an array of `{callType, action, transferEnabled}` objects. The wxc_sdk model transforms this to a dict internally, but when using `--json-body` or raw HTTP, always send an array.
+1. **Outgoing permissions `callingPermissions` is a list, not a dict.** The API returns and expects `callingPermissions` as an array of `{callType, action, transferEnabled}` objects. When using `--json-body` or raw HTTP, always send an array.
 
 2. **Three different base paths across this doc.** Incoming/outgoing permissions and exec-assistant type use `people/{personId}/features/...`. Digit patterns and feature access use `telephony/config/people/{personId}/...`. Executive detailed settings use `telephony/config/people/{personId}/executive/...`. Mixing up the base path returns 404.
 
