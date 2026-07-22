@@ -3,7 +3,6 @@
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Webhooks APIs
 
@@ -17,15 +16,14 @@ Webex webhooks deliver real-time notifications to your application when resource
 4. [Telephony Call Events](#4-telephony-call-events)
 5. [Filtering Telephony Webhooks](#5-filtering-telephony-webhooks)
 6. [Webhook Setup: Step-by-Step](#6-webhook-setup-step-by-step)
-7. [Webhook Event Data Class Hierarchy](#7-webhook-event-data-class-hierarchy)
-8. [Webhook Security: HMAC Signature Verification](#8-webhook-security-hmac-signature-verification)
-9. [Key Gotchas](#9-key-gotchas)
-10. [Org-Level Webhooks](#10-org-level-webhooks)
-11. [Webhook Delivery Mechanics](#11-webhook-delivery-mechanics)
-12. [Service App Webhooks](#12-service-app-webhooks)
-13. [callSessionId Correlation Pattern](#13-callsessionid-correlation-pattern)
-14. [Scale Patterns](#14-scale-patterns)
-15. [wxcli Command Reference](#15-wxcli-command-reference)
+7. [Webhook Security: HMAC Signature Verification](#7-webhook-security-hmac-signature-verification)
+8. [Key Gotchas](#8-key-gotchas)
+9. [Org-Level Webhooks](#9-org-level-webhooks)
+10. [Webhook Delivery Mechanics](#10-webhook-delivery-mechanics)
+11. [Service App Webhooks](#11-service-app-webhooks)
+12. [callSessionId Correlation Pattern](#12-callsessionid-correlation-pattern)
+13. [Scale Patterns](#13-scale-patterns)
+14. [wxcli Command Reference](#14-wxcli-command-reference)
 
 ---
 
@@ -45,8 +43,8 @@ Creating a webhook requires **read** scope on the resource the webhook is for. F
 Webhook endpoints use standard REST verbs on `https://webexapis.com/v1/webhooks`. No special scoping beyond read access for the target resource.
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -145,19 +143,6 @@ All webhook management is under `POST/GET/PUT/DELETE /v1/webhooks`.
 POST /v1/webhooks
 ```
 
-**SDK Signature:**
-```python
-WebhookApi.create(
-    name: str,                          # user-friendly name
-    target_url: str,                    # URL that receives POST requests
-    resource: WebhookResource,          # e.g. 'telephony_calls'
-    event: WebhookEventType,            # e.g. 'all', 'created', 'updated', 'deleted'
-    filter: str = None,                 # scope filter (see Filtering section)
-    secret: str = None,                 # HMAC secret for payload signature
-    owned_by: str = None                # 'org' for org-level webhooks
-) -> Webhook
-```
-
 **Request body:**
 ```json
 {
@@ -193,12 +178,7 @@ WebhookApi.create(
 GET /v1/webhooks
 ```
 
-**SDK Signature:**
-```python
-WebhookApi.list(owned_by: str = None) -> Generator[Webhook, None, None]
-```
-
-Returns a paginated generator of all webhooks. Use `owned_by='org'` to filter to org-level webhooks only.
+Returns all webhooks (paginated). Use `--owned-by org` (or the `ownedBy=org` query parameter) to filter to org-level webhooks only.
 
 ---
 
@@ -208,22 +188,12 @@ Returns a paginated generator of all webhooks. Use `owned_by='org'` to filter to
 GET /v1/webhooks/{webhookId}
 ```
 
-**SDK Signature:**
-```python
-WebhookApi.details(webhook_id: str) -> Webhook
-```
-
 ---
 
 ### Update Webhook
 
 ```
 PUT /v1/webhooks/{webhookId}
-```
-
-**SDK Signature:**
-```python
-WebhookApi.update(webhook_id: str, update: Webhook) -> Webhook
 ```
 
 **Updatable fields:** `name`, `targetUrl`, `secret`, `status`
@@ -236,11 +206,6 @@ All other fields are ignored if supplied. You can reactivate an auto-deactivated
 
 ```
 DELETE /v1/webhooks/{webhookId}
-```
-
-**SDK Signature:**
-```python
-WebhookApi.webhook_delete(webhook_id: str) -> None
 ```
 
 ---
@@ -278,7 +243,7 @@ WebhookApi.webhook_delete(webhook_id: str) -> None
 
 | Resource Value | Description | Supports `ownedBy: org`? |
 |----------------|-------------|:------------------------:|
-| `telephony_calls` | Webex Calling call events | Yes (verified 2026-05-01, not in OpenAPI spec — see §10) |
+| `telephony_calls` | Webex Calling call events | Yes (verified 2026-05-01, not in OpenAPI spec — see §9) |
 | `telephony_conference` | Webex Calling conference controls | No |
 | `telephony_mwi` | Voicemail message waiting indicator | No |
 | `messages` | Messaging (chat) | Yes |
@@ -337,7 +302,7 @@ The `telephony_calls` resource uses the standard webhook event types (`created`,
 | `deleted` | `disconnected` | A call ended (hung up) |
 | `deleted` | `forwarded` | A call was forwarded away from the user |
 
-<!-- Partial verification 2026-03-19: event_type is a free-form str (not an enum), so additional values beyond those listed may appear. The listed values (alerting, answered, connected, held, remoteHeld, resumed, recording, disconnected, forwarded) match the wxc_sdk TelephonyEventData class and Webex developer docs. Full confirmation requires receiving live call events. -->
+<!-- Partial verification 2026-03-19: event_type is a free-form str (not an enum), so additional values beyond those listed may appear. The listed values (alerting, answered, connected, held, remoteHeld, resumed, recording, disconnected, forwarded) match the Webex developer docs. Full confirmation requires receiving live call events. -->
 
 ### Event Payload Structure
 
@@ -383,7 +348,7 @@ When a webhook fires, Webex sends a POST to your `targetUrl` with the full webho
 
 ### Event Data Fields (`data` object)
 
-The `data` object in telephony_calls events corresponds to the SDK's `TelephonyEventData` class, which extends both `WebhookEventData` and `TelephonyCall`.
+The `data` object in `telephony_calls` events combines webhook metadata fields (`eventType`, `eventTimestamp`, `actorPersonId`) with the full set of call detail fields.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -557,14 +522,13 @@ Filters use the format: `fieldName=value` or `fieldName=value1,value2` for multi
 | `memberships` | `isModerator` | `isModerator=true` | Only moderator status changes |
 
 **Example: Create a webhook for incoming calls only:**
-```python
-api.webhook.create(
-    name="Incoming Calls Only",
-    target_url="https://example.com/incoming",
-    resource=WebhookResource.telephony_calls,
-    event=WebhookEventType.all,
-    filter="personality=terminator"
-)
+```bash
+wxcli webhooks create \
+  --name "Incoming Calls Only" \
+  --target-url https://example.com/incoming \
+  --resource telephony_calls \
+  --event all \
+  --filter "personality=terminator"
 ```
 
 ---
@@ -573,77 +537,61 @@ api.webhook.create(
 
 ### Register for Telephony Call Events
 
-```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.webhook import WebhookResource, WebhookEventType
-
-api = WebexSimpleApi(tokens=tokens)
-
-# 1. Clean up old webhooks (optional)
-existing = list(api.webhook.list())
-for wh in existing:
-    if wh.name == "My Call Monitor":
-        api.webhook.webhook_delete(webhook_id=wh.webhook_id)
+```bash
+# 1. Clean up old webhooks with the same name (optional)
+wxcli webhooks list -o json | jq -r '.[] | select(.name=="My Call Monitor") | .id' | \
+  xargs -I{} wxcli webhooks delete {} --force
 
 # 2. Create webhook for all telephony call events
-webhook = api.webhook.create(
-    name="My Call Monitor",
-    target_url="https://your-server.com/webhooks/calls",
-    resource=WebhookResource.telephony_calls,
-    event=WebhookEventType.all,
-    secret="your-hmac-secret"
-)
+wxcli webhooks create \
+  --name "My Call Monitor" \
+  --target-url https://your-server.com/webhooks/calls \
+  --resource telephony_calls \
+  --event all \
+  --secret "your-hmac-secret" \
+  -o json
 
-print(f"Webhook created: {webhook.webhook_id}")
-print(f"Status: {webhook.status}")
+# 3. Confirm status
+wxcli webhooks list -o json
 ```
 
 ### Parse Incoming Events
 
 ```python
-from wxc_sdk.webhook import WebhookEvent
-from wxc_sdk.telephony.calls import TelephonyEventData
-
 # In your webhook handler (e.g., Flask route)
 def handle_webhook(request_json: dict):
-    event = WebhookEvent.model_validate(request_json)
+    data = request_json["data"]
 
-    # The data field is auto-parsed to TelephonyEventData
-    # for telephony_calls resource
-    data: TelephonyEventData = event.data
+    print(f"Event type: {data['eventType']}")
+    print(f"Call ID: {data['callId']}")
+    print(f"State: {data['state']}")
+    print(f"Personality: {data['personality']}")
+    print(f"Remote party: {data['remoteParty']['name']} ({data['remoteParty']['number']})")
 
-    print(f"Event type: {data.event_type}")
-    print(f"Call ID: {data.call_id}")
-    print(f"State: {data.state}")
-    print(f"Personality: {data.personality}")
-    print(f"Remote party: {data.remote_party.name} ({data.remote_party.number})")
-
-    if data.event_type == "disconnected":
-        print(f"Call ended at: {data.disconnected}")
-    elif data.event_type == "answered":
-        print(f"Call answered at: {data.answered}")
+    if data["eventType"] == "disconnected":
+        print(f"Call ended at: {data['disconnected']}")
+    elif data["eventType"] == "answered":
+        print(f"Call answered at: {data['answered']}")
 ```
 
 ### Firehose Webhook (All Events)
 
 The firehose pattern creates a webhook for all resources and all events. Useful for logging or debugging.
 
-```python
+```bash
 # Create firehose
-api.webhook.create(
-    name="Firehose",
-    resource=WebhookResource.all,    # resource='all'
-    event=WebhookEventType.all,      # event='all'
-    target_url="https://your-server.com/firehose"
-)
+wxcli webhooks create \
+  --name "Firehose" \
+  --target-url https://your-server.com/firehose \
+  --resource all \
+  --event all
 ```
 
-The SDK's `firehose.py` example demonstrates a complete Flask-based firehose listener that:
-1. Uses ngrok for a public URL
-2. Cleans up old webhooks matching the class name
-3. Creates a firehose webhook (`resource='all'`, `event='all'`)
-4. Routes events to resource-specific handlers
-5. Auto-parses `WebhookEvent` from the POST body, which dispatches to the correct `WebhookEventData` subclass based on the resource (e.g., `TelephonyEventData` for `telephony_calls`)
+A typical firehose listener:
+1. Uses ngrok (or a similar tunnel) for a public URL during local development
+2. Cleans up old webhooks with the same name before creating a new one (see gotcha #10)
+3. Creates a firehose webhook (`resource=all`, `event=all`)
+4. Routes each incoming POST to a resource-specific handler based on the `resource` field in the payload
 
 ---
 
@@ -743,32 +691,7 @@ Add `--filter "roomId=ROOM_ID"` to either webhook to scope it to a specific spac
 
 ---
 
-## 7. Webhook Event Data Class Hierarchy
-
-The SDK uses a registration pattern to auto-parse event data:
-
-```
-WebhookEventDataForbid (base, with registry)
-  └── WebhookEventData (allows extra fields)
-        └── TelephonyEventData (resource = 'telephony_calls')
-              ├── inherits: WebhookEventData (metadata fields)
-              └── inherits: TelephonyCall (call detail fields)
-```
-
-**SDK class definition:**
-```python
-class TelephonyEventData(WebhookEventData, TelephonyCall):
-    """data in a webhook 'telephony_calls' event"""
-    resource = 'telephony_calls'
-    event_type: str
-    event_timestamp: datetime.datetime
-```
-
-When `WebhookEvent.model_validate(payload)` processes the JSON, it checks `data.resource` against the registry and automatically instantiates the correct subclass. For `telephony_calls`, the `data` field becomes a `TelephonyEventData` instance with all `TelephonyCall` fields plus `event_type` and `event_timestamp`.
-
----
-
-## 8. Webhook Security: HMAC Signature Verification
+## 7. Webhook Security: HMAC Signature Verification
 
 When you provide a `secret` during webhook creation, Webex signs each event payload. The signature is sent in the `X-Spark-Signature` HTTP header as an HMAC-SHA1 hex digest.
 
@@ -777,7 +700,7 @@ When you provide a `secret` during webhook creation, Webex signs each event payl
 import hmac
 import hashlib
 
-def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -> bool:
+def verify_webhook_signature(request_body: bytes, signature: str, secret: str):
     """Verify the X-Spark-Signature header."""
     expected = hmac.new(
         secret.encode('utf-8'),
@@ -791,7 +714,7 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
 
 ---
 
-## 9. Key Gotchas
+## 8. Key Gotchas
 
 1. **Auto-deactivation** -- Webhooks that fail to receive events (target URL returns errors repeatedly) are automatically set to `inactive`. Use the `update` API to reactivate by setting `status: active`.
 
@@ -801,7 +724,7 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
 
 4. **`event` field vs `data.eventType`** -- The top-level `event` field is the generic webhook event type (`created`, `updated`, `deleted`). The telephony-specific event type is in `data.eventType` (`alerting`, `answered`, `connected`, `held`, `remoteHeld`, `resumed`, `recording`, `disconnected`, `forwarded`).
 
-5. **`callId` aliasing** -- In webhook event data, the call identifier field is `callId`. In direct API responses, it is `id`. The SDK's `TelephonyCall` model handles both via the `call_id` property.
+5. **`callId` aliasing** -- In webhook event data, the call identifier field is `callId`. In direct API responses, it is `id`. Treat these as the same call identifier when correlating webhook events with API call lookups.
 
 6. **Firehose scope** -- A firehose webhook (`resource=all`, `event=all`) requires broad scopes. You will only receive events for resources your token has read access to.
 
@@ -815,7 +738,7 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
 
 11. **Org-level `telephony_calls` works but is missing from OpenAPI spec** -- The `ownedBy: org` parameter's description in the OpenAPI spec lists supported resources but does NOT include `telephony_calls`. Live testing (2026-05-01) confirmed it works — the API returns 201 with `status: active`. The spec has a documentation gap, not a feature gap.
 
-12. **Service App `application:webhooks_*` scopes not supported** -- Service Apps cannot use `application:webhooks_write` or `application:webhooks_read` scopes. They create webhooks using standard resource read scopes (e.g., `spark:calls_read`). See §12.
+12. **Service App `application:webhooks_*` scopes not supported** -- Service Apps cannot use `application:webhooks_write` or `application:webhooks_read` scopes. They create webhooks using standard resource read scopes (e.g., `spark:calls_read`). See §11.
 
 13. **Event storm at scale** -- An org-level webhook for 35,000+ users can generate 70,000+ events/hour at peak. If your receiver slows down under load, the auto-deactivation threshold (gotcha #1) may trigger, silently stopping all event delivery. Monitor webhook status and build receiver capacity well above peak estimates.
 
@@ -827,7 +750,7 @@ def verify_webhook_signature(request_body: bytes, signature: str, secret: str) -
 
 ---
 
-## 10. Org-Level Webhooks
+## 9. Org-Level Webhooks
 
 ### Creator-Level vs Org-Level
 
@@ -901,7 +824,7 @@ result = api.session.rest_post(f"{BASE}/webhooks", json=body)
 
 ---
 
-## 11. Webhook Delivery Mechanics
+## 10. Webhook Delivery Mechanics
 
 Webex delivers events as HTTP POST requests to your `targetUrl`. Understanding the delivery contract is critical for building reliable receivers.
 
@@ -911,7 +834,7 @@ Webex delivers events as HTTP POST requests to your `targetUrl`. Understanding t
 |--------|----------|--------|
 | Transport | HTTPS POST to `targetUrl` | Spec: `targetUrl` must be HTTPS |
 | Payload format | JSON (`Content-Type: application/json`) | Observed |
-| Signature header | `X-Spark-Signature` (HMAC-SHA1 hex digest) if `secret` is set | Spec + SDK |
+| Signature header | `X-Spark-Signature` (HMAC-SHA1 hex digest) if `secret` is set | Spec |
 | Batching | Events are delivered **individually** (one POST per event) | Observed — no batch envelope in spec |
 
 ### Timeout and Response Codes
@@ -995,7 +918,7 @@ disconnected (timestamp: T+60s)
 - Events from the same call (`callSessionId`) may arrive out of order
 - Use `data.eventTimestamp` as the authoritative ordering field
 - Use `data.callSessionId` to group events belonging to the same call session
-- See §13 for a worked correlation example
+- See §12 for a worked correlation example
 
 ### Duplicate Delivery
 
@@ -1008,7 +931,7 @@ Design receivers to be **idempotent**. Key on `data.callId` + `data.eventType` (
 
 ---
 
-## 12. Service App Webhooks
+## 11. Service App Webhooks
 
 ### Can a Service App Create Webhooks?
 
@@ -1027,7 +950,7 @@ However, the OpenAPI spec explicitly states that **`application:webhooks_write` 
 
 ### Org-Level Behavior
 
-A webhook created by a Service App does **not** automatically become org-level. You must explicitly set `ownedBy: org` on creation, same as with user tokens. A Service App token with admin-level scopes can create org-level webhooks for supported resources (see §10 for the supported resource list).
+A webhook created by a Service App does **not** automatically become org-level. You must explicitly set `ownedBy: org` on creation, same as with user tokens. A Service App token with admin-level scopes can create org-level webhooks for supported resources (see §9 for the supported resource list).
 
 ### Token Refresh and Webhook Lifecycle
 
@@ -1056,7 +979,7 @@ See [admin-apps-data.md](admin-apps-data.md) §1 for Service App registration, a
 
 ---
 
-## 13. callSessionId Correlation Pattern
+## 12. callSessionId Correlation Pattern
 
 When processing telephony webhook events, you need to correlate multiple events that belong to the same call. The key fields are:
 
@@ -1131,7 +1054,7 @@ Event 6: deleted/disconnected
 2. **Key timers and state on `callId`**, not `callSessionId`. A transferred call has multiple legs — each leg has its own hold/resume cycle.
 3. **Use `actorPersonId`** to route events to the correct user context (e.g., map to a store register).
 4. **Use `personality`** to distinguish the user's role: `terminator` = they received the call, `originator` = they placed it.
-5. **Use `eventTimestamp`** for ordering, not arrival order. Events can arrive out of sequence (see §11).
+5. **Use `eventTimestamp`** for ordering, not arrival order. Events can arrive out of sequence (see §10).
 
 ### Middleware State Machine
 
@@ -1175,13 +1098,13 @@ For a hold-timeout middleware (e.g., the AAP retail pattern), the state machine 
 
 ---
 
-## 14. Scale Patterns
+## 13. Scale Patterns
 
 ### One Org-Level Webhook vs Many Filtered Webhooks
 
 | Approach | Pros | Cons |
 |----------|------|------|
-| **One org-level webhook** (`ownedBy: org`, `event: all`) | Single subscription, simple management, no per-user provisioning | High event volume, receiver must filter/route, org-level may not be supported for all resources (see §10) |
+| **One org-level webhook** (`ownedBy: org`, `event: all`) | Single subscription, simple management, no per-user provisioning | High event volume, receiver must filter/route, org-level may not be supported for all resources (see §9) |
 | **Per-user filtered webhooks** (`filter: personId=X`) | Low noise per endpoint, precise routing | O(n) webhook management, provisioning/deprovisioning overhead, webhook count limits |
 | **Org-level + server-side filter** | Best of both — one subscription, filter in middleware | Receiver must handle full org volume |
 
@@ -1273,27 +1196,9 @@ def on_timer_fire(call_id: str):
     # Execute hangup via Service App Members API
 ```
 
-### Why Not XSI for Large-Scale Event Routing
-
-XSI (Extended Services Interface) provides real-time call event streaming but has architectural constraints that make webhooks the better choice at scale:
-
-| Factor | XSI | Webhooks |
-|--------|-----|----------|
-| Connection model | Persistent streaming (one channel per XSP) | Stateless HTTP POST (push) |
-| Scaling model | Single-process Python (GIL-bound) | Horizontally scaled workers |
-| Org-wide subscription | Single connection for entire org | Single webhook registration |
-| Failure recovery | 60-second gap on channel failure, events lost | Individual event delivery, auto-deactivation on sustained failure |
-| Duplicate subscriptions | Duplicate org-wide subscriptions cause duplicate events | Same (multiple webhooks = duplicate delivery) |
-| Queue bottleneck | `queue.Queue(maxsize=500)` in-process | External (Redis, SQS, etc.) |
-| Deployment | Requires long-running process with DNS SRV discovery | Serverless-compatible (Lambda, Cloud Run) |
-
-**Bottom line:** XSI is designed for single-site monitoring dashboards (wallboards, supervisor consoles). Webhooks are designed for distributed, horizontally-scaled event processing. For 1,000+ users, use webhooks.
-
-See [wxcadm-xsi-realtime.md](wxcadm-xsi-realtime.md) for XSI architecture details and the event streaming API.
-
 ---
 
-## 15. wxcli Command Reference
+## 14. wxcli Command Reference
 
 All webhook management is via the `wxcli webhooks` command group.
 
@@ -1440,5 +1345,4 @@ wxcli webhooks delete "Y2lzY29zcGFyazov..." --force
 
 - **[call-control.md](call-control.md)** — Call control actions and the `TelephonyCall` data model. `TelephonyEventData` inherits from `TelephonyCall`, so the `remoteParty`, `state`, `personality`, and other call fields documented there apply directly to webhook event data.
 - **[authentication.md](authentication.md)** — Scope definitions and OAuth token management. Creating a `telephony_calls` webhook requires `spark:calls_read` scope; a firehose requires `spark:all`.
-- **[admin-apps-data.md](admin-apps-data.md)** — Service App registration, authorization, and token lifecycle. Cross-reference §12 for Service App webhook creation.
-- **[wxcadm-xsi-realtime.md](wxcadm-xsi-realtime.md)** — XSI event streaming architecture. Cross-reference §14 for why webhooks scale better than XSI for large deployments.
+- **[admin-apps-data.md](admin-apps-data.md)** — Service App registration, authorization, and token lifecycle. Cross-reference §11 for Service App webhook creation.
