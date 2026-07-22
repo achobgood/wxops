@@ -4,11 +4,10 @@
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-device.json
 - developer.webex.com DECT Device APIs
 
-DECT network management (networks, base stations, handsets, line assignment) and hot desk session management via the `wxc_sdk` Python SDK.
+DECT network management (networks, base stations, handsets, line assignment) and hot desk session management via `wxcli` CLI commands and raw HTTP.
 
 **Not supported for Webex for Government (FedRAMP).** See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
@@ -17,17 +16,16 @@ DECT network management (networks, base stations, handsets, line assignment) and
 ## Table of Contents
 
 1. [Required Scopes](#required-scopes)
-2. [API Access Path](#api-access-path)
-3. [DECT Network Management](#dect-network-management)
-4. [Base Station Management](#base-station-management)
-5. [Handset Management](#handset-management)
-6. [Association Queries](#association-queries)
-7. [Available Members Search](#available-members-search)
-8. [Serviceability Password](#serviceability-password)
-9. [Hot Desking](#hot-desking)
-10. [Data Models](#data-models)
-11. [Raw HTTP](#raw-http)
-12. [Common Gotchas](#common-gotchas)
+2. [DECT Network Management](#dect-network-management)
+3. [Base Station Management](#base-station-management)
+4. [Handset Management](#handset-management)
+5. [Association Queries](#association-queries)
+6. [Available Members Search](#available-members-search)
+7. [Serviceability Password](#serviceability-password)
+8. [Hot Desking](#hot-desking)
+9. [Data Models](#data-models)
+10. [Raw HTTP](#raw-http)
+11. [Common Gotchas](#common-gotchas)
 
 ---
 
@@ -43,22 +41,6 @@ DECT network management (networks, base stations, handsets, line assignment) and
 | List/delete hot desk sessions | Admin token required (scopes not explicitly documented in OpenAPI spec, but the endpoints work with a full admin token). The hot desk session endpoints are at `/v1/hotdesk/sessions`, separate from the DECT/telephony config scope. |
 
 All DECT operations require a **full or read-only administrator auth token**.
-
----
-
-## API Access Path
-
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi(tokens='<token>')
-
-# DECT devices API
-dect = api.telephony.dect_devices
-
-# Hot desk API
-hotdesk = api.telephony.hotdesk  #
-```
 
 ---
 
@@ -79,29 +61,9 @@ Only Cisco DECT device models are currently supported.
 
 ### List Supported Device Types
 
-```python
-def device_type_list(
-    self,
-    org_id: str = None
-) -> list[DectDevice]
-```
-
-Returns a static list of DECT device types with base station and line port counts.
+Returns a static list of DECT device types with base station and line port counts (see [Supported Device Models](#supported-device-models) above).
 
 ### Create a DECT Network
-
-```python
-def create_dect_network(
-    self,
-    location_id: str,
-    name: str,
-    model: DECTNetworkModel,
-    default_access_code_enabled: bool,
-    default_access_code: str,
-    display_name: str = None,
-    org_id: str = None
-) -> str  # returns dect_network_id
-```
 
 | Parameter | Notes |
 |-----------|-------|
@@ -114,67 +76,11 @@ def create_dect_network(
 
 ### List DECT Networks
 
-```python
-def list_dect_networks(
-    self,
-    name: str = None,
-    location_id: str = None,
-    org_id: str = None
-) -> list[DECTNetworkDetail]
-```
-
 Lists all DECT networks in an organization. Both `name` and `location_id` are optional filters.
-
-### Get DECT Network Details
-
-```python
-def dect_network_details(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    org_id: str = None
-) -> DECTNetworkDetail
-```
 
 ### Update a DECT Network
 
-```python
-def update_dect_network(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    name: str,
-    default_access_code_enabled: bool,
-    default_access_code: str = None,
-    display_name: str = None,
-    org_id: str = None
-) -> None
-```
-
 `name` and `default_access_code_enabled` are required. `default_access_code` is mandatory when `default_access_code_enabled` is `True`.
-
-### Update DECT Network from Settings Object
-
-```python
-def update_dect_network_settings(
-    self,
-    settings: DECTNetworkDetail,
-    org_id: str = None
-) -> None
-```
-
-Convenience method. Uses `settings.location.id` and `settings.id` to address the network. Only `name`, `display_name`, `default_access_code_enabled`, and `default_access_code` fields are sent in the update.
-
-### Delete a DECT Network
-
-```python
-def delete_dect_network(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    org_id: str = None
-) -> None
-```
 
 ### CLI Examples
 
@@ -236,69 +142,19 @@ Two types of base stations:
 
 ### Create Multiple Base Stations
 
-```python
-def create_base_stations(
-    self,
-    location_id: str,
-    dect_id: str,
-    base_station_macs: list[str],
-    org_id: str = None
-) -> list[BaseStationResponse]
-```
-
 Pass a list of MAC addresses. Returns a list of `BaseStationResponse` objects, each containing the MAC and a result with HTTP status code and base station ID.
 
 ### List Base Stations
-
-```python
-def list_base_stations(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    org_id: str = None
-) -> list[BaseStationsResponse]
-```
 
 Returns base station IDs, MACs, and registered line counts.
 
 ### Get Base Station Details
 
-```python
-def base_station_details(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    base_station_id: str,
-    org_id: str = None
-) -> BaseStationDetail
-```
-
 Returns the base station with its registered handsets and their line member details.
 
 ### Delete All Base Stations
 
-```python
-def delete_bulk_base_stations(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    org_id: str = None
-) -> None
-```
-
 Deletes **all** base stations in the specified DECT network.
-
-### Delete a Specific Base Station
-
-```python
-def delete_base_station(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    base_station_id: str,
-    org_id: str = None
-) -> None
-```
 
 ### CLI Examples
 
@@ -340,31 +196,9 @@ Each handset supports up to **2 lines**. A DECT network supports a total of 120 
 
 ### Add a Single Handset
 
-```python
-def add_a_handset(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    line1_member_id: str,
-    line2_member_id: str = None,
-    custom_display_name: str = None,
-    org_id: str = None
-) -> None
-```
-
-`custom_display_name` is mandatory (1-16 characters). Raises `ValueError` if `None`.
+`custom_display_name` is mandatory (1-16 characters).
 
 ### Add a List of Handsets (Bulk)
-
-```python
-def add_list_of_handsets(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    items: list[AddDECTHandset],
-    org_id: str = None
-) -> list[AddDECTHandsetBulkResponse]
-```
 
 Add up to **50 handsets** in a single call. Each `AddDECTHandset` contains `line1_member_id`, `line2_member_id` (optional), and `custom_display_name` (optional).
 
@@ -372,72 +206,13 @@ Returns per-item results with status codes and error details if any failed.
 
 ### List Handsets
 
-```python
-def list_handsets(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    basestation_id: str = None,
-    member_id: str = None,
-    org_id: str = None
-) -> DECTHandsetList
-```
-
 Returns a `DECTHandsetList` containing `number_of_handsets_assigned`, `number_of_lines_assigned`, and the list of `DECTHandsetItem` objects. Filter by `basestation_id` or `member_id`.
-
-### Get Handset Details
-
-```python
-def handset_details(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    handset_id: str,
-    org_id: str = None
-) -> DECTHandsetItem
-```
 
 ### Update Handset (Line Assignment)
 
-```python
-def update_handset(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    handset_id: str,
-    line1_member_id: str,
-    custom_display_name: str,
-    line2_member_id: str = None,
-    org_id: str = None
-) -> None
-```
-
 Updates the line assignment on a handset. `line1_member_id` and `custom_display_name` are required.
 
-### Delete a Single Handset
-
-```python
-def delete_handset(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    handset_id: str,
-    org_id: str = None
-) -> None
-```
-
 ### Delete Multiple Handsets
-
-```python
-def delete_handsets(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    handset_ids: list[str],
-    delete_all: bool = None,
-    org_id: str = None
-) -> None
-```
 
 If `delete_all` is `True`, the `handset_ids` array is ignored and all handsets in the network are deleted.
 
@@ -502,37 +277,7 @@ wxcli dect-devices create-bulk <location_id> <dect_network_id> \
 
 ## Association Queries
 
-Query which DECT networks are associated with a specific person, workspace, or virtual line.
-
-### DECT Networks for a Person
-
-```python
-def dect_networks_associated_with_person(
-    self,
-    person_id: str,
-    org_id: str = None
-) -> list[AssignedDectNetwork]
-```
-
-### DECT Networks for a Workspace
-
-```python
-def dect_networks_associated_with_workspace(
-    self,
-    workspace_id: str,
-    org_id: str = None
-) -> list[AssignedDectNetwork]
-```
-
-### DECT Networks for a Virtual Line
-
-```python
-def dect_networks_associated_with_virtual_line(
-    self,
-    virtual_line_id: str,
-    org_id: str = None
-) -> list[AssignedDectNetwork]
-```
+Query which DECT networks are associated with a specific person, workspace, or virtual line. Each returns a list of `AssignedDectNetwork` entries.
 
 ### CLI Examples
 
@@ -553,21 +298,6 @@ wxcli dect-devices list-dect-networks-people <person_id> -o json
 
 Search for members that can be assigned to DECT handset lines.
 
-```python
-def available_members(
-    self,
-    member_name: str = None,
-    phone_number: str = None,
-    extension: str = None,
-    location_id: str = None,
-    order: str = None,
-    exclude_virtual_line: bool = None,
-    usage_type: UsageType = None,
-    org_id: str = None,
-    **params
-) -> Generator[AvailableMember, None, None]
-```
-
 | Parameter | Notes |
 |-----------|-------|
 | `member_name` | Contains-match on member name |
@@ -577,7 +307,7 @@ def available_members(
 | `exclude_virtual_line` | If `True`, virtual lines are excluded. Virtual lines cannot be the primary line. |
 | `usage_type` | Filter by `UsageType` -- eligible as device owner or shared line |
 
-Returns a **Generator** (paginated). Yields `AvailableMember` instances.
+Results are paginated (see Raw HTTP below for the `max` parameter). Each entry is an `AvailableMember` record.
 
 ### CLI Examples
 
@@ -618,41 +348,15 @@ The DECT serviceability password (also called the admin override password) provi
 
 ### Generate and Enable Password
 
-```python
-def generate_and_enable_dect_serviceability_password(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    org_id: str = None
-) -> str  # returns the 16-character password
-```
+Generates a new 16-character serviceability password.
 
 **Warning:** Generating a new password and transmitting it to the DECT network can **reboot the entire network**. Choose an appropriate maintenance window.
 
 ### Get Password Status
 
-```python
-def get_dect_serviceability_password_status(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    org_id: str = None
-) -> bool  # True if enabled
-```
-
 Note: If the password is enabled but has not been generated, status still returns `True` even though there is no active password.
 
 ### Update Password Status (Enable/Disable)
-
-```python
-def update_dect_serviceability_password_status(
-    self,
-    location_id: str,
-    dect_network_id: str,
-    enabled: bool,
-    org_id: str = None
-) -> None
-```
 
 When `enabled` is `False`, the Cisco-owned password is required for serviceability access instead.
 
@@ -678,46 +382,25 @@ wxcli dect-devices update-serviceability-password <location_id> <dect_network_id
 
 ## Hot Desking
 
-Hot desking allows users to temporarily sign into a shared workspace device and use it as their own phone. The `HotDeskApi` manages active hot desk sessions.
-
-### API Access
-
-```python
-hotdesk = api.telephony.hotdesk  #
-```
+Hot desking allows users to temporarily sign into a shared workspace device and use it as their own phone. Active sessions are managed at `/v1/hotdesk/sessions` (see [Required Scopes](#required-scopes) above).
 
 ### Data Model
 
-```python
-class HotDesk(ApiModel):
-    session_id: Optional[str] = None       # Unique session identifier
-    workspace_id: Optional[str] = None     # Workspace where session is active
-    person_id: Optional[str] = None        # Person who initiated the session
-    booking_start_time: Optional[datetime] = None
-    booking_end_time: Optional[datetime] = None
-```
+#### `HotDesk`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `session_id` | `str` | Unique session identifier |
+| `workspace_id` | `str` | Workspace where session is active |
+| `person_id` | `str` | Person who initiated the session |
+| `booking_start_time` | `datetime` | Session booking start time |
+| `booking_end_time` | `datetime` | Session booking end time |
 
 ### List Sessions
 
-```python
-def list_sessions(
-    self,
-    person_id: str = None,
-    workspace_id: str = None,
-    org_id: str = None
-) -> list[HotDesk]
-```
-
-Both `person_id` and `workspace_id` are optional filters. When used together, they act as an AND filter. The `org_id` parameter is for partner administrators acting on a managed organization.
+Both `person_id` and `workspace_id` are optional filters. When used together, they act as an AND filter. Partner administrators can scope the query to a managed organization.
 
 ### Delete Session
-
-```python
-def delete_session(
-    self,
-    session_id: str
-) -> None
-```
 
 Ends a hot desk session by its unique session ID.
 
@@ -859,8 +542,8 @@ Ends a hot desk session by its unique session ID.
 All examples use:
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1132,7 +815,7 @@ api.session.rest_put(
 
 7. **Line 1 vs Line 2 member types.** Line 1 supports only PEOPLE and PLACE. Line 2 also supports VIRTUAL_LINE. Virtual lines cannot be the primary (line 1) member.
 
-8. **Hot desk scopes not documented.** The source code for `HotDeskApi` does not include scope documentation in the docstrings, and the OpenAPI specs also omit security/scope blocks for the Hot Desk endpoints.
+8. **Hot desk scopes not documented.** Neither the OpenAPI spec nor developer.webex.com documents scope requirements for the Hot Desk endpoints (`/v1/hotdesk/sessions`).
 
 9. **`DECTNetworkModel` has alternate names.** `dms_cisco_dbs110` and `cisco_dect_110_base` both refer to the same physical hardware (DBS-110). Same for the 210 variants. Choose either enum value.
 
