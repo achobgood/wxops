@@ -6,11 +6,10 @@
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Person Call Settings APIs
 
-Person-level call handling settings control how incoming calls are routed, filtered, and alerted for individual Webex Calling users. All APIs live under `PersonSettingsApi` (accessed via `api.person_settings.*`) and share a common base class pattern.
+Person-level call handling settings control how incoming calls are routed, filtered, and alerted for individual Webex Calling users. These settings share a common REST URL pattern and access model.
 
-> **SDK access path:** `api.person_settings.<feature>`
 > **REST base:** `people/{person_id}/features/{feature}` (with some remapped to `telephony/config/people/{person_id}/...`)
-> **Also available for:** Workspaces, Virtual Lines (same API classes, different URL selectors)
+> **Also available for:** Workspaces, Virtual Lines (same settings, different URL selectors)
 
 ---
 
@@ -70,15 +69,15 @@ These require **user-level OAuth** (not admin tokens). The admin-path equivalent
 
 ## Common Patterns
 
-All call handling APIs extend `PersonSettingsApiChild`, which builds endpoint URLs from a `feature` string:
+All call handling endpoints build their URL from a `feature` string:
 
 ```
 people/{person_id}/features/{feature}
 ```
 
-Some features are remapped to `telephony/config/people/{person_id}/{feature}` at the SDK level (selective accept/forward/reject, music on hold, etc.). This is transparent to the caller.
+Some features are remapped to `telephony/config/people/{person_id}/{feature}` instead (selective accept/forward/reject, music on hold, etc.).
 
-Every feature API follows the same read/configure (or read/update) pattern. All methods accept an optional `org_id` parameter for partner administrators operating across organizations.
+Every feature follows the same read/configure (or read/update) pattern. All endpoints accept an optional `org_id` parameter for partner administrators operating across organizations.
 
 ---
 
@@ -86,10 +85,8 @@ Every feature API follows the same read/configure (or read/update) pattern. All 
 
 Controls where incoming calls are sent when the user cannot or does not want to answer. Three forwarding modes plus business continuity.
 
-**SDK path:** `api.person_settings.forwarding`
 **Feature slug:** `callForwarding`
 **Admin REST path:** `/people/{person_id}/features/callForwarding`
-**API class:** `PersonForwardingApi`
 
 ### Data Models
 
@@ -136,43 +133,6 @@ Top-level container returned by `read()` and accepted by `configure()`.
 | `enabled` | `bool` | Enable/disable |
 | `destination` | `str` (optional) | Destination number |
 | `destination_voicemail_enabled` | `bool` (optional) | Send to destination's voicemail |
-
-### Methods
-
-#### Read
-
-```python
-PersonForwardingApi.read(
-    entity_id: str,
-    org_id: str = None
-) -> PersonForwardingSetting
-```
-
-**Scopes:** `spark-admin:people_read` or `spark:people_read`
-
-#### Configure
-
-```python
-PersonForwardingApi.configure(
-    entity_id: str,
-    forwarding: PersonForwardingSetting,
-    org_id: str = None
-) -> None
-```
-
-**Scopes:** `spark-admin:people_write` or `spark:people_write`
-
-**Note:** The `system_max_number_of_rings` field is excluded from the update payload automatically.
-
-#### Factory Default
-
-All data models provide a `.default()` static method to generate a reset-to-defaults instance:
-
-```python
-forwarding = PersonForwardingSetting.default()
-# Sets: always=disabled, busy=disabled, no_answer=disabled (3 rings),
-#        business_continuity=disabled
-```
 
 ### CLI Examples
 
@@ -233,41 +193,14 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callForwarding", json=
 
 Controls whether a user can place an active call on hold to answer a second incoming call. A tone alerts the user of the incoming call.
 
-**SDK path:** `api.person_settings.call_waiting`
 **Feature slug:** `callWaiting`
 **Admin REST path:** `/people/{person_id}/features/callWaiting`
-**API class:** `CallWaitingApi`
 
 ### Data Model
 
 No separate model — returns and accepts a simple `bool`.
 
-### Methods
-
-#### Read
-
-```python
-CallWaitingApi.read(
-    entity_id: str,
-    org_id: str = None
-) -> bool
-```
-
 Returns `True` if call waiting is enabled.
-
-**Scopes:** `spark-admin:people_read` or `spark:people_read`
-
-#### Configure
-
-```python
-CallWaitingApi.configure(
-    entity_id: str,
-    enabled: bool,
-    org_id: str = None
-) -> None
-```
-
-**Scopes:** `spark-admin:people_write` or `spark:people_write`
 
 ### CLI Examples
 
@@ -304,10 +237,8 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callWaiting", json={"e
 
 When enabled, all incoming calls receive busy treatment. Optionally plays a ring splash (brief tone) on the desktop phone as a reminder.
 
-**SDK path:** `api.person_settings.dnd`
 **Feature slug:** `doNotDisturb`
 **Admin REST path:** `/people/{person_id}/features/doNotDisturb`
-**API class:** `DndApi`
 
 ### Data Model — `DND`
 
@@ -316,31 +247,6 @@ When enabled, all incoming calls receive busy treatment. Optionally plays a ring
 | `enabled` | `bool` (optional) | Enable/disable DND |
 | `ring_splash_enabled` | `bool` (optional) | Play brief ring reminder tone on desktop phone for incoming calls |
 | `webex_go_override_enabled` | `bool` (optional) | When `true`, mobile device still rings even if DND is on |
-
-### Methods
-
-#### Read
-
-```python
-DndApi.read(
-    entity_id: str,
-    org_id: str = None
-) -> DND
-```
-
-**Scopes:** `spark-admin:people_read` or `spark:people_read`
-
-#### Configure
-
-```python
-DndApi.configure(
-    entity_id: str,
-    dnd_settings: DND,
-    org_id: str = None
-) -> None
-```
-
-**Scopes:** `spark-admin:people_write` or `spark:people_write`
 
 ### CLI Examples
 
@@ -387,9 +293,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/doNotDisturb", json={
 
 Ring the user's office phone and up to 10 additional phone numbers at the same time when an incoming call arrives. Supports schedule-based criteria to control when simultaneous ring is active.
 
-**SDK path:** `api.person_settings.sim_ring`
 **Feature slug:** `simultaneousRing`
-**API class:** `SimRingApi`
 
 ### Data Models
 
@@ -413,40 +317,6 @@ Ring the user's office phone and up to 10 additional phone numbers at the same t
 #### `SimRingCriteria` (extends `SelectiveCriteria`)
 
 Uses `ringEnabled` as the enabled attribute. See [Shared Criteria Model](#shared-criteria-model-selectivecriteria) below.
-
-### Methods
-
-#### Read Settings
-
-```python
-SimRingApi.read(
-    entity_id: str,
-    org_id: str = None
-) -> SimRing
-```
-
-#### Configure Settings
-
-```python
-SimRingApi.configure(
-    entity_id: str,
-    settings: SimRing,
-    org_id: str = None
-) -> None
-```
-
-**Note:** The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
-
-#### Criteria CRUD
-
-```python
-SimRingApi.create_criteria(entity_id: str, settings: SimRingCriteria, org_id: str = None) -> str
-SimRingApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> SimRingCriteria
-SimRingApi.configure_criteria(entity_id: str, id: str, settings: SimRingCriteria, org_id: str = None) -> None
-SimRingApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
-```
-
-`create_criteria` returns the new criteria ID.
 
 ### CLI Examples
 
@@ -497,9 +367,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneou
 
 Ring up to five phone numbers one after another when an incoming call arrives. Configurable ring counts per number, optional primary-line-first behavior, and schedule-based criteria.
 
-**SDK path:** `api.person_settings.sequential_ring`
 **Feature slug:** `sequentialRing`
-**API class:** `SequentialRingApi`
 
 ### Data Models
 
@@ -526,38 +394,6 @@ Ring up to five phone numbers one after another when an incoming call arrives. C
 #### `SequentialRingCriteria` (extends `SelectiveCriteria`)
 
 Uses `ringEnabled` as the enabled attribute. See [Shared Criteria Model](#shared-criteria-model-selectivecriteria) below.
-
-### Methods
-
-#### Read Settings
-
-```python
-SequentialRingApi.read(
-    entity_id: str,
-    org_id: str = None
-) -> SequentialRing
-```
-
-#### Configure Settings
-
-```python
-SequentialRingApi.configure(
-    entity_id: str,
-    settings: SequentialRing,
-    org_id: str = None
-) -> None
-```
-
-**Note:** The `criteria` list is excluded from the update payload. Criteria are managed separately.
-
-#### Criteria CRUD
-
-```python
-SequentialRingApi.create_criteria(entity_id: str, settings: SequentialRingCriteria, org_id: str = None) -> str
-SequentialRingApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> SequentialRingCriteria
-SequentialRingApi.configure_criteria(entity_id: str, id: str, settings: SequentialRingCriteria, org_id: str = None) -> None
-SequentialRingApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
-```
 
 ### CLI Examples
 
@@ -609,9 +445,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/sequentialR
 
 Ring remote destinations (mobile, home, etc.) alongside or instead of the office phone. Unlike Simultaneous Ring, Single Number Reach operates at the `telephony/config` level and manages individual number entries with their own IDs.
 
-**SDK path:** `api.person_settings.single_number_reach`
 **REST base:** `telephony/config/people/{person_id}/singleNumberReach`
-**API class:** `SingleNumberReachApi`
 
 ### Data Models
 
@@ -634,56 +468,7 @@ Ring remote destinations (mobile, home, etc.) alongside or instead of the office
 | `do_not_forward_calls_enabled` | `bool` (optional) | Skip call forwarding settings for this number |
 | `answer_confirmation_enabled` | `bool` (optional) | Prompt recipient to press a key before connecting |
 
-### Methods
-
-#### Read Settings
-
-```python
-SingleNumberReachApi.read(
-    person_id: str
-) -> SingleNumberReach
-```
-
-**Scopes:** `spark-admin:telephony_config_read`
-
-#### Update Settings
-
-```python
-SingleNumberReachApi.update(
-    person_id: str,
-    alert_all_numbers_for_click_to_dial_calls_enabled: bool = None
-) -> None
-```
-
-**Scopes:** `spark-admin:telephony_config_write`
-
-**Note:** This only updates the top-level `alert_all_numbers_for_click_to_dial_calls_enabled` flag. Individual numbers are managed via the SNR number CRUD methods below.
-
-#### SNR Number CRUD
-
-```python
-SingleNumberReachApi.create_snr(person_id: str, settings: SingleNumberReachNumber) -> str
-SingleNumberReachApi.update_snr(person_id: str, settings: SingleNumberReachNumber) -> str
-SingleNumberReachApi.delete_snr(person_id: str, id: str, org_id: str = None) -> None
-```
-
-- `create_snr` returns the new entry ID.
-- `update_snr` returns the (possibly changed) entry ID. The `settings.id` field is used to identify the target entry. **Important:** The ID can change if the phone number is modified, since the ID is base64-encoded phone number data.
-- The `id` field is excluded from the create/update request body automatically.
-
-#### Available Phone Numbers
-
-```python
-SingleNumberReachApi.available_phone_numbers(
-    location_id: str,
-    phone_number: list[str] = None,
-    org_id: str = None
-) -> Generator[AvailableNumber, None, None]
-```
-
 Lists service and standard PSTN numbers at a location that are available for SNR assignment.
-
-**Scopes:** `spark-admin:telephony_config_read`
 
 ### CLI Examples
 
@@ -767,10 +552,8 @@ result = api.session.rest_get(
 
 Accept calls only from specific callers or during specific schedules. Calls not matching any enabled criteria are rejected.
 
-**SDK path:** `api.person_settings.selective_accept`
 **Feature slug:** `selectiveAccept`
 **REST path (remapped):** `telephony/config/people/{person_id}/selectiveAccept`
-**API class:** `SelectiveAcceptApi`
 
 ### Data Models
 
@@ -784,36 +567,6 @@ Accept calls only from specific callers or during specific schedules. Calls not 
 #### `SelectiveAcceptCriteria` (extends `SelectiveCriteria`)
 
 Uses `acceptEnabled` as the enabled attribute and `phoneNumbers` for the number list. See [Shared Criteria Model](#shared-criteria-model-selectivecriteria) below.
-
-### Methods
-
-#### Read Settings
-
-```python
-SelectiveAcceptApi.read(
-    entity_id: str,
-    org_id: str = None
-) -> SelectiveAccept
-```
-
-#### Configure Settings
-
-```python
-SelectiveAcceptApi.configure(
-    entity_id: str,
-    settings: SelectiveAccept,
-    org_id: str = None
-) -> None
-```
-
-#### Criteria CRUD
-
-```python
-SelectiveAcceptApi.create_criteria(entity_id: str, settings: SelectiveAcceptCriteria, org_id: str = None) -> str
-SelectiveAcceptApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> SelectiveAcceptCriteria
-SelectiveAcceptApi.configure_criteria(entity_id: str, id: str, settings: SelectiveAcceptCriteria, org_id: str = None) -> None
-SelectiveAcceptApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
-```
 
 ### CLI Examples
 
@@ -878,8 +631,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveAc
 ### Gotchas
 
 - The REST endpoint is remapped to `telephony/config/people/{person_id}/selectiveAccept` (not `people/{person_id}/features/selectiveAccept`).
-- Criteria use `acceptEnabled` (not `enabled`) as the REST API field name for the criteria-level enable flag. The SDK normalizes this to `enabled`.
-- The `criteria` list in the top-level settings is read-only. Criteria are managed via dedicated CRUD commands/methods.
+- Criteria use `acceptEnabled` (not `enabled`) as the REST API field name for the criteria-level enable flag.- The `criteria` list in the top-level settings is read-only. Criteria are managed via dedicated CRUD commands/methods.
 
 ---
 
@@ -887,10 +639,8 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveAc
 
 Forward calls to a specific destination based on caller identity and/or schedule. **Takes precedence over standard call forwarding settings.**
 
-**SDK path:** `api.person_settings.selective_forward`
 **Feature slug:** `selectiveForward`
 **REST path (remapped):** `telephony/config/people/{person_id}/selectiveForward`
-**API class:** `SelectiveForwardApi`
 
 ### Data Models
 
@@ -914,20 +664,6 @@ Additional fields beyond the base `SelectiveCriteria`:
 |-------|------|-------------|
 | `forward_to_phone_number` | `str` (optional) | Per-criteria forward destination (overrides default) |
 | `send_to_voicemail_enabled` | `bool` (optional) | Forward to voicemail instead |
-
-### Methods
-
-Same pattern as Selective Accept:
-
-```python
-SelectiveForwardApi.read(entity_id: str, org_id: str = None) -> SelectiveForward
-SelectiveForwardApi.configure(entity_id: str, settings: SelectiveForward, org_id: str = None) -> None
-
-SelectiveForwardApi.create_criteria(entity_id: str, settings: SelectiveForwardCriteria, org_id: str = None) -> str
-SelectiveForwardApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> SelectiveForwardCriteria
-SelectiveForwardApi.configure_criteria(entity_id: str, id: str, settings: SelectiveForwardCriteria, org_id: str = None) -> None
-SelectiveForwardApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
-```
 
 ### CLI Examples
 
@@ -1003,10 +739,8 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveFo
 
 Reject calls from specific callers or during specific schedules. **Takes precedence over Selective Accept.**
 
-**SDK path:** `api.person_settings.selective_reject`
 **Feature slug:** `selectiveReject`
 **REST path (remapped):** `telephony/config/people/{person_id}/selectiveReject`
-**API class:** `SelectiveRejectApi`
 
 ### Data Models
 
@@ -1020,20 +754,6 @@ Reject calls from specific callers or during specific schedules. **Takes precede
 #### `SelectiveRejectCriteria` (extends `SelectiveCriteria`)
 
 Uses `rejectEnabled` as the enabled attribute and `phoneNumbers` for the number list. See [Shared Criteria Model](#shared-criteria-model-selectivecriteria) below.
-
-### Methods
-
-Same pattern:
-
-```python
-SelectiveRejectApi.read(entity_id: str, org_id: str = None) -> SelectiveReject
-SelectiveRejectApi.configure(entity_id: str, settings: SelectiveReject, org_id: str = None) -> None
-
-SelectiveRejectApi.create_criteria(entity_id: str, settings: SelectiveRejectCriteria, org_id: str = None) -> str
-SelectiveRejectApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> SelectiveRejectCriteria
-SelectiveRejectApi.configure_criteria(entity_id: str, id: str, settings: SelectiveRejectCriteria, org_id: str = None) -> None
-SelectiveRejectApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
-```
 
 ### CLI Examples
 
@@ -1106,9 +826,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/selectiveRe
 
 Play a distinctive ring pattern for calls matching specific criteria (caller identity, schedule). Useful for VIP caller identification.
 
-**SDK path:** `api.person_settings.priority_alert`
 **Feature slug:** `priorityAlert`
-**API class:** `PriorityAlertApi`
 
 ### Data Models
 
@@ -1122,20 +840,6 @@ Play a distinctive ring pattern for calls matching specific criteria (caller ide
 #### `PriorityAlertCriteria` (extends `SelectiveCriteria`)
 
 Uses `notificationEnabled` as the enabled attribute. See [Shared Criteria Model](#shared-criteria-model-selectivecriteria) below.
-
-### Methods
-
-Same pattern:
-
-```python
-PriorityAlertApi.read(entity_id: str, org_id: str = None) -> PriorityAlert
-PriorityAlertApi.configure(entity_id: str, settings: PriorityAlert, org_id: str = None) -> None
-
-PriorityAlertApi.create_criteria(entity_id: str, settings: PriorityAlertCriteria, org_id: str = None) -> str
-PriorityAlertApi.read_criteria(entity_id: str, id: str, org_id: str = None) -> PriorityAlertCriteria
-PriorityAlertApi.configure_criteria(entity_id: str, id: str, settings: PriorityAlertCriteria, org_id: str = None) -> None
-PriorityAlertApi.delete_criteria(entity_id: str, id: str, org_id: str = None) -> None
-```
 
 ### CLI Examples
 
@@ -1185,7 +889,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/priorityAle
 
 ## Shared Criteria Model (`SelectiveCriteria`)
 
-All schedule/caller-based features (Simultaneous Ring, Sequential Ring, Selective Accept/Forward/Reject, Priority Alert) share a common criteria model. Each feature subclasses `SelectiveCriteria` with a different `_enabled_attr` value.
+All schedule/caller-based features (Simultaneous Ring, Sequential Ring, Selective Accept/Forward/Reject, Priority Alert) share a common criteria model. Each feature uses a different REST field name for the criteria-level enabled flag (see the mapping table below).
 
 ### `SelectiveCriteria` Fields
 
@@ -1223,10 +927,10 @@ Returned in the top-level settings `criteria` list (read-only summaries):
 
 ### Enabled Attribute Mapping by Feature
 
-The REST API uses different field names for the "enabled" flag on each criteria type. The SDK normalizes this to `enabled` on the Python model.
+The REST API uses different field names for the "enabled" flag on each criteria type.
 
-| Feature | REST API `_enabled_attr` | REST API `_phone_numbers` attr |
-|---------|--------------------------|-------------------------------|
+| Feature | REST API enabled-flag field | REST API phone-numbers field |
+|---------|------------------------------|-------------------------------|
 | Simultaneous Ring | `ringEnabled` | `phoneNumbers` |
 | Sequential Ring | `ringEnabled` | `phoneNumbers` |
 | Selective Accept | `acceptEnabled` | `phoneNumbers` |
@@ -1247,30 +951,9 @@ When multiple selective features are enabled simultaneously, the following prece
 
 ---
 
-## "Me" API Variants
-
-For user-token access (a person managing their own settings), the SDK provides parallel APIs under `api.me.*`:
-
-| Feature | Admin API (`person_settings.*`) | User API (`me.*`) |
-|---------|-------------------------------|-------------------|
-| Forwarding | `forwarding` | `forwarding` (`MeForwardingApi`) |
-| Call Waiting | `call_waiting` | `call_waiting` (`MeCallWaitingApi`) |
-| DND | `dnd` | `dnd` (`MeDNDApi`) |
-| Simultaneous Ring | N/A in SDK¹ | `sim_ring` (`MeSimRingApi`) |
-| Sequential Ring | N/A in SDK¹ | `sequential_ring` (`MeSequentialRingApi`) |
-| Single Number Reach | `single_number_reach` | `snr` (`MeSNRApi`) |
-| Selective Accept | `selective_accept` | `selective_accept` (`MeSelectiveAcceptApi`) |
-| Selective Forward | `selective_forward` | `selective_forward` (`MeSelectiveForwardApi`) |
-| Selective Reject | `selective_reject` | `selective_reject` (`MeSelectiveRejectApi`) |
-| Priority Alert | N/A in SDK¹ | `priority_alert` (`MePriorityAlertApi`) |
-
-> **¹ "N/A in SDK" means the SDK class is not wired to `PersonSettingsApi`** — and **no admin-level REST endpoint exists** for these features. Simultaneous Ring, Sequential Ring, and Priority Alert are user-only: they only work at `/telephony/config/people/me/settings/{feature}` with user-level OAuth. An admin cannot read or write these settings for another user. The Raw HTTP examples in sections 4, 5, and 10 above show the `{person_id}` path pattern used by the SDK internally, but these paths return 404 when called with an admin token against another user.
-
----
-
 ## URL Routing Internals
 
-The `PersonSettingsApiChild` base class builds endpoints based on the `selector` parameter:
+Person call handling REST endpoints build their URL based on the resource type (`selector`):
 
 | Selector | URL Template |
 |----------|-------------|
@@ -1294,8 +977,8 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 ## Gotchas (Cross-Cutting)
 
 - **Four features are user-only (no admin access):** Simultaneous Ring, Sequential Ring, Priority Alert, and Call Notify only exist at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. There is no admin-level path — an admin cannot read or write these settings for another user. All other call handling features in this doc support admin-level access.
-- **Selective features remapped URLs:** Selective Accept, Selective Forward, and Selective Reject all use `telephony/config/people/{person_id}/` instead of `people/{person_id}/features/`. This remapping is transparent in the SDK but matters for raw HTTP and CLI usage.
-- **Enabled attribute naming varies by feature:** Each criteria-based feature uses a different REST field name for its enabled flag (`ringEnabled`, `acceptEnabled`, `forwardEnabled`, `rejectEnabled`, `notificationEnabled`). The SDK normalizes all of these to `enabled` on the Python model, but CLI `--json-body` and raw HTTP payloads must use the REST field names.
+- **Selective features remapped URLs:** Selective Accept, Selective Forward, and Selective Reject all use `telephony/config/people/{person_id}/` instead of `people/{person_id}/features/`. This remapping matters for raw HTTP and CLI usage.
+- **Enabled attribute naming varies by feature:** Each criteria-based feature uses a different REST field name for its enabled flag (`ringEnabled`, `acceptEnabled`, `forwardEnabled`, `rejectEnabled`, `notificationEnabled`). CLI `--json-body` and raw HTTP payloads must use these REST field names.
 - **Criteria are managed separately:** For all criteria-based features (Sim Ring, Sequential Ring, Selective Accept/Forward/Reject, Priority Alert), the `criteria` list in the top-level settings response is read-only. Create, update, and delete criteria via their dedicated CRUD endpoints.
 - **No CLI for Sim Ring, Sequential Ring, or Priority Alert:** These features do not have wxcli command groups. Use Raw HTTP or the SDK.
 - **Selective Forward uses `numbers` not `phoneNumbers`:** Unlike all other criteria-based features that use `phoneNumbers` for their number list, Selective Forward criteria use `numbers`.
