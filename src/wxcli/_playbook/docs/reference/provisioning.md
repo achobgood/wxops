@@ -2,13 +2,12 @@
 
 User, license, and location provisioning for Webex Calling.
 
-**Execution path:** `wxcli` commands are how this repo provisions — see the `provision-calling` skill. Raw HTTP is the documented fallback. The Python SDK method signatures kept below are **reference material for understanding the API shape only**; this repo does not execute them, and they are not a supported execution path. Where a signature and the CLI disagree, `wxcli <group> <command> --help` is the source of truth.
+**Execution path:** `wxcli` commands are how this repo provisions — see the `provision-calling` skill. Raw HTTP is the documented fallback. `wxcli <group> <command> --help` is the source of truth for exact commands.
 
 > **Prerequisite:** a configured token — run `wxcli configure`, verify with `wxcli whoami`. See `authentication.md` for token types, OAuth flows, and per-endpoint scopes.
 
 ## Sources
 
-- wxc_sdk v1.30.0 (github.com/jeokrohn/wxc_sdk)
 - OpenAPI spec: `specs/webex-admin.json` (People, Licenses, Locations, Organizations APIs)
 - developer.webex.com People, Licenses, Locations, and Organizations APIs
 
@@ -51,93 +50,15 @@ All provisioning operations require an **administrator auth token**. Non-admin t
 
 Base path: `/v1/people`
 
-### Listing People
-
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi()
-
-# List ALL people (admin only, no filter required)
-all_users = list(api.people.list())
-
-# Filter by email
-user = next(api.people.list(email='jsmith@example.com'), None)
-
-# Filter by display name (prefix match)
-users = list(api.people.list(display_name='John'))
-
-# Filter by location
-users_at_hq = list(api.people.list(location_id='<location_id>'))
-
-# List by IDs (up to 85)
-users = list(api.people.list(id_list=['id1', 'id2', 'id3']))
-```
-
 ### The `calling_data=True` Parameter (Critical)
 
 To get calling-specific fields (`location_id`, `phone_numbers` with `work_extension` type, `extension`), you **must** pass `calling_data=True`. Without it, these fields are absent from the response.
 
-```python
-# WITHOUT calling_data -- location_id and calling fields are missing
-user = api.people.details(person_id='<id>')
-print(user.location_id)  # None
-
-# WITH calling_data -- calling fields populated
-user = api.people.details(person_id='<id>', calling_data=True)
-print(user.location_id)  # 'Y2lzY29zcGF...'
-print(user.extension)    # '1001'
-```
-
 This applies to `list()`, `details()`, `create()`, and `update()`.
-
-### Identifying Calling Users
-
-A calling user is one with a `location_id` set. The SDK examples demonstrate two approaches:
-
-**Approach 1 -- Filter on `location_id` (synchronous)**
-
-```python
-# From examples/calling_users.py
-calling_users = [user for user in api.people.list(calling_data=True)
-                 if user.location_id]
-```
-
-**Approach 2 -- Filter on calling license IDs (async)**
-
-```python
-# From examples/calling_users_async.py
-calling_license_ids = set(
-    lic.license_id for lic in await api.licenses.list()
-    if lic.webex_calling
-)
-calling_users = [
-    user async for user in api.people.list_gen()
-    if any(lic_id in calling_license_ids for lic_id in user.licenses)
-]
-```
 
 ### Creating a Person
 
 At minimum, one of `displayName`, `firstName`, or `lastName` is required. For a **Webex Calling** user, you must also provide `phoneNumbers` or `extension`, `locationId`, and `licenses` in the same request.
-
-```python
-from wxc_sdk.people import Person, PhoneNumber, PhoneNumberType
-
-new_user = api.people.create(
-    settings=Person(
-        emails=['jsmith@example.com'],
-        display_name='John Smith',
-        first_name='John',
-        last_name='Smith',
-        licenses=['<calling_license_id>'],
-        location_id='<location_id>',
-        extension='1001',
-        phone_numbers=[PhoneNumber(type=PhoneNumberType.work, value='5551234567')]
-    ),
-    calling_data=True
-)
-```
 
 **Important notes on create:**
 - A POST that returns 400 may **still have created the person**. Check with a GET before retrying.
@@ -148,17 +69,6 @@ new_user = api.people.create(
 
 The update is a **full PUT** -- you must include all fields, not just the changed ones. Standard pattern: GET details first, modify, then PUT.
 
-```python
-# GET current state
-user = api.people.details(person_id='<id>', calling_data=True)
-
-# Modify
-user.extension = '2002'
-
-# PUT back
-updated = api.people.update(person=user, calling_data=True)
-```
-
 **Key constraints on update:**
 - `location_id` can only be set when **first assigning** a calling license. It cannot be changed for an existing calling user.
 - The `extension` field value should **not** include the location routing prefix. The `work_extension` phone number in the response *will* include it, but when setting `extension` on update, omit the prefix.
@@ -168,28 +78,16 @@ updated = api.people.update(person=user, calling_data=True)
 
 ### Deleting a Person
 
-```python
-api.people.delete_person(person_id='<id>')
-```
-
 Required roles: Full Administrator, User Administrator, or External Full Administrator.
-
-### Get Current User
-
-```python
-me = api.people.me(calling_data=True)
-```
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
-All People API operations can be performed via raw HTTP using `api.session.rest_*()`. This is the preferred execution pattern -- wxc_sdk handles auth and session management, while you control the exact request.
+All People API operations can be performed via raw HTTP using `api.session.rest_*()`. This is the preferred execution pattern -- it handles auth and session management, while you control the exact request.
 
 ```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.rest import RestError
-
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # ── List people ───────────────────────────────────────────────────
@@ -305,7 +203,7 @@ wxcli people delete <person_id> --force
 **CLI notes:**
 - `wxcli people list` defaults to table output (`-o table`); use `-o json` for full JSON.
 - `wxcli people show` defaults to JSON output; use `-o table` for a summary view.
-- The `--calling-data true` flag is the CLI equivalent of `calling_data=True` in the SDK. Pass it when you need calling fields (locationId, extension, phoneNumbers).
+- The `--calling-data true` flag is the CLI equivalent of the API's `callingData=true` query parameter. Pass it when you need calling fields (locationId, extension, phoneNumbers).
 - For create/update operations with complex nested fields (emails, licenses, phoneNumbers), use `--json-body` with the full JSON payload.
 - The `--limit` and `--offset` flags control client-side pagination of results.
 
@@ -321,24 +219,14 @@ You can set `location_id` when you first assign a calling license to a user. Aft
 A create or update call can **partially succeed**. For example, the user may be created but the phone number assignment may fail (especially with invalid numbers). Always verify with a subsequent GET after errors.
 
 **Performance limits with `calling_data=True`.**
-The SDK enforces a soft limit of 10 users per page when fetching with `calling_data=True` (constant `MAX_USERS_WITH_CALLING_DATA = 10`). This is an **SDK internal constant**, not an API enforcement — the live API allows up to **100 results per page** with `callingData=true` (or 50 when `locationId` is also specified). Users of raw HTTP or wxcli are not subject to the SDK's 10-item constant. For large orgs using the SDK, consider the async API with `concurrent_requests` tuning.
+The live API allows up to **100 results per page** with `callingData=true` (or 50 when `locationId` is also specified).
 
 **Extension vs. work_extension.**
 - When **writing**: set `person.extension = '1001'` (no routing prefix).
 - When **reading**: `phone_numbers` of type `work_extension` will have the value `<routing_prefix><extension>` (e.g., `'8001001'` where `800` is the prefix and `1001` is the extension).
 
 **Deleting a calling user may have delayed side effects.**
-After deleting a user, their phone numbers may not be immediately available for reassignment. The SDK test suite retries number removal with delays of up to 10 seconds between attempts when encountering 502 errors.
-
-**`PeopleApi.create()` takes a `Person` model, not kwargs.**
-
-```python
-from wxc_sdk.people import Person
-person = Person(emails=[email], first_name=first, last_name=last)
-result = api.people.create(settings=person)
-```
-
-Do NOT call `api.people.create(emails=[...], first_name=...)` — this raises `TypeError`.
+After deleting a user, their phone numbers may not be immediately available for reassignment. Numbers may take up to ~10 seconds to free up after deletion, especially if you encounter 502 errors on retry.
 
 ---
 
@@ -348,161 +236,20 @@ Do NOT call `api.people.create(emails=[...], first_name=...)` — this raises `T
 
 Base path: `/v1/licenses`
 
-### Listing Licenses
-
-```python
-all_licenses = api.licenses.list()
-
-for lic in all_licenses:
-    print(f'{lic.name}: {lic.consumed_units}/{lic.total_units}')
-```
-
 ### Finding Specific Licenses
 
-The `License` model has convenience properties for common license types:
+Common Webex Calling license types and their exact `name` strings (match against the `name` field returned by `GET /v1/licenses`):
 
-| Property | License Name Matched |
-|----------|---------------------|
-| `lic.webex_calling_professional` | `"Webex Calling - Professional"` |
-| `lic.webex_calling_basic` | `"Webex Calling - Basic"` |
-| `lic.webex_calling_workspaces` | `"Webex Calling - Workspaces"` |
-| `lic.webex_calling` | Any of the above three |
-| `lic.cx_essentials` | `"Customer Experience - Essential"` |
-
-**Find the Webex Calling Professional license:**
-
-```python
-wxc_pro_license = next(
-    (lic for lic in api.licenses.list()
-     if lic.webex_calling_professional),
-    None
-)
-```
-
-**Find an available calling license (with capacity):**
-
-```python
-def get_calling_license(api):
-    """Get ID of an available calling license with remaining capacity."""
-    licenses = [
-        lic for lic in api.licenses.list()
-        if lic.webex_calling and not lic.webex_calling_workspaces
-    ]
-    available = next(
-        (lic for lic in licenses
-         if lic.consumed_units < lic.total_units),
-        None
-    )
-    return available.license_id if available else None
-```
-
-**Find and store both Calling and UCM licenses (for migration):**
-
-```python
-# From Cisco Live lab
-wxc_pro_license = None
-ucm_license = None
-
-for lic in api.licenses.list():
-    if lic.name == 'Webex Calling - Professional':
-        wxc_pro_license = lic
-    if lic.name == 'Unified Communication Manager (UCM)':
-        ucm_license = lic
-```
-
-### License Details
-
-```python
-license_detail = api.licenses.details(license_id='<id>')
-print(f'Name: {license_detail.name}')
-print(f'Used: {license_detail.consumed_units}/{license_detail.total_units}')
-print(f'By users: {license_detail.consumed_by_users}')
-print(f'By workspaces: {license_detail.consumed_by_workspaces}')
-```
-
-### Listing Users Assigned to a License
-
-```python
-users = list(api.licenses.assigned_users(license_id='<id>'))
-for user in users:
-    print(f'{user.display_name} ({user.email}) - {user.type}')
-```
+| License type | Exact `name` string |
+|--------------|---------------------|
+| Webex Calling Professional | `"Webex Calling - Professional"` |
+| Webex Calling Basic | `"Webex Calling - Basic"` |
+| Webex Calling Workspaces | `"Webex Calling - Workspaces"` |
+| Customer Experience Essentials | `"Customer Experience - Essential"` |
 
 ### Assigning Licenses to Users (PATCH Method)
 
 The `assign_licenses_to_users` method is the **recommended approach** for license assignment, especially for Webex Calling. It supports adding and removing licenses in a single call, and it handles calling-specific properties (location, phone number, extension).
-
-```python
-from wxc_sdk.licenses import LicenseRequest, LicenseProperties, LicenseRequestOperation
-
-# Assign a Webex Calling license with location and extension
-api.licenses.assign_licenses_to_users(
-    person_id='<person_id>',
-    licenses=[
-        LicenseRequest(
-            id='<calling_license_id>',
-            operation=LicenseRequestOperation.add,  # default is 'add'
-            properties=LicenseProperties(
-                location_id='<location_id>',
-                extension='1001'
-            )
-        )
-    ]
-)
-```
-
-**With phone number instead of extension:**
-
-```python
-api.licenses.assign_licenses_to_users(
-    person_id='<person_id>',
-    licenses=[
-        LicenseRequest(
-            id='<calling_license_id>',
-            properties=LicenseProperties(
-                location_id='<location_id>',
-                phone_number='+15551234567'
-            )
-        )
-    ]
-)
-```
-
-**Removing a license:**
-
-```python
-api.licenses.assign_licenses_to_users(
-    person_id='<person_id>',
-    licenses=[
-        LicenseRequest(
-            id='<license_id_to_remove>',
-            operation=LicenseRequestOperation.remove
-        )
-    ]
-)
-```
-
-**Combined: remove UCM + add Calling in one call:**
-
-```python
-api.licenses.assign_licenses_to_users(
-    person_id='<person_id>',
-    licenses=[
-        LicenseRequest(
-            id=ucm_license.license_id,
-            operation=LicenseRequestOperation.remove
-        ),
-        LicenseRequest(
-            id=wxc_pro_license.license_id,
-            operation=LicenseRequestOperation.add,
-            properties=LicenseProperties(
-                location_id='<location_id>',
-                extension='1001'
-            )
-        )
-    ]
-)
-```
 
 **LicenseProperties requirements for Calling licenses:**
 - Either `phone_number` or `extension` is mandatory.
@@ -514,8 +261,8 @@ You can identify the user by either `email` or `person_id` (at least one require
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # ── List all licenses ────────────────────────────────────────────
@@ -565,40 +312,6 @@ As of January 2024, Webex recommends SCIM 2.0 (`wxcli scim-users`) over the Peop
 
 Base path: `/v1/locations`
 
-### Listing Locations
-
-```python
-# All locations
-locations = list(api.locations.list())
-
-# Filter by name (case-insensitive contains match)
-locations = list(api.locations.list(name='headquarters'))
-
-# Filter by ID
-locations = list(api.locations.list(location_id='<id>'))
-```
-
-### Find Location by Exact Name
-
-The SDK provides a convenience method not available in the raw API:
-
-```python
-location = api.locations.by_name('Pod18')
-if location:
-    print(f'Found: {location.name} (ID: {location.location_id})')
-```
-
-This iterates the list internally and matches on exact name equality.
-
-### Location Details
-
-```python
-location = api.locations.details(location_id='<id>')
-print(f'Name: {location.name}')
-print(f'Address: {location.address.address1}, {location.address.city}, {location.address.state}')
-print(f'Timezone: {location.time_zone}')
-```
-
 ### Creating a Location
 
 All of the following parameters are **required**:
@@ -608,21 +321,6 @@ All of the following parameters are **required**:
 - `announcement_language`
 - `address1`, `city`, `state`, `postal_code`, `country`
 
-```python
-location_id = api.locations.create(
-    name='San Jose Office',
-    time_zone='America/Los_Angeles',
-    preferred_language='en_us',
-    announcement_language='en_us',
-    address1='123 Main St',
-    city='San Jose',
-    state='CA',
-    postal_code='95113',
-    country='US'
-)
-print(f'Created location: {location_id}')
-```
-
 Optional parameters: `address2`, `latitude`, `longitude`, `notes`.
 
 **Name length constraint:** While the API supports up to 256 characters, locations that will be **enabled for Webex Calling** must have names with a maximum of **80 characters**.
@@ -631,19 +329,9 @@ The return value is the new location's ID string.
 
 ### Updating a Location
 
-```python
-location = api.locations.details(location_id='<id>')
-location.name = 'San Jose HQ'
-api.locations.update(location_id=location.location_id, settings=location)
-```
-
 The same 80-character name limit applies if the location is calling-enabled.
 
 ### Deleting a Location
-
-```python
-api.locations.delete(location_id='<id>')
-```
 
 **Prerequisite:** Webex Calling must be **disabled** for the location before it can be deleted.
 
@@ -652,10 +340,6 @@ api.locations.delete(location_id='<id>')
 Creating a location via the Locations API does **not** automatically enable it for Webex Calling. You must use the separate Location Call Settings API:
 
 ```python
-# SDK method:
-api.telephony.location.enable_for_calling(location_id='<id>', ...)
-
-# Raw HTTP equivalent:
 api.session.rest_post(  # POST — not PUT; URL path should be verified against live API reference
     f"{BASE}/telephony/config/locations/{loc_id}",
     json={"announcementLanguage": "en_us"},  # lowercase required
@@ -668,10 +352,8 @@ The `announcement_language` field is **required** when enabling a location for W
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.rest import RestError
-
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # ── List locations ───────────────────────────────────────────────
@@ -729,7 +411,7 @@ api.session.rest_post(  # POST — not PUT; URL path should be verified against 
 - `announcementLanguage` returns `None` from the locations details endpoint even when set -- always set it explicitly before enabling calling (gotcha #14)
 - Calling-enabled locations **cannot be deleted via API** -- returns `409 Conflict: Location is being referenced, cannot be deleted`. Must use Control Hub (gotcha #15)
 - The `safe_delete_check` response uses field `locationDeleteStatus` (not `status`), with value `"UNBLOCKED"` or `"BLOCKED"` (gotcha #17)
-- The `address` field in raw HTTP is a nested object with `address1`, `city`, `state`, `postalCode`, `country`. The SDK flattens these to top-level kwargs in `locations.create()`.
+- The `address` field in raw HTTP is a nested object with `address1`, `city`, `state`, `postalCode`, `country`.
 
 ### CLI Examples
 
@@ -776,28 +458,6 @@ wxcli locations update <location_id> --time-zone "America/New_York"
 - Use lowercase language codes (e.g., `en_us` not `en_US`) for `--announcement-language` to avoid "Invalid Language Code" errors when later enabling calling.
 - Location names must be 80 characters or fewer if the location will be enabled for Webex Calling.
 
-### Floors
-
-Locations support floor management for workspace organization:
-
-```python
-# List floors
-floors = api.locations.list_floors(location_id='<id>')
-
-# Create a floor
-floor = api.locations.create_floor(location_id='<id>', floor_number=3, display_name='3rd Floor')
-
-# Get floor details
-floor = api.locations.floor_details(location_id='<id>', floor_id='<floor_id>')
-
-# Update a floor
-floor.display_name = 'Third Floor - Engineering'
-api.locations.update_floor(floor=floor)
-
-# Delete a floor
-api.locations.delete_floor(location_id='<id>', floor_id='<floor_id>')
-```
-
 ### Gotchas
 
 **Location must exist before user assignment.**
@@ -809,18 +469,11 @@ Locations enabled for Webex Calling must have names of **80 characters or fewer*
 **`enable_for_calling` requires lowercase language codes.**
 The telephony `enable_for_calling` API rejects `en_US` (mixed case) for `announcement_language` with error `Invalid Language Code`. Use `en_us` (all lowercase). The general Locations API stores `preferredLanguage` as `en_US` but the telephony backend expects lowercase.
 
-```python
-location = api.locations.details(location_id=loc_id)
-if not location.announcement_language:
-    location.announcement_language = (location.preferred_language or "en_US").lower()
-api.telephony.location.enable_for_calling(location=location)
-```
-
 **`announcement_language` returns None from details endpoint.**
-`LocationsApi.details()` returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly before calling `enable_for_calling`.
+Fetching location details returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly when enabling a location for Webex Calling.
 
 **Cannot delete calling-enabled locations via API.**
-`LocationsApi.delete()` returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location** — `wxcadm` confirms: "There is currently no way to delete a Location outside of Control Hub." The `safe_delete_check_before_disabling_calling_location` precheck may return `UNBLOCKED` but the delete still fails due to the telephony reference.
+Deleting a location (`DELETE /v1/locations/{id}`) returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location**, and a Location with Calling enabled cannot be deleted outside of Control Hub.
 
 Calling-enabled locations can only be deleted from Control Hub.
 
@@ -833,24 +486,7 @@ The response model field is `location_delete_status` (value: `"UNBLOCKED"` or `"
 
 Base path: `/v1/organizations`
 
-### Listing Organizations
-
-```python
-orgs = api.organizations.list()
-
-# With XSI (BroadSoft) endpoint data
-orgs = api.organizations.list(calling_data=True)
-```
-
 ### Organization Details
-
-```python
-org = api.organizations.details(org_id='<id>', calling_data=True)
-print(f'Name: {org.display_name}')
-print(f'XSI Actions: {org.xsi_actions_endpoint}')
-print(f'XSI Events: {org.xsi_events_endpoint}')
-print(f'XSI Domain: {org.xsi_domain}')
-```
 
 The `calling_data=True` parameter returns XSI (BroadSoft) endpoint values:
 - `xsi_actions_endpoint` -- base path to xsi-actions
@@ -860,17 +496,13 @@ The `calling_data=True` parameter returns XSI (BroadSoft) endpoint values:
 
 ### Deleting an Organization
 
-```python
-api.organizations.delete(org_id='<id>')
-```
-
 Requires authorization from a user with the **Full Administrator Role**. Deletion may take up to 10 minutes to complete after the response returns.
 
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # ── List organizations ──────────────────────────────────────────
@@ -982,107 +614,9 @@ Step-by-step process to enable a user for Webex Calling. Based on the Cisco Live
 
 This approach manipulates the `licenses` array directly on the Person object.
 
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi()
-
-# ── Step 1: Find the required licenses ──────────────────────────────
-wxc_pro_license = None
-ucm_license = None
-
-for lic in api.licenses.list():
-    if lic.name == 'Webex Calling - Professional':
-        wxc_pro_license = lic
-    if lic.name == 'Unified Communication Manager (UCM)':
-        ucm_license = lic
-
-print(f'WxC Pro: {wxc_pro_license.license_id}')
-print(f'UCM:     {ucm_license.license_id if ucm_license else "not found"}')
-
-# ── Step 2: Find the target location ────────────────────────────────
-location = api.locations.by_name('San Jose Office')
-print(f'Location: {location.name} (ID: {location.location_id})')
-
-# ── Step 3: Get the user's full details ─────────────────────────────
-user = next(api.people.list(email='jsmith@example.com'), None)
-user_details = api.people.details(person_id=user.person_id, calling_data=True)
-
-# ── Step 4: Update licenses and location ────────────────────────────
-# Add Webex Calling Professional license
-if wxc_pro_license.license_id not in user_details.licenses:
-    user_details.licenses.append(wxc_pro_license.license_id)
-
-# Remove UCM license (if migrating from on-prem)
-if ucm_license and ucm_license.license_id in user_details.licenses:
-    user_details.licenses.remove(ucm_license.license_id)
-
-# Set location and extension
-user_details.location_id = location.location_id
-user_details.extension = '1001'
-
-# ── Step 5: Push the update ─────────────────────────────────────────
-updated_user = api.people.update(person=user_details, calling_data=True)
-
-# ── Step 6: Verify ──────────────────────────────────────────────────
-verified = api.people.details(person_id=updated_user.person_id, calling_data=True)
-assert verified.location_id is not None
-assert wxc_pro_license.license_id in verified.licenses
-print(f'User {verified.display_name} enabled for calling at {location.name}')
-```
-
 ### Method B: Using Licenses PATCH API (recommended for new provisioning)
 
 This approach uses the dedicated `assign_licenses_to_users` PATCH endpoint, which is cleaner for new license assignments and supports calling-specific properties natively.
-
-```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.licenses import LicenseRequest, LicenseProperties
-from wxc_sdk.people import Person
-
-api = WebexSimpleApi()
-
-# ── Step 1: Find the calling license ────────────────────────────────
-calling_license_id = next(
-    (lic.license_id for lic in api.licenses.list()
-     if lic.webex_calling_professional
-     and lic.consumed_units < lic.total_units),
-    None
-)
-
-# ── Step 2: Find the target location ────────────────────────────────
-location = api.locations.by_name('San Jose Office')
-
-# ── Step 3: Create the user (if new) ────────────────────────────────
-new_user = api.people.create(
-    settings=Person(
-        emails=['jsmith@example.com'],
-        display_name='John Smith',
-        first_name='John',
-        last_name='Smith'
-    )
-)
-
-# ── Step 4: Assign calling license with location and extension ──────
-response = api.licenses.assign_licenses_to_users(
-    person_id=new_user.person_id,
-    licenses=[
-        LicenseRequest(
-            id=calling_license_id,
-            properties=LicenseProperties(
-                location_id=location.location_id,
-                extension='1001'
-            )
-        )
-    ]
-)
-
-# ── Step 5: Verify ──────────────────────────────────────────────────
-verified = api.people.details(person_id=new_user.person_id, calling_data=True)
-assert calling_license_id in verified.licenses
-assert verified.location_id is not None
-print(f'License response: {response}')
-```
 
 ### Method B is preferred when:
 - You are provisioning net-new users (create user, then assign license separately).
@@ -1163,7 +697,7 @@ Note: `work_extension` values include the location **routing prefix** prepended 
 - `webex_calling_workspaces` -- True if name is `"Webex Calling - Workspaces"`
 - `cx_essentials` -- True if name is `"Customer Experience - Essential"`
 
-> **Note — "Basic" vs. "Standard" tier naming:** The `"Webex Calling - Basic"` name matched by `lic.webex_calling_basic` may be stale for newer orgs. Cisco's current tier naming uses **Standard** (not Basic). Any code doing exact string matching on `"Webex Calling - Basic"` may miss Standard-tier licenses. The SDK property `lic.webex_calling_basic` is an internal convenience name and may still resolve correctly depending on SDK version, but verify the actual license name string returned by `GET /v1/licenses` in your org before relying on exact string matches.
+> **Note — "Basic" vs. "Standard" tier naming:** The `"Webex Calling - Basic"` license name may be stale for newer orgs. Cisco's current tier naming uses **Standard** (not Basic). Any code doing exact string matching on `"Webex Calling - Basic"` may miss Standard-tier licenses. Verify the actual license name string returned by `GET /v1/licenses` in your org before relying on exact string matches.
 
 ### LicenseRequest (for PATCH assignment)
 
@@ -1233,14 +767,7 @@ Usually means the access token does not have admin scopes. Verify the token has 
 
 ### Phone numbers must be provisioned to the location first
 
-Before assigning a DID/TN to a user, the number must already be added to the location's number inventory via the telephony location numbers API:
-
-```python
-api.telephony.location.number.add(
-    location_id='<location_id>',
-    phone_numbers=['+15551234567']
-)
-```
+Before assigning a DID/TN to a user, the number must already be added to the location's number inventory via the telephony location numbers API.
 
 ### Numbers list API returns key `phoneNumbers`, not `numbers`
 
@@ -1364,5 +891,4 @@ Using the wrong format (e.g., `[{"id": ...}]` for pickup) produces 400 "Invalid 
 ## See Also
 
 - **`authentication.md`** — Token setup, OAuth flows, and scope reference.
-- **`archive/wxc-sdk-patterns.md`** — Async bulk provisioning patterns (recipes 5.3, 5.4), workspace provisioning (recipe 5.12). Archived: historical SDK doc.
 - **`location-calling-core.md`** — Location calling enablement and location-level telephony configuration.

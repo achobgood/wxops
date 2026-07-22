@@ -3,11 +3,10 @@
 
 Reference for per-person (also virtual line and workspace) call settings covering voicemail, caller ID, anonymous call rejection, privacy, barge-in, call recording, call intercept, monitoring, push-to-talk, and music on hold.
 
-All APIs in this group follow the same structural pattern: they extend `PersonSettingsApiChild`, which builds REST endpoints using the formula `people/{person_id}/features/{feature}` for persons (with alternate URL patterns for workspaces, virtual lines, and locations). Each sub-API exposes a `read()` and `configure()` method pair, sometimes with additional action methods.
+Every setting in this group follows the same REST pattern: endpoints resolve to `people/{person_id}/features/{feature}` for persons (with alternate URL patterns for workspaces, virtual lines, and locations -- see Common Patterns below). Most features expose a GET (read) and PUT (configure) pair, sometimes with additional action endpoints (greeting uploads, PIN resets).
 
 ## Sources
 
-- wxc_sdk v1.30.0 (PersonSettingsApi)
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Person Call Settings APIs
 
@@ -50,9 +49,7 @@ All APIs in this group follow the same structural pattern: they extend `PersonSe
 
 ## 1. Voicemail
 
-**API class:** `VoicemailApi`
 **Feature key:** `voicemail`
-**Source:** `wxc_sdk/person_settings/voicemail.py`
 
 ### Data Models
 
@@ -91,114 +88,7 @@ Top-level settings object returned by `read()` and passed to `configure()`.
 
 #### Default Settings
 
-`VoicemailSettings.default()` returns:
-
-```python
-VoicemailSettings(
-    enabled=True,
-    send_all_calls=VoicemailEnabled(enabled=False),
-    send_busy_calls=VoicemailEnabledWithGreeting(enabled=False, greeting=Greeting.default),
-    send_unanswered_calls=UnansweredCalls(enabled=True, greeting=Greeting.default, number_of_rings=3),
-    notifications=VoicemailNotifications(enabled=False),
-    transfer_to_number=VoicemailTransferToNumber(enabled=False),
-    email_copy_of_message=VoicemailCopyOfMessage(enabled=False),
-    message_storage=VoicemailMessageStorage(mwi_enabled=True, storage_type=StorageType.internal),
-    fax_message=VoicemailFax(enabled=False),
-    voice_message_forwarding_enabled=False,
-)
-```
-
-### Methods
-
-#### `read`
-
-```python
-VoicemailApi.read(entity_id: str, org_id: str = None) -> VoicemailSettings
-```
-
-Retrieve voicemail settings for a person, virtual line, or workspace.
-
-- **Scopes (read):** `spark-admin:people_read` (admin) or `spark:people_read` (self)
-
-#### `configure`
-
-```python
-VoicemailApi.configure(entity_id: str, settings: VoicemailSettings, org_id: str = None)
-```
-
-Update voicemail settings. The `settings.update()` method automatically strips read-only fields (`greeting_uploaded`, `system_max_number_of_rings`, `voice_message_forwarding_enabled`) before sending.
-
-- **Scopes (write):** `spark-admin:people_write` (admin) or `spark:people_write` (self)
-
-#### `configure_busy_greeting`
-
-```python
-VoicemailApi.configure_busy_greeting(
-    entity_id: str,
-    content: Union[BufferedReader, str],
-    upload_as: str = None,
-    org_id: str = None,
-)
-```
-
-Upload a custom `.wav` greeting for the busy condition. Uses multipart/form-data with `audio/wav` content type. Endpoint: `actions/uploadBusyGreeting/invoke`.
-
-- `content` can be a file path (str) or an open binary reader.
-- `upload_as` is required if `content` is a reader (must be a `.wav` filename).
-
-#### `configure_no_answer_greeting`
-
-```python
-VoicemailApi.configure_no_answer_greeting(
-    entity_id: str,
-    content: Union[BufferedReader, str],
-    upload_as: str = None,
-    org_id: str = None,
-)
-```
-
-Same as above but for the no-answer condition. Endpoint: `actions/uploadNoAnswerGreeting/invoke`.
-
-#### `modify_passcode`
-
-```python
-VoicemailApi.modify_passcode(entity_id: str, passcode: str, org_id: str = None)
-```
-
-Set a new voicemail passcode. Passcode length must be 6-30 characters.
-
-- **Scopes:** `spark-admin:telephony_config_write`
-- **Note:** Uses a different URL pattern: `telephony/config/people/{person_id}/voicemail/passcode`
-
-#### `reset_pin`
-
-```python
-VoicemailApi.reset_pin(entity_id: str, org_id: str = None)
-```
-
-Reset the voicemail PIN. Endpoint: `actions/resetPin/invoke` (POST).
-
-- **Scopes:** `spark-admin:people_write`
-
-### Usage Example (from `examples/modify_voicemail.py`)
-
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi()
-vm = api.person_settings.voicemail
-
-# Read current settings
-vm_settings = vm.read(person_id=person_id)
-
-# Modify number of rings
-vm_settings.send_unanswered_calls.number_of_rings = 6
-
-# Write back
-vm.configure(person_id, settings=vm_settings)
-```
-
-The example script reads a CSV of usernames, filters to calling users, and bulk-updates ring count using `ThreadPoolExecutor`.
+By default, voicemail is enabled with unanswered calls sent to voicemail after 3 rings using the default greeting, and internal message storage with MWI on; send-all-calls, send-busy-calls, notifications, transfer-to-number, email-copy, and fax-message all start disabled.
 
 ### CLI Examples
 
@@ -326,16 +216,14 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/voicemail/pass
 
 **Gotchas:**
 - Exclude read-only fields from PUT body: `greetingUploaded`, `systemMaxNumberOfRings`, `voiceMessageForwardingEnabled`.
-- Passcode endpoint uses `telephony/config/people` path (not `people/{id}/features`). Requires `spark-admin:telephony_config_write` scope.
-- Greeting uploads use POST with multipart/form-data, not JSON.
+- Passcode endpoint uses `telephony/config/people` path (not `people/{id}/features`). Requires `spark-admin:telephony_config_write` scope. Passcode must be 6-30 characters.
+- Greeting uploads use POST with multipart/form-data, not JSON. When uploading from binary content rather than a file path, specify a target filename ending in `.wav`.
 
 ---
 
 ## 2. Caller ID
 
-**API class:** `CallerIdApi`
 **Feature key:** `callerId`
-**Source:** `wxc_sdk/person_settings/caller_id.py`
 
 ### Data Models
 
@@ -385,50 +273,6 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/voicemail/pass
 | `dial_by_last_name` | `str` | Last name for dial-by-name |
 
 **Note:** Number fields (`direct_number`, `location_number`, `mobile_number`, `custom_number`) are validated through the `plus1` E.164 normalizer.
-
-### Methods
-
-#### `read`
-
-```python
-CallerIdApi.read(entity_id: str, org_id: str = None) -> CallerId
-```
-
-- **Scopes:** `spark-admin:people_read` or `spark:people_read` (self)
-
-#### `configure` (parameter-based)
-
-```python
-CallerIdApi.configure(
-    entity_id: str,
-    org_id: str = None,
-    selected: CallerIdSelectedType = None,
-    custom_number: str = None,
-    first_name: str = None,
-    last_name: str = None,
-    external_caller_id_name_policy: ExternalCallerIdNamePolicy = None,
-    custom_external_caller_id_name: str = None,
-)
-```
-
-Update caller ID using individual parameters. Only non-None parameters are sent.
-
-- **Scopes:** `spark-admin:people_write` or `spark:people_write` (self)
-
-#### `configure_settings` (object-based)
-
-```python
-CallerIdApi.configure_settings(entity_id: str, settings: CallerId, org_id: str = None)
-```
-
-Update caller ID by passing a full `CallerId` object. Uses `settings.update()` which limits to `fields_for_update` and excludes read-only fields.
-
-```python
-# Example: enable block-in-forward-calls
-caller_id_settings = api.person_settings.caller_id.read(entity_id=person_id)
-caller_id_settings.block_in_forward_calls_enabled = True
-api.person_settings.caller_id.configure_settings(entity_id=person_id, settings=caller_id_settings)
-```
 
 ### CLI Examples
 
@@ -512,14 +356,13 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callerId", json=body)
 - `selected` values: `"DIRECT_LINE"`, `"LOCATION_NUMBER"`, `"MOBILE_NUMBER"`, `"CUSTOM"`.
 - `externalCallerIdNamePolicy` values: `"DIRECT_LINE"`, `"LOCATION"`, `"OTHER"`.
 - When `selected` is `"CUSTOM"`, include `customNumber` in the body.
+- The PUT endpoint accepts partial updates -- you only need to send the fields you want to change, not the full object.
 
 ---
 
 ## 3. Agent Caller ID
 
-**API class:** `AgentCallerIdApi`
 **Feature key:** `agent`
-**Source:** `wxc_sdk/person_settings/agent_caller_id.py`
 
 Allows agents to set their outgoing caller ID to a call queue or hunt group instead of their personal caller ID.
 
@@ -550,41 +393,6 @@ Internal model used for the read response. Contains:
 |-------|------|-------------|
 | `queue_caller_id_enabled` | `bool` | `true` when using the selected queue for caller ID; `false` for agent's own |
 | `selected_queue` | `AgentCallerId` | The selected queue/hunt group (empty when disabled) |
-
-### Methods
-
-#### `available_caller_ids`
-
-```python
-AgentCallerIdApi.available_caller_ids(entity_id: str, org_id: str = None) -> list[AgentCallerId]
-```
-
-Get call queues and hunt groups available for caller ID use by this agent.
-
-- **Scopes:** `spark-admin:people_read`
-- **Endpoint:** `telephony/config/people/{entity_id}/agent/availableCallerIds`
-
-#### `read`
-
-```python
-AgentCallerIdApi.read(entity_id: str) -> AgentCallerId
-```
-
-Retrieve the agent's currently selected caller ID.
-
-- **Scopes:** `spark-admin:telephony_config_read`
-- **Endpoint:** `telephony/config/people/{entity_id}/agent/callerId`
-
-#### `configure`
-
-```python
-AgentCallerIdApi.configure(entity_id: str, selected_caller_id: str = None)
-```
-
-Set the agent's caller ID to a specific call queue or hunt group. Pass `None` to revert to the agent's own caller ID.
-
-- **Scopes:** `spark-admin:telephony_config_write`
-- Body: `{"selectedCallerId": "<id_or_null>"}`
 
 ### CLI Examples
 
@@ -664,35 +472,11 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/agent/callerId
 
 ## 4. Anonymous Call Rejection
 
-**API class:** `AnonCallsApi`
 **Feature key:** `anonymousCallReject`
-**Source:** `wxc_sdk/person_settings/anon_calls.py`
 
 When enabled, blocks all incoming calls from unidentified or blocked caller IDs.
 
-> **Note from source:** This API is documented as "only available for professional licensed workspaces," and live testing confirms this. The OpenAPI spec only defines endpoints for `/me` (self) and `/workspaces/{id}` -- no admin-level `/people/{id}` endpoint exists. Attempting `GET /v1/telephony/config/people/{personId}/anonymousCallReject` returns 404. The workspace endpoint requires a Professional-licensed workspace (error 25409 returned for non-professional workspaces). The SDK's `PersonSettingsApiChild` base class constructs the person URL pattern, but the API does not accept it.
-
-### Methods
-
-#### `read`
-
-```python
-AnonCallsApi.read(entity_id: str, org_id: str = None) -> bool
-```
-
-Returns a simple boolean: `True` if anonymous call rejection is enabled.
-
-- **Scopes:** `spark-admin:workspaces_read` (workspace admin), `spark:people_read` (self via `/me`). No admin-level person endpoint exists.
-
-#### `configure`
-
-```python
-AnonCallsApi.configure(entity_id: str, enabled: bool, org_id: str = None)
-```
-
-Enable or disable anonymous call rejection.
-
-- Body: `{"enabled": true|false}`
+> **Note from source:** This API is documented as "only available for professional licensed workspaces," and live testing confirms this. The OpenAPI spec only defines endpoints for `/me` (self) and `/workspaces/{id}` -- no admin-level `/people/{id}` endpoint exists. Attempting `GET /v1/telephony/config/people/{personId}/anonymousCallReject` returns 404. The workspace endpoint requires a Professional-licensed workspace (error 25409 returned for non-professional workspaces).
 
 ### CLI Examples
 
@@ -769,9 +553,7 @@ api.session.rest_put(f"{BASE}/telephony/config/people/me/settings/anonymousCallR
 
 ## 5. Privacy
 
-**API class:** `PrivacyApi`
 **Feature key:** `privacy`
-**Source:** `wxc_sdk/person_settings/privacy.py`
 
 Controls whether the entity's line can be monitored by others and whether they are reachable via Auto Attendant services.
 
@@ -786,25 +568,6 @@ Controls whether the entity's line can be monitored by others and whether they a
 | `enable_phone_status_directory_privacy` | `bool` | Enable phone status directory privacy |
 | `enable_phone_status_pickup_barge_in_privacy` | `bool` | When `true`, only people in `monitoring_agents` can pick up the call or barge in by dialing the extension |
 | `monitoring_agents` | `list[Union[str, PersonPlaceAgent]]` | List of people allowed to monitor. For updates, can pass IDs (strings) directly. |
-
-### Methods
-
-#### `read`
-
-```python
-PrivacyApi.read(entity_id: str, org_id: str = None) -> Privacy
-```
-
-- **Scopes:** `spark-admin:people_read`
-
-#### `configure`
-
-```python
-PrivacyApi.configure(entity_id: str, settings: Privacy, org_id: str = None)
-```
-
-- **Scopes:** `spark-admin:people_write`
-- When updating `monitoring_agents`, the SDK extracts IDs from `PersonPlaceAgent` objects (using `agent_id`) or passes strings directly.
 
 ### CLI Examples
 
@@ -883,9 +646,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/privacy", json=body)
 
 ## 6. Barge-In
 
-**API class:** `BargeApi`
 **Feature key:** `bargeIn`
-**Source:** `wxc_sdk/person_settings/barge.py`
 
 Enables the use of a Feature Access Code (FAC) to answer a call directed to another subscriber, or barge-in on an already-answered call. Works across locations.
 
@@ -897,25 +658,6 @@ Enables the use of a Feature Access Code (FAC) to answer a call directed to anot
 |-------|------|-------------|
 | `enabled` | `bool` | Whether barge-in is enabled (required, not optional) |
 | `tone_enabled` | `bool` | Whether a stutter dial tone plays when someone barges in (required, not optional) |
-
-### Methods
-
-#### `read`
-
-```python
-BargeApi.read(entity_id: str, org_id: str = None) -> BargeSettings
-```
-
-- **Scopes:** `spark-admin:people_read` or `spark:people_read` (self)
-
-#### `configure`
-
-```python
-BargeApi.configure(entity_id: str, barge_settings: BargeSettings, org_id: str = None)
-```
-
-- **Scopes:** `spark-admin:people_write` or `spark:people_write` (self)
-- Serializes the full `BargeSettings` object as JSON body.
 
 ### CLI Examples
 
@@ -982,9 +724,7 @@ The admin-path equivalent at `/people/{personId}/features/bargeIn` remains the s
 
 ## 7. Call Recording
 
-**API class:** `CallRecordingApi`
 **Feature key:** `callRecording`
-**Source:** `wxc_sdk/person_settings/call_recording.py`
 
 Provides hosted call recording for replay and archival, for quality assurance, security, and training.
 
@@ -1042,8 +782,8 @@ Provides hosted call recording for replay and archival, for quality assurance, s
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `summary_and_action_items_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 83) with `# TODO: undocumented, issue 201`  |
-| `transcript_enabled` | `bool` | Undocumented field; present in SDK source (`call_recording.py` line 84) with `# TODO: undocumented, issue 201`  |
+| `summary_and_action_items_enabled` | `bool` | Undocumented field (not in the official API docs)  |
+| `transcript_enabled` | `bool` | Undocumented field (not in the official API docs)  |
 
 #### `CallRecordingSetting`
 
@@ -1064,41 +804,7 @@ Provides hosted call recording for replay and archival, for quality assurance, s
 
 #### Default Settings
 
-```python
-CallRecordingSetting.default()  # Returns:
-CallRecordingSetting(
-    enabled=False,
-    record=Record.never,
-    record_voicemail_enabled=False,
-    start_stop_announcement_enabled=False,
-    notification=Notification(notification_type=NotificationType.none, enabled=False),
-    repeat=NotificationRepeat(interval=15, enabled=False),
-    start_stop_announcement=StartStopAnnouncement(
-        internal_calls_enabled=False,
-        pstn_calls_enabled=False,
-    ),
-)
-```
-
-### Methods
-
-#### `read`
-
-```python
-CallRecordingApi.read(entity_id: str, org_id: str = None) -> CallRecordingSetting
-```
-
-- **Scopes:** `spark-admin:people_read` (Note: the SDK source docstring incorrectly says `people_write` for read; this is a documentation bug in the SDK -- read operations use `people_read` per the consistent pattern across all PersonSettingsApiChild endpoints)
-
-#### `configure`
-
-```python
-CallRecordingApi.configure(entity_id: str, recording: CallRecordingSetting, org_id: str = None)
-```
-
-- **Scopes:** `spark-admin:people_write`
-- **Gotcha:** When `notification.notification_type` is `None` (the enum value), the update method converts it to JSON `null` (the API returns the string `"None"` on reads but expects `null` on writes).
-- Read-only fields (`service_provider`, `external_group`, `external_identifier`) are automatically excluded.
+By default, call recording is disabled (`record` = `Never`), with voicemail recording off, no start/stop announcements, notifications off, and the periodic beep interval set to 15 seconds (also off).
 
 ### CLI Examples
 
@@ -1135,7 +841,7 @@ wxcli user-settings update-call-recording PERSON_ID --json-body '{
 
 ### Raw HTTP
 
-> **Note:** The CLI uses `people/{id}/features/callRecording`. The user-provided URL pattern `telephony/config/people/{personId}/callRecording` is the wxc_sdk remapped path; the actual raw HTTP endpoint is `people/{id}/features/callRecording`. <!-- Updated by playbook session 2026-03-18 -->
+> **Note:** The actual raw HTTP endpoint is `people/{id}/features/callRecording` (not `telephony/config/people/{personId}/callRecording`). <!-- Updated by playbook session 2026-03-18 -->
 
 #### Read Call Recording Settings
 
@@ -1194,9 +900,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callRecording", json=b
 
 ## 8. Call Intercept
 
-**API class:** `CallInterceptApi`
 **Feature key:** `intercept`
-**Source:** `wxc_sdk/person_settings/call_intercept.py`
 
 Gracefully takes an entity's phone out of service while providing callers with informative announcements and alternative routing options.
 
@@ -1258,60 +962,7 @@ Gracefully takes an entity's phone out of service while providing callers with i
 
 #### Default Settings
 
-```python
-InterceptSetting.default()  # Returns:
-InterceptSetting(
-    enabled=False,
-    incoming=InterceptSettingIncoming(
-        intercept_type=InterceptTypeIncoming.intercept_all,
-        voicemail_enabled=False,
-        announcements=InterceptAnnouncements(
-            greeting=Greeting.default,
-            new_number=InterceptNumber(enabled=False),
-            zero_transfer=InterceptNumber(enabled=False),
-        ),
-    ),
-    outgoing=InterceptSettingOutgoing(
-        intercept_type=InterceptTypeOutgoing.intercept_all,
-        transfer_enabled=False,
-    ),
-)
-```
-
-### Methods
-
-#### `read`
-
-```python
-CallInterceptApi.read(entity_id: str, org_id: str = None) -> InterceptSetting
-```
-
-- **Scopes:** `spark-admin:people_read`
-
-#### `configure`
-
-```python
-CallInterceptApi.configure(entity_id: str, intercept: InterceptSetting, org_id: str = None)
-```
-
-- **Scopes:** `spark-admin:people_write`
-
-#### `greeting`
-
-```python
-CallInterceptApi.greeting(
-    entity_id: str,
-    content: Union[BufferedReader, str],
-    upload_as: str = None,
-    org_id: str = None,
-)
-```
-
-Upload a custom intercept greeting (`.wav` file). Uses multipart/form-data. Endpoint: `actions/announcementUpload/invoke`.
-
-- `content`: file path (str) or open binary reader.
-- `upload_as`: required if `content` is a reader.
-- **Scopes:** `spark-admin:people_write` or `spark:people_write` (self)
+By default, call intercept is disabled. When enabled, both incoming and outgoing default to intercepting all calls, incoming does not redirect to voicemail, and outgoing does not allow transfers.
 
 ### CLI Examples
 
@@ -1419,15 +1070,14 @@ Multipart/form-data with `.wav` file. Uses `rest_post` with file upload.
 - `incoming.announcements.fileName` is read-only; do not include in PUT body.
 - `incoming.type` values: `"INTERCEPT_ALL"`, `"ALLOW_ALL"`.
 - `outgoing.type` values: `"INTERCEPT_ALL"`, `"ALLOW_LOCAL_ONLY"`.
-- The JSON key for intercept type is `type` (not `interceptType`), matching the SDK's JSON alias.
+- The JSON key for intercept type is `type` (not `interceptType`).
+- When uploading a greeting from binary content rather than a file path, specify a target filename ending in `.wav`.
 
 ---
 
 ## 9. Monitoring
 
-**API class:** `MonitoringApi`
 **Feature key:** `monitoring`
-**Source:** `wxc_sdk/person_settings/monitoring.py`
 
 Shows specified people, places, virtual lines, or call park extensions that are being monitored. Monitors line status (on-call, parked).
 
@@ -1459,32 +1109,6 @@ Has a property `ci_location_id` that converts `location_id` to UUID format.
 **Convenience properties:**
 - `monitored_cpes` -> `list[CallParkExtension]` -- filters to just call park extensions
 - `monitored_members` -> `list[MonitoredElementMember]` -- filters to just members
-
-### Methods
-
-#### `read`
-
-```python
-MonitoringApi.read(entity_id: str, org_id: str = None) -> Monitoring
-```
-
-- **Scopes:** `spark-admin:people_read`
-
-#### `configure`
-
-```python
-MonitoringApi.configure(entity_id: str, settings: Monitoring, org_id: str = None)
-```
-
-- **Scopes:** `spark-admin:people_write`
-- **Max 50 elements.** The SDK extracts IDs from `MonitoredElement` objects (using `member.member_id` or `cpe.cpe_id`) or passes strings directly.
-- Body format:
-  ```json
-  {
-    "enableCallParkNotification": true,
-    "monitoredElements": ["id1", "id2", ...]
-  }
-  ```
 
 ### CLI Examples
 
@@ -1581,9 +1205,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/monitoring", json=body
 
 ## 10. Push-to-Talk
 
-**API class:** `PushToTalkApi`
 **Feature key:** `pushToTalk`
-**Source:** `wxc_sdk/person_settings/push_to_talk.py`
 
 Allows desk phones to function as one-way or two-way intercoms connecting people in different parts of the organization.
 
@@ -1611,26 +1233,6 @@ Allows desk phones to function as one-way or two-way intercoms connecting people
 | `connection_type` | `PTTConnectionType` | One-way or two-way |
 | `access_type` | `PushToTalkAccessType` | Allow-list or block-list mode |
 | `members` | `list[Union[str, MonitoredMember]]` | People allowed or blocked. For updates, can pass member IDs (strings) directly. |
-
-### Methods
-
-#### `read`
-
-```python
-PushToTalkApi.read(entity_id: str, org_id: str = None) -> PushToTalkSettings
-```
-
-- **Scopes:** `spark-admin:people_read`
-
-#### `configure`
-
-```python
-PushToTalkApi.configure(entity_id: str, settings: PushToTalkSettings, org_id: str = None)
-```
-
-- **Scopes:** `spark-admin:people_write`
-- Members are flattened to a list of IDs before sending (extracted from `MonitoredMember.member_id` or passed as strings).
-- Serializes with `exclude_none=False` and `exclude_unset=True`, so explicitly set `None` values are preserved in the request.
 
 ### CLI Examples
 
@@ -1702,9 +1304,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/pushToTalk", json=body
 
 ## 11. Music on Hold
 
-**API class:** `MusicOnHoldApi`
 **Feature key:** `musicOnHold`
-**Source:** `wxc_sdk/person_settings/moh.py`
 
 Music played when a caller is put on hold or the call is parked.
 
@@ -1726,25 +1326,6 @@ Music played when a caller is put on hold or the call is parked.
 | `false` | `true` | MoH is **disabled** for user |
 | `true` | `false` | MoH is **off** for user |
 | `true` | `true` | MoH plays for user |
-
-### Methods
-
-#### `read`
-
-```python
-MusicOnHoldApi.read(entity_id: str, org_id: str = None) -> MusicOnHold
-```
-
-- **Scopes:** `spark-admin:telephony_config_read`
-
-#### `configure`
-
-```python
-MusicOnHoldApi.configure(entity_id: str, settings: MusicOnHold, org_id: str = None)
-```
-
-- **Scopes:** `spark-admin:telephony_config_write`
-- **Prerequisite:** Music on hold must be enabled at the location level for the person-level setting to take effect.
 
 ### CLI Examples
 
@@ -1819,7 +1400,7 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/musicOnHold", 
 
 ### URL Construction
 
-All APIs in this group use `PersonSettingsApiChild.f_ep()` to build endpoints. The pattern depends on the entity type:
+Every feature in this group resolves its REST endpoint based on entity type:
 
 | Entity Type | URL Pattern |
 |-------------|-------------|
@@ -1828,7 +1409,7 @@ All APIs in this group use `PersonSettingsApiChild.f_ep()` to build endpoints. T
 | Virtual Line | `telephony/config/virtualLines/{entity_id}/{feature}` |
 | Location | `telephony/config/locations/{entity_id}/{feature}` |
 
-Some features have alternate URL mappings (defined in `common.py`). Notable remaps for persons:
+Some features use alternate URL patterns for persons. Notable remaps:
 
 - `agent` -> `telephony/config/people/{id}/agent/...`
 - `musicOnHold` -> `telephony/config/people/{id}/musicOnHold`
@@ -1836,11 +1417,11 @@ Some features have alternate URL mappings (defined in `common.py`). Notable rema
 
 ### Read/Update Pattern
 
-Every sub-API follows the same pattern:
+Every feature follows the same pattern:
 
-1. `read(entity_id, org_id=None)` -- GET request, returns a data model
-2. `configure(entity_id, settings, org_id=None)` -- PUT request with JSON body
-3. Some APIs have additional action methods (greeting uploads, PIN resets)
+1. GET request -- returns the current settings
+2. PUT request with a JSON body -- updates the settings
+3. Some features have additional action endpoints (greeting uploads, PIN resets)
 
 ### Scopes Summary
 
@@ -1855,19 +1436,19 @@ APIs using `telephony_config_*` scopes: Agent Caller ID, Music on Hold, Voicemai
 
 ### Greeting/Audio Upload Pattern
 
-Three APIs support custom audio upload (all `.wav` format, multipart/form-data):
+Three endpoints support custom audio upload (all `.wav` format, multipart/form-data):
 
-| API | Method | Endpoint Suffix |
-|-----|--------|----------------|
-| Voicemail | `configure_busy_greeting()` | `actions/uploadBusyGreeting/invoke` |
-| Voicemail | `configure_no_answer_greeting()` | `actions/uploadNoAnswerGreeting/invoke` |
-| Call Intercept | `greeting()` | `actions/announcementUpload/invoke` |
+| Feature | Purpose | Endpoint Suffix |
+|---------|---------|----------------|
+| Voicemail | Upload busy greeting | `actions/uploadBusyGreeting/invoke` |
+| Voicemail | Upload no-answer greeting | `actions/uploadNoAnswerGreeting/invoke` |
+| Call Intercept | Upload intercept greeting | `actions/announcementUpload/invoke` |
 
-All accept either a file path (str) or `BufferedReader`. When passing a reader, `upload_as` (a `.wav` filename) is required.
+All accept a `.wav` file as multipart/form-data content.
 
 ### Update Exclusions (Read-Only Fields)
 
-Each model's `update()` method strips fields that cannot be written:
+Each PUT body must exclude the following read-only fields:
 
 | Model | Excluded Fields |
 |-------|----------------|

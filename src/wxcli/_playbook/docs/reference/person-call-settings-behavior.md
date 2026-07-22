@@ -2,8 +2,6 @@
 
 SDK reference for person-level settings that control calling behavior, application/device configuration, shared lines, hoteling, receptionist, number management, preferred answer endpoints, MS Teams integration, mode management, personal assistant, and emergency callback numbers.
 
-**Source**: `wxc_sdk.person_settings` submodules
-
 ---
 
 ## Table of Contents
@@ -30,8 +28,6 @@ SDK reference for person-level settings that control calling behavior, applicati
 
 ## 1. Common Base Classes
 
-**Source**: `wxc_sdk/person_settings/common.py`
-
 ### Two Path Families
 
 Person call settings endpoints split across two URL path families:
@@ -41,31 +37,27 @@ Person call settings endpoints split across two URL path families:
 | **Classic features** | `/v1/people/{personId}/features/{feature}` | callingBehavior, applications, hoteling, reception, numbers (GET only), monitoring, pushToTalk |
 | **Telephony config** | `/v1/telephony/config/people/{personId}/{feature}` | emergencyCallbackNumber, singleNumberReach, musicOnHold, devices, callCaptions, selective rules, callBridge (via `features/callBridge`), personalAssistant (via `features/personalAssistant`), hotDesking/guest, agent/callerId, dectNetworks, preferredAnswerEndpoint, modeManagement/features, settings/msTeams |
 
-**Important endpoint name mismatches** (SDK feature name vs. actual API path):
+**Important endpoint name mismatches** (documented feature name vs. actual API path):
 
-| SDK Feature Name | Actual API Path Segment | Full Path |
+| Feature Name | Actual API Path Segment | Full Path |
 |-----------------|------------------------|-----------|
 | `receptionist` | `reception` | `/people/{id}/features/reception` |
 | `applicationServicesSettings` | `applications` | `/people/{id}/features/applications` |
 | `pushToTalkSettings` | `pushToTalk` | `/people/{id}/features/pushToTalk` |
 | `numbers` | `numbers` (two paths) | GET: `/people/{id}/features/numbers`, PUT: `/telephony/config/people/{id}/numbers` |
 
-### ApiSelector (Enum)
+### Entity Type URL Prefixes
 
-Controls which URL path template the API child uses. The same API class can target different entity types.
+The base URL prefix differs depending on which entity type the settings apply to:
 
-| Value | URL prefix |
+| Entity Type | URL prefix |
 |-------|-----------|
 | `person` | `people/{id}/features/{feature}` |
 | `workspace` | `workspaces/{id}/features/{feature}` |
 | `location` | `telephony/config/locations/{id}/{feature}` |
 | `virtual_line` | `telephony/config/virtualLines/{id}/{feature}` |
 
-### PersonSettingsApiChild
-
-Base class for most person-settings APIs. Subclasses set a `feature` class attribute (e.g., `'callingBehavior'`, `'hoteling'`). The base class constructs the endpoint URL via `f_ep(person_id, path=None)` using the selector and feature prefix.
-
-Some feature+selector combinations are remapped internally. For example, `('people', 'callBridge')` maps to `telephony/config/people/{id}/features/callBridge`, and `('people', 'emergencyCallbackNumber')` maps to `telephony/config/people/{id}/emergencyCallbackNumber`.
+Some feature/entity-type combinations are remapped to a different path than the pattern above. For example, `callBridge` for a person maps to `telephony/config/people/{id}/features/callBridge`, and `emergencyCallbackNumber` maps to `telephony/config/people/{id}/emergencyCallbackNumber`.
 
 ### CLI Examples
 
@@ -89,9 +81,6 @@ wxcli user-settings show-hoteling <personId>
 
 ## 2. Calling Behavior
 
-**Source**: `wxc_sdk/person_settings/calling_behavior.py`
-**API class**: `CallingBehaviorApi` (extends `PersonSettingsApiChild`, feature=`'callingBehavior'`)
-
 Controls which Webex telephony application handles calls for a person. The organization has a default; individual persons can override it.
 
 ### Data Models
@@ -114,36 +103,12 @@ Controls which Webex telephony application handles calls for a person. The organ
 | `effective_behavior_type` | `Optional[BehaviorType]` | Effective value (read-only, reflects org default when `behavior_type` is null). |
 | `profile_id` | `Optional[str]` | UC Manager Profile ID. |
 
-### Methods
-
-#### read
-
-```python
-def read(self, person_id: str, org_id: str = None) -> CallingBehavior
-```
-
-Retrieve the calling behavior and UC Manager Profile for a person.
-
-- **Scope**: `spark-admin:people_read` (full, user, or read-only admin)
-- **HTTP**: `GET people/{person_id}/features/callingBehavior`
-
-#### configure
-
-```python
-def configure(self, person_id: str, settings: CallingBehavior, org_id: str = None)
-```
-
-Update the calling behavior. The `effective_behavior_type` field is excluded from the PUT body (read-only).
-
-- **Scope**: `spark-admin:people_write` (full or user admin)
-- **HTTP**: `PUT people/{person_id}/features/callingBehavior`
-
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read calling behavior
@@ -168,12 +133,9 @@ api.session.rest_put(url, json=body)
 
 ## 3. App Services
 
-**Source**: `wxc_sdk/person_settings/appservices.py`
-**API class**: `AppServicesApi` (extends `ApiChild`, base=`''`)
-
 Controls ringing behavior for specific scenarios (Click to Dial, Group Page, Call Park recalled) and which client platforms (browser, desktop, tablet, mobile) can use the Webex Calling application.
 
-The `AppServicesApi` also holds a nested `shared_line` attribute (an `AppSharedLineApi` instance) -- see section 4.
+Shared-line appearance management for the Webex Calling app is a related feature -- see section 4.
 
 ### Data Model
 
@@ -194,38 +156,14 @@ The `AppServicesApi` also holds a nested `shared_line` attribute (an `AppSharedL
 | `mobile_client_id` | `Optional[str]` | Device ID of mobile client (read-only). |
 | `available_line_count` | `Optional[int]` | Number of available device licenses (read-only). |
 
-The `update()` helper method excludes read-only fields (`*_client_id`, `available_line_count`) from the serialized output.
-
-### Methods
-
-#### read
-
-```python
-def read(self, person_id: str, org_id: str = None) -> AppServicesSettings
-```
-
-Retrieve app services settings for a person.
-
-- **Scope**: `spark-admin:telephony_config_read` (full, user, read-only, or location admin)
-- **HTTP**: `GET people/{person_id}/features/applications`
-
-#### configure
-
-```python
-def configure(self, person_id: str, settings: AppServicesSettings, org_id: str = None)
-```
-
-Update app services settings.
-
-- **Scope**: `spark-admin:people_write` (full, user, or location admin)
-- **HTTP**: `PUT people/{person_id}/features/applications`
+The `*_client_id` fields and `available_line_count` are read-only -- included in GET responses but omitted from the PUT body.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read application services settings
@@ -253,80 +191,16 @@ api.session.rest_put(url, json=body)
 
 ## 4. App Shared Line
 
-**Source**: `wxc_sdk/person_settings/app_shared_line.py`
-**API class**: `AppSharedLineApi` (extends `ApiChild`, base=`'telephony/config/people'`)
-
 Manages shared-line appearance (SLA) members on Webex Calling apps. Like hardware devices, applications support additional shared lines that can be monitored and utilized.
 
-Accessed via `AppServicesApi.shared_line` or directly.
-
-### Referenced Data Models (from `wxc_sdk.telephony.devices`)
-
-- **`AvailableMember`** -- a person/workspace available for shared-line assignment
-- **`DeviceMember`** -- a member currently assigned to a shared line
-- **`DeviceMembersResponse`** -- response containing primary and secondary members
-
-### Methods
-
-#### search_members
-
-```python
-def search_members(self, person_id: str, order: str = None, location: str = None,
-                   name: str = None, phone_number: str = None, extension: str = None,
-                   **params) -> Generator[AvailableMember, None, None]
-```
-
-Search for members available for shared-line assignment to a Webex Calling app. Returns a paginated generator.
-
-- **Scope**: `spark-admin:telephony_config_read`
-- **HTTP**: `GET telephony/config/people/{person_id}/applications/availableMembers`
-
-#### members_count
-
-```python
-def members_count(self, person_id: str, location_id: str = None,
-                  member_name: str = None, phone_number: str = None,
-                  extension: str = None, org_id: str = None) -> int
-```
-
-Get the count of members available for shared-line assignment.
-
-- **Scope**: `spark-admin:telephony_config_read`
-- **HTTP**: `GET telephony/config/people/{person_id}/applications/availableMembers/count`
-
-#### get_members
-
-```python
-def get_members(self, person_id: str) -> DeviceMembersResponse
-```
-
-Get primary and secondary members currently assigned to a shared line on a Webex Calling app.
-
-- **Scope**: `spark-admin:telephony_config_read`
-- **HTTP**: `GET telephony/config/people/{person_id}/applications/members`
-
-#### update_members
-
-```python
-def update_members(self, person_id: str,
-                   members: list[Union[DeviceMember, AvailableMember]] = None)
-```
-
-Add or modify shared-line members. Accepts either `DeviceMember` or `AvailableMember` instances (the latter is auto-converted). Port indices are auto-assigned sequentially based on `line_weight`.
-
-Fields sent per member: `member_id`, `port`, `primary_owner`, `line_type`, `line_weight`, `line_label`, `allow_call_decline_enabled`.
-
-Pass an empty list (or `None`) to clear all members.
-
-- **Scope**: `spark-admin:telephony_config_write`
-- **HTTP**: `PUT telephony/config/people/{person_id}/applications/members`
+**Body fields for updating members**: `memberId`, `port`, `primaryOwner`, `lineType`, `lineWeight`, `lineLabel`, `allowCallDeclineEnabled`. Pass an empty `members` list (or omit it) to clear all members.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Search available members for shared-line assignment
@@ -355,9 +229,6 @@ api.session.rest_put(url, json=body)
 
 ## 5. Call Bridge
 
-**Source**: `wxc_sdk/person_settings/callbridge.py`
-**API class**: `CallBridgeApi` (extends `PersonSettingsApiChild`, feature=`'callBridge'`)
-
 Controls the UC-One call bridge feature (stutter dial tone when a person is bridged on an active shared line call).
 
 **Not supported for Webex for Government (FedRAMP).** See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
@@ -372,36 +243,12 @@ Also used for virtual lines.
 |-------|------|-------------|
 | `warning_tone_enabled` | `bool` | Enable/disable stutter dial tone for all participants when a person is bridged. |
 
-### Methods
-
-#### read
-
-```python
-def read(self, entity_id: str, org_id: str = None) -> CallBridgeSetting
-```
-
-Retrieve call bridge settings.
-
-- **Scope**: `spark-admin:people_read` (full, user, read-only, or location admin)
-- **HTTP**: `GET telephony/config/people/{entity_id}/features/callBridge`
-
-#### configure
-
-```python
-def configure(self, entity_id: str, setting: CallBridgeSetting, org_id: str = None)
-```
-
-Update call bridge settings.
-
-- **Scope**: `spark-admin:people_write` (full, user, or location admin)
-- **HTTP**: `PUT telephony/config/people/{entity_id}/features/callBridge`
-
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read call bridge settings
@@ -429,42 +276,14 @@ wxcli user-settings update-call-bridge <personId> --warning-tone-enabled true
 
 ## 6. Hoteling
 
-**Source**: `wxc_sdk/person_settings/hoteling.py`
-**API class**: `HotelingApi` (extends `PersonSettingsApiChild`, feature=`'hoteling'`)
-
 Enables a person's phone profile (number, features, calling plan) to be temporarily loaded onto a shared (host) phone.
-
-### Methods
-
-#### read
-
-```python
-def read(self, person_id: str, org_id: str = None) -> bool
-```
-
-Returns a single `bool` indicating whether hoteling is enabled for the person.
-
-- **Scope**: `spark-admin:people_read`
-- **HTTP**: `GET people/{person_id}/features/hoteling`
-
-#### configure
-
-```python
-def configure(self, person_id: str, enabled: bool, org_id: str = None)
-```
-
-Enable or disable hoteling for a person.
-
-- **Scope**: `spark-admin:people_write`
-- **HTTP**: `PUT people/{person_id}/features/hoteling`
-- **Body**: `{"enabled": true/false}`
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read hoteling settings
@@ -482,14 +301,11 @@ api.session.rest_put(url, json=body)
 
 ### Gotchas
 
-- **Person-level hoteling API may be incomplete.** The wxc_sdk source contains a TODO: "this seems to be wrong. For workspace devices methods exist with complete coverage for all hoteling settings." The person-level API only exposes a single boolean toggle (`enabled`), while workspace-level hoteling has richer configuration including host/guest settings and time limits. If you need full hoteling host configuration, use the workspace/device-level APIs instead.
+- **Person-level hoteling API may be incomplete.** Unlike workspace devices, which have complete coverage for all hoteling settings, the person-level API only exposes a single boolean toggle (`enabled`), while workspace-level hoteling has richer configuration including host/guest settings and time limits. If you need full hoteling host configuration, use the workspace/device-level APIs instead.
 
 ---
 
 ## 7. Receptionist Client
-
-**Source**: `wxc_sdk/person_settings/receptionist.py`
-**API class**: `ReceptionistApi` (extends `PersonSettingsApiChild`, feature=`'reception'`)
 
 Configures a person as a telephone attendant who can screen incoming calls to certain numbers within the organization. The receptionist monitors a list of people and/or workspaces.
 
@@ -502,44 +318,17 @@ Configures a person as a telephone attendant who can screen incoming calls to ce
 | `enabled` | `Optional[bool]` | Enable/disable the receptionist client feature. Serialized as `receptionEnabled` (alias). |
 | `monitored_members` | `Optional[list[Union[str, MonitoredMember]]]` | People/workspaces to monitor. For updates, can be a list of plain ID strings. |
 
-**`MonitoredMember`** is from `wxc_sdk.common`.
-
-### Methods
-
-#### read
-
-```python
-def read(self, person_id: str, org_id: str = None) -> ReceptionistSettings
-```
-
-Retrieve receptionist client settings.
-
-- **Scope**: `spark-admin:people_read`
-- **HTTP**: `GET people/{person_id}/features/reception`
-
-#### configure
-
-```python
-def configure(self, person_id: str, settings: ReceptionistSettings, org_id: str = None)
-```
-
-Update receptionist client settings.
-
-**Validation rules enforced in the SDK**:
-- `enabled` must not be `None` (mandatory for updates).
-- If `monitored_members` is set, `enabled` must be `True`.
-
-The member list is converted to a list of IDs for the API body (`monitoredMembers`), whether the input contains `str` IDs or `MonitoredMember` objects.
-
-- **Scope**: `spark-admin:people_write`
-- **HTTP**: `PUT people/{person_id}/features/reception`
+**Validation rules:**
+- `enabled` must be included in the PUT body (mandatory for updates).
+- If `monitoredMembers` is set, `enabled` must be `true`.
+- `monitoredMembers` in the request body is a plain list of person/workspace ID strings.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read receptionist client settings
@@ -561,9 +350,6 @@ api.session.rest_put(url, json=body)
 ---
 
 ## 8. Numbers
-
-**Source**: `wxc_sdk/person_settings/numbers.py`
-**API class**: `NumbersApi` (extends `PersonSettingsApiChild`, feature=`'numbers'`)
 
 Manages a person's phone numbers, including primary and alternate numbers with distinctive ring patterns.
 
@@ -604,39 +390,14 @@ Manages a person's phone numbers, including primary and alternate numbers with d
 | `enable_distinctive_ring_pattern` | `Optional[bool]` | Enable/disable distinctive ring. |
 | `phone_numbers` | `list[UpdatePersonPhoneNumber]` | Numbers to add or delete. |
 
-### Methods
-
-#### read
-
-```python
-def read(self, person_id: str, prefer_e164_format: bool = None, org_id: str = None) -> PersonNumbers
-```
-
-Get a person's phone numbers including alternate numbers.
-
-- **Scope**: `spark-admin:people_read` (full or user admin)
-- **HTTP**: `GET people/{person_id}/features/numbers`
-- **Query param**: `preferE164Format` (optional) -- return numbers in E.164 format.
-
-#### update
-
-```python
-def update(self, person_id: str, update: UpdatePersonNumbers, org_id: str = None)
-```
-
-Assign or unassign alternate phone numbers. Numbers must follow E.164 format (except US which also supports National format).
-
-- **Scope**: `spark-admin:telephony_config_write` (full admin)
-- **HTTP**: `PUT telephony/config/people/{person_id}/numbers`
-
-Note: The update endpoint uses a different URL path (`telephony/config/people/...`) than the read endpoint (`people/.../features/numbers`).
+**Note**: Phone numbers must be in E.164 format (except US numbers, which also accept National format).
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read phone numbers (read path uses people/ prefix)
@@ -662,17 +423,14 @@ api.session.rest_put(url, json=body)
 ### Gotchas
 
 - **Read and update use different URL prefixes.** The read endpoint is `GET people/{id}/features/numbers` (under the `people` prefix), but the update endpoint is `PUT telephony/config/people/{id}/numbers` (under the `telephony/config` prefix). Using the wrong prefix will return a 404. This is one of the few person-settings APIs with mismatched read/write paths.
-- **Cannot change primary number via this API.** The `UpdatePersonPhoneNumber` model forces `primary=False`. To change a person's primary number, use the people/provisioning API instead.
+- **Cannot change primary number via this API.** The update request body always sets `primary: false` for numbers being added/removed -- there's no way to change which number is primary through this endpoint. To change a person's primary number, use the People/provisioning API instead.
 - **Update requires `spark-admin:telephony_config_write` scope**, not `spark-admin:people_write`. This differs from the read scope (`spark-admin:people_read`). Ensure your token has both scopes if doing read-then-update workflows.
 
 ---
 
 ## 9. Available Numbers
 
-**Source**: `wxc_sdk/person_settings/available_numbers.py`
-**API class**: `AvailableNumbersApi` (extends `ApiChild`, base=`'telephony/config'`)
-
-Queries for phone numbers available for assignment to a person (or virtual line / workspace, depending on the `ApiSelector` used at construction). Each method targets a different assignment context.
+Queries for phone numbers available for assignment to a person (or virtual line / workspace, depending on the entity type). Each query targets a different assignment context.
 
 ### Data Models
 
@@ -701,111 +459,26 @@ Queries for phone numbers available for assignment to a person (or virtual line 
 | `Webex Calling Professional` | Professional license |
 | `Webex Calling Standard` | Standard license |
 
-### Method Availability Matrix
+### Endpoint Availability by Entity Type
 
-| Method | People | Virtual Lines | Workspaces |
+| Endpoint segment | People | Virtual Lines | Workspaces |
 |--------|--------|---------------|------------|
 | `primary` | Yes | -- | -- |
 | `secondary` | Yes | -- | Yes |
-| `fax_message` | Yes | Yes | Yes |
-| `call_forward` | Yes | Yes | Yes |
-| `ecbn` | Yes | Yes | Yes |
+| `faxMessage` | Yes | Yes | Yes |
+| `callForwarding` | Yes | Yes | Yes |
+| `emergencyCallbackNumber` | Yes | Yes | Yes |
 | `available` | -- | Yes | Yes |
-| `call_intercept` | Yes | -- | Yes |
+| `callIntercept` | Yes | -- | Yes |
 
-### Methods
-
-All methods return `Generator[AvailableNumber, None, None]` (paginated).
-
-All require scope: `spark-admin:telephony_config_read`.
-
-#### primary
-
-```python
-def primary(self, location_id: str = None, phone_number: list[str] = None,
-            license_type: AvailablePhoneNumberLicenseType = None,
-            org_id: str = None, **params) -> Generator[AvailableNumber, None, None]
-```
-
-List numbers available as a person's primary phone number. Returns standard and mobile numbers from all locations that are unassigned. `license_type` and `location_id` must align with the person's settings for correct assignment.
-
-- **HTTP**: `GET telephony/config/people/primary/availableNumbers`
-
-#### secondary
-
-```python
-def secondary(self, entity_id: str, phone_number: list[str] = None,
-              org_id: str = None, **params) -> Generator[AvailableNumber, None, None]
-```
-
-List standard numbers available as a person's secondary phone number. Numbers are from the entity's location, active or inactive, unassigned.
-
-- **HTTP**: `GET telephony/config/people/{entity_id}/secondary/availableNumbers`
-
-#### fax_message
-
-```python
-def fax_message(self, entity_id: str, phone_number: list[str] = None,
-                org_id: str = None, **params) -> Generator[AvailableNumber, None, None]
-```
-
-List standard numbers available as a FAX message number.
-
-- **HTTP**: `GET telephony/config/people/{entity_id}/faxMessage/availableNumbers`
-
-#### call_forward
-
-```python
-def call_forward(self, entity_id: str, phone_number: list[str] = None,
-                 owner_name: str = None, extension: str = None,
-                 org_id: str = None, **params) -> Generator[AvailableNumber, None, None]
-```
-
-List service and standard numbers available as call forward destinations.
-
-- **HTTP**: `GET telephony/config/people/{entity_id}/callForwarding/availableNumbers`
-
-#### ecbn
-
-```python
-def ecbn(self, entity_id: str, phone_number: list[str] = None,
-         owner_name: str = None, org_id: str = None,
-         **params) -> Generator[AvailableNumber, None, None]
-```
-
-List standard numbers available as emergency callback numbers.
-
-- **HTTP**: `GET telephony/config/people/{entity_id}/emergencyCallbackNumber/availableNumbers`
-
-#### available
-
-```python
-def available(self, location_id: str = None, phone_number: list[str] = None,
-              org_id: str = None, **params) -> Generator[AvailableNumber, None, None]
-```
-
-List standard numbers available for assignment (virtual lines and workspaces only -- not people).
-
-- **HTTP**: `GET telephony/config/{selector}/availableNumbers`
-
-#### call_intercept
-
-```python
-def call_intercept(self, entity_id: str, phone_number: list[str] = None,
-                   owner_name: str = None, extension: str = None,
-                   org_id: str = None, **params) -> Generator[AvailableNumber, None, None]
-```
-
-List service and standard numbers available as call intercept numbers.
-
-- **HTTP**: `GET telephony/config/people/{entity_id}/callIntercept/availableNumbers`
+All queries require scope `spark-admin:telephony_config_read` and return paginated arrays of `AvailableNumber` objects. `licenseType` and `locationId` (for the `primary` query) must align with the person's settings for correct assignment. The `available` endpoint segment is used for virtual lines and workspaces only -- not people.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # List primary available numbers
@@ -861,9 +534,6 @@ wxcli user-settings list-available-numbers-call-intercept <personId>
 
 ## 10. Preferred Answer Endpoint
 
-**Source**: `wxc_sdk/person_settings/preferred_answer.py`
-**API class**: `PreferredAnswerApi` (extends `ApiChild`, base=`'telephony/config/people'`)
-
 Controls which device or application is the person's preferred answer endpoint. This preferred endpoint can be used by Call Control APIs: `/v1/telephony/calls/dial`, `/v1/telephony/calls/retrieve`, `/v1/telephony/calls/pickup`, `/v1/telephony/calls/barge-in`, `/v1/telephony/calls/answer`.
 
 ### Data Models
@@ -890,37 +560,14 @@ Controls which device or application is the person's preferred answer endpoint. 
 | `preferred_answer_endpoint_id` | `Optional[str]` | Currently preferred endpoint ID (null if none set). |
 | `endpoints` | `list[PreferredAnswerEndpoint]` | All endpoints available for selection. |
 
-### Methods
-
-#### read
-
-```python
-def read(self, person_id: str, org_id: str = None) -> PreferredAnswerResponse
-```
-
-Get the preferred answer endpoint and list of available endpoints.
-
-- **Scope**: `spark:telephony_config_read` or `spark-admin:telephony_config_read`
-- **HTTP**: `GET telephony/config/people/{person_id}/preferredAnswerEndpoint`
-
-#### modify
-
-```python
-def modify(self, person_id: str, preferred_answer_endpoint_id: str, org_id: str = None)
-```
-
-Set or clear the preferred answer endpoint. Pass `None` for `preferred_answer_endpoint_id` to clear.
-
-- **Scope**: `spark:telephony_config_write` or `spark-admin:telephony_config_write`
-- **HTTP**: `PUT telephony/config/people/{person_id}/preferredAnswerEndpoint`
-- **Body**: `{"preferredAnswerEndpointId": "<id_or_null>"}`
+Pass `null` for `preferredAnswerEndpointId` in the PUT body to clear the preferred answer endpoint.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read preferred answer endpoint
@@ -953,9 +600,7 @@ wxcli user-settings update-preferred-answer-endpoint <personId> --preferred-answ
 
 ## 11. MS Teams
 
-**Source**: `wxc_sdk/person_settings/msteams.py`
-
-Two API classes: one for person-level settings, one for org-level settings.
+Two sets of settings: one for person-level, one for org-level.
 
 ### Data Models
 
@@ -984,66 +629,35 @@ Two API classes: one for person-level settings, one for org-level settings.
 | `org_id` | `Optional[str]` | Organization identifier. |
 | `settings` | `Optional[list[SettingsObject]]` | Array of settings. |
 
-### MSTeamsSettingApi (Person-level)
+### Person-Level MS Teams Settings
 
-**Base**: `ApiChild`, base=`'telephony/config/people'`
+Retrieves and updates `HIDE_WEBEX_APP` and `PRESENCE_SYNC` settings for a person.
 
-#### read
-
-```python
-def read(self, person_id: str, org_id: str = None) -> MSTeamsSettings
-```
-
-Retrieve `HIDE_WEBEX_APP` and `PRESENCE_SYNC` settings for a person.
-
-- **Scope**: `spark-admin:telephony_config_read` (full or read-only admin)
-- **HTTP**: `GET telephony/config/people/{person_id}/settings/msTeams`
-
-#### configure
-
-```python
-def configure(self, person_id: str, setting_name: str, value: bool, org_id: str = None)
-```
-
-Update a single MS Teams setting for a person.
-
-- **Scope**: `spark-admin:telephony_config_write` (full admin)
-- **HTTP**: `PUT telephony/config/people/{person_id}/settings/msTeams`
-- **Body**: `{"settingName": "<name>", "value": true/false}`
+- **Read scope**: `spark-admin:telephony_config_read` (full or read-only admin)
+- **Read HTTP**: `GET telephony/config/people/{person_id}/settings/msTeams`
+- **Write scope**: `spark-admin:telephony_config_write` (full admin)
+- **Write HTTP**: `PUT telephony/config/people/{person_id}/settings/msTeams`
+- **Write body**: `{"settingName": "<name>", "value": true/false}`
 
 Known setting names: `HIDE_WEBEX_APP`. Set `value` to `null` to delete the setting.
 
-### OrgMSTeamsSettingApi (Org-level)
+### Org-Level MS Teams Settings
 
-**Base**: `ApiChild`, base=`'telephony/config/settings/msTeams'`
 **Not supported for Webex for Government (FedRAMP).** See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
-#### read
+- **Read scope**: `spark-admin:telephony_config_read`
+- **Read HTTP**: `GET telephony/config/settings/msTeams`
+- **Write scope**: `spark-admin:telephony_config_write`
+- **Write HTTP**: `PUT telephony/config/settings/msTeams`
 
-```python
-def read(self, org_id: str = None) -> OrgMSTeamsSettings
-```
-
-- **Scope**: `spark-admin:telephony_config_read`
-- **HTTP**: `GET telephony/config/settings/msTeams`
-
-#### configure
-
-```python
-def configure(self, setting_name: str, value: bool, org_id: str = None)
-```
-
-Update an org-level MS Teams setting. Valid `setting_name` values: `HIDE_WEBEX_APP`, `PRESENCE_SYNC`.
-
-- **Scope**: `spark-admin:telephony_config_write`
-- **HTTP**: `PUT telephony/config/settings/msTeams`
+Valid `settingName` values: `HIDE_WEBEX_APP`, `PRESENCE_SYNC`.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read person-level MS Teams settings
@@ -1068,7 +682,7 @@ api.session.rest_put(url, json=body)
 
 ### CLI: `client-settings` (Org-Level MS Teams Settings)
 
-The `client-settings` CLI group manages org-level MS Teams integration settings. These are the same settings documented above for `OrgMSTeamsSettingApi`, exposed as CLI commands.
+The `client-settings` CLI group manages org-level MS Teams integration settings. These are the same org-level settings documented above, exposed as CLI commands.
 
 | Command | Description |
 |---------|-------------|
@@ -1092,9 +706,6 @@ wxcli client-settings update --setting-name HIDE_WEBEX_APP --no-value
 ---
 
 ## 12. Mode Management
-
-**Source**: `wxc_sdk/person_settings/mode_management.py`
-**API class**: `ModeManagementApi` (extends `ApiChild`, base=`'telephony/config/people'`)
 
 Manages operating mode assignments for a person. Feature identifiers (Auto Attendants, Call Queues, Hunt Groups) with mode-based call forwarding enabled can be assigned to a user. Maximum of 50 features per user.
 
@@ -1145,53 +756,12 @@ Describes how the current operating mode became active as an exception.
 | `exception_type` | `Optional[ExceptionType]` | How the current mode was activated. |
 | `location` | `Optional[IdAndName]` | Location details. |
 
-### Methods
-
-#### available_features
-
-```python
-def available_features(self, person_id: str = None, name: str = None,
-                       phone_number: str = None, extension: str = None,
-                       order: str = None, org_id: str = None,
-                       **params) -> Generator[AvailableFeature, None, None]
-```
-
-List features that can be assigned for mode management. Paginated.
-
-- **Scope**: `spark-admin:telephony_config_read` (full, read-only, or location admin)
-- **HTTP**: `GET telephony/config/people/{person_id}/modeManagement/availableFeatures`
-
-#### assigned_features
-
-```python
-def assigned_features(self, person_id: str = None,
-                      org_id: str = None) -> list[ModeManagementFeature]
-```
-
-List features already assigned to a user for mode management. Returns a plain list (not paginated).
-
-- **Scope**: `spark-admin:telephony_config_read`
-- **HTTP**: `GET telephony/config/people/{person_id}/modeManagement/features`
-
-#### assign_features
-
-```python
-def assign_features(self, feature_ids: list[str], person_id: str = None,
-                    org_id: str = None)
-```
-
-Assign features for mode management. Max 50 features.
-
-- **Scope**: `spark-admin:telephony_config_write` (full or location admin)
-- **HTTP**: `PUT telephony/config/people/{person_id}/modeManagement/features`
-- **Body**: `{"featureIds": ["id1", "id2", ...]}`
-
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # List available features for mode management
@@ -1230,9 +800,6 @@ wxcli mode-management switch-to-normal <featureId>
 ---
 
 ## 13. Personal Assistant
-
-**Source**: `wxc_sdk/person_settings/personal_assistant.py`
-**API class**: `PersonalAssistantApi` (extends `ApiChild`, base=`''`)
 
 Manages a user's incoming calls when they are away. Supports presence status, call transfer, and alerting behavior.
 
@@ -1273,36 +840,12 @@ Manages a user's incoming calls when they are away. Supports presence status, ca
 | `alerting` | `Optional[PersonalAssistantAlerting]` | Alert type. |
 | `alert_me_first_number_of_rings` | `Optional[int]` | Ring count when alerting is `ALERT_ME_FIRST` (range: 2-20). |
 
-### Methods
-
-#### get
-
-```python
-def get(self, person_id: str, org_id: str = None) -> PersonalAssistant
-```
-
-Retrieve personal assistant details.
-
-- **Scope**: `spark-admin:telephony_config_read` (full, user, or read-only admin)
-- **HTTP**: `GET telephony/config/people/{person_id}/features/personalAssistant`
-
-#### update
-
-```python
-def update(self, person_id: str, settings: PersonalAssistant, org_id: str = None)
-```
-
-Update personal assistant settings. Only fields that are set (not unset) are included in the PUT body.
-
-- **Scope**: `spark-admin:telephony_config_write` (full or user admin)
-- **HTTP**: `PUT telephony/config/people/{person_id}/features/personalAssistant`
-
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read personal assistant settings
@@ -1326,9 +869,6 @@ api.session.rest_put(url, json=body)
 ---
 
 ## 14. Emergency Callback Number (ECBN)
-
-**Source**: `wxc_sdk/person_settings/ecbn.py`
-**API class**: `ECBNApi` (extends `PersonSettingsApiChild`, feature=`'emergencyCallbackNumber'`)
 
 Manages the Emergency Callback Number for a person (also workspaces and virtual lines). Extension-only users must be set up with accurate ECBNs to make emergency calls.
 
@@ -1413,49 +953,14 @@ Same values as `ECBNSelection`: `DIRECT_LINE`, `LOCATION_ECBN`, `LOCATION_MEMBER
 | `is_self_ecbn_default` | `Optional[bool]` | Whether this person is their own ECBN default. |
 | `dependent_member_count` | `Optional[int]` | Number of members using this person as their ECBN. |
 
-### Methods
-
-#### read
-
-```python
-def read(self, entity_id: str, org_id: str = None) -> PersonECBN
-```
-
-Retrieve ECBN settings.
-
-- **Scope**: `spark-admin:telephony_config_read` (full, user, read-only, or location admin)
-- **HTTP**: `GET telephony/config/people/{entity_id}/emergencyCallbackNumber`
-
-#### configure
-
-```python
-def configure(self, entity_id: str, selected: SelectedECBN,
-              location_member_id: str = None, org_id: str = None)
-```
-
-Update the ECBN. When `selected` is `LOCATION_MEMBER_NUMBER`, pass `location_member_id` to specify which member's number to use.
-
-- **Scope**: `spark-admin:telephony_config_write` (full, location, user, or read-only admin)
-- **HTTP**: `PUT telephony/config/people/{entity_id}/emergencyCallbackNumber`
-- **Body**: `{"selected": "<value>", "locationMemberId": "<optional>"}`
-
-#### dependencies
-
-```python
-def dependencies(self, entity_id: str, org_id: str = None) -> ECBNDependencies
-```
-
-Retrieve ECBN dependencies -- whether this entity is used as a default ECBN by its location or by other members.
-
-- **Scope**: `spark-admin:telephony_config_read` (full, user, read-only, or location admin)
-- **HTTP**: `GET telephony/config/people/{entity_id}/emergencyCallbackNumber/dependencies`
+When `selected` is `LOCATION_MEMBER_NUMBER`, include `locationMemberId` in the PUT body to specify which member's number to use.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read ECBN settings
@@ -1479,8 +984,8 @@ result = api.session.rest_get(url)
 
 ### Gotchas
 
-- **Two overlapping enums for ECBN selection.** The SDK defines both `ECBNSelection` and `SelectedECBN` with overlapping values (`DIRECT_LINE`, `LOCATION_ECBN`, `LOCATION_MEMBER_NUMBER`). `ECBNSelection` also includes `NONE`, while `SelectedECBN` does not. The `configure()` method uses `SelectedECBN`. When reading, the `selected` field uses `ECBNSelection` which may return `NONE`.
-- **Read-only admin may have write access.** The docstring for `configure()` lists "read-only administrator" as a valid scope for updating ECBN, which is unusual. Most write operations require full or user admin.
+- **`selected` value `NONE` only appears in reads.** The read response's `selected` field may return `NONE` (no ECBN source configured), but `NONE` is not a valid value to send when updating -- always send one of `DIRECT_LINE`, `LOCATION_ECBN`, or `LOCATION_MEMBER_NUMBER`.
+- **Read-only admin may have write access.** The write-scope documentation lists "read-only administrator" as valid for updating ECBN, which is unusual -- most write operations require full or user admin.
 - **Check dependencies before changing ECBN.** Use the `dependencies` endpoint before modifying a person's ECBN. If the person is the location's default ECBN or is used by other members (`dependentMemberCount > 0`), changing their number could break emergency callback for multiple users.
 
 ---
@@ -1493,8 +998,8 @@ Configures which users, call parks, and shared lines a person monitors (busy lam
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read monitoring settings
@@ -1550,13 +1055,13 @@ wxcli workspace-settings update-monitoring WORKSPACE_ID --enable-call-park-notif
 ## 16. Push-to-Talk
 <!-- Updated by playbook session 2026-03-18 -->
 
-Configures push-to-talk (intercom) settings for a person, including connection type, access control, and auto-answer. Present in the CLI but not yet in the wxc_sdk person_settings docs for this file.
+Configures push-to-talk (intercom) settings for a person, including connection type, access control, and auto-answer.
 
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read push-to-talk settings
@@ -1591,7 +1096,7 @@ wxcli user-settings update-push-to-talk <personId> --json-body '{"allowAutoAnswe
 
 ## 17. Additional Discovered Endpoints
 
-The following endpoints were discovered via live API probing and are not yet covered by wxc_sdk person_settings modules. They all live under the telephony config path family.
+The following endpoints were discovered via live API probing. They all live under the telephony config path family.
 
 ### Hot Desking Guest
 

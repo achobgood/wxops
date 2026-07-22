@@ -380,4 +380,3 @@ All three `analytics` commands (`show`, `show-daily-totals`, `show-aggregates`) 
 
 - `docs/reference/reporting-analytics.md` -- CDR feed, report templates, call quality/queue/AA statistics
 - `docs/reference/authentication.md` -- Token types, scopes, OAuth flows
-- `docs/reference/archive/wxcadm-core.md` -- wxcadm org/auth patterns (alternative to raw HTTP; archived historical SDK doc)

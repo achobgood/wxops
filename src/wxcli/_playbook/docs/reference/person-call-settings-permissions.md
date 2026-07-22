@@ -1,14 +1,6 @@
 # Person Call Settings — Permissions, Executive & Feature Access
 
-Reference for managing incoming/outgoing call permissions, feature access controls, executive/assistant pairing, and call policy settings via `wxc_sdk`.
-
-**Source files:**
-- `wxc_sdk/person_settings/permissions_in.py`
-- `wxc_sdk/person_settings/permissions_out.py`
-- `wxc_sdk/person_settings/feature_access/__init__.py`
-- `wxc_sdk/person_settings/executive/__init__.py`
-- `wxc_sdk/person_settings/exec_assistant.py`
-- `wxc_sdk/person_settings/call_policy.py`
+Reference for managing incoming/outgoing call permissions, feature access controls, executive/assistant pairing, and call policy settings.
 
 ---
 
@@ -16,7 +8,6 @@ Reference for managing incoming/outgoing call permissions, feature access contro
 
 Controls who can call a person and how incoming external calls can be transferred.
 
-**API class:** `IncomingPermissionsApi` (extends `PersonSettingsApiChild`)
 - Feature path segment: `incomingPermission`
 - Also used for: virtual lines, workspaces
 
@@ -39,33 +30,6 @@ Controls who can call a person and how incoming external calls can be transferre
 | `internal_calls_enabled` | `bool` | Whether internal calls are allowed to be received |
 | `collect_calls_enabled` | `bool` | Whether collect calls are allowed to be received |
 
-**Static helpers:**
-- `IncomingPermissions.allow_all()` — custom enabled, allow all external, internal+collect enabled
-- `IncomingPermissions.default()` — custom disabled, allow all external, internal+collect enabled
-
-### Methods
-
-#### `read`
-
-```python
-def read(self, entity_id: str, org_id: str = None) -> IncomingPermissions
-```
-
-Retrieve incoming permission settings for a person/entity.
-
-- **Scope:** `spark-admin:people_read` (full, user, or read-only admin)
-- **Returns:** `IncomingPermissions`
-
-#### `configure`
-
-```python
-def configure(self, entity_id: str, settings: IncomingPermissions, org_id: str = None)
-```
-
-Update incoming permission settings for a person/entity.
-
-- **Scope:** `spark-admin:people_write` (admin) or `spark:people_write` (self)
-
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -77,8 +41,8 @@ Update incoming permission settings for a person/entity.
 | Update | PUT | `people/{personId}/features/incomingPermission` |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read incoming permissions
@@ -130,10 +94,8 @@ wxcli user-settings update-incoming-permission Y2lzY29...personId \
 
 Controls what types of outbound calls a person can place, with per-call-type actions, transfer number routing, access codes, and digit pattern overrides.
 
-**API class:** `OutgoingPermissionsApi` (extends `PersonSettingsApiChild`)
 - Feature path segment: `outgoingPermission`
 - Also used for: user, workspace, location, virtual line settings
-- Sub-APIs: `transfer_numbers`, `access_codes`, `digit_patterns`
 
 > **Note:** `access_codes` is not available for locations. Use the telephony-level access codes API instead.
 
@@ -179,12 +141,6 @@ Controls what types of outbound calls a person can place, with per-call-type act
 
 One `Optional[CallTypePermission]` field for each call type (e.g., `internal_call`, `local`, `toll_free`, `national`, `international`, etc.). Extra/unknown call types are allowed and auto-parsed.
 
-**Key methods:**
-- `for_call_type(call_type)` — look up permission by `OutgoingPermissionCallType` enum or string
-- `permissions_dict()` — returns `dict[str, CallTypePermission]`
-- `CallingPermissions.allow_all()` — all call types allowed with transfer enabled
-- `CallingPermissions.default()` — all allowed except `international`, `premium_services_i`, `premium_services_ii` (blocked, transfer disabled)
-
 #### `OutgoingPermissions` (model)
 
 | Field | Type | Description |
@@ -193,7 +149,7 @@ One `Optional[CallTypePermission]` field for each call type (e.g., `internal_cal
 | `use_custom_permissions` | `Optional[bool]` | Use specified outgoing calling permissions |
 | `calling_permissions` | `Optional[CallingPermissions]` | Per-call-type permission settings |
 
-> **Serialization note:** The API returns `callingPermissions` as a list of `{callType, action, transferEnabled}` objects. The SDK validator transforms this to/from the dict-based `CallingPermissions` model automatically. On `model_dump`, call types in `{'url_dialing', 'unknown', 'casual'}` are dropped by default.
+> **Serialization note:** The API returns `callingPermissions` as a list of `{callType, action, transferEnabled}` objects, not a dict.
 
 #### `AutoTransferNumbers` (model)
 
@@ -204,7 +160,7 @@ One `Optional[CallTypePermission]` field for each call type (e.g., `internal_cal
 | `auto_transfer_number2` | `Optional[str]` | Transfer destination for `TRANSFER_NUMBER_2` action |
 | `auto_transfer_number3` | `Optional[str]` | Transfer destination for `TRANSFER_NUMBER_3` action |
 
-**Property:** `configure_unset_numbers` — returns a copy with `None` numbers replaced by empty strings (required to clear a number via the API).
+**Note:** To clear a transfer number via the API, send an empty string rather than omitting the field.
 
 #### `DigitPattern` (model)
 
@@ -228,168 +184,9 @@ One `Optional[CallTypePermission]` field for each call type (e.g., `internal_cal
 | Field | Type | Description |
 |-------|------|-------------|
 | `use_custom_access_codes` | `Optional[bool]` | Use custom access code settings |
-| `access_codes` | `Optional[list[AuthCode]]` | List of access codes (from `wxc_sdk.common.AuthCode`) |
+| `access_codes` | `Optional[list[AuthCode]]` | List of access codes |
 
-### Methods — Main Outgoing Permissions
-
-#### `read`
-
-```python
-def read(self, entity_id: str, org_id: str = None) -> OutgoingPermissions
-```
-
-Retrieve outgoing calling permissions.
-
-- **Scope:** `spark-admin:people_read` (full, user, or read-only admin)
-
-#### `configure`
-
-```python
-def configure(self, entity_id: str, settings: OutgoingPermissions,
-              drop_call_types: set[str] = None, org_id: str = None)
-```
-
-Update outgoing calling permissions. The `drop_call_types` parameter excludes specific call type names from the update payload (defaults to `{'url_dialing', 'unknown', 'casual'}`).
-
-- **Scope:** `spark-admin:people_write` (admin) or `spark:people_write` (self)
-
-### Methods — Transfer Numbers (`OutgoingPermissionsApi.transfer_numbers`)
-
-> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Transfer Numbers, but this is only correct for workspace entities. Per the OpenAPI spec, person-level transfer number endpoints use `spark-admin:telephony_config_read/write`.
-
-#### `read`
-
-```python
-def read(self, entity_id: str, org_id: str = None) -> AutoTransferNumbers
-```
-
-- **Scope (person):** `spark-admin:telephony_config_read`
-- **Scope (workspace):** `spark-admin:workspaces_read` or `spark:workspaces_read` (self)
-
-#### `configure`
-
-```python
-def configure(self, entity_id: str, settings: AutoTransferNumbers, org_id: str = None)
-```
-
-- **Scope (person):** `spark-admin:telephony_config_write`
-- **Scope (workspace):** `spark-admin:workspaces_write` or `spark:workspaces_write` (self)
-
-### Methods — Access Codes (`OutgoingPermissionsApi.access_codes`)
-
-> Not available for locations — use the telephony-level access codes API.
-
-> **Scope note:** The SDK docstrings list `workspaces_read/write` scopes for Access Codes, but this is only correct for workspace entities. Per the OpenAPI spec, person-level access code endpoints use `spark-admin:telephony_config_read/write`.
-
-#### `read`
-
-```python
-def read(self, entity_id: str, org_id: str = None) -> AuthCodes
-```
-
-- **Scope (person):** `spark-admin:telephony_config_read`
-- **Scope (workspace):** `spark-admin:workspaces_read` or `spark:workspaces_read`
-
-#### `create`
-
-```python
-def create(self, entity_id: str, code: str, description: str, org_id: str = None)
-```
-
-Create a new access code.
-
-- **Scope (person):** `spark-admin:telephony_config_write`
-- **Scope (workspace):** `spark-admin:workspaces_write` or `spark:workspaces_write`
-
-#### `modify`
-
-```python
-def modify(self, entity_id: str, use_custom_access_codes: bool = None,
-           delete_codes: list[Union[str, AuthCode]] = None, org_id: str = None)
-```
-
-Modify access code settings. Can toggle custom codes on/off and delete specific codes (by code string or `AuthCode` object).
-
-- **Scope:** `spark-admin:telephony_config_write`
-
-#### `delete`
-
-```python
-def delete(self, entity_id: str, org_id: str = None)
-```
-
-Delete **all** access codes for the entity.
-
-- **Scope (person):** `spark-admin:telephony_config_write`
-- **Scope (workspace):** `spark-admin:workspaces_write` or `spark:workspaces_write`
-
-### Methods — Digit Patterns (`OutgoingPermissionsApi.digit_patterns`)
-
-#### `get_digit_patterns`
-
-```python
-def get_digit_patterns(self, entity_id: str, org_id: str = None) -> DigitPatterns
-```
-
-- **Scope:** `spark-admin:telephony_config_read`
-
-#### `details`
-
-```python
-def details(self, entity_id: str, digit_pattern_id: str, org_id: str = None) -> DigitPattern
-```
-
-- **Scope:** `spark-admin:telephony_config_read`
-
-#### `create`
-
-```python
-def create(self, entity_id: str, pattern: DigitPattern, org_id: str = None) -> str
-```
-
-Returns the new digit pattern ID.
-
-- **Scope:** `spark-admin:telephony_config_write`
-
-#### `update_category_control_settings`
-
-```python
-def update_category_control_settings(self, entity_id: str,
-                                     use_custom_digit_patterns: bool = None,
-                                     org_id: str = None)
-```
-
-Toggle whether custom digit patterns are used.
-
-- **Scope:** `spark-admin:telephony_config_write`
-
-#### `update`
-
-```python
-def update(self, entity_id: str, settings: DigitPattern, org_id: str = None)
-```
-
-Update an existing digit pattern. Uses `settings.id` to identify which pattern.
-
-- **Scope:** `spark-admin:telephony_config_write`
-
-#### `delete`
-
-```python
-def delete(self, entity_id: str, digit_pattern_id: str, org_id: str = None)
-```
-
-- **Scope:** `spark-admin:telephony_config_write`
-
-#### `delete_all`
-
-```python
-def delete_all(self, entity_id: str, org_id: str = None)
-```
-
-Delete all digit patterns for the entity.
-
-- **Scope:** `spark-admin:telephony_config_write`
+> Access codes are not available for locations — use the telephony-level access codes API instead.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -417,8 +214,8 @@ Delete all digit patterns for the entity.
 > **Note:** Main outgoing permissions and transfer numbers/access codes use the `people/{personId}/features/...` base path. Digit patterns use the `telephony/config/people/{personId}/...` base path. The transfer numbers endpoint path is `autoTransferNumbers` (not `transferNumbers`).
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read outgoing permissions
@@ -531,8 +328,6 @@ wxcli user-settings delete-digit-patterns-outgoing-permission Y2lzY29...personId
 
 Controls which Webex Calling features end users can modify via User Hub, Webex client, or IP phone.
 
-**API class:** `FeatureAccessApi` (extends `ApiChild`, base=`'telephony'`)
-
 ### Data Models
 
 #### `FeatureAccessLevel` (enum)
@@ -581,58 +376,6 @@ All fields are `Optional[FeatureAccessLevel]`:
 | `user_org_settings_permission_enabled` | `Optional[bool]` | Whether org-level settings apply to this user |
 | `user_settings_permissions` | `Optional[FeatureAccessSettings]` | Per-user feature access overrides |
 
-### Methods
-
-#### `read_default`
-
-```python
-def read_default(self) -> FeatureAccessSettings
-```
-
-Read the org-level default feature access settings applied to new users.
-
-- **Scope:** `spark-admin:telephony_config_read`
-
-#### `update_default`
-
-```python
-def update_default(self, settings: FeatureAccessSettings)
-```
-
-Update org-level default feature access settings.
-
-- **Scope:** `spark-admin:telephony_config_write`
-
-#### `read`
-
-```python
-def read(self, person_id: str) -> UserFeatureAccessSettings
-```
-
-Read feature access settings for a specific person.
-
-- **Scope:** `spark-admin:telephony_config_read`
-
-#### `update`
-
-```python
-def update(self, person_id: str, settings: FeatureAccessSettings)
-```
-
-Update feature access settings for a specific person.
-
-- **Scope:** `spark-admin:telephony_config_write`
-
-#### `reset`
-
-```python
-def reset(self, person_id: str)
-```
-
-Reset a person's feature access configuration back to org defaults. This is a POST to `.../actions/reset/invoke`.
-
-- **Scope:** `spark-admin:telephony_config_write`
-
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
@@ -647,8 +390,8 @@ Reset a person's feature access configuration back to org defaults. This is a PO
 | Reset to org defaults | POST | `telephony/config/people/{personId}/featureAccessCodes/actions/reset/invoke` |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read org-level default feature access settings
@@ -675,7 +418,7 @@ api.session.rest_post(
 
 ### CLI Examples
 
-> **Note:** Feature access controls do not have dedicated `wxcli` commands (verified across all 179 command groups). The `my-call-settings list-feature-access-code-settings` command is a different endpoint -- it lists a user's own FAC star codes (`/telephony/config/people/me/settings/featureAccessCode`), not the `featureAccessCodes` access controls below. Use `curl` with the REST endpoints above, or raw HTTP via `WebexSession`.
+> **Note:** Feature access controls do not have dedicated `wxcli` commands (verified across all 179 command groups). The `my-call-settings list-feature-access-code-settings` command is a different endpoint -- it lists a user's own FAC star codes (`/telephony/config/people/me/settings/featureAccessCode`), not the `featureAccessCodes` access controls below. Use `curl` with the REST endpoints above, or raw HTTP requests directly.
 
 ```bash
 # Read org-level default feature access settings
@@ -705,7 +448,6 @@ Full executive-assistant pairing, alerting, call filtering, and screening config
 
 ### 4a. Exec Assistant Type Assignment
 
-**API class:** `ExecAssistantApi` (extends `PersonSettingsApiChild`)
 - Feature path segment: `executiveAssistant`
 
 Simple API that reads or sets whether a person is an executive, an executive assistant, or unassigned.
@@ -718,25 +460,8 @@ Simple API that reads or sets whether a person is an executive, an executive ass
 | `EXECUTIVE` | Person is an executive |
 | `EXECUTIVE_ASSISTANT` | Person is an executive assistant |
 
-#### `read`
-
-```python
-def read(self, person_id: str, org_id: str = None) -> ExecAssistantType
-```
-
-- **Scope:** `spark-admin:people_read`
-
-#### `configure`
-
-```python
-def configure(self, person_id: str, setting: ExecAssistantType, org_id: str = None)
-```
-
-- **Scope:** `spark-admin:people_write`
-
 ### 4b. Executive Settings (Detailed)
 
-**API class:** `ExecutiveSettingsApi` (extends `ApiChild`, base=`''`)
 - All endpoints under: `telephony/config/people/{person_id}/executive/...`
 
 #### Data Models — Alerting
@@ -869,75 +594,10 @@ def configure(self, person_id: str, setting: ExecAssistantType, org_id: str = No
 | `alert_mobility_location_enabled` | `bool` | Alerts for Webex Go |
 | `alert_shared_call_appearance_location_enabled` | `bool` | Alerts for Shared Call Appearance |
 
-### Executive Settings API Methods
+**Read scope (all executive detailed settings):** `spark-admin:telephony_config_read`
+**Write scope (all executive detailed settings):** `spark-admin:telephony_config_write`
 
-All methods use the `ExecutiveSettingsApi` class.
-
-**Read scope (all read methods):** `spark-admin:telephony_config_read`
-**Write scope (all write methods):** `spark-admin:telephony_config_write`
-
-#### Alert Settings
-
-```python
-def alert_settings(self, person_id: str, org_id: str = None) -> ExecAlert
-def update_alert_settings(self, person_id: str, settings: ExecAlert, org_id: str = None)
-```
-
-#### Assigned Assistants
-
-```python
-def assigned_assistants(self, person_id: str, org_id: str = None) -> list[ExecOrAssistant]
-def update_assigned_assistants(self, person_id: str, assistant_ids: list[str] = None, org_id: str = None)
-```
-
-To remove all assistants, pass `assistant_ids=None` (sends null).
-
-#### Available Assistants
-
-```python
-def executive_available_assistants(self, person_id: str, name: str = None,
-                                   phone_number: str = None, org_id: str = None) -> list[ExecOrAssistant]
-```
-
-Search for people available for assignment. Filter by `name` (first+last combo) or `phone_number`.
-
-#### Executive Assistant Settings (from assistant's perspective)
-
-```python
-def executive_assistant_settings(self, person_id: str, org_id: str = None) -> AssistantSettings
-def update_executive_assistant_settings(self, person_id: str, settings: AssistantSettings, org_id: str = None)
-```
-
-Read/update settings for a person who is configured **as an executive assistant** — includes the list of executives they serve.
-
-#### Call Filtering Settings
-
-```python
-def executive_call_filtering_settings(self, person_id: str, org_id: str = None) -> ExecCallFiltering
-def update_executive_call_filtering_settings(self, person_id: str, settings: ExecCallFiltering, org_id: str = None)
-```
-
-#### Call Filtering Criteria (CRUD)
-
-```python
-def create_call_filtering_criteria(self, person_id: str, settings: ExecCallFilteringCriteria,
-                                   org_id: str = None) -> str  # returns criteria ID
-
-def get_filtering_criteria(self, person_id: str, id: str,
-                           org_id: str = None) -> ExecCallFilteringCriteria
-
-def update_call_filtering_criteria(self, person_id: str, id: str,
-                                   settings: ExecCallFilteringCriteria, org_id: str = None)
-
-def delete_call_filtering_criteria(self, person_id: str, id: str, org_id: str = None)
-```
-
-#### Screening Settings
-
-```python
-def screening_settings(self, person_id: str, org_id: str = None) -> ExecScreening
-def update_screening_settings(self, person_id: str, settings: ExecScreening, org_id: str = None)
-```
+> To remove all assistants from an executive, send a null/empty assistants list via `update-assigned-assistants`.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -974,8 +634,8 @@ Two different base paths are used:
 | Update screening | PUT | `telephony/config/people/{personId}/executive/screening` |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # --- Exec/Assistant Type Assignment ---
@@ -1111,10 +771,9 @@ wxcli user-settings update-screening Y2lzY29...execPersonId --no-enabled
 
 Controls Connected Line Identification Privacy on redirected calls.
 
-**API class:** `CallPolicyApi` (extends `PersonSettingsApiChild`)
 - Feature path segment: `callPolicies`
 
-> **Important:** This API is only available for **professional licensed workspaces** when accessed via admin tokens. The scopes shown (`workspaces_read/write`) are workspace-specific. There is no admin-level `people/{personId}` callPolicies endpoint. However, calling-licensed users can access their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies`) with the `spark:telephony_config_read/write` scope. The wxc_sdk only wires `CallPolicyApi` into `workspace_settings`, not `person_settings`.
+> **Important:** This API is only available for **professional licensed workspaces** when accessed via admin tokens. The scopes shown (`workspaces_read/write`) are workspace-specific. There is no admin-level `people/{personId}` callPolicies endpoint. However, calling-licensed users can access their own call policy via the self-access endpoint (`/telephony/config/people/me/settings/callPolicies`) with the `spark:telephony_config_read/write` scope.
 
 ### Data Models
 
@@ -1125,26 +784,6 @@ Controls Connected Line Identification Privacy on redirected calls.
 | `NO_PRIVACY` | Connected line identification is not blocked on redirected calls |
 | `PRIVACY_FOR_EXTERNAL_CALLS` | Blocked on redirected calls to external numbers only |
 | `PRIVACY_FOR_ALL_CALLS` | Blocked on all redirected calls |
-
-### Methods
-
-#### `read`
-
-```python
-def read(self, entity_id: str, org_id: str = None) -> PrivacyOnRedirectedCalls
-```
-
-- **Scope:** `spark-admin:workspaces_read`
-
-#### `configure`
-
-```python
-def configure(self, entity_id: str,
-              connected_line_id_privacy_on_redirected_calls: PrivacyOnRedirectedCalls,
-              org_id: str = None)
-```
-
-- **Scope:** `spark-admin:workspaces_write`
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -1161,8 +800,8 @@ def configure(self, entity_id: str,
 | Update (self) | PUT | `telephony/config/people/me/settings/callPolicies` | User (calling-licensed) |
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read call policy for a workspace (admin token)
@@ -1228,84 +867,9 @@ curl -s -H "Authorization: Bearer $USER_TOKEN" \
 
 ---
 
-## Usage Patterns
-
-### Setting per-call-type outgoing permissions
-
-```python
-from wxc_sdk.person_settings.permissions_out import (
-    OutgoingPermissions, CallingPermissions, Action, OutgoingPermissionCallType
-)
-
-# Start with defaults (blocks international + premium)
-perms = CallingPermissions.default()
-
-# Also block operator-assisted
-op = perms.for_call_type(OutgoingPermissionCallType.operator_assisted)
-op.action = Action.block
-op.transfer_enabled = False
-
-settings = OutgoingPermissions(
-    use_custom_enabled=True,
-    use_custom_permissions=True,
-    calling_permissions=perms
-)
-
-api.person_settings.permissions_out.configure(person_id, settings)
-```
-
-### Assigning an executive and assistant
-
-```python
-from wxc_sdk.person_settings.exec_assistant import ExecAssistantType
-
-# Mark person as executive
-api.person_settings.exec_assistant.configure(exec_person_id, ExecAssistantType.executive)
-
-# Mark another person as assistant
-api.person_settings.exec_assistant.configure(asst_person_id, ExecAssistantType.executive_assistant)
-
-# Assign assistant to executive
-api.person_settings.executive.update_assigned_assistants(exec_person_id, assistant_ids=[asst_person_id])
-```
-
-### Configuring executive alerting
-
-```python
-from wxc_sdk.person_settings.executive import (
-    ExecAlert, ExecAlertingMode, ExecAlertRolloverAction
-)
-
-alert = ExecAlert(
-    alerting_mode=ExecAlertingMode.sequential,
-    next_assistant_number_of_rings=4,
-    rollover_enabled=True,
-    rollover_action=ExecAlertRolloverAction.voice_messaging,
-    rollover_wait_time_in_secs=20
-)
-
-api.person_settings.executive.update_alert_settings(exec_person_id, alert)
-```
-
-### Restricting feature access for a user
-
-```python
-from wxc_sdk.person_settings.feature_access import FeatureAccessSettings, FeatureAccessLevel
-
-settings = FeatureAccessSettings(
-    call_forwarding=FeatureAccessLevel.no_access,
-    simultaneous_ring=FeatureAccessLevel.no_access,
-    voicemail=FeatureAccessLevel.full_access
-)
-
-api.person_settings.feature_access.update(person_id, settings)
-```
-
----
-
 ## Gotchas (Cross-Cutting)
 
-1. **Outgoing permissions `callingPermissions` is a list, not a dict.** The API returns and expects `callingPermissions` as an array of `{callType, action, transferEnabled}` objects. The wxc_sdk model transforms this to a dict internally, but when using `--json-body` or raw HTTP, always send an array.
+1. **Outgoing permissions `callingPermissions` is a list, not a dict.** The API returns and expects `callingPermissions` as an array of `{callType, action, transferEnabled}` objects. When using `--json-body` or raw HTTP, always send an array.
 
 2. **Three different base paths across this doc.** Incoming/outgoing permissions and exec-assistant type use `people/{personId}/features/...`. Digit patterns and feature access use `telephony/config/people/{personId}/...`. Executive detailed settings use `telephony/config/people/{personId}/executive/...`. Mixing up the base path returns 404.
 
@@ -1313,13 +877,13 @@ api.person_settings.feature_access.update(person_id, settings)
 
 4. **Executive assistant assignment is two steps.** You must first set both persons' types (one as `EXECUTIVE`, one as `EXECUTIVE_ASSISTANT`) via the type assignment API, then assign the assistant to the executive via `update-assigned-assistants`. Setting the type alone does not create the pairing.
 
-5. **`drop_call_types` matters for outgoing permission updates.** By default, the SDK drops `url_dialing`, `unknown`, and `casual` call types from the update payload. If you see unexpected call types in the API response, they may be auto-excluded during writes. When using `--json-body`, only include call types you want to set.
+5. **Some call types should be excluded from outgoing permission updates.** Call types such as `url_dialing`, `unknown`, and `casual` may appear in read responses but are not valid to include in write payloads. When using `--json-body`, only include call types you want to set.
 
 6. **Feature access `reset` is a POST, not a DELETE.** Resetting a person's feature access to org defaults uses `POST .../actions/reset/invoke`, not a DELETE. Sending DELETE to this endpoint returns 405.
 
 7. **Call Policy has NO admin-level person endpoint.** Live API testing confirms that `people/{personId}/features/callPolicies` returns 404 for persons. The only working paths are: (1) workspace admin: `workspaces/{workspaceId}/features/callPolicies`, and (2) self-service: `telephony/config/people/me/settings/callPolicies` (requires calling-licensed user token with `spark:telephony_config_read/write`). The `wxcli` commands (`show-call-policies`, `update-call-policies`) are under `workspace-settings` only.
 
-8. **Transfer numbers and access codes scopes differ by entity type.** The SDK docstrings for `TransferNumbersApi` and `AccessCodesApi` incorrectly list `workspaces_read/write` scopes for all entities. Per the OpenAPI spec, person-level transfer numbers and access codes endpoints (at `telephony/config/people/{personId}/outgoingPermission/...`) require `spark-admin:telephony_config_read/write`, not `workspaces_read/write`. The workspace scopes only apply to workspace-level endpoints.
+8. **Transfer numbers and access codes scopes differ by entity type.** Per the OpenAPI spec, person-level transfer numbers and access codes endpoints (at `telephony/config/people/{personId}/outgoingPermission/...`) require `spark-admin:telephony_config_read/write`, not `workspaces_read/write`. The workspace scopes only apply to workspace-level endpoints.
 
 ---
 

@@ -7,11 +7,11 @@
 
 Webex Calling E911 compliance requires three interlocking configurations:
 
-| Layer | What It Configures | SDK API |
+| Layer | What It Configures | Base Endpoint |
 |-------|--------------------|---------|
-| **Emergency Call Notifications** | Org-level email alerts when any emergency call is placed | `OrgEmergencyServicesApi` |
-| **Emergency Addresses** | Physical civic addresses associated with locations and phone numbers | `EmergencyAddressApi` |
-| **Emergency Callback Number (ECBN)** | Per-person/workspace/virtual-line callback number for return calls from PSAP | `ECBNApi` |
+| **Emergency Call Notifications** | Org-level email alerts when any emergency call is placed | `telephony/config/emergencyCallNotification` |
+| **Emergency Addresses** | Physical civic addresses associated with locations and phone numbers | `telephony/pstn/emergencyAddress` |
+| **Emergency Callback Number (ECBN)** | Per-person/workspace/virtual-line callback number for return calls from PSAP | `telephony/config/{people,workspaces,virtualLines}/{id}/emergencyCallbackNumber` |
 
 All three are needed for full E911 compliance in the United States. Emergency call notifications satisfy **Kari's Law** (U.S. Public Law 115-127), which requires that any emergency call from within an organization generates a notification. Emergency addresses and ECBN satisfy **RAY BAUM's Act** requirements for dispatchable location information.
 
@@ -33,58 +33,23 @@ All three are needed for full E911 compliance in the United States. Emergency ca
 
 When enabled, sends an email to a specified address every time someone in the organization dials emergency services (911 in the U.S.). This is the org-wide kill switch for Kari's Law compliance.
 
-### SDK Access
+### Base Endpoint
 
-```python
-api = wxc_api.telephony.emergency_services  # OrgEmergencyServicesApi instance
 ```
-
-Base path: `telephony/config/emergencyCallNotification`
+telephony/config/emergencyCallNotification
+```
 
 Required scopes:
 - **Read**: `spark-admin:telephony_config_read`
 - **Write**: `spark-admin:telephony_config_write`
 
-### Read Notification Settings
+### Fields
 
-```python
-OrgEmergencyServicesApi.read_emergency_call_notification(
-    org_id: str = None,
-) -> OrgEmergencyCallNotification
-```
-
-### Update Notification Settings
-
-```python
-OrgEmergencyServicesApi.update_emergency_call_notification(
-    setting: OrgEmergencyCallNotification,
-    org_id: str = None,
-) -> None
-```
-
-**Example -- enable emergency call notifications:**
-```python
-from wxc_sdk.telephony.emergency_services import OrgEmergencyCallNotification
-
-setting = OrgEmergencyCallNotification(
-    emergency_call_notification_enabled=True,
-    allow_email_notification_all_location_enabled=True,
-    email_address="security@company.com"
-)
-api.telephony.emergency_services.update_emergency_call_notification(setting=setting)
-```
-
-### Data Model
-
-```python
-class OrgEmergencyCallNotification(ApiModel):
-    # When True, sends email on any emergency call
-    emergency_call_notification_enabled: Optional[bool]
-    # When True, sends notifications for ALL locations (not just specific ones)
-    allow_email_notification_all_location_enabled: Optional[bool]
-    # Email address that receives the notification
-    email_address: Optional[str]
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `emergencyCallNotificationEnabled` | boolean | When true, sends email on any emergency call |
+| `allowEmailNotificationAllLocationEnabled` | boolean | When true, sends notifications for ALL locations (not just specific ones) |
+| `emailAddress` | string | Email address that receives the notification |
 
 ### CLI Examples
 
@@ -119,13 +84,11 @@ Emergency addresses can be set at two levels:
 - **Location level** -- default address for all numbers at that location
 - **Phone number level** -- per-number override (e.g., for users on different floors or in different buildings at the same location)
 
-### SDK Access
+### Base Endpoint
 
-```python
-api = wxc_api.telephony.emergency_address  # EmergencyAddressApi instance
 ```
-
-Base path: `telephony/pstn`
+telephony/pstn
+```
 
 Required scopes:
 - **Read/Lookup**: `spark-admin:telephony_pstn_read`
@@ -135,122 +98,51 @@ Required scopes:
 
 #### Add Emergency Address to a Location
 
-```python
-EmergencyAddressApi.add_to_location(
-    location_id: str,                     # Required
-    address: Union[EmergencyAddress, SuggestedEmergencyAddress],  # Required
-    org_id: str = None,
-) -> str  # Returns the new emergency address ID
-```
-
-**Example:**
-```python
-from wxc_sdk.telephony.emergency_address import EmergencyAddress
-
-addr = EmergencyAddress(
-    address1="100 Main Street",
-    address2="Suite 400",
-    city="San Jose",
-    state="CA",
-    postal_code="95110",
-    country="US"
-)
-addr_id = api.telephony.emergency_address.add_to_location(
-    location_id="loc_id_123",
-    address=addr
-)
-```
+Adds a validated civic address to a location. Returns the new emergency address ID.
 
 #### Lookup / Validate an Address
 
-```python
-EmergencyAddressApi.lookup_for_location(
-    location_id: str,                     # Required
-    address: Union[EmergencyAddress, SuggestedEmergencyAddress],  # Required
-    org_id: str = None,
-) -> list[SuggestedEmergencyAddress]
-```
-
-Returns a list of suggested addresses. If the input address is valid and unchanged, no errors are returned. If corrections were needed, the response includes the corrected address along with error details in each `SuggestedEmergencyAddress.errors` list.
+Returns a list of suggested addresses. If the input address is valid and unchanged, no errors are returned. If corrections were needed, the response includes the corrected address along with error details in each suggestion's `errors` list.
 
 **Always validate before adding.** The PSAP database requires standardized addresses. This lookup normalizes the input and flags issues.
 
-**Example:**
-```python
-suggestions = api.telephony.emergency_address.lookup_for_location(
-    location_id="loc_id_123",
-    address=EmergencyAddress(
-        address1="100 Main St",
-        city="San Jose",
-        state="CA",
-        postal_code="95110",
-        country="US"
-    )
-)
-if suggestions and not suggestions[0].errors:
-    # Address is valid, use the suggested (normalized) version
-    validated_addr = suggestions[0]
-    addr_id = api.telephony.emergency_address.add_to_location(
-        location_id="loc_id_123",
-        address=validated_addr
-    )
-```
-
 #### Update Emergency Address for a Location
 
-```python
-EmergencyAddressApi.update_for_location(
-    location_id: str,                     # Required
-    address_id: str,                      # Required -- ID of existing address to update
-    address: Union[EmergencyAddress, SuggestedEmergencyAddress],  # Required
-    org_id: str = None,
-) -> None
-```
+Updates an existing emergency address, identified by location ID and address ID.
 
 #### Update Emergency Address for a Phone Number
 
-```python
-EmergencyAddressApi.update_for_phone_number(
-    phone_number: str,                    # Required -- the E.164 phone number
-    emergency_address: Union[EmergencyAddress, SuggestedEmergencyAddress] = None,
-    org_id: str = None,
-) -> None
-```
-
-Use this to set a per-number emergency address that overrides the location default. **Passing an empty/None address deletes the custom address** and reverts the number to the location's default emergency address.
+Sets a per-number emergency address that overrides the location default. **Passing an empty/None address deletes the custom address** and reverts the number to the location's default emergency address.
 
 ### Data Models
 
 #### EmergencyAddress
 
-```python
-class EmergencyAddress(ApiModel):
-    address1: Optional[str]              # Primary street (e.g., "100 Main Street")
-    address2: Optional[str]              # Secondary (e.g., "Suite 400", "Floor 3")
-    city: Optional[str]
-    state: Optional[str]                 # State / Province / Region
-    postal_code: Optional[str]
-    country: Optional[str]               # Country code (e.g., "US")
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `address1` | string | Primary street (e.g., "100 Main Street") |
+| `address2` | string | Secondary (e.g., "Suite 400", "Floor 3") |
+| `city` | string | |
+| `state` | string | State / Province / Region |
+| `postalCode` | string | |
+| `country` | string | Country code (e.g., "US") |
 
 #### SuggestedEmergencyAddress
 
 Extends `EmergencyAddress` with validation metadata:
 
-```python
-class SuggestedEmergencyAddress(EmergencyAddress):
-    meta: Optional[dict]                 # Additional metadata
-    errors: Optional[list[AddressLookupError]]  # Validation errors (present when input was corrected)
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `meta` | object | Additional metadata |
+| `errors` | array of AddressLookupError | Validation errors (present when input was corrected) |
 
 #### AddressLookupError
 
-```python
-class AddressLookupError(ApiModel):
-    code: Optional[str]                  # Error code
-    title: Optional[str]                 # Error title
-    detail: Optional[str]                # Detailed error message
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `code` | string | Error code |
+| `title` | string | Error title |
+| `detail` | string | Detailed error message |
 
 ### CLI Examples
 
@@ -302,20 +194,12 @@ ECBN applies to:
 - **Workspaces**
 - **Virtual lines**
 
-### SDK Access
+### Base Endpoints
 
-```python
-# For person ECBN:
-api = wxc_api.person_settings.ecbn  # ECBNApi instance
-
-# For virtual line ECBN:
-api = wxc_api.telephony.virtual_lines.ecbn  # ECBNApi instance (virtual line selector)
-```
-
-The `ECBNApi` is a `PersonSettingsApiChild` that works across entity types via the `ApiSelector`:
-- `ApiSelector.person` -- URL: `telephony/config/people/{id}/emergencyCallbackNumber`
-- `ApiSelector.workspace` -- URL: `telephony/config/workspaces/{id}/emergencyCallbackNumber`
-- `ApiSelector.virtual_line` -- URL: `telephony/config/virtualLines/{id}/emergencyCallbackNumber`
+ECBN works across three entity types, each with its own endpoint:
+- **Person**: `telephony/config/people/{id}/emergencyCallbackNumber`
+- **Workspace**: `telephony/config/workspaces/{id}/emergencyCallbackNumber`
+- **Virtual Line**: `telephony/config/virtualLines/{id}/emergencyCallbackNumber`
 
 Required scopes:
 - **Read**: `spark-admin:telephony_config_read`
@@ -336,80 +220,22 @@ There are multiple sources for where the ECBN comes from, in order of specificit
 
 #### Read ECBN Settings
 
-```python
-ECBNApi.read(
-    entity_id: str,                       # Person ID, workspace ID, or virtual line ID
-    org_id: str = None,
-) -> PersonECBN
-```
-
 Returns the current ECBN configuration including the selected source, direct line info, location ECBN info, location member info, and the default fallback info.
-
-**Example:**
-```python
-ecbn = api.person_settings.ecbn.read(entity_id="person_id_123")
-print(f"Selected: {ecbn.selected}")
-print(f"Effective value: {ecbn.direct_line_info.effective_value}")
-```
 
 #### Configure ECBN
 
-```python
-ECBNApi.configure(
-    entity_id: str,                       # Required
-    selected: SelectedECBN,               # Required -- DIRECT_LINE, LOCATION_ECBN, or LOCATION_MEMBER_NUMBER
-    location_member_id: str = None,       # Required when selected=LOCATION_MEMBER_NUMBER
-    org_id: str = None,
-) -> None
-```
+Sets the ECBN source for a person, workspace, or virtual line. `locationMemberId` is required when `selected` is `LOCATION_MEMBER_NUMBER`.
 
-**Example -- set a user to use their direct line as ECBN:**
-```python
-from wxc_sdk.person_settings.ecbn import SelectedECBN
-
-api.person_settings.ecbn.configure(
-    entity_id="person_id_123",
-    selected=SelectedECBN.direct_line
-)
-```
-
-**Example -- set an extension-only user to use the location ECBN:**
-```python
-api.person_settings.ecbn.configure(
-    entity_id="person_id_456",
-    selected=SelectedECBN.location_ecbn
-)
-```
-
-**Example -- set ECBN to another member's number (multi-floor scenario):**
-```python
-api.person_settings.ecbn.configure(
-    entity_id="person_id_789",
-    selected=SelectedECBN.location_member_number,
-    location_member_id="other_person_id_on_same_floor"
-)
-```
+- Set a user to use their direct line as ECBN: `selected: DIRECT_LINE`
+- Set an extension-only user to use the location ECBN: `selected: LOCATION_ECBN`
+- Set ECBN to another member's number (multi-floor scenario): `selected: LOCATION_MEMBER_NUMBER` with `locationMemberId` set to the other member's ID
 
 #### Read ECBN Dependencies
-
-```python
-ECBNApi.dependencies(
-    entity_id: str,                       # Person ID, workspace ID, or virtual line ID
-    org_id: str = None,
-) -> ECBNDependencies
-```
 
 Check what depends on this entity's ECBN before making changes. Returns:
 - Whether this entity is the location's default ECBN
 - Whether this entity uses itself as ECBN
 - How many other members use this entity as their ECBN
-
-**Example:**
-```python
-deps = api.person_settings.ecbn.dependencies(entity_id="person_id_123")
-if deps.dependent_member_count and deps.dependent_member_count > 0:
-    print(f"WARNING: {deps.dependent_member_count} other members use this person's number as ECBN")
-```
 
 ### ECBN Fallback Logic
 
@@ -419,96 +245,70 @@ The system applies fallback rules when the configured ECBN source is unavailable
 2. If `LOCATION_ECBN` is selected but no location ECBN is configured, falls back to the location's main number
 3. If `LOCATION_MEMBER_NUMBER` is selected but the member's number is invalid, falls back to location ECBN or location main number
 
-The `effective_level` and `effective_value` fields on the response models show which ECBN will actually be used after fallback resolution.
+The `effectiveLevel` and `effectiveValue` fields on the response show which ECBN will actually be used after fallback resolution.
 
 ### Data Models
 
 #### PersonECBN (Main Response)
 
-```python
-class PersonECBN(ApiModel):
-    # The selected ECBN source
-    selected: Optional[ECBNSelection]                    # DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER, NONE
-    # Info for the direct line option
-    direct_line_info: Optional[PersonECBNDirectLine]
-    # Info for the location ECBN option
-    location_ecbn_info: Optional[PersonECBNDirectLine]   # Note: aliased from 'locationECBNInfo'
-    # Info for the location member option
-    location_member_info: Optional[ECBNLocationMember]
-    # Default fallback info when nothing else is configured
-    default_info: Optional[ECBNDefault]
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `selected` | enum: `DIRECT_LINE`, `LOCATION_ECBN`, `LOCATION_MEMBER_NUMBER`, `NONE` | The selected ECBN source |
+| `directLineInfo` | object (PersonECBNDirectLine shape) | Info for the direct line option |
+| `locationEcbnInfo` | object (PersonECBNDirectLine shape) | Info for the location ECBN option |
+| `locationMemberInfo` | object (ECBNLocationMember shape) | Info for the location member option |
+| `defaultInfo` | object (ECBNDefault shape) | Default fallback info when nothing else is configured |
 
 #### PersonECBNDirectLine
 
-```python
-class PersonECBNDirectLine(ApiModel):
-    phone_number: Optional[str]                          # The callback phone number
-    first_name: Optional[str]
-    last_name: Optional[str]
-    effective_level: Optional[ECBNEffectiveLevel]         # What actually gets used after fallback
-    effective_value: Optional[str]                        # The actual ECBN number after fallback
-    quality: Optional[ECBNQuality]                       # RECOMMENDED, NOT_RECOMMENDED, or INVALID
-```
+Shape of `directLineInfo` and `locationEcbnInfo`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `phoneNumber` | string | The callback phone number |
+| `firstName` | string | |
+| `lastName` | string | |
+| `effectiveLevel` | enum | What actually gets used after fallback |
+| `effectiveValue` | string | The actual ECBN number after fallback |
+| `quality` | enum: `RECOMMENDED`, `NOT_RECOMMENDED`, `INVALID` | |
 
 #### ECBNLocationMember
 
-```python
-class ECBNLocationMember(ApiModel):
-    phone_number: Optional[str]                          # Member's callback number
-    first_name: Optional[str]
-    last_name: Optional[str]
-    member_id: Optional[str]                             # User/workspace/virtual line ID
-    member_type: Optional[UserType]                      # Type of the member
-    effective_level: Optional[ECBNLocationEffectiveLevel]
-    effective_value: Optional[str]
-    quality: Optional[ECBNQuality]
-```
+Shape of `locationMemberInfo`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `phoneNumber` | string | Member's callback number |
+| `firstName` | string | |
+| `lastName` | string | |
+| `memberId` | string | User/workspace/virtual line ID |
+| `memberType` | string | Type of the member |
+| `effectiveLevel` | enum | |
+| `effectiveValue` | string | |
+| `quality` | enum | |
 
 #### ECBNDependencies
 
-```python
-class ECBNDependencies(ApiModel):
-    is_location_ecbn_default: Optional[bool]             # Is this the location's default ECBN?
-    is_self_ecbn_default: Optional[bool]                 # Does this entity use itself as ECBN?
-    dependent_member_count: Optional[int]                # How many others reference this entity's number
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `isLocationEcbnDefault` | boolean | Is this the location's default ECBN? |
+| `isSelfEcbnDefault` | boolean | Does this entity use itself as ECBN? |
+| `dependentMemberCount` | integer | How many others reference this entity's number |
 
 #### ECBNDefault
 
-```python
-class ECBNDefault(ApiModel):
-    effective_value: Optional[str]                       # The fallback ECBN number
-    quality: Optional[ECBNQuality]                       # RECOMMENDED, NOT_RECOMMENDED, or INVALID
-```
+Shape of `defaultInfo`:
 
-#### Enums
+| Field | Type | Description |
+|-------|------|-------------|
+| `effectiveValue` | string | The fallback ECBN number |
+| `quality` | enum: `RECOMMENDED`, `NOT_RECOMMENDED`, `INVALID` | |
 
-```python
-class ECBNSelection(str, Enum):
-    direct_line = 'DIRECT_LINE'
-    location_ecbn = 'LOCATION_ECBN'
-    location_member_number = 'LOCATION_MEMBER_NUMBER'
-    none_ = 'NONE'
+#### Enum Values
 
-class SelectedECBN(str, Enum):
-    """Used in configure() -- does not include NONE"""
-    direct_line = 'DIRECT_LINE'
-    location_ecbn = 'LOCATION_ECBN'
-    location_member_number = 'LOCATION_MEMBER_NUMBER'
-
-class ECBNEffectiveLevel(str, Enum):
-    direct_line = 'DIRECT_LINE'
-    location_ecbn = 'LOCATION_ECBN'
-    location_number = 'LOCATION_NUMBER'
-    location_member_number = 'LOCATION_MEMBER_NUMBER'
-    none_ = 'NONE'
-
-class ECBNQuality(str, Enum):
-    recommended = 'RECOMMENDED'           # Activated number on a user/workspace
-    not_recommended = 'NOT_RECOMMENDED'   # Activated number on AA/HG/etc.
-    invalid = 'INVALID'                   # Inactive or non-existent number
-```
+- **ECBN source** (see [ECBN Selection Options](#ecbn-selection-options) above): `DIRECT_LINE`, `LOCATION_ECBN`, `LOCATION_MEMBER_NUMBER`, `NONE` -- the configure operation only accepts the first three; `NONE` is read-only, returned when nothing is configured
+- **`effectiveLevel`**: `DIRECT_LINE`, `LOCATION_ECBN`, `LOCATION_NUMBER`, `LOCATION_MEMBER_NUMBER`, `NONE`
+- **`quality`**: `RECOMMENDED` (activated number on a user/workspace), `NOT_RECOMMENDED` (activated number on AA/HG/etc.), `INVALID` (inactive or non-existent number)
 
 ### CLI Examples
 
@@ -583,20 +383,20 @@ To be fully compliant with Kari's Law and RAY BAUM's Act, an organization should
 
 ### Kari's Law (Emergency Call Notifications)
 
-- [ ] Enable `emergency_call_notification_enabled` at the org level
-- [ ] Set `allow_email_notification_all_location_enabled` to `True` (covers all locations)
-- [ ] Configure `email_address` to a monitored mailbox (e.g., security, facilities)
+- [ ] Enable `emergencyCallNotificationEnabled` at the org level
+- [ ] Set `allowEmailNotificationAllLocationEnabled` to `true` (covers all locations)
+- [ ] Configure `emailAddress` to a monitored mailbox (e.g., security, facilities)
 - [ ] Optionally configure location-level notification overrides via `/telephony/config/locations/{locationId}/emergencyCallNotification` (separate from org-level settings; the location-level GET also returns the org-level settings in an `organization` object for reference)
 
 ### RAY BAUM's Act (Dispatchable Location)
 
-- [ ] Every location has a validated emergency address (use `lookup_for_location` before `add_to_location`)
-- [ ] Multi-building/multi-floor locations have per-number emergency addresses (use `update_for_phone_number`)
+- [ ] Every location has a validated emergency address (validate/lookup the address before adding it)
+- [ ] Multi-building/multi-floor locations have per-number emergency addresses (update the emergency address for the specific phone number)
 - [ ] All users with DIDs have `DIRECT_LINE` ECBN (default for users with phone numbers)
 - [ ] Extension-only users have `LOCATION_ECBN` or `LOCATION_MEMBER_NUMBER` configured
 - [ ] Virtual lines that can place calls have ECBN configured
 - [ ] Location ECBN quality is `RECOMMENDED` (not `NOT_RECOMMENDED` or `INVALID`)
-- [ ] Run `ECBNApi.dependencies()` before changing any ECBN to avoid breaking other users' callbacks
+- [ ] Check ECBN dependencies before changing any ECBN to avoid breaking other users' callbacks
 
 ### Ongoing Maintenance
 
@@ -609,10 +409,6 @@ To be fully compliant with Kari's Law and RAY BAUM's Act, an organization should
 
 ## Source
 
-- SDK source: `wxc_sdk/telephony/emergency_services/__init__.py`
-- SDK source: `wxc_sdk/telephony/emergency_address/__init__.py`
-- SDK source: `wxc_sdk/person_settings/ecbn.py`
-- SDK source: `wxc_sdk/person_settings/common.py` (ApiSelector, URL routing for ECBN)
 - U.S. Public Law 115-127 (Kari's Law) -- multi-line telephone system notification requirements
 - RAY BAUM's Act Section 506 -- dispatchable location requirements for 911
 
@@ -620,11 +416,11 @@ To be fully compliant with Kari's Law and RAY BAUM's Act, an organization should
 
 ## 5. Raw HTTP Endpoints
 
-All endpoints below use the `api.session.rest_*` methods from `wxc_sdk`. URLs confirmed from working CLI implementations.
+All endpoints below use the `api.session.rest_*` helper methods. URLs confirmed from working CLI implementations.
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi(tokens='<token>')
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1014,7 +810,7 @@ api.session.rest_put(
 
 ### Emergency Address (PSTN)
 
-These endpoints are in the PSTN API surface, not the emergency services surface. The SDK access path is `api.telephony.emergency_address`.
+These endpoints are in the PSTN API surface, not the emergency services surface.
 
 #### Lookup/Validate Emergency Address
 
@@ -1116,7 +912,13 @@ api.session.rest_put(
 
 ---
 
+## Third-Party E911 Provider Portal (RedSky / Intrado)
+
+The Webex-side RedSky integration endpoints above (`/telephony/config/redSky/*`) manage the *link* between Webex and a third-party dynamic-E911 provider from the Webex API, using your Webex token. The provider itself (RedSky / Intrado) also runs its **own** portal and API (`api.wxc.e911cloud.com`) with a **separate login** — not a Webex token — used to manage buildings, dispatchable locations, network wire-maps, and device tracking. That portal is outside the Webex API surface; configure it in the provider's own console. Webex-native E911 (emergency call notifications, emergency addresses, ECBN) is fully covered above and needs no third-party portal.
+
+---
+
 ## See Also
 
-- **[person-call-settings-behavior.md](person-call-settings-behavior.md)** — The ECBNApi is shared between person, workspace, and virtual line settings. That doc covers the same ECBN sub-API from the person-settings perspective, including how ECBN integrates with other call behavior settings.
-- **[virtual-lines.md](virtual-lines.md)** — Virtual lines that can place calls need ECBN configured. The `.ecbn` sub-API is listed in the virtual line call settings table there.
+- **[person-call-settings-behavior.md](person-call-settings-behavior.md)** — ECBN configuration is shared between person, workspace, and virtual line settings. That doc covers the same ECBN endpoints from the person-settings perspective, including how ECBN integrates with other call behavior settings.
+- **[virtual-lines.md](virtual-lines.md)** — Virtual lines that can place calls need ECBN configured. The ECBN endpoints are listed in the virtual line call settings table there.

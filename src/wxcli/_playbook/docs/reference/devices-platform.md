@@ -2,7 +2,6 @@
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-device.json
 - developer.webex.com Device Platform APIs
 

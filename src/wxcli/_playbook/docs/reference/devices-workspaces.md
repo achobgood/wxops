@@ -1,16 +1,13 @@
 <!-- Updated by playbook session 2026-03-18 -->
 
-# Devices & Workspaces — wxc_sdk Reference
+# Devices & Workspaces — API Reference
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-device.json
 - developer.webex.com Workspace APIs
 
-Workspaces represent physical places where people work — conference rooms, meeting spaces, lobbies, desks. Devices are associated with workspaces. The wxc_sdk provides four API modules for managing workspaces and their configurations.
-
-**SDK access path:** `api.workspaces`, `api.workspace_settings`, `api.workspace_locations`, `api.workspace_personalization`
+Workspaces represent physical places where people work — conference rooms, meeting spaces, lobbies, desks. Devices are associated with workspaces. Four API domains cover managing workspaces and their configurations: Workspaces, Workspace Settings, Workspace Locations (legacy), and Workspace Personalization.
 
 ---
 
@@ -18,18 +15,17 @@ Workspaces represent physical places where people work — conference rooms, mee
 
 - [Workspaces API](#workspaces-api)
   - [Data Models](#workspace-data-models)
-  - [WorkspacesApi Methods](#workspacesapi-methods)
+  - [Workspace API Behavior Notes](#workspace-api-behavior-notes)
 - [Workspace Settings API](#workspace-settings-api)
-  - [Calling Settings Sub-APIs](#calling-settings-sub-apis)
+  - [Calling Settings Reference](#calling-settings-reference)
   - [Workspace Devices API](#workspace-devices-api)
   - [Workspace Numbers API](#workspace-numbers-api)
 - [Workspace Locations API (Legacy)](#workspace-locations-api-legacy)
   - [Location Data Models](#workspace-location-data-models)
-  - [WorkspaceLocationApi Methods](#workspacelocationapi-methods)
+  - [Workspace Location API Behavior Notes](#workspace-location-api-behavior-notes)
   - [Floor Management](#floor-management)
 - [Workspace Personalization API](#workspace-personalization-api)
 - [Required Scopes](#required-scopes)
-- [Code Examples](#code-examples)
 - [Raw HTTP](#raw-http)
 - [CLI Examples](#cli-examples)
   - [Workspaces CRUD](#workspaces-crud)
@@ -40,7 +36,7 @@ Workspaces represent physical places where people work — conference rooms, mee
 
 ## Workspaces API
 
-`api.workspaces` — CRUD operations on workspaces, including calling enablement, calendar integration, hotdesking, and device association.
+**Base endpoint:** `/v1/workspaces` — CRUD operations on workspaces, including calling enablement, calendar integration, hotdesking, and device association.
 
 ### Workspace Data Models
 
@@ -48,383 +44,261 @@ Workspaces represent physical places where people work — conference rooms, mee
 
 Enum defining workspace purpose:
 
-| Value | Enum Member | Description |
-|-------|------------|-------------|
-| `notSet` | `WorkSpaceType.not_set` | No workspace type set |
-| `focus` | `WorkSpaceType.focus` | High concentration |
-| `huddle` | `WorkSpaceType.huddle` | Brainstorm/collaboration |
-| `meetingRoom` | `WorkSpaceType.meeting_room` | Dedicated meeting space |
-| `open` | `WorkSpaceType.open` | Open space |
-| `desk` | `WorkSpaceType.desk` | Individual desk |
-| `other` | `WorkSpaceType.other` | Unspecified |
+| Value | Description |
+|-------|-------------|
+| `notSet` | No workspace type set |
+| `focus` | High concentration |
+| `huddle` | Brainstorm/collaboration |
+| `meetingRoom` | Dedicated meeting space |
+| `open` | Open space |
+| `desk` | Individual desk |
+| `other` | Unspecified |
 
 #### CallingType
 
 Enum defining the calling configuration for a workspace:
 
-| Value | Enum Member | Description |
-|-------|------------|-------------|
-| `freeCalling` | `CallingType.free` | Free Calling |
-| `hybridCalling` | `CallingType.hybrid` | Hybrid Calling (on-premise CUCM + cloud) |
-| `webexEdgeForDevices` | `CallingType.edge_for_devices` | Webex Edge For Devices |
-| `thirdPartySipCalling` | `CallingType.third_party` | Third-party SIP calling |
-| `webexCalling` | `CallingType.webex` | Webex Calling |
-| `none` | `CallingType.none` | No calling |
+| Value | Description |
+|-------|-------------|
+| `freeCalling` | Free Calling |
+| `hybridCalling` | Hybrid Calling (on-premise CUCM + cloud) |
+| `webexEdgeForDevices` | Webex Edge For Devices |
+| `thirdPartySipCalling` | Third-party SIP calling |
+| `webexCalling` | Webex Calling |
+| `none` | No calling |
 
 #### CalendarType
 
 Enum for calendar integration:
 
-| Value | Enum Member | Description |
-|-------|------------|-------------|
-| `none` | `CalendarType.none` | No calendar |
-| `google` | `CalendarType.google` | Google Calendar |
-| `microsoft` | `CalendarType.microsoft` | Microsoft Exchange or Office 365 |
+| Value | Description |
+|-------|-------------|
+| `none` | No calendar |
+| `google` | Google Calendar |
+| `microsoft` | Microsoft Exchange or Office 365 |
 
 #### WorkspaceSupportedDevices
 
 Enum for device types a workspace supports:
 
-| Value | Enum Member | Description |
-|-------|------------|-------------|
-| `collaborationDevices` | `WorkspaceSupportedDevices.collaboration_devices` | Collaboration devices (Room/Board/Desk series) |
-| `phones` | `WorkspaceSupportedDevices.phones` | MPP phones |
+| Value | Description |
+|-------|-------------|
+| `collaborationDevices` | Collaboration devices (Room/Board/Desk series) |
+| `phones` | MPP phones |
 
 #### HotdeskingStatus
 
-| Value | Enum Member |
-|-------|------------|
-| `on` | `HotdeskingStatus.on` |
-| `off` | `HotdeskingStatus.off` |
-| `none` | `HotdeskingStatus.none_` |
+Accepted values: `on`, `off`, `none`.
 
 #### Calendar
 
-```python
-class Calendar(ApiModel):
-    calendar_type: Optional[CalendarType]       # alias: 'type'
-    email_address: Optional[str]                # not set when type is 'none'
-    resource_group_id: Optional[str]            # only for on-premise Microsoft calendar
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `calendar_type` | `CalendarType` (optional, alias `type`) | Calendar integration type |
+| `email_address` | `str` (optional) | Not set when `type` is `none` |
+| `resource_group_id` | `str` (optional) | Only for on-premise Microsoft calendar |
 
 #### WorkspaceCalling
 
-```python
-class WorkspaceCalling(ApiModel):
-    type: Optional[CallingType]
-    hybrid_calling: Optional[WorkspaceCallingHybridCalling]   # only when type is hybridCalling
-    webex_calling: Optional[WorkspaceWebexCalling]            # only when type is webexCalling
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `CallingType` (optional) | Calling configuration type |
+| `hybrid_calling` | `WorkspaceCallingHybridCalling` (optional) | Only when `type` is `hybridCalling` |
+| `webex_calling` | `WorkspaceWebexCalling` (optional) | Only when `type` is `webexCalling` |
 
 **Important:** Due to a backend limitation, `webex_calling` details are never returned by the workspace GET API. They are only used when creating a workspace.
 
 #### WorkspaceWebexCalling
 
-```python
-class WorkspaceWebexCalling(ApiModel):
-    phone_number: Optional[str]
-    extension: Optional[str]
-    location_id: Optional[str]        # Calling location ID
-    licenses: Optional[list[str]]     # Webex Calling license IDs
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `phone_number` | `str` (optional) | Direct phone number |
+| `extension` | `str` (optional) | Extension |
+| `location_id` | `str` (optional) | Calling location ID |
+| `licenses` | `list[str]` (optional) | Webex Calling license IDs |
 
 #### Workspace
 
-The main workspace model with all fields:
+The main workspace object, with all fields:
 
-```python
-class Workspace(ApiModel):
-    workspace_id: Optional[str]                            # alias: 'id'
-    org_id: Optional[str]
-    location_id: Optional[str]                             # preferred; use /locations API
-    workspace_location_id: Optional[str]                   # legacy; prefer location_id
-    floor_id: Optional[str]
-    display_name: Optional[str]
-    capacity: Optional[int]
-    workspace_type: Optional[WorkSpaceType]                # alias: 'type'
-    sip_address: Optional[str]
-    created: Optional[datetime.datetime]
-    calling: Optional[WorkspaceCalling]
-    hybrid_calling: Optional[WorkspaceEmail]
-    calendar: Optional[Calendar]
-    notes: Optional[str]
-    hotdesking_status: Optional[HotdeskingStatus]
-    supported_devices: Optional[WorkspaceSupportedDevices]
-    device_hosted_meetings: Optional[DeviceHostedMeetings]
-    device_platform: Optional[DevicePlatform]
-    indoor_navigation: Optional[WorkspaceIndoorNavigation]
-    health: Optional[WorkspaceHealth]
-    devices: Optional[list[Device]]
-    capabilities: Optional[CapabilityMap]
-    planned_maintenance: Optional[WorkspacePlannedMaintenance]
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `workspace_id` | `str` (optional, alias `id`) | Workspace ID |
+| `org_id` | `str` (optional) | Organization ID |
+| `location_id` | `str` (optional) | Preferred location ID; use the `/locations` API |
+| `workspace_location_id` | `str` (optional) | Legacy; prefer `location_id` |
+| `floor_id` | `str` (optional) | Floor ID |
+| `display_name` | `str` (optional) | Workspace display name |
+| `capacity` | `int` (optional) | Workspace capacity |
+| `workspace_type` | `WorkSpaceType` (optional, alias `type`) | Workspace type |
+| `sip_address` | `str` (optional, read-only) | SIP address |
+| `created` | `datetime` (optional, read-only) | Creation timestamp |
+| `calling` | `WorkspaceCalling` (optional) | Calling configuration |
+| `hybrid_calling` | `str` (optional) | Hybrid calling detail |
+| `calendar` | `Calendar` (optional) | Calendar integration |
+| `notes` | `str` (optional) | Free-text notes |
+| `hotdesking_status` | `HotdeskingStatus` (optional) | Hot desking status |
+| `supported_devices` | `WorkspaceSupportedDevices` (optional) | Supported device type |
+| `device_hosted_meetings` | object (optional) | Device-hosted meetings config |
+| `device_platform` | `DevicePlatform` (optional) | Device platform |
+| `indoor_navigation` | object (optional) | Indoor navigation config |
+| `health` | `WorkspaceHealth` (optional, read-only) | Workspace health status |
+| `devices` | list (optional, read-only) | Devices in the workspace |
+| `capabilities` | `CapabilityMap` (optional) | Sensor/feature capabilities |
+| `planned_maintenance` | object (optional) | Planned maintenance window |
 
 **Key constraints:**
 - `location_id` and `supported_devices` **cannot be changed** once set on creation.
 - `sip_address`, `created`, `health`, and `devices` are read-only.
-- Use `Workspace.create(display_name="name")` as a factory for minimal create payloads.
 
 #### CapabilityMap
 
 Sensor/feature capabilities of workspace devices:
 
-```python
-class CapabilityMap(ApiModel):
-    occupancy_detection: Optional[SupportAndConfiguredInfo]
-    presence_detection: Optional[SupportAndConfiguredInfo]
-    ambient_noise: Optional[SupportAndConfiguredInfo]
-    sound_level: Optional[SupportAndConfiguredInfo]
-    temperature: Optional[SupportAndConfiguredInfo]
-    air_quality: Optional[SupportAndConfiguredInfo]
-    relative_humidity: Optional[SupportAndConfiguredInfo]
-    hot_desking: Optional[SupportAndConfiguredInfo]
-    check_in: Optional[SupportAndConfiguredInfo]
-    adhoc_booking: Optional[SupportAndConfiguredInfo]
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `occupancy_detection` | `SupportAndConfiguredInfo` (optional) | Occupancy detection capability |
+| `presence_detection` | `SupportAndConfiguredInfo` (optional) | Presence detection capability |
+| `ambient_noise` | `SupportAndConfiguredInfo` (optional) | Ambient noise sensing capability |
+| `sound_level` | `SupportAndConfiguredInfo` (optional) | Sound level sensing capability |
+| `temperature` | `SupportAndConfiguredInfo` (optional) | Temperature sensing capability |
+| `air_quality` | `SupportAndConfiguredInfo` (optional) | Air quality sensing capability |
+| `relative_humidity` | `SupportAndConfiguredInfo` (optional) | Relative humidity sensing capability |
+| `hot_desking` | `SupportAndConfiguredInfo` (optional) | Hot desking capability |
+| `check_in` | `SupportAndConfiguredInfo` (optional) | Check-in capability |
+| `adhoc_booking` | `SupportAndConfiguredInfo` (optional) | Ad-hoc booking capability |
 
-Each `SupportAndConfiguredInfo` has `.supported` (bool) and `.configured` (bool).
+Each `SupportAndConfiguredInfo` object has `supported` (bool) and `configured` (bool) fields.
 
 #### WorkspaceHealth
 
-```python
-class WorkspaceHealth(ApiModel):
-    level: Optional[WorkspaceHealthLevel]          # error | warning | info | ok
-    issues: Optional[list[WorkspaceHealthIssue]]
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `level` | `WorkspaceHealthLevel` (optional) | Overall health: `error`, `warning`, `info`, or `ok` |
+| `issues` | `list[WorkspaceHealthIssue]` (optional) | List of health issues |
 
 Each `WorkspaceHealthIssue` has: `id`, `created_at`, `title`, `description`, `recommended_action`, `level`.
 
-### WorkspacesApi Methods
+### Workspace API Behavior Notes
 
-#### list
+#### Listing workspaces
 
-```python
-def list(
-    self,
-    location_id: str = None,
-    workspace_location_id: str = None,        # deprecated, use location_id
-    floor_id: str = None,
-    display_name: str = None,
-    capacity: int = None,                     # -1 = no capacity set
-    workspace_type: WorkSpaceType = None,
-    calling: CallingType = None,
-    supported_devices: WorkspaceSupportedDevices = None,
-    calendar: CalendarType = None,
-    device_hosted_meetings_enabled: bool = None,
-    device_platform: DevicePlatform = None,
-    health_level: WorkspaceHealthLevel = None,
-    include_devices: bool = None,
-    include_capabilities: bool = None,
-    planned_maintenance: MaintenanceMode = None,
-    custom_attribute: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[Workspace, None, None]
-```
+`GET /v1/workspaces` returns a paginated list of workspaces, filterable by location, floor, display name, capacity, workspace type, calling type, supported devices, calendar type, device-hosted-meetings flag, device platform, health level, and custom attribute. Pass `includeDevices=true` to embed device details, and `includeCapabilities=true` to embed the capability map, in the response.
 
-Returns a paginated generator of `Workspace` instances. Use `include_devices=True` to embed device details in the response.
+#### Creating a workspace
 
-#### create
-
-```python
-def create(
-    self,
-    settings: Workspace,
-    org_id: str = None
-) -> Workspace
-```
-
-Creates a new workspace. Omitting `calling` defaults to free calling. Omitting `calendar` defaults to no calendar.
+`POST /v1/workspaces` creates a new workspace. Omitting `calling` defaults to free calling; omitting `calendar` defaults to no calendar.
 
 **Webex Calling workspace requirements (non-hotdesk):**
-- `location_id` is required
-- Either `phone_number` or `extension` (or both) in `webex_calling` is required
-- `licenses` list is optional; if omitted, the oldest suitable license is auto-applied
+- `locationId` is required
+- Either `phoneNumber` or `extension` (or both) under `calling.webexCalling` is required
+- `licenses` is optional; if omitted, the oldest suitable license is auto-applied
 
 **Hot desk only workspace restrictions:**
-- `phone_number` and `extension` are not applicable
-- `device_hosted_meetings` and `calendar` are not applicable
+- `phoneNumber` and `extension` are not applicable
+- `deviceHostedMeetings` and `calendar` are not applicable
 
-#### details
+#### Workspace details
 
-```python
-def details(
-    self,
-    workspace_id: str,
-    include_devices: bool = None
-) -> Workspace
-```
+`GET /v1/workspaces/{workspaceId}` returns full details for a single workspace. Pass `includeDevices=true` to embed device details.
 
-Get full details for a single workspace by ID.
+#### Updating a workspace
 
-#### update
-
-```python
-def update(
-    self,
-    workspace_id: str,
-    settings: Workspace
-) -> Workspace
-```
-
-Updates a workspace. Include all fields from a GET response. Omitting optional fields (`capacity`, `type`, `notes`) clears them. `location_id`, `supported_devices`, `calendar`, and `calling` are preserved when omitted.
+`PUT /v1/workspaces/{workspaceId}` updates a workspace. Include all fields from a GET response — omitting optional fields (`capacity`, `type`, `notes`) clears them. `locationId`, `supportedDevices`, `calendar`, and `calling` are preserved when omitted.
 
 **Restrictions:**
-- `calling` can only be updated if current type is `freeCalling`, `none`, `thirdPartySipCalling`, or `webexCalling`.
+- `calling` can only be updated if the current type is `freeCalling`, `none`, `thirdPartySipCalling`, or `webexCalling`.
 - Cannot change `calling` to `none`, `thirdPartySipCalling`, or `webexCalling` if devices are present.
-- `location_id` and `supported_devices` cannot be changed after initial creation.
+- `locationId` and `supportedDevices` cannot be changed after initial creation.
 
-#### delete_workspace
+#### Deleting a workspace
 
-```python
-def delete_workspace(
-    self,
-    workspace_id: str
-) -> None
-```
+`DELETE /v1/workspaces/{workspaceId}` deletes the workspace and all associated devices. Deleted devices must be reactivated.
 
-Deletes the workspace and all associated devices. Deleted devices must be reactivated.
+#### Workspace capabilities
 
-#### capabilities
-
-```python
-def capabilities(
-    self,
-    workspace_id: str
-) -> CapabilityMap
-```
-
-Returns the capability map (sensor/feature status) for a workspace.
+`GET /v1/workspaces/{workspaceId}/capabilities` returns the capability map (sensor/feature status) for a workspace.
 
 ---
 
 ## Workspace Settings API
 
-`api.workspace_settings` — calling-related settings for workspaces. Most settings mirror the person settings API; pass the workspace ID as the `person_id` parameter.
+Calling-related settings for workspaces. Most settings mirror the person call settings API (see the `person-call-settings-*.md` reference docs), addressed by workspace ID instead of person ID.
 
-### Calling Settings Sub-APIs
+### Calling Settings Reference
 
-All sub-APIs below use `ApiSelector.workspace` internally. When calling methods on these, pass the **workspace ID** as the `person_id` parameter.
+The settings below are exposed under `/telephony/config/workspaces/{workspaceId}/{endpoint}` (Professional-licensed workspaces) or `/workspaces/{workspaceId}/features/{endpoint}` (Basic-compatible subset) — see the [license tier table](#key-patterns-and-gotchas) for which path applies to each.
 
-| Attribute | API Class | Purpose |
+| Setting | Endpoint Segment | Purpose |
 |-----------|-----------|---------|
-| `anon_calls` | `AnonCallsApi` | Anonymous call rejection |
-| `barge` | `BargeApi` | Barge-in settings |
-| `call_bridge` | `CallBridgeApi` | Call bridge settings |
-| `call_intercept` | `CallInterceptApi` | Call intercept |
-| `call_policy` | `CallPolicyApi` | Call policy |
-| `call_waiting` | `CallWaitingApi` | Call waiting |
-| `caller_id` | `CallerIdApi` | Caller ID configuration |
-| `dnd` | `DndApi` | Do Not Disturb |
-| `ecbn` | `ECBNApi` | Emergency callback number |
-| `forwarding` | `PersonForwardingApi` | Call forwarding rules |
-| `monitoring` | `MonitoringApi` | Monitoring (busy lamp field) |
-| `music_on_hold` | `MusicOnHoldApi` | Music on hold |
-| `permissions_in` | `IncomingPermissionsApi` | Incoming call permissions |
-| `permissions_out` | `OutgoingPermissionsApi` | Outgoing call permissions |
-| `priority_alert` | `PriorityAlertApi` | Priority alert |
-| `privacy` | `PrivacyApi` | Privacy settings |
-| `push_to_talk` | `PushToTalkApi` | Push to talk |
-| `selective_accept` | `SelectiveAcceptApi` | Selective call acceptance |
-| `selective_forward` | `SelectiveForwardApi` | Selective call forwarding |
-| `selective_reject` | `SelectiveRejectApi` | Selective call rejection |
-| `sequential_ring` | `SequentialRingApi` | Sequential ring |
-| `sim_ring` | `SimRingApi` | Simultaneous ring |
-| `voicemail` | `VoicemailApi` | Voicemail settings |
-| `available_numbers` | `AvailableNumbersApi` | Available number lookup |
+| Anonymous call reject | `anonymousCallReject` | Anonymous call rejection |
+| Barge in | `bargeIn` | Barge-in settings |
+| Call bridge | `callBridge` | Call bridge settings |
+| Call intercept | `intercept` | Call intercept |
+| Call policy | `callPolicies` | Call policy |
+| Call waiting | `callWaiting` | Call waiting |
+| Caller ID | `callerId` | Caller ID configuration |
+| Do Not Disturb | `doNotDisturb` | Do Not Disturb |
+| Emergency callback number | `ecbn` | Emergency callback number |
+| Call forwarding | `callForwarding` | Call forwarding rules |
+| Monitoring | `monitoring` | Monitoring (busy lamp field) |
+| Music on hold | `musicOnHold` | Music on hold |
+| Incoming permissions | `incomingPermission` | Incoming call permissions |
+| Outgoing permissions | `outgoingPermission` | Outgoing call permissions |
+| Priority alert | `priorityAlert` | Priority alert |
+| Privacy | `privacy` | Privacy settings |
+| Push to talk | `pushToTalk` | Push to talk |
+| Selective accept | `selectiveAccept` | Selective call acceptance |
+| Selective forward | `selectiveForward` | Selective call forwarding |
+| Selective reject | `selectiveReject` | Selective call rejection |
+| Sequential ring | `sequentialRing` | Sequential ring |
+| Simultaneous ring | `simultaneousRing` | Simultaneous ring |
+| Voicemail | `voicemail` | Voicemail settings |
+| Available numbers | `availableNumbers` | Available number lookup |
 
 ### Workspace Devices API
 
-`api.workspace_settings.devices` — manages telephony devices assigned to a workspace.
+Manages telephony devices assigned to a workspace.
 
-**Base path:** `telephony/config/workspaces`
+**Base endpoint:** `/v1/telephony/config/workspaces/{workspaceId}/devices`
 
-#### list
+#### Listing workspace telephony devices
 
-```python
-def list(
-    self,
-    workspace_id: str,
-    org_id: str = None
-) -> Generator[TelephonyDevice, None, None]
-```
+`GET /v1/telephony/config/workspaces/{workspaceId}/devices` returns a paginated list of telephony devices for the workspace. The same response also includes device count metadata by type, in a single non-paginated payload.
 
-Returns a paginated generator of `TelephonyDevice` instances for the workspace.
+#### Modifying hoteling
 
-#### list_and_counts
-
-```python
-def list_and_counts(
-    self,
-    workspace_id: str,
-    org_id: str = None
-) -> DeviceList
-```
-
-Returns a `DeviceList` object with devices and count metadata (not paginated — single response).
-
-#### modify_hoteling
-
-```python
-def modify_hoteling(
-    self,
-    workspace_id: str,
-    hoteling: Hoteling,
-    org_id: str = None
-) -> None
-```
-
-Modifies hoteling settings for workspace devices. The `Hoteling` model comes from `wxc_sdk.person_settings`.
+`PUT /v1/telephony/config/workspaces/{workspaceId}/devices/hoteling` modifies hoteling settings for workspace devices (`enabled`, `limitGuestUse`, `guestHotelingLimit`).
 
 ### Workspace Numbers API
 
-`api.workspace_settings.numbers` — manages PSTN phone numbers associated with a workspace.
+**Base endpoint:** `/v1/telephony/config/workspaces/{workspaceId}/numbers` — manages PSTN phone numbers associated with a workspace.
 
 #### Data Models
 
-```python
-class WorkspaceNumbers(ApiModel):
-    distinctive_ring_enabled: Optional[bool]
-    phone_numbers: list[UserNumber]          # primary and alternate numbers
-    workspace: IdOnly                         # workspace identifier
-    location: IdAndName                       # location identifier + name
-    organization: IdAndName                   # org identifier + name
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `distinctive_ring_enabled` | `bool` (optional) | Distinctive ring enabled |
+| `phone_numbers` | `list[UserNumber]` | Primary and alternate numbers |
+| `workspace` | `IdOnly` | Workspace identifier |
+| `location` | `IdAndName` | Location identifier + name |
+| `organization` | `IdAndName` | Organization identifier + name |
 
-```python
-class UpdateWorkspacePhoneNumber(ApiModel):
-    primary: Optional[bool]                  # marks as primary number
-    action: Optional[PatternAction]          # 'ADD' or 'DELETE'
-    direct_number: Optional[str]             # E.164 phone number
-    extension: Optional[str]                 # extension
-    ring_pattern: Optional[RingPattern]      # ring pattern for this number
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `primary` | `bool` (optional) | Marks as primary number |
+| `action` | `PatternAction` (optional) | `ADD` or `DELETE` |
+| `direct_number` | `str` (optional) | E.164 phone number |
+| `extension` | `str` (optional) | Extension |
+| `ring_pattern` | `RingPattern` (optional) | Ring pattern for this number |
 
-#### read
+#### Reading workspace numbers
 
-```python
-def read(
-    self,
-    workspace_id: str,
-    org_id: str = None
-) -> WorkspaceNumbers
-```
+`GET /v1/telephony/config/workspaces/{workspaceId}/numbers` lists PSTN phone numbers associated with the workspace, including location and organization info.
 
-Lists PSTN phone numbers associated with the workspace, including location and organization info.
+#### Updating workspace numbers
 
-#### update
-
-```python
-def update(
-    self,
-    workspace_id: str,
-    phone_numbers: list[UpdateWorkspacePhoneNumber],
-    distinctive_ring_enabled: bool = None,
-    org_id: str = None
-) -> None
-```
-
-Assign or unassign alternate phone numbers. Phone numbers must follow E.164 format (National format also accepted for US).
+`PUT /v1/telephony/config/workspaces/{workspaceId}/numbers` assigns or unassigns alternate phone numbers. Phone numbers must follow E.164 format (national format also accepted for US).
 
 **Note:** This API is only available for **professional licensed** workspaces.
 
@@ -432,173 +306,88 @@ Assign or unassign alternate phone numbers. Phone numbers must follow E.164 form
 
 ## Workspace Locations API (Legacy)
 
-> **Deprecation warning:** The SDK logs `'use of the workspace locations API is not recommended. use locations API instead'` on every call. Prefer the `/locations` API (`api.locations`) for new integrations.
+> **Deprecation warning:** This is a legacy API. Prefer the `/locations` API for new integrations.
 
-`api.workspace_locations` — manages legacy workspace location records (physical location metadata with coordinates).
+**Base endpoint:** `/v1/workspaceLocations` — manages legacy workspace location records (physical location metadata with coordinates).
 
 ### Workspace Location Data Models
 
 #### WorkspaceLocation
 
-```python
-class WorkspaceLocation(ApiModel):
-    id: str
-    location_id: Optional[str]
-    display_name: str
-    address: str
-    country_code: str                # ISO 3166-1
-    city_name: str
-    longitude: Optional[float]
-    latitude: Optional[float]
-    notes: Optional[str]
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `str` | Workspace location ID |
+| `location_id` | `str` (optional) | Associated `/locations` location ID |
+| `display_name` | `str` | Display name |
+| `address` | `str` | Street address |
+| `country_code` | `str` | ISO 3166-1 country code |
+| `city_name` | `str` | City name |
+| `longitude` | `float` (optional) | Longitude |
+| `latitude` | `float` (optional) | Latitude |
+| `notes` | `str` (optional) | Free-text notes |
 
-Helper properties:
-- `.id_uuid` — extracts the UUID portion from the base64-encoded ID
-- `.org_id_uuid` — extracts the org UUID from the base64-encoded ID
+Webex IDs (`id` and the org portion) are base64-encoded; decode to extract the raw UUID if needed.
 
 #### WorkspaceLocationFloor
 
-```python
-class WorkspaceLocationFloor(ApiModel):
-    id: str
-    location_id: str
-    floor_number: int
-    display_name: str
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `str` | Floor ID |
+| `location_id` | `str` | Workspace location ID |
+| `floor_number` | `int` | Floor number |
+| `display_name` | `str` | Floor display name |
 
-### WorkspaceLocationApi Methods
+### Workspace Location API Behavior Notes
 
-#### list
+#### Listing workspace locations
 
-```python
-def list(
-    self,
-    display_name: str = None,
-    address: str = None,
-    country_code: str = None,
-    city_name: str = None,
-    org_id: str = None,
-    **params
-) -> Generator[WorkspaceLocation, None, None]
-```
+`GET /v1/workspaceLocations` returns a paginated list, filterable by `displayName`, `address`, `countryCode`, and `cityName`.
 
-#### create
+#### Creating a workspace location
 
-```python
-def create(
-    self,
-    display_name: str,
-    address: str,
-    country_code: str,
-    latitude: float,
-    longitude: float,
-    city_name: str = None,
-    notes: str = None,
-    org_id: str = None
-) -> WorkspaceLocation
-```
+`POST /v1/workspaceLocations` creates a workspace location. Requires `displayName`, `address`, `countryCode`, `latitude`, and `longitude`; `cityName` and `notes` are optional.
 
-#### details
+#### Workspace location details
 
-```python
-def details(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> WorkspaceLocation
-```
+`GET /v1/workspaceLocations/{locationId}` returns details for a single workspace location.
 
-#### update
+#### Updating a workspace location
 
-```python
-def update(
-    self,
-    location_id: str,
-    settings: WorkspaceLocation,
-    org_id: str = None
-) -> WorkspaceLocation
-```
+`PUT /v1/workspaceLocations/{locationId}` updates a workspace location. Include all fields from a GET response — omitting `cityName` or `notes` clears them.
 
-Include all fields from a GET response. Omitting `city_name` or `notes` (setting to `None`) clears them.
+#### Deleting a workspace location
 
-#### delete
-
-```python
-def delete(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> None
-```
-
-Workspaces associated with the deleted location lose their location but can be reassigned.
+`DELETE /v1/workspaceLocations/{locationId}` deletes a workspace location. Workspaces associated with the deleted location lose their location but can be reassigned.
 
 ### Floor Management
 
-`api.workspace_locations.floors` — CRUD for floors within a workspace location.
+**Base endpoint:** `/v1/workspaceLocations/{locationId}/floors` — CRUD for floors within a workspace location.
 
-#### floors.list
+#### Listing floors
 
-```python
-def list(
-    self,
-    location_id: str,
-    org_id: str = None
-) -> Generator[WorkspaceLocationFloor, None, None]
-```
+`GET /v1/workspaceLocations/{locationId}/floors` returns a paginated list of floors for the location.
 
-#### floors.create
+#### Creating a floor
 
-```python
-def create(
-    self,
-    location_id: str,
-    floor_number: int,
-    display_name: str = None,
-    org_id: str = None
-) -> WorkspaceLocationFloor
-```
+`POST /v1/workspaceLocations/{locationId}/floors` creates a floor. Requires `floorNumber`; `displayName` is optional.
 
-#### floors.details
+#### Floor details
 
-```python
-def details(
-    self,
-    location_id: str,
-    floor_id: str,
-    org_id: str = None
-) -> WorkspaceLocationFloor
-```
+`GET /v1/workspaceLocations/{locationId}/floors/{floorId}` returns details for a single floor.
 
-#### floors.update
+#### Updating a floor
 
-```python
-def update(
-    self,
-    location_id: str,
-    floor_id: str,
-    settings: WorkspaceLocationFloor,
-    org_id: str = None
-) -> WorkspaceLocationFloor
-```
+`PUT /v1/workspaceLocations/{locationId}/floors/{floorId}` updates a floor.
 
-#### floors.delete
+#### Deleting a floor
 
-```python
-def delete(
-    self,
-    location_id: str,
-    floor_id: str,
-    org_id: str = None
-) -> None
-```
+`DELETE /v1/workspaceLocations/{locationId}/floors/{floorId}` deletes a floor.
 
 ---
 
 ## Workspace Personalization API
 
-`api.workspace_personalization` — enables Personal Mode on Webex Edge registered devices. This is a one-time migration operation from on-premise to cloud-registered personal mode.
+**Base endpoint:** `/v1/workspaces/{workspaceId}/personalize` (initiate) and `/v1/workspaces/{workspaceId}/personalizationTask` (status) — enables Personal Mode on Webex Edge registered devices. This is a one-time migration operation from on-premise to cloud-registered personal mode.
 
 **Applies only to Webex Edge registered devices.**
 
@@ -608,36 +397,20 @@ def delete(
 - Workspace must have **no calendars** configured
 - The device must be **online**
 
-### personalize_a_workspace
+### Personalizing a workspace
 
-```python
-def personalize_a_workspace(
-    self,
-    workspace_id: str,
-    email: str
-) -> None
-```
+`POST /v1/workspaces/{workspaceId}/personalize` initiates asynchronous personalization for the given user email (in the request body). Returns a `Location` header with a URL pointing to the task status endpoint. The task typically completes in ~30 seconds.
 
-Initiates asynchronous personalization for the given user email. Returns a `Location` header with a URL pointing to the task status endpoint. The task typically completes in ~30 seconds.
+### Personalization task status
 
-### get_personalization_task
+`GET /v1/workspaces/{workspaceId}/personalizationTask` returns task status:
+- While in progress: returns `202 Accepted` with a `Retry-After` header
+- On completion: returns `200 OK` with a result body
 
-```python
-def get_personalization_task(
-    self,
-    workspace_id: str
-) -> WorkspacePersonalizationTaskResponse
-```
-
-Returns task status:
-- While in progress: returns `Accepted` with `Retry-After` header
-- On completion: returns `OK` with result body
-
-```python
-class WorkspacePersonalizationTaskResponse(ApiModel):
-    success: Optional[bool]
-    error_description: Optional[str]      # populated on failure
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `bool` (optional) | Whether personalization succeeded |
+| `error_description` | `str` (optional) | Populated on failure |
 
 ---
 
@@ -655,146 +428,15 @@ Partner administrators can manage workspaces in other organizations by supplying
 
 ---
 
-## Code Examples
-
-### Create a Webex Calling workspace with a 3rd-party phone
-
-From `workspace_w_3rd_party.py` — the key provisioning logic:
-
-```python
-from wxc_sdk.workspaces import (
-    CallingType, Workspace, WorkspaceCalling,
-    WorkspaceSupportedDevices, WorkspaceWebexCalling,
-)
-from wxc_sdk.common import DevicePlatform
-
-# Build workspace settings
-settings = Workspace(
-    location_id=location.location_id,
-    display_name="My Workspace",
-    type=WorkSpaceType.desk,
-    capacity=1,
-    supported_devices=WorkspaceSupportedDevices.phones,
-    device_platform=DevicePlatform.cisco,
-    calling=WorkspaceCalling(
-        type=CallingType.webex,
-        webex_calling=WorkspaceWebexCalling(
-            licenses=[calling_license_id],
-            extension="2001",
-            location_id=location.location_id,
-        ),
-    ),
-)
-
-# Create the workspace
-workspace = await api.workspaces.create(settings=settings)
-
-# Create a device in the workspace by MAC address
-device = await api.devices.create_by_mac_address(
-    mac="DEADDEAD0001",
-    workspace_id=workspace.workspace_id,
-    model="Generic IPPhone Customer Managed",
-    password="generated_password",
-)
-
-# Get device details (SIP credentials, outbound proxy)
-details = await api.telephony.devices.details(device_id=device.device_id)
-sip_user = details.owner.sip_user_name
-line_port = details.owner.line_port
-outbound_proxy = details.proxy.outbound_proxy
-```
-
-### Add a user as secondary line on a workspace device
-
-From `workspaces_and_users.py`:
-
-```python
-from wxc_sdk.common import UserType
-from wxc_sdk.telephony.devices import DeviceMember
-
-# Find workspace by name
-ws_list = await api.workspaces.list(display_name='Classroom')
-target_ws = next(ws for ws in ws_list if ws.display_name == 'Classroom')
-
-# Get devices in the workspace
-ws_devices = await api.workspace_settings.devices.list(
-    workspace_id=target_ws.workspace_id
-)
-
-# Get current members for each device
-device_members = await asyncio.gather(
-    *[api.telephony.devices.members(device_id=d.device_id) for d in ws_devices]
-)
-
-# Keep the workspace (place) membership as line 1, add user as line 2
-for device, dmr in zip(ws_devices, device_members):
-    new_members = [m for m in dmr.members if m.member_type == UserType.place]
-    new_members.append(DeviceMember(member_id=user.person_id))
-    await api.telephony.devices.update_members(
-        device_id=device.device_id, members=new_members
-    )
-    await api.telephony.devices.apply_changes(device_id=device.device_id)
-```
-
-### List workspaces filtered by calling type
-
-```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.workspaces import CallingType
-
-api = WebexSimpleApi(tokens=tokens)
-
-# Get all Webex Calling workspaces with device details
-for ws in api.workspaces.list(calling=CallingType.webex, include_devices=True):
-    print(f"{ws.display_name} — SIP: {ws.sip_address}")
-    if ws.devices:
-        for device in ws.devices:
-            print(f"  Device: {device.display_name}")
-```
-
-### Read and update workspace phone numbers
-
-```python
-# Read current numbers
-ws_numbers = api.workspace_settings.numbers.read(workspace_id=workspace_id)
-for num in ws_numbers.phone_numbers:
-    print(f"  {num.external} (primary={num.primary})")
-
-# Add an alternate number
-from wxc_sdk.workspace_settings.numbers import UpdateWorkspacePhoneNumber
-from wxc_sdk.common import PatternAction
-
-api.workspace_settings.numbers.update(
-    workspace_id=workspace_id,
-    phone_numbers=[
-        UpdateWorkspacePhoneNumber(
-            action=PatternAction.add,       # PatternAction.add = 'ADD', PatternAction.delete = 'DELETE'
-            direct_number="+14155551234",
-            primary=False,
-        )
-    ],
-)
-```
-
-### Delete a workspace
-
-```python
-# WARNING: Also deletes all associated devices (they must be reactivated)
-await api.workspaces.delete_workspace(workspace_id=workspace.workspace_id)
-```
-
----
-
 ## Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
-All workspace operations can be performed via raw HTTP using `api.session.rest_*()`. This is the preferred execution pattern -- wxc_sdk handles auth and session management, while you control the exact request.
+All workspace operations can be performed via raw HTTP using `api.session.rest_*()`. This is the preferred execution pattern — the authenticated client handles auth and session management, while you control the exact request.
 
 ```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.rest import RestError
+from wxcli.auth import get_api
 
-api = WebexSimpleApi()
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -1335,9 +977,9 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
 
 3. **`webex_calling` details not returned on GET** — Due to a backend limitation, the `WorkspaceCalling.webex_calling` field is never populated in API responses. It is only used when creating a workspace.
 
-4. **Workspace settings mirror person settings** — Most `api.workspace_settings.*` sub-APIs are the same classes used for person settings but with `ApiSelector.workspace`. Pass the workspace ID as `person_id`.
+4. **Workspace settings mirror person settings** — Most workspace calling-settings endpoints are the same underlying settings used for person call settings, addressed by workspace ID instead of person ID (see the [Calling Settings Reference](#calling-settings-reference) table).
 
-5. **Workspace Locations API is deprecated** — The SDK emits a warning on every call. Use `api.locations` instead for new code.
+5. **Workspace Locations API is deprecated** — Use the `/locations` API instead for new integrations (`wxcli locations`).
 
 6. **Hot desk workspaces** — When creating with `hotdesking_status=on`, `phone_number`, `extension`, `device_hosted_meetings`, and `calendar` are not applicable and will cause errors if provided.
 
