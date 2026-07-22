@@ -2,8 +2,6 @@
 
 SDK reference for person-level settings that control calling behavior, application/device configuration, shared lines, hoteling, receptionist, number management, preferred answer endpoints, MS Teams integration, mode management, personal assistant, and emergency callback numbers.
 
-**Source**: `wxc_sdk.person_settings` submodules
-
 ---
 
 ## Table of Contents
@@ -29,8 +27,6 @@ SDK reference for person-level settings that control calling behavior, applicati
 ---
 
 ## 1. Common Base Classes
-
-**Source**: `wxc_sdk/person_settings/common.py`
 
 ### Two Path Families
 
@@ -89,7 +85,6 @@ wxcli user-settings show-hoteling <personId>
 
 ## 2. Calling Behavior
 
-**Source**: `wxc_sdk/person_settings/calling_behavior.py`
 **API class**: `CallingBehaviorApi` (extends `PersonSettingsApiChild`, feature=`'callingBehavior'`)
 
 Controls which Webex telephony application handles calls for a person. The organization has a default; individual persons can override it.
@@ -142,8 +137,8 @@ Update the calling behavior. The `effective_behavior_type` field is excluded fro
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read calling behavior
@@ -168,7 +163,6 @@ api.session.rest_put(url, json=body)
 
 ## 3. App Services
 
-**Source**: `wxc_sdk/person_settings/appservices.py`
 **API class**: `AppServicesApi` (extends `ApiChild`, base=`''`)
 
 Controls ringing behavior for specific scenarios (Click to Dial, Group Page, Call Park recalled) and which client platforms (browser, desktop, tablet, mobile) can use the Webex Calling application.
@@ -224,8 +218,8 @@ Update app services settings.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read application services settings
@@ -253,14 +247,13 @@ api.session.rest_put(url, json=body)
 
 ## 4. App Shared Line
 
-**Source**: `wxc_sdk/person_settings/app_shared_line.py`
 **API class**: `AppSharedLineApi` (extends `ApiChild`, base=`'telephony/config/people'`)
 
 Manages shared-line appearance (SLA) members on Webex Calling apps. Like hardware devices, applications support additional shared lines that can be monitored and utilized.
 
 Accessed via `AppServicesApi.shared_line` or directly.
 
-### Referenced Data Models (from `wxc_sdk.telephony.devices`)
+### Referenced Data Models
 
 - **`AvailableMember`** -- a person/workspace available for shared-line assignment
 - **`DeviceMember`** -- a member currently assigned to a shared line
@@ -325,8 +318,8 @@ Pass an empty list (or `None`) to clear all members.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Search available members for shared-line assignment
@@ -355,7 +348,6 @@ api.session.rest_put(url, json=body)
 
 ## 5. Call Bridge
 
-**Source**: `wxc_sdk/person_settings/callbridge.py`
 **API class**: `CallBridgeApi` (extends `PersonSettingsApiChild`, feature=`'callBridge'`)
 
 Controls the UC-One call bridge feature (stutter dial tone when a person is bridged on an active shared line call).
@@ -400,8 +392,8 @@ Update call bridge settings.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read call bridge settings
@@ -429,7 +421,6 @@ wxcli user-settings update-call-bridge <personId> --warning-tone-enabled true
 
 ## 6. Hoteling
 
-**Source**: `wxc_sdk/person_settings/hoteling.py`
 **API class**: `HotelingApi` (extends `PersonSettingsApiChild`, feature=`'hoteling'`)
 
 Enables a person's phone profile (number, features, calling plan) to be temporarily loaded onto a shared (host) phone.
@@ -463,8 +454,8 @@ Enable or disable hoteling for a person.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read hoteling settings
@@ -482,13 +473,12 @@ api.session.rest_put(url, json=body)
 
 ### Gotchas
 
-- **Person-level hoteling API may be incomplete.** The wxc_sdk source contains a TODO: "this seems to be wrong. For workspace devices methods exist with complete coverage for all hoteling settings." The person-level API only exposes a single boolean toggle (`enabled`), while workspace-level hoteling has richer configuration including host/guest settings and time limits. If you need full hoteling host configuration, use the workspace/device-level APIs instead.
+- **Person-level hoteling API may be incomplete.** Unlike workspace devices, which have complete coverage for all hoteling settings, the person-level API only exposes a single boolean toggle (`enabled`), while workspace-level hoteling has richer configuration including host/guest settings and time limits. If you need full hoteling host configuration, use the workspace/device-level APIs instead.
 
 ---
 
 ## 7. Receptionist Client
 
-**Source**: `wxc_sdk/person_settings/receptionist.py`
 **API class**: `ReceptionistApi` (extends `PersonSettingsApiChild`, feature=`'reception'`)
 
 Configures a person as a telephone attendant who can screen incoming calls to certain numbers within the organization. The receptionist monitors a list of people and/or workspaces.
@@ -501,8 +491,6 @@ Configures a person as a telephone attendant who can screen incoming calls to ce
 |-------|------|-------------|
 | `enabled` | `Optional[bool]` | Enable/disable the receptionist client feature. Serialized as `receptionEnabled` (alias). |
 | `monitored_members` | `Optional[list[Union[str, MonitoredMember]]]` | People/workspaces to monitor. For updates, can be a list of plain ID strings. |
-
-**`MonitoredMember`** is from `wxc_sdk.common`.
 
 ### Methods
 
@@ -538,8 +526,8 @@ The member list is converted to a list of IDs for the API body (`monitoredMember
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read receptionist client settings
@@ -562,7 +550,6 @@ api.session.rest_put(url, json=body)
 
 ## 8. Numbers
 
-**Source**: `wxc_sdk/person_settings/numbers.py`
 **API class**: `NumbersApi` (extends `PersonSettingsApiChild`, feature=`'numbers'`)
 
 Manages a person's phone numbers, including primary and alternate numbers with distinctive ring patterns.
@@ -635,8 +622,8 @@ Note: The update endpoint uses a different URL path (`telephony/config/people/..
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read phone numbers (read path uses people/ prefix)
@@ -669,7 +656,6 @@ api.session.rest_put(url, json=body)
 
 ## 9. Available Numbers
 
-**Source**: `wxc_sdk/person_settings/available_numbers.py`
 **API class**: `AvailableNumbersApi` (extends `ApiChild`, base=`'telephony/config'`)
 
 Queries for phone numbers available for assignment to a person (or virtual line / workspace, depending on the `ApiSelector` used at construction). Each method targets a different assignment context.
@@ -804,8 +790,8 @@ List service and standard numbers available as call intercept numbers.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # List primary available numbers
@@ -861,7 +847,6 @@ wxcli user-settings list-available-numbers-call-intercept <personId>
 
 ## 10. Preferred Answer Endpoint
 
-**Source**: `wxc_sdk/person_settings/preferred_answer.py`
 **API class**: `PreferredAnswerApi` (extends `ApiChild`, base=`'telephony/config/people'`)
 
 Controls which device or application is the person's preferred answer endpoint. This preferred endpoint can be used by Call Control APIs: `/v1/telephony/calls/dial`, `/v1/telephony/calls/retrieve`, `/v1/telephony/calls/pickup`, `/v1/telephony/calls/barge-in`, `/v1/telephony/calls/answer`.
@@ -919,8 +904,8 @@ Set or clear the preferred answer endpoint. Pass `None` for `preferred_answer_en
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read preferred answer endpoint
@@ -952,8 +937,6 @@ wxcli user-settings update-preferred-answer-endpoint <personId> --preferred-answ
 ---
 
 ## 11. MS Teams
-
-**Source**: `wxc_sdk/person_settings/msteams.py`
 
 Two API classes: one for person-level settings, one for org-level settings.
 
@@ -1042,8 +1025,8 @@ Update an org-level MS Teams setting. Valid `setting_name` values: `HIDE_WEBEX_A
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read person-level MS Teams settings
@@ -1093,7 +1076,6 @@ wxcli client-settings update --setting-name HIDE_WEBEX_APP --no-value
 
 ## 12. Mode Management
 
-**Source**: `wxc_sdk/person_settings/mode_management.py`
 **API class**: `ModeManagementApi` (extends `ApiChild`, base=`'telephony/config/people'`)
 
 Manages operating mode assignments for a person. Feature identifiers (Auto Attendants, Call Queues, Hunt Groups) with mode-based call forwarding enabled can be assigned to a user. Maximum of 50 features per user.
@@ -1190,8 +1172,8 @@ Assign features for mode management. Max 50 features.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # List available features for mode management
@@ -1231,7 +1213,6 @@ wxcli mode-management switch-to-normal <featureId>
 
 ## 13. Personal Assistant
 
-**Source**: `wxc_sdk/person_settings/personal_assistant.py`
 **API class**: `PersonalAssistantApi` (extends `ApiChild`, base=`''`)
 
 Manages a user's incoming calls when they are away. Supports presence status, call transfer, and alerting behavior.
@@ -1301,8 +1282,8 @@ Update personal assistant settings. Only fields that are set (not unset) are inc
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read personal assistant settings
@@ -1327,7 +1308,6 @@ api.session.rest_put(url, json=body)
 
 ## 14. Emergency Callback Number (ECBN)
 
-**Source**: `wxc_sdk/person_settings/ecbn.py`
 **API class**: `ECBNApi` (extends `PersonSettingsApiChild`, feature=`'emergencyCallbackNumber'`)
 
 Manages the Emergency Callback Number for a person (also workspaces and virtual lines). Extension-only users must be set up with accurate ECBNs to make emergency calls.
@@ -1454,8 +1434,8 @@ Retrieve ECBN dependencies -- whether this entity is used as a default ECBN by i
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read ECBN settings
@@ -1493,8 +1473,8 @@ Configures which users, call parks, and shared lines a person monitors (busy lam
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read monitoring settings
@@ -1550,13 +1530,13 @@ wxcli workspace-settings update-monitoring WORKSPACE_ID --enable-call-park-notif
 ## 16. Push-to-Talk
 <!-- Updated by playbook session 2026-03-18 -->
 
-Configures push-to-talk (intercom) settings for a person, including connection type, access control, and auto-answer. Present in the CLI but not yet in the wxc_sdk person_settings docs for this file.
+Configures push-to-talk (intercom) settings for a person, including connection type, access control, and auto-answer.
 
 ### Raw HTTP
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read push-to-talk settings
@@ -1591,7 +1571,7 @@ wxcli user-settings update-push-to-talk <personId> --json-body '{"allowAutoAnswe
 
 ## 17. Additional Discovered Endpoints
 
-The following endpoints were discovered via live API probing and are not yet covered by wxc_sdk person_settings modules. They all live under the telephony config path family.
+The following endpoints were discovered via live API probing. They all live under the telephony config path family.
 
 ### Hot Desking Guest
 

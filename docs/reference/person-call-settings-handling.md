@@ -3,7 +3,6 @@
 
 ## Sources
 
-- wxc_sdk v1.30.0 (PersonSettingsApi)
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Person Call Settings APIs
 
@@ -175,41 +174,6 @@ forwarding = PersonForwardingSetting.default()
 #        business_continuity=disabled
 ```
 
-### Example: Reset Call Forwarding for All Users
-
-From `examples/reset_call_forwarding.py` — uses the async API to reset forwarding in bulk:
-
-```python
-from wxc_sdk.all_types import PersonForwardingSetting
-from wxc_sdk.as_api import AsWebexSimpleApi
-
-async with AsWebexSimpleApi() as api:
-    calling_users = [user for user in await api.people.list(calling_data=True)
-                     if user.location_id]
-
-    forwarding = PersonForwardingSetting.default()
-    await asyncio.gather(*[
-        api.person_settings.forwarding.configure(
-            entity_id=user.person_id,
-            forwarding=forwarding
-        )
-        for user in calling_users
-    ])
-```
-
-### Example: Enable Always-Forward
-
-```python
-settings = api.person_settings.forwarding.read(entity_id=person_id)
-settings.call_forwarding.always = CallForwardingAlways(
-    enabled=True,
-    destination='+12223334444',
-    destination_voicemail_enabled=True,
-    ring_reminder_enabled=True
-)
-api.person_settings.forwarding.configure(entity_id=person_id, forwarding=settings)
-```
-
 ### CLI Examples
 
 ```bash
@@ -233,8 +197,8 @@ wxcli user-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read call forwarding settings
@@ -305,16 +269,6 @@ CallWaitingApi.configure(
 
 **Scopes:** `spark-admin:people_write` or `spark:people_write`
 
-### Example
-
-```python
-# Check if call waiting is enabled
-is_enabled = api.person_settings.call_waiting.read(entity_id=person_id)
-
-# Disable call waiting
-api.person_settings.call_waiting.configure(entity_id=person_id, enabled=False)
-```
-
 ### CLI Examples
 
 ```bash
@@ -332,8 +286,8 @@ wxcli user-settings update-call-waiting Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --n
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read call waiting
@@ -388,18 +342,6 @@ DndApi.configure(
 
 **Scopes:** `spark-admin:people_write` or `spark:people_write`
 
-### Example
-
-```python
-from wxc_sdk.person_settings.dnd import DND
-
-# Enable DND with ring splash
-api.person_settings.dnd.configure(
-    entity_id=person_id,
-    dnd_settings=DND(enabled=True, ring_splash_enabled=True)
-)
-```
-
 ### CLI Examples
 
 ```bash
@@ -422,8 +364,8 @@ wxcli user-settings update-do-not-disturb Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read DND settings
@@ -514,8 +456,8 @@ No dedicated CLI commands for Simultaneous Ring. Use Raw HTTP or the SDK.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read simultaneous ring settings
@@ -545,7 +487,6 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneou
 ### Gotchas
 
 - **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/simultaneousRing` and `people/{personId}/features/simultaneousRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/simultaneousRing` works, and it requires user-level OAuth.
-- `SimRingApi` may not be imported into `PersonSettingsApi` in some SDK versions.
 - The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
 ---
@@ -626,8 +567,8 @@ No dedicated CLI commands for Sequential Ring. Use Raw HTTP or the SDK.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read sequential ring settings
@@ -660,7 +601,6 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/sequentialR
 ### Gotchas
 
 - **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/sequentialRing` and `people/{personId}/features/sequentialRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/sequentialRing` works, and it requires user-level OAuth.
-- `SequentialRingApi` may not be imported into `PersonSettingsApi` in some SDK versions.
 - The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
 ---
@@ -775,8 +715,8 @@ wxcli single-number-reach list Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzU2Nzg=
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read Single Number Reach settings
@@ -903,8 +843,8 @@ wxcli user-settings delete-criteria-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1B
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read selective accept settings
@@ -1018,8 +958,8 @@ wxcli user-settings delete-criteria-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read selective forward settings
@@ -1122,8 +1062,8 @@ wxcli user-settings delete-criteria-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1B
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read selective reject settings
@@ -1205,8 +1145,8 @@ No dedicated CLI commands for Priority Alert. Use Raw HTTP or the SDK.
 <!-- Updated by playbook session 2026-03-18 -->
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # GET — read priority alert settings
@@ -1238,7 +1178,6 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/priorityAle
 ### Gotchas
 
 - **User-only endpoint.** No admin-level path exists. The path `telephony/config/people/{personId}/priorityAlert` returns 404 with an admin token. Only `/telephony/config/people/me/settings/priorityAlert` works, and it requires user-level OAuth.
-- `PriorityAlertApi` may not be imported into `PersonSettingsApi` in some SDK versions.
 - Criteria use `notificationEnabled` (not `enabled`) as the REST API field name.
 - Priority Alert only changes the ring pattern; it does not affect call routing or acceptance.
 
@@ -1306,8 +1245,6 @@ When multiple selective features are enabled simultaneously, the following prece
 3. **Selective Forward** — forwards matching calls; takes precedence over standard call forwarding
 4. **Standard Call Forwarding** (Always > Busy > No Answer > Business Continuity)
 
-<!-- Verified via wxc_sdk source (selective_reject.py) and OpenAPI spec 2026-03-19: Both sources confirm "This setting [Selective Reject] takes precedence over Selectively Accept Calls." The precedence order Selective Reject > Selective Accept > Selective Forward > Standard Forwarding is confirmed. Full interaction with Priority Alert and ring features remains undocumented in source. -->
-
 ---
 
 ## "Me" API Variants
@@ -1354,34 +1291,12 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 
 ---
 
-## Source Files
-
-| File | Contents |
-|------|----------|
-| `wxc_sdk/person_settings/__init__.py` | `PersonSettingsApi` — parent class aggregating all sub-APIs |
-| `wxc_sdk/person_settings/common.py` | `PersonSettingsApiChild` base class, `ApiSelector` enum |
-| `wxc_sdk/person_settings/forwarding.py` | `PersonForwardingApi`, forwarding data models |
-| `wxc_sdk/person_settings/call_waiting.py` | `CallWaitingApi` |
-| `wxc_sdk/person_settings/dnd.py` | `DndApi`, `DND` model |
-| `wxc_sdk/person_settings/sim_ring.py` | `SimRingApi`, `SimRing`, `SimRingNumber`, `SimRingCriteria` |
-| `wxc_sdk/person_settings/sequential_ring.py` | `SequentialRingApi`, `SequentialRing`, `SequentialRingNumber`, `SequentialRingCriteria` |
-| `wxc_sdk/person_settings/single_number_reach/__init__.py` | `SingleNumberReachApi`, `SingleNumberReach`, `SingleNumberReachNumber` |
-| `wxc_sdk/person_settings/selective_accept.py` | `SelectiveAcceptApi`, `SelectiveAccept`, `SelectiveAcceptCriteria` |
-| `wxc_sdk/person_settings/selective_forward.py` | `SelectiveForwardApi`, `SelectiveForward`, `SelectiveForwardCriteria` |
-| `wxc_sdk/person_settings/selective_reject.py` | `SelectiveRejectApi`, `SelectiveReject`, `SelectiveRejectCriteria` |
-| `wxc_sdk/person_settings/priority_alert.py` | `PriorityAlertApi`, `PriorityAlert`, `PriorityAlertCriteria` |
-| `wxc_sdk/common/selective.py` | `SelectiveCriteria` base, `SelectiveCrit`, `SelectiveFrom`, `SelectiveScheduleLevel` |
-| `examples/reset_call_forwarding.py` | Bulk reset forwarding example |
-
----
-
 ## Gotchas (Cross-Cutting)
 
 - **Four features are user-only (no admin access):** Simultaneous Ring, Sequential Ring, Priority Alert, and Call Notify only exist at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. There is no admin-level path — an admin cannot read or write these settings for another user. All other call handling features in this doc support admin-level access.
 - **Selective features remapped URLs:** Selective Accept, Selective Forward, and Selective Reject all use `telephony/config/people/{person_id}/` instead of `people/{person_id}/features/`. This remapping is transparent in the SDK but matters for raw HTTP and CLI usage.
 - **Enabled attribute naming varies by feature:** Each criteria-based feature uses a different REST field name for its enabled flag (`ringEnabled`, `acceptEnabled`, `forwardEnabled`, `rejectEnabled`, `notificationEnabled`). The SDK normalizes all of these to `enabled` on the Python model, but CLI `--json-body` and raw HTTP payloads must use the REST field names.
 - **Criteria are managed separately:** For all criteria-based features (Sim Ring, Sequential Ring, Selective Accept/Forward/Reject, Priority Alert), the `criteria` list in the top-level settings response is read-only. Create, update, and delete criteria via their dedicated CRUD endpoints.
-- **SDK import gaps:** `SimRingApi`, `SequentialRingApi`, and `PriorityAlertApi` may not be wired into `PersonSettingsApi` in some SDK versions. These are also user-only features with no admin-level REST endpoints (see above).
 - **No CLI for Sim Ring, Sequential Ring, or Priority Alert:** These features do not have wxcli command groups. Use Raw HTTP or the SDK.
 - **Selective Forward uses `numbers` not `phoneNumbers`:** Unlike all other criteria-based features that use `phoneNumbers` for their number list, Selective Forward criteria use `numbers`.
 - **Nested settings require `--json-body` in CLI:** Call forwarding and other nested payloads cannot be expressed with simple CLI flags. Use `--json-body '{"key": {...}}'` for these.

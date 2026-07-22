@@ -7,7 +7,6 @@ All APIs in this group follow the same structural pattern: they extend `PersonSe
 
 ## Sources
 
-- wxc_sdk v1.30.0 (PersonSettingsApi)
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Person Call Settings APIs
 
@@ -52,7 +51,6 @@ All APIs in this group follow the same structural pattern: they extend `PersonSe
 
 **API class:** `VoicemailApi`
 **Feature key:** `voicemail`
-**Source:** `wxc_sdk/person_settings/voicemail.py`
 
 ### Data Models
 
@@ -179,26 +177,6 @@ VoicemailApi.reset_pin(entity_id: str, org_id: str = None)
 Reset the voicemail PIN. Endpoint: `actions/resetPin/invoke` (POST).
 
 - **Scopes:** `spark-admin:people_write`
-
-### Usage Example (from `examples/modify_voicemail.py`)
-
-```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi()
-vm = api.person_settings.voicemail
-
-# Read current settings
-vm_settings = vm.read(person_id=person_id)
-
-# Modify number of rings
-vm_settings.send_unanswered_calls.number_of_rings = 6
-
-# Write back
-vm.configure(person_id, settings=vm_settings)
-```
-
-The example script reads a CSV of usernames, filters to calling users, and bulk-updates ring count using `ThreadPoolExecutor`.
 
 ### CLI Examples
 
@@ -335,7 +313,6 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/voicemail/pass
 
 **API class:** `CallerIdApi`
 **Feature key:** `callerId`
-**Source:** `wxc_sdk/person_settings/caller_id.py`
 
 ### Data Models
 
@@ -519,7 +496,6 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callerId", json=body)
 
 **API class:** `AgentCallerIdApi`
 **Feature key:** `agent`
-**Source:** `wxc_sdk/person_settings/agent_caller_id.py`
 
 Allows agents to set their outgoing caller ID to a call queue or hunt group instead of their personal caller ID.
 
@@ -666,7 +642,6 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/agent/callerId
 
 **API class:** `AnonCallsApi`
 **Feature key:** `anonymousCallReject`
-**Source:** `wxc_sdk/person_settings/anon_calls.py`
 
 When enabled, blocks all incoming calls from unidentified or blocked caller IDs.
 
@@ -771,7 +746,6 @@ api.session.rest_put(f"{BASE}/telephony/config/people/me/settings/anonymousCallR
 
 **API class:** `PrivacyApi`
 **Feature key:** `privacy`
-**Source:** `wxc_sdk/person_settings/privacy.py`
 
 Controls whether the entity's line can be monitored by others and whether they are reachable via Auto Attendant services.
 
@@ -885,7 +859,6 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/privacy", json=body)
 
 **API class:** `BargeApi`
 **Feature key:** `bargeIn`
-**Source:** `wxc_sdk/person_settings/barge.py`
 
 Enables the use of a Feature Access Code (FAC) to answer a call directed to another subscriber, or barge-in on an already-answered call. Works across locations.
 
@@ -984,7 +957,6 @@ The admin-path equivalent at `/people/{personId}/features/bargeIn` remains the s
 
 **API class:** `CallRecordingApi`
 **Feature key:** `callRecording`
-**Source:** `wxc_sdk/person_settings/call_recording.py`
 
 Provides hosted call recording for replay and archival, for quality assurance, security, and training.
 
@@ -1088,7 +1060,7 @@ CallRecordingSetting(
 CallRecordingApi.read(entity_id: str, org_id: str = None) -> CallRecordingSetting
 ```
 
-- **Scopes:** `spark-admin:people_read` (Note: the SDK source docstring incorrectly says `people_write` for read; this is a documentation bug in the SDK -- read operations use `people_read` per the consistent pattern across all PersonSettingsApiChild endpoints)
+- **Scopes:** `spark-admin:people_read`
 
 #### `configure`
 
@@ -1135,7 +1107,7 @@ wxcli user-settings update-call-recording PERSON_ID --json-body '{
 
 ### Raw HTTP
 
-> **Note:** The CLI uses `people/{id}/features/callRecording`. The user-provided URL pattern `telephony/config/people/{personId}/callRecording` is the wxc_sdk remapped path; the actual raw HTTP endpoint is `people/{id}/features/callRecording`. <!-- Updated by playbook session 2026-03-18 -->
+> **Note:** The actual raw HTTP endpoint is `people/{id}/features/callRecording` (not `telephony/config/people/{personId}/callRecording`). <!-- Updated by playbook session 2026-03-18 -->
 
 #### Read Call Recording Settings
 
@@ -1196,7 +1168,6 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callRecording", json=b
 
 **API class:** `CallInterceptApi`
 **Feature key:** `intercept`
-**Source:** `wxc_sdk/person_settings/call_intercept.py`
 
 Gracefully takes an entity's phone out of service while providing callers with informative announcements and alternative routing options.
 
@@ -1427,7 +1398,6 @@ Multipart/form-data with `.wav` file. Uses `rest_post` with file upload.
 
 **API class:** `MonitoringApi`
 **Feature key:** `monitoring`
-**Source:** `wxc_sdk/person_settings/monitoring.py`
 
 Shows specified people, places, virtual lines, or call park extensions that are being monitored. Monitors line status (on-call, parked).
 
@@ -1583,7 +1553,6 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/monitoring", json=body
 
 **API class:** `PushToTalkApi`
 **Feature key:** `pushToTalk`
-**Source:** `wxc_sdk/person_settings/push_to_talk.py`
 
 Allows desk phones to function as one-way or two-way intercoms connecting people in different parts of the organization.
 
@@ -1704,7 +1673,6 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/pushToTalk", json=body
 
 **API class:** `MusicOnHoldApi`
 **Feature key:** `musicOnHold`
-**Source:** `wxc_sdk/person_settings/moh.py`
 
 Music played when a caller is put on hold or the call is parked.
 
