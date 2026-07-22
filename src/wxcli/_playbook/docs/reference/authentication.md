@@ -2,11 +2,10 @@
 
 This document covers every authentication method available for the Webex Calling APIs, including token types, OAuth flows, and scope requirements for each.
 
-**Execution path:** authenticate with `wxcli configure` and verify with `wxcli whoami`. When an operation has no `wxcli` command, fall back to raw HTTP via `wxcli.auth.get_api()` (see [Raw HTTP via api.session](#raw-http-via-apisession)). The `wxc_sdk` code below is included to document the shape of the underlying API models — this project does not execute that SDK.
+**Execution path:** authenticate with `wxcli configure` and verify with `wxcli whoami`. When an operation has no `wxcli` command, fall back to raw HTTP via `wxcli.auth.get_api()` (see [Raw HTTP via api.session](#raw-http-via-apisession)).
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI specs: specs/webex-cloud-calling.json, specs/webex-admin.json
 - developer.webex.com Authentication APIs
 
@@ -22,7 +21,6 @@ This document covers every authentication method available for the Webex Calling
 6. [Bot Tokens](#bot-tokens)
 7. [Guest Issuer Tokens](#guest-issuer-tokens)
 8. [Calling-Related Scopes](#calling-related-scopes)
-8. [wxc_sdk Auth Setup](#wxc_sdk-auth-setup)
 9. [Raw HTTP via api.session](#raw-http-via-apisession)
 10. [Token Refresh Flow](#token-refresh-flow)
 11. [Common Auth Errors](#common-auth-errors)
@@ -156,10 +154,6 @@ https://idbroker.webex.com/idb/.well-known/openid-configuration
 
 This returns a standard OpenID Connect discovery document including `authorization_endpoint`, `token_endpoint`, `userinfo_endpoint`, `jwks_uri`, supported scopes (`openid`, `email`, `profile`, `phone`, `address`), and `code_challenge_methods_supported` (`plain`, `S256`).
 
-### Gotchas
-
-- **wxc_sdk does not support PKCE natively.** The `Integration.auth_url()` method builds the authorization URL with only `client_id`, `response_type`, `redirect_uri`, `scope`, and `state` — no `code_challenge` or `code_challenge_method` parameters. The `tokens_from_code()` method does not send a `code_verifier`. To use PKCE with Webex, you would need to construct the authorization URL and token exchange manually.
-
 ---
 
 ## Service Apps
@@ -268,7 +262,7 @@ The response includes a new `access_token` (and potentially a renewed `refresh_t
 
 This requires two Webex apps: your working service app and a token-manager integration. See the [Service App Token Management blog post](https://developer.webex.com/blog/service-app-token-management-a-developer-s-guide-to-automation) for details.
 
-### Environment Variables (Convention from wxc_sdk examples)
+### Environment Variables (Service App Credentials)
 
 ```bash
 SERVICE_APP_REFRESH_TOKEN=<refresh_token>
@@ -279,42 +273,6 @@ SERVICE_APP_CLIENT_SECRET=<client_secret>
 ### Service App Refresh — API Shape Reference
 
 With `wxcli`, feed the service app's current access token to `wxcli configure` and verify with `wxcli whoami`. There is no `wxcli` command for the refresh-token exchange itself — perform that against `https://webexapis.com/v1/access_token` (see [Token Refresh Flow](#token-refresh-flow)), then configure the resulting access token.
-
-The `wxc_sdk` example below is retained only to document the shape of that refresh call:
-
-```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.integration import Integration
-from wxc_sdk.tokens import Tokens
-
-# Build an Integration object (used only for the refresh call)
-integration = Integration(
-    client_id=client_id,
-    client_secret=client_secret,
-    scopes=[],          # scopes not needed for refresh
-    redirect_url=None   # no redirect needed for service apps
-)
-
-# Create a Tokens object with just the refresh token
-tokens = Tokens(refresh_token=refresh_token)
-
-# Refresh to get a valid access token
-integration.refresh(tokens=tokens)
-
-# Use the tokens
-with WebexSimpleApi(tokens=tokens) as api:
-    users = list(api.people.list())
-    queues = list(api.telephony.callqueue.list())
-```
-
-### Token Caching
-
-The SDK example caches tokens to a YML file keyed by `client_id` to avoid unnecessary refresh calls. It checks `tokens.remaining` and refreshes when remaining lifetime drops below 24 hours:
-
-```python
-if tokens.expires_in is not None and tokens.remaining < 24 * 60 * 60:
-    tokens = get_access_token(client_id=client_id, client_secret=client_secret, refresh=refresh)
-```
 
 ### Region Extraction from Token
 
@@ -411,7 +369,7 @@ Guest Issuer tokens create temporary, anonymous guest users for scenarios like c
 
 ### Gotchas
 
-- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~6 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. The SDK `Guest` model exposes this as `expires_in` and computes `expires_at` from it. There is no single fixed lifetime — it depends on org/service-app configuration.
+- **Guest token lifetime is variable, set by `expiresIn` in the response.** The OpenAPI spec example shows `expiresIn: 64799` (~6 hours), but the actual lifetime is returned per-token at creation time via the `expiresIn` field. There is no single fixed lifetime — it depends on org/service-app configuration.
 
 ---
 
@@ -461,141 +419,6 @@ These scopes require the authenticated user to be a **full org administrator**. 
 ### The `spark:all` Scope
 
 The `spark:all` scope grants full access to a Webex account and allows applications to behave as native Webex clients, including calling features when using Webex SDKs. Use this scope sparingly — prefer requesting only the scopes your application needs.
-
-### Scope Parsing in wxc_sdk
-
-The SDK includes a `parse_scopes` utility that handles multiple input formats — full authorization URLs, query strings, URL-encoded strings, or plain space-separated scope lists:
-
-```python
-from wxc_sdk.scopes import parse_scopes
-
-# All of these work:
-scopes = parse_scopes('spark:calls_read spark:calls_write spark:people_read')
-scopes = parse_scopes('spark%3Acalls_read%20spark%3Acalls_write')
-scopes = parse_scopes('https://webexapis.com/v1/authorize?...&scope=spark%3Acalls_read%20...')
-```
-
----
-
-## wxc_sdk Auth Setup
-
-> **Note:** The async variant `AsWebexSimpleApi` (from `wxc_sdk.as_api`) accepts identical token arguments and initialization patterns. See `archive/wxc-sdk-patterns.md` section 4 for async usage details.
-
-### Initialization Patterns
-
-The `WebexSimpleApi` class accepts tokens in three forms:
-
-```python
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.tokens import Tokens
-```
-
-**Pattern 1 — String token (simplest, for dev/testing):**
-
-```python
-api = WebexSimpleApi(tokens='YOUR_ACCESS_TOKEN')
-```
-
-Internally, this wraps the string in a `Tokens(access_token='...')` object.
-
-**Pattern 2 — Environment variable (no arguments):**
-
-```python
-import os
-os.environ['WEBEX_ACCESS_TOKEN'] = 'YOUR_ACCESS_TOKEN'
-
-api = WebexSimpleApi()  # reads from WEBEX_ACCESS_TOKEN
-```
-
-If no `tokens` argument is provided and `WEBEX_ACCESS_TOKEN` is not set, a `ValueError` is raised:
-```
-ValueError: if no access token is passed, then a valid access token has to be present in
-WEBEX_ACCESS_TOKEN environment variable
-```
-
-**Pattern 3 — Tokens object (for OAuth/service app flows):**
-
-```python
-tokens = Tokens(
-    access_token='...',
-    refresh_token='...',
-    expires_in=1209600,
-    refresh_token_expires_in=7776000,
-    token_type='Bearer',
-    scope='spark:calls_read spark:calls_write'
-)
-tokens.set_expiration()  # calculate expires_at from expires_in
-
-api = WebexSimpleApi(tokens=tokens)
-```
-
-**Pattern 4 — Pre-built RestSession:**
-
-```python
-from wxc_sdk.rest import RestSession
-
-session = RestSession(tokens=tokens, concurrent_requests=10, retry_429=True)
-api = WebexSimpleApi(session=session)
-```
-
-### Constructor Parameters
-
-```python
-WebexSimpleApi(
-    tokens: Union[str, Tokens] = None,    # access token or Tokens object
-    concurrent_requests: int = 10,         # max parallel requests (semaphore)
-    retry_429: bool = True,                # auto-retry on rate limiting
-    session: RestSession = None,           # pre-built session (overrides above)
-)
-```
-
-### Context Manager Support
-
-`WebexSimpleApi` supports the context manager protocol, which closes the underlying session on exit:
-
-```python
-with WebexSimpleApi(tokens=tokens) as api:
-    me = api.people.me()
-    # session is automatically closed at the end of the block
-```
-
-### Full OAuth Integration Example
-
-From `examples/get_tokens.py` — obtains tokens via OAuth flow, caches to YML, and initializes the API:
-
-```python
-from dotenv import load_dotenv
-from wxc_sdk import WebexSimpleApi
-from wxc_sdk.integration import Integration
-from wxc_sdk.scopes import parse_scopes
-from wxc_sdk.tokens import Tokens
-
-# Load environment variables
-load_dotenv('get_tokens.env')
-
-# Build integration from env vars
-integration = Integration(
-    client_id=os.getenv('TOKEN_INTEGRATION_CLIENT_ID'),
-    client_secret=os.getenv('TOKEN_INTEGRATION_CLIENT_SECRET'),
-    scopes=parse_scopes(os.getenv('TOKEN_INTEGRATION_CLIENT_SCOPES')),
-    redirect_url='http://localhost:6001/redirect'
-)
-
-# Get tokens (reads from cache or initiates OAuth flow)
-tokens = integration.get_cached_tokens_from_yml(yml_path='get_tokens.yml')
-
-# Use the API
-api = WebexSimpleApi(tokens=tokens)
-me = api.people.me()
-print(f'Authenticated as {me.display_name} ({me.emails[0]})')
-```
-
-**Required `.env` file:**
-```bash
-TOKEN_INTEGRATION_CLIENT_ID=Ce429631...
-TOKEN_INTEGRATION_CLIENT_SECRET=a1b2c3d4...
-TOKEN_INTEGRATION_CLIENT_SCOPES=spark:calls_read spark:calls_write spark:people_read spark-admin:telephony_config_read
-```
 
 ---
 
@@ -703,85 +526,9 @@ print(f"Calling line ID: {tele.get('callingLineId')}")
 
 ## Token Refresh Flow
 
-### How the SDK Handles Refresh
+Both OAuth integrations and service apps refresh access tokens the same way: POST to `https://webexapis.com/v1/access_token` with `grant_type=refresh_token` (see [OAuth Flow (4 Steps)](#oauth-flow-4-steps) and [Authentication Flow](#authentication-flow) under Service Apps). The response returns a new `access_token` and, in most cases, a renewed `refresh_token` with a fresh 90-day (60-day in FedRAMP) expiry.
 
-The `Integration` class provides the refresh logic. Here is the flow:
-
-1. **Check remaining lifetime** via `tokens.remaining` (returns seconds until expiry)
-2. **If below threshold**, call `integration.refresh(tokens=tokens)` which POSTs to `https://webexapis.com/v1/access_token`
-3. **Tokens are updated in place** — the `access_token`, `expires_in`, `expires_at`, `refresh_token`, and `refresh_token_expires_at` fields are all refreshed
-
-```python
-# Manual refresh check
-if tokens.remaining < 300:  # less than 5 minutes
-    integration.refresh(tokens=tokens)
-```
-
-### Automatic Token Validation
-
-The `Integration.validate_tokens()` method encapsulates the check-and-refresh pattern:
-
-```python
-changed = integration.validate_tokens(tokens=tokens, min_lifetime_seconds=300)
-# changed=True means a refresh was attempted
-# If refresh fails, tokens.access_token is set to None
-```
-
-### Cached Token Flow (get_cached_tokens)
-
-The `Integration.get_cached_tokens()` method implements the full lifecycle:
-
-1. Read tokens from cache (callback-based — YML, database, etc.)
-2. Validate tokens (refresh if needed)
-3. If no valid token exists, initiate a full OAuth flow
-4. Write updated tokens back to cache
-
-```python
-tokens = integration.get_cached_tokens_from_yml(
-    yml_path='tokens.yml',
-    force_new=False  # set True to skip cache and force new OAuth flow
-)
-```
-
-### The Tokens Model
-
-```python
-class Tokens(BaseModel):
-    access_token: Optional[str]              # the bearer token
-    expires_in: Optional[int]                # lifetime in seconds at creation time
-    expires_at: Optional[datetime]           # computed absolute expiry (UTC)
-    refresh_token: Optional[str]             # refresh token
-    refresh_token_expires_in: Optional[int]  # refresh token lifetime at creation
-    refresh_token_expires_at: Optional[datetime]  # computed absolute expiry (UTC)
-    token_type: Optional[Literal['Bearer']]  # always 'Bearer'
-    scope: Optional[str]                     # space-separated scope list
-```
-
-Key methods:
-- `set_expiration()` — computes `expires_at` and `refresh_token_expires_at` from current time + `expires_in`
-- `remaining` — property returning seconds until access token expiry
-- `update(new_tokens)` — copies all fields from another `Tokens` instance (used during refresh)
-
-### Service App Refresh (No OAuth Flow)
-
-Service apps skip the authorization code flow entirely. They use only the refresh step:
-
-```python
-# Service app environment variables
-# SERVICE_APP_REFRESH_TOKEN, SERVICE_APP_CLIENT_ID, SERVICE_APP_CLIENT_SECRET
-
-tokens = Tokens(refresh_token=os.getenv('SERVICE_APP_REFRESH_TOKEN'))
-integration = Integration(
-    client_id=os.getenv('SERVICE_APP_CLIENT_ID'),
-    client_secret=os.getenv('SERVICE_APP_CLIENT_SECRET'),
-    scopes=[],
-    redirect_url=None
-)
-integration.refresh(tokens=tokens)
-
-# tokens now has a valid access_token
-api = WebexSimpleApi(tokens=tokens)
-```
+Via `wxcli`, there is no dedicated refresh command — perform the raw HTTP refresh call above, then feed the resulting access token to `wxcli configure` and confirm with `wxcli whoami`.
 
 ---
 
@@ -794,8 +541,6 @@ api = WebexSimpleApi(tokens=tokens)
 - Token is malformed or has been revoked
 - Missing `Authorization` header entirely
 - Wrong token type (e.g., using a refresh token as an access token)
-
-**SDK behavior:** Raises `RestError` with `response.status_code == 401`.
 
 **Fix:** Refresh the token (for integrations/service apps) or generate a new personal access token.
 
@@ -823,8 +568,6 @@ api = WebexSimpleApi(tokens=tokens)
 
 **Cause:** Rate limiting. Webex APIs enforce per-token request limits.
 
-**SDK behavior:** When `retry_429=True` (the default), the SDK automatically retries after the duration specified in the `Retry-After` response header, up to a maximum wait of 60 seconds (`RETRY_429_MAX_WAIT`).
-
 **Response header:**
 ```
 Retry-After: 5
@@ -837,8 +580,8 @@ Retry-After: 5
 | 401 after exactly 12 hours | Personal access token expired |
 | 401 after ~14 days | Integration access token expired, refresh needed |
 | 401 immediately after refresh attempt | Refresh token also expired (>90 days) — full re-auth required |
-| `tokens.remaining` returns 0 | Access token is not set or has expired |
-| `ValueError` on `WebexSimpleApi()` | No token provided and `WEBEX_ACCESS_TOKEN` env var not set |
+| Access token has no remaining lifetime | Access token is not set or has expired |
+| `Error: No token found` from `get_api()` | No token saved by `wxcli configure` and `WEBEX_ACCESS_TOKEN` env var not set |
 
 ### Error Response Format
 
@@ -856,22 +599,9 @@ Webex API errors return JSON with a tracking ID useful for support:
 }
 ```
 
-The SDK parses this into a `RestError` with `.detail` containing an `ErrorDetail` object:
-- `error.detail.message` — the error message
-- `error.detail.tracking_id` — the tracking ID for Webex TAC support
-- `error.detail.description` — specific error description (from nested `errors` array)
-- `error.detail.code` — numeric error code (when present)
-
 ### Debugging Auth Issues
 
-Enable SDK debug logging to see full request/response details (tokens are masked automatically):
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-The SDK masks `Authorization` headers as `Bearer ***` and redacts `access_token`, `refresh_token`, and `client_secret` values in logged output.
+Enable debug logging via `wxcli.auth.get_api(debug=True)`, which raises the log level to DEBUG for full request/response visibility.
 
 ---
 
@@ -951,4 +681,3 @@ wxcli configure --base-url https://api-usgov.webex.com/v1
 ## See Also
 
 - **`provisioning.md`** — Provisioning-specific scope requirements and end-to-end user/license/location provisioning workflows.
-- **`archive/wxc-sdk-patterns.md`** — SDK code recipes, async auth patterns, and the service app token caching pattern (section 3, Pattern D). Archived: historical SDK doc.

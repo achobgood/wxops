@@ -1,14 +1,13 @@
 ---
 name: call-control
 description: |
-  Real-time Webex Calling call control, telephony webhook/event monitoring, conference controls,
-  and XSI real-time event streaming. Covers the Call Control API (user-level and Service App),
-  telephony webhook subscriptions and event parsing, conference controls, and wxcadm XSI for
-  real-time call monitoring and programmatic call control via BroadWorks.
+  Real-time Webex Calling call control, telephony webhook/event monitoring, and conference controls.
+  Covers the Call Control API (user-level and Service App), telephony webhook subscriptions and
+  event parsing, and conference controls for real-time call monitoring and programmatic call control.
   NOT for: messaging webhooks/bot events (use messaging-bots skill), call settings/forwarding
   configuration (use manage-call-settings skill), or CDR/call history queries (use reporting skill).
 allowed-tools: Read, Grep, Glob, Bash
-argument-hint: [call-control | webhooks | xsi-events | conference]
+argument-hint: [call-control | webhooks | conference]
 ---
 
 <!-- Created 2026-03-19 -->
@@ -33,13 +32,12 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 
 ## Step 1: Load references
 
-Load the reference docs needed for the requested operation. Load all three if the user hasn't specified which approach they need yet; otherwise load only the relevant one(s).
+Load the reference docs needed for the requested operation. Load both if the user hasn't specified which approach they need yet; otherwise load only the relevant one(s).
 
 | Reference doc | When to load |
 |---------------|-------------|
 | `docs/reference/call-control.md` | Call Control API operations, conference controls |
 | `docs/reference/webhooks-events.md` | Webhook setup, telephony event subscriptions |
-| `docs/reference/wxcadm-xsi-realtime.md` | XSI real-time event streaming (wxcadm only) |
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
@@ -64,7 +62,6 @@ After confirming a valid token, verify the token has the scopes required for the
 | **Call Control (user)** | `spark:calls_read`, `spark:calls_write` | User-level OAuth (Integration flow) |
 | **Call Control (Service App)** | `spark-admin:calls_read`, `spark-admin:calls_write` | Service App token |
 | **Webhooks** | `spark:calls_read` (to create telephony_calls webhook) | User-level OAuth |
-| **XSI Events (wxcadm)** | `spark:xsi` (user) or `spark-admin:xsi` (admin) | User or admin |
 | **WebRTC Calling** | `spark:webrtc_calling` | User-level OAuth |
 | **Firehose webhook** | `spark:all` | User-level OAuth |
 
@@ -72,7 +69,7 @@ After confirming a valid token, verify the token has the scopes required for the
 
 1. Run `wxcli whoami` — confirm the token is valid and note whether it is a user token, admin token, or Service App token.
 2. Match the token type against the table above:
-   - If **user-level token** → proceed with user-level Call Control, Webhooks, or XSI.
+   - If **user-level token** → proceed with user-level Call Control or Webhooks.
    - If **Service App token** → MUST use Members API endpoints (`/calls/members/{memberId}/*`). Standard call-control commands will fail with 400.
    - If **admin token only** → call control will fail. Advise the user to obtain a user-level token or use a Service App with the correct scopes.
 3. If scope is unclear, warn the user: *"Call Control requires a user-level token with `spark:calls_read` + `spark:calls_write`. Admin tokens get 400 'Target user not authorized'."*
@@ -89,15 +86,12 @@ Present this decision matrix if the user is unsure which approach fits their nee
 | Control calls from an external app (click-to-dial, hold, transfer) | **Call Control API** | `wxcli call-controls` or raw HTTP via `WebexSession` |
 | Control calls on behalf of users (admin/service app) | **Members API** | `wxcli call-controls create-dial-members`, `create-answer-members`, etc. |
 | Get notified when calls start/end/change state (push model) | **Webhooks** | `wxcli webhooks` or raw HTTP |
-| Real-time event streaming for dashboards, CRM screen pops | **XSI Events** | wxcadm `XSIEvents` (ONLY option) |
-| Programmatic call control via BroadWorks back-end | **XSI Actions** | wxcadm `XSI` / `Call` class |
 | Multi-party conference management | **Conference Controls** | `wxcli conference` |
 | Poll for active calls or call history | **Call Control API (GET)** | `wxcli call-controls list` / `list-history` |
 
 **Key distinctions:**
 - **Call Control API** = REST API on `api.webex.com`, requires user token, works for 3rd-party call control apps
 - **Webhooks** = push notifications to your HTTPS endpoint when call events occur
-- **XSI Events** = persistent streaming connection to BroadWorks XSP, org-wide or per-user, wxcadm only
 - **Conference Controls** = separate API for multi-party conference management
 
 ---
@@ -119,29 +113,17 @@ Based on the approach identified in Step 3, verify the prerequisites below.
 - The webhook target URL is **publicly accessible over HTTPS**. For local development, use ngrok or a similar tunnel.
 - No duplicate webhooks exist for the same resource/event combo (duplicates cause duplicate event delivery). Check with: `wxcli webhooks list -o json`
 
-### 4c. XSI prerequisites
-
-- **XSI must be enabled on the Webex Org.** Contact Cisco TAC to request activation -- there is no self-service toggle.
-- Token includes `spark:xsi` (user) or `spark-admin:xsi` (admin) scope.
-- wxcadm is installed and available.
-- Verify XSI is enabled:
-  ```python
-  webex = wxcadm.Webex(access_token, get_xsi=True)
-  print(webex.org.xsi)  # Should show 4 XSI endpoint URLs (not None)
-  ```
-  If `webex.org.xsi` is `None`, XSI is not enabled on the org.
-
 ---
 
 ## Step 5: Build and present deployment plan [SHOW BEFORE EXECUTING]
 
-Before executing any call control, webhook, or XSI operations, present the deployment plan to the user for approval. Include:
+Before executing any call control, webhook, or conference operations, present the deployment plan to the user for approval. Include:
 
-1. **Approach selected** — which approach from Step 3 (Call Control, Webhooks, XSI, Conference)
+1. **Approach selected** — which approach from Step 3 (Call Control, Webhooks, Conference)
 2. **Token type confirmed** — user-level, Service App, or admin (from Step 2)
 3. **Operations to perform** — list of specific commands/API calls that will be executed
 4. **Prerequisites verified** — confirm all Step 4 checks passed
-5. **Risks or warnings** — any relevant Critical Rules that apply (e.g., "webhook auto-deactivation if target URL is unreachable", "XSI recording pause has known bug")
+5. **Risks or warnings** — any relevant Critical Rules that apply (e.g., "webhook auto-deactivation if target URL is unreachable", "recording start/stop requires On Demand mode")
 
 Example plan format:
 
@@ -430,10 +412,10 @@ def handle_webhook(request_json: dict):
     print(f"Event: {data['eventType']}")
     print(f"Call ID: {data['callId']}")
     print(f"State: {data['state']}")
-    print(f"Remote: {data.remote_party.name} ({data.remote_party.number})")
+    print(f"Remote: {data['remoteParty']['name']} ({data['remoteParty']['number']})")
 ```
 
-The `TelephonyEventData` class inherits from both `WebhookEventData` and `TelephonyCall`, so all call fields are directly accessible.
+The webhook `data` object carries the full telephony call payload — `callId`, `state`, `personality`, `remoteParty`, and event-timing fields are all present on each event.
 
 #### HMAC signature verification
 
@@ -469,113 +451,7 @@ wxcli webhooks delete WEBHOOK_ID
 | `telephony_mwi` | Voicemail message waiting indicator |
 | `convergedRecordings` | Call recording events |
 
-### 6c. XSI real-time events (wxcadm only)
-
-> **XSI is wxcadm's unique capability.** It is NOT available via wxcli or the standard Webex REST APIs. XSI connects directly to the BroadWorks call control back-end that powers Webex Calling.
-
-#### When to use XSI vs webhooks
-
-| Requirement | Use XSI Events | Use Webhooks |
-|-------------|:-:|:-:|
-| Real-time streaming (sub-second latency) | Yes | No (HTTP delivery delay) |
-| Org-wide call monitoring | Yes | Yes (with org-level webhook) |
-| CRM screen pops | Yes | Possible but higher latency |
-| Real-time agent dashboards | Yes | Possible but less reliable |
-| Simple event notifications (email, Slack) | Overkill | Yes |
-| No server infrastructure needed | No (needs long-running process) | Yes (just an HTTPS endpoint) |
-| Call control from events | Yes (XSI Actions) | Requires separate Call Control API call |
-| Works without Cisco TAC enablement | No | Yes |
-
-#### Setting up XSI event monitoring
-
-```python
-import queue
-import wxcadm
-
-# Initialize with XSI endpoints
-webex = wxcadm.Webex(access_token, get_xsi=True)
-
-# Create XSIEvents instance (org-level)
-events = wxcadm.XSIEvents(webex.org)
-
-# Create a queue for events (size to handle bursts)
-events_queue = queue.Queue(maxsize=1000)
-
-# Open channel set (auto-discovers XSPs via DNS SRV, opens streaming connections)
-channel = events.open_channel(events_queue)
-
-# Subscribe to call events
-subscription = channel.subscribe(["Advanced Call"])
-
-# Process events
-while True:
-    event = events_queue.get()
-    event_data = event['xsi:Event']
-    event_type = event_data['xsi:eventData']['@xsi1:type']
-    user_id = event_data.get('xsi:userId', '')
-    print(f"[{user_id}] {event_type}")
-```
-
-#### Per-user subscription
-
-```python
-person = webex.org.get_person_by_email("user@domain.com")
-subscription = channel.subscribe(["Advanced Call"], person=person)
-```
-
-#### XSI event types
-
-A single outbound call generates 6 events:
-
-| Event Type | When |
-|------------|------|
-| `xsi:HookStatusEvent` | Phone goes off-hook |
-| `xsi:CallOriginatedEvent` | Call initiated (dialing) |
-| `xsi:CallUpdatedEvent` | Call state changes |
-| `xsi:CallAnsweredEvent` | Remote party answers |
-| `xsi:CallReleasedEvent` | Call ends |
-| `xsi:HookStatusEvent` | Phone goes on-hook |
-
-Additional event types: `xsi:CallReceivedEvent` (incoming), `xsi:CallHeldEvent`, `xsi:CallRetrievedEvent`, `xsi:CallTransferredEvent`, `xsi:CallSubscriptionEvent`.
-
-#### XSI call control (XSI-Actions)
-
-wxcadm also provides direct call control via XSI-Actions (separate from the Webex REST API):
-
-```python
-person = webex.org.get_person_by_email("user@domain.com")
-person.start_xsi()
-
-# Originate a call
-call = person.xsi.new_call(address="17192662837")
-
-# Mid-call actions
-call.hold()
-call.resume()
-call.transfer("2345")
-call.transfer("2345", type="attended")  # Attended transfer
-call.finish_transfer()                  # Complete attended transfer
-call.conference(address="5678")         # Conference with new party
-call.park()                             # Group call park
-call.park(extension="8001")             # Park at specific extension
-call.recording("start")                 # Start recording
-call.send_dtmf("12345#")               # Send DTMF
-call.hangup()
-```
-
-#### XSI channel management
-
-```python
-# Check active channels
-active = channel.active_channels
-
-# Close everything (channels + subscriptions)
-channel.close()
-```
-
-Channels auto-refresh hourly (7200-second expiry). Failed channels auto-recover after 60 seconds.
-
-### 6d. Conference control operations
+### 6c. Conference control operations
 
 #### CLI commands
 
@@ -618,20 +494,6 @@ api.session.rest_post("https://webexapis.com/v1/telephony/calls/conference",
     json={"callId1": call_id_1, "callId2": call_id_2})
 ```
 
-#### Conference via XSI (wxcadm)
-
-```python
-# From an attended transfer, bridge all parties
-call.transfer("2345", type="attended")
-call.conference()           # Bridges all parties
-call.finish_transfer()      # Drop initiator, leave others
-
-# Conference with a new party
-conference = call.conference(address="5678")
-conference.mute(call_id)    # Mute a participant
-conference.deaf(call_id)    # Deafen a participant
-```
-
 ---
 
 ## Step 7: Verification
@@ -659,30 +521,17 @@ If a webhook shows `inactive`, it was auto-deactivated due to delivery failures.
 wxcli webhooks update WEBHOOK_ID --json-body '{"name": "My Call Monitor", "targetUrl": "https://fixed-url.com/webhooks", "status": "active"}'
 ```
 
-### Verify XSI connectivity
-
-```python
-webex = wxcadm.Webex(access_token, get_xsi=True)
-print(webex.org.xsi)  # Should show 4 XSI endpoint URLs (not None)
-
-person = webex.org.get_person_by_email("user@domain.com")
-person.start_xsi(get_profile=True)
-print(person.xsi.profile)  # Should show user profile from BroadWorks
-```
-
-If `webex.org.xsi` is `None`, XSI is not enabled on the org -- contact Cisco TAC.
-
 ---
 
 ## Step 8: Report results
 
 Summarize the completed operations and their outcomes:
 
-1. **What was configured** — which approach (Call Control, Webhooks, XSI, Conference) and what specific operations were performed
-2. **Verification results** — confirmation that the configuration is working (API responses, webhook status, XSI connectivity)
-3. **Active resources** — list any persistent resources created (webhooks, XSI subscriptions, etc.) that the user should be aware of
-4. **Next steps** — any follow-up actions the user may want to take (e.g., "webhook is active — test by placing a call", "XSI channel is open — events will stream until the process is stopped")
-5. **Cleanup reminders** — resources that should be cleaned up when no longer needed (e.g., "delete the webhook when done testing", "call `channel.close()` to tear down XSI subscriptions")
+1. **What was configured** — which approach (Call Control, Webhooks, Conference) and what specific operations were performed
+2. **Verification results** — confirmation that the configuration is working (API responses, webhook status)
+3. **Active resources** — list any persistent resources created (webhooks, etc.) that the user should be aware of
+4. **Next steps** — any follow-up actions the user may want to take (e.g., "webhook is active — test by placing a call")
+5. **Cleanup reminders** — resources that should be cleaned up when no longer needed (e.g., "delete the webhook when done testing")
 
 ---
 
@@ -696,7 +545,7 @@ Summarize the completed operations and their outcomes:
 
 4. **Webhook URL must be HTTPS.** For local development, use ngrok or a similar tunnel.
 
-5. **`callId` vs `id` aliasing.** API responses use `id`, webhook events use `callId`. The SDK handles both transparently via the `call_id` property.
+5. **`callId` vs `id` aliasing.** Call Control API responses use `id`; webhook events use `callId`. They identify the same call — normalize the two in your own event-handling code.
 
 6. **Transfer restrictions.** Unanswered incoming calls cannot be transferred. Use `divert` (blind transfer / send to voicemail) for unanswered calls.
 
@@ -704,21 +553,11 @@ Summarize the completed operations and their outcomes:
 
 8. **Call history limit.** `list-history` returns max 20 records per type (placed/missed/received), max 60 total.
 
-9. **XSI requires Cisco TAC enablement.** There is no self-service toggle. If `webex.org.xsi` returns `None`, XSI is not enabled.
+9. **Conference via Call Control API requires two calls.** The user must have one active and one held call to merge. Use `hold` first, then `dial` the second party, then `conference`.
 
-10. **XSI events are XML, not JSON.** wxcadm parses them with `xmltodict` into OrderedDicts. The `$` key holds text content, `@` prefix denotes attributes.
+10. **Webhook event delivery is not guaranteed to be ordered.** Use `data.eventTimestamp` and `data.callSessionId` to correlate and order events.
 
-11. **XSI event volume is high.** A single call generates 6 events. A busy org can produce hundreds of events per second. Size your queue appropriately (start with 500-1000).
-
-12. **XSI channel auto-recovery has a 60-second gap.** Failed channels wait 60 seconds before restarting. Events for that XSP are lost during the gap.
-
-13. **XSI `recording("pause")` has a known bug (verified 2026-03-18).** Duplicate `elif` in wxcadm source causes `ValueError`. Workaround: call the XSI `PauseRecording` endpoint directly via `requests.put()`.
-
-14. **Conference via Call Control API requires two calls.** The user must have one active and one held call to merge. Use `hold` first, then `dial` the second party, then `conference`.
-
-15. **Webhook event delivery is not guaranteed to be ordered.** Use `data.eventTimestamp` and `data.callSessionId` to correlate and order events.
-
-16. **One webhook per resource/event combo.** Creating duplicates results in duplicate event delivery. Always clean up old webhooks before creating new ones.
+11. **One webhook per resource/event combo.** Creating duplicates results in duplicate event delivery. Always clean up old webhooks before creating new ones.
 
 ---
 
@@ -730,8 +569,6 @@ Summarize the completed operations and their outcomes:
 | `spark:calls_write` | All call control actions: dial, answer, hold, transfer, park, record (user) |
 | `spark-admin:calls_read` | List/get calls for any member (Service App) |
 | `spark-admin:calls_write` | Call control actions for any member (Service App) |
-| `spark:xsi` | XSI access (user-level) |
-| `spark-admin:xsi` | XSI access (admin-level) |
 | `spark:webrtc_calling` | WebRTC calling |
 | `spark:all` | Firehose webhook (all resources, all events) |
 
@@ -742,6 +579,5 @@ Summarize the completed operations and their outcomes:
 If context compacts mid-execution, recover by:
 1. Re-read `docs/reference/call-control.md` for call control API details
 2. Re-read `docs/reference/webhooks-events.md` for webhook setup
-3. Re-read `docs/reference/wxcadm-xsi-realtime.md` for XSI events
-4. Run `wxcli call-controls --help` and `wxcli conference --help` to rediscover CLI commands
-5. Resume from the last completed step
+3. Run `wxcli call-controls --help` and `wxcli conference --help` to rediscover CLI commands
+4. Resume from the last completed step

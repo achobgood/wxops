@@ -6,11 +6,10 @@
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Location Call Settings APIs
 
-Reference for advanced location-level and org-level call settings managed through the wxc_sdk. Covers call recording vendors and compliance, caller reputation (spam scoring), conference controls, supervisor/agent management, guest calling (click-to-call), operating modes, hot desking via voice portal, and shared forwarding patterns used across features.
+Reference for advanced location-level and org-level call settings. Covers call recording vendors and compliance, caller reputation (spam scoring), conference controls, supervisor/agent management, guest calling (click-to-call), operating modes, hot desking via voice portal, and shared forwarding patterns used across features.
 
 ---
 
@@ -29,8 +28,7 @@ Reference for advanced location-level and org-level call settings managed throug
 
 ## 1. Call Recording
 
-**SDK module:** `wxc_sdk.telephony.call_recording`
-**API class:** `CallRecordingSettingsApi` (base: `telephony/config`)
+**Base endpoint:** `telephony/config`
 **Not supported** for Webex for Government (FedRAMP). See [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for all FedRAMP restrictions.
 
 Call recording supports multiple third-party vendors. The org has an overall default vendor, but individual locations can override to a different vendor.
@@ -146,52 +144,6 @@ What happens when recording fails:
 | `last_name` | `str` |
 | `type` | `UserType` |
 | `license_type` | `UserLicenseType` |
-
-### 1.3 API Methods
-
-```python
-class CallRecordingSettingsApi:
-
-    # --- Org-level recording on/off ---
-    def read(self, org_id: str = None) -> CallRecordingInfo
-    def update(self, enabled: bool, org_id: str = None)  # Cisco partners only
-
-    # --- Terms of service ---
-    def read_terms_of_service(self, vendor_id: str, org_id: str = None) -> CallRecordingTermsOfService
-    def update_terms_of_service(self, vendor_id: str, enabled: bool, org_id: str = None)
-
-    # --- Compliance announcement (org) ---
-    def read_org_compliance_announcement(self, org_id: str = None) -> OrgComplianceAnnouncement
-    def update_org_compliance_announcement(self, settings: OrgComplianceAnnouncement, org_id: str = None)
-
-    # --- Compliance announcement (location) ---
-    def read_location_compliance_announcement(self, location_id: str, org_id: str = None) -> LocationComplianceAnnouncement
-    def update_location_compliance_announcement(self, location_id: str, settings: LocationComplianceAnnouncement, org_id: str = None)
-
-    # --- Regions ---
-    def get_call_recording_regions(self, org_id: str = None) -> list[CallRecordingRegion]
-
-    # --- Vendor users (org) ---
-    def list_org_users(self, standard_user_only: bool = None, org_id: str = None, **params) -> Generator[RecordingUser]
-
-    # --- Vendor management (org) ---
-    def get_org_vendors(self, org_id: str = None) -> CallRecordingVendors
-    def set_org_vendor(self, vendor_id: str, storage_region: str = None,
-                       failure_behavior: FailureBehavior = None, org_id: str = None) -> str  # returns jobId
-
-    # --- Vendor management (location) ---
-    def get_location_vendors(self, location_id: str, org_id: str = None) -> CallRecordingLocationVendors
-    def set_location_vendor(self, location_id: str, id: str = None,
-                            org_default_enabled: bool = None, storage_region: str = None,
-                            org_storage_region_enabled: bool = None,
-                            failure_behavior: FailureBehavior = None,
-                            org_failure_behavior_enabled: bool = None,
-                            org_id: str = None) -> str  # returns jobId
-
-    # --- Vendor users (location) ---
-    def list_location_users(self, location_id: str, standard_user_only: bool = None,
-                            org_id: str = None, **params) -> Generator[RecordingUser]
-```
 
 ### 1.4 Raw HTTP — Call Recording
 
@@ -352,8 +304,8 @@ wxcli call-recording list-errors <job_id>
 
 ### 1.6 Key Behaviors
 
-- `set_org_vendor()` and `set_location_vendor()` return a **job ID** (string). Use the jobs API to check status if the change cannot be applied immediately (HTTP 200 with jobId vs. 204 for immediate).
-- `update()` (enable/disable recording) is **Cisco partners only**.
+- Setting the org-level or location-level recording vendor returns a **job ID** (string). Use the jobs API to check status if the change cannot be applied immediately (HTTP 200 with jobId vs. 204 for immediate).
+- Enabling/disabling recording is **Cisco partners only**.
 - Storage region is **only applicable when vendor is Webex**; ignored for third-party vendors.
 - `standard_user_only` parameter filters to Webex Calling standard license users only.
 
@@ -361,8 +313,7 @@ wxcli call-recording list-errors <job_id>
 
 ## 2. Caller Reputation
 
-**SDK module:** `wxc_sdk.telephony.caller_reputation`
-**API class:** `CallerReputationProviderApi` (base: `telephony/config/serviceSettings/callerReputationProvider`)
+**Base endpoint:** `telephony/config/serviceSettings/callerReputationProvider`
 
 Integrates with external calling reputation providers for spam/fraud call scoring.
 
@@ -417,18 +368,6 @@ Integrates with external calling reputation providers for spam/fraud call scorin
 | `enabled` | `bool` |
 | `name` | `str` |
 | `regions` | `list[ReputationProviderRegion]` |
-
-### 2.2 API Methods
-
-```python
-class CallerReputationProviderApi:
-
-    def get(self, organization_id: str = None) -> ReputationProviderSettings
-    def update(self, settings: ReputationProviderSettings, organization_id: str = None)
-    def unlock(self, rep_id: str, organization_id: str = None)
-    def providers(self, organization_id: str = None) -> list[CallerReputationProviderProvider]
-    def status(self, organization_id: str = None) -> ReputationProviderStatus
-```
 
 ### 2.3 Raw HTTP — Caller Reputation
 
@@ -514,8 +453,7 @@ wxcli caller-reputation show --organization-id <org_id>
 
 ## 3. Conference Controls
 
-**SDK module:** `wxc_sdk.telephony.conference`
-**API class:** `ConferenceControlsApi` (base: `telephony/conference`)
+**Base endpoint:** `telephony/conference`
 
 Runtime conference call management (not configuration). This is a **call-control** API, not an admin config API.
 
@@ -562,23 +500,6 @@ Runtime conference call management (not configuration). This is a **call-control
 | `muted` | `bool` | Host muted |
 | `type` | `ConferenceTypeEnum` | Only for non-standard conferences |
 | `participants` | `list[ConferenceParticipant]` | |
-
-### 3.3 API Methods
-
-```python
-class ConferenceControlsApi:
-
-    def start_conference(self, call_ids: list[str], line_owner_id: str = None)
-    def get_conference_details(self, line_owner_id: str = None) -> ConferenceDetails
-    def release_conference(self, line_owner_id: str = None)
-    def add_participant(self, call_id: str, line_owner_id: str = None)
-    def hold(self, line_owner_id: str = None)
-    def resume(self, line_owner_id: str = None)
-    def mute(self, call_id: str = None)       # host if call_id omitted
-    def unmute(self, call_id: str = None)      # host if call_id omitted
-    def deafen_participant(self, call_id: str)
-    def undeafen_participant(self, call_id: str)
-```
 
 ### 3.4 CLI Examples
 
@@ -633,8 +554,7 @@ wxcli conference delete
 
 > For the full Customer Assist setup workflow including supervisors, use the **customer-assist** skill.
 
-**SDK module:** `wxc_sdk.telephony.supervisor`
-**API class:** `SupervisorApi` (base: `telephony/config/supervisors`)
+**Base endpoint:** `telephony/config/supervisors`
 
 Supervisors manage call queue agents. They can silently monitor, coach, barge in, or take over calls their agents are handling.
 
@@ -678,40 +598,7 @@ Used for both supervisor and agent listings.
 | `id` | `str` | |
 | `status` | `str` | Status result |
 | `message` | `str` | Detail message |
-| `type` | `UserType` | SDK-only field; absent from OpenAPI spec `ListSupervisorAgentStatusObject`. SDK marks as `# TODO: undocumented, issue 202`  |
-
-### 4.3 API Methods
-
-```python
-class SupervisorApi:
-
-    # --- List / search ---
-    def list(self, name: str = None, phone_number: str = None, order: str = None,
-             has_cx_essentials: bool = None, org_id: str = None,
-             **params) -> Generator[AgentOrSupervisor]
-
-    def available_supervisors(self, name: str = None, phone_number: str = None, order: str = None,
-                              has_cx_essentials: bool = None, org_id: str = None,
-                              **params) -> Generator[AgentOrSupervisor]
-
-    def available_agents(self, name: str = None, phone_number: str = None, order: str = None,
-                         has_cx_essentials: bool = None, org_id: str = None,
-                         **params) -> Generator[AgentOrSupervisor]
-
-    # --- CRUD ---
-    def create(self, id: str, agents: list[str], has_cx_essentials: bool = None, org_id: str = None)
-    def delete(self, supervisor_id: str, org_id: str = None)
-    def delete_bulk(self, supervisors_ids: list[str], delete_all: bool = None, org_id: str = None)
-
-    # --- Details and agent assignment ---
-    def details(self, supervisor_id: str, name: str = None, phone_number: str = None,
-                order: str = None, has_cx_essentials: bool = None,
-                org_id: str = None, **additional_params) -> Generator[AgentOrSupervisor]
-
-    def assign_unassign_agents(self, supervisor_id: str, agents: list[IdAndAction],
-                               has_cx_essentials: bool = None,
-                               org_id: str = None) -> Optional[list[SupervisorAgentStatus]]
-```
+| `type` | `UserType` | Undocumented; absent from OpenAPI spec `ListSupervisorAgentStatusObject` (tracked as issue 202)  |
 
 ### 4.4 CLI Examples
 
@@ -758,7 +645,7 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 ### 4.5 Key Behaviors
 
 - **A supervisor must have at least one agent** when created via `create()`.
-- **`create()` takes agent IDs as a flat `list[str]`**, not `IdAndAction` objects. The SDK wraps them as `[{'id': agent_id}]` internally.
+- **`create()` takes agent IDs as a flat `list[str]`**, not `IdAndAction` objects.
 - **`assign_unassign_agents()`** uses `IdAndAction` with `PatternAction.ADD` or `PatternAction.DELETE` to add/remove agents in a single call. Returns `None` if all succeed, or a list of `SupervisorAgentStatus` with per-agent error details.
 - **`delete_bulk()`** has a `delete_all` parameter. When set to `True`, the `supervisors_ids` array is ignored and **all supervisors in the org are removed**. Use with extreme caution.
 - **Customer Assist vs. CX Basic**: The `has_cx_essentials` parameter gates which license tier you are querying/modifying. When `True`, returns/operates on Customer Assist supervisors only. When omitted or `False`, operates on CX Basic.
@@ -768,8 +655,7 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 
 ## 5. Guest Calling (Click-to-Call)
 
-**SDK module:** `wxc_sdk.telephony.guest_calling`
-**API class:** `GuestCallingApi` (base: `telephony/config/guestCalling`)
+**Base endpoint:** `telephony/config/guestCalling`
 
 Click-to-call allows external (guest) callers to reach internal destinations. Org-level setting.
 
@@ -788,7 +674,7 @@ Click-to-call allows external (guest) callers to reach internal destinations. Or
 |-------|------|-------|
 | `enabled` | `bool` | Click-to-call enabled |
 | `privacy_enabled` | `bool` | Privacy mode |
-| `video_enabled` | `bool` | SDK-only field with no docstring; absent from all OpenAPI specs. May be undocumented or deprecated  |
+| `video_enabled` | `bool` | Undocumented; absent from all OpenAPI specs. May be deprecated  |
 
 #### `DestinationMember`
 
@@ -803,22 +689,6 @@ Click-to-call allows external (guest) callers to reach internal destinations. Or
 | `esn` | `str` | |
 | `type` | `OwnerType` | |
 | `location` | `IdAndName` | |
-
-### 5.3 API Methods
-
-```python
-class GuestCallingApi:
-
-    def read(self, org_id: str = None) -> GuestCallingSettings
-    def update(self, enabled: bool, privacy_enabled: bool,
-               destination_members: list[str], org_id: str = None)
-    def members(self, member_name: str = None, phone_number: str = None,
-                extension: str = None, org_id: str = None,
-                **params) -> Generator[DestinationMember]
-    def available_members(self, member_name: str = None, phone_number: str = None,
-                          extension: str = None, org_id: str = None,
-                          **params) -> Generator[DestinationMember]
-```
 
 ### 5.4 CLI Examples
 
@@ -836,8 +706,7 @@ There is no dedicated `wxcli` command group for these org-level guest-calling se
 
 ## 6. Operating Modes
 
-**SDK module:** `wxc_sdk.telephony.operating_modes`
-**API class:** `OperatingModesApi` (base: `telephony/config`)
+**Base endpoint:** `telephony/config` (operating modes)
 
 Operating modes define time-based call routing rules (business hours, after hours, holidays, etc.) used by Auto Attendants, Call Queues, and Hunt Groups via mode-based forwarding.
 
@@ -913,35 +782,6 @@ Two recurrence patterns: by date (day of month + month) or by day (day + week + 
 | `different_hours_daily` | `DifferentHoursDaily` | Present if type is `DIFFERENT_HOURS_DAILY` |
 | `holidays` | `list[OperatingModeHoliday]` | Present if type is `HOLIDAY` |
 | `call_forwarding` | `CallForwardingCommon` | Forwarding settings for this mode |
-
-### 6.3 API Methods
-
-```python
-class OperatingModesApi:
-
-    # --- CRUD ---
-    def list(self, limit_to_location_id: str = None, name: str = None,
-             limit_to_org_level_enabled: bool = None, order: str = None,
-             org_id: str = None, **params) -> Generator[OperatingMode]
-
-    def details(self, mode_id: str, org_id: str = None) -> OperatingMode
-    def create(self, settings: OperatingMode, org_id: str = None) -> str  # returns mode ID
-    def update(self, mode_id: str, settings: OperatingMode, org_id: str = None)
-    def delete(self, mode_id: str, org_id: str = None)
-
-    # --- Holiday management ---
-    def holiday_details(self, mode_id: str, holiday_id: str, org_id: str = None) -> OperatingModeHoliday
-    def holiday_create(self, mode_id: str, settings: OperatingModeHoliday, org_id: str = None) -> str  # returns holiday ID
-    # Verified via CLI implementation 2026-03-17: holiday_create requires start_date and end_date (not just date), plus all_day_enabled. Only HOLIDAY type operating modes accept holiday events.
-    def holiday_update(self, mode_id: str, holiday_id: str, settings: OperatingModeHoliday, org_id: str = None)
-    def holiday_delete(self, mode_id: str, holiday_id: str = None, org_id: str = None)
-
-    # --- Availability queries ---
-    def available_operating_modes(self, location_id: str, org_id: str = None) -> list[IdAndName]
-    def call_forward_available_phone_numbers(self, location_id: str, phone_number: list[str] = None,
-                                             owner_name: str = None, extension: str = None,
-                                             org_id: str = None, **params) -> Generator[AvailableNumber]
-```
 
 ### 6.4 Raw HTTP — Operating Modes
 
@@ -1140,16 +980,14 @@ wxcli operating-modes list-available-numbers <location_id>
 - **Max 100 operating modes per location** and 100 per org. `available_operating_modes()` returns up to 200 (location + org combined).
 - **Max 150 holidays per operating mode.**
 - The `create()` method requires at least `name`, `type`, and `level` on the `OperatingMode` object. If `level` is LOCATION, `location.id` must be set.
-- On `create()`, the SDK internally converts `location` to `locationId` and strips `id` from holidays. On `update()`, it additionally strips `type` and `level` (immutable after creation).
-- `call_forward_available_phone_numbers()` lists PSTN numbers available as forwarding destinations for operating modes at a given location.
+- The available-phone-numbers endpoint lists PSTN numbers available as forwarding destinations for operating modes at a given location.
 - The `list()` result is sorted ascending by operating mode name.
 
 ---
 
 ## 7. Hot Desking Sign-in via Voice Portal
 
-**SDK module:** `wxc_sdk.telephony.hotdesking_voiceportal`
-**API class:** `HotDeskingSigninViaVoicePortalApi` (base: `telephony/config`)
+**Base endpoint:** `telephony/config` (hot-desking sign-in via voice portal)
 
 Hot desking allows users to sign in to a shared phone via the voice portal and make calls using their own phone number.
 
@@ -1169,20 +1007,6 @@ Hot desking allows users to sign in to a shared phone via the voice portal and m
 | `enabled` | `bool` | JSON alias: `voicePortalHotDeskSignInEnabled` |
 
 Single boolean -- enables or disables hot desking sign-in via voice portal.
-
-### 7.3 API Methods
-
-```python
-class HotDeskingSigninViaVoicePortalApi:
-
-    # --- Location level ---
-    def location_get(self, location_id: str, org_id: str = None) -> HotDeskingVoicePortalSetting
-    def location_update(self, location_id: str, setting: HotDeskingVoicePortalSetting, org_id: str = None)
-
-    # --- User level ---
-    def user_get(self, person_id: str, org_id: str = None) -> HotDeskingVoicePortalSetting
-    def user_update(self, person_id: str, setting: HotDeskingVoicePortalSetting, org_id: str = None)
-```
 
 ### 7.4 CLI: `hot-desking-portal`
 
@@ -1224,19 +1048,13 @@ wxcli hot-desking-portal update-guest <person_id> --no-voice-portal-hot-desk-sig
 
 ## 8. Forwarding (Shared Patterns)
 
-**SDK module:** `wxc_sdk.telephony.forwarding`
-**API class:** `ForwardingApi` (base: dynamic per feature)
+**Base endpoint:** dynamic per feature
 
-Shared forwarding settings and selective rules used by **Call Queues**, **Hunt Groups**, and **Auto Attendants**. The `ForwardingApi` is instantiated with a `FeatureSelector` that determines which feature type it operates on.
+Shared forwarding settings and selective rules used by **Call Queues**, **Hunt Groups**, and **Auto Attendants**.
 
 ### 8.1 Feature Selectors
 
-```python
-class FeatureSelector(str, Enum):
-    queues = 'queues'
-    huntgroups = 'huntGroups'
-    auto_attendants = 'autoAttendants'
-```
+The `{feature}` path segment is one of `queues`, `huntGroups`, or `autoAttendants`, depending on whether the forwarding config is for a Call Queue, Hunt Group, or Auto Attendant.
 
 The API endpoint is constructed as:
 ```
@@ -1359,38 +1177,6 @@ Full details of a selective forwarding rule.
 | `default_destination_voicemail_enabled` | `bool` | |
 | `default_forward_to_selection` | `ModeDefaultForwardToSelection` | |
 
-### 8.3 API Methods
-
-```python
-class ForwardingApi:
-
-    def __init__(self, session: RestSession, feature_selector: FeatureSelector)
-
-    # --- Get/Update forwarding settings ---
-    def settings(self, location_id: str, feature_id: str, org_id: str = None) -> CallForwarding
-    def update(self, location_id: str, feature_id: str,
-               forwarding: CallForwarding, org_id: str = None)
-
-    # --- Selective forwarding rules ---
-    def create_call_forwarding_rule(self, location_id: str, feature_id: str,
-                                    forwarding_rule: ForwardingRuleDetails,
-                                    org_id: str = None) -> str  # returns rule ID
-
-    def call_forwarding_rule(self, location_id: str, feature_id: str,
-                             rule_id: str, org_id: str = None) -> ForwardingRuleDetails
-
-    def update_call_forwarding_rule(self, location_id: str, feature_id: str,
-                                    rule_id: str, forwarding_rule: ForwardingRuleDetails,
-                                    org_id: str = None) -> str  # returns new rule ID
-
-    def delete_call_forwarding_rule(self, location_id: str, feature_id: str,
-                                    rule_id: str, org_id: str = None)
-
-    # --- Operating mode switch ---
-    def switch_mode_for_call_forwarding(self, location_id: str, feature_id: str,
-                                        org_id: str = None)
-```
-
 ### 8.4 CLI Examples
 
 Forwarding commands are accessed through the feature-specific command groups (`auto-attendant`, `call-queue`, `hunt-group`), not a standalone forwarding group. The commands follow the same pattern across all three features:
@@ -1438,11 +1224,10 @@ wxcli hunt-group switch-mode-for <location_id> <hg_id>
 
 ### 8.5 Key Behaviors
 
-- **Rule ID changes on rename**: The Call Forwarding Rule ID will change when the rule name is modified via `update_call_forwarding_rule()`. The new ID is returned.
-- **NANP number normalization**: The SDK automatically handles +1 prefix transformations. Numbers returned from the platform without a `+` prefix get `+1-` prepended. When serializing for API calls, `+1-` is stripped back off. Non-NANP numbers (those starting with `+`) are left as-is.
-- **`switch_mode_for_call_forwarding()`** switches the feature's current operating mode back to normal operations.
-- The `update()` method serializes with `exclude_unset=True`, so only fields you explicitly set are sent to the API. It also strips read-only fields (`calls_from`, `forward_to`, `calls_to`, `name`) from rule summaries in the rules list.
-- **`CallForwarding.default()`** provides a safe starting point: always-forward disabled, selective disabled, empty rules list.
+- **Rule ID changes on rename**: The Call Forwarding Rule ID changes when the rule name is modified; the new ID is returned in the response.
+- Switching the operating mode for call forwarding returns the feature to normal operations.
+- Read-only fields (`calls_from`, `forward_to`, `calls_to`, `name`) appear in rule summaries but must not be included in update request bodies.
+- **Default forwarding config**: always-forward disabled, selective disabled, empty rules list.
 - Three forwarding modes are available simultaneously: always forward, selective rules, and operating mode-based. The API returns all three as part of the `CallForwarding` object.
 
 ---

@@ -224,7 +224,7 @@ Activation code flow:
 <!-- Source: devices-core.md §5a, key differences table -->
 
 ### Hot desking license requirements
-Webex hot desking uses a dedicated `hotdesk` license type (distinct from both Basic `workspace` and `professional`). When creating a hot desk workspace: `phone_number`, `extension`, `device_hosted_meetings`, and `calendar` are not applicable and will cause errors if provided. <!-- Source: devices-workspaces.md gotcha #6; wxcadm-devices-workspaces.md license_type="hotdesk" -->
+Webex hot desking uses a dedicated `hotdesk` license type (distinct from both Basic `workspace` and `professional`). When creating a hot desk workspace: `phone_number`, `extension`, `device_hosted_meetings`, and `calendar` are not applicable and will cause errors if provided. <!-- Source: devices-workspaces.md gotcha #6 -->
 
 Most `/telephony/config/workspaces/{id}/` settings require Professional license. Basic workspaces only support `musicOnHold` and `doNotDisturb` at that path. For Basic workspaces, use `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring). <!-- Source: devices-workspaces.md gotcha #10 -->
 
@@ -314,7 +314,7 @@ The migration pipeline maps CUCM device-level settings (productSpecificConfigura
 |---|-------|----------|--------|---------|
 | 1 | "42-model replacement map" in `recommend_device_incompatible()` | Partial | `recommendation_rules.py` lines 191-220 | Map has **28 keys** (26 unique models after normalizing ATA spacing variants: `ATA 190`/`ATA190`, `ATA 191`/`ATA191`). Not 42. The map covers 79xx (16 keys), 69xx (6 keys), 7832 (1 key), ATA (4 keys, 2 unique). |
 | 2 | Activation code provisioning flow | Verified | `devices-core.md` §1.3, §1.5, §6 | `activation_code()` method documented with workspace/person/model params, `ActivationCodeResponse` model, CLI `create-activation-code` command, and Raw HTTP `POST /devices/activationCode`. |
-| 3 | Hot desking requires Professional workspace license | Corrected | `devices-workspaces.md` gotcha #6, #10; `wxcadm-devices-workspaces.md` line 654 | Hot desking uses its own **`hotdesk` license type**, distinct from both Basic (`workspace`) and Professional. However, most `/telephony/config/workspaces/` settings DO require Professional. The claim as stated is imprecise -- hot desking requires a hot desk license, not specifically "Professional". |
+| 3 | Hot desking requires Professional workspace license | Corrected | `devices-workspaces.md` gotcha #6, #10 | Hot desking uses its own **`hotdesk` license type**, distinct from both Basic (`workspace`) and Professional. However, most `/telephony/config/workspaces/` settings DO require Professional. The claim as stated is imprecise -- hot desking requires a hot desk license, not specifically "Professional". |
 
 ---
 

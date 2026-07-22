@@ -119,7 +119,7 @@ When you know the failing API endpoint, use this logic to verify scope access:
 
 - **call-controls (`/telephony/calls/*`)** — requires **user-level OAuth**, not admin tokens. Admin tokens and service-app tokens get HTTP 400 "Target user not authorized". The authenticated user must be a specific calling-licensed person.
 - **my-settings (`/people/me/*`)** — requires the authenticated user to have a **Webex Calling license**. Returns 404 (error 4008) otherwise. Test with a calling user's token, not an admin-only token.
-- **XSI operations** — require `spark:xsi` scope AND XSI must be provisioned for the org. If scope is present but calls fail, check with Webex TAC.
+- **XSI scope (`spark:xsi`)** — grants access to Webex's XSI interface, which must be provisioned for the org by Webex TAC (there is no self-service toggle). If the scope is present but XSI access still fails, the org isn't XSI-provisioned.
 - **CDR (`/telephony/callHistory`)** — requires `spark-admin:calling_cdr_read`. This is a separate scope from `telephony_config_read`.
 
 ### 2d. Is calling data included?
@@ -257,7 +257,6 @@ wxcli call-queue show LOCATION_ID QUEUE_ID --output json --debug
 | Feature creation fails with location error | Location doesn't exist or wrong `location_id` | Verify with `wxcli locations list` -- confirm the ID matches |
 | Hunt group / call queue agent not receiving calls | Agent not assigned to the feature, or not joined | Check agent list: `wxcli call-queue show LOCATION_ID QUEUE_ID --output json`. Verify agent `joinEnabled` is `true`. |
 | Async job timeout | Bulk provisioning job still processing | Check job status via SDK `api.telephony.jobs`. Jobs can take minutes for large orgs. |
-| XSI connection fails | XSI not enabled or wrong endpoint | Verify `spark:xsi` scope. Check with Webex TAC if XSI is provisioned for the org. |
 | Setting update succeeded but value unchanged | Some settings require specific preconditions | Check if the feature requires a license, an enabled location, or a specific calling plan. Read back the resource to confirm. |
 | Extension conflict | Another user/feature already has the extension in that location | List all extensions in the location and pick an unused one |
 
