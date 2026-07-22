@@ -8,7 +8,6 @@ Webex Calling Call Control APIs enable 3rd-party applications to manage calls on
 
 ## Sources
 
-- wxc_sdk v1.30.0
 - OpenAPI spec: specs/webex-cloud-calling.json
 - developer.webex.com Call Control APIs
 
@@ -38,8 +37,8 @@ Webex Calling Call Control APIs enable 3rd-party applications to manage calls on
 | `spark-admin:calls_read` | List calls, get call details for any member | Service App tokens (admin) |
 | `spark-admin:calls_write` | All call control actions for any member | Service App tokens (admin) |
 
-- **User-level APIs** (`CallsApi`) use `spark:calls_read` / `spark:calls_write` and operate on the authenticated user's calls.
-- **Service App / Admin APIs** (`CallControlsMembersApi`) use `spark-admin:calls_read` / `spark-admin:calls_write` and operate on any person, workspace, or virtual line by `member_id`.
+- **User-level APIs** use `spark:calls_read` / `spark:calls_write` and operate on the authenticated user's calls.
+- **Service App / Admin APIs** use `spark-admin:calls_read` / `spark-admin:calls_write` and operate on any person, workspace, or virtual line by `member_id`.
 
 ---
 
@@ -48,8 +47,8 @@ Webex Calling Call Control APIs enable 3rd-party applications to manage calls on
 All call control endpoints use `https://webexapis.com/v1/telephony/calls/{action}`. Most are POST actions that take a JSON body. GET endpoints retrieve call state.
 
 ```python
-from wxc_sdk import WebexSimpleApi
-api = WebexSimpleApi()
+from wxcli.auth import get_api
+api = get_api()
 BASE = "https://webexapis.com/v1"
 ```
 
@@ -184,8 +183,8 @@ api.session.rest_post(f"{BASE}/telephony/externalVoicemail/mwi", json=body, para
 4. **`id` vs `callId`** -- GET responses return `id` as the call identifier. Webhook events use `callId`. When passing to action endpoints, always use `callId` in the request body.
 5. **`lineOwnerId`** is optional on all endpoints -- only needed when controlling a secondary line belonging to another user/workspace/virtual line.
 6. **Members API does not have `lineOwnerId`** -- the member_id in the URL serves the same purpose.
-7. **No pagination on call list** -- `list_calls` returns all active calls for the user (typically a small number).
-8. **History max 20 per type** -- `list_call_history` returns at most 20 records per type (placed/missed/received), max 60 total.
+7. **No pagination on call list** -- `GET .../telephony/calls` returns all active calls for the user (typically a small number).
+8. **History max 20 per type** -- `GET .../telephony/calls/history` returns at most 20 records per type (placed/missed/received), max 60 total.
 
 ---
 
@@ -416,15 +415,6 @@ Initiate an outbound call. Alerts all user devices (or a specific endpoint). Whe
 POST /v1/telephony/calls/dial
 ```
 
-**SDK Signature:**
-```python
-CallsApi.dial(
-    destination: str,           # digits, URI, SIP address, tel: URI
-    endpoint_id: str = None,    # specific device/app to alert
-    line_owner_id: str = None   # secondary line owner (user/workspace/virtual line)
-) -> CallInfo
-```
-
 **Request body:**
 ```json
 {
@@ -453,15 +443,6 @@ Answer an incoming call on a specific device (or the user's primary device if no
 POST /v1/telephony/calls/answer
 ```
 
-**SDK Signature:**
-```python
-CallsApi.answer(
-    call_id: str,
-    endpoint_id: str = None,
-    line_owner_id: str = None
-) -> None
-```
-
 **Request body:**
 ```json
 {
@@ -484,15 +465,6 @@ Pick up an incoming call ringing on another user's device. Initiates a new call 
 POST /v1/telephony/calls/pickup
 ```
 
-**SDK Signature:**
-```python
-CallsApi.pickup(
-    target: str = None,         # user to pick up from; omit for call pickup group
-    endpoint_id: str = None,
-    line_owner_id: str = None
-) -> CallInfo
-```
-
 - **No target:** picks up from the user's call pickup group.
 - **With target:** picks up from the specified user (digits or URI).
 
@@ -506,15 +478,6 @@ Reject an unanswered incoming call.
 
 ```
 POST /v1/telephony/calls/reject
-```
-
-**SDK Signature:**
-```python
-CallsApi.reject(
-    call_id: str,
-    action: RejectAction = None,    # defaults to 'busy' if omitted
-    line_owner_id: str = None
-) -> None
 ```
 
 **RejectAction values:**
@@ -533,16 +496,6 @@ Divert a call to another destination or to voicemail.
 
 ```
 POST /v1/telephony/calls/divert
-```
-
-**SDK Signature:**
-```python
-CallsApi.divert(
-    call_id: str,
-    destination: str = None,     # required if toVoicemail is false
-    to_voicemail: bool = None,   # True = send to voicemail
-    line_owner_id: str = None
-) -> None
 ```
 
 **Request body examples:**
@@ -588,11 +541,6 @@ Place a connected call on hold.
 POST /v1/telephony/calls/hold
 ```
 
-**SDK Signature:**
-```python
-CallsApi.hold(call_id: str, line_owner_id: str = None) -> None
-```
-
 ---
 
 ### Resume
@@ -603,11 +551,6 @@ Resume a held call.
 POST /v1/telephony/calls/resume
 ```
 
-**SDK Signature:**
-```python
-CallsApi.resume(call_id: str, line_owner_id: str = None) -> None
-```
-
 ---
 
 ### Transfer
@@ -616,16 +559,6 @@ Transfer two calls together. Supports multiple transfer modes depending on param
 
 ```
 POST /v1/telephony/calls/transfer
-```
-
-**SDK Signature:**
-```python
-CallsApi.transfer(
-    call_id1: str = None,
-    call_id2: str = None,
-    destination: str = None,
-    line_owner_id: str = None
-) -> CallInfo
 ```
 
 **Transfer modes:**
@@ -648,16 +581,6 @@ Park a connected call. Returns the extension/number to use for retrieval.
 POST /v1/telephony/calls/park
 ```
 
-**SDK Signature:**
-```python
-CallsApi.park(
-    call_id: str,
-    destination: str = None,      # where to park; omit to park against self
-    is_group_park: bool = None,   # True = auto-select from call park group
-    line_owner_id: str = None
-) -> TelephonyParty                # parkedAgainst details including number
-```
-
 **Response:** Returns a `TelephonyParty` object (the `parkedAgainst` party). The `number` field from this response is used as the destination for the `retrieve` command.
 
 ---
@@ -670,15 +593,6 @@ Retrieve a parked call. Initiates a new call (similar to dial) to perform the re
 POST /v1/telephony/calls/retrieve
 ```
 
-**SDK Signature:**
-```python
-CallsApi.retrieve(
-    destination: str = None,    # where the call is parked; omit if parked against self
-    endpoint_id: str = None,
-    line_owner_id: str = None
-) -> CallInfo
-```
-
 ---
 
 ### Pull
@@ -687,14 +601,6 @@ Pull a call from one device to another. Useful for moving a call between desk ph
 
 ```
 POST /v1/telephony/calls/pull
-```
-
-**SDK Signature:**
-```python
-CallsApi.pull(
-    endpoint_id: str = None,
-    line_owner_id: str = None
-) -> CallInfo
 ```
 
 A temporary new call is initiated. When the user answers on the target device, that device connects to the pulled call and the temporary call is released.
@@ -709,14 +615,6 @@ Push a call from an assistant to the associated executive.
 POST /v1/telephony/calls/push
 ```
 
-**SDK Signature:**
-```python
-CallsApi.push(
-    call_id: str = None,
-    line_owner_id: str = None
-) -> None
-```
-
 **Note:** Only valid when the assistant's call is associated with an executive.
 
 ---
@@ -729,15 +627,6 @@ Barge into another user's answered call. Initiates a new call (similar to dial).
 POST /v1/telephony/calls/bargeIn
 ```
 
-**SDK Signature:**
-```python
-CallsApi.barge_in(
-    target: str,                # user to barge in on (digits or URI)
-    endpoint_id: str = None,
-    line_owner_id: str = None
-) -> CallInfo
-```
-
 ---
 
 ### Conference (3-Way Merge)
@@ -746,15 +635,6 @@ Merge two active calls into a three-way conference call. The user must have two 
 
 ```
 POST /v1/telephony/calls/conference
-```
-
-**SDK Signature:**
-```python
-CallsApi.conference(
-    call_id1: str = None,
-    call_id2: str = None,
-    line_owner_id: str = None
-) -> None
 ```
 
 If `call_id1` and `call_id2` are omitted, the user must have exactly two calls; they are automatically selected and merged. When specified, both calls are merged into a three-way conference with the user.
@@ -769,11 +649,6 @@ Disconnect a call. If used on an unanswered incoming call, the call is rejected 
 POST /v1/telephony/calls/hangup
 ```
 
-**SDK Signature:**
-```python
-CallsApi.hangup(call_id: str, line_owner_id: str = None) -> None
-```
-
 ---
 
 ### Mute / Unmute
@@ -785,24 +660,18 @@ POST /v1/telephony/calls/mute
 POST /v1/telephony/calls/unmute
 ```
 
-**SDK Signatures:**
-```python
-CallsApi.mute(call_id: str, line_owner_id: str = None) -> None
-CallsApi.unmute(call_id: str, line_owner_id: str = None) -> None
-```
-
 ---
 
 ### Recording Control
 
 Control call recording. Availability depends on the user's call recording mode.
 
-| Endpoint | SDK Method | Recording Mode Required |
-|----------|-----------|------------------------|
-| `POST .../startRecording` | `start_recording(call_id, line_owner_id)` | "On Demand" |
-| `POST .../stopRecording` | `stop_recording(call_id, line_owner_id)` | "On Demand" |
-| `POST .../pauseRecording` | `pause_recording(call_id, line_owner_id)` | "On Demand" or "Always with Pause/Resume" |
-| `POST .../resumeRecording` | `resume_recording(call_id, line_owner_id)` | "On Demand" or "Always with Pause/Resume" |
+| Endpoint | Recording Mode Required |
+|----------|------------------------|
+| `POST .../startRecording` | "On Demand" |
+| `POST .../stopRecording` | "On Demand" |
+| `POST .../pauseRecording` | "On Demand" or "Always with Pause/Resume" |
+| `POST .../resumeRecording` | "On Demand" or "Always with Pause/Resume" |
 
 **RecordingState values:**
 
@@ -824,15 +693,6 @@ Send DTMF tones on an active call.
 POST /v1/telephony/calls/transmitDtmf
 ```
 
-**SDK Signature:**
-```python
-CallsApi.transmit_dtmf(
-    call_id: str = None,
-    dtmf: str = None,           # e.g. "1,234" (comma = pause)
-    line_owner_id: str = None
-) -> None
-```
-
 **Valid DTMF characters:** `0-9`, `*`, `#`, `A`, `B`, `C`, `D`
 **Pause:** Use a comma `,` to insert a pause between digits. Example: `"1,234"` sends `1`, pauses, then sends `2`, `3`, `4`.
 
@@ -842,7 +702,7 @@ CallsApi.transmit_dtmf(
 - **Push is executive-assistant only:** `push` is only valid when the assistant's call is associated with an executive.
 - **Mute capability check:** Only calls that report `muteCapable: true` in call details support `mute`/`unmute`. Always check before calling.
 - **DTMF pause character:** Use a comma `,` to insert a pause between DTMF digits. This is not documented prominently in the API reference.
-- **Recording mode dependency:** `start_recording`/`stop_recording` only work when the user's recording mode is "On Demand". `pause_recording`/`resume_recording` work with both "On Demand" and "Always with Pause/Resume".
+- **Recording mode dependency:** Start/Stop Recording only work when the user's recording mode is "On Demand". Pause/Resume Recording work with both "On Demand" and "Always with Pause/Resume".
 
 ---
 
@@ -856,11 +716,6 @@ Get all active calls for the user.
 GET /v1/telephony/calls
 ```
 
-**SDK Signature:**
-```python
-CallsApi.list_calls(line_owner_id: str = None) -> list[TelephonyCall]
-```
-
 ---
 
 ### Get Call Details
@@ -869,14 +724,6 @@ Get details of a specific active call.
 
 ```
 GET /v1/telephony/calls/{callId}
-```
-
-**SDK Signature:**
-```python
-CallsApi.call_details(
-    call_id: str,
-    line_owner_id: str = None
-) -> TelephonyCall
 ```
 
 ---
@@ -889,11 +736,6 @@ Get the user's call history. Returns a maximum of **20 records per type**.
 GET /v1/telephony/calls/history
 ```
 
-**SDK Signature:**
-```python
-CallsApi.call_history(history_type: HistoryType = None) -> list[CallHistoryRecord]
-```
-
 **HistoryType values:**
 
 | Value | Description |
@@ -902,7 +744,7 @@ CallsApi.call_history(history_type: HistoryType = None) -> list[CallHistoryRecor
 | `missed` | Incoming calls not answered |
 | `received` | Incoming calls answered |
 
-If `history_type` is omitted, all types are returned (up to 20 each = max 60 total).
+If the `type` query parameter is omitted, all types are returned (up to 20 each = max 60 total).
 
 **CallHistoryRecord fields:**
 
@@ -916,8 +758,8 @@ If `history_type` is omitted, all types are returned (up to 20 each = max 60 tot
 
 ### Gotchas
 
-- **Call history limit:** `call_history` returns a maximum of 20 records per type (placed/missed/received). If `history_type` is omitted, all types are returned (up to 20 each = max 60 total).
-- **No pagination on call list:** `list_calls` returns all active calls for the user (typically a small number). There is no pagination support.
+- **Call history limit:** List Call History returns a maximum of 20 records per type (placed/missed/received). If the `type` query parameter is omitted, all types are returned (up to 20 each = max 60 total).
+- **No pagination on call list:** List Calls returns all active calls for the user (typically a small number). There is no pagination support.
 
 ---
 
@@ -1037,19 +879,19 @@ For **Service Apps** that need to control calls on behalf of users, workspaces, 
 
 **Base path:** `POST /v1/telephony/calls/members/{memberId}/{action}`
 
-The Members API mirrors the user-level API but adds `member_id` and `org_id` parameters.
+The Members API mirrors the user-level API but adds a `memberId` path parameter (and optionally `orgId`).
 
 ### Available Members Endpoints
 
-| Action | SDK Method | Returns |
-|--------|-----------|---------|
-| List Calls | `CallControlsMembersApi.list_calls(member_id, org_id)` | `list[TelephonyCall]` |
-| Get Call Details | `CallControlsMembersApi.get_call_details(member_id, call_id, org_id)` | `TelephonyCall` |
-| Dial | `CallControlsMembersApi.dial(member_id, destination, endpoint_id, org_id)` | `CallInfo` |
-| Answer | `CallControlsMembersApi.answer(member_id, call_id, endpoint_id, org_id)` | None |
-| Hangup | `CallControlsMembersApi.hangup(member_id, call_id, org_id)` | None |
+| Action | Endpoint | Returns |
+|--------|----------|---------|
+| List Calls | `GET {BASE}/telephony/calls/members/{memberId}/calls` | List of call objects |
+| Get Call Details | `GET {BASE}/telephony/calls/members/{memberId}/calls/{callId}` | Call object |
+| Dial | `POST {BASE}/telephony/calls/members/{memberId}/dial` | `{callId, callSessionId}` |
+| Answer | `POST {BASE}/telephony/calls/members/{memberId}/answer` | (204 No Content) |
+| Hangup | `POST {BASE}/telephony/calls/members/{memberId}/hangup` | (204 No Content) |
 
-**`member_id`** can be one of: person ID, workspace ID, or virtual line ID.
+**`memberId`** can be one of: person ID, workspace ID, or virtual line ID.
 
 ### Gotchas
 
@@ -1065,14 +907,7 @@ Set or clear Message Waiting Indicator (MWI) for a person or workspace. Service 
 POST /v1/telephony/externalVoicemail/mwi?id={userId}&orgId={orgId}
 ```
 
-**SDK Signature:**
-```python
-CallsApi.update_external_voicemail_mwi(
-    id: str,                              # person or workspace ID
-    action: ExternalVoicemailMwiAction,   # 'SET' or 'CLEAR'
-    org_id: str = None
-) -> None
-```
+**Query params:** `id` (person or workspace ID, required), `orgId` (optional). **Body:** `{"action": "SET"}` or `{"action": "CLEAR"}`.
 
 **Scope required:** `spark-admin:calls_write`
 
@@ -1099,80 +934,87 @@ wxcli external-voicemail create --id <workspace_id> --action SET
 
 ## 7. Common Use Cases
 
-> **Executable path:** run these flows with `wxcli call-controls` (§3 CLI Examples — including the same Hold/Consult/Transfer and Park/Retrieve patterns) or the raw HTTP endpoints in §2. The Python below illustrates the call sequence and argument shape for each use case; this repo does not execute `wxc_sdk`.
+> **Executable path:** run these flows with `wxcli call-controls` (§3 CLI Examples — including the same Hold/Consult/Transfer and Park/Retrieve patterns) or the raw HTTP endpoints in §2. The Python below shows the same call sequence using `api.session.rest_*()` raw HTTP calls.
 
 ### Click-to-Dial from CRM
 ```python
-from wxc_sdk import WebexSimpleApi
-
-api = WebexSimpleApi(tokens=tokens)
+from wxcli.auth import get_api
+api = get_api()
+BASE = "https://webexapis.com/v1"
 
 # Place a call from the CRM contact page
-result = api.telephony.calls.dial(destination="+12223334444")
-print(f"Call initiated: {result.call_id}")
+result = api.session.rest_post(f"{BASE}/telephony/calls/dial", json={"destination": "+12223334444"})
+print(f"Call initiated: {result['callId']}")
 ```
 
 ### Agent Dashboard: List Active Calls
 ```python
-calls = api.telephony.calls.list_calls()
-for call in calls:
-    print(f"{call.call_id} | {call.state} | {call.remote_party.name} ({call.remote_party.number})")
+result = api.session.rest_get(f"{BASE}/telephony/calls")
+for call in result.get("calls", []):
+    remote = call.get("remoteParty", {})
+    print(f"{call['id']} | {call['state']} | {remote.get('name')} ({remote.get('number')})")
 ```
 
 ### Consultative Transfer
 ```python
 # Agent has two calls: original caller and the transfer target
 # Transfer them together
-api.telephony.calls.transfer(call_id1=original_call_id, call_id2=consult_call_id)
+api.session.rest_post(f"{BASE}/telephony/calls/transfer", json={
+    "callId1": original_call_id,
+    "callId2": consult_call_id
+})
 ```
 
 ### Hold, Consult, Transfer Pattern
 ```python
 # 1. Put caller on hold
-api.telephony.calls.hold(call_id=caller_call_id)
+api.session.rest_post(f"{BASE}/telephony/calls/hold", json={"callId": caller_call_id})
 
 # 2. Dial the transfer target
-consult = api.telephony.calls.dial(destination="+15551234567")
+consult = api.session.rest_post(f"{BASE}/telephony/calls/dial", json={"destination": "+15551234567"})
 
 # 3. After speaking with transfer target, transfer both calls
-api.telephony.calls.transfer(call_id1=caller_call_id, call_id2=consult.call_id)
+api.session.rest_post(f"{BASE}/telephony/calls/transfer", json={
+    "callId1": caller_call_id,
+    "callId2": consult["callId"]
+})
 ```
 
 ### Park and Retrieve
 ```python
 # Park the call
-parked = api.telephony.calls.park(call_id=call_id)
-print(f"Parked against: {parked.number}")
+parked = api.session.rest_post(f"{BASE}/telephony/calls/park", json={"callId": call_id})
+park_number = parked.get("parkedAgainst", {}).get("number")
+print(f"Parked against: {park_number}")
 
 # Later, retrieve it (from any device)
-retrieved = api.telephony.calls.retrieve(destination=parked.number)
+retrieved = api.session.rest_post(f"{BASE}/telephony/calls/retrieve", json={"destination": park_number})
 ```
 
 ### Call Recording Control
 ```python
 # Start recording (user must have "On Demand" recording mode)
-api.telephony.calls.start_recording(call_id=call_id)
+api.session.rest_post(f"{BASE}/telephony/calls/startRecording", json={"callId": call_id})
 
 # Pause for sensitive info (credit card, SSN)
-api.telephony.calls.pause_recording(call_id=call_id)
+api.session.rest_post(f"{BASE}/telephony/calls/pauseRecording", json={"callId": call_id})
 
 # Resume
-api.telephony.calls.resume_recording(call_id=call_id)
+api.session.rest_post(f"{BASE}/telephony/calls/resumeRecording", json={"callId": call_id})
 
 # Stop
-api.telephony.calls.stop_recording(call_id=call_id)
+api.session.rest_post(f"{BASE}/telephony/calls/stopRecording", json={"callId": call_id})
 ```
 
 ### Service App: Control Calls for a User
 ```python
 # Using admin/service app credentials with spark-admin:calls_write
-from wxc_sdk.telephony.call_contols_members import CallControlsMembersApi
+member_id = "person-uuid-here"
 
 # Dial on behalf of a user
-result = members_api.dial(
-    member_id="person-uuid-here",
-    destination="+12223334444"
-)
+result = api.session.rest_post(f"{BASE}/telephony/calls/members/{member_id}/dial", json={
+    "destination": "+12223334444"
+})
 ```
 
 ---
@@ -1185,23 +1027,23 @@ result = members_api.dial(
 
 3. **Service Apps cannot use the user-level call endpoints** -- Service Apps must use the members path (`POST /v1/telephony/calls/members/{memberId}/{action}`; CLI: the `wxcli call-controls *-members` commands) instead. See §5 for the supported action set.
 
-4. **`callId` vs `id`** -- The API returns `id` in direct call responses but `callId` in webhook events. The SDK's `TelephonyCall` model handles both aliases transparently via the `call_id` property.
+4. **`callId` vs `id`** -- The API returns `id` in direct call responses but `callId` in webhook events. Always use `callId` when passing the identifier to action endpoints.
 
 5. **Click-to-Dial personality transition** -- A dial request starts with `personality: clickToDial` while alerting the user's devices. Once the user answers, it transitions to `personality: originator`.
 
 6. **Transfer restrictions** -- Unanswered incoming calls cannot be transferred. Use `divert` for unanswered calls.
 
-7. **`lineOwnerId` parameter** -- Present on nearly all methods. Used when the API caller has a secondary line belonging to another user, workspace, or virtual line on their device.
+7. **`lineOwnerId` parameter** -- Present on nearly all endpoints. Used when the API caller has a secondary line belonging to another user, workspace, or virtual line on their device.
 
-8. **Recording mode dependency** -- `start_recording` / `stop_recording` only work when the user's recording mode is "On Demand". `pause_recording` / `resume_recording` work with both "On Demand" and "Always with Pause/Resume".
+8. **Recording mode dependency** -- Start/Stop Recording only work when the user's recording mode is "On Demand". Pause/Resume Recording work with both "On Demand" and "Always with Pause/Resume".
 
 9. **Mute capability check** -- Always check `muteCapable` in call details before calling `mute` or `unmute`. Not all calls support it.
 
-10. **Call history limit** -- `call_history` returns a maximum of 20 records per type (placed/missed/received).
+10. **Call history limit** -- List Call History returns a maximum of 20 records per type (placed/missed/received).
 
 ---
 
 ## See Also
 
-- **[webhooks-events.md](webhooks-events.md)** — Real-time call event notifications via webhooks. The `TelephonyEventData` model inherits from `TelephonyCall` documented here; use webhooks for event-driven call control rather than polling `list_calls`.
+- **[webhooks-events.md](webhooks-events.md)** — Real-time call event notifications via webhooks. Webhook call event payloads share the same fields as the `TelephonyCall` object documented here (§4 Data Models); use webhooks for event-driven call control rather than polling List Calls.
 - **[person-call-settings-media.md](person-call-settings-media.md)** — Call recording configuration (recording mode, compliance announcements). Recording mode determines which recording control actions are available in this API.
