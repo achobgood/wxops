@@ -13,7 +13,7 @@
 | `tests/` | 226 test files covering core, migration (2778 tests), org health (76 tests) | `pytest tests/ -m "not live"` |
 | `.claude/agents/` | 2 Claude Code agent definitions (builder, migration-advisor) | Invoked via `/agents` in Claude Code |
 | `.claude/skills/` | 26 domain skills for guided Webex operations | Invoked via `Skill` tool or `/skill-name` |
-| `docs/reference/` | 46 API reference docs (originally built from wxc_sdk + wxcadm source; now maintained independently with wxcli CLI examples + raw HTTP) | Read by skills and agents at runtime |
+| `docs/reference/` | API reference docs (wxcli CLI examples + raw HTTP, grounded in the Webex OpenAPI specs) | Read by skills and agents at runtime |
 | `docs/knowledge-base/migration/` | 8 structured KB docs for the Opus migration advisor | Read by `migration-advisor` agent during decision review |
 
 ---
@@ -373,16 +373,9 @@ These libraries are imported in source but not listed in `pyproject.toml`'s `dep
 | **pytest + pytest-asyncio** | Test suite | 226 test files, `asyncio_mode = "auto"` |
 | **Python >= 3.14** | Required by `pyproject.toml` | **Significant constraint.** Python 3.14 is in beta as of May 2026. The codebase uses `str | None` union syntax (available since 3.10) and `type` statement syntax. All `python3.14` invocations in skills and CLAUDE.md are hardcoded to this version. |
 
-### Stale Dependency: wxc-sdk
+### Stale Dependency: typed SDK in `requirements.txt`
 
-`wxc-sdk==1.31.0` appears in `requirements.txt` (pip-compile output) with the comment `# via wxcli (pyproject.toml)`, but it is **not** in the current `pyproject.toml` and **no source file imports it** (`grep -r "wxc_sdk\|wxc-sdk" src/wxcli/` returns zero hits). It was likely a historical dependency that was removed from `pyproject.toml` without regenerating `requirements.txt`. The installed copy (`pip show` reports v1.23.0, not 1.31.0) provides `aiohttp` and `pydantic` transitively, masking the undeclared-dependency gap described above.
-
-**Where wxc-sdk is still referenced** (cleanup in progress — see `docs/prompts/remove-wxc-sdk-references.md`):
-- `requirements.txt` — stale pip-compile output
-- `docs/reference/archive/wxc-sdk-patterns.md` — historical SDK patterns doc, archived 2026-07-01 (scopes table and raw HTTP examples are the valuable parts)
-- Several skills contain `from wxc_sdk import ...` code examples that need rewriting
-- `tools/CLAUDE.md` and root `CLAUDE.md` — reframed as historical source (already updated)
-- `docs/reference/CLAUDE.md` — marked as historical (already updated)
+A typed-SDK package (`# via wxcli`) still appears in `requirements.txt` (pip-compile output), but it is **not** in the current `pyproject.toml` and **no source file imports it**. It was a historical dependency removed from `pyproject.toml` without regenerating `requirements.txt`. The installed copy provides `aiohttp` and `pydantic` transitively, masking the undeclared-dependency gap described above. `requirements.txt` should be regenerated; the reference docs and skills no longer reference the SDK.
 
 ### OpenAPI Specs (Input to Generator)
 

@@ -309,7 +309,7 @@ A sweep of `TODO`, `FIXME`, `HACK`, `WORKAROUND`, and `XXX` across the Python so
 
 **Legacy hand-written command files: retired.** (History: `locations.py`/`numbers.py` turned out to be generator output on disk, confirmed 2026-07-01; `licenses.py` — the last one — was consolidated 2026-07-02 per refactor-plan S3.1 after a live-verified license assign/remove round-trip proved the generated twin. `licenses` is now generated; `licenses-api` is a deprecated alias for one release.) `tools/CLAUDE.md` still warns against creating new hand-written files.
 
-**Stale wxc-sdk references.** The `wxc-sdk` dependency was removed from `pyproject.toml` and no source file imports it, but references persist in documentation: `docs/reference/archive/wxc-sdk-patterns.md` (historical SDK patterns, archived 2026-07-01), several skills with `from wxc_sdk import ...` code examples, and `tools/CLAUDE.md`. A cleanup prompt exists at `docs/prompts/remove-wxc-sdk-references.md` but has not been fully executed.
+**Stale typed-SDK pin in `requirements.txt`.** The typed-SDK dependency was removed from `pyproject.toml` and no source file imports it, but `requirements.txt` (pip-compile output) still carries a stale transitive pin — it should be regenerated.
 
 **Python 3.14 version constraint.** `pyproject.toml` declares `>=3.14` but the codebase uses no 3.14-specific features. CI tests on 3.11 and 3.12. All skill and agent invocations hardcode `python3.14`. This limits adoption without providing value — it should either be relaxed to 3.11+ or a 3.14-specific feature should be identified.
 

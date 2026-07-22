@@ -34,7 +34,7 @@ See `docs/plans/cucm-migration-roadmap.md` for the master project status.
 
 ## Known Issues
 
-1. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects both wxcadm and raw AXL calls. <!-- Verified on CUCM 15.0.1.13901(2), 2026-03-24 -->
+1. **CUCM CallPickupGroup creation with members fails on CUCM 15.0.** The AXL `addCallPickupGroup` operation with `<members>` containing `<directoryNumber>` fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then use `updateLine` with `callPickupGroupName` to assign members at the line level. Affects raw AXL calls. <!-- Verified on CUCM 15.0.1.13901(2), 2026-03-24 -->
 
 ## Pipeline Commands
 
