@@ -766,6 +766,43 @@ def _parse_dect_inventory_csv(path: str) -> list[dict[str, str]]:
     return rows
 
 
+def _report_failed_discovery(result: Any, elapsed: float, raw_data_path: Path) -> None:
+    """Print an actionable failure report for a discovery run that extracted nothing."""
+    console.print(f"\n[red]Discovery FAILED[/red] — 0 objects extracted in {elapsed:.1f}s")
+    console.print(f"  CUCM version: {result.cucm_version or 'unknown'}")
+    console.print(f"  [red]Failed AXL calls: {result.total_failed}[/red]")
+
+    # Surface the first few extractor errors — they are usually all the same fault.
+    sample_errors: list[str] = []
+    for name, ext_result in result.extractor_results.items():
+        for err in ext_result.errors:
+            sample_errors.append(f"    {name}: {err}")
+            if len(sample_errors) >= 5:
+                break
+        if len(sample_errors) >= 5:
+            break
+    if sample_errors:
+        console.print("  First errors:")
+        for line in sample_errors:
+            console.print(f"[dim]{line}[/dim]")
+
+    console.print(
+        "\n  [yellow]Most likely cause:[/yellow] the AXL WSDL does not match your CUCM version.\n"
+        "  With a mismatched WSDL every AXL call fails (typically \"Unknown fault occured\")\n"
+        "  and version detection fails first, which is why the version above is unknown."
+    )
+    console.print(
+        "\n  Remedy: re-run with the AXL schema matching your CUCM version:\n"
+        "    [bold]wxcli cucm discover --host <host> --username <user> "
+        "--wsdl <axlsqltoolkit>/schema/<your-cucm-version>/AXLAPI.wsdl[/bold]\n"
+        "  Note: schema/current/ is the NEWEST schema in the toolkit, not necessarily yours."
+    )
+    console.print(
+        f"\n  raw_data.json was still written for debugging: {raw_data_path}\n"
+        "  The 'discover' stage was [red]NOT[/red] marked complete — fix the WSDL and re-run."
+    )
+
+
 @app.command()
 def discover(
     host: Optional[str] = typer.Option(None, "--host", help="CUCM hostname or IP"),
@@ -909,21 +946,37 @@ def discover(
     try:
         result = run_discovery(conn, store)
 
-        # Persist raw_data for the normalize command
+        # Persist raw_data for the normalize command (kept even on a failed run,
+        # so the failure itself can be inspected)
         raw_data_path = project_dir / "raw_data.json"
         with open(raw_data_path, "w") as f:
             json.dump(result.raw_data, f, default=str)
 
-        _mark_stage_complete(project_dir, "discover")
         elapsed = time.time() - t0
+
+        # A run that extracted nothing is a FAILED run — every AXL call failed.
+        # Do not mark the stage complete and do not advance ProjectState.
+        if result.total_objects == 0:
+            _report_failed_discovery(result, elapsed, raw_data_path)
+            raise typer.Exit(1)
+
+        _mark_stage_complete(project_dir, "discover")
 
         console.print(f"\n[green]Discovery complete[/green] in {elapsed:.1f}s")
         console.print(f"  CUCM version: {result.cucm_version}")
+        if not result.cucm_version or result.cucm_version == "unknown":
+            console.print(
+                "  [yellow]Warning: CUCM version could not be detected.[/yellow] This usually\n"
+                "  means the AXL WSDL does not match the cluster — results may be incomplete.\n"
+                "  Re-run with --wsdl <axlsqltoolkit>/schema/<your-cucm-version>/AXLAPI.wsdl"
+            )
         console.print(f"  Total objects: {result.total_objects}")
         if result.total_failed:
             console.print(f"  [yellow]Failed: {result.total_failed}[/yellow]")
         for name, ext_result in result.extractor_results.items():
             console.print(f"    {name:<15s} {ext_result.total:>5d} extracted")
+    except typer.Exit:
+        raise
     except Exception as exc:
         console.print(f"[red]Discovery failed:[/red] {exc}")
         logger.exception("Discovery failed")
