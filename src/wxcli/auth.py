@@ -15,10 +15,28 @@ logger = logging.getLogger("wxcli")
 MAX_RETRIES_429 = 3
 MAX_RETRY_AFTER_SECONDS = 30
 
+# httpx defaults to 5s for connect AND read; Webex list and CDR endpoints
+# routinely exceed that. Override per-call or via env.
+DEFAULT_CONNECT_TIMEOUT = 10.0
+DEFAULT_READ_TIMEOUT = 60.0
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ[name])
+    except (KeyError, ValueError):
+        return default
+
 
 class WebexSession:
-    def __init__(self, token: str):
+    def __init__(self, token: str, connect_timeout: float | None = None,
+                 read_timeout: float | None = None):
         self._token = token
+        connect = connect_timeout if connect_timeout is not None else _env_float(
+            "WXCLI_CONNECT_TIMEOUT", DEFAULT_CONNECT_TIMEOUT)
+        read = read_timeout if read_timeout is not None else _env_float(
+            "WXCLI_READ_TIMEOUT", DEFAULT_READ_TIMEOUT)
+        self._timeout = httpx.Timeout(read, connect=connect)
 
     def _headers(self, content_type: str | None = None) -> dict:
         return {
@@ -37,7 +55,7 @@ class WebexSession:
             try:
                 response = httpx.request(
                     method, url, headers=self._headers(content_type),
-                    json=json, params=params,
+                    json=json, params=params, timeout=self._timeout,
                 )
             except (httpx.ConnectError, httpx.ConnectTimeout) as e:
                 if connect_retries:
@@ -123,7 +141,8 @@ def resolve_token(config_path: Path | None = DEFAULT_CONFIG_PATH) -> str | None:
     return None
 
 
-def get_api(debug: bool = False) -> WebexApi:
+def get_api(debug: bool = False, connect_timeout: float | None = None,
+            read_timeout: float | None = None) -> WebexApi:
     """Get a configured WebexApi instance, or exit with error."""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -135,7 +154,8 @@ def get_api(debug: bool = False) -> WebexApi:
         raise typer.Exit(1)
 
     try:
-        api = WebexApi(WebexSession(token))
+        api = WebexApi(WebexSession(token, connect_timeout=connect_timeout,
+                                    read_timeout=read_timeout))
     except Exception as e:
         typer.echo(f"Error: Failed to initialize API: {e}", err=True)
         raise typer.Exit(1)
