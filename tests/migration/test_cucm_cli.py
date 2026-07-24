@@ -323,6 +323,90 @@ class TestDiscover:
         assert result.exit_code == 1
         assert "Connection failed" in result.output
 
+    @patch("wxcli.commands.cucm.socket.socket")
+    @patch("wxcli.migration.cucm.discovery.run_discovery")
+    @patch("wxcli.migration.cucm.connection.AXLConnection")
+    def test_discover_zero_objects_fails(
+        self, mock_conn_cls, mock_discover, mock_socket_cls, tmp_migrations_dir
+    ):
+        """A run where every extractor failed must NOT report success."""
+        from wxcli.migration.cucm.extractors.base import ExtractionResult
+
+        runner.invoke(app, ["init", "test-project"])
+
+        mock_sock = MagicMock()
+        mock_sock.connect_ex.return_value = 0
+        mock_socket_cls.return_value = mock_sock
+        mock_conn_cls.return_value = MagicMock()
+
+        failed = ExtractionResult(extractor="locations", total=0, failed=3)
+        failed.errors.append("listDevicePool failed: Unknown fault occured")
+
+        mock_result = MagicMock()
+        mock_result.raw_data = {"locations": {"device_pools": []}}
+        mock_result.cucm_version = "unknown"
+        mock_result.total_objects = 0
+        mock_result.total_failed = 24
+        mock_result.extractor_results = {"locations": failed}
+        mock_discover.return_value = mock_result
+
+        result = runner.invoke(
+            app,
+            ["discover", "--host", "10.0.0.1", "--username", "admin", "--password", "secret"],
+        )
+
+        assert result.exit_code == 1
+        assert "Discovery FAILED" in result.output
+        assert "Discovery complete" not in result.output
+        assert "24" in result.output
+        assert "unknown" in result.output
+        assert "WSDL" in result.output
+        assert "--wsdl" in result.output
+
+        project_dir = tmp_migrations_dir / "test-project"
+        # raw_data.json is still written for debugging
+        assert (project_dir / "raw_data.json").exists()
+
+        state = json.loads((project_dir / "state.json").read_text())
+        assert "discover" not in state["completed_stages"]
+        assert state["state"] != "discovered"
+
+    @patch("wxcli.commands.cucm.socket.socket")
+    @patch("wxcli.migration.cucm.discovery.run_discovery")
+    @patch("wxcli.migration.cucm.connection.AXLConnection")
+    def test_discover_unknown_version_warns_on_success(
+        self, mock_conn_cls, mock_discover, mock_socket_cls, tmp_migrations_dir
+    ):
+        """Version detection failing is surfaced even when objects were extracted."""
+        runner.invoke(app, ["init", "test-project"])
+
+        mock_sock = MagicMock()
+        mock_sock.connect_ex.return_value = 0
+        mock_socket_cls.return_value = mock_sock
+        mock_conn_cls.return_value = MagicMock()
+
+        mock_result = MagicMock()
+        mock_result.raw_data = {"locations": {"device_pools": []}}
+        mock_result.cucm_version = "unknown"
+        mock_result.total_objects = 7
+        mock_result.total_failed = 2
+        mock_result.extractor_results = {}
+        mock_discover.return_value = mock_result
+
+        result = runner.invoke(
+            app,
+            ["discover", "--host", "10.0.0.1", "--username", "admin", "--password", "secret"],
+        )
+
+        assert result.exit_code == 0
+        assert "Discovery complete" in result.output
+        assert "CUCM version could not be detected" in result.output
+
+        state = json.loads(
+            (tmp_migrations_dir / "test-project" / "state.json").read_text()
+        )
+        assert "discover" in state["completed_stages"]
+
 
 class TestNormalize:
     def test_normalize_success(self, tmp_migrations_dir):
