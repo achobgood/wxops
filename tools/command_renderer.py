@@ -74,9 +74,10 @@ def _render_imports(include_org_id: bool = False, include_org_id_path: bool = Fa
                     include_cc_url: bool = False, include_cc_org_id: bool = False,
                     include_fs_url: bool = False, include_fs_project_id: bool = False) -> str:
     lines = '''import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 '''
@@ -117,7 +118,9 @@ def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
 
 def _render_error_handler(indent: str = "    ") -> str:
     return f'''{indent}except WebexError as e:
-{indent}    handle_rest_error(e)'''
+{indent}    handle_rest_error(e)
+{indent}except httpx.HTTPError as e:
+{indent}    handle_network_error(e)'''
 
 
 def _render_auto_inject_params(ep: Endpoint) -> list[str]:
