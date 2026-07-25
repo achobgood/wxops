@@ -480,7 +480,7 @@ def parse_operation(
     deprecated = op.get("deprecated", False)
 
     json_body_example = None
-    if command_type in ("create", "update", "action"):
+    if command_type in ("create", "update", "delete", "action"):
         json_body_example = generate_body_example(op, spec)
 
     # Detect pagination: 200 response with Link header means RFC 5988 pagination
