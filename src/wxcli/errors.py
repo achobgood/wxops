@@ -75,25 +75,3 @@ def handle_rest_error(e: WebexError) -> None:
     else:
         typer.echo(f"Error: {_truncate_html(err)}", err=True)
     raise typer.Exit(1)
-
-
-_NETWORK_TIPS = {
-    "ReadTimeout": "The server did not respond in time. Raise the limit with WXCLI_READ_TIMEOUT=<seconds>.",
-    "WriteTimeout": "The request body could not be sent in time. Raise WXCLI_READ_TIMEOUT=<seconds>.",
-    "ConnectTimeout": "Could not reach the API host in time. Check connectivity, or raise WXCLI_CONNECT_TIMEOUT=<seconds>.",
-    "ConnectError": "Could not connect to the API host. Check network access and any proxy settings.",
-    "PoolTimeout": "Connection pool exhausted. Retry, or reduce concurrency.",
-}
-
-
-def handle_network_error(e: Exception) -> None:
-    """Handle transport failures that never produced an HTTP response.
-
-    These bypass WebexError entirely — without this, a read timeout reaches
-    the user as a raw traceback.
-    """
-    kind = type(e).__name__
-    detail = f"{kind}: {e}" if str(e) else kind
-    typer.echo(f"Error: request failed — {detail}", err=True)
-    typer.echo(f"Tip: {_NETWORK_TIPS.get(kind, 'Transport-level failure with no HTTP response.')}", err=True)
-    raise typer.Exit(1)
