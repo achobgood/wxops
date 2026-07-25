@@ -1,4 +1,5 @@
 import os
+import random
 import time
 import logging
 from pathlib import Path
@@ -11,14 +12,53 @@ from wxcli.errors import WebexError
 
 logger = logging.getLogger("wxcli")
 
-# Bounded retry policy. Opt out (scripted contexts) with WXCLI_NO_RETRY=1.
-MAX_RETRIES_429 = 3
+# Bounded retry policy. WXCLI_RETRY_MODE=off (or legacy WXCLI_NO_RETRY=1) disables.
+DEFAULT_MAX_ATTEMPTS = 4
 MAX_RETRY_AFTER_SECONDS = 30
+RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+
+
+def _retry_enabled() -> bool:
+    if os.environ.get("WXCLI_NO_RETRY"):
+        return False
+    return os.environ.get("WXCLI_RETRY_MODE", "standard").lower() != "off"
+
+
+def _max_attempts() -> int:
+    try:
+        return max(1, int(os.environ.get("WXCLI_MAX_ATTEMPTS", DEFAULT_MAX_ATTEMPTS)))
+    except ValueError:
+        return DEFAULT_MAX_ATTEMPTS
+
+
+def _backoff_delay(attempt: int) -> float:
+    """Exponential backoff with jitter: attempt 1 -> (0,1], 2 -> (1,2], 3 -> (2,4]."""
+    base = 2 ** (attempt - 1)
+    lower = base / 2 if attempt > 1 else 0.0
+    return lower + random.random() * (base - lower)
+
+# httpx defaults to 5s for connect AND read; Webex list and CDR endpoints
+# routinely exceed that. Override per-call or via env.
+DEFAULT_CONNECT_TIMEOUT = 10.0
+DEFAULT_READ_TIMEOUT = 60.0
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ[name])
+    except (KeyError, ValueError):
+        return default
 
 
 class WebexSession:
-    def __init__(self, token: str):
+    def __init__(self, token: str, connect_timeout: float | None = None,
+                 read_timeout: float | None = None):
         self._token = token
+        connect = connect_timeout if connect_timeout is not None else _env_float(
+            "WXCLI_CONNECT_TIMEOUT", DEFAULT_CONNECT_TIMEOUT)
+        read = read_timeout if read_timeout is not None else _env_float(
+            "WXCLI_READ_TIMEOUT", DEFAULT_READ_TIMEOUT)
+        self._timeout = httpx.Timeout(read, connect=connect)
 
     def _headers(self, content_type: str | None = None) -> dict:
         return {
@@ -28,16 +68,19 @@ class WebexSession:
 
     def _request(self, method: str, url: str, json=None, params=None,
                  content_type: str | None = None) -> httpx.Response:
-        """Single HTTP path for all verbs: bounded 429/Retry-After honor +
-        one connect-error retry. WXCLI_NO_RETRY=1 disables both."""
-        retry_enabled = not os.environ.get("WXCLI_NO_RETRY")
-        retries_429 = MAX_RETRIES_429 if retry_enabled else 0
-        connect_retries = 1 if retry_enabled else 0
+        """Single HTTP path for all verbs: bounded retry on RETRY_STATUSES
+        (Retry-After honored on 429, exponential backoff otherwise) + one
+        connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
+        enabled = _retry_enabled()
+        attempts_left = _max_attempts() if enabled else 1
+        connect_retries = 1 if enabled else 0
+        attempt = 0
         while True:
+            attempt += 1
             try:
                 response = httpx.request(
                     method, url, headers=self._headers(content_type),
-                    json=json, params=params,
+                    json=json, params=params, timeout=self._timeout,
                 )
             except (httpx.ConnectError, httpx.ConnectTimeout) as e:
                 if connect_retries:
@@ -45,13 +88,19 @@ class WebexSession:
                     logger.warning("Connect error on %s %s (%s) — retrying once", method, url, e)
                     continue
                 raise
-            if response.status_code == 429 and retries_429:
-                retries_429 -= 1
-                try:
-                    delay = min(int(response.headers.get("Retry-After", 5)), MAX_RETRY_AFTER_SECONDS)
-                except ValueError:
-                    delay = 5
-                logger.warning("429 on %s %s — waiting %ss (Retry-After)", method, url, delay)
+            attempts_left -= 1
+            if response.status_code in RETRY_STATUSES and attempts_left > 0:
+                retry_after = response.headers.get("Retry-After")
+                delay = None
+                if retry_after:
+                    try:
+                        delay = min(int(retry_after), MAX_RETRY_AFTER_SECONDS)
+                    except ValueError:
+                        delay = None
+                if delay is None:
+                    delay = _backoff_delay(attempt)
+                logger.warning("%s on %s %s — retrying in %.1fs",
+                               response.status_code, method, url, delay)
                 time.sleep(delay)
                 continue
             return response
@@ -123,7 +172,8 @@ def resolve_token(config_path: Path | None = DEFAULT_CONFIG_PATH) -> str | None:
     return None
 
 
-def get_api(debug: bool = False) -> WebexApi:
+def get_api(debug: bool = False, connect_timeout: float | None = None,
+            read_timeout: float | None = None) -> WebexApi:
     """Get a configured WebexApi instance, or exit with error."""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -135,7 +185,8 @@ def get_api(debug: bool = False) -> WebexApi:
         raise typer.Exit(1)
 
     try:
-        api = WebexApi(WebexSession(token))
+        api = WebexApi(WebexSession(token, connect_timeout=connect_timeout,
+                                    read_timeout=read_timeout))
     except Exception as e:
         typer.echo(f"Error: Failed to initialize API: {e}", err=True)
         raise typer.Exit(1)

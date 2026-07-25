@@ -58,7 +58,7 @@ General Webex platform events: messages created/deleted, calls placed, meetings 
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `audit-events list` | List admin audit events | `--from`, `--to`, `--actor-id`, `--event-categories`, `--max`, `--offset` |
+| `audit-events list` | List admin audit events | `--from`, `--to`, `--actor-id`, `--event-categories`, `--limit`, `--offset` |
 | `audit-events list-event-categories` | List available event categories | (none required) |
 
 ### CLI Examples
@@ -104,7 +104,7 @@ Response key: `eventCategories` (array of category strings).
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `security-audit list` | List security audit events | `--start-time`, `--end-time`, `--actor-id`, `--event-categories`, `--max` |
+| `security-audit list` | List security audit events | `--start-time`, `--end-time`, `--actor-id`, `--event-categories`, `--limit` |
 
 ### CLI Examples
 
@@ -141,7 +141,7 @@ Response key: `items` (array of event objects).
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `events list` | List platform events | `--resource`, `--type`, `--actor-id`, `--from`, `--to`, `--service-type`, `--max` |
+| `events list` | List platform events | `--resource`, `--type`, `--actor-id`, `--from`, `--to`, `--service-type`, `--limit` |
 | `events show` | Get event details by ID | `EVENT_ID` (positional argument) |
 
 ### CLI Examples
@@ -309,9 +309,37 @@ wxcli audit-events list \
 
 6. **`events list` resource types are not validated client-side.** If you pass a misspelled `--resource` value, you get an empty result set, not an error. Use the known resource types listed above.
 
-7. **Pagination behavior.** All three list commands use `--max` for page size and return paginated responses with `items` key. Use `--limit` to control how many results wxcli returns. For large exports, use `-o json` and handle pagination manually if needed.
+7. **Pagination behavior — and where it stops.** There is no `--max` flag on these commands; the generator suppresses the spec's paging parameters in favour of `--limit`/`--offset`. Three things follow, and they differ per command:
+
+   - **`events list` pages automatically.** With `--limit` omitted (the default) it follows the `Link: <url>; rel="next"` header until the result set is exhausted.
+   - **`audit-events list` and `security-audit list` do not page at all.** Their spec operations declare no `Link` response header, so wxcli makes exactly one call and returns one page no matter what. Walk the result set yourself with `--offset`, or use `-o json` and follow `Link` over raw HTTP.
+   - **A non-zero `--limit N` collapses to a single call on every list command.** For any N up to one page — the normal case — it returns exactly N, and an N larger than the total returns everything without error (verified live). The boundary is the page: it sends `max=N` and returns at most one response worth of records, so when N exceeds that endpoint's page size you get fewer than N with exit code 0 and no warning, and a very large N may instead be rejected by the API. That above-one-page case is derived from the rendered code, not observed — reproducing it needs an org holding more than a page of a single resource. Of the 182 GET operations that accept `max`, only 7 declare an upper bound at all (2000 on six, 1000 on one), so the cap is usually unknowable from the spec — treat a large `--limit` as unreliable and check the count you actually got. Omit `--limit` when you need a complete set.
 
 8. **ISO 8601 datetime format required.** All date parameters expect ISO 8601 format: `2026-03-18T00:00:00.000Z`. Using other formats will return an error or unexpected results.
+
+9. **`audit-events list` and `security-audit list` fail with a missing-`orgId` error on a single-org token.** Live-verified 2026-07-24:
+
+   ```
+   wxcli audit-events list --from 2026-07-20T00:00:00.000Z --to 2026-07-24T00:00:00.000Z -o json
+   Error: {"message":"Required request parameter 'orgId' for method parameter type String is not present", ...}
+   EXIT: 1
+   ```
+
+   These are 2 of only 12 operations in any spec that mark `orgId` **required** as a *query* parameter (the other 10 are Video Mesh). The generated command injects it with `get_org_id()`, which reads the saved config and returns nothing unless `wxcli configure` stored an org — and it only stores one for partner/multi-org tokens. So a normal single-org admin token sends no `orgId` and the API rejects the call.
+
+   **Fixed.** `wxcli configure` now saves the org for single-org tokens too, so a
+   freshly configured install works. A config created *before* that change still
+   has no `org_id` — repair it once with `wxcli switch-org`, which now saves the
+   single org instead of reporting "no org switching needed":
+
+   ```
+   wxcli switch-org
+   Single-org token — target org set: My Company (Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8...)
+   ```
+
+   **In a script or an agent, pass the ID explicitly — `wxcli switch-org <orgId>`.**
+   The bare form prompts interactively when the token spans several orgs, which
+   blocks a non-interactive caller indefinitely. `wxcli clear-org` reverses it.
 
 ---
 
