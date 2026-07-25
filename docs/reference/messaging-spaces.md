@@ -100,8 +100,7 @@ Organization
 | `--org-public-spaces` | Show org's public spaces (joined and unjoined) |
 | `--from` | Filter public spaces made public after this time (ISO 8601) |
 | `--to` | Filter public spaces made public before this time (ISO 8601) |
-| `--max N` | API-level page size |
-| `--limit N` | CLI-level result cap |
+| `--limit N` | Cap results at N. Makes a **single** API call, so it can return fewer than N — see gotcha #2. Omit it to page through everything. |
 | `--output table\|json` | Output format (default: table) |
 
 #### `rooms create`
@@ -190,8 +189,7 @@ For adaptive card payloads (`attachments` field), use `--json-body`. See `messag
 | `--mentioned-people PERSON_ID` | Filter to messages mentioning this person (use `me` for self) |
 | `--before DATETIME` | Messages sent before this time (ISO 8601) |
 | `--before-message MESSAGE_ID` | Messages sent before this message (pagination) |
-| `--max N` | API-level page size |
-| `--limit N` | CLI-level result cap |
+| `--limit N` | Cap results at N. Makes a **single** API call, so it can return fewer than N — see gotcha #2. Omit it to page through everything. |
 | `--output table\|json` | Output format (default: table; columns: ID, Person Email, Text) |
 
 #### `messages create`
@@ -292,7 +290,7 @@ A membership is the relationship between a person and a space. The membership ID
 | `--room-id ROOM_ID` | List all members of a specific space |
 | `--person-id PERSON_ID` | List all spaces a specific person belongs to |
 | `--person-email EMAIL` | List all spaces a specific person belongs to (by email) |
-| `--max N` | Page size |
+| `--limit N` | Cap results at N. Makes a **single** API call, so it can return fewer than N — see gotcha #2. Omit it to page through everything. |
 | `--output table\|json` | Output format (default: table; columns: ID, Name) |
 
 #### `memberships create`
@@ -676,7 +674,12 @@ These issues span multiple messaging API surfaces. Check per-section Gotchas for
 
 1. **Rate limits apply across all messaging endpoints.** Bot tokens have lower rate limits than user/admin tokens (exact numbers not officially documented — honor `Retry-After` headers). When bulk-creating spaces, adding members, or sending messages in a loop, add a short delay (e.g., `sleep 1`) between operations. A 429 response includes a `Retry-After` header — always honor it.
 
-2. **Pagination is cursor-based, not offset-based.** All `list` commands use `items` arrays with `Link` headers for the next page. The CLI handles pagination internally via `--max` (API page size) and `--limit` (total result cap). For raw HTTP, follow the `Link: <url>; rel="next"` header to walk through pages.
+2. **Pagination is cursor-based, not offset-based — and `--limit N` turns it off.** All `list` commands use `items` arrays with `Link` headers for the next page. There is no `--max` flag: the generator suppresses the spec's paging parameters in favour of `--limit`. Two behaviours follow, and the difference matters:
+
+   - **Omit `--limit` (the default)** and wxcli follows `Link: <url>; rel="next"` until every result is in. This is the complete-and-correct path.
+   - **Pass `--limit N`** and it collapses to a **single** API call sending `max=N`, returning at most one response worth of records. When N is larger than that endpoint's page size you get fewer than N records with exit code 0 and no warning; a very large N may instead be rejected by the API. The caps are undeclared in the spec for almost every endpoint, so treat a large `--limit` as unreliable and check the count you actually got.
+
+   For raw HTTP, follow the `Link: <url>; rel="next"` header to walk through pages.
 
 3. **Membership sync delays on team operations.** Adding a member to a team auto-adds them to all team spaces, but the space-level membership may take a few seconds to propagate. If you add a team member and immediately try to post a message as that user in a team space, the message may fail with 403 until the membership propagates.
 
