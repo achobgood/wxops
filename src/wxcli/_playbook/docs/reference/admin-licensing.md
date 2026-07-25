@@ -16,7 +16,7 @@ License inventory, assignment, usage auditing, and reclamation for Webex organiz
 2. [Required Scopes](#required-scopes)
 3. [CLI Command Groups](#cli-command-groups)
 4. [1. licenses-api (Admin Spec)](#1-licenses-api-admin-spec)
-5. [2. licenses (Calling Spec)](#2-licenses-calling-spec)
+5. [2. licenses (Current Name)](#2-licenses-current-name)
 6. [Raw HTTP Fallback](#raw-http-fallback)
 7. [License Assignment Error Codes](#license-assignment-error-codes)
 8. [Recipes](#recipes)

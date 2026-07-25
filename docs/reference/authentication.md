@@ -17,7 +17,7 @@ This document covers every authentication method available for the Webex Calling
 2. [Personal Access Tokens](#personal-access-tokens)
 3. [OAuth Integrations](#oauth-integrations)
 4. [Service Apps](#service-apps)
-5. [Partner/Multi-Org Tokens](#partnerulti-org-tokens)
+5. [Partner/Multi-Org Tokens](#partnermulti-org-tokens)
 6. [Bot Tokens](#bot-tokens)
 7. [Guest Issuer Tokens](#guest-issuer-tokens)
 8. [Calling-Related Scopes](#calling-related-scopes)
