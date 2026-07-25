@@ -17,13 +17,14 @@ This document covers every authentication method available for the Webex Calling
 2. [Personal Access Tokens](#personal-access-tokens)
 3. [OAuth Integrations](#oauth-integrations)
 4. [Service Apps](#service-apps)
-5. [Partner/Multi-Org Tokens](#partnerulti-org-tokens)
+5. [Partner/Multi-Org Tokens](#partnermulti-org-tokens)
 6. [Bot Tokens](#bot-tokens)
 7. [Guest Issuer Tokens](#guest-issuer-tokens)
 8. [Calling-Related Scopes](#calling-related-scopes)
 9. [Raw HTTP via api.session](#raw-http-via-apisession)
-10. [Token Refresh Flow](#token-refresh-flow)
-11. [Common Auth Errors](#common-auth-errors)
+10. [Timeouts, Retries and Environment Variables](#timeouts-retries-and-environment-variables)
+11. [Token Refresh Flow](#token-refresh-flow)
+12. [Common Auth Errors](#common-auth-errors)
 
 ---
 
@@ -313,6 +314,24 @@ wxcli detects multi-org tokens automatically and manages `orgId` injection trans
 
 Once a target org is configured, 668 of 804 generated commands automatically inject `orgId` from config on every API call that accepts the parameter — no `--org-id` flag required. The four hand-coded command files (users, licenses, locations, numbers) also inject `orgId` the same way.
 
+### Org resolution now happens for single-org tokens too
+
+`wxcli configure` used to save an `orgId` only when it detected a multi-org (partner) token. That was a bug: **it now resolves and saves the org for single-org tokens as well**, and only when no org is already configured — a deliberate partner org selection made earlier is never overwritten.
+
+This costs no extra API call: `configure` already fetches `/people/me` to validate the token, and that response's `orgId` is used as the fallback if `/v1/organizations` is unavailable.
+
+**Why it matters:** exactly **12 operations across all specs mark `orgId` as a REQUIRED query parameter** — `GET /adminAudit/events`, `GET /admin/securityAudit/events`, 9 Video Mesh GET endpoints, and 1 dev-only endpoint. Generated commands inject `orgId` from the saved config only (`get_org_id()`). With no org saved, the 11 user-facing ones — `audit-events list`, `security-audit list`, and every `video-mesh` command — failed outright with exit code 1:
+
+```
+Error: Required request parameter 'orgId' for method parameter type String is not present
+```
+
+Every other endpoint treats `orgId` as optional and defaults to the token's own org — that's why only these 12 broke under the old behavior.
+
+**Recovery for a config created before this change:** run `wxcli switch-org`, which now resolves and saves the single org. Previously, on a single-org token, it printed `Single-org token — no org switching needed.` and saved nothing — there was no recovery path at all.
+
+`wxcli whoami` shows a `Target:` line only when an org is saved, and no longer renders a literal `(None)` when an org was saved without a name (e.g. because `/v1/organizations` was unavailable and the fallback came from `/people/me`, which has no org display name).
+
 ### Builder agent behavior
 
 When the builder agent detects a partner token (section 2b of its workflow), it pauses and requires explicit org confirmation before proceeding. This prevents accidentally configuring the wrong customer org.
@@ -326,6 +345,7 @@ Partner tokens use the same `spark-admin:` scopes as regular admin tokens. No ad
 - **`organizations list` returns multiple orgs for partner tokens.** wxcli uses this call to detect partner tokens: if the response contains more than one org, it treats the token as multi-org and prompts for selection. Single-org admins always see exactly one result.
 - **Some endpoints do not accept `orgId`.** The 136 of 804 endpoints that do not accept `orgId` operate in the context of the token's own org. These are typically endpoints that are inherently org-scoped (e.g., `/v1/organizations/{orgId}/...` where the org is a path param, not a query param).
 - **Service app tokens scoped to a single customer org** behave like single-org tokens and do not trigger multi-org detection.
+- **Bare `wxcli switch-org` (no `orgId` argument) prompts interactively** when the token spans several orgs — it blocks a script or an automated agent indefinitely waiting on stdin. In any non-interactive context, always pass the id explicitly: `wxcli switch-org <orgId>`. `wxcli clear-org` reverses it.
 
 ---
 
@@ -488,7 +508,7 @@ The session inherits its auth from whatever `wxcli configure` saved:
 | `WEBEX_ACCESS_TOKEN` / `WEBEX_TOKEN` env var | Checked first, in that order — an env var overrides the config file |
 | Token saved by `wxcli configure` | Read from `~/.wxcli/config.json` when neither env var is set |
 | No token at all | `get_api()` exits with `Error: No token found. Run 'wxcli configure' or set WEBEX_ACCESS_TOKEN.` |
-| Rate-limit retry | Up to 3 retries on 429, honoring `Retry-After`; set `WXCLI_NO_RETRY=1` to disable |
+| Retry policy | Bounded retry on 429/500/502/503/504 plus connect errors; see [Timeouts, Retries and Environment Variables](#timeouts-retries-and-environment-variables) |
 | Debug logging | `get_api(debug=True)` raises the log level to DEBUG |
 
 ### Complete Example: Raw HTTP
@@ -521,6 +541,45 @@ print(f"Calling line ID: {tele.get('callingLineId')}")
 | No `wxcli` command covers the endpoint | Raw HTTP via `api.session.rest_*()` |
 | You need exact control over request body/params | Raw HTTP |
 | You need every item across a large result set | `api.session.follow_pagination()` (handles `next` links automatically) |
+
+---
+
+## Timeouts, Retries and Environment Variables
+
+Every HTTP call made through `wxcli.auth` (both `wxcli` commands and raw HTTP via `get_api()`) goes through a shared `WebexSession` that applies timeouts and a bounded retry policy. This applies uniformly — there is no separate raw-HTTP-only path.
+
+### Timeouts
+
+- Previously no `timeout` was passed to the underlying `httpx.request` call, so every request used httpx's default: **5 seconds for both connect and read** (verified on httpx 0.28.1). Slow list endpoints and CDR queries routinely died at 5s.
+- Now `wxcli` sets an explicit connect timeout of **10s** and a read timeout of **60s** (`DEFAULT_CONNECT_TIMEOUT = 10.0`, `DEFAULT_READ_TIMEOUT = 60.0` in `wxcli/auth.py`).
+- Override with environment variables, in seconds (float accepted):
+
+| Env var | Controls | Default |
+|---------|----------|---------|
+| `WXCLI_CONNECT_TIMEOUT` | Connect timeout | `10.0` |
+| `WXCLI_READ_TIMEOUT` | Read timeout | `60.0` |
+
+  A malformed value (non-numeric) silently falls back to the default rather than raising an error.
+- Programmatic override: `WebexSession(token, connect_timeout=..., read_timeout=...)` and `get_api(debug=..., connect_timeout=..., read_timeout=...)`.
+
+### Retries
+
+| Env var | Controls | Default |
+|---------|----------|---------|
+| `WXCLI_MAX_ATTEMPTS` | Total attempts (1 initial try + retries), integer, floored at 1 | `4` (i.e. up to 3 retries) |
+| `WXCLI_RETRY_MODE=off` | Disables retry entirely | retry on |
+| `WXCLI_NO_RETRY=1` | Legacy alias — also disables retry entirely | retry on |
+
+- Retried HTTP status codes: **429, 500, 502, 503, 504** (`RETRY_STATUSES`). Previously only 429 was retried.
+- A malformed `WXCLI_MAX_ATTEMPTS` value falls back to the default of 4.
+- On a 429 that carries a `Retry-After` header, that value is honored, capped at **30 seconds** (`MAX_RETRY_AFTER_SECONDS`).
+- Otherwise, retries use exponential backoff with jitter: attempt 1 waits (0,1]s, attempt 2 waits (1,2]s, attempt 3 waits (2,4]s.
+- `httpx.ConnectError` / `httpx.ConnectTimeout` also get retried, but only **once**, on a counter separate from the status-code attempts above. Both switches disable it: with `WXCLI_RETRY_MODE=off` or `WXCLI_NO_RETRY=1`, a connect error is raised on the first failure.
+
+### Gotchas
+
+- **`httpx.ReadTimeout` is NOT retried.** It propagates immediately, unlike the status-code and connect-error cases above. Practical effect: the worst case for a single command is roughly one read timeout (60s by default), not attempts × 60s — a hung command is not silently retried 4 times.
+- **No friendly handler for transport failures.** A read timeout or connection reset currently surfaces as a raw Python traceback, because generated commands only catch `wxcli.errors.WebexError` (raised for HTTP status errors), not `httpx` transport exceptions. There is no `handle_network_error`-style wrapper in the codebase today.
 
 ---
 
