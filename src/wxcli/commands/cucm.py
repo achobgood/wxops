@@ -2228,6 +2228,17 @@ def inventory(
                 console.print("No objects in inventory.")
                 return
 
+            if output == "json" or fields:
+                # A --fields projection changes the data's shape, so the
+                # bespoke Rich table below can't render it — emit()'s
+                # projection-driven table (or JSON fallback for a scalar)
+                # is what fields needs, in whatever --output mode was
+                # requested.
+                data = {r["object_type"]: r["cnt"] for r in rows}
+                data["TOTAL"] = sum(r["cnt"] for r in rows)
+                emit(data, output=output, fields=fields)
+                return
+
             table = Table(title="Migration Inventory", show_header=True, header_style="bold")
             table.add_column("Object Type", width=25)
             table.add_column("Count", justify="right", width=8)
