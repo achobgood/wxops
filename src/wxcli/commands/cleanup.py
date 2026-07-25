@@ -30,7 +30,15 @@ from wxcli.config import get_org_id
 from wxcli.output import plain_mode
 
 logger = logging.getLogger(__name__)
-console = Console()
+# stderr=True: this module's ~40 console.print(...) progress lines are human
+# progress narration, not the command's result. Keeping them off stdout is
+# what makes `cleanup run -o json` parseable — emit()'s JSON (which prints
+# through wxcli.output's own, separate, stdout-bound console) is the only
+# thing that should land on stdout. stderr is still an unbuffered live
+# stream, so the documented parent-process liveness signal in
+# delete_location() (click.echo + explicit stdout flush — untouched here)
+# keeps working exactly as before.
+console = Console(stderr=True)
 
 BASE = "https://webexapis.com/v1"
 
