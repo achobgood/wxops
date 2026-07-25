@@ -138,16 +138,22 @@ class DeviceLayoutMapper(Mapper):
                 member_id = self._resolve_dn_to_user(store, dn)
 
                 dn_key = f"{dn}:{partition}" if partition else dn
-                line_type = (
-                    "SHARED_LINE"
-                    if dn_key in shared_dns or dn in shared_dns
-                    else "PRIMARY"
-                )
+                is_shared = dn_key in shared_dns or dn in shared_dns
+                # A shared DN still has exactly ONE primary appearance — the one
+                # on its owner's own device. Webex requires exactly one member
+                # with primaryOwner=true per line; typing every appearance of a
+                # shared DN as SHARED_LINE leaves the line with no owner at all.
+                # When the member cannot be resolved we cannot claim primacy, so
+                # a shared DN stays SHARED_LINE.
+                # (from docs/prompts/cross-site-phase-2.md — defect N1)
+                is_primary_owner = bool(member_id) and member_id == owner_id
+                line_type = "SHARED_LINE" if is_shared and not is_primary_owner else "PRIMARY"
 
                 line_members.append({
                     "port": la_idx,
                     "member_canonical_id": member_id,
                     "line_type": line_type,
+                    "primary_owner": is_primary_owner or not is_shared,
                     "line_label": label,
                 })
 

@@ -510,3 +510,130 @@ class TestExpandToOperationsIntegration:
         assert len(per_dev_settings) == 50
         bulk_settings = [o for o in ops if o.resource_type == "bulk_device_settings"]
         assert bulk_settings == []
+
+
+class TestMembersSurviveBulkOptimization:
+    """The bulk job applies a line key TEMPLATE — it carries no device members.
+
+    There is no bulk API for members, so dropping the per-device layout op
+    without replacement meant every shared line silently stopped being
+    configured at 100+ devices — i.e. on every real migration. Regression guard
+    for that gap.
+    """
+
+    @staticmethod
+    def _plan_with_shared_lines(store, device_factory, count: int):
+        for i in range(count):
+            dev = device_factory(f"device:d{i}", location_cid="location:loc-1")
+            store.upsert_object(dev)
+            store.upsert_object(CanonicalDeviceLayout(
+                canonical_id=f"device_layout:d{i}",
+                provenance=dev.provenance,
+                device_canonical_id=f"device:d{i}",
+                template_canonical_id="line_key_template:tpl-a",
+                resolved_line_keys=[{"lineKeyType": "PRIMARY_LINE", "lineKeyIndex": 1}],
+                line_members=[
+                    {"port": 1, "member_canonical_id": "user:boss",
+                     "line_type": "PRIMARY", "primary_owner": True},
+                    {"port": 2, "member_canonical_id": "user:asst",
+                     "line_type": "SHARED_LINE", "primary_owner": False},
+                ],
+            ))
+        ops = []
+        for i in range(count):
+            ops.append(_op(f"device:d{i}", "create", "device", tier=3,
+                           batch="location:loc-1"))
+            ops.append(_op(f"device_layout:d{i}", "configure", "device_layout",
+                           tier=7, batch="location:loc-1"))
+        return ops
+
+    def test_members_op_emitted_for_every_device_the_bulk_job_took_over(
+        self, store, device_factory,
+    ):
+        ops = self._plan_with_shared_lines(store, device_factory, 120)
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+
+        assert [
+            o for o in result
+            if o.resource_type == "device_layout" and o.op_type == "configure"
+        ] == [], "per-device layout op should be replaced by the bulk job"
+
+        members = [
+            o for o in result
+            if o.resource_type == "device_layout" and o.op_type == "configure_members"
+        ]
+        assert len(members) == 120, (
+            "device members were dropped by the bulk path — shared lines would "
+            "never be configured above the threshold"
+        )
+        assert {o.tier for o in members} == {7}
+        assert {o.batch for o in members} == {"location:loc-1"}
+        assert members[0].depends_on == ["device:d0:create"]
+
+    def test_no_members_op_when_the_layout_has_no_members(
+        self, store, device_factory,
+    ):
+        """Nothing to assign — do not emit an op that would no-op."""
+        for i in range(120):
+            dev = device_factory(f"device:d{i}", location_cid="location:loc-1")
+            store.upsert_object(dev)
+            store.upsert_object(CanonicalDeviceLayout(
+                canonical_id=f"device_layout:d{i}",
+                provenance=dev.provenance,
+                device_canonical_id=f"device:d{i}",
+                template_canonical_id="line_key_template:tpl-a",
+                resolved_line_keys=[{"lineKeyType": "PRIMARY_LINE", "lineKeyIndex": 1}],
+            ))
+        ops = []
+        for i in range(120):
+            ops.append(_op(f"device:d{i}", "create", "device", tier=3))
+            ops.append(_op(f"device_layout:d{i}", "configure", "device_layout", tier=7))
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+
+        assert [
+            o for o in result if o.op_type == "configure_members"
+        ] == []
+
+    def test_below_threshold_keeps_the_combined_op_and_adds_nothing(
+        self, store, device_factory,
+    ):
+        ops = self._plan_with_shared_lines(store, device_factory, 5)
+
+        result = _optimize_for_bulk(ops, store, threshold=100)
+
+        assert [o for o in result if o.op_type == "configure_members"] == []
+        assert len([
+            o for o in result
+            if o.resource_type == "device_layout" and o.op_type == "configure"
+        ]) == 5
+
+    def test_members_only_handler_sends_the_verified_payload(self):
+        from wxcli.migration.execute.handlers import (
+            handle_device_layout_configure_members,
+        )
+
+        data = {
+            "device_canonical_id": "device:d0",
+            "line_members": [
+                {"port": 1, "member_canonical_id": "user:boss",
+                 "line_type": "PRIMARY", "primary_owner": True},
+                {"port": 2, "member_canonical_id": "user:asst",
+                 "line_type": "SHARED_LINE", "primary_owner": False},
+            ],
+        }
+        deps = {"device:d0": "wx-dev", "user:boss": "wx-boss", "user:asst": "wx-asst"}
+
+        calls = handle_device_layout_configure_members(data, deps, {})
+
+        assert len(calls) == 2
+        method, url, body = calls[0]
+        assert method == "PUT" and "/members" in url
+        assert body["members"] == [
+            {"id": "wx-boss", "port": 1, "lineType": "PRIMARY",
+             "lineWeight": 1, "primaryOwner": True},
+            {"id": "wx-asst", "port": 2, "lineType": "SHARED_CALL_APPEARANCE",
+             "lineWeight": 1, "primaryOwner": False},
+        ]
+        assert calls[1][0] == "POST" and "applyChanges" in calls[1][1]

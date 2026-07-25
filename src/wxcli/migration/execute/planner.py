@@ -31,7 +31,17 @@ from wxcli.migration.execute import (
     ORG_WIDE_TYPES,
     TIER_ASSIGNMENTS,
 )
+from wxcli.migration.execute.handlers import RECONCILE_RULES
 from wxcli.migration.store import MigrationStore
+
+# The location field name differs per canonical type (``location_id`` on some,
+# ``location_canonical_id`` on others). Reuse the analyzer's ordering instead of
+# hardcoding one name. Import direction is execute → transform; transform never
+# imports execute, so there is no cycle.
+from wxcli.migration.transform.analyzers.cross_site import (
+    _LOCATION_FIELDS,
+    resolve_entity_location,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +207,11 @@ _SKIP_DECISION_TYPES = {
     "VOICEMAIL_INCOMPATIBLE",
 }
 
+# The only decision type that gates on *pending* rather than on a resolved
+# 'skip'. See the cross-site gate in expand_to_operations().
+# (from docs/prompts/cross-site-dependency-detection.md §5.5)
+_CROSS_SITE_TYPE = "CROSS_SITE_DEPENDENCY"
+
 
 # ---------------------------------------------------------------------------
 # Decision-aware helpers
@@ -327,6 +342,47 @@ def _decision_chosen(decisions: list[dict[str, Any]], decision_type: str) -> str
     return None
 
 
+def _location_canonical_ids(store: MigrationStore) -> set[str]:
+    """Every ``location:`` canonical_id in the store.
+
+    Built once per expansion run so the cross-site location patch can tell an
+    operator-chosen location apart from one of the four literal option ids.
+    """
+    return {
+        loc["canonical_id"]
+        for loc in store.get_objects("location")
+        if loc.get("canonical_id")
+    }
+
+
+def _cross_site_location_choice(
+    decisions: list[dict[str, Any]],
+    canonical_id: str,
+    location_ids: set[str],
+) -> str | None:
+    """The location this construct's own cross-site decision was reassigned to.
+
+    ``wxcli cucm decide`` stores whatever the operator typed, so a
+    ``CROSS_SITE_DEPENDENCY`` answered with a location canonical_id means
+    "build it at that location instead" (the ``reassign_home`` option documents
+    the intent; the location id carries the target). Anything that is not a
+    known location — including the four literal option ids — returns ``None``.
+
+    Scoped to ``context["construct_id"] == canonical_id`` so resolving a
+    construct's decision never relocates one of its remote members, which are
+    also listed in ``affected_objects``.
+    """
+    for d in decisions:
+        if d.get("type") != _CROSS_SITE_TYPE:
+            continue
+        if (d.get("context") or {}).get("construct_id") != canonical_id:
+            continue
+        chosen = d.get("chosen_option")
+        if chosen and chosen in location_ids:
+            return str(chosen)
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Bulk optimization pass
 # (from docs/superpowers/specs/2026-04-10-bulk-operations.md §3b)
@@ -413,6 +469,7 @@ def _optimize_for_bulk(
     lkt_groups: dict[tuple[str, str], list[str]] = {}  # (template, loc) → device_cids
     lkt_layout_cids: dict[tuple[str, str], list[str]] = {}  # (template, loc) → layout canonical_ids
     layout_ops_to_remove: set[str] = set()
+    members_ops: list[MigrationOp] = []
 
     for op in ops:
         if op.resource_type != "device_layout" or op.op_type != "configure":
@@ -434,6 +491,17 @@ def _optimize_for_bulk(
         lkt_groups.setdefault((template_cid, loc_cid), []).append(device_cid)
         lkt_layout_cids.setdefault((template_cid, loc_cid), []).append(op.canonical_id)
         layout_ops_to_remove.add(op.canonical_id)
+        # The bulk job applies the line key TEMPLATE only — there is no bulk API
+        # for device members, so keep a per-device members op. Without this,
+        # every shared line silently stops being configured above the bulk
+        # threshold, which is where real migrations live.
+        if data.get("line_members"):
+            members_ops.append(_op(
+                op.canonical_id, "configure_members", "device_layout",
+                f"Assign device members for {device_cid}",
+                depends_on=[_node_id(device_cid, "create")],
+                batch=op.batch,
+            ))
 
     # Filter out the replaced layout ops from result.
     result = [
@@ -442,6 +510,7 @@ def _optimize_for_bulk(
                 and o.op_type == "configure"
                 and o.canonical_id in layout_ops_to_remove)
     ]
+    result.extend(members_ops)
 
     # Emit bulk_line_key_template submissions.
     for (template_cid, loc_cid), device_cids in sorted(lkt_groups.items()):
@@ -567,8 +636,14 @@ def _op(
     description: str,
     depends_on: list[str] | None = None,
     batch: str | None = None,
+    payload: dict | None = None,
 ) -> MigrationOp:
-    """Build a MigrationOp with tier and api_calls looked up from constants."""
+    """Build a MigrationOp with tier and api_calls looked up from constants.
+
+    ``payload`` carries handler data for ops whose canonical object is not
+    shaped like the resource being created (see the virtual-line-from-shared-line
+    expansion). ``runtime.get_next_batch`` prefers it over the store lookup.
+    """
     tier = TIER_ASSIGNMENTS.get((resource_type, op_type), 0)
     api_key = f"{resource_type}:{op_type}"
     api_calls = API_CALL_ESTIMATES.get(api_key, 1)
@@ -583,6 +658,7 @@ def _op(
         api_calls=api_calls,
         description=description,
         depends_on=depends_on or [],
+        payload=payload,
     )
 
 
@@ -1019,13 +1095,94 @@ def _expand_voicemail_group(obj: dict[str, Any]) -> list[MigrationOp]:
     )]
 
 
+def _virtual_line_ops_from_shared_line(
+    obj: dict[str, Any],
+    store: MigrationStore | None,
+) -> list[MigrationOp]:
+    """Emit virtual_line create + configure straight from a shared-line object.
+
+    No ``CanonicalVirtualLine`` is ever produced by the pipeline, so an earlier
+    version of this branch returned ``[]`` and logged that the ops "will come
+    from a CanonicalVirtualLine" — they never did, and choosing ``virtual_line``
+    silently produced nothing. Building the objects in a new pipeline stage is
+    the wrong fix: the decision is resolved *after* analyze, so the planner is
+    the only place that knows the answer.
+
+    The op carries a ``payload`` because the canonical object behind
+    ``canonical_id`` is a ``CanonicalSharedLine`` — it has no extension,
+    location, or display name of its own. ``runtime.get_next_batch`` prefers an
+    inline payload over the store lookup, so the handler receives virtual-line
+    shaped data.
+    (from docs/prompts/cross-site-phase-2.md §6.3)
+    """
+    cid = obj["canonical_id"]
+    owner_ids = [o for o in obj.get("owner_canonical_ids", []) if o]
+
+    # dn_canonical_id is "dn:{pattern}:{partition}" — the pattern is the extension.
+    dn_cid = obj.get("dn_canonical_id") or ""
+    dn_parts = dn_cid.split(":", 2)
+    extension = dn_parts[1] if len(dn_parts) > 1 else None
+    if not extension:
+        report = _current_report()
+        if report is not None:
+            _warn_skip(
+                report,
+                canonical_id=cid,
+                entity_type="shared_line",
+                reason="virtual_line_no_extension",
+                decision_type="SHARED_LINE_COMPLEX",
+                decision_state="virtual_line",
+                consequence=(
+                    "operator chose 'virtual_line' but the shared line carries no "
+                    "resolvable DN — no virtual line will be created"
+                ),
+            )
+        return []
+
+    # The virtual line lands at its owners' site. resolve_entity_location is the
+    # only correct way to read a location — the field name varies by type.
+    loc_cid = None
+    if store is not None:
+        for owner in owner_ids:
+            loc_cid = resolve_entity_location(store, owner)
+            if loc_cid:
+                break
+
+    payload = {
+        "canonical_id": cid,
+        "display_name": f"Shared {extension}",
+        "extension": extension,
+        "location_id": loc_cid,
+        "dn_canonical_id": dn_cid or None,
+        "settings": {},
+    }
+
+    deps = [_node_id(uid, "create") for uid in owner_ids]
+    if loc_cid:
+        deps.append(_node_id(loc_cid, "create"))
+
+    logger.info(
+        "Planner: shared_line %s → virtual line ext %s at %s",
+        cid, extension, loc_cid or "<unresolved location>",
+    )
+    return [
+        _op(cid, "create", "virtual_line",
+            f"Create virtual line {extension} (from shared line)",
+            depends_on=deps, batch=loc_cid, payload=payload),
+        _op(cid, "configure", "virtual_line",
+            f"Configure virtual line {extension}",
+            depends_on=[_node_id(cid, "create")], batch=loc_cid, payload=payload),
+    ]
+
+
 def _expand_shared_line(
     obj: dict[str, Any],
     decisions: list[dict[str, Any]],
+    store: MigrationStore | None = None,
 ) -> list[MigrationOp]:
     """Shared line → 1 op: configure (tier 6).
     Decision SHARED_LINE_COMPLEX can change expansion:
-      - 'virtual_line' → creates a virtual line instead (handled via virtual_line object)
+      - 'virtual_line' → virtual_line create + configure (see helper above)
       - 'skip' → no operations
     """
     choice = _decision_chosen(decisions, "SHARED_LINE_COMPLEX")
@@ -1047,16 +1204,7 @@ def _expand_shared_line(
             )
         return []
     if choice == "virtual_line":
-        # Virtual line creation handled by the CanonicalVirtualLine object
-        # that was created during analysis. No shared_line ops needed.
-        # This is NOT a silent skip — a CanonicalVirtualLine was emitted by
-        # the analyzer, so ops still land in the plan via _expand_virtual_line.
-        # We note it as informational only.
-        logger.info(
-            "Planner: shared_line %s → virtual_line substitution "
-            "(ops produced via CanonicalVirtualLine)", cid,
-        )
-        return []
+        return _virtual_line_ops_from_shared_line(obj, store)
 
     cid = obj["canonical_id"]
     owner_ids = obj.get("owner_canonical_ids", [])
@@ -1497,6 +1645,48 @@ _DATA_ONLY_TYPES = {
 # Location helper
 # ---------------------------------------------------------------------------
 
+def _expand_reconcile_members(
+    obj: dict[str, Any],
+    canonical_id: str,
+    obj_type: str,
+    decisions: list[dict[str, Any]],
+) -> list[MigrationOp]:
+    """One ``reconcile_members`` op for a ``proceed_partial`` cross-site group.
+
+    The op is what makes ``proceed_partial`` an honest choice: the group is
+    created in wave 1 with whoever exists, and this rewrites the full membership
+    once the last member has been provisioned. Its hard member edges come from
+    ``feature_has_agent`` in ``dependency.py`` — nothing here tracks waves.
+    """
+    rule = RECONCILE_RULES.get(obj_type)
+    if rule is None:
+        return []
+
+    chosen = next(
+        (
+            d.get("chosen_option")
+            for d in decisions
+            if d.get("type") == _CROSS_SITE_TYPE
+            and (d.get("context") or {}).get("construct_id") == canonical_id
+        ),
+        None,
+    )
+    if chosen != "proceed_partial":
+        return []
+
+    # Nothing to reconcile if the construct has no members at all.
+    if not any(obj.get(field) for field, _key in rule.member_fields):
+        return []
+
+    name = obj.get("name", canonical_id)
+    return [_op(
+        canonical_id, "reconcile_members", obj_type,
+        f"Reconcile full membership for {obj_type.replace('_', ' ')} {name}",
+        depends_on=[_node_id(canonical_id, "create")],
+        batch=_location_from_provenance(obj),
+    )]
+
+
 def _location_from_provenance(obj: dict[str, Any]) -> str | None:
     """Extract location_id from object data. Features may store it differently."""
     return obj.get("location_id")
@@ -1721,6 +1911,9 @@ def expand_to_operations(
     decisions_index = _build_decisions_index(store)
     stale_index = _build_stale_decisions_index(store)
     pending_index = _build_pending_decisions_index(store)
+    # Known locations — used to recognise a cross-site decision that was
+    # resolved by naming a location instead of one of the literal option ids.
+    location_ids = _location_canonical_ids(store)
 
     try:
         for obj in analyzed_objects:
@@ -1786,6 +1979,8 @@ def expand_to_operations(
             # WARN loudly so this drift is caught.
             pending_decisions = pending_index.get(cid, [])
             for pd in pending_decisions:
+                if pd.get("type") == _CROSS_SITE_TYPE:
+                    continue  # handled by the cross-site gate below
                 _warn_skip(
                     report,
                     canonical_id=cid,
@@ -1799,6 +1994,55 @@ def expand_to_operations(
                         "and re-run `wxcli cucm plan`"
                     ),
                 )
+
+            # Cross-site gate. This is the ONE decision type that blocks on
+            # *pending*: a construct whose members straddle a site boundary must
+            # not be planned until a human has chosen what happens to the members
+            # on the other side. Every other type keeps its existing behaviour.
+            # Scoped to the construct itself: a cross-site decision also lists its
+            # remote members in affected_objects (so the report can link them), but
+            # gating those users would block provisioning real people.
+            # decisions_index already holds every non-stale decision (pending and
+            # resolved), so it is the single source here — concatenating
+            # pending_decisions would double-count.
+            cross_site = [
+                d
+                for d in decisions_index.get(cid, [])
+                if d.get("type") == _CROSS_SITE_TYPE
+                and (d.get("context") or {}).get("construct_id") == cid
+            ]
+            cross_site_pending = [d for d in cross_site if not d.get("chosen_option")]
+            cross_site_skip = [d for d in cross_site if d.get("chosen_option") == "skip"]
+
+            if cross_site_pending or cross_site_skip:
+                skipped_by_decision += 1
+                unreviewed = bool(cross_site_pending)
+                for d in cross_site_pending or cross_site_skip:
+                    ctx = d.get("context") or {}
+                    sites = ", ".join(
+                        str(entry.get("location_name", ""))
+                        for entry in ctx.get("remote_locations", [])
+                        if entry.get("location_name")
+                    )
+                    _warn_skip(
+                        report,
+                        canonical_id=cid,
+                        entity_type=obj_type,
+                        reason="cross_site_unreviewed" if unreviewed else "decision_skip",
+                        decision_type=_CROSS_SITE_TYPE,
+                        decision_state="pending" if unreviewed else "skip",
+                        consequence=(
+                            f"{obj_type} has members at {sites or 'another site'} and "
+                            "has not been reviewed — it will NOT be provisioned. "
+                            "Resolve with `wxcli cucm decide` before planning"
+                        )
+                        if unreviewed
+                        else (
+                            f"{obj_type} will not be provisioned to Webex "
+                            "(operator chose 'skip' for CROSS_SITE_DEPENDENCY)"
+                        ),
+                    )
+                continue
 
             decisions = decisions_index.get(cid, [])
 
@@ -1830,12 +2074,47 @@ def expand_to_operations(
                     obj.location_id = loc_choice
                     store.upsert_object(obj)
 
+            # Patch the construct's location from a resolved CROSS_SITE_DEPENDENCY
+            # whose chosen_option is a known location canonical_id. Unlike the
+            # LOCATION_AMBIGUOUS patch above, this one OVERRIDES an existing value —
+            # that is the entire point of 'reassign_home'. It changes which batch the
+            # construct lands in, so log old → new at INFO.
+            # (from docs/prompts/cross-site-phase-2.md §5)
+            site_choice = _cross_site_location_choice(decisions, cid, location_ids)
+            if site_choice:
+                loc_field = next(
+                    (f for f in _LOCATION_FIELDS if f in obj_data), _LOCATION_FIELDS[0]
+                )
+                previous = obj_data.get(loc_field)
+                if previous != site_choice:
+                    obj_data[loc_field] = site_choice
+                    logger.info(
+                        "Cross-site reassignment: %s %s moved %s → %s (%s)",
+                        obj_type, cid, previous or "<unset>", site_choice, loc_field,
+                    )
+                    # Persist so re-planning and the report see the same location.
+                    # Types with no location field of their own (e.g. paging_group)
+                    # are patched in-memory only — the batch still follows.
+                    if hasattr(obj, loc_field):
+                        setattr(obj, loc_field, site_choice)
+                        store.upsert_object(obj)
+
             # Device expander takes an optional config dict for convertible_provisioning mode.
             if obj_type == "device":
                 ops = _expand_device(obj_data, decisions, config=config)
+            elif obj_type == "shared_line":
+                # Needs the store to resolve the owners' location when the
+                # operator chose 'virtual_line' (§6.3).
+                ops = _expand_shared_line(obj_data, decisions, store=store)
             else:
                 ops = expander(obj_data, decisions)
             all_ops.extend(ops)
+
+            # Membership reconcile — only for a construct the operator chose to
+            # create with local members only. migrate_together needs none
+            # (everyone lands in the same wave); skip and reassign_home do not
+            # apply. (from docs/prompts/cross-site-phase-2.md §7.3)
+            all_ops.extend(_expand_reconcile_members(obj_data, cid, obj_type, decisions))
 
         # ---- Aggregate summary ----
         logger.info(

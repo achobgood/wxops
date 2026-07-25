@@ -459,6 +459,24 @@ def _page_scope(store: MigrationStore) -> str:
             f'Decision resolution: <strong>{resolved} of {total}</strong> auto-resolved ({pct}%)</p>'
         )
 
+    cross_site = [d for d in decisions if d.get("type") == "CROSS_SITE_DEPENDENCY"]
+    if cross_site:
+        site_pairs = set()
+        for d in cross_site:
+            ctx = d.get("context") or {}
+            home = ctx.get("home_location_name") or ""
+            for remote in ctx.get("remote_locations") or []:
+                site_pairs.add((home, remote.get("location_name") or ""))
+        pair_word = "pair" if len(site_pairs) == 1 else "pairs"
+        parts.append(
+            f'<div class="callout">'
+            f'<p><strong>Cross-site dependencies:</strong> {len(cross_site)} group(s), '
+            f'line(s), or phone(s) have people at more than one office, connecting '
+            f'{len(site_pairs)} office {pair_word}. Each one has to move as a unit or be '
+            f'reconnected by hand afterwards. See appendix section AF.</p>'
+            f'</div>'
+        )
+
     sch_count = _count_selective_call_handling_candidates(store)
     if sch_count:
         parts.append(

@@ -17,6 +17,13 @@ from wxcli.migration.store import MigrationStore
 
 logger = logging.getLogger(__name__)
 
+# Decision types that must always reach a human, regardless of project config.
+# CROSS_SITE_DEPENDENCY exists precisely to force review of constructs that
+# straddle a site boundary during a phased migration — auto-resolving it would
+# defeat the feature.
+# (from docs/prompts/cross-site-dependency-detection.md §5.5)
+_NEVER_AUTO_RESOLVE = frozenset({"CROSS_SITE_DEPENDENCY"})
+
 
 def _match_rule(rule: dict[str, Any], decision: dict[str, Any]) -> bool:
     """Check if a rule's ``match`` field matches a decision's context.
@@ -138,7 +145,17 @@ def _iter_matching_resolutions(
 
     valid_rules: list[dict[str, Any]] = []
     for rule in rules:
-        if rule.get("type") and rule.get("choice"):
+        if rule.get("type") in _NEVER_AUTO_RESOLVE:
+            # Cross-site dependencies always require a human. Refuse the rule
+            # loudly rather than honouring a config that would silently resolve
+            # the one decision type whose whole purpose is human review.
+            logger.warning(
+                "Auto-rule refused: %s can never be auto-resolved — "
+                "resolve it with `wxcli cucm decide`. Rule: %r",
+                rule.get("type"),
+                rule,
+            )
+        elif rule.get("type") and rule.get("choice"):
             valid_rules.append(rule)
         else:
             # Surface config typos — a rule missing `type` or `choice` is

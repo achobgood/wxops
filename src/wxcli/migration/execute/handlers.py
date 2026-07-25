@@ -1117,6 +1117,70 @@ def handle_receptionist_config_configure(data: dict, deps: dict, ctx: dict) -> H
 # Tier 7: Device finalization (after monitoring, shared lines)
 # ---------------------------------------------------------------------------
 
+def _resolve_device_members(data: dict, deps: dict) -> list[dict[str, Any]]:
+    """Build the device-members array for a layout's resolved line members.
+
+    ``id``, ``port``, ``lineType``, ``lineWeight`` and ``primaryOwner`` are ALL
+    mandatory — a body missing any of them is rejected 400 (25024 for lineType,
+    25008 naming the others). The shared value is ``SHARED_CALL_APPEARANCE``;
+    ``SHARED_LINE`` is a ``LineKeyType`` belonging to the line-key-template /
+    layout API and is rejected here with the same 25024 as omitting the field.
+
+    Webex does NOT validate ``lineType`` against the port — ``PRIMARY`` on every
+    port returns 200 and persists — so the value is derived here from the
+    mapper's per-appearance ``primary_owner`` flag. A 2xx is not evidence the
+    layout is right.
+
+    Verified live 2026-07-24 — see docs/reference/devices-core.md,
+    "Gotcha: the device-members PUT has five mandatory fields".
+    """
+    resolved: list[dict[str, Any]] = []
+    for m in data.get("line_members", []):
+        member_cid = m.get("member_canonical_id")
+        wid = deps.get(member_cid) if member_cid else None
+        if wid:
+            is_primary = m.get("primary_owner", m.get("line_type") == "PRIMARY")
+            resolved.append({
+                "id": wid,
+                "port": m.get("port", 1),
+                "lineType": "PRIMARY" if is_primary else "SHARED_CALL_APPEARANCE",
+                "lineWeight": m.get("line_weight", 1),
+                "primaryOwner": is_primary,
+            })
+    return resolved
+
+
+def handle_device_layout_configure_members(
+    data: dict, deps: dict, ctx: dict,
+) -> HandlerResult:
+    """Members-only variant, used when the bulk path owns the layout.
+
+    ``_optimize_for_bulk`` replaces per-device ``device_layout:configure`` with
+    one ``bulk_line_key_template:submit`` job per (template, location) at 100+
+    devices. That job sends only ``{action, templateId, locationIds}`` — there is
+    no bulk API for device members, so without this op every shared line would
+    silently stop being configured above the bulk threshold, which is where real
+    migrations live.
+    """
+    device_cid = data.get("device_canonical_id")
+    device_wid = deps.get(device_cid) if device_cid else None
+    if not device_wid:
+        return skipped(f"device_layout members: device {device_cid!r} not resolved")
+
+    resolved_members = _resolve_device_members(data, deps)
+    if not resolved_members:
+        return []  # nothing to assign — the bulk template job covers the layout
+
+    return [
+        ("PUT",
+         _url(f"/telephony/config/devices/{device_wid}/members", ctx),
+         {"members": resolved_members}),
+        ("POST",
+         _url(f"/telephony/config/devices/{device_wid}/actions/applyChanges/invoke", ctx),
+         None),
+    ]
+
+
 def handle_device_layout_configure(data: dict, deps: dict, ctx: dict) -> HandlerResult:
     device_cid = data.get("device_canonical_id")
     device_wid = deps.get(device_cid) if device_cid else None
@@ -1126,12 +1190,7 @@ def handle_device_layout_configure(data: dict, deps: dict, ctx: dict) -> Handler
     results: HandlerResult = []
 
     # Call 1 (conditional): PUT members
-    resolved_members = []
-    for m in data.get("line_members", []):
-        member_cid = m.get("member_canonical_id")
-        wid = deps.get(member_cid) if member_cid else None
-        if wid:
-            resolved_members.append({"id": wid, "port": m.get("port", 1)})
+    resolved_members = _resolve_device_members(data, deps)
     if resolved_members:
         results.append((
             "PUT",
@@ -2154,6 +2213,112 @@ def handle_dect_handset_assign(data: dict, deps: dict, ctx: dict) -> HandlerResu
 
 
 # HANDLER_REGISTRY — complete with all operation types
+# ---------------------------------------------------------------------------
+# Membership reconcile — one generic op, driven by this table
+# (from docs/prompts/cross-site-phase-2.md §7)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReconcileRule:
+    """How to rewrite one resource type's full membership list.
+
+    ``member_fields`` — (canonical field, API body key) pairs, in body order.
+    ``flat_ids``      — True when the API takes bare id strings, False when it
+                        takes ``{"id": ...}`` objects. Getting this wrong is a
+                        400, not a silent no-op.
+    """
+
+    path: str
+    member_fields: tuple[tuple[str, str], ...]
+    flat_ids: bool
+
+
+# Endpoints from call-features-major.md:747/:518 and
+# call-features-additional.md:559/:148. The object-vs-flat-string split is
+# documented on the create handlers above and was verified by stress test
+# 2026-03-25. Adding voicemail groups or DECT handsets later is a new row here,
+# never a new handler.
+RECONCILE_RULES: dict[str, ReconcileRule] = {
+    "hunt_group": ReconcileRule(
+        "/telephony/config/locations/{loc}/huntGroups/{id}",
+        (("agents", "agents"),), flat_ids=False,
+    ),
+    "call_queue": ReconcileRule(
+        "/telephony/config/locations/{loc}/queues/{id}",
+        (("agents", "agents"),), flat_ids=False,
+    ),
+    "pickup_group": ReconcileRule(
+        "/telephony/config/locations/{loc}/callPickups/{id}",
+        (("agents", "agents"),), flat_ids=True,
+    ),
+    "paging_group": ReconcileRule(
+        "/telephony/config/locations/{loc}/paging/{id}",
+        (("targets", "targets"), ("originators", "originators")), flat_ids=True,
+    ),
+}
+
+
+def handle_reconcile_members(data: dict, deps: dict, ctx: dict) -> HandlerResult:
+    """Rewrite a group's full membership once every member exists.
+
+    Emitted only for constructs whose ``CROSS_SITE_DEPENDENCY`` was resolved
+    ``proceed_partial``: the group is created in wave 1 with whoever exists, and
+    this op — held back by hard edges on every member's ``user:create`` — runs
+    on the wave that completes it.
+
+    **Never writes a partial list.** These endpoints replace the whole array, so
+    a short list would DELETE members rather than add the missing ones,
+    including any an operator added by hand. If a single member is unresolved
+    the op is skipped and the existing membership is left untouched.
+
+    The body carries only the member fields — these are partial updates, and
+    sending a full object back fails on call queues with "Missing
+    callingLineIdPhoneNumber" (call-features-major.md:518). Renaming is
+    deliberately not supported: a Call Pickup group's id changes when its name
+    changes (call-features-additional.md), which would invalidate ``webex_id``.
+    """
+    cid = data.get("canonical_id", "")
+    resource_type = cid.split(":", 1)[0]
+    rule = RECONCILE_RULES.get(resource_type)
+    if rule is None:
+        return skipped(f"reconcile_members: no rule for resource type {resource_type!r}")
+
+    # The create op's webex_id. Resolvable across separate runs because deps are
+    # built from plan_operations, not from ops planned in this run alone.
+    feature_wid = deps.get(cid)
+    if not feature_wid:
+        return skipped(f"reconcile_members: {cid} has no Webex id yet")
+
+    loc_wid = _resolve_location(data, deps) or _resolve_location_from_deps(deps)
+    if not loc_wid:
+        return skipped(f"reconcile_members: location not resolved for {cid}")
+
+    body: dict[str, Any] = {}
+    for data_field, api_key in rule.member_fields:
+        member_cids = data.get(data_field) or []
+        if not member_cids:
+            continue
+        unresolved = [m for m in member_cids if not deps.get(m)]
+        if unresolved:
+            return skipped(
+                f"reconcile_members: {len(unresolved)} of {len(member_cids)} "
+                f"{data_field} unresolved for {cid} "
+                f"({', '.join(sorted(unresolved)[:5])}) — membership left unchanged "
+                "rather than overwritten with a partial list"
+            )
+        body[api_key] = (
+            [deps[m] for m in member_cids]
+            if rule.flat_ids
+            else [{"id": deps[m]} for m in member_cids]
+        )
+
+    if not body:
+        return []  # no members to reconcile — legitimate no-op
+
+    return [("PUT", _url(rule.path.format(loc=loc_wid, id=feature_wid), ctx), body)]
+
+
 HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("location", "create"): handle_location_create,
     ("location", "enable_calling"): handle_location_enable_calling,
@@ -2201,6 +2366,12 @@ HANDLER_REGISTRY: dict[tuple[str, str], Any] = {
     ("virtual_line", "configure"): handle_virtual_line_configure,
     # Tier 7
     ("device_layout", "configure"): handle_device_layout_configure,
+    ("device_layout", "configure_members"): handle_device_layout_configure_members,
+    # Tier 9 — membership reconcile, one handler for every row in RECONCILE_RULES
+    **{
+        (resource_type, "reconcile_members"): handle_reconcile_members
+        for resource_type in RECONCILE_RULES
+    },
     ("softkey_config", "configure"): handle_softkey_config_configure,
     # Device settings templates
     ("device_settings_template", "apply_location_settings"): handle_device_settings_template_apply_location_settings,

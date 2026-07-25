@@ -90,6 +90,11 @@ class LineMapper(Mapper):
         precomputed_e164: dict[str, dict[str, Any]] = {}
         self._build_precomputed_e164_index(store, dn_to_devices, precomputed_e164)
 
+        # Owner index for the line_assigned_to_user cross-ref written below.
+        # CrossReferenceBuilder cannot write that edge: it runs before this
+        # mapper, and line: objects do not exist until we create them here.
+        dn_owners = self._build_dn_owner_index(store, all_dn_refs)
+
         for dn_id in sorted(unique_dn_ids):
             # Parse DN ID format: "dn:pattern:partition"
             parts = dn_id.split(":", 2)
@@ -217,7 +222,53 @@ class LineMapper(Mapper):
             store.upsert_object(line)
             result.objects_created += 1
 
+            # line → user. Read by device_layout_mapper (line members),
+            # monitoring_mapper (BLF targets), and receptionist_mapper — all
+            # three via find_cross_refs(line_cid, "line_assigned_to_user").
+            # Nothing wrote it before, so every one of them silently resolved
+            # to None. (from docs/prompts/cross-site-phase-2.md — defect N2)
+            owner_cid = dn_owners.get(dn_id)
+            if owner_cid:
+                store.add_cross_ref(
+                    line.canonical_id, owner_cid, "line_assigned_to_user"
+                )
+
         return result
+
+    def _build_dn_owner_index(
+        self,
+        store: MigrationStore,
+        all_dn_refs: list[dict[str, Any]],
+    ) -> dict[str, str]:
+        """Map each DN id → the canonical_id of the user who owns that line.
+
+        Two sources, in priority order:
+
+        1. ``user_has_primary_dn`` — the direct statement that this DN is a
+           user's primary number. Only written when the user carries both an
+           extension and a primary partition, so it does not cover every DN.
+        2. The owner of the device where the DN sits at **line index 1**. That
+           is the same primary-owner heuristic ``SharedLineDetector`` uses, and
+           it is what disambiguates a shared DN: the boss's phone has it on
+           key 1, the assistant's on key 2.
+        """
+        owners: dict[str, str] = {}
+
+        for ref in store.get_cross_refs(relationship="user_has_primary_dn"):
+            owners.setdefault(ref["to_id"], ref["from_id"])
+
+        # Fallback pass — only fills DNs the primary-DN edge did not cover.
+        for ref in all_dn_refs:
+            dn_id = ref["to_id"]
+            if dn_id in owners or ref.get("ordinal") != 1:
+                continue
+            device_owners = store.find_cross_refs(
+                ref["from_id"], "device_owned_by_user"
+            )
+            if device_owners:
+                owners[dn_id] = device_owners[0]
+
+        return owners
 
     def _build_precomputed_e164_index(
         self,
