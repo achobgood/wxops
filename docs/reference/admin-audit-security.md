@@ -327,7 +327,19 @@ wxcli audit-events list \
 
    These are 2 of only 12 operations in any spec that mark `orgId` **required** as a *query* parameter (the other 10 are Video Mesh). The generated command injects it with `get_org_id()`, which reads the saved config and returns nothing unless `wxcli configure` stored an org — and it only stores one for partner/multi-org tokens. So a normal single-org admin token sends no `orgId` and the API rejects the call.
 
-   **Workaround:** run `wxcli switch-org` to save an `orgId` into the config, or call the endpoint over raw HTTP with `orgId` set explicitly. Note the examples in this document hit the same failure until an org is saved.
+   **Fixed.** `wxcli configure` now saves the org for single-org tokens too, so a
+   freshly configured install works. A config created *before* that change still
+   has no `org_id` — repair it once with `wxcli switch-org`, which now saves the
+   single org instead of reporting "no org switching needed":
+
+   ```
+   wxcli switch-org
+   Single-org token — target org set: My Company (Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8...)
+   ```
+
+   **In a script or an agent, pass the ID explicitly — `wxcli switch-org <orgId>`.**
+   The bare form prompts interactively when the token spans several orgs, which
+   blocks a non-interactive caller indefinitely. `wxcli clear-org` reverses it.
 
 ---
 
