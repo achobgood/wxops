@@ -400,7 +400,7 @@ wxcli locations list --fields '[].id' -o text | while read -r LOC_ID; do
 done
 ```
 
-If `--fields` reduces a non-empty response to an empty one, a note goes to stderr naming the unfiltered record count — stdout stays pipeable, but that note means "re-check your expression," not "there are none."
+If `--fields` reduces a non-empty response to an empty one, a note goes to stderr naming the unfiltered record count — stdout stays pipeable. The note states the fact (0 of N matched) without diagnosing the cause: it can mean a wrong expression, or it can mean the filter genuinely matched nothing. Decide which based on the expression and what you expected, not from the note alone.
 
 ### Partner Multi-Org Support
 
