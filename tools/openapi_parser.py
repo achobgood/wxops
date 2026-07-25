@@ -194,8 +194,13 @@ def _schema_to_example(schema: dict, spec: dict, depth: int = 0) -> Any:
     return "..."
 
 
-def generate_body_example(op: dict, spec: dict) -> str | None:
-    """Generate a compact JSON example for the request body, or None if no nested fields."""
+def generate_body_example(op: dict, spec: dict, nested_only: bool = False) -> str | None:
+    """Generate a compact JSON example for the request body.
+
+    nested_only=True restores the pre-2026-07 behaviour of emitting an example
+    only when the body has object/array fields. The default now emits one for
+    any body, so --generate-json-body works on every body-bearing command.
+    """
     rb = op.get("requestBody", {})
     content = rb.get("content", {})
     json_content = (
@@ -216,7 +221,9 @@ def generate_body_example(op: dict, spec: dict) -> str | None:
         p.get("type") in ("object", "array") or "$ref" in p
         for p in props.values()
     )
-    if not has_nested:
+    if nested_only and not has_nested:
+        return None
+    if not props:
         return None
 
     example = _schema_to_example(schema, spec)
