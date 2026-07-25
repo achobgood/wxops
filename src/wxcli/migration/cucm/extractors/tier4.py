@@ -17,13 +17,15 @@ logger = logging.getLogger(__name__)
 
 RECORDING_PROFILE_TAGS = {"name": "", "recordingCssName": "", "recorderDestination": ""}
 REMOTE_DEST_PROFILE_TAGS = {"name": "", "description": "", "userId": ""}
+# Transformation patterns are reached through a CSS and have no
+# <callingSearchSpaceName> of their own in any supported AXL schema.
 CALLING_PARTY_XFORM_TAGS = {
-    "pattern": "", "description": "", "callingSearchSpaceName": "",
+    "pattern": "", "description": "",
     "routePartitionName": "", "callingPartyTransformationMask": "",
     "callingPartyPrefixDigits": "", "digitDiscardInstructionName": "",
 }
 CALLED_PARTY_XFORM_TAGS = {
-    "pattern": "", "description": "", "callingSearchSpaceName": "",
+    "pattern": "", "description": "",
     "routePartitionName": "", "calledPartyTransformationMask": "",
     "calledPartyPrefixDigits": "", "digitDiscardInstructionName": "",
 }
@@ -41,6 +43,8 @@ WHERE LOWER(rp.name) LIKE '%intercept%'
    OR LOWER(rp.name) LIKE '%oos%'
 """
 
+# "Registered" is presence in registrationdynamic — the device table has no
+# registration-state column (verified against CUCM 14.0.1).
 _CFA_VOICEMAIL_SQL = """\
 SELECT n.dnorpattern, rp.name as partition_name,
        cfwd.cfadestination, eu.userid
@@ -56,9 +60,9 @@ WHERE cfwd.cfadestination IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM device d2
       JOIN devicenumplanmap dnpm2 ON dnpm2.fkdevice = d2.pkid
+      JOIN registrationdynamic rd ON rd.fkdevice = d2.pkid
       WHERE dnpm2.fknumplan = n.pkid
         AND d2.tkclass = 1
-        AND d2.tkstatus_registrationstate = 2
   )
 """
 

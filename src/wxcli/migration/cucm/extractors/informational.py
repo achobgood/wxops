@@ -20,6 +20,17 @@ from wxcli.migration.cucm.extractors.base import BaseExtractor, ExtractionResult
 
 logger = logging.getLogger(__name__)
 
+# zeep raises AttributeError("Service has no operation ...") when the negotiated
+# AXL WSDL does not define an operation at all. That is not a query failure —
+# the cluster was never asked. Same markers UserExtractor uses for thin AXL.
+_UNSUPPORTED_OPERATION_MARKERS = ("has no operation", "Operation not found")
+
+
+def _is_unsupported_operation(exc: Exception) -> bool:
+    """True when the AXL schema in use does not define the operation."""
+    return any(m in str(exc) for m in _UNSUPPORTED_OPERATION_MARKERS)
+
+
 # (suffix, axl_list_method, search_criteria, returned_tags, category)
 # These 16 types use standard paginated_list().
 INFORMATIONAL_TYPES: list[tuple[str, str, dict, dict, str]] = [
@@ -27,23 +38,44 @@ INFORMATIONAL_TYPES: list[tuple[str, str, dict, dict, str]] = [
     ("region", "listRegion", {"name": "%"}, {"name": "", "defaultCodec": ""}, "cloud_managed"),
     ("srst", "listSrst", {"name": "%"}, {"name": "", "ipAddress": "", "port": ""}, "cloud_managed"),
     ("media_resource_group", "listMediaResourceGroup", {"name": "%"}, {"name": "", "description": ""}, "cloud_managed"),
-    ("media_resource_list", "listMediaResourceList", {"name": "%"}, {"name": "", "description": ""}, "cloud_managed"),
-    ("aar_group", "listAarGroup", {"name": "%"}, {"name": "", "description": ""}, "cloud_managed"),
+    # LMediaResourceList / LAarGroup have no <description> in the AXL schema
+    ("media_resource_list", "listMediaResourceList", {"name": "%"}, {"name": ""}, "cloud_managed"),
+    ("aar_group", "listAarGroup", {"name": "%"}, {"name": ""}, "cloud_managed"),
     ("device_mobility_group", "listDeviceMobilityGroup", {"name": "%"}, {"name": "", "description": ""}, "cloud_managed"),
     ("conference_bridge", "listConferenceBridge", {"name": "%"}, {"name": "", "description": "", "product": ""}, "cloud_managed"),
     # Category 2: Not migratable
-    ("ip_phone_service", "listIpPhoneService", {"name": "%"}, {"name": "", "url": "", "serviceType": ""}, "not_migratable"),
+    # The AXL operation is listIpPhoneServices (plural) and its fields are
+    # serviceName/serviceDescription/serviceUrl — see FIELD_ALIASES.
+    ("ip_phone_service", "listIpPhoneServices", {"serviceName": "%"},
+     {"serviceName": "", "serviceDescription": "", "serviceUrl": "", "serviceType": ""},
+     "not_migratable"),
     # Category 3: Different architecture
     ("common_phone_config", "listCommonPhoneConfig", {"name": "%"}, {"name": "", "description": ""}, "different_arch"),
     ("phone_button_template", "listPhoneButtonTemplate", {"name": "%"}, {"name": ""}, "different_arch"),
     ("feature_control_policy", "listFeatureControlPolicy", {"name": "%"}, {"name": "", "description": ""}, "different_arch"),
-    ("credential_policy", "listCredentialPolicy", {"name": "%"}, {"name": "", "description": ""}, "different_arch"),
+    # LCredentialPolicy has no <description> in the AXL schema
+    ("credential_policy", "listCredentialPolicy", {"name": "%"}, {"name": ""}, "different_arch"),
     ("recording_profile", "listRecordingProfile", {"name": "%"}, {"name": "", "recorderDestination": ""}, "different_arch"),
     ("ldap_directory", "listLdapDirectory", {"name": "%"}, {"name": "", "ldapDn": ""}, "different_arch"),
     # Category 4: Planning input
-    ("app_user", "listAppUser", {"userid": "%"}, {"userid": "", "description": "", "associatedDevices": ""}, "planning"),
+    # LAppUser has neither <description> nor <associatedDevices> in the AXL schema
+    ("app_user", "listAppUser", {"userid": "%"}, {"userid": ""}, "planning"),
     ("h323_gateway", "listH323Gateway", {"name": "%"}, {"name": "", "description": "", "product": ""}, "planning"),
 ]
+
+# AXL field names that differ from the key the rest of the pipeline reads.
+# Applied after extraction so normalizers and the report keep their existing keys.
+FIELD_ALIASES: dict[str, dict[str, str]] = {
+    "ip_phone_service": {
+        "serviceName": "name",
+        "serviceDescription": "description",
+        "serviceUrl": "url",
+    },
+}
+
+# CUCM models enterprise-wide parameters as service parameters under this
+# service (an XService enum value) — AXL has no getEnterprise operation.
+ENTERPRISE_WIDE_SERVICE = "Enterprise Wide"
 
 # Category metadata for report rendering
 CATEGORY_METADATA: dict[str, dict[str, str]] = {
@@ -140,10 +172,10 @@ class InformationalExtractor(BaseExtractor):
         # 3. Intercom DNs via SQL
         self.results["intercom"] = self._extract_intercom_dns(result)
 
-        # 4. Enterprise parameters (single getEnterprise call)
+        # 4. Enterprise parameters (listServiceParameter, "Enterprise Wide")
         self.results["enterprise_params"] = self._extract_enterprise_params(result)
 
-        # 5. Service parameters (filtered listProcessConfig)
+        # 5. Service parameters (filtered listServiceParameter)
         self.results["service_params"] = self._extract_service_params(result)
 
         logger.info(
@@ -154,6 +186,17 @@ class InformationalExtractor(BaseExtractor):
             result.failed,
         )
         return result
+
+    def _record_unsupported(self, operation: str, result: ExtractionResult) -> None:
+        """Record an operation the negotiated AXL schema does not define.
+
+        Deliberately does NOT increment ``result.failed``: an operation that
+        does not exist was never asked, so the outcome is "unsupported", not
+        "zero objects" and not a query error.
+        """
+        note = f"{operation} unsupported on AXL {self.conn.version} — skipped"
+        logger.info("[%s] %s", self.name, note)
+        result.errors.append(note)
 
     def _fetch_common_phone_config_details(
         self, items: list[dict[str, Any]], result: ExtractionResult,
@@ -199,13 +242,21 @@ class InformationalExtractor(BaseExtractor):
         try:
             items = self.paginated_list(method, criteria, tags)
         except Exception as exc:
+            if _is_unsupported_operation(exc):
+                self._record_unsupported(method, result)
+                return []
             logger.warning("[%s] %s failed: %s", self.name, method, exc)
             result.errors.append(f"{method} failed: {exc}")
             result.failed += 1
             return []
 
+        aliases = FIELD_ALIASES.get(suffix)
         result.total += len(items)
         for item in items:
+            if aliases:
+                for src, dst in aliases.items():
+                    if src in item and dst not in item:
+                        item[dst] = item[src]
             item["_category"] = category
             item["_info_type"] = suffix
         return items
@@ -219,6 +270,7 @@ class InformationalExtractor(BaseExtractor):
         except Exception as exc:
             logger.warning("[%s] Softkey template SQL failed: %s", self.name, exc)
             result.errors.append(f"Softkey template SQL failed: {exc}")
+            result.failed += 1
             return []
 
         result.total += len(rows)
@@ -237,6 +289,7 @@ class InformationalExtractor(BaseExtractor):
         except Exception as exc:
             logger.warning("[%s] Intercom DN SQL failed: %s", self.name, exc)
             result.errors.append(f"Intercom DN SQL failed: {exc}")
+            result.failed += 1
             return []
 
         result.total += len(rows)
@@ -246,19 +299,35 @@ class InformationalExtractor(BaseExtractor):
         return rows
 
     def _extract_enterprise_params(self, result: ExtractionResult) -> list[dict[str, Any]]:
-        """Extract enterprise parameters via single getEnterprise call."""
+        """Extract enterprise parameters as one flat param -> value dict.
+
+        AXL has no getEnterprise operation. CUCM exposes enterprise-wide
+        parameters through listServiceParameter under the "Enterprise Wide"
+        service.
+        """
         try:
-            raw = self.conn.service.getEnterprise()
-            if raw is None:
-                return []
-            from zeep.helpers import serialize_object
-            params = serialize_object(raw, dict)
-            if not isinstance(params, dict):
-                params = {"raw": str(params)}
+            rows = self.paginated_list(
+                "listServiceParameter",
+                {"service": ENTERPRISE_WIDE_SERVICE},
+                {"name": "", "value": ""},
+            )
         except Exception as exc:
-            logger.warning("[%s] getEnterprise failed: %s", self.name, exc)
-            result.errors.append(f"getEnterprise failed: {exc}")
+            if _is_unsupported_operation(exc):
+                self._record_unsupported("listServiceParameter", result)
+                return []
+            logger.warning("[%s] enterprise parameter query failed: %s", self.name, exc)
+            result.errors.append(f"listServiceParameter (enterprise) failed: {exc}")
+            result.failed += 1
             return []
+
+        if not rows:
+            return []
+
+        params: dict[str, Any] = {}
+        for row in rows:
+            key = row.get("name")
+            if key:
+                params[str(key)] = row.get("value")
 
         result.total += 1
         params["_category"] = "planning"
@@ -267,16 +336,25 @@ class InformationalExtractor(BaseExtractor):
         return [params]
 
     def _extract_service_params(self, result: ExtractionResult) -> list[dict[str, Any]]:
-        """Extract telephony-related service parameters via listProcessConfig."""
+        """Extract telephony-related service parameters via listServiceParameter.
+
+        AXL has no listProcessConfig operation. listServiceParameter requires at
+        least one search criterion, so the sweep is done server-side on service
+        and narrowed to telephony services below.
+        """
         try:
             items = self.paginated_list(
-                "listProcessConfig",
-                {"name": "%"},
+                "listServiceParameter",
+                {"service": "%"},
                 {"name": "", "service": "", "value": ""},
             )
         except Exception as exc:
-            logger.warning("[%s] listProcessConfig failed: %s", self.name, exc)
-            result.errors.append(f"listProcessConfig failed: {exc}")
+            if _is_unsupported_operation(exc):
+                self._record_unsupported("listServiceParameter", result)
+                return []
+            logger.warning("[%s] listServiceParameter failed: %s", self.name, exc)
+            result.errors.append(f"listServiceParameter failed: {exc}")
+            result.failed += 1
             return []
 
         telephony_keywords = (

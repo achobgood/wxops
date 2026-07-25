@@ -11,8 +11,10 @@ Sources:
 from __future__ import annotations
 
 import logging
+import re
 import urllib3
 from collections import OrderedDict
+from pathlib import Path
 from typing import Any
 
 from requests import Session
@@ -29,6 +31,119 @@ logger = logging.getLogger(__name__)
 
 class AXLConnectionError(Exception):
     """Raised when the AXL connection cannot be established."""
+
+
+# ----------------------------------------------------------------------
+# WSDL / version helpers (no live connection or local WSDL required)
+# ----------------------------------------------------------------------
+
+# AXL schema namespaces tried when probing a cluster for its version.
+# getCCMVersion returns the cluster's real version whichever namespace the
+# request used, but a namespace NEWER than the cluster is rejected — so try
+# newest first and stop at the first namespace that answers.
+AXL_PROBE_VERSIONS = ("15.0", "14.0", "12.5", "12.0", "11.5")
+
+_AXL_NAMESPACE_RE = re.compile(
+    r"http://www\.cisco\.com/AXL/API/([0-9]+(?:\.[0-9]+)*)"
+)
+_CCM_VERSION_RE = re.compile(r"<version>([^<]+)</version>")
+
+# zeep raises TypeError("...() got an unexpected keyword argument 'x'...") when a
+# requested returnedTag is absent from the negotiated AXL schema.
+_UNEXPECTED_KWARG_RE = re.compile(r"unexpected keyword argument '([^']+)'")
+
+_GET_CCM_VERSION_ENVELOPE = (
+    '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
+    'xmlns:ns="http://www.cisco.com/AXL/API/{version}">'
+    "<soapenv:Header/><soapenv:Body><ns:getCCMVersion/></soapenv:Body>"
+    "</soapenv:Envelope>"
+)
+
+
+def read_wsdl_axl_version(wsdl_path: str | Path) -> str | None:
+    """Return the AXL API version declared inside an AXLAPI.wsdl file.
+
+    The file declares its schema version through the namespace
+    ``http://www.cisco.com/AXL/API/<version>``. Returns None when the file
+    cannot be read or declares no such namespace.
+    """
+    path = Path(wsdl_path).expanduser()
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                match = _AXL_NAMESPACE_RE.search(line)
+                if match:
+                    return match.group(1)
+    except OSError as exc:
+        logger.debug("Could not read WSDL %s: %s", path, exc)
+        return None
+    return None
+
+
+def axl_schema_version(version: str | None) -> str | None:
+    """Reduce a CUCM version string to its AXL schema version.
+
+    ``"14.0.1.11900(132)"`` -> ``"14.0"``. The AXL SQL Toolkit names its
+    schema directories with this two-component form.
+    """
+    if not version:
+        return None
+    parts = version.strip().split(".")
+    if len(parts) < 2 or not parts[0].isdigit() or not parts[1].isdigit():
+        return None
+    return f"{parts[0]}.{parts[1]}"
+
+
+def detect_cucm_version(
+    host: str,
+    username: str,
+    password: str,
+    port: int = 8443,
+    timeout: int = 10,
+    verify_ssl: bool = False,
+    versions: tuple[str, ...] = AXL_PROBE_VERSIONS,
+) -> str | None:
+    """Detect a cluster's CUCM version without needing a local WSDL.
+
+    Posts a bare getCCMVersion SOAP request to ``/axl/``. Returns the version
+    string (e.g. ``"14.0.1.11900(132)"``) or None if it could not be
+    determined — the caller must treat None as "unknown", not as an error.
+    """
+    session = Session()
+    session.auth = HTTPBasicAuth(username, password)
+    session.verify = verify_ssl
+    url = f"https://{host}:{port}/axl/"
+    try:
+        for ver in versions:
+            headers = {
+                "Content-Type": "text/xml; charset=utf-8",
+                "SOAPAction": f"CUCM:DB ver={ver} getCCMVersion",
+            }
+            body = _GET_CCM_VERSION_ENVELOPE.format(version=ver)
+            try:
+                resp = session.post(
+                    url, data=body, headers=headers, timeout=(5, timeout),
+                )
+            except Exception as exc:
+                # Transport-level failure — another namespace will not help.
+                logger.debug("getCCMVersion probe (ver=%s) failed: %s", ver, exc)
+                return None
+            if resp.status_code in (401, 403):
+                logger.debug(
+                    "getCCMVersion probe (ver=%s) rejected: HTTP %s",
+                    ver, resp.status_code,
+                )
+                return None
+            match = _CCM_VERSION_RE.search(resp.text or "")
+            if resp.status_code == 200 and match:
+                return match.group(1).strip()
+            logger.debug(
+                "getCCMVersion probe (ver=%s) did not answer: HTTP %s",
+                ver, resp.status_code,
+            )
+        return None
+    finally:
+        session.close()
 
 
 class AXLConnection:
@@ -137,15 +252,12 @@ class AXLConnection:
             returned_tags: Fields to return (AXL only returns requested fields).
             page_size: Rows per page (default 200, AXL max for most methods).
         """
+        # Copy: a dropped tag must not mutate the caller's constant.
+        tags = dict(returned_tags)
         all_results: list[dict[str, Any]] = []
         skip = 0
         while True:
-            raw = getattr(self.service, method_name)(
-                searchCriteria=search_criteria,
-                returnedTags=returned_tags,
-                first=str(page_size),
-                skip=str(skip),
-            )
+            raw = self._call_list(method_name, search_criteria, tags, page_size, skip)
             response = self._serialize(raw)
             batch = self._extract_rows(response)
             if not batch:
@@ -155,6 +267,47 @@ class AXLConnection:
                 break  # Last page
             skip += page_size
         return all_results
+
+    def _call_list(
+        self,
+        method_name: str,
+        search_criteria: dict[str, str],
+        returned_tags: dict[str, str],
+        page_size: int,
+        skip: int,
+    ) -> Any:
+        """Invoke one AXL list page, dropping returnedTags the schema rejects.
+
+        A single tag absent from the negotiated AXL schema otherwise fails the
+        whole object type, and a failed extractor's zero is indistinguishable
+        from a cluster that genuinely has none of that object. Drop the
+        offending tag, warn, and retry — the rest of the fields still arrive.
+
+        ``returned_tags`` is mutated in place so later pages skip the tag too.
+        """
+        while True:
+            try:
+                return getattr(self.service, method_name)(
+                    searchCriteria=search_criteria,
+                    returnedTags=returned_tags,
+                    first=str(page_size),
+                    skip=str(skip),
+                )
+            except TypeError as exc:
+                match = _UNEXPECTED_KWARG_RE.search(str(exc))
+                # Not a returnedTag we can drop (e.g. a searchCriteria field) —
+                # the caller must see the real error.
+                if not match or match.group(1) not in returned_tags:
+                    raise
+                bad = match.group(1)
+                del returned_tags[bad]
+                logger.warning(
+                    "%s: AXL schema has no returnedTag %r — dropped, retrying",
+                    method_name,
+                    bad,
+                )
+                if not returned_tags:
+                    raise
 
     def get_detail(
         self, method_name: str, **kwargs: Any

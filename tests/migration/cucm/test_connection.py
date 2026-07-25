@@ -5,11 +5,18 @@ Mocks zeep Client, Transport, and Session so no live CUCM is required.
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from wxcli.migration.cucm.connection import AXLConnection, AXLConnectionError
+from wxcli.migration.cucm.connection import (
+    AXLConnection,
+    AXLConnectionError,
+    axl_schema_version,
+    detect_cucm_version,
+    read_wsdl_axl_version,
+)
 
 
 # ------------------------------------------------------------------
@@ -373,6 +380,87 @@ class TestPaginatedListEmpty:
 
 
 # ------------------------------------------------------------------
+# 5b. paginated_list drops returnedTags the AXL schema rejects
+# ------------------------------------------------------------------
+
+class TestPaginatedListDropsUnknownTags:
+    """One bad returnedTag must not fail the whole object type."""
+
+    @staticmethod
+    def _reject(*bad_fields):
+        """Mock an AXL op that rejects each bad field, one per call."""
+        remaining = list(bad_fields)
+
+        def call(searchCriteria, returnedTags, first, skip):
+            for field in remaining:
+                if field in returnedTags:
+                    remaining.remove(field)
+                    raise TypeError(
+                        f"{{http://www.cisco.com/AXL/API/14.0}}LAarGroup() got an "
+                        f"unexpected keyword argument '{field}'. Signature: `name`"
+                    )
+            return {"return": {"aarGroup": [{"name": "AAR-HQ"}]}}
+
+        return call
+
+    def test_drops_offending_tag_and_returns_rows(self):
+        conn = _make_conn()
+        conn.service.listAarGroup.side_effect = self._reject("description")
+        result = conn.paginated_list(
+            method_name="listAarGroup",
+            search_criteria={"name": "%"},
+            returned_tags={"name": "", "description": ""},
+        )
+        assert result == [{"name": "AAR-HQ"}]
+        second = conn.service.listAarGroup.call_args_list[1]
+        assert second.kwargs["returnedTags"] == {"name": ""}
+
+    def test_drops_several_bad_tags(self):
+        conn = _make_conn()
+        conn.service.listAarGroup.side_effect = self._reject("description", "clause")
+        result = conn.paginated_list(
+            method_name="listAarGroup",
+            search_criteria={"name": "%"},
+            returned_tags={"name": "", "description": "", "clause": ""},
+        )
+        assert result == [{"name": "AAR-HQ"}]
+
+    def test_does_not_mutate_the_callers_dict(self):
+        """returnedTags constants are module-level and shared across runs."""
+        conn = _make_conn()
+        conn.service.listAarGroup.side_effect = self._reject("description")
+        tags = {"name": "", "description": ""}
+        conn.paginated_list(
+            method_name="listAarGroup",
+            search_criteria={"name": "%"},
+            returned_tags=tags,
+        )
+        assert tags == {"name": "", "description": ""}
+
+    def test_reraises_when_the_field_is_not_a_returned_tag(self):
+        conn = _make_conn()
+        conn.service.listAarGroup.side_effect = TypeError(
+            "LAarGroup() got an unexpected keyword argument 'bogusCriterion'."
+        )
+        with pytest.raises(TypeError):
+            conn.paginated_list(
+                method_name="listAarGroup",
+                search_criteria={"bogusCriterion": "%"},
+                returned_tags={"name": ""},
+            )
+
+    def test_reraises_when_every_tag_is_rejected(self):
+        conn = _make_conn()
+        conn.service.listAarGroup.side_effect = self._reject("name")
+        with pytest.raises(TypeError):
+            conn.paginated_list(
+                method_name="listAarGroup",
+                search_criteria={"name": "%"},
+                returned_tags={"name": ""},
+            )
+
+
+# ------------------------------------------------------------------
 # 6. test_get_detail_success
 # ------------------------------------------------------------------
 
@@ -519,3 +607,111 @@ class TestExtractRowsVariousFormats:
         mock_response.__getitem__ = Mock(side_effect=KeyError("return"))
         result = AXLConnection._extract_rows(mock_response)
         assert result == []
+
+
+# ------------------------------------------------------------------
+# 8. WSDL version parsing
+# ------------------------------------------------------------------
+
+TOOLKIT_SCHEMA = Path.home() / "Downloads" / "axlsqltoolkit" / "schema"
+
+
+class TestReadWsdlAxlVersion:
+    """Read the AXL API version declared inside an AXLAPI.wsdl."""
+
+    def test_reads_version_from_namespace(self, tmp_path):
+        wsdl = tmp_path / "AXLAPI.wsdl"
+        wsdl.write_text(
+            '<?xml version="1.0"?>\n'
+            '<definitions xmlns:xsd1="http://www.cisco.com/AXL/API/14.0"\n'
+            '  targetNamespace="http://www.cisco.com/AXLAPIService/">\n'
+            "</definitions>\n"
+        )
+        assert read_wsdl_axl_version(wsdl) == "14.0"
+
+    def test_returns_none_when_namespace_absent(self, tmp_path):
+        wsdl = tmp_path / "AXLAPI.wsdl"
+        wsdl.write_text("<definitions/>")
+        assert read_wsdl_axl_version(wsdl) is None
+
+    def test_returns_none_for_missing_file(self, tmp_path):
+        assert read_wsdl_axl_version(tmp_path / "nope.wsdl") is None
+
+    @pytest.mark.skipif(
+        not (TOOLKIT_SCHEMA / "14.0" / "AXLAPI.wsdl").exists(),
+        reason="AXL SQL Toolkit not present on this machine",
+    )
+    def test_real_toolkit_14_0(self):
+        assert read_wsdl_axl_version(TOOLKIT_SCHEMA / "14.0" / "AXLAPI.wsdl") == "14.0"
+
+    @pytest.mark.skipif(
+        not (TOOLKIT_SCHEMA / "current" / "AXLAPI.wsdl").exists(),
+        reason="AXL SQL Toolkit not present on this machine",
+    )
+    def test_real_toolkit_current_is_newest_not_your_version(self):
+        """schema/current/ is the newest schema in the toolkit — 15.0, not 14.0."""
+        assert read_wsdl_axl_version(TOOLKIT_SCHEMA / "current" / "AXLAPI.wsdl") == "15.0"
+
+
+class TestAxlSchemaVersion:
+    """Reduce a full CUCM version string to its AXL schema version."""
+
+    def test_full_cucm_version(self):
+        assert axl_schema_version("14.0.1.11900(132)") == "14.0"
+
+    def test_two_component_version_passes_through(self):
+        assert axl_schema_version("12.5") == "12.5"
+
+    def test_none_and_garbage(self):
+        assert axl_schema_version(None) is None
+        assert axl_schema_version("") is None
+        assert axl_schema_version("unknown") is None
+
+
+class TestDetectCucmVersion:
+    """getCCMVersion over plain SOAP — no WSDL file required."""
+
+    @staticmethod
+    def _session(mock_session_cls):
+        session = mock_session_cls.return_value
+        return session
+
+    def test_returns_version_from_first_answering_namespace(self):
+        with patch("wxcli.migration.cucm.connection.Session") as mock_session_cls:
+            session = self._session(mock_session_cls)
+            ok = MagicMock(status_code=200)
+            ok.text = "<return><componentVersion><version>14.0.1.11900(132)</version></componentVersion></return>"
+            fault = MagicMock(status_code=500, text="<faultstring>Unknown</faultstring>")
+            session.post.side_effect = [fault, ok]
+
+            assert (
+                detect_cucm_version("10.0.0.1", "admin", "secret")
+                == "14.0.1.11900(132)"
+            )
+            assert session.post.call_count == 2
+
+    def test_transport_error_stops_immediately(self):
+        with patch("wxcli.migration.cucm.connection.Session") as mock_session_cls:
+            session = self._session(mock_session_cls)
+            session.post.side_effect = OSError("No route to host")
+            assert detect_cucm_version("10.0.0.1", "admin", "secret") is None
+            assert session.post.call_count == 1
+
+    def test_auth_failure_stops_immediately(self):
+        with patch("wxcli.migration.cucm.connection.Session") as mock_session_cls:
+            session = self._session(mock_session_cls)
+            session.post.return_value = MagicMock(status_code=401, text="")
+            assert detect_cucm_version("10.0.0.1", "admin", "bad") is None
+            assert session.post.call_count == 1
+
+    def test_returns_none_when_no_namespace_answers(self):
+        with patch("wxcli.migration.cucm.connection.Session") as mock_session_cls:
+            session = self._session(mock_session_cls)
+            session.post.return_value = MagicMock(status_code=500, text="<fault/>")
+            assert (
+                detect_cucm_version(
+                    "10.0.0.1", "admin", "secret", versions=("15.0", "14.0"),
+                )
+                is None
+            )
+            assert session.post.call_count == 2
