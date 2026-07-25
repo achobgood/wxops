@@ -124,6 +124,10 @@ class DecisionType(str, Enum):
     # DECT Phase 2 decision types
     DECT_NETWORK_DESIGN = "DECT_NETWORK_DESIGN"
     DECT_HANDSET_ASSIGNMENT = "DECT_HANDSET_ASSIGNMENT"
+    # Cross-site dependency (from cross-site-dependency-detection.md).
+    # Never auto-resolvable; blocks plan expansion of its affected entities
+    # until an operator reviews it.
+    CROSS_SITE_DEPENDENCY = "CROSS_SITE_DEPENDENCY"
 
 
 # ---------------------------------------------------------------------------

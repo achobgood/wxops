@@ -298,6 +298,16 @@ class TestDecisionAwareExpansion:
         sl_ops = [op for op in ops if op.resource_type == "shared_line"]
         assert len(sl_ops) == 0
 
+        # ...and real virtual_line ops in their place. Returning [] here used to
+        # be a silent no-op: no CanonicalVirtualLine is ever produced, so the
+        # choice built nothing. (cross-site-phase-2.md §6.3)
+        vl_ops = {op.op_type: op for op in ops if op.resource_type == "virtual_line"}
+        assert set(vl_ops) == {"create", "configure"}
+        assert vl_ops["create"].canonical_id == "shared_line:sl2"
+        assert vl_ops["create"].payload["extension"] == "1001"
+        assert vl_ops["create"].payload["canonical_id"] == "shared_line:sl2"
+        assert vl_ops["configure"].depends_on == ["shared_line:sl2:create"]
+
 
 class TestDataOnlyTypes:
     """Line and voicemail_profile don't produce operations."""
