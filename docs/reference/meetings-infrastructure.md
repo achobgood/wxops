@@ -871,35 +871,37 @@ All 43 endpoints across the 3 CLI groups documented in this reference.
 
 7. **The generic command names do not mean what they look like.** `wxcli video-mesh list` returns *cluster availability* (GET /videoMesh/clusters/availability), not a list of clusters -- use `list-clusters-video-mesh` for that. Likewise `show` is cluster availability while `show-clusters` is cluster details, and `create` triggers a *cluster* test while `create-nodes` triggers a node test. Check `--help` before assuming.
 
+8. **Every Video Mesh command requires `orgId`, and an older config may not have one saved.** Video Mesh's 9 GET operations are among only 12 operations in the entire Webex API surface where `orgId` is a required *query* parameter rather than optional (everywhere else it defaults to the token's own org). If no org is saved in your wxcli config, every command in this group -- not just one -- fails outright: `exit 1` and `Error: {"message":"Required request parameter 'orgId' for method parameter type String is not present", ...}`. `wxcli configure` now saves an org for every token (prompting only on multi-org tokens), which prevents this on new configs. To repair an older config, run `wxcli switch-org`; in automation, pass the id explicitly (`wxcli switch-org <orgId>`) since the bare form prompts interactively and will block a script. Also note the exact command name is `list-clusters-video-mesh`, not `list-clusters` -- see gotcha #7 above for other naming pitfalls in this group.
+
 ### Meeting Participants
 
-8. **The `create` command is actually "Query by Email" (POST to /meetingParticipants/query).** Despite the CLI name suggesting creation, this command searches for participants by email address. The CLI name follows the generator's convention of mapping POST to `create`.
+9. **The `create` command is actually "Query by Email" (POST to /meetingParticipants/query).** Despite the CLI name suggesting creation, this command searches for participants by email address. The CLI name follows the generator's convention of mapping POST to `create`.
 
-9. **`update` can mute, unmute, admit, or expel a participant during a live meeting.** Set `muted: true/false` to mute/unmute, `admit: true` to admit from lobby, or `expel: true` to remove. Only one action should be performed per call.
+10. **`update` can mute, unmute, admit, or expel a participant during a live meeting.** Set `muted: true/false` to mute/unmute, `admit: true` to admit from lobby, or `expel: true` to remove. Only one action should be performed per call.
 
-10. **`create-callout` dials a SIP URI to add a device to the meeting.** This is useful for bridging room devices (Webex Room Kit, SIP-registered phones) into a Webex meeting. The callout is asynchronous -- the response returns `state: "pending"` initially.
+11. **`create-callout` dials a SIP URI to add a device to the meeting.** This is useful for bridging room devices (Webex Room Kit, SIP-registered phones) into a Webex meeting. The callout is asynchronous -- the response returns `state: "pending"` initially.
 
-11. **`create-cancel-callout` cancels a pending SIP callout before the device answers.** Once the device has answered and joined the meeting, use `update` with `expel: true` instead.
+12. **`create-cancel-callout` cancels a pending SIP callout before the device answers.** Once the device has answered and joined the meeting, use `update` with `expel: true` instead.
 
-12. **`create-admit` has a 100-item limit per request.** Each `participantId` in the `items` array must share the same meeting prefix as the `meetingId`.
+13. **`create-admit` has a 100-item limit per request.** Each `participantId` in the `items` array must share the same meeting prefix as the `meetingId`.
 
-13. **Personal room meeting IDs are not supported for the participant list endpoint.** Attempting to use a personal room meeting ID will return an error.
+14. **Personal room meeting IDs are not supported for the participant list endpoint.** Attempting to use a personal room meeting ID will return an error.
 
-14. **The `joinTimeFrom`/`joinTimeTo` interval must be within 90 days.** Exceeding this range will result in a 400 error.
+15. **The `joinTimeFrom`/`joinTimeTo` interval must be within 90 days.** Exceeding this range will result in a 400 error.
 
 ### Meeting Invitees
 
-15. **Invitees are pre-meeting; participants are in-meeting.** These are separate API surfaces. Invitees represent who was invited (before the meeting). Participants represent who actually joined (during/after the meeting).
+16. **Invitees are pre-meeting; participants are in-meeting.** These are separate API surfaces. Invitees represent who was invited (before the meeting). Participants represent who actually joined (during/after the meeting).
 
-16. **`sendEmail` defaults to `true`.** When creating an invitee, the invitation email is sent automatically unless you explicitly set `sendEmail: false`. This is important for bulk operations where you may not want to send hundreds of emails.
+17. **`sendEmail` defaults to `true`.** When creating an invitee, the invitation email is sent automatically unless you explicitly set `sendEmail: false`. This is important for bulk operations where you may not want to send hundreds of emails.
 
-17. **`create-bulk-insert` accepts multiple invitees at once** via the `items` array in the JSON body. Each item can have independent `coHost`, `panelist`, and `sendEmail` settings.
+18. **`create-bulk-insert` accepts multiple invitees at once** via the `items` array in the JSON body. Each item can have independent `coHost`, `panelist`, and `sendEmail` settings.
 
-18. **The `panelist` filter on `list` is for webinars only.** For regular meetings, this parameter has no effect. Set to `true` for panelists, `false` for attendees, or omit for both.
+19. **The `panelist` filter on `list` is for webinars only.** For regular meetings, this parameter has no effect. Set to `true` for panelists, `false` for attendees, or omit for both.
 
-19. **Invitee `update` uses PUT (full replacement), not PATCH.** You must include all fields you want to keep, not just the ones you are changing.
+20. **Invitee `update` uses PUT (full replacement), not PATCH.** You must include all fields you want to keep, not just the ones you are changing.
 
-20. **Duplicate invitee creation returns 409 Conflict.** If the email address is already invited to the meeting, the API returns a 409 error rather than silently updating.
+21. **Duplicate invitee creation returns 409 Conflict.** If the email address is already invited to the meeting, the API returns a 409 error rather than silently updating.
 
 ---
 

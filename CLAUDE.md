@@ -381,8 +381,8 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a single partner token.
 
-- **`wxcli configure`** — detects multi-org tokens automatically and prompts for org selection. The selected `orgId` is saved to the config file.
-- **`wxcli switch-org`** — change the active target org at any time.
+- **`wxcli configure`** — saves an `orgId` to the config file for every token. On a multi-org token it prompts for a selection; on a single-org token it saves that org automatically. It will not overwrite an org that is already configured.
+- **`wxcli switch-org`** — change the active target org at any time. On a single-org token it now saves that org to the config too. The bare form prompts interactively, which will block a script or agent forever on a multi-org token — in automation always pass the id: `wxcli switch-org <orgId>`.
 - **`wxcli clear-org`** — remove the saved `orgId` to revert to single-org behavior.
 - **`wxcli whoami`** — shows a "Target:" line when an org is set.
 - **Most generated commands** auto-inject `orgId` from config on endpoints that accept it (generator `auto_inject_from_config`). No flag is required — the parameter is injected transparently.
@@ -403,6 +403,7 @@ When you hit one of these errors, jump to the matching known issue:
 | 405 on workspace settings | Workspace `/telephony/config/` endpoint | #6 — needs Professional license |
 | 403 on `cc-*` commands | PAT or wrong OAuth scopes | #11 — needs `cjp:config_*` OAuth scopes |
 | 409 on location delete | Resources still assigned | See `.claude/rules/cleanup.md` |
+| 400 "Required request parameter 'orgId' ... is not present" | `audit-events list`, `security-audit list`, or any `video-mesh` command | No org saved in config — run `wxcli switch-org` (or `wxcli switch-org <orgId>` in automation); fixed for new configs. See `docs/reference/meetings-infrastructure.md` gotcha #8. |
 | Unexpected command name | `show-*` vs `list-*`, singular vs plural | #5 — two path families; always run `--help` first |
 | `--json-body` needed | Complex nested fields in request body | #2 — check `--help` for JSON example |
 
