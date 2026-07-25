@@ -122,6 +122,24 @@ _CROSS_OBJECT_RULES: list[dict] = [
         "target_op": "create",
         "dep_type": DependencyType.SOFT,
     },
+    # Membership reconcile: HARD edge to every member's user:create. This is
+    # what makes the op wait — it never becomes ready until the last member
+    # exists, so across separate wave runs it stays pending and executes on the
+    # final one. REQUIRES rather than CONFIGURES because cycle-breaking prefers
+    # to break the weaker types, and this edge must not be broken.
+    # The SOFT edges on `create` above are deliberately left alone: a group is
+    # still built in wave 1 with whoever exists.
+    # (from docs/prompts/cross-site-phase-2.md §7.2)
+    *[
+        {
+            "source_type": _rt,
+            "source_op": "reconcile_members",
+            "relationship": "feature_has_agent",
+            "target_op": "create",
+            "dep_type": DependencyType.REQUIRES,
+        }
+        for _rt in ("hunt_group", "call_queue", "pickup_group", "paging_group")
+    ],
     # Call park depends on location having Calling enabled
     {
         "source_type": "call_park",

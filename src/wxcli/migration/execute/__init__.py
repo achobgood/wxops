@@ -139,10 +139,23 @@ TIER_ASSIGNMENTS: dict[tuple[str, str], int] = {
     ("device_profile", "enable_hoteling_host"): 5,
     ("hoteling_location", "enable_hotdesking"): 0,  # Same tier as location:enable_calling
     # Bulk job operations (Phase: bulk-operations)
+    # Members-only layout op, emitted when the bulk path takes over the layout.
+    # Same tier as device_layout:configure — it does that op's members half.
+    ("device_layout", "configure_members"): 7,
     ("bulk_device_settings", "submit"): 5,
     ("bulk_line_key_template", "submit"): 7,
     ("bulk_dynamic_settings", "submit"): 7,
     ("bulk_rebuild_phones", "submit"): 8,  # Tier 8: runs after all device finalization
+    # Tier 9 — membership reconcile. A new tier ABOVE 8 rather than a distinct
+    # batch within it: this must be the last thing that touches a group, and
+    # tier 8 is already shared with bulk_rebuild_phones. Sharing tier 8 would
+    # make the ordering depend on batch-group construction rather than on the
+    # tier number, which is the mechanism the rest of the plan relies on.
+    # (from docs/prompts/cross-site-phase-2.md §7.4)
+    ("hunt_group", "reconcile_members"): 9,
+    ("call_queue", "reconcile_members"): 9,
+    ("pickup_group", "reconcile_members"): 9,
+    ("paging_group", "reconcile_members"): 9,
     # DECT network provisioning (depends on location, users/workspaces)
     ("dect_network", "create"): 2,              # Create DECT network at location
     ("dect_network", "create_base_stations"): 2,  # Register base stations with MACs
@@ -228,6 +241,7 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "receptionist_config:configure": 2,  # PUT reception + POST directory # PUT /people/{id}/features/monitoring
     # Tier 7: Device finalization
     "device_layout:configure": 3,   # PUT members + PUT layout + POST applyChanges
+    "device_layout:configure_members": 2,  # PUT members + POST applyChanges
     "softkey_config:configure": 2,  # PUT dynamicSettings + POST applyChanges
     # Device settings templates
     "device_settings_template:apply_location_settings": 1,  # PUT /telephony/config/locations/{id}/devices/settings
@@ -241,6 +255,11 @@ API_CALL_ESTIMATES: dict[str, int] = {
     "bulk_line_key_template:submit": 10,
     "bulk_dynamic_settings:submit": 10,
     "bulk_rebuild_phones:submit": 10,
+    # One full-list PUT per group, regardless of member count.
+    "hunt_group:reconcile_members": 1,
+    "call_queue:reconcile_members": 1,
+    "pickup_group:reconcile_members": 1,
+    "paging_group:reconcile_members": 1,
     # DECT network provisioning
     "dect_network:create": 1,              # POST /telephony/config/locations/{id}/dectNetworks
     "dect_network:create_base_stations": 1,  # POST /telephony/config/locations/{id}/dectNetworks/{id}/baseStations

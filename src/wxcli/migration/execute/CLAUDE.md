@@ -30,8 +30,62 @@ Operations run in tier order. Within a tier, all operations in the same (batch, 
 | 5 | Settings | user:configure_settings, user:configure_voicemail, device:configure_settings, workspace:configure_settings, calling_permission:assign, call_forwarding:configure |
 | 6 | Shared/virtual lines + monitoring | shared_line:configure, virtual_line:create/configure, monitoring_list:configure |
 | 7 | Device finalization + cycle fixups | device_layout:configure, softkey_config:configure, fixup ops from cycle breaking |
+| 8 | Bulk phone rebuild | bulk_rebuild_phones:submit |
+| 9 | Membership reconcile | hunt_group/call_queue/pickup_group/paging_group:reconcile_members |
 
 **Tier 7 dual use:** Cycle-break fixups use `batch="fixups"`; device finalization ops use location-derived batches. They don't conflict because they land in separate batch groups.
+
+---
+
+## Membership Reconcile (tier 9)
+
+`reconcile_members` is what makes the `proceed_partial` answer to a
+`CROSS_SITE_DEPENDENCY` honest. The group is still created in wave 1 with whichever
+members exist; this op rewrites the **full** membership on the wave that provisions the
+last remote member.
+
+One handler, `handle_reconcile_members`, serves all four group types. Behaviour comes
+from `RECONCILE_RULES` in `handlers.py` — endpoint path, which canonical fields hold
+members, and whether the API wants `{"id": ...}` objects or bare id strings. Adding
+voicemail groups or DECT handsets later is a new row, not a new handler.
+
+| Resource | Endpoint | Members |
+|----------|----------|---------|
+| `hunt_group` | PUT `.../locations/{loc}/huntGroups/{id}` | `agents: [{"id": ...}]` |
+| `call_queue` | PUT `.../locations/{loc}/queues/{id}` | `agents: [{"id": ...}]` |
+| `pickup_group` | PUT `.../locations/{loc}/callPickups/{id}` | `agents: ["id", ...]` |
+| `paging_group` | PUT `.../locations/{loc}/paging/{id}` | `targets` / `originators`, flat strings |
+
+**It never writes a partial list.** These endpoints replace the whole array, so a short
+list would *delete* members rather than add them — including any an operator added by
+hand. If a single member is unresolved the handler returns `skipped(reason)` and the
+existing membership is left untouched. This is the single most important behaviour of
+the op; `test_skipped_result_issues_no_api_call` guards it directly.
+
+**Why tier 9 and not a second batch inside tier 8.** It has to be the last thing that
+touches a group, and tier 8 is already occupied by `bulk_rebuild_phones`. Sharing tier 8
+would make the ordering depend on how batch groups happen to be constructed rather than
+on the tier number, which is the mechanism everything else in the plan relies on.
+
+**How it waits.** Hard `REQUIRES` edges to every member's `user:create`, from four rows
+in `_CROSS_OBJECT_RULES` keyed on the `feature_has_agent` cross-ref. The op simply never
+becomes ready until the last member exists — across separate wave runs it stays pending
+and executes on the final one. There is no wave-tracking state. `REQUIRES` rather than
+`CONFIGURES` because cycle-breaking prefers to break weaker edge types, and this edge
+must not be broken.
+
+The `create` op keeps its **SOFT** member edges, untouched. Making those hard would
+reintroduce "no hunt group at all", which is worse than partial membership.
+
+Paging groups previously had no `feature_has_agent` cross-ref at all — `FeatureMapper`
+now writes one for targets and originators (`_link_paging_members`). No SOFT rule was
+paired with it, so `paging_group:create` behaviour is unchanged.
+
+**Retry.** The group's Webex id comes from `deps`, which the runtime builds from
+`plan_operations.webex_id` — so it resolves even when the `create` op ran in an earlier
+run and this plan contains only the reconcile op. If it cannot be resolved, the op skips
+rather than blindly creating a duplicate group. Renaming is deliberately unsupported: a
+Call Pickup group's id changes when its name changes, which would invalidate `webex_id`.
 
 ---
 
@@ -95,7 +149,8 @@ if unresolved:
 
 ## Handler Inventory
 
-All 65 handlers in `HANDLER_REGISTRY`:
+All 67 handler functions, across 70 `HANDLER_REGISTRY` entries (the four
+`reconcile_members` keys share one function — see Membership Reconcile above):
 
 ### Tier 0 — Infrastructure
 | Key | URL | Notes |
@@ -198,7 +253,7 @@ migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
 ### Tier 6 — Shared/Virtual Lines + Monitoring
 | Key | URL | Notes |
 |-----|-----|-------|
-| `(shared_line, configure)` | PUT `/telephony/config/people/{id}/applications/members` × N owners | Configures person-level app shared call appearance for each owner |
+| `(shared_line, configure)` | PUT `/telephony/config/people/{id}/applications/members` × N owners | Configures person-level app shared call appearance for each owner. When `SHARED_LINE_COMPLEX` is resolved `virtual_line`, the planner emits `virtual_line:create` + `configure` instead — see below |
 | `(virtual_line, create)` | POST `/telephony/config/virtualLines` | |
 | `(virtual_line, configure)` | PUT `/telephony/config/virtualLines/{id}` | Returns `[]` if no settings |
 | `(monitoring_list, configure)` | PUT `/people/{id}/features/monitoring` | Returns `[]` if no resolved members; silently omits unresolved |
@@ -215,9 +270,58 @@ migration work (see "Tier 5 — Settings" above for `enable_hoteling_guest` and
 
 `planner.py:expand_to_operations(store)` reads all `status='analyzed'` objects and calls the matching `_EXPANDERS[obj_type](obj_data, decisions)` function. Returns `list[MigrationOp]`.
 
+**Cross-site gate (the only pending-decision block).** An unresolved
+`CROSS_SITE_DEPENDENCY` decision suppresses expansion of its construct and records
+`reason="cross_site_unreviewed"` (`decision_state="pending"`) in the skip report, which
+trips `plan --fail-on-unresolved`. Every other decision type only gates on a *resolved*
+`skip`. The gate is scoped by `context["construct_id"] == canonical_id`: a cross-site
+decision also lists its remote members in `affected_objects` so the report can link them,
+and gating those would block provisioning real users. `CROSS_SITE_DEPENDENCY` is
+deliberately NOT in `_SKIP_DECISION_TYPES` for the same reason — its `skip` choice is
+handled inside the construct-scoped gate.
+
+**Cross-site location reassignment (`reassign_home`).** `wxcli cucm decide` stores whatever
+the operator typed, so a `CROSS_SITE_DEPENDENCY` resolved with a *location canonical_id*
+means "build the construct there instead". `_cross_site_location_choice()` recognises this
+(the choice must be in `_location_canonical_ids(store)` — the four literal option ids are
+not), and the expansion loop patches the object's location field before calling the expander,
+so the construct lands in that location's batch. Two things distinguish it from the
+`LOCATION_AMBIGUOUS` patch immediately above it in the loop:
+
+1. It **overrides** an existing location; the `LOCATION_AMBIGUOUS` patch only fills a gap
+   (`and not obj_data.get("location_id")`).
+2. The field name is resolved through `_LOCATION_FIELDS` (imported from
+   `transform/analyzers/cross_site.py`) rather than hardcoded — it is `location_id` on some
+   canonical types and `location_canonical_id` on others. Types with neither field are
+   patched in memory only under `location_id`: that still moves `paging_group` (its expander
+   reads `location_id`) but is inert for the relationship constructs whose expanders emit
+   `batch=None` by design — `monitoring_list`, `executive_assistant`, `call_forwarding`,
+   `device_layout`. Those inherit their owner's location, so "build it at location X" has
+   nothing to move; the operator's remedy there is `migrate_together` or `skip`.
+
+Scoped to `context["construct_id"] == canonical_id`, so resolving a construct's decision
+never relocates the remote members it also lists in `affected_objects`. The move is logged at
+INFO with old → new because it changes which wave the construct executes in.
+
 **Skip logic (two kinds):**
 1. **Generic skip** — any object with a `_SKIP_DECISION_TYPES` decision resolved as "skip" is suppressed entirely. Types: `DEVICE_INCOMPATIBLE`, `EXTENSION_CONFLICT`, `LOCATION_AMBIGUOUS`, `MISSING_DATA`, `WORKSPACE_LICENSE_TIER`, `DUPLICATE_USER`, `VOICEMAIL_INCOMPATIBLE`. (`DEVICE_FIRMWARE_CONVERTIBLE` was removed 2026-04-15 — convertible devices auto-convert and always emit a `create_activation_code` op.)
 2. **Per-expander skip** — individual expanders have their own skip logic (e.g., `_expand_call_forwarding` returns `[]` if all forwarding types disabled; `_expand_line_key_template` returns `[]` if `phones_using == 0`; `_expand_softkey_config` returns `[]` if `is_psk_target=False`).
+
+**`virtual_line` from a shared line.** No `CanonicalVirtualLine` object is ever produced
+by the pipeline, so `_expand_shared_line` used to return `[]` when the operator chose
+`virtual_line` — the choice silently built nothing. It now emits `virtual_line:create` +
+`configure` directly from the shared-line object. Building the canonical objects in a new
+pipeline stage would be wrong: `SHARED_LINE_COMPLEX` is resolved *after* analyze, so the
+planner is the only place that knows the answer.
+
+`CanonicalSharedLine` has no extension, location, or display name, so the ops carry a
+`payload` (extension parsed from `dn_canonical_id`, location resolved from the owners via
+`resolve_entity_location`). `runtime.get_next_batch` prefers an inline payload over the
+store lookup, so the handler receives virtual-line shaped data even though the op's
+`canonical_id` points at a shared line. A shared line with no resolvable DN records
+`virtual_line_no_extension` in the skip report rather than POSTing a body with no
+extension. `_expand_shared_line` is one of two expanders that receive the store (the other
+is `_expand_device`, which takes `config`).
 
 **Data-only types** (no operations produced): `line` (consumed by user:create), `voicemail_profile` (consumed by user:configure_voicemail).
 
@@ -315,9 +419,18 @@ replaces per-device ops with Webex bulk job submissions:
 | Per-device op | Replaced by | Tier |
 |---|---|---|
 | `device:configure_settings` | `bulk_device_settings:submit` | 5 |
-| `device_layout:configure` | `bulk_line_key_template:submit` | 7 |
+| `device_layout:configure` | `bulk_line_key_template:submit` **+ per-device `device_layout:configure_members`** | 7 |
 | `softkey_config:configure` | `bulk_dynamic_settings:submit` | 7 |
 | (post-all) | `bulk_rebuild_phones:submit` | 8 |
+
+**`device_layout:configure` is only half-replaceable.** The bulk job applies a line key
+*template* — its body is `{action, templateId, locationIds}` and carries no device members.
+There is no bulk API for members, so `_optimize_for_bulk` emits a per-device
+`device_layout:configure_members` op (members PUT + applyChanges) for every layout that has
+`line_members`, alongside the bulk template job. Without it, every shared line silently
+stopped being configured at 100+ devices — which is where real migrations live, so the
+shared-line work would have been inert in practice. `_resolve_device_members()` is shared by
+both handlers so the five-mandatory-field contract lives in one place.
 
 `device:create` is never replaced — there is no bulk create API.
 

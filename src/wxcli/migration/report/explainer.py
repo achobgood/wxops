@@ -492,6 +492,65 @@ def _explain_dect_handset_assignment(
     return {"title": title, "explanation": explanation, "reassurance": _reassurance_for_severity(severity)}
 
 
+def _explain_cross_site_dependency(
+    summary: str, context: dict[str, Any], severity: str
+) -> dict[str, str]:
+    name = context.get("object_name", "")
+    home = context.get("home_location_name", "one office")
+    remote = context.get("remote_locations") or []
+    members = context.get("remote_members") or []
+    relation = context.get("relation", "membership")
+    sites = ", ".join(
+        str(entry.get("location_name", "")) for entry in remote if entry.get("location_name")
+    ) or "another office"
+
+    label = {
+        "membership": "group",
+        "monitoring": "monitored line list",
+        "delegation": "delegation pairing",
+        "destination": "call destination",
+        "device_placement": "phone",
+        "line_appearance": "shared line",
+    }.get(relation, "item")
+
+    title = f"'{name}' spans more than one office" if name else "Spans more than one office"
+
+    if relation == "line_appearance":
+        explanation = (
+            f"This line appears on phones at {home} and at {sites}. A phone line can only "
+            "live in one system at a time, so it cannot ring in both places while one office "
+            "is on the old system and the other is on Webex. Move every phone that shares "
+            "this line in the same wave."
+        )
+    elif relation == "device_placement":
+        explanation = (
+            f"This phone sits at {sites} but its owner is set up at {home}. In Webex a phone "
+            "follows its owner's office, so both have to move together."
+        )
+    elif relation == "destination":
+        explanation = (
+            f"Calls from this {label} are sent to a number that belongs to {sites}, while the "
+            f"{label} itself is built at {home}. The destination has to exist in Webex before "
+            "the transfer will work."
+        )
+    else:
+        count = len(members)
+        explanation = (
+            f"This {label} is built at {home}, but {count} of its people are at {sites}. "
+            "Webex builds it at one office only. Either move everyone in the same wave, or "
+            "the people at the other office have to be added by hand afterwards."
+        )
+
+    return {
+        "title": title,
+        "explanation": explanation,
+        "reassurance": (
+            "Nothing is decided automatically here — you choose whether to move these "
+            "together or add them later, and the migration will not run until you do."
+        ),
+    }
+
+
 # Template dispatch table
 _TEMPLATES: dict[str, Any] = {
     "EXTENSION_CONFLICT": _explain_extension_conflict,
@@ -514,6 +573,7 @@ _TEMPLATES: dict[str, Any] = {
     "AUDIO_ASSET_MANUAL": _explain_audio_asset_manual,
     "DECT_NETWORK_DESIGN": _explain_dect_network_design,
     "DECT_HANDSET_ASSIGNMENT": _explain_dect_handset_assignment,
+    "CROSS_SITE_DEPENDENCY": _explain_cross_site_dependency,
 }
 
 
@@ -577,6 +637,7 @@ DECISION_TYPE_DISPLAY_NAMES: dict[str, str] = {
     "BUTTON_UNMAPPABLE": "Unmappable Phone Button",
     "DECT_NETWORK_DESIGN": "DECT Network Design",
     "DECT_HANDSET_ASSIGNMENT": "DECT Handset Assignment",
+    "CROSS_SITE_DEPENDENCY": "Cross-Site Dependency",
 }
 
 

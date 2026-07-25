@@ -15,6 +15,7 @@ from wxcli.migration.models import (
 )
 from wxcli.migration.store import MigrationStore
 from wxcli.migration.transform.mappers.device_layout_mapper import DeviceLayoutMapper
+from wxcli.migration.transform.mappers.line_mapper import LineMapper
 
 
 def _prov(name="test"):
@@ -31,6 +32,7 @@ def _make_phone(
     speed_dials: list | None = None,
     blf_entries: list | None = None,
     is_common_area: bool = False,
+    owner: str = "jdoe",
 ) -> MigrationObject:
     """Build a mock raw phone object matching AXL getPhone format.
 
@@ -63,7 +65,7 @@ def _make_phone(
         "softkeyTemplateName": {"_value_1": None, "uuid": None},
         "ownerUserName": (
             {"_value_1": None, "uuid": None} if is_common_area
-            else {"_value_1": "jdoe", "uuid": "uuid-jdoe"}
+            else {"_value_1": owner, "uuid": f"uuid-{owner}"}
         ),
         "devicePoolName": {"_value_1": "DP-HQ", "uuid": None},
         "lines": raw_lines,
@@ -178,12 +180,12 @@ class TestLineResolution:
 
 
 class TestSharedLineDetection:
-    def test_shared_dn_sets_shared_line_type(self):
-        phone = _make_phone(line_appearances=[
+    def test_shared_dn_on_a_non_owners_device_is_shared_line(self):
+        """The appearance belongs to jdoe but sits on jsmith's phone."""
+        phone = _make_phone(owner="jsmith", line_appearances=[
             {"line_index": 1, "dn": "1001", "partition": "PT-Internal"},
         ])
         lkt = _make_lkt(line_keys=[{"index": 1, "key_type": "PRIMARY_LINE"}])
-        user = _make_user("jdoe")
         line = _make_line("1001")
         shared = CanonicalSharedLine(
             canonical_id="shared_line:1001:PT-Internal",
@@ -192,10 +194,42 @@ class TestSharedLineDetection:
             owner_canonical_ids=["user:jdoe", "user:jsmith"],
             device_canonical_ids=["device:SEP001122334455", "device:SEP999999999999"],
         )
-        store = _setup(phone, lkt, users=[user], lines=[(line, "user:jdoe")], shared_lines=[shared])
+        store = _setup(
+            phone, lkt, users=[_make_user("jdoe"), _make_user("jsmith")],
+            lines=[(line, "user:jdoe")], shared_lines=[shared],
+        )
         DeviceLayoutMapper().map(store)
         obj = store.get_object("device_layout:SEP001122334455")
         assert obj["line_members"][0]["line_type"] == "SHARED_LINE"
+        assert obj["line_members"][0]["primary_owner"] is False
+
+    def test_shared_dn_on_its_own_owners_device_stays_primary(self):
+        """A shared DN still has exactly one primary appearance — its owner's.
+
+        Typing every appearance SHARED_LINE leaves the line with no
+        primaryOwner, which Webex requires exactly one of.
+        (docs/prompts/cross-site-phase-2.md — defect N1)
+        """
+        phone = _make_phone(owner="jdoe", line_appearances=[
+            {"line_index": 1, "dn": "1001", "partition": "PT-Internal"},
+        ])
+        lkt = _make_lkt(line_keys=[{"index": 1, "key_type": "PRIMARY_LINE"}])
+        line = _make_line("1001")
+        shared = CanonicalSharedLine(
+            canonical_id="shared_line:1001:PT-Internal",
+            provenance=_prov("shared"),
+            dn_canonical_id="line:1001",
+            owner_canonical_ids=["user:jdoe", "user:jsmith"],
+            device_canonical_ids=["device:SEP001122334455", "device:SEP999999999999"],
+        )
+        store = _setup(
+            phone, lkt, users=[_make_user("jdoe")],
+            lines=[(line, "user:jdoe")], shared_lines=[shared],
+        )
+        DeviceLayoutMapper().map(store)
+        obj = store.get_object("device_layout:SEP001122334455")
+        assert obj["line_members"][0]["line_type"] == "PRIMARY"
+        assert obj["line_members"][0]["primary_owner"] is True
 
 
 class TestSpeedDialMerge:
@@ -275,3 +309,116 @@ class TestMissingTemplate:
         obj = store.get_object("device_layout:SEP001122334455")
         # Should still create a layout from line_appearances alone
         assert obj is not None
+
+
+class TestSharedLineEndToEnd:
+    """The full pipeline path — no hand-injected shared_line or cross-refs.
+
+    Guards the three defects fixed together in cross-site Phase 2:
+      N2  nothing wrote line_assigned_to_user, so member_canonical_id was
+          always None and the device-members PUT was never emitted;
+      N1  every appearance of a shared DN was typed SHARED_LINE, leaving the
+          line with no primary owner;
+      and the claim that shared_line: objects are never created (they are —
+      by CrossReferenceBuilder._detect_shared_lines, not SharedLineDetector).
+    """
+
+    @staticmethod
+    def _boss_assistant_store() -> MigrationStore:
+        from wxcli.migration.transform.cross_reference import CrossReferenceBuilder
+
+        boss_las = [{"dn": "2000", "partition": "PT-Internal", "line_index": 1}]
+        asst_las = [
+            {"dn": "2001", "partition": "PT-Internal", "line_index": 1},
+            {"dn": "2000", "partition": "PT-Internal", "line_index": 2},
+        ]
+        store = MigrationStore(":memory:")
+        for uid in ("boss", "asst"):
+            store.upsert_object(_make_user(uid))
+        for name, owner, las in (
+            ("SEPAAAA", "boss", boss_las), ("SEPBBBB", "asst", asst_las),
+        ):
+            raw_lines = [
+                {"index": la["line_index"], "label": "",
+                 "dirn": {"pattern": la["dn"],
+                          "routePartitionName": {"_value_1": la["partition"], "uuid": None}}}
+                for la in las
+            ]
+            store.upsert_object(MigrationObject(
+                canonical_id=f"phone:{name}", provenance=_prov(name),
+                status=MigrationStatus.NORMALIZED,
+                pre_migration_state={
+                    "name": name, "class": "Phone", "model": "Cisco 9841",
+                    "phoneTemplateName": {"_value_1": "Standard 9841", "uuid": None},
+                    "softkeyTemplateName": {"_value_1": None, "uuid": None},
+                    "ownerUserName": {"_value_1": owner, "uuid": f"uuid-{owner}"},
+                    "devicePoolName": {"_value_1": "DP-HQ", "uuid": None},
+                    "lines": raw_lines,
+                },
+            ))
+            store.upsert_object(CanonicalDevice(
+                canonical_id=f"device:{name}", provenance=_prov(name),
+                status=MigrationStatus.ANALYZED, mac=name[3:], model="Cisco 9841",
+                owner_canonical_id=f"user:{owner}", line_appearances=las,
+                pre_migration_state={"cucm_owner_user": owner, "cucm_device_pool": "DP-HQ"},
+            ))
+        store.upsert_object(_make_lkt(
+            name="Standard 9841",
+            line_keys=[{"index": 1, "key_type": "PRIMARY_LINE"},
+                       {"index": 2, "key_type": "PRIMARY_LINE"}],
+        ))
+        for name in ("SEPAAAA", "SEPBBBB"):
+            store.add_cross_ref(
+                f"phone:{name}", "line_key_template:Standard 9841",
+                "phone_uses_button_template",
+            )
+        CrossReferenceBuilder(store).build()
+        LineMapper().map(store)
+        DeviceLayoutMapper().map(store)
+        return store
+
+    def test_pipeline_creates_the_shared_line_object(self):
+        store = self._boss_assistant_store()
+        shared = store.get_objects("shared_line")
+        assert [s["canonical_id"] for s in shared] == ["shared_line:2000:PT-Internal"]
+
+    def test_line_assigned_to_user_is_written(self):
+        store = self._boss_assistant_store()
+        edges = {
+            r["from_id"]: r["to_id"]
+            for r in store.get_cross_refs(relationship="line_assigned_to_user")
+        }
+        assert edges == {
+            "line:2000:PT-Internal": "user:boss",
+            "line:2001:PT-Internal": "user:asst",
+        }
+
+    def test_boss_assistant_pair_yields_one_primary_and_one_shared(self):
+        store = self._boss_assistant_store()
+        boss = store.get_object("device_layout:SEPAAAA")["line_members"]
+        asst = store.get_object("device_layout:SEPBBBB")["line_members"]
+
+        # Every member resolves — this is what makes the members PUT fire at all.
+        assert all(m["member_canonical_id"] for m in boss + asst)
+
+        # DN 2000 appears on both phones: primary on its owner's, shared on the other.
+        boss_2000 = boss[0]
+        asst_2000 = next(m for m in asst if m["port"] == 2)
+        assert (boss_2000["line_type"], boss_2000["primary_owner"]) == ("PRIMARY", True)
+        assert (asst_2000["line_type"], asst_2000["primary_owner"]) == ("SHARED_LINE", False)
+        assert boss_2000["member_canonical_id"] == asst_2000["member_canonical_id"] == "user:boss"
+
+        # The assistant's own unshared line is untouched.
+        asst_2001 = next(m for m in asst if m["port"] == 1)
+        assert (asst_2001["line_type"], asst_2001["primary_owner"]) == ("PRIMARY", True)
+
+    def test_exactly_one_primary_owner_per_shared_dn(self):
+        """Webex requires exactly one primaryOwner per line — assert the count."""
+        store = self._boss_assistant_store()
+        primaries = [
+            m
+            for name in ("SEPAAAA", "SEPBBBB")
+            for m in store.get_object(f"device_layout:{name}")["line_members"]
+            if m["member_canonical_id"] == "user:boss" and m["primary_owner"]
+        ]
+        assert len(primaries) == 1
