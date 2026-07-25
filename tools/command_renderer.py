@@ -69,6 +69,28 @@ class ReservedParamCollisionError(Exception):
     """
 
 
+class UnboundUrlPlaceholderError(Exception):
+    """A rendered URL f-string references a `{name}` that no path variable,
+    base-URL injection, or other renderer local actually binds.
+
+    Found live: webex-meetings.json's PUT
+    /admin/meeting/config/trackingCodes/{trackingCodeId} declares an empty
+    `parameters` array, so `ep.path_vars` was `[]` while the URL template
+    still carried `{trackingCodeId}` — every call to
+    `meeting-tracking-codes update` raised a bare `NameError:
+    name 'trackingCodeId' is not defined`, not a SyntaxError, so `compile()`
+    never caught it. `_infer_missing_path_vars` (see `render_command_file`)
+    heals this specific shape by borrowing the var from a sibling operation
+    on the identical path (the GET/DELETE on that same path both declare
+    `trackingCodeId`). This guard is the backstop for cases inference can't
+    heal — no sibling declares the var either — so a future spec defect
+    fails the build loudly instead of shipping a runtime crash.
+    """
+
+
+_URL_PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+
+
 def folder_name_to_module(folder_name: str) -> tuple[str, str]:
     cleaned = re.sub(r"^Features:\s*", "", folder_name).strip()
     cleaned = re.sub(r"\s*\(\d+/\d+\)", "", cleaned).strip()
@@ -128,7 +150,7 @@ from wxcli.common import emit, load_json_body
     return lines
 
 
-def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
+def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = None) -> str:
     # Module-level override takes precedence (set by render_command_file for CC spec)
     if _active_base_url_override:
         base = _active_base_url_override
@@ -139,9 +161,30 @@ def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
     else:
         base = BASE_URL
     expr = f"{base}/{url_path}"
+    bound = set()
     for var in path_vars:
         param = _path_var_to_param(var)
         expr = expr.replace("{" + var + "}", "{" + param + "}")
+        bound.add(param)
+    # The CC/FS base URL constants are themselves unresolved placeholders
+    # ("{cc_base_url}"/"{fs_base_url}") — _render_path_inject assigns a
+    # matching local before the URL line runs, so these are bound too.
+    if _active_base_url_override == BASE_URL_CC:
+        bound.add("cc_base_url")
+    elif _active_base_url_override == BASE_URL_FS:
+        bound.add("fs_base_url")
+    unresolved = [name for name in _URL_PLACEHOLDER_RE.findall(expr) if name not in bound]
+    if unresolved:
+        raise UnboundUrlPlaceholderError(
+            f"{method or '<unknown method>'} {url_path} renders a URL "
+            f"f-string with unbound placeholder(s) {unresolved!r} — no path "
+            f"variable, query param, body field, or renderer-injected local "
+            f"binds {'that name' if len(unresolved) == 1 else 'those names'}. "
+            f"This would raise NameError at call time, not compile time. "
+            f"The spec's declared parameters for this operation are missing "
+            f"the path parameter — add it (or borrow it from a sibling "
+            f"operation on the same path) before regenerating."
+        )
     return expr
 
 
@@ -235,6 +278,33 @@ def _success_message(ep, default: str) -> str:
     """
     semantics = getattr(ep, "real_semantics", None)
     return DESTRUCTIVE_SEMANTICS[semantics] if semantics else default
+
+
+# Finding 9: --output defaults to json on update/delete, but Webex PUT/DELETE
+# mostly return 204 with no body — the common case — so the no-body branch
+# used to always print the issue #20 prose line even when -o json (or -o
+# text, or --fields) was requested, and piping to jq failed. table/id keep
+# the exact prose message (see _success_message); json/text/--fields now get
+# a small structured result instead, routed through emit() so --fields still
+# applies. Its status word must follow the SAME semantics as the prose line
+# (a delete-shaped PUT reports "deleted", not "updated") — hence reusing
+# _success_message rather than hardcoding the verb per renderer.
+def _status_word(message: str) -> str:
+    """'Updated.' -> 'updated', 'Purged.' -> 'purged', etc."""
+    return message.rstrip(".").lower()
+
+
+def _no_body_result_expr(ep: Endpoint, default_message: str) -> str:
+    """Python source for the {"status": ..., "id": ...} object emitted on
+    update/delete when the API returned no body and the requested --output
+    is a machine format (json/text) or --fields was given. `id` is included
+    only when the endpoint has a path variable to report.
+    """
+    status = _status_word(_success_message(ep, default_message))
+    if ep.path_vars:
+        id_var = _path_var_to_param(ep.path_vars[-1])
+        return f'{{"status": "{status}", "id": {id_var}}}'
+    return f'{{"status": "{status}"}}'
 
 
 def _render_docstring(ep) -> str:
@@ -416,7 +486,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
 
     param_build = []
     param_build.append("    params = {}")
@@ -524,7 +594,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
 
     # Show/settings-get commands: support --output for table rendering. The
     # dict-in-table auto-detect behaviour is preserved inside emit() (Task 1's
@@ -655,7 +725,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(_render_output_options("id"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
 
     generate_json_body_check = []
     if ep.json_body_example:
@@ -762,7 +832,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
 
     generate_json_body_check = []
     if ep.json_body_example:
@@ -827,8 +897,10 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         _render_error_handler("    "),
         "    if result:",
         "        emit(result, output=output, fields=fields)",
-        "    else:",
+        '    elif output in ("table", "id") and not fields:',
         f'        typer.echo(f"{_success_message(ep, "Updated.")}")',
+        "    else:",
+        f"        emit({_no_body_result_expr(ep, 'Updated.')}, output=output, fields=fields)",
     ]
     return "\n".join(lines)
 
@@ -881,7 +953,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
 
     if ep.path_vars:
         id_var = _path_var_to_param(ep.path_vars[-1])
@@ -956,8 +1028,10 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         _render_error_handler("    "),
         "    if result:",
         "        emit(result, output=output, fields=fields)",
-        "    else:",
+        '    elif output in ("table", "id") and not fields:',
         echo_line,
+        "    else:",
+        f"        emit({_no_body_result_expr(ep, 'Deleted.')}, output=output, fields=fields)",
     ]
     return "\n".join(lines)
 
@@ -989,7 +1063,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
 
     generate_json_body_check = []
     if ep.json_body_example:
@@ -1045,10 +1119,35 @@ RENDERERS = {
 }
 
 
+def _infer_missing_path_vars(endpoints: list[Endpoint]) -> None:
+    """Backfill a spec bug where one operation's `parameters` omits a path
+    variable that its own URL template still requires, while a sibling
+    operation on the identical url_path declares it correctly.
+
+    Verified live: webex-meetings.json's PUT
+    /admin/meeting/config/trackingCodes/{trackingCodeId} has an empty
+    `parameters` array — so `ep.path_vars` was `[]` — while the GET and
+    DELETE on that exact same path both declare `trackingCodeId`. Rather
+    than special-casing that one endpoint, borrow the var from whichever
+    sibling shares its url_path; if no sibling has it either, path_vars is
+    left as the spec declared it, and `_render_url_expr`'s
+    UnboundUrlPlaceholderError guard fires instead of shipping a runtime
+    NameError. Mutates each Endpoint's path_vars in place.
+    """
+    vars_by_path: dict[str, set[str]] = {}
+    for ep in endpoints:
+        vars_by_path.setdefault(ep.url_path, set()).update(ep.path_vars)
+    for ep in endpoints:
+        for name in _URL_PLACEHOLDER_RE.findall(ep.url_path):
+            if name not in ep.path_vars and name in vars_by_path.get(ep.url_path, ()):
+                ep.path_vars.append(name)
+
+
 def render_command_file(
     folder_name: str, endpoints: list[Endpoint], folder_overrides: dict,
     base_url_override: str | None = None,
 ) -> str:
+    _infer_missing_path_vars(endpoints)
     _, cli_name = folder_name_to_module(folder_name)
     needs_org_id_query = any(
         "orgId" in getattr(ep, "auto_inject_params", [])
