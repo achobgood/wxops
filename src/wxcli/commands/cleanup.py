@@ -1222,8 +1222,8 @@ def cleanup_run(
             click.echo(f"  - {entry}")
 
     if not inventory:
-        if output == "json":
-            emit({"deleted": 0, "failed": 0, "ccpBlocked": 0, "failures": []}, output="json", fields=fields)
+        if output == "json" or fields:
+            emit({"deleted": 0, "failed": 0, "ccpBlocked": 0, "failures": []}, output=output, fields=fields)
         else:
             console.print("[green]Nothing to delete — org is clean.[/green]")
         return
@@ -1232,7 +1232,21 @@ def cleanup_run(
     console.print(format_dry_run(inventory))
 
     if dry_run:
-        console.print("[yellow]Dry run complete. No resources were deleted.[/yellow]")
+        if output == "json" or fields:
+            # Nothing was deleted, so mirror the final-summary shape (counts
+            # + breakdown) with dry-run-honest keys instead of deleted/failed.
+            counts = {
+                RESOURCE_TYPES[key].name: len(inventory[key])
+                for layer in DELETION_LAYERS
+                for key in layer
+                if key in inventory
+            }
+            emit(
+                {"dryRun": True, "wouldDelete": sum(counts.values()), "resources": counts},
+                output=output, fields=fields,
+            )
+        else:
+            console.print("[yellow]Dry run complete. No resources were deleted.[/yellow]")
         return
 
     # Confirmation
@@ -1403,7 +1417,7 @@ def cleanup_run(
         console.print(f"  Done: {successes} deleted, {failures} failed")
 
     # Final summary
-    if output == "json":
+    if output == "json" or fields:
         real_failures = [r for r in all_results if not r.success and not r.ccp_blocked]
         ccp_blocked_results = [r for r in all_results if r.ccp_blocked]
         emit(
@@ -1421,7 +1435,7 @@ def cleanup_run(
                     for f in real_failures
                 ],
             },
-            output="json", fields=fields,
+            output=output, fields=fields,
         )
     else:
         console.print(format_results_summary(all_results))
