@@ -1,10 +1,31 @@
 import json
+import os
 import re
+import sys
 from typing import Any
+from rich import box as _box
 from rich.console import Console
 from rich.table import Table
 
-console = Console()
+
+def plain_mode() -> bool:
+    """True when output is being captured rather than read by a human.
+
+    Auto-detection is the point: an agent must not have to discover a flag
+    before it stops paying for box-drawing characters. WXCLI_PLAIN overrides
+    in both directions for testing and for forcing plain output in a terminal.
+    """
+    override = os.environ.get("WXCLI_PLAIN")
+    if override is not None:
+        return override.strip() not in ("", "0", "false", "no")
+    return not sys.stdout.isatty()
+
+
+def _make_console() -> Console:
+    return Console()
+
+
+console = _make_console()
 
 def format_as_json(data: Any) -> str:
     if hasattr(data, "model_dump"):
@@ -54,7 +75,8 @@ def print_table(data: list, columns: list[tuple[str, str]], limit: int = 50) -> 
         if all(val is None or val == "" for val in first_row):
             columns = _auto_detect_columns(items[0])
 
-    table = Table(show_header=True, header_style="bold")
+    table = Table(show_header=True, header_style="bold",
+                  box=None if plain_mode() else _box.HEAVY_HEAD)
     for header, _ in columns:
         table.add_column(header)
 
