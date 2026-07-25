@@ -82,45 +82,58 @@ Why the generated CLI looks the way it does. Recorded because each of these was
 re-derived from scratch at least once after the reasoning was lost to a commit
 message. If you are about to change one, read the row first.
 
-### `--output` reaches only three of six command types (defect, being fixed)
+### `--output` was missing from three of six command types (fixed 2026-07-25)
 
-**State as of 2026-07-25:** the renderer emits `--output` at exactly three sites —
-`command_renderer.py:306` (list, default `table`), `:421` (show, default `json`),
-`:549` (create, default `id`). `_render_update_command`, `_render_delete_command`,
-and `_render_action_command` emit **no `--output` at all**. Verify on
-`src/wxcli/commands/locations.py:139-146`: `update` declares only `--json-body`
-and `--debug`, so `wxcli locations update … -o json` fails with `No such option`.
-The same gap covers some hand-written commands — `wxcli whoami -o json` fails
-(`main.py:38-40`), as do `switch-org`, `clear-org`, and `cleanup run`.
+**What was found (state before this branch):** the renderer emitted `--output`
+from only three of six render paths — `_render_list_command` (list, default
+`table`), `_render_show_command` (show, default `json`), and
+`_render_create_command` (create, default `id`). `_render_update_command`,
+`_render_delete_command`, and `_render_action_command` emitted **no `--output`
+at all**. Verified on `locations.py`'s `update`: it declared only `--json-body`
+and `--debug`, so `wxcli locations update … -o json` failed with `No such
+option`. The same gap covered some hand-written commands — `wxcli whoami -o
+json` failed, as did `switch-org`, `clear-org`, and `cleanup run`.
 
-**But `--output` is not simply absent everywhere else — on four hand-written
-commands it already means a filesystem path**, and adding a format flag there
-would collide two meanings onto one name:
+**But `--output` was not simply absent everywhere else — on four hand-written
+commands it already meant a filesystem path**, and adding a format flag there
+would have collided two meanings onto one name:
 
 | Command | `--output` means |
 |---|---|
-| `org_health_cli.py:23` | required `Path` — *"Directory to write results.json into"* |
-| `cucm.py:2815, 2935, 2993` | output **filename** for assessment-report / user-diff / user-notice |
-| `cucm.py:1448, 1566, 2200, 2342, 2474, 2563, 2620` | already a proper `table\|json` format flag — nothing to do |
+| `analyze` (`org_health_cli.py:28`) | required `Path` — *"Directory to write results.json into"* |
+| `report`, `user_diff`, `user_notice` (`cucm.py:2857, 2991, 3054`) | output **filename** for assessment-report / user-diff / user-notice |
+| `preflight`, `decisions`, `inventory`, `next_batch`, `execution_status`, `rollback_ops`, `dry_run` (`cucm.py:1463, 1585, 2224, 2380, 2513, 2603, 2661`) | already a proper `table\|json` format flag — nothing to do |
 
-Those four path-valued commands keep their path meaning and receive `--fields`
-only. Check what an `--output` *means* before assuming a command lacks one.
-(Corrected 2026-07-25 after external review: `cucm.py:1566` is the `decisions`
-command's *format* flag — `help="Output format: table (default) or json"` —
-not a report-writer filename; the writers are three, not four.)
+Those four path-valued commands kept their path meaning and received `--fields`
+only — this is still true today; check what an `--output` *means* before
+assuming a command lacks one. (Corrected 2026-07-25 after external review:
+`decisions`'s `--output` is a *format* flag — `help="Output format: table
+(default) or json"` — not a report-writer filename; the writers are three,
+not four.)
 
-**There is no design reason.** It grew. `--output` originally existed only on the
-read commands (list, show). On **2026-03-24, `a795b58`** — *"fix: add -o json to
-create commands"* — create was added, because create returns an id you script
-against. The word *fix* is the tell: a gap noticed in use and patched, not a
-design being implemented. Nobody revisited update/delete/action.
+**There was no design reason. It grew.** `--output` originally existed only on
+the read commands (list, show). On **2026-03-24, `a795b58`** — *"fix: add -o
+json to create commands"* — create was added, because create returns an id
+you script against. The word *fix* is the tell: a gap noticed in use and
+patched, not a design being implemented. Nobody revisited update/delete/action
+— until this branch.
 
-**Do not "explain" this split to a future reader as intentional, and do not
-preserve it.** `2026-07-24-cli-ergonomics.md` Task 3 adds the missing three;
-Task 6 covers the hand-written commands. An option present on most commands but
-not all is worse for an agent than one that does not exist — it teaches a rule
-that breaks unpredictably, costing a failed call plus a `--help` round trip each
-time.
+**The fix, 2026-07-25:** all six render paths now call one shared helper,
+`_render_output_options` (`command_renderer.py:84`), from `_render_list_command`
+(`:414`), `_render_show_command` (`:524`), `_render_create_command` (`:655`),
+`_render_update_command` (`:762`), `_render_delete_command` (`:881`), and
+`_render_action_command` (`:989`). Every generated command now carries both
+`--output` and `--fields`; the same four hand-written gaps (`whoami`,
+`switch-org`, `clear-org`, `cleanup run`) were closed the same way, so
+`locations update … -o json` and `whoami -o json` both work now. Measured, not
+asserted: commit `60b27b7` regenerated all 9 specs and reported **"Commands
+with no --output: was 595, now 0,"** with the drift gate at `result: PASS` /
+`gate exit: 0`.
+
+**Lesson:** an option present on most commands but not all is worse for an
+agent than one that does not exist — it teaches a rule that breaks
+unpredictably, costing a failed call plus a `--help` round trip each time.
+That is why this was fixed outright rather than left as a documented quirk.
 
 ### The projection flag is `--fields` — not `--query`, not `--filter`
 
