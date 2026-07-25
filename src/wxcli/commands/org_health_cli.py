@@ -10,6 +10,7 @@ from pathlib import Path
 
 import typer
 
+from wxcli.common import emit, FIELDS_HELP
 from wxcli.org_health.analyze import run_analysis
 from wxcli.org_health.collector import validate_collection
 from wxcli.org_health.report import _deserialize_result, generate_report
@@ -25,6 +26,7 @@ app = typer.Typer(
 def analyze(
     collected_dir: Path = typer.Argument(..., help="Path to the collected/ directory"),
     output: Path = typer.Option(..., "--output", help="Directory to write results.json into"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
 ):
     """Run all 18 health checks over collected JSON and write results.json."""
     errors = validate_collection(collected_dir)
@@ -38,6 +40,7 @@ def analyze(
     results_path.write_text(json.dumps(result.to_dict(), indent=2))
     typer.echo(f"Results written to {results_path}")
     typer.echo(f"  Findings: {len(result.findings)} total")
+    emit(result.to_dict(), output="json", fields=fields)
 
 
 @app.command()

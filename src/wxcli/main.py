@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from wxcli import __version__
 from wxcli.auth import get_api, resolve_token, WebexApi, WebexSession
+from wxcli.common import emit, FIELDS_HELP
 from wxcli.config import get_expires_at, get_org_id, get_org_name, save_org
 from wxcli.output import plain_mode
 
@@ -38,6 +39,8 @@ def main(
 
 @app.command()
 def whoami(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     debug: bool = typer.Option(False, "--debug", help="Show debug output"),
 ):
     """Show current authenticated user and org."""
@@ -47,20 +50,20 @@ def whoami(
     display_name = me.get("displayName", "")
     email = (me.get("emails") or ["unknown"])[0]
     org_id = me.get("orgId", "")
-    typer.echo(f"User:  {display_name} ({email})")
-    typer.echo(f"Org:   {org_id}")
+    result = {"user": display_name, "email": email, "orgId": org_id}
 
     target_org_id = get_org_id()
     target_org_name = get_org_name()
     if target_org_id:
         # The name is absent when the org was saved from /people/me because
         # /organizations was unavailable — don't render a literal "(None)".
-        suffix = f"  ({target_org_name})" if target_org_name else ""
-        typer.echo(f"Target: {target_org_id}{suffix}")
+        result["targetOrgId"] = target_org_id
+        if target_org_name:
+            result["targetOrgName"] = target_org_name
 
     roles = me.get("roles")
     if roles:
-        typer.echo(f"Roles: {', '.join(roles)}")
+        result["roles"] = ", ".join(roles)
 
     expires = get_expires_at()
     if expires:
@@ -71,17 +74,21 @@ def whoami(
             if remaining.total_seconds() > 0:
                 hours = int(remaining.total_seconds() // 3600)
                 minutes = int((remaining.total_seconds() % 3600) // 60)
+                token_str = f"{hours}h {minutes}m"
                 if hours < 2:
-                    typer.echo(f"Token: expires in {hours}h {minutes}m — consider refreshing soon")
-                else:
-                    typer.echo(f"Token: expires in {hours}h {minutes}m")
+                    token_str += " — consider refreshing soon"
+                result["tokenExpiresIn"] = token_str
         except ValueError:
             pass
+
+    emit(result, output=output, fields=fields)
 
 
 @app.command("switch-org")
 def switch_org(
     org_id: str = typer.Argument(None, help="orgId to switch to (skip interactive prompt)"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Switch target organization for partner multi-org tokens."""
@@ -100,7 +107,7 @@ def switch_org(
         except Exception:
             org_name = "Unknown"
         save_org(org_id, org_name)
-        typer.echo(f"Target org set: {org_name} ({org_id})")
+        emit({"orgId": org_id, "orgName": org_name}, output=output, fields=fields)
         return
 
     # Interactive — list orgs
@@ -120,7 +127,10 @@ def switch_org(
         if items:
             only = items[0]
             save_org(only.get("id"), only.get("displayName"))
-            typer.echo(f"Single-org token — target org set: {only.get('displayName')} ({only.get('id')})")
+            emit(
+                {"orgId": only.get("id"), "orgName": only.get("displayName"), "singleOrgToken": True},
+                output=output, fields=fields,
+            )
         else:
             typer.echo("No organizations are visible to this token.", err=True)
         return
@@ -139,14 +149,20 @@ def switch_org(
 
     selected = items[choice - 1]
     save_org(selected.get("id"), selected.get("displayName"))
-    typer.echo(f"\nTarget org set: {selected.get('displayName')} ({selected.get('id')})")
+    emit({"orgId": selected.get("id"), "orgName": selected.get("displayName")}, output=output, fields=fields)
 
 
 @app.command("clear-org")
-def clear_org():
+def clear_org(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
+):
     """Clear target organization — commands will target your own org."""
     save_org(None, None)
-    typer.echo("Cleared target org. Commands will now target your own organization.")
+    emit(
+        {"status": "cleared", "message": "Commands will now target your own organization."},
+        output=output, fields=fields,
+    )
 
 
 @app.command("set-cc-region")
