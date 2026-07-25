@@ -58,8 +58,8 @@ def _warn_if_projection_emptied(before: Any, after: Any, fields: str | None) -> 
     if n == 0:
         return
     typer.echo(
-        f"Note: --fields matched nothing; the unfiltered response held {n} record(s). "
-        f"Re-run without --fields before concluding the result is empty.",
+        f"Note: --fields matched 0 of {n} record(s). If you expected matches, "
+        f"re-check the expression; if not, this is a genuine empty result.",
         err=True,
     )
 

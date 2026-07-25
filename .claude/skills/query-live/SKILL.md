@@ -72,7 +72,7 @@ Every command — including every read command this skill uses — takes `--fiel
 - Pull bare IDs for a resolution step: `wxcli locations list --fields '[].id' -o text`
 - Filter before rendering, not after: `wxcli call-queue list --fields '[?enabled==`false`].name' -o json`
 
-If `--fields` reduces a non-empty response to empty, the CLI prints a note to stderr naming the unfiltered record count. Treat that as "the expression is wrong," not as a genuine zero — re-run without `--fields` before reporting "none found" (this is the same Discovery-First guard the rest of this skill follows).
+If `--fields` reduces a non-empty response to empty, the CLI prints a note to stderr in the form "matched 0 of N record(s)." That note states a fact, not a diagnosis — it fires identically whether the expression is wrong or the filter genuinely matched zero of N. Decide which: check the expression against what you expected, and if there's any doubt, re-run without `--fields` to see the unfiltered N before reporting "none found" (this is the same Discovery-First guard the rest of this skill follows). Do not report the 0-match result as an error on sight — a correct filter that legitimately matches nothing is a valid answer.
 
 ### Resource Resolution Protocol
 
