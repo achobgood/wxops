@@ -26,6 +26,24 @@ logger = logging.getLogger(__name__)
 # - CTI Route Points may require SCCP instead of SIP on some device pools.
 # - TimePeriod monthOfYear: 3-letter abbreviations only (Dec, Jan, etc.)
 
+# CUCM answers a query against a table its schema does not define with a SOAP
+# fault reading "The specified table (X) is not in the database". That is not a
+# query failure — the data was never there to look at. Same shape as
+# _is_unsupported_operation() in informational.py, but that helper matches zeep
+# AttributeErrors for missing AXL *operations* and will not match this fault.
+_MISSING_TABLE_MARKERS = ("is not in the database",)
+
+
+def _is_missing_table(exc: Exception) -> bool:
+    """True when the CUCM schema in use does not have the queried table."""
+    return any(m in str(exc) for m in _MISSING_TABLE_MARKERS)
+
+
+# Tables the executive/assistant SQL queries join. Observed absent on
+# CUCM 14.0.1.11900(132); enduser is core and always present.
+EXEC_ASSISTANT_TABLES = ("executiveassistant",)
+EXEC_SETTINGS_TABLES = ("endusersubscribedservice", "subscribedservice")
+
 # ------------------------------------------------------------------
 # ReturnedTags constants
 # ------------------------------------------------------------------
@@ -83,6 +101,7 @@ class FeatureExtractor(BaseExtractor):
     def __init__(self, connection: AXLConnection) -> None:
         super().__init__(connection)
         self.results: dict[str, list[dict[str, Any]]] = {}
+        self._known_tables: set[str] | None = None
 
     def extract(self) -> ExtractionResult:
         """Run all feature extractions.
@@ -103,6 +122,48 @@ class FeatureExtractor(BaseExtractor):
         self.results["executive_settings"] = self._extract_executive_settings(result)
 
         return result
+
+    # ------------------------------------------------------------------
+    # Schema probing — distinguish "no rows" from "could not look"
+    # ------------------------------------------------------------------
+
+    def _missing_tables(self, required: tuple[str, ...]) -> list[str]:
+        """Names from ``required`` this CUCM's schema does not define.
+
+        Probes ``systables`` once and caches the answer. If the probe itself
+        cannot run, returns [] so the caller still attempts its query — an
+        unreadable probe is not evidence that a table is absent.
+        """
+        if self._known_tables is None:
+            names = sorted(set(EXEC_ASSISTANT_TABLES) | set(EXEC_SETTINGS_TABLES))
+            in_list = ", ".join(f"'{n}'" for n in names)
+            try:
+                rows = self.conn.execute_sql(
+                    f"SELECT tabname FROM systables WHERE tabname IN ({in_list})"
+                )
+            except Exception as exc:
+                logger.debug("[%s] systables probe failed: %s", self.name, exc)
+                return []
+            self._known_tables = {
+                str(row.get("tabname") or "").strip().lower() for row in rows
+            }
+        return [t for t in required if t not in self._known_tables]
+
+    def _record_unsupported(
+        self, what: str, detail: str, result: ExtractionResult,
+    ) -> None:
+        """Record a query this CUCM's schema cannot answer.
+
+        Deliberately does NOT increment ``result.failed``: a table that does not
+        exist was never queried, so the outcome is "unsupported", not "zero rows"
+        and not a query error.
+        """
+        note = (
+            f"{what} unsupported on this CUCM schema "
+            f"(AXL {self.conn.version}) — {detail} — skipped"
+        )
+        logger.info("[%s] %s", self.name, note)
+        result.errors.append(note)
 
     # ------------------------------------------------------------------
     # Common list+get pattern
@@ -265,6 +326,14 @@ class FeatureExtractor(BaseExtractor):
         self, result: ExtractionResult,
     ) -> list[dict[str, Any]]:
         """Extract executive/assistant pairings via SQL query."""
+        missing = self._missing_tables(EXEC_ASSISTANT_TABLES)
+        if missing:
+            self._record_unsupported(
+                "executiveassistant SQL query",
+                f"missing table(s): {', '.join(missing)}",
+                result,
+            )
+            return []
         try:
             rows = self.conn.execute_sql(
                 "SELECT "
@@ -277,6 +346,11 @@ class FeatureExtractor(BaseExtractor):
                 "JOIN enduser asst_user ON asst_user.pkid = ea.fkassistant"
             )
         except Exception as exc:
+            if _is_missing_table(exc):
+                self._record_unsupported(
+                    "executiveassistant SQL query", str(exc), result,
+                )
+                return []
             msg = f"executiveassistant SQL query failed: {exc}"
             logger.warning("[%s] %s", self.name, msg)
             result.errors.append(msg)
@@ -292,6 +366,14 @@ class FeatureExtractor(BaseExtractor):
         self, result: ExtractionResult,
     ) -> list[dict[str, Any]]:
         """Extract executive/assistant service subscriptions via SQL query."""
+        missing = self._missing_tables(EXEC_SETTINGS_TABLES)
+        if missing:
+            self._record_unsupported(
+                "executive settings SQL query",
+                f"missing table(s): {', '.join(missing)}",
+                result,
+            )
+            return []
         try:
             rows = self.conn.execute_sql(
                 "SELECT eu.userid, s.name AS service_name, s.servicetype "
@@ -301,6 +383,11 @@ class FeatureExtractor(BaseExtractor):
                 "WHERE s.name IN ('Executive', 'Executive-Assistant')"
             )
         except Exception as exc:
+            if _is_missing_table(exc):
+                self._record_unsupported(
+                    "executive settings SQL query", str(exc), result,
+                )
+                return []
             msg = f"executive settings SQL query failed: {exc}"
             logger.warning("[%s] %s", self.name, msg)
             result.errors.append(msg)

@@ -6,12 +6,19 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from wxcli.migration.cucm.extractors.features import FeatureExtractor
+from wxcli.migration.cucm.extractors.features import (
+    EXEC_ASSISTANT_TABLES,
+    EXEC_SETTINGS_TABLES,
+    FeatureExtractor,
+    _is_missing_table,
+)
 from wxcli.migration.models import (
     CanonicalExecutiveAssistant,
     MigrationStatus,
     Provenance,
 )
+
+ALL_EXEC_TABLES = tuple(sorted(set(EXEC_ASSISTANT_TABLES) | set(EXEC_SETTINGS_TABLES)))
 
 
 class TestCanonicalExecutiveAssistantModel:
@@ -56,22 +63,48 @@ class TestCanonicalExecutiveAssistantModel:
         assert obj.assistant_canonical_ids == []
 
 
-def _make_extractor(sql_pairs=None, sql_settings=None, raise_on_sql=False):
-    """Build a FeatureExtractor with mocked connection."""
+def _make_extractor(
+    sql_pairs=None,
+    sql_settings=None,
+    raise_on_sql=False,
+    existing_tables=ALL_EXEC_TABLES,
+    probe_raises=False,
+    missing_table_fault=False,
+):
+    """Build a FeatureExtractor with mocked connection.
+
+    ``existing_tables`` drives the systables probe; ``probe_raises`` makes the
+    probe itself fail; ``missing_table_fault`` makes the executive/assistant
+    queries raise the CUCM missing-table SOAP fault.
+    """
     mock_conn = MagicMock()
     mock_conn.paginated_list.return_value = []
     mock_conn.get_detail.return_value = None
+    mock_conn.version = "14.0"
 
     pairs = sql_pairs or []
     settings = sql_settings or []
 
     def sql_side_effect(query):
+        ql = query.lower()
+        if "systables" in ql:
+            if probe_raises:
+                raise Exception("systables unreadable")
+            return [{"tabname": t} for t in existing_tables]
         if raise_on_sql:
             raise Exception("SQL table not found")
-        ql = query.lower()
         if "executiveassistant" in ql:
+            if missing_table_fault:
+                raise Exception(
+                    "The specified table (executiveassistant) is not in the database."
+                )
             return pairs
         if "subscribedservice" in ql:
+            if missing_table_fault:
+                raise Exception(
+                    "The specified table (endusersubscribedservice) is not in "
+                    "the database."
+                )
             return settings
         return []
 
@@ -150,3 +183,110 @@ class TestExtractSQLErrorGraceful:
         assert ext.results.get("executive_assistant_pairs", []) == []
         assert ext.results.get("executive_settings", []) == []
         assert len(result.errors) >= 2
+
+
+def _exec_notes(result):
+    """Notes mentioning the executive/assistant queries."""
+    return [e for e in result.errors if "SQL query" in e]
+
+
+class TestIsMissingTable:
+    def test_matches_cucm_missing_table_fault(self):
+        exc = Exception(
+            "The specified table (executiveassistant) is not in the database."
+        )
+        assert _is_missing_table(exc) is True
+
+    def test_does_not_match_unsupported_operation_fault(self):
+        """The A3/A4 marker must NOT be classified as a missing table."""
+        assert _is_missing_table(Exception("Service has no operation 'x'")) is False
+
+    def test_does_not_match_generic_failure(self):
+        assert _is_missing_table(Exception("connection reset by peer")) is False
+
+
+class TestMissingTableClassifiedUnsupported:
+    def test_missing_table_fault_is_unsupported_not_error(self):
+        """A raised missing-table fault is recorded as unsupported, not failed."""
+        ext = _make_extractor(missing_table_fault=True, probe_raises=True)
+        result = ext.extract()
+
+        notes = _exec_notes(result)
+        assert len(notes) == 2
+        assert all("unsupported on this CUCM schema" in n for n in notes)
+        assert all(n.endswith("— skipped") for n in notes)
+        assert all("failed:" not in n for n in notes)
+        assert result.failed == 0
+        assert ext.results["executive_assistant_pairs"] == []
+        assert ext.results["executive_settings"] == []
+
+    def test_probe_absence_skips_before_querying(self):
+        """When systables says the tables are absent, the joins never run."""
+        ext = _make_extractor(existing_tables=())
+        result = ext.extract()
+
+        notes = _exec_notes(result)
+        assert len(notes) == 2
+        assert any("missing table(s): executiveassistant" in n for n in notes)
+        assert any(
+            "missing table(s): endusersubscribedservice, subscribedservice" in n
+            for n in notes
+        )
+        assert result.failed == 0
+
+        queries = [c.args[0] for c in ext.conn.execute_sql.call_args_list]
+        assert sum("systables" in q for q in queries) == 1
+        assert not any("JOIN enduser exec_user" in q for q in queries)
+
+    def test_partial_absence_only_skips_affected_query(self):
+        """executiveassistant present but subscription tables absent."""
+        ext = _make_extractor(
+            sql_pairs=[{"executive_userid": "jsmith", "assistant_userid": "jdoe"}],
+            existing_tables=("executiveassistant",),
+        )
+        result = ext.extract()
+
+        assert len(ext.results["executive_assistant_pairs"]) == 1
+        assert ext.results["executive_settings"] == []
+        notes = _exec_notes(result)
+        assert len(notes) == 1
+        assert "executive settings SQL query unsupported" in notes[0]
+
+    def test_generic_sql_failure_still_reported_as_error(self):
+        """Non-missing-table failures keep the existing error wording."""
+        ext = _make_extractor(raise_on_sql=True)
+        result = ext.extract()
+
+        notes = _exec_notes(result)
+        assert len(notes) == 2
+        assert all("failed: SQL table not found" in n for n in notes)
+        assert not any("unsupported" in n for n in notes)
+
+
+class TestTablesPresentBehaviourUnchanged:
+    def test_probe_runs_once_and_queries_proceed(self):
+        ext = _make_extractor(
+            sql_pairs=[{"executive_userid": "jsmith", "assistant_userid": "jdoe"}],
+            sql_settings=[{"userid": "jsmith", "service_name": "Executive"}],
+        )
+        result = ext.extract()
+
+        assert len(ext.results["executive_assistant_pairs"]) == 1
+        assert len(ext.results["executive_settings"]) == 1
+        assert _exec_notes(result) == []
+
+        queries = [c.args[0] for c in ext.conn.execute_sql.call_args_list]
+        assert sum("systables" in q for q in queries) == 1
+
+    def test_unreadable_probe_falls_through_to_the_query(self):
+        """An unreadable probe is not evidence a table is absent."""
+        ext = _make_extractor(
+            sql_pairs=[{"executive_userid": "jsmith", "assistant_userid": "jdoe"}],
+            sql_settings=[{"userid": "jsmith", "service_name": "Executive"}],
+            probe_raises=True,
+        )
+        result = ext.extract()
+
+        assert len(ext.results["executive_assistant_pairs"]) == 1
+        assert len(ext.results["executive_settings"]) == 1
+        assert _exec_notes(result) == []
