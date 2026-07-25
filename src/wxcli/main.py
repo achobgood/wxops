@@ -51,7 +51,10 @@ def whoami(
     target_org_id = get_org_id()
     target_org_name = get_org_name()
     if target_org_id:
-        typer.echo(f"Target: {target_org_id}  ({target_org_name})")
+        # The name is absent when the org was saved from /people/me because
+        # /organizations was unavailable — don't render a literal "(None)".
+        suffix = f"  ({target_org_name})" if target_org_name else ""
+        typer.echo(f"Target: {target_org_id}{suffix}")
 
     roles = me.get("roles")
     if roles:
@@ -107,7 +110,17 @@ def switch_org(
         raise typer.Exit(1)
 
     if len(items) <= 1:
-        typer.echo("Single-org token — no org switching needed.")
+        # There is nothing to switch *between*, but the org must still be saved:
+        # 12 operations take orgId as a required query parameter and the
+        # generated commands inject it from config only. Saving it here is what
+        # makes this the recovery path for a config written before wxcli started
+        # saving the org for single-org tokens.
+        if items:
+            only = items[0]
+            save_org(only.get("id"), only.get("displayName"))
+            typer.echo(f"Single-org token — target org set: {only.get('displayName')} ({only.get('id')})")
+        else:
+            typer.echo("No organizations are visible to this token.", err=True)
         return
 
     typer.echo(f"\nAvailable organizations:\n")
