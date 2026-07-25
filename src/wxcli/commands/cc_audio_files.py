@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
@@ -13,7 +15,8 @@ app = typer.Typer(help="Manage Webex Contact Center cc-audio-files.")
 def show(
     id: str = typer.Argument(help="id"),
     include_url: str = typer.Option(None, "--include-url", help="Indicates if the URL for downloading Audio Fileshould be included in the response."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific Audio File by ID."""
@@ -28,15 +31,9 @@ def show(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -44,6 +41,8 @@ def show(
 def delete(
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Audio File by ID."""
@@ -54,10 +53,15 @@ def delete(
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     try:
-        api.session.rest_delete(url)
+        result = api.session.rest_delete(url)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {id}")
 
 
 
@@ -67,7 +71,8 @@ def cmd_list(
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -93,12 +98,11 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -109,7 +113,8 @@ def list_audio_file(
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\");value==\"Cisco\""),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -139,11 +144,10 @@ def list_audio_file(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

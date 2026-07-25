@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 
 
 app = typer.Typer(help="Manage Webex Meetings meeting-reports.")
@@ -14,7 +16,8 @@ def cmd_list(
     service_type: str = typer.Option(None, "--service-type", help="Meeting usage report's service-type. If `serviceType` is specified, the API filters meeting usage reports by service-type. If `serviceType` is not specified, the API returns meeting usage reports by `MeetingCenter` by default. Valid values: + `MeetingCenter` + `EventCenter` + `SupportCenter` +..."),
     from_param: str = typer.Option(None, "--from", help="Starting date and time for meeting usage reports to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`. The interval between `to` and `from` cannot exceed 30 days and `from` cannot be earlier than 90 days ago."),
     to: str = typer.Option(None, "--to", help="Ending date and time for meeting usage reports to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`. The interval between `to` and `from` cannot exceed 30 days."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -44,10 +47,9 @@ def cmd_list(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -59,7 +61,8 @@ def list_attendees(
     meeting_id: str = typer.Option(None, "--meeting-id", help="Meeting ID for the meeting attendee reports to return. If specified, return meeting attendee reports of the specified meeting; otherwise, return meeting attendee reports of all meetings. Currently, only ended meeting instance IDs are supported. IDs of meeting series, scheduled meetings or personal..."),
     meeting_number: str = typer.Option(None, "--meeting-number", help="Meeting number for the meeting attendee reports to return. If specified, return meeting attendee reports of the specified meeting; otherwise, return meeting attendee reports of all meetings."),
     meeting_title: str = typer.Option(None, "--meeting-title", help="Meeting title for the meeting attendee reports to return. If specified, return meeting attendee reports of the specified meeting; otherwise, return meeting attendee reports of all meetings."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -93,9 +96,8 @@ def list_attendees(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

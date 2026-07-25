@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 
 
 app = typer.Typer(help="Manage Webex Meetings meeting-qa.")
@@ -11,7 +13,8 @@ app = typer.Typer(help="Manage Webex Meetings meeting-qa.")
 @app.command("list")
 def cmd_list(
     meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) which the Q&A belongs to."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -35,10 +38,9 @@ def cmd_list(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -46,7 +48,8 @@ def cmd_list(
 def list_answers(
     question_id: str = typer.Argument(help="questionId"),
     meeting_id: str = typer.Option(..., "--meeting-id", help="A unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) which the Q&A belongs to."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -70,9 +73,8 @@ def list_answers(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
@@ -20,7 +22,8 @@ def cmd_list(
     size: str = typer.Option(None, "--size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     include_pagination: str = typer.Option(None, "--include-pagination", help="If set to true then a different paginated response object containing the page metadata (currentPage, totalRecords, pageSize, totalPages) will be returned. The flow objects will be in an array named \"data\"."),
     is_validation: str = typer.Option(None, "--is-validation", help="If true, validates the existence of flows by ID regardless of the caller's RBAC access. Intended for internal Task Management use cases."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -56,14 +59,15 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_PUBLISH = '{"comment":"...","tagIds":["..."]}'
 
 @app.command("publish")
 def publish(
@@ -72,11 +76,16 @@ def publish(
     skip_validation: str = typer.Option(None, "--skip-validation", help="If true, the flow's pre-publish validation is skipped. Use with care."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     comment: str = typer.Option(None, "--comment", help="A comment to provide context on publishing the flow."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Publish a Flow or Subflow\n\nExample --json-body:\n  '{"comment":"...","tagIds":["..."]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_PUBLISH), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -87,7 +96,7 @@ def publish(
     if flow_type is not None:
         params["flowType"] = flow_type
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if comment is not None:
@@ -96,14 +105,17 @@ def publish(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -112,8 +124,9 @@ def create_lock(
     flow_id: str = typer.Argument(help="flowId"),
     project_id: str = typer.Argument(help="projectId"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Lock a Flow or Subflow."""
@@ -125,21 +138,24 @@ def create_lock(
     if flow_type is not None:
         params["flowType"] = flow_type
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -148,8 +164,9 @@ def create_unlock(
     flow_id: str = typer.Argument(help="flowId"),
     project_id: str = typer.Argument(help="projectId"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Unlock a Flow or Subflow."""
@@ -161,23 +178,28 @@ def create_unlock(
     if flow_type is not None:
         params["flowType"] = flow_type
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_VALIDATE = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
 
 @app.command("create-validate")
 def create_validate(
@@ -188,17 +210,22 @@ def create_validate(
     description: str = typer.Option(None, "--description", help="Human-readable description of the flow."),
     version: str = typer.Option(None, "--version", help="Monotonically increasing version number of the document."),
     status: str = typer.Option(None, "--status", help="Choices: Draft, Published"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Validate a Flow\n\nExample --json-body:\n  '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/flows:validate"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if flow_name is not None:
@@ -217,16 +244,21 @@ def create_validate(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_IMPORT = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
 
 @app.command("create-import")
 def create_import(
@@ -238,11 +270,16 @@ def create_import(
     description: str = typer.Option(None, "--description", help="Human-readable description of the flow."),
     version: str = typer.Option(None, "--version", help="Monotonically increasing version number of the document."),
     status: str = typer.Option(None, "--status", help="Choices: Draft, Published"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Import a Flow\n\nExample --json-body:\n  '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_IMPORT), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -253,7 +290,7 @@ def create_import(
     if flow_type is not None:
         params["flowType"] = flow_type
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if flow_name is not None:
@@ -270,14 +307,17 @@ def create_import(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -286,7 +326,8 @@ def show(
     project_id: str = typer.Argument(help="projectId"),
     flow_id: str = typer.Argument(help="flowId"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Flow."""
@@ -301,17 +342,13 @@ def show(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_FLOWS = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
 
 @app.command("create-flows")
 def create_flows(
@@ -324,11 +361,16 @@ def create_flows(
     description: str = typer.Option(None, "--description", help="Human-readable description of the flow."),
     version: str = typer.Option(None, "--version", help="Monotonically increasing version number of the document."),
     status: str = typer.Option(None, "--status", help="Choices: Draft, Published"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Save a Flow Draft\n\nExample --json-body:\n  '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FLOWS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -339,7 +381,7 @@ def create_flows(
     if flow_type is not None:
         params["flowType"] = flow_type
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if flow_name is not None:
@@ -356,16 +398,21 @@ def create_flows(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"upsert_nodes":[{}],"upsert_edges":[{}],"remove_node_names":["..."],"remove_edge_keys":["..."]}'
 
 @app.command("update")
 def update(
@@ -373,10 +420,16 @@ def update(
     flow_id: str = typer.Argument(help="flowId"),
     expected_version: str = typer.Option(None, "--expected-version", help="Expected current draft version for optimistic locking. The request fails with 409 Conflict if the server-side version does not match. Omit to skip the check."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Patch a Flow Draft\n\nExample --json-body:\n  '{"upsert_nodes":[{}],"upsert_edges":[{}],"remove_node_names":["..."],"remove_edge_keys":["..."]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -387,14 +440,19 @@ def update(
     if flow_type is not None:
         params["flowType"] = flow_type
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_patch(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -404,7 +462,8 @@ def list_validate(
     flow_id: str = typer.Argument(help="flowId"),
     version_id: str = typer.Option(None, "--version-id", help="Version to validate. Use 'draft' for the current draft, or a specific version ObjectId."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -428,12 +487,11 @@ def list_validate(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("results", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -443,7 +501,8 @@ def export(
     flow_id: str = typer.Argument(help="flowId"),
     version: str = typer.Option(None, "--version", help="Version to export. Use 'latest' for the most recent published version, 'draft' for the working copy, or a specific version ObjectId."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -467,11 +526,10 @@ def export(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("nodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

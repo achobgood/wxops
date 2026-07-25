@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 
 
 app = typer.Typer(help="Manage Webex Calling ecm.")
@@ -11,7 +13,8 @@ app = typer.Typer(help="Manage Webex Calling ecm.")
 @app.command("list")
 def cmd_list(
     room_id: str = typer.Option(..., "--room-id", help="ID of the room for which to list the ECM folder."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -37,12 +40,13 @@ def cmd_list(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE = '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'
 
 @app.command("create")
 def create(
@@ -52,15 +56,20 @@ def create(
     drive_id: str = typer.Option(None, "--drive-id", help="(required) Sharepoint or OneDrive drive id. It can be queried via MS Graph APIs."),
     item_id: str = typer.Option(None, "--item-id", help="(required) Sharepoint or OneDrive item id. It can be queried via MS Graph APIs."),
     default_folder: str = typer.Option(None, "--default-folder", help="(required) Makes the folder the default storage for the space."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an ECM folder configuration."""
+    """Create an ECM folder configuration\n\nExample --json-body:\n  '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/room/linkedFolders"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if room_id is not None:
@@ -83,21 +92,25 @@ def create(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
 @app.command("show")
 def show(
     id: str = typer.Argument(help="id"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get ECM Folder Details."""
@@ -107,17 +120,13 @@ def show(
         result = api.session.rest_get(url)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'
 
 @app.command("update")
 def update(
@@ -128,14 +137,20 @@ def update(
     drive_id: str = typer.Option(None, "--drive-id", help="Sharepoint or OneDrive drive id. It can be queried via MS Graph APIs."),
     item_id: str = typer.Option(None, "--item-id", help="Sharepoint or OneDrive item id. It can be queried via MS Graph APIs."),
     default_folder: str = typer.Option(None, "--default-folder", help="Makes the folder the default storage for the space."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an ECM Linked Folder."""
+    """Update an ECM Linked Folder\n\nExample --json-body:\n  '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if room_id is not None:
@@ -154,7 +169,12 @@ def update(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -162,6 +182,8 @@ def update(
 def delete(
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Unlink an ECM linked folder."""
@@ -170,9 +192,14 @@ def delete(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
     try:
-        api.session.rest_delete(url)
+        result = api.session.rest_delete(url)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {id}")
 
 

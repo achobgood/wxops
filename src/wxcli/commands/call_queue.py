@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
@@ -18,7 +20,8 @@ def cmd_list(
     department_name: str = typer.Option(None, "--department-name", help="Returns only call queues matching the given department name."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist license when `true`, otherwise returns the list of Customer Experience Basic call queues."),
     digital_inbox_enabled: str = typer.Option(None, "--digital-inbox-enabled", help="Returns only the list of call queues with digital inbox enabled when `true`, or disabled when `false`. This query parameter is only valid when `hasCxEssentials` is `true`."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -57,16 +60,16 @@ def cmd_list(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="queues"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
 @app.command("show-org-settings")
 def show_org_settings(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Call Queue Settings."""
@@ -80,17 +83,13 @@ def show_org_settings(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_ORG_SETTINGS = '{"maintainQueuePositionForSimRingEnabled":true,"forceAgentUnavailableOnBouncedEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true}'
 
 @app.command("update-org-settings")
 def update_org_settings(
@@ -99,10 +98,16 @@ def update_org_settings(
     play_tone_to_agent_for_barge_in_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-barge-in-enabled/--no-play-tone-to-agent-for-barge-in-enabled", help="Organization-wide default that plays a tone to agents when a supervisor joins an active call using barge in."),
     play_tone_to_agent_for_silent_monitoring_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-silent-monitoring-enabled/--no-play-tone-to-agent-for-silent-monitoring-enabled", help="Organization-wide default that plays a tone to agents when a supervisor monitors their active call without joining."),
     play_tone_to_agent_for_supervisor_coaching_enabled: bool = typer.Option(None, "--play-tone-to-agent-for-supervisor-coaching-enabled/--no-play-tone-to-agent-for-supervisor-coaching-enabled", help="Organization-wide default that plays a tone to agents when a supervisor coaches an agent during an active call."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Queue Settings."""
+    """Update Call Queue Settings\n\nExample --json-body:\n  '{"maintainQueuePositionForSimRingEnabled":true,"forceAgentUnavailableOnBouncedEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ORG_SETTINGS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/settings"
     params = {}
@@ -110,7 +115,7 @@ def update_org_settings(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if maintain_queue_position_for_sim_ring_enabled is not None:
@@ -127,9 +132,16 @@ def update_org_settings(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
+
+_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'
 
 @app.command("create")
 def create(
@@ -148,11 +160,16 @@ def create(
     phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Call Queue with Customer Assist\n\nExample --json-body:\n  '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues"
     params = {}
@@ -162,7 +179,7 @@ def create(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -199,14 +216,17 @@ def create(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -215,7 +235,8 @@ def show(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a call queue with Customer Assist license. This can otherwise be ommited or set to `false`."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue with Customer Assist."""
@@ -231,17 +252,13 @@ def show(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"..."}'
 
 @app.command("update")
 def update(
@@ -262,10 +279,16 @@ def update(
     phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     digital_inbox_enabled: bool = typer.Option(None, "--digital-inbox-enabled/--no-digital-inbox-enabled", help="Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue\n\nExample --json-body:\n  '{"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
     params = {}
@@ -273,7 +296,7 @@ def update(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if enabled is not None:
@@ -310,7 +333,12 @@ def update(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -319,6 +347,8 @@ def delete(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Queue."""
@@ -331,10 +361,15 @@ def delete(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {queue_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {queue_id}")
 
 
 
@@ -342,7 +377,8 @@ def delete(
 def list_announcements(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -363,12 +399,11 @@ def list_announcements(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("announcements", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -378,6 +413,8 @@ def delete_announcements(
     queue_id: str = typer.Argument(help="queueId"),
     file_name: str = typer.Argument(help="fileName"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Queue Announcement File."""
@@ -390,10 +427,15 @@ def delete_announcements(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {file_name}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {file_name}")
 
 
 
@@ -401,7 +443,8 @@ def delete_announcements(
 def show_call_forwarding(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Call Forwarding Settings for a Call Queue."""
@@ -415,26 +458,28 @@ def show_call_forwarding(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'
 
 @app.command("update-call-forwarding")
 def update_call_forwarding(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Call Forwarding Settings for a Call Queue\n\nExample --json-body:\n  '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding"
     params = {}
@@ -442,16 +487,23 @@ def update_call_forwarding(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
+
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
 
 @app.command("create-selective-rules")
 def create_selective_rules(
@@ -461,11 +513,16 @@ def create_selective_rules(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
     business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules"
     params = {}
@@ -473,7 +530,7 @@ def create_selective_rules(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -492,14 +549,17 @@ def create_selective_rules(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -508,7 +568,8 @@ def show_selective_rules(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     rule_id: str = typer.Argument(help="ruleId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Selective Call Forwarding Rule for a Call Queue."""
@@ -522,17 +583,13 @@ def show_selective_rules(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'
 
 @app.command("update-selective-rules")
 def update_selective_rules(
@@ -543,10 +600,16 @@ def update_selective_rules(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
     business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
@@ -554,7 +617,7 @@ def update_selective_rules(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -569,7 +632,12 @@ def update_selective_rules(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -579,6 +647,8 @@ def delete_selective_rules(
     queue_id: str = typer.Argument(help="queueId"),
     rule_id: str = typer.Argument(help="ruleId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Selective Call Forwarding Rule for a Call Queue."""
@@ -591,10 +661,15 @@ def delete_selective_rules(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {rule_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {rule_id}")
 
 
 
@@ -602,7 +677,8 @@ def delete_selective_rules(
 def list_holiday_service(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -623,14 +699,15 @@ def list_holiday_service(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("audioFiles", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE = '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'
 
 @app.command("update-holiday-service")
 def update_holiday_service(
@@ -643,10 +720,16 @@ def update_holiday_service(
     transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
     play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before the action is applied."),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Holiday Service\n\nExample --json-body:\n  '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/holidayService"
     params = {}
@@ -654,7 +737,7 @@ def update_holiday_service(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if holiday_service_enabled is not None:
@@ -675,7 +758,12 @@ def update_holiday_service(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -683,7 +771,8 @@ def update_holiday_service(
 def list_night_service(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -704,14 +793,15 @@ def list_night_service(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("audioFiles", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE_NIGHT_SERVICE = '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"..."}'
 
 @app.command("update-night-service")
 def update_night_service(
@@ -727,10 +817,16 @@ def update_night_service(
     business_hours_level: str = typer.Option(None, "--business-hours-level", help="Choices: ORGANIZATION, LOCATION"),
     force_night_service_enabled: bool = typer.Option(None, "--force-night-service-enabled/--no-force-night-service-enabled", help="Force night service regardless of business hour schedule."),
     manual_audio_message_selection: str = typer.Option(None, "--manual-audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Night Service\n\nExample --json-body:\n  '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NIGHT_SERVICE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/nightService"
     params = {}
@@ -738,7 +834,7 @@ def update_night_service(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if night_service_enabled is not None:
@@ -765,7 +861,12 @@ def update_night_service(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -773,7 +874,8 @@ def update_night_service(
 def list_forced_forward(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -794,14 +896,15 @@ def list_forced_forward(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("audioFiles", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE_FORCED_FORWARD = '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'
 
 @app.command("update-forced-forward")
 def update_forced_forward(
@@ -811,10 +914,16 @@ def update_forced_forward(
     transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
     play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before the action is applied."),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Forced Forward Service\n\nExample --json-body:\n  '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_FORCED_FORWARD), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/forcedForward"
     params = {}
@@ -822,7 +931,7 @@ def update_forced_forward(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if forced_forward_enabled is not None:
@@ -837,7 +946,12 @@ def update_forced_forward(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -845,7 +959,8 @@ def update_forced_forward(
 def list_stranded_calls(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -866,14 +981,15 @@ def list_stranded_calls(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("audioFiles", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE_STRANDED_CALLS = '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'
 
 @app.command("update-stranded-calls")
 def update_stranded_calls(
@@ -883,10 +999,16 @@ def update_stranded_calls(
     transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
     trigger_policy_when_all_agents_are_unreachable_enabled: bool = typer.Option(None, "--trigger-policy-when-all-agents-are-unreachable-enabled/--no-trigger-policy-when-all-agents-are-unreachable-enabled", help="Trigger stranded calls queue policy when all agents are unreachable."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Stranded Calls Service\n\nExample --json-body:\n  '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STRANDED_CALLS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/strandedCalls"
     params = {}
@@ -894,7 +1016,7 @@ def update_stranded_calls(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if action is not None:
@@ -909,7 +1031,12 @@ def update_stranded_calls(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -917,7 +1044,8 @@ def update_stranded_calls(
 def list_available_numbers_queues(
     location_id: str = typer.Argument(help="locationId"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -940,12 +1068,11 @@ def list_available_numbers_queues(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -953,7 +1080,8 @@ def list_available_numbers_queues(
 def list_available_numbers_alternate(
     location_id: str = typer.Argument(help="locationId"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -976,12 +1104,11 @@ def list_available_numbers_alternate(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -991,7 +1118,8 @@ def list_available_numbers_call_forwarding(
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1018,12 +1146,11 @@ def list_available_numbers_call_forwarding(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1033,7 +1160,8 @@ def list_available_agents_queues(
     name: str = typer.Option(None, "--name", help="Search based on name (user first and last name combination)."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search based on number or extension."),
     order: str = typer.Option(None, "--order", help="Order the available agents according to the designated fields. Up to three comma-separated sort order fields may be specified. Available sort fields are: `userId`, `fname`, `firstname`, `lname`, `lastname`, `dn`, and `extension`. Sort order can be added together with each field using a hyphen, `-`...."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1062,12 +1190,11 @@ def list_available_agents_queues(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("agents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1077,7 +1204,8 @@ def list_supervisors(
     phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of supervisors with Customer Assist license, when `true`. Otherwise returns the list of supervisors with Customer Experience Basic license."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1106,24 +1234,30 @@ def list_supervisors(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("supervisors", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_SUPERVISORS = '{"id":"...","agents":[{"id":"..."}]}'
 
 @app.command("create-supervisors")
 def create_supervisors(
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist queue supervisor, when `true`. Customer Assist queue supervisors must have a Customer Assist license."),
     id_param: str = typer.Option(None, "--id", help="(required) A unique identifier for the supervisor."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Supervisor with Customer Assist\n\nExample --json-body:\n  '{"id":"...","agents":[{"id":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUPERVISORS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
@@ -1133,7 +1267,7 @@ def create_supervisors(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if id_param is not None:
@@ -1146,26 +1280,37 @@ def create_supervisors(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_DELETE_SUPERVISORS_CONFIG = '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'
 
 @app.command("delete-supervisors-config")
 def delete_supervisors_config(
     has_cx_essentials: bool = typer.Option(None, "--has-cx-essentials/--no-has-cx-essentials", help="Delete the Customer Assist supervisors, when `true`. Otherwise delete the Call Queue supervisors. The default value is `false`."),
     delete_all: bool = typer.Option(None, "--delete-all/--no-delete-all", help="If present the `supervisorIds` array is ignored, and all supervisors in the context are deleted. **WARNING**: This will remove all supervisors from the organization."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete the Call Queue or Customer Assist Supervisors."""
+    """Delete the Call Queue or Customer Assist Supervisors\n\nExample --json-body:\n  '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_SUPERVISORS_CONFIG), indent=2))
+        raise typer.Exit(0)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
     api = get_api(debug=debug)
@@ -1175,7 +1320,7 @@ def delete_supervisors_config(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if has_cx_essentials is not None:
@@ -1187,10 +1332,15 @@ def delete_supervisors_config(
         typer.echo(f"Error: required body field(s) missing: {', '.join(missing)}. Pass them via --json-body — this delete needs to know what to delete.", err=True)
         raise typer.Exit(1)
     try:
-        api.session.rest_delete(url, json=body or None, params=params)
+        result = api.session.rest_delete(url, json=body or None, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo("Deleted.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo("Deleted.")
 
 
 
@@ -1203,7 +1353,8 @@ def show_supervisors(
     phone_number: str = typer.Option(None, "--phone-number", help="Only return agents that match the given phone number, extension, or ESN."),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Supervisor Detail with Customer Assist."""
@@ -1229,26 +1380,28 @@ def show_supervisors(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_SUPERVISORS = '{"agents":[{"id":"...","action":"..."}]}'
 
 @app.command("update-supervisors")
 def update_supervisors(
     supervisor_id: str = typer.Argument(help="supervisorId"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Assign or Unassign Agents to Supervisor with Customer Assist\n\nExample --json-body:\n  '{"agents":[{"id":"...","action":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SUPERVISORS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
@@ -1258,14 +1411,19 @@ def update_supervisors(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1273,6 +1431,8 @@ def update_supervisors(
 def delete_supervisors_config_1(
     supervisor_id: str = typer.Argument(help="supervisorId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Supervisor."""
@@ -1285,10 +1445,15 @@ def delete_supervisors_config_1(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {supervisor_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {supervisor_id}")
 
 
 
@@ -1298,7 +1463,8 @@ def list_available_supervisors(
     phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available supervisors with Customer Assist license, when `true`. When ommited or set to 'false', will return the list of available supervisors with Customer Experience Basic license."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1327,12 +1493,11 @@ def list_available_supervisors(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("supervisors", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1342,7 +1507,8 @@ def list_available_agents_supervisors(
     phone_number: str = typer.Option(None, "--phone-number", help="Returns only the agents that match the phone number, extension, or ESN."),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by supervisor name, in ascending or descending order."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of available agents with Customer Assist license, when `true`. When ommited or set to `false`, will return the list of available agents with Customer Experience Basic license."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1371,12 +1537,11 @@ def list_available_agents_supervisors(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("agents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1389,7 +1554,8 @@ def list_agents(
     join_enabled: str = typer.Option(None, "--join-enabled", help="Returns only the list of call queue agents that match the given `joinEnabled` value."),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Returns only the list of call queues with Customer Assist license when `true`, otherwise returns the list of Customer Experience Basic call queues."),
     order: str = typer.Option(None, "--order", help="Sort results alphabetically by call queue agent's name, in ascending or descending order."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1428,10 +1594,9 @@ def list_agents(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="agents"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1441,7 +1606,8 @@ def show_agents(
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to view the details of an agent with Customer Assist license. This can otherwise be ommited or set to `false`."),
     max: str = typer.Option(..., "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(..., "--start", help="Start at the zero-based offset in the list of matching objects."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for a Call Queue Agent with Customer Assist."""
@@ -1461,26 +1627,28 @@ def show_agents(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'
 
 @app.command("update-settings-agents")
 def update_settings_agents(
     id: str = typer.Argument(help="id"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer Assist license. This can otherwise be ommited or set to `false`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update an Agent's Settings of One or More Call Queues with Customer Assist\n\nExample --json-body:\n  '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS_AGENTS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}/settings"
     params = {}
@@ -1490,14 +1658,19 @@ def update_settings_agents(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1505,7 +1678,9 @@ def update_settings_agents(
 def switch_mode_for(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Switch Mode for Call Forwarding Settings for a Call Queue."""
@@ -1516,14 +1691,16 @@ def switch_mode_for(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -1531,7 +1708,8 @@ def switch_mode_for(
 def list_dnis(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1552,14 +1730,15 @@ def list_dnis(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("dnisList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_DNIS = '{"name":"...","ringPattern":"NORMAL","phoneNumber":"...","extension":"..."}'
 
 @app.command("create-dnis")
 def create_dnis(
@@ -1569,11 +1748,16 @@ def create_dnis(
     phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Must be a valid phone number from the same location. Either phoneNumber or extension is required."),
     extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Either phoneNumber or extension is required."),
     ring_pattern: str = typer.Option(None, "--ring-pattern", help="(required) Choices: NORMAL, LONG_LONG, SHORT_SHORT_LONG, SHORT_LONG_SHORT"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a DNIS for a Call Queue."""
+    """Create a DNIS for a Call Queue\n\nExample --json-body:\n  '{"name":"...","ringPattern":"NORMAL","phoneNumber":"...","extension":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DNIS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis"
     params = {}
@@ -1581,7 +1765,7 @@ def create_dnis(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -1600,26 +1784,37 @@ def create_dnis(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_DELETE_DNIS_QUEUES = '{"items":["..."]}'
 
 @app.command("delete-dnis-queues")
 def delete_dnis_queues(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk Delete DNIS for a Call Queue."""
+    """Bulk Delete DNIS for a Call Queue\n\nExample --json-body:\n  '{"items":["..."]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_DNIS_QUEUES), indent=2))
+        raise typer.Exit(0)
     if not force:
         typer.confirm(f"Delete {queue_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1629,7 +1824,7 @@ def delete_dnis_queues(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     missing = [f for f in ['items'] if f not in body]
@@ -1637,10 +1832,15 @@ def delete_dnis_queues(
         typer.echo(f"Error: required body field(s) missing: {', '.join(missing)}. Pass them via --json-body — this delete needs to know what to delete.", err=True)
         raise typer.Exit(1)
     try:
-        api.session.rest_delete(url, json=body or None, params=params)
+        result = api.session.rest_delete(url, json=body or None, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {queue_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {queue_id}")
 
 
 
@@ -1649,7 +1849,8 @@ def show_dnis(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     dnis_id: str = typer.Argument(help="dnisId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a DNIS for a Call Queue."""
@@ -1663,17 +1864,13 @@ def show_dnis(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_DNIS = '{"name":"...","phoneNumber":"...","extension":"...","ringPattern":"NORMAL","customDnisAnnouncementSettingsEnabled":true}'
 
 @app.command("update-dnis")
 def update_dnis(
@@ -1685,10 +1882,16 @@ def update_dnis(
     extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Set to `null` to remove the extension."),
     ring_pattern: str = typer.Option(None, "--ring-pattern", help="Choices: NORMAL, LONG_LONG, SHORT_SHORT_LONG, SHORT_LONG_SHORT"),
     custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Use custom announcement settings for the DNIS."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a DNIS for a Call Queue."""
+    """Modify a DNIS for a Call Queue\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","ringPattern":"NORMAL","customDnisAnnouncementSettingsEnabled":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DNIS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}"
     params = {}
@@ -1696,7 +1899,7 @@ def update_dnis(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -1713,7 +1916,12 @@ def update_dnis(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1723,6 +1931,8 @@ def delete_dnis_queues_1(
     queue_id: str = typer.Argument(help="queueId"),
     dnis_id: str = typer.Argument(help="dnisId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a DNIS for a Call Queue."""
@@ -1735,10 +1945,15 @@ def delete_dnis_queues_1(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {dnis_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {dnis_id}")
 
 
 
@@ -1746,7 +1961,8 @@ def delete_dnis_queues_1(
 def show_settings(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get DNIS Settings for a Call Queue."""
@@ -1760,17 +1976,13 @@ def show_settings(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_SETTINGS_DNIS = '{"distinctiveRingingEnabled":true,"displayDnisNameAndNumberEnabled":true}'
 
 @app.command("update-settings-dnis")
 def update_settings_dnis(
@@ -1778,10 +1990,16 @@ def update_settings_dnis(
     queue_id: str = typer.Argument(help="queueId"),
     distinctive_ringing_enabled: bool = typer.Option(None, "--distinctive-ringing-enabled/--no-distinctive-ringing-enabled", help="Whether distinctive ringing is enabled for the queue."),
     display_dnis_name_and_number_enabled: bool = typer.Option(None, "--display-dnis-name-and-number-enabled/--no-display-dnis-name-and-number-enabled", help="Whether the DNIS name and number is displayed to agents."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify DNIS Settings for a Call Queue."""
+    """Modify DNIS Settings for a Call Queue\n\nExample --json-body:\n  '{"distinctiveRingingEnabled":true,"displayDnisNameAndNumberEnabled":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS_DNIS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/settings"
     params = {}
@@ -1789,7 +2007,7 @@ def update_settings_dnis(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if distinctive_ringing_enabled is not None:
@@ -1800,7 +2018,12 @@ def update_settings_dnis(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1809,7 +2032,8 @@ def show_announcements(
     location_id: str = typer.Argument(help="locationId"),
     queue_id: str = typer.Argument(help="queueId"),
     dnis_id: str = typer.Argument(help="dnisId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get DNIS Announcements for a Call Queue."""
@@ -1823,17 +2047,13 @@ def show_announcements(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_ANNOUNCEMENTS = '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"mohMessage":{"normalSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."},"alternateSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]}}'
 
 @app.command("update-announcements")
 def update_announcements(
@@ -1841,10 +2061,16 @@ def update_announcements(
     queue_id: str = typer.Argument(help="queueId"),
     dnis_id: str = typer.Argument(help="dnisId"),
     custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Whether custom DNIS announcement settings are enabled for this DNIS."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify DNIS Announcements for a Call Queue\n\nExample --json-body:\n  '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"mohMessage":{"normalSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."},"alternateSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANNOUNCEMENTS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}/announcements"
     params = {}
@@ -1852,7 +2078,7 @@ def update_announcements(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if custom_dnis_announcement_settings_enabled is not None:
@@ -1861,7 +2087,12 @@ def update_announcements(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1869,7 +2100,8 @@ def update_announcements(
 def list_available_numbers_dnis(
     location_id: str = typer.Argument(help="locationId"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter by phone number."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1892,11 +2124,10 @@ def list_available_numbers_dnis(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
@@ -13,7 +15,8 @@ app = typer.Typer(help="Manage Webex Calling pstn.")
 def cmd_list(
     location_id: str = typer.Argument(help="locationId"),
     service_types: str = typer.Option(None, "--service-types", help="Use the `serviceTypes` parameter to fetch connections for the following services * `MOBILE_NUMBERS`"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -36,19 +39,19 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Name', 'displayName'), ('PSTN Services', 'pstnServices')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'displayName'), ('PSTN Services', 'pstnServices')], limit=limit)
 
 
 
 @app.command("list-connection")
 def list_connection(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve PSTN Connection for a Location."""
@@ -62,17 +65,13 @@ def list_connection(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"id":"...","premiseRouteType":"...","premiseRouteId":"..."}'
 
 @app.command("update")
 def update(
@@ -80,10 +79,16 @@ def update(
     id_param: str = typer.Option(None, "--id", help="A unique identifier for the connection. This is required for non-integrated CCP."),
     premise_route_type: str = typer.Option(None, "--premise-route-type", help="Premise route type. The possible types are TRUNK and ROUTE_GROUP. This is required for the local gateway."),
     premise_route_id: str = typer.Option(None, "--premise-route-id", help="Premise route ID. This refers to either a Trunk ID or a Route Group ID and is required for the local gateway."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Setup PSTN Connection for a Location."""
+    """Setup PSTN Connection for a Location\n\nExample --json-body:\n  '{"id":"...","premiseRouteType":"...","premiseRouteId":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/connection"
     params = {}
@@ -91,7 +96,7 @@ def update(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if id_param is not None:
@@ -104,17 +109,30 @@ def update(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
+
+_BODY_SKELETON_UPDATE_EMERGENCY_ADDRESS = '{"emergencyAddress":{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}}'
 
 @app.command("update-emergency-address")
 def update_emergency_address(
     phone_number: str = typer.Argument(help="phoneNumber"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update the Emergency Address for a Phone Number\n\nExample --json-body:\n  '{"emergencyAddress":{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_ADDRESS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/numbers/{phone_number}/emergencyAddress"
     params = {}
@@ -122,16 +140,23 @@ def update_emergency_address(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
+
+_BODY_SKELETON_CREATE = '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'
 
 @app.command("create")
 def create(
@@ -142,11 +167,16 @@ def create(
     state: str = typer.Option(None, "--state", help="State or Province or Region for the emergency address."),
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),
     country: str = typer.Option(None, "--country", help="Country for the emergency address."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Emergency Address Lookup to Verify if Address is Valid."""
+    """Emergency Address Lookup to Verify if Address is Valid\n\nExample --json-body:\n  '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/emergencyAddress/lookup"
     params = {}
@@ -154,7 +184,7 @@ def create(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if address1 is not None:
@@ -173,16 +203,21 @@ def create(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_EMERGENCY_ADDRESS = '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'
 
 @app.command("create-emergency-address")
 def create_emergency_address(
@@ -193,11 +228,16 @@ def create_emergency_address(
     state: str = typer.Option(None, "--state", help="State or Province or Region for the emergency address."),
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),
     country: str = typer.Option(None, "--country", help="Country for the emergency address."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add an Emergency Address to a Location."""
+    """Add an Emergency Address to a Location\n\nExample --json-body:\n  '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EMERGENCY_ADDRESS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/emergencyAddress"
     params = {}
@@ -205,7 +245,7 @@ def create_emergency_address(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if address1 is not None:
@@ -224,16 +264,21 @@ def create_emergency_address(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_EMERGENCY_ADDRESSES = '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'
 
 @app.command("update-emergency-addresses")
 def update_emergency_addresses(
@@ -245,10 +290,16 @@ def update_emergency_addresses(
     state: str = typer.Option(None, "--state", help="State or Province or Region for the emergency address."),
     postal_code: str = typer.Option(None, "--postal-code", help="Postal code for the emergency address."),
     country: str = typer.Option(None, "--country", help="Country for the emergency address."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the Emergency Address of a Location."""
+    """Update the Emergency Address of a Location\n\nExample --json-body:\n  '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_ADDRESSES), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/emergencyAddresses/{address_id}"
     params = {}
@@ -256,7 +307,7 @@ def update_emergency_addresses(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if address1 is not None:
@@ -275,6 +326,11 @@ def update_emergency_addresses(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 

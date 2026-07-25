@@ -1,13 +1,17 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-agent-wellbeing.")
 
+
+_BODY_SKELETON_CREATE = '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'
 
 @app.command("create")
 def create(
@@ -16,16 +20,21 @@ def create(
     destination_url: str = typer.Option(None, "--destination-url", help="(required) URL to which webhooks will be posted. Must be HTTPS on an IANA-listed top-level domain name (e.g. .com) with a path (at least /). No query parameters, userinfo, non-443 ports, or fragments allowed. We do not treat this field as sensitive data, so do not use secrets in this URL such as tokens or API..."),
     secret: str = typer.Option(None, "--secret", help="Secret string used to sign payloads sent to the destination URL."),
     org_id: str = typer.Option(None, "--org-id", help="Organization ID to be used for this operation. If unspecified, the Organization ID is inferred from the token. The token must have permission to interact with the organization."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Subscribe for realtime burnout events\n\nExample --json-body:\n  '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/agentburnout/subscribe"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -46,16 +55,21 @@ def create(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_ACTION = '{"interactionId":"...","agentId":"...","clientId":"...","actionType":"...","actionDateType":{}}'
 
 @app.command("create-action")
 def create_action(
@@ -63,16 +77,21 @@ def create_action(
     agent_id: str = typer.Option(None, "--agent-id", help="The identifier for the agent whose burnout index has been calculated."),
     client_id: str = typer.Option(None, "--client-id", help="The name of the client initiating the action related to the agent burnout index. The name is limited to a maximum of 20 characters."),
     action_type: str = typer.Option(None, "--action-type", help="Specifies the type of action initiated based on the agent burnout index"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Record the realtime burnout events\n\nExample --json-body:\n  '{"interactionId":"...","agentId":"...","clientId":"...","actionType":"...","actionDateType":{}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ACTION), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/agentburnout/action"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if interaction_id is not None:
@@ -87,21 +106,25 @@ def create_action(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
 @app.command("show")
 def show(
     id: str = typer.Argument(help="id"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific Agent Burnout resource by ID."""
@@ -113,17 +136,13 @@ def show(
         result = api.session.rest_get(url)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"enabled":true,"agentInclusionType":"ALL","organizationId":"...","id":"...","version":0,"wellnessBreakReminders":"DISABLED","createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update")
 def update(
@@ -136,16 +155,22 @@ def update(
     wellness_break_reminders: str = typer.Option(None, "--wellness-break-reminders", help="Choices: DISABLED, ENABLED"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Agent Burnout resource by ID."""
+    """Update specific Agent Burnout resource by ID\n\nExample --json-body:\n  '{"enabled":true,"agentInclusionType":"ALL","organizationId":"...","id":"...","version":0,"wellnessBreakReminders":"DISABLED","createdTime":0,"lastUpdatedTime":0}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/agent-burnout/{id}"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if organization_id is not None:
@@ -168,7 +193,12 @@ def update(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -178,7 +208,8 @@ def cmd_list(
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -206,11 +237,10 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

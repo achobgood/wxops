@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
@@ -11,7 +13,8 @@ app = typer.Typer(help="Manage Webex Calling call-recording.")
 
 @app.command("show")
 def show(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Call Recording Settings."""
@@ -25,25 +28,27 @@ def show(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"enabled":true}'
 
 @app.command("update")
 def update(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the call recording is enabled."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Recording Settings."""
+    """Update Call Recording Settings\n\nExample --json-body:\n  '{"enabled":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording"
     params = {}
@@ -51,7 +56,7 @@ def update(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if enabled is not None:
@@ -60,14 +65,20 @@ def update(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
 @app.command("show-terms-of-service")
 def show_terms_of_service(
     vendor_id: str = typer.Argument(help="vendorId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Call Recording Terms Of Service Settings."""
@@ -81,26 +92,28 @@ def show_terms_of_service(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_TERMS_OF_SERVICE = '{"termsOfServiceEnabled":true}'
 
 @app.command("update-terms-of-service")
 def update_terms_of_service(
     vendor_id: str = typer.Argument(help="vendorId"),
     terms_of_service_enabled: bool = typer.Option(None, "--terms-of-service-enabled/--no-terms-of-service-enabled", help="Whether or not the call recording terms of service are enabled."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Recording Terms Of Service Settings."""
+    """Update Call Recording Terms Of Service Settings\n\nExample --json-body:\n  '{"termsOfServiceEnabled":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TERMS_OF_SERVICE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/vendors/{vendor_id}/termsOfService"
     params = {}
@@ -108,7 +121,7 @@ def update_terms_of_service(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if terms_of_service_enabled is not None:
@@ -117,13 +130,19 @@ def update_terms_of_service(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
 @app.command("show-compliance-announcement-call-recording")
 def show_compliance_announcement_call_recording(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get details for the organization Compliance Announcement Setting."""
@@ -137,17 +156,13 @@ def show_compliance_announcement_call_recording(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING = '{"inboundPSTNCallsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useCustomAnnouncementEnabled":true,"audioAnnouncementFileId":"..."}'
 
 @app.command("update-compliance-announcement-call-recording")
 def update_compliance_announcement_call_recording(
@@ -157,10 +172,16 @@ def update_compliance_announcement_call_recording(
     delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance announcement."),
     use_custom_announcement_enabled: bool = typer.Option(None, "--use-custom-announcement-enabled/--no-use-custom-announcement-enabled", help="Flag to indicate whether to use the custom compliance announcement. If true it uses the organization's custom compliance announcement file, and if false default compliance announcement used."),
     audio_announcement_file_id: str = typer.Option(None, "--audio-announcement-file-id", help="Unique identifier for the custom audio announcement file."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the organization Compliance Announcement."""
+    """Update the organization Compliance Announcement\n\nExample --json-body:\n  '{"inboundPSTNCallsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useCustomAnnouncementEnabled":true,"audioAnnouncementFileId":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/complianceAnnouncement"
     params = {}
@@ -168,7 +189,7 @@ def update_compliance_announcement_call_recording(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if inbound_pstn_calls_enabled is not None:
@@ -187,14 +208,20 @@ def update_compliance_announcement_call_recording(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
 @app.command("show-compliance-announcement-call-recording-1")
 def show_compliance_announcement_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get details for the Location Compliance Announcement Setting."""
@@ -208,17 +235,13 @@ def show_compliance_announcement_call_recording_1(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING_1 = '{"inboundPSTNCallsEnabled":true,"useOrgSettingsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useOrgLevelAnnouncementEnabled":true,"customComplianceAnnouncement":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'
 
 @app.command("update-compliance-announcement-call-recording-1")
 def update_compliance_announcement_call_recording_1(
@@ -229,10 +252,16 @@ def update_compliance_announcement_call_recording_1(
     outbound_pstn_calls_delay_enabled: bool = typer.Option(None, "--outbound-pstn-calls-delay-enabled/--no-outbound-pstn-calls-delay-enabled", help="Flag to indicate whether compliance announcement is played after a specified delay in seconds."),
     delay_in_seconds: str = typer.Option(None, "--delay-in-seconds", help="Number of seconds to wait before playing the compliance announcement."),
     use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level custom compliance announcement. If this flag is set to true, takes the organization's announcement setting. If this flag is set to false, takes the location's custom announcement."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update the Location Compliance Announcement\n\nExample --json-body:\n  '{"inboundPSTNCallsEnabled":true,"useOrgSettingsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useOrgLevelAnnouncementEnabled":true,"customComplianceAnnouncement":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING_1), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement"
     params = {}
@@ -240,7 +269,7 @@ def update_compliance_announcement_call_recording_1(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if inbound_pstn_calls_enabled is not None:
@@ -259,13 +288,19 @@ def update_compliance_announcement_call_recording_1(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
 @app.command("list")
 def cmd_list(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -286,19 +321,19 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("regions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
 @app.command("list-vendor-users-call-recording")
 def list_vendor_users_call_recording(
     standard_user_only: str = typer.Option(None, "--standard-user-only", help="If true, results only include Webex Calling standard users."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -321,14 +356,15 @@ def list_vendor_users_call_recording(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING = '{"id":"...","orgDefaultEnabled":true,"storageRegion":"...","orgStorageRegionEnabled":true,"failureBehavior":{},"orgFailureBehaviorEnabled":true}'
 
 @app.command("update-vendor-call-recording")
 def update_vendor_call_recording(
@@ -339,10 +375,16 @@ def update_vendor_call_recording(
     org_storage_region_enabled: bool = typer.Option(None, "--org-storage-region-enabled/--no-org-storage-region-enabled", help="Region-based call recording storage is enabled."),
     failure_behavior: str = typer.Option(None, "--failure-behavior", help="Type of failure behavior."),
     org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help="Failure behavior is enabled."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Set Call Recording Vendor for a Location."""
+    """Set Call Recording Vendor for a Location\n\nExample --json-body:\n  '{"id":"...","orgDefaultEnabled":true,"storageRegion":"...","orgStorageRegionEnabled":true,"failureBehavior":{},"orgFailureBehaviorEnabled":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/vendor"
     params = {}
@@ -350,7 +392,7 @@ def update_vendor_call_recording(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if id_param is not None:
@@ -369,14 +411,20 @@ def update_vendor_call_recording(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
 @app.command("list-vendors")
 def list_vendors(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -397,12 +445,11 @@ def list_vendors(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("vendors", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -410,7 +457,8 @@ def list_vendors(
 def list_vendor_users_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
     standard_user_only: str = typer.Option(None, "--standard-user-only", help="If true, results only include Webex Calling standard users."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -433,18 +481,18 @@ def list_vendor_users_call_recording_1(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
 
 
 
 @app.command("list-call-recording")
 def list_call_recording(
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -465,19 +513,19 @@ def list_call_recording(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
 @app.command("show-call-recording")
 def show_call_recording(
     job_id: str = typer.Argument(help="jobId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get the Job Status of a Call Recording Job."""
@@ -491,22 +539,17 @@ def show_call_recording(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 
 @app.command("list-errors")
 def list_errors(
     job_id: str = typer.Argument(help="jobId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -527,18 +570,18 @@ def list_errors(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
 @app.command("show-vendors")
 def show_vendors(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Organization Call Recording Vendors."""
@@ -552,27 +595,29 @@ def show_vendors(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING_1 = '{"vendorId":"...","storageRegion":"...","failureBehavior":{}}'
 
 @app.command("update-vendor-call-recording-1")
 def update_vendor_call_recording_1(
     vendor_id: str = typer.Option(None, "--vendor-id", help="Unique identifier of the vendor."),
     storage_region: str = typer.Option(None, "--storage-region", help="Call recording storage region. Only applicable for Webex as a vendor and isn't used for other vendors."),
     failure_behavior: str = typer.Option(None, "--failure-behavior", help="Call recording failure behavior."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Set Organization Call Recording Vendor."""
+    """Set Organization Call Recording Vendor\n\nExample --json-body:\n  '{"vendorId":"...","storageRegion":"...","failureBehavior":{}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING_1), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/vendor"
     params = {}
@@ -580,7 +625,7 @@ def update_vendor_call_recording_1(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if vendor_id is not None:
@@ -593,13 +638,19 @@ def update_vendor_call_recording_1(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
 @app.command("show-announcements-call-recording")
 def show_announcements_call_recording(
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Organization Call Recording Announcement Settings."""
@@ -613,24 +664,26 @@ def show_announcements_call_recording(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_ANNOUNCEMENTS_CALL_RECORDING = '{"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'
 
 @app.command("update-announcements-call-recording")
 def update_announcements_call_recording(
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Organization Call Recording Announcement Settings\n\nExample --json-body:\n  '{"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANNOUNCEMENTS_CALL_RECORDING), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/announcements"
     params = {}
@@ -638,21 +691,27 @@ def update_announcements_call_recording(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
 @app.command("show-announcements-call-recording-1")
 def show_announcements_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Location Call Recording Announcement Settings."""
@@ -666,26 +725,28 @@ def show_announcements_call_recording_1(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_ANNOUNCEMENTS_CALL_RECORDING_1 = '{"useOrgLevelAnnouncementEnabled":true,"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'
 
 @app.command("update-announcements-call-recording-1")
 def update_announcements_call_recording_1(
     location_id: str = typer.Argument(help="locationId"),
     use_org_level_announcement_enabled: bool = typer.Option(None, "--use-org-level-announcement-enabled/--no-use-org-level-announcement-enabled", help="Flag to indicate whether to use the organization level call recording announcement settings. If the flag is set to true, indicates that the callRecordingAnnouncementSelection setting is inherited from the organization-level configuration. If the flag is set to false, indicates that the..."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Location Call Recording Announcement Settings\n\nExample --json-body:\n  '{"useOrgLevelAnnouncementEnabled":true,"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANNOUNCEMENTS_CALL_RECORDING_1), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/announcements"
     params = {}
@@ -693,7 +754,7 @@ def update_announcements_call_recording_1(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if use_org_level_announcement_enabled is not None:
@@ -702,6 +763,11 @@ def update_announcements_call_recording_1(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 

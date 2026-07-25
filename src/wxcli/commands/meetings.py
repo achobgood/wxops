@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 
 
 app = typer.Typer(help="Manage Webex Meetings meetings.")
@@ -12,7 +14,8 @@ app = typer.Typer(help="Manage Webex Meetings meetings.")
 def show(
     meeting_id: str = typer.Argument(help="meetingId"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting By an Admin."""
@@ -25,15 +28,9 @@ def show(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -42,7 +39,8 @@ def cmd_list(
     meeting_number: str = typer.Option(None, "--meeting-number", help="Meeting number for the meeting objects being requested. `meetingNumber` and `webLink` are mutually exclusive. If it's an exceptional meeting from a meeting series, the exceptional meeting instead of the primary meeting series is returned."),
     web_link: str = typer.Option(None, "--web-link", help="URL encoded link to information page for the meeting objects being requested. `meetingNumber` and `webLink` are mutually exclusive."),
     current: str = typer.Option(None, "--current", help="Flag identifying to retrieve the current scheduled meeting of the meeting series or the entire meeting series. This parameter only applies to scenarios where `meetingNumber` is specified and the meeting is not an exceptional meeting from a meeting series. If it's `true`, return the scheduled..."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -72,10 +70,9 @@ def cmd_list(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
 
@@ -103,7 +100,8 @@ def list_meetings(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API returns meetings as if the user calling the API were the user of `hostEmail`..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists meetings from. If not specified, the API lists meetings from user's all sites. All available Webex sites of the user can be retrieved by `Get Site List` API."),
     integration_tag: str = typer.Option(None, "--integration-tag", help="External key created by an integration application. This parameter is used by the integration application to query meetings by a key in its own domain such as a Zendesk ticket ID, a Jira ID, a Salesforce Opportunity ID, etc. An integrationTag created by one client cannot be accessed or used as a..."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -169,12 +167,13 @@ def list_meetings(
             items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE = '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"..."}'
 
 @app.command("create")
 def create(
@@ -215,15 +214,20 @@ def create(
     require_attendee_login: bool = typer.Option(None, "--require-attendee-login/--no-require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
     restrict_to_invitees: bool = typer.Option(None, "--restrict-to-invitees/--no-restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
     enabled_live_stream: bool = typer.Option(None, "--enabled-live-stream/--no-enabled-live-stream", help="Whether or not live streaming is enabled. If it's enabled, the `liveStream` must be specified. The RTMP streaming specified by `liveStream.rtmpUrl` can be started and viewed during the meeting without any ad-hoc settings."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create a Meeting\n\nExample --json-body:\n  '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if adhoc is not None:
@@ -308,14 +312,17 @@ def create(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -324,7 +331,8 @@ def show_meetings(
     meeting_id: str = typer.Argument(help="meetingId"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting."""
@@ -339,17 +347,13 @@ def show_meetings(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'
 
 @app.command("update")
 def update(
@@ -386,14 +390,20 @@ def update(
     require_attendee_login: bool = typer.Option(None, "--require-attendee-login/--no-require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
     restrict_to_invitees: bool = typer.Option(None, "--restrict-to-invitees/--no-restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
     enabled_live_stream: bool = typer.Option(None, "--enabled-live-stream/--no-enabled-live-stream", help="Whether or not live streaming is enabled."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Meeting\n\nExample --json-body:\n  '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if title is not None:
@@ -464,9 +474,16 @@ def update(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
+
+_BODY_SKELETON_UPDATE_MEETINGS = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'
 
 @app.command("update-meetings")
 def update_meetings(
@@ -504,14 +521,20 @@ def update_meetings(
     restrict_to_invitees: str = typer.Option(None, "--restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
     enabled_live_stream: str = typer.Option(None, "--enabled-live-stream", help="Whether or not live streaming is enabled."),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Patch a Meeting\n\nExample --json-body:\n  '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MEETINGS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         patch_op = {}
         if title is not None:
@@ -588,7 +611,12 @@ def update_meetings(
         result = api.session.rest_patch(url, json=body, content_type="application/json-patch+json")
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -598,6 +626,8 @@ def delete(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will delete a meeting that is hosted by that user."),
     send_email: str = typer.Option(None, "--send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting."""
@@ -611,12 +641,19 @@ def delete(
     if send_email is not None:
         params["sendEmail"] = send_email
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {meeting_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {meeting_id}")
 
 
+
+_BODY_SKELETON_CREATE_JOIN = '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0}'
 
 @app.command("create-join")
 def create_join(
@@ -632,15 +669,20 @@ def create_join(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should be set if the user or application calling the API has the admin on-behalf-of scopes. This parameter is required for a [Service App](/docs/service-apps). It only applies to meetings, not webinars."),
     create_join_link_as_web_link: bool = typer.Option(None, "--create-join-link-as-web-link/--no-create-join-link-as-web-link", help="When `createJoinLinkAsWebLink` is true, the returned `joinLink` is the webLink of the meeting, otherwise, the normal `joinLink` is returned. This parameter is applicable when the option to force the user to log in is set in Control Hub. When true, a user cannot join the meeting by the link directly..."),
     create_start_link_as_web_link: bool = typer.Option(None, "--create-start-link-as-web-link/--no-create-start-link-as-web-link", help="When `createStartLinkAsWebLink` is true, the returned `startLink` is the webLink of the meeting, otherwise, the normal `startLink` is returned. This parameter is applicable when the option to force the user to log in is set in Control Hub. When true, a user cannot start the meeting using the link..."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Join a Meeting."""
+    """Join a Meeting\n\nExample --json-body:\n  '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_JOIN), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/join"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if meeting_id is not None:
@@ -671,14 +713,17 @@ def create_join(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -690,7 +735,8 @@ def list_templates(
     is_standard: str = typer.Option(None, "--is-standard", help="The value is `true` or `false`. If it's `true`, return the standard meeting templates; if it's `false`, return the non-standard meeting templates. If it's not specified, return both standard and non-standard meeting templates."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return meeting templates that are available for that user."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API lists meeting templates from. If not specified, the API lists meeting templates from user's preferred site. All available Webex sites and preferred site of the user can be retrieved by `Get Site List` API."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -720,12 +766,11 @@ def list_templates(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
 
@@ -733,7 +778,8 @@ def list_templates(
 def show_templates(
     template_id: str = typer.Argument(help="templateId"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return the meeting template that is available for that user."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting Template."""
@@ -746,22 +792,17 @@ def show_templates(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 
 @app.command("show-controls")
 def show_controls(
     meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the meeting. Does not support meeting IDs for a scheduled [personal room](https://help.webex.com/en-us/article/nul0wut/Webex-Personal-Rooms-in-Webex-Meetings) meeting."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Meeting Control Status."""
@@ -774,17 +815,13 @@ def show_controls(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_CONTROLS = '{"recordingStarted":true,"recordingPaused":true,"locked":true}'
 
 @app.command("update-controls")
 def update_controls(
@@ -792,17 +829,23 @@ def update_controls(
     recording_started: bool = typer.Option(None, "--recording-started/--no-recording-started", help="The value can be true or false. true means to start the recording, false to end the recording."),
     recording_paused: bool = typer.Option(None, "--recording-paused/--no-recording-paused", help="The value can be true or false, will be ignored if 'recordingStarted' sets to false, and true to resume the recording only if the recording is paused vise versa."),
     locked: bool = typer.Option(None, "--locked/--no-locked", help="The value is true or false."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Control Status."""
+    """Update Meeting Control Status\n\nExample --json-body:\n  '{"recordingStarted":true,"recordingPaused":true,"locked":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CONTROLS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/controls"
     params = {}
     if meeting_id is not None:
         params["meetingId"] = meeting_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if recording_started is not None:
@@ -815,7 +858,12 @@ def update_controls(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -823,7 +871,8 @@ def update_controls(
 def list_session_types(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will list all the meeting session types enabled for the user."),
     site_url: str = typer.Option(None, "--site-url", help="Webex site URL to query. If `siteUrl` is not specified, the users' preferred site will be used. If the authorization token has the admin-level scopes, the admin can set the Webex site URL on behalf of the user specified in the `hostEmail` parameter."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -845,12 +894,11 @@ def list_session_types(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
 
@@ -859,7 +907,8 @@ def show_session_types(
     session_type_id: str = typer.Argument(help="sessionTypeId"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will get a meeting session type with the specified session type ID enabled for the user."),
     site_url: str = typer.Option(None, "--site-url", help="Webex site URL to query. If `siteUrl` is not specified, the users' preferred site will be used. If the authorization token has the admin-level scopes, the admin can set the Webex site URL on behalf of the user specified in the `hostEmail` parameter."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting Session Type."""
@@ -874,15 +923,9 @@ def show_session_types(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -891,7 +934,8 @@ def list_registration(
     meeting_id: str = typer.Argument(help="meetingId"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -913,14 +957,15 @@ def list_registration(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("customizedQuestions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE_REGISTRATION = '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true}'
 
 @app.command("update-registration")
 def update_registration(
@@ -941,14 +986,20 @@ def update_registration(
     require_work_phone: bool = typer.Option(None, "--require-work-phone/--no-require-work-phone", help="Whether or not a registrant's work phone number is shown or required for meeting registration."),
     require_fax: bool = typer.Option(None, "--require-fax/--no-require-fax", help="Whether or not a registrant's fax number is shown or required for meeting registration."),
     max_register_num: str = typer.Option(None, "--max-register-num", help="Maximum number of meeting registrations. This only applies to meetings. The maximum number of participants for meetings and webinars, with the limit based on the user capacity and controlled by a toggle at the site level. The default maximum number of participants for webinars is 10000, but the..."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Meeting Registration Form\n\nExample --json-body:\n  '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_REGISTRATION), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registration"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if host_email is not None:
@@ -987,7 +1038,12 @@ def update_registration(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -995,6 +1051,8 @@ def update_registration(
 def delete_registration(
     meeting_id: str = typer.Argument(help="meetingId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Meeting Registration Form."""
@@ -1003,10 +1061,15 @@ def delete_registration(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registration"
     try:
-        api.session.rest_delete(url)
+        result = api.session.rest_delete(url)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {meeting_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {meeting_id}")
 
 
 
@@ -1018,7 +1081,8 @@ def list_registrants(
     email: str = typer.Option(None, "--email", help="Registrant's email to filter registrants."),
     registration_time_from: str = typer.Option(None, "--registration-time-from", help="The time registrants register a meeting starts from the specified date and time (inclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `registrationTimeFrom` is not specified, it equals `registrationTimeTo` minus 7 days."),
     registration_time_to: str = typer.Option(None, "--registration-time-to", help="The time registrants register a meeting before the specified date and time (exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `registrationTimeTo` is not specified, it equals `registrationTimeFrom` plus 7 days. The interval between `registrationTimeFrom` and..."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1046,14 +1110,15 @@ def list_registrants(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_REGISTRANTS = '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"..."}'
 
 @app.command("create-registrants")
 def create_registrants(
@@ -1074,11 +1139,16 @@ def create_registrants(
     country_region: str = typer.Option(None, "--country-region", help="The America is not a country or a specific region. Registration options define whether or not this is required."),
     work_phone: str = typer.Option(None, "--work-phone", help="The registrant's work phone number. Registration options define whether or not this is required."),
     fax: str = typer.Option(None, "--fax", help="The registrant's FAX number. Registration options define whether or not this is required."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Register a Meeting Registrant\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REGISTRANTS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants"
     params = {}
@@ -1087,7 +1157,7 @@ def create_registrants(
     if host_email is not None:
         params["hostEmail"] = host_email
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if first_name is not None:
@@ -1126,27 +1196,37 @@ def create_registrants(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_BULK_INSERT = '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":"...","jobTitle":"...","companyName":"...","address1":"...","address2":"..."}]}'
 
 @app.command("create-bulk-insert")
 def create_bulk_insert(
     meeting_id: str = typer.Argument(help="meetingId"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Batch register Meeting Registrants\n\nExample --json-body:\n  '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":"...","jobTitle":"...","companyName":"...","address1":"...","address2":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_INSERT), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/bulkInsert"
     params = {}
@@ -1155,21 +1235,24 @@ def create_bulk_insert(
     if host_email is not None:
         params["hostEmail"] = host_email
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -1179,7 +1262,8 @@ def show_registrants(
     registrant_id: str = typer.Argument(help="registrantId"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Detailed Information for a Meeting Registrant."""
@@ -1194,15 +1278,9 @@ def show_registrants(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -1213,6 +1291,8 @@ def delete_registrants(
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting Registrant."""
@@ -1226,12 +1306,19 @@ def delete_registrants(
     if host_email is not None:
         params["hostEmail"] = host_email
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {registrant_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {registrant_id}")
 
 
+
+_BODY_SKELETON_CREATE_QUERY = '{"emails":["..."],"status":"approved","orderType":"DESC","orderBy":"firstName"}'
 
 @app.command("create-query")
 def create_query(
@@ -1242,11 +1329,16 @@ def create_query(
     status: str = typer.Option(None, "--status", help="Choices: approved, pending, rejected"),
     order_type: str = typer.Option(None, "--order-type", help="Choices: DESC, ASC"),
     order_by: str = typer.Option(None, "--order-by", help="Choices: firstName, lastName, status, email"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Query Meeting Registrants\n\nExample --json-body:\n  '{"emails":["..."],"status":"approved","orderType":"DESC","orderBy":"firstName"}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_QUERY), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/query"
     params = {}
@@ -1257,7 +1349,7 @@ def create_query(
     if host_email is not None:
         params["hostEmail"] = host_email
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if status is not None:
@@ -1270,16 +1362,21 @@ def create_query(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_APPROVE = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
 @app.command("create-approve")
 def create_approve(
@@ -1287,11 +1384,16 @@ def create_approve(
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Batch Approve Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_APPROVE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/approve"
     params = {}
@@ -1300,7 +1402,7 @@ def create_approve(
     if host_email is not None:
         params["hostEmail"] = host_email
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if send_email is not None:
@@ -1309,16 +1411,21 @@ def create_approve(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_REJECT = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
 @app.command("create-reject")
 def create_reject(
@@ -1326,11 +1433,16 @@ def create_reject(
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Batch Reject Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REJECT), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/reject"
     params = {}
@@ -1339,7 +1451,7 @@ def create_reject(
     if host_email is not None:
         params["hostEmail"] = host_email
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if send_email is not None:
@@ -1348,16 +1460,21 @@ def create_reject(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_CANCEL = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
 @app.command("create-cancel")
 def create_cancel(
@@ -1365,11 +1482,16 @@ def create_cancel(
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Batch Cancel Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CANCEL), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/cancel"
     params = {}
@@ -1378,7 +1500,7 @@ def create_cancel(
     if host_email is not None:
         params["hostEmail"] = host_email
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if send_email is not None:
@@ -1387,16 +1509,21 @@ def create_cancel(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_BULK_DELETE = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
 @app.command("create-bulk-delete")
 def create_bulk_delete(
@@ -1404,11 +1531,16 @@ def create_bulk_delete(
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Batch Delete Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_DELETE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/bulkDelete"
     params = {}
@@ -1417,7 +1549,7 @@ def create_bulk_delete(
     if host_email is not None:
         params["hostEmail"] = host_email
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if send_email is not None:
@@ -1426,29 +1558,40 @@ def create_bulk_delete(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_SIMULTANEOUS_INTERPRETATION = '{"enabled":true,"interpreters":[{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"..."}]}'
 
 @app.command("update-simultaneous-interpretation")
 def update_simultaneous_interpretation(
     meeting_id: str = typer.Argument(help="meetingId"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not simultaneous interpretation is enabled."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Meeting Simultaneous interpretation\n\nExample --json-body:\n  '{"enabled":true,"interpreters":[{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SIMULTANEOUS_INTERPRETATION), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/simultaneousInterpretation"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if enabled is not None:
@@ -1457,7 +1600,12 @@ def update_simultaneous_interpretation(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1465,7 +1613,8 @@ def update_simultaneous_interpretation(
 def list_interpreters(
     meeting_id: str = typer.Argument(help="meetingId"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return interpreters of the meeting that is hosted by that user."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1485,14 +1634,15 @@ def list_interpreters(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_INTERPRETERS = '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'
 
 @app.command("create-interpreters")
 def create_interpreters(
@@ -1503,15 +1653,20 @@ def create_interpreters(
     display_name: str = typer.Option(None, "--display-name", help="Display name of meeting interpreter. If the interpreter is already an invitee of the meeting and it has a different display name, that invitee's display name will be overwritten by this attribute."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin on-behalf-of scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true`, send email to the interpreter."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Meeting Interpreter."""
+    """Create a Meeting Interpreter\n\nExample --json-body:\n  '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_INTERPRETERS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/interpreters"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if language_code1 is not None:
@@ -1534,14 +1689,17 @@ def create_interpreters(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -1550,7 +1708,8 @@ def show_interpreters(
     meeting_id: str = typer.Argument(help="meetingId"),
     interpreter_id: str = typer.Argument(help="interpreterId"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for an interpreter of the meeting that is hosted by..."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting Interpreter."""
@@ -1563,17 +1722,13 @@ def show_interpreters(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_INTERPRETERS = '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'
 
 @app.command("update-interpreters")
 def update_interpreters(
@@ -1585,14 +1740,20 @@ def update_interpreters(
     display_name: str = typer.Option(None, "--display-name", help="Display name of meeting interpreter. If the interpreter is already an invitee of the meeting and it has a different display name, that invitee's display name will be overwritten by this attribute."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin on-behalf-of scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true`, send email to the interpreter."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Meeting Interpreter."""
+    """Update a Meeting Interpreter\n\nExample --json-body:\n  '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INTERPRETERS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/interpreters/{interpreter_id}"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if language_code1 is not None:
@@ -1611,7 +1772,12 @@ def update_interpreters(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1622,6 +1788,8 @@ def delete_interpreters(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will delete an interpreter of the meeting that is hosted by that user."),
     send_email: str = typer.Option(None, "--send-email", help="If `true`, send email to the interpreter."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting Interpreter."""
@@ -1635,17 +1803,23 @@ def delete_interpreters(
     if send_email is not None:
         params["sendEmail"] = send_email
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {interpreter_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {interpreter_id}")
 
 
 
 @app.command("list-breakout-sessions")
 def list_breakout_sessions(
     meeting_id: str = typer.Argument(help="meetingId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1663,28 +1837,35 @@ def list_breakout_sessions(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE_BREAKOUT_SESSIONS = '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":"..."}]}'
 
 @app.command("update-breakout-sessions")
 def update_breakout_sessions(
     meeting_id: str = typer.Argument(help="meetingId"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Meeting Breakout Sessions\n\nExample --json-body:\n  '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_BREAKOUT_SESSIONS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/breakoutSessions"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if host_email is not None:
@@ -1695,7 +1876,12 @@ def update_breakout_sessions(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -1704,6 +1890,8 @@ def delete_breakout_sessions(
     meeting_id: str = typer.Argument(help="meetingId"),
     send_email: str = typer.Option(None, "--send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Meeting Breakout Sessions."""
@@ -1715,17 +1903,23 @@ def delete_breakout_sessions(
     if send_email is not None:
         params["sendEmail"] = send_email
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {meeting_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {meeting_id}")
 
 
 
 @app.command("list-survey")
 def list_survey(
     meeting_id: str = typer.Argument(help="meetingId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1743,12 +1937,11 @@ def list_survey(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("questions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
 
@@ -1757,7 +1950,8 @@ def list_survey_results(
     meeting_id: str = typer.Argument(help="meetingId"),
     meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Start date and time (inclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested. `meetingStartTimeFrom` cannot be after `meetingStartTimeTo`. This parameter will be ignored if `meetingId` is the unique identifier for the specific..."),
     meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="End date and time (exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested. `meetingStartTimeTo` cannot be prior to `meetingStartTimeFrom`. This parameter will be ignored if `meetingId` is the unique identifier for the specific..."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1779,14 +1973,15 @@ def list_survey_results(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_SURVEY_LINKS = '{"hostEmail":"...","meetingStartTimeFrom":"...","meetingStartTimeTo":"...","emails":["..."]}'
 
 @app.command("create-survey-links")
 def create_survey_links(
@@ -1794,15 +1989,20 @@ def create_survey_links(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. An admin can specify the email of the meeting host who is in a site he manages and the API returns post survey links on behalf of the meeting host."),
     meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Start date and time (inclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested and conforms with the `timezone` in the request header if specified. `meetingStartTimeFrom` cannot be after `meetingStartTimeTo`. Only applies when..."),
     meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="End date and time (exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested and conforms with the `timezone` in the request header if specified. `meetingStartTimeTo` cannot be prior to `meetingStartTimeFrom`. Only applies when..."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Meeting Survey Links\n\nExample --json-body:\n  '{"hostEmail":"...","meetingStartTimeFrom":"...","meetingStartTimeTo":"...","emails":["..."]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SURVEY_LINKS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/surveyLinks"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if host_email is not None:
@@ -1815,21 +2015,25 @@ def create_survey_links(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
 @app.command("list-invitation-sources")
 def list_invitation_sources(
     meeting_id: str = typer.Argument(help="meetingId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1847,29 +2051,35 @@ def list_invitation_sources(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_INVITATION_SOURCES = '{"hostEmail":"...","personId":"...","items":[{"sourceId":"...","sourceEmail":"..."}]}'
 
 @app.command("create-invitation-sources")
 def create_invitation_sources(
     meeting_id: str = typer.Argument(help="meetingId"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if a user or application calling the API has the admin-level scopes. The admin may specify the email of a user on a site they manage and the API will return meeting participants of the meetings that are hosted by that user."),
     person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the meeting host. Should only be set if the user or application calling the API has the admin-level scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create Invitation Sources\n\nExample --json-body:\n  '{"hostEmail":"...","personId":"...","items":[{"sourceId":"...","sourceEmail":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_INVITATION_SOURCES), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/invitationSources"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if host_email is not None:
@@ -1880,14 +2090,17 @@ def create_invitation_sources(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -1896,7 +2109,8 @@ def list_tracking_codes(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking code from. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     service: str = typer.Option(..., "--service", help="Service for schedule or sign-up pages."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if a user or application calling the API has the admin-level scopes. The admin may specify the email of a user on a site they manage and the API will return meeting participants of the meetings that are hosted by that user."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -1920,27 +2134,33 @@ def list_tracking_codes(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_REASSIGN_HOST = '{"hostEmail":"...","meetingIds":["..."]}'
 
 @app.command("create-reassign-host")
 def create_reassign_host(
     host_email: str = typer.Option(None, "--host-email", help="(required) Email address of the new meeting host."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Reassign Meetings to a New Host\n\nExample --json-body:\n  '{"hostEmail":"...","meetingIds":["..."]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REASSIGN_HOST), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/reassignHost"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if host_email is not None:
@@ -1953,30 +2173,40 @@ def create_reassign_host(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_END = '{"reason":"..."}'
 
 @app.command("create-end")
 def create_end(
     meeting_id: str = typer.Argument(help="meetingId"),
     reason: str = typer.Option(None, "--reason", help="The reason for ending the meeting. This field is optional."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """End a Meeting."""
+    """End a Meeting\n\nExample --json-body:\n  '{"reason":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_END), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/end"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if reason is not None:
@@ -1985,13 +2215,16 @@ def create_end(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 

@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
@@ -15,7 +17,8 @@ def cmd_list(
     limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="Location query parameter to filter the `operating modes` from that location only."),
     limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="If true, only return `operating modes` defined at the organization level."),
     order: str = typer.Option(None, "--order", help="Sort the list of `operating modes` based on `name`, either asc, or desc."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -44,19 +47,19 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("operatingModes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
 @app.command("show")
 def show(
     mode_id: str = typer.Argument(help="modeId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Details for an Operating Mode."""
@@ -70,26 +73,28 @@ def show(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
 
 @app.command("update")
 def update(
     mode_id: str = typer.Argument(help="modeId"),
     name: str = typer.Option(None, "--name", help="New unique name for the `operating mode`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify an Operating Mode\n\nExample --json-body:\n  '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
     params = {}
@@ -97,7 +102,7 @@ def update(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -106,7 +111,12 @@ def update(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -114,6 +124,8 @@ def update(
 def delete(
     mode_id: str = typer.Argument(help="modeId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete an Operating Mode."""
@@ -126,12 +138,19 @@ def delete(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {mode_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {mode_id}")
 
 
+
+_BODY_SKELETON_CREATE = '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}]}'
 
 @app.command("create")
 def create(
@@ -139,11 +158,16 @@ def create(
     type_param: str = typer.Option(None, "--type", help="(required) Choices: SAME_HOURS_DAILY, DIFFERENT_HOURS_DAILY, HOLIDAY, NONE"),
     level: str = typer.Option(None, "--level", help="(required) Choices: ORGANIZATION, LOCATION"),
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier of the location. Mandatory if level is `LOCATION`."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create an Operating Mode\n\nExample --json-body:\n  '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/"
     params = {}
@@ -151,7 +175,7 @@ def create(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -170,14 +194,17 @@ def create(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -185,7 +212,8 @@ def create(
 def show_holidays(
     mode_id: str = typer.Argument(help="modeId"),
     holiday_id: str = typer.Argument(help="holidayId"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get details for an Operating Mode Holiday."""
@@ -199,17 +227,13 @@ def show_holidays(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_HOLIDAYS = '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'
 
 @app.command("update-holidays")
 def update_holidays(
@@ -221,10 +245,16 @@ def update_holidays(
     end_date: str = typer.Option(None, "--end-date", help="End date of the `operating mode holiday`."),
     start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `allDayEnabled` is not set."),
     end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `allDayEnabled` is not set."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_HOLIDAYS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
     params = {}
@@ -232,7 +262,7 @@ def update_holidays(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -251,7 +281,12 @@ def update_holidays(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -260,6 +295,8 @@ def delete_holidays(
     mode_id: str = typer.Argument(help="modeId"),
     holiday_id: str = typer.Argument(help="holidayId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete an Operating Mode Holiday."""
@@ -272,12 +309,19 @@ def delete_holidays(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {holiday_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {holiday_id}")
 
 
+
+_BODY_SKELETON_CREATE_HOLIDAYS = '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'
 
 @app.command("create-holidays")
 def create_holidays(
@@ -288,11 +332,16 @@ def create_holidays(
     end_date: str = typer.Option(None, "--end-date", help="(required) End date of the `operating mode holiday`."),
     start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `allDayEnabled` is false."),
     end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `allDayEnabled` is false."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Create an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_HOLIDAYS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays"
     params = {}
@@ -300,7 +349,7 @@ def create_holidays(
     if org_id is not None:
         params["orgId"] = org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if name is not None:
@@ -323,21 +372,25 @@ def create_holidays(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
 @app.command("list-available-operating-modes")
 def list_available_operating_modes(
     location_id: str = typer.Argument(help="locationId"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -358,12 +411,11 @@ def list_available_operating_modes(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("operatingModes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -373,7 +425,8 @@ def list_available_numbers(
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -400,11 +453,10 @@ def list_available_numbers(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

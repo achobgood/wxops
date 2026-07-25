@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
@@ -14,7 +16,8 @@ def cmd_list(
     external_id: str = typer.Option(None, "--external-id", help="Customer external ID."),
     status: str = typer.Option(None, "--status", help="Customer API status."),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -41,14 +44,15 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE = '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'
 
 @app.command("create")
 def create(
@@ -57,18 +61,23 @@ def create(
     org_id: str = typer.Option(None, "--org-id", help="The organization ID of the enterprise in Webex. Mandatory for existing customers."),
     external_id: str = typer.Option(None, "--external-id", help="(required) External ID of the Wholesale customer."),
     sub_partner_admin_email: str = typer.Option(None, "--sub-partner-admin-email", help="The email of the sub partner organization admin."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Provision a Wholesale Customer\n\nExample --json-body:\n  '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/customers"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if provisioning_id is not None:
@@ -87,14 +96,17 @@ def create(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -103,7 +115,8 @@ def show(
     customer_id: str = typer.Argument(help="customerId"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     include_package_license_info: str = typer.Option(None, "--include-package-license-info", help="If specified as true, a list of licenseIds will be returned for all provisioned packages"),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Wholesale Customer."""
@@ -118,17 +131,13 @@ def show(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE = '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'
 
 @app.command("update")
 def update(
@@ -136,17 +145,23 @@ def update(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     external_id: str = typer.Option(None, "--external-id", help="External ID of the Wholesale customer."),
     sub_partner_admin_email: str = typer.Option(None, "--sub-partner-admin-email", help="The email of the sub partner organization admin."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Wholesale Customer\n\nExample --json-body:\n  '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/customers/{customer_id}"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if external_id is not None:
@@ -157,7 +172,12 @@ def update(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -166,6 +186,8 @@ def delete(
     customer_id: str = typer.Argument(help="customerId"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove a Wholesale Customer."""
@@ -177,12 +199,19 @@ def delete(
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {customer_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {customer_id}")
 
 
+
+_BODY_SKELETON_CREATE_VALIDATE_CUSTOMERS = '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'
 
 @app.command("create-validate-customers")
 def create_validate_customers(
@@ -190,18 +219,23 @@ def create_validate_customers(
     provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale customer is to be provisioned for Cisco Webex Services. Each Customer Template will have its unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."),
     org_id: str = typer.Option(None, "--org-id", help="The organization ID of the enterprise in Cisco Webex."),
     external_id: str = typer.Option(None, "--external-id", help="External ID of the Wholesale customer."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Precheck a Wholesale Customer Provisioning\n\nExample --json-body:\n  '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE_CUSTOMERS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/customers/validate"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if provisioning_id is not None:
@@ -214,21 +248,25 @@ def create_validate_customers(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
 @app.command("list-sub-partners")
 def list_sub_partners(
     provisioning_state: str = typer.Option(None, "--provisioning-state", help="Status to filter sub-partners based on provisioning state."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -248,12 +286,11 @@ def list_sub_partners(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -269,7 +306,8 @@ def list_subscribers(
     sort_by: str = typer.Option(None, "--sort-by", help="Supported `sortBy` attributes are `created` and `lastStatusChange`. Default is `created`."),
     sort_order: str = typer.Option(None, "--sort-order", help="Sort by `ASC` (ascending) or `DESC` (descending)."),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -307,14 +345,15 @@ def list_subscribers(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_CREATE_SUBSCRIBERS = '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'
 
 @app.command("create-subscribers")
 def create_subscribers(
@@ -322,18 +361,23 @@ def create_subscribers(
     customer_id: str = typer.Option(None, "--customer-id", help="(required) ID of the Provisioned Customer for Webex Wholesale."),
     email: str = typer.Option(None, "--email", help="(required) The email address of the subscriber (mandatory for the trusted email provisioning flow)."),
     package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Provision a Wholesale Subscriber\n\nExample --json-body:\n  '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUBSCRIBERS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/subscribers"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if customer_id is not None:
@@ -350,14 +394,17 @@ def create_subscribers(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -365,7 +412,8 @@ def create_subscribers(
 def show_subscribers(
     subscriber_id: str = typer.Argument(help="subscriberId"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Wholesale Subscriber."""
@@ -378,34 +426,36 @@ def show_subscribers(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    else:
-        if isinstance(result, dict):
-            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)
-        elif isinstance(result, list):
-            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)
-        else:
-            print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UPDATE_SUBSCRIBERS = '{"package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'
 
 @app.command("update-subscribers")
 def update_subscribers(
     subscriber_id: str = typer.Argument(help="subscriberId"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard, attendant_console, cx_premium_agent, cx_standard_agent"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Wholesale Subscriber\n\nExample --json-body:\n  '{"package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SUBSCRIBERS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/subscribers/{subscriber_id}"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if package is not None:
@@ -414,7 +464,12 @@ def update_subscribers(
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -423,6 +478,8 @@ def delete_subscribers(
     subscriber_id: str = typer.Argument(help="subscriberId"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove a Wholesale Subscriber."""
@@ -434,12 +491,19 @@ def delete_subscribers(
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     try:
-        api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {subscriber_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {subscriber_id}")
 
 
+
+_BODY_SKELETON_CREATE_VALIDATE_SUBSCRIBERS = '{"email":"...","provisioningId":"...","customerId":"...","package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"customerInfo":{"primaryEmail":"..."}}'
 
 @app.command("create-validate-subscribers")
 def create_validate_subscribers(
@@ -448,18 +512,23 @@ def create_validate_subscribers(
     customer_id: str = typer.Option(None, "--customer-id", help="ID of the Provisioned Customer for Webex Wholesale."),
     email: str = typer.Option(None, "--email", help="(required) The email address of the subscriber."),
     package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Precheck a Wholesale Subscriber Provisioning\n\nExample --json-body:\n  '{"email":"...","provisioningId":"...","customerId":"...","package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"customerInfo":{"primaryEmail":"..."}}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE_SUBSCRIBERS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/subscribers/validate"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if provisioning_id is not None:
@@ -478,14 +547,17 @@ def create_validate_subscribers(
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -493,8 +565,9 @@ def create_validate_subscribers(
 def create_consent_move(
     subscriber_id: str = typer.Argument(help="subscriberId"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Send Consent User Move Email to Pending Wholesale Subscribers."""
@@ -504,20 +577,23 @@ def create_consent_move(
     if on_behalf_of_sub_partner_org_id is not None:
         params["onBehalfOfSubPartnerOrgId"] = on_behalf_of_sub_partner_org_id
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
     try:
         result = api.session.rest_post(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 

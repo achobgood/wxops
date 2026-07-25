@@ -1,26 +1,36 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
 
 
 app = typer.Typer(help="Manage Webex Calling domains.")
 
 
+_BODY_SKELETON_GET_DOMAIN_VERIFICATION = '{"domain":"..."}'
+
 @app.command("get-domain-verification")
 def get_domain_verification(
     domain: str = typer.Option(None, "--domain", help="A valid domain name."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Domain Verification Token."""
+    """Get Domain Verification Token\n\nExample --json-body:\n  '{"domain":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_GET_DOMAIN_VERIFICATION), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/getDomainVerificationToken"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if domain is not None:
@@ -29,24 +39,34 @@ def get_domain_verification(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_VERIFY_DOMAIN = '{"domain":"...","claimDomain":true,"reserveDomain":true}'
 
 @app.command("verify-domain")
 def verify_domain(
     domain: str = typer.Option(None, "--domain", help="The domain name to be verified."),
     claim_domain: str = typer.Option(None, "--claim-domain", help="A boolean to specify whether the domain needs to be claimed. The default value is false. If false, the domain will be verified but not claimed."),
     reserve_domain: str = typer.Option(None, "--reserve-domain", help="For FedRAMP only: If true, add the domain to the FedRAMP reserved domain list. The default value is false."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Verify Domain."""
+    """Verify Domain\n\nExample --json-body:\n  '{"domain":"...","claimDomain":true,"reserveDomain":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_VERIFY_DOMAIN), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/verifyDomain"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if domain is not None:
@@ -59,23 +79,33 @@ def verify_domain(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CLAIM_DOMAIN = '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'
 
 @app.command("claim-domain")
 def claim_domain(
     force_domain_claim: str = typer.Option(None, "--force-domain-claim", help="Indicate if the domain should be claimed when there are users outside the organization using the same domain. The default is true."),
     claim_domain_only: str = typer.Option(None, "--claim-domain-only", help="Indicate to just claim the domain only without searching/marking external users as transient. The default is false."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Claim Domain\n\nExample --json-body:\n  '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CLAIM_DOMAIN), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/claimDomain"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if force_domain_claim is not None:
@@ -86,23 +116,33 @@ def claim_domain(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UNVERIFY_DOMAIN = '{"domain":"...","removePending":true}'
 
 @app.command("unverify-domain")
 def unverify_domain(
     domain: str = typer.Option(None, "--domain", help="Domain name to be verified."),
     remove_pending: str = typer.Option(None, "--remove-pending", help="Specify whether to remove pending domain. Default is false (backward compatibility). If true, domains will be deleted from pending domain list."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unverify Domain."""
+    """Unverify Domain\n\nExample --json-body:\n  '{"domain":"...","removePending":true}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UNVERIFY_DOMAIN), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unverifyDomain"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if domain is not None:
@@ -113,22 +153,32 @@ def unverify_domain(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_UNCLAIM_DOMAIN = '{"domain":"..."}'
 
 @app.command("unclaim-domain")
 def unclaim_domain(
     domain: str = typer.Option(None, "--domain", help="A claimed domain."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unclaim Domain."""
+    """Unclaim Domain\n\nExample --json-body:\n  '{"domain":"..."}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UNCLAIM_DOMAIN), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/actions/unclaimDomain"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if domain is not None:
@@ -137,6 +187,8 @@ def unclaim_domain(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    print_json(result)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
