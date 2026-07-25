@@ -408,6 +408,165 @@ class TestDiscover:
         assert "discover" in state["completed_stages"]
 
 
+def _fake_toolkit(root: Path, versions: dict[str, str]) -> Path:
+    """Build an axlsqltoolkit tree: {dir name: AXL version declared inside}."""
+    schema = root / "axlsqltoolkit" / "schema"
+    for dirname, axl_version in versions.items():
+        d = schema / dirname
+        d.mkdir(parents=True)
+        (d / "AXLAPI.wsdl").write_text(
+            f'<definitions xmlns:xsd1="http://www.cisco.com/AXL/API/{axl_version}"/>'
+        )
+    return schema
+
+
+class TestWsdlResolution:
+    """Version detection, local WSDL search, and mismatch refusal."""
+
+    @pytest.fixture
+    def discover_mocks(self):
+        """Patch the TCP probe, AXL client, and discovery for a 42-object run."""
+        with patch("wxcli.commands.cucm.socket.socket") as mock_socket_cls, \
+             patch("wxcli.migration.cucm.discovery.run_discovery") as mock_discover, \
+             patch("wxcli.migration.cucm.connection.AXLConnection") as mock_conn_cls, \
+             patch("wxcli.migration.cucm.connection.detect_cucm_version") as mock_detect:
+            mock_socket_cls.return_value.connect_ex.return_value = 0
+            mock_result = MagicMock()
+            mock_result.raw_data = {"locations": {"device_pools": []}}
+            mock_result.cucm_version = "14.0.1.11900(132)"
+            mock_result.total_objects = 42
+            mock_result.total_failed = 0
+            mock_result.extractor_results = {}
+            mock_discover.return_value = mock_result
+            yield mock_conn_cls, mock_detect
+
+    def _invoke(self, *extra):
+        return runner.invoke(
+            app,
+            ["discover", "--host", "10.0.0.1", "--username", "admin",
+             "--password", "secret", *extra],
+        )
+
+    def test_auto_selects_matching_local_wsdl(
+        self, tmp_migrations_dir, tmp_path, monkeypatch, discover_mocks
+    ):
+        """A local toolkit is found and the version-matching schema is used."""
+        mock_conn_cls, mock_detect = discover_mocks
+        mock_detect.return_value = "14.0.1.11900(132)"
+        schema = _fake_toolkit(tmp_path, {"14.0": "14.0", "current": "15.0"})
+        monkeypatch.setattr(
+            "wxcli.commands.cucm.WSDL_SEARCH_GLOBS",
+            (str(schema / "*" / "AXLAPI.wsdl"),),
+        )
+        runner.invoke(app, ["init", "test-project"])
+
+        result = self._invoke()
+
+        assert result.exit_code == 0
+        assert "Discovery complete" in result.output
+        expected = str(schema / "14.0" / "AXLAPI.wsdl")
+        assert mock_conn_cls.call_args.kwargs["wsdl_path"] == expected
+        assert "Paste the full path" not in result.output
+
+    def test_does_not_auto_select_non_matching_version(
+        self, tmp_migrations_dir, tmp_path, monkeypatch, discover_mocks
+    ):
+        """A toolkit holding only 15.0 must not be used for a 14.0 cluster."""
+        mock_conn_cls, mock_detect = discover_mocks
+        mock_detect.return_value = "14.0.1.11900(132)"
+        schema = _fake_toolkit(tmp_path, {"current": "15.0"})
+        monkeypatch.setattr(
+            "wxcli.commands.cucm.WSDL_SEARCH_GLOBS",
+            (str(schema / "*" / "AXLAPI.wsdl"),),
+        )
+        runner.invoke(app, ["init", "test-project"])
+
+        result = self._invoke()
+
+        assert result.exit_code == 0
+        assert mock_conn_cls.call_args.kwargs["wsdl_path"] is None
+        assert "Using local AXL" not in result.output
+
+    def test_mismatched_wsdl_refused(
+        self, tmp_migrations_dir, tmp_path, discover_mocks
+    ):
+        """A 15.0 WSDL against a 14.0 cluster is rejected before any AXL call."""
+        mock_conn_cls, mock_detect = discover_mocks
+        mock_detect.return_value = "14.0.1.11900(132)"
+        schema = _fake_toolkit(tmp_path, {"14.0": "14.0", "current": "15.0"})
+        runner.invoke(app, ["init", "test-project"])
+
+        result = self._invoke("--wsdl", str(schema / "current" / "AXLAPI.wsdl"))
+
+        assert result.exit_code == 1
+        assert "WSDL version mismatch" in result.output
+        assert "14.0" in result.output and "15.0" in result.output
+        assert str(schema / "14.0" / "AXLAPI.wsdl") in result.output.replace("\n", "")
+        mock_conn_cls.assert_not_called()
+
+    def test_saved_config_wsdl_is_validated(
+        self, tmp_migrations_dir, tmp_path, discover_mocks
+    ):
+        """A stale wrong-version wsdl_path in config.json is caught, not reused."""
+        mock_conn_cls, mock_detect = discover_mocks
+        mock_detect.return_value = "14.0.1.11900(132)"
+        schema = _fake_toolkit(tmp_path, {"14.0": "14.0", "current": "15.0"})
+        runner.invoke(app, ["init", "test-project"])
+        cfg_path = tmp_migrations_dir / "test-project" / "config.json"
+        cfg = json.loads(cfg_path.read_text())
+        cfg["wsdl_path"] = str(schema / "current" / "AXLAPI.wsdl")
+        cfg_path.write_text(json.dumps(cfg))
+
+        result = self._invoke()
+
+        assert result.exit_code == 1
+        assert "WSDL version mismatch" in result.output
+        assert "config.json" in result.output
+        mock_conn_cls.assert_not_called()
+
+    def test_matching_wsdl_still_works(
+        self, tmp_migrations_dir, tmp_path, discover_mocks
+    ):
+        """An explicitly-supplied correct WSDL behaves exactly as before."""
+        mock_conn_cls, mock_detect = discover_mocks
+        mock_detect.return_value = "14.0.1.11900(132)"
+        schema = _fake_toolkit(tmp_path, {"14.0": "14.0"})
+        wsdl = str(schema / "14.0" / "AXLAPI.wsdl")
+        runner.invoke(app, ["init", "test-project"])
+
+        result = self._invoke("--wsdl", wsdl)
+
+        assert result.exit_code == 0
+        assert "Discovery complete" in result.output
+        assert mock_conn_cls.call_args.kwargs["wsdl_path"] == wsdl
+        state = json.loads(
+            (tmp_migrations_dir / "test-project" / "state.json").read_text()
+        )
+        assert "discover" in state["completed_stages"]
+
+    def test_non_interactive_does_not_prompt(
+        self, tmp_migrations_dir, monkeypatch, discover_mocks
+    ):
+        """With no TTY the WSDL prompt is replaced by an actionable error."""
+        mock_conn_cls, mock_detect = discover_mocks
+        mock_detect.return_value = "14.0.1.11900(132)"
+        monkeypatch.setattr("wxcli.commands.cucm.WSDL_SEARCH_GLOBS", ())
+        mock_conn_cls.side_effect = Exception(
+            "Failed to load WSDL from https://10.0.0.1:8443/axl/"
+            "AXLAPIService?wsdl: 403 Client Error: Forbidden"
+        )
+        runner.invoke(app, ["init", "test-project"])
+
+        result = self._invoke()
+
+        assert result.exit_code == 1
+        assert "not interactive" in result.output
+        assert "--wsdl" in result.output
+        # Names the schema directory matching the detected cluster version
+        assert "schema/14.0/AXLAPI.wsdl" in result.output.replace("\n", "")
+        assert "Paste the full path" not in result.output
+
+
 class TestNormalize:
     def test_normalize_success(self, tmp_migrations_dir):
         runner.invoke(app, ["init", "test-project"])
