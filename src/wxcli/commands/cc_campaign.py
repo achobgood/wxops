@@ -1,13 +1,17 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-campaign.")
 
+
+_BODY_SKELETON_CREATE = '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0}'
 
 @app.command("create")
 def create(
@@ -30,16 +34,21 @@ def create(
     ivr_ports: str = typer.Option(None, "--ivr-ports", help="The number of IVR ports to use for this campaign. IVR ports are in use when calling a customer until the call is either ended or transferred to an agent. One IVR port can be considered equivalent to an agent in an agent based campaign.The range is from 1 to 1000."),
     preview_offer_timeout: str = typer.Option(None, "--preview-offer-timeout", help="(Required if previewOfferTimeoutAutoAction is provided, optional otherwise) The number of seconds dialer waits for an agent to act on a preview campaign record, before performing the provided previewOfferTimeoutAutoAction. The range is from 0 to 7200(2 hours) for ACCEPT auto-action and 10 to 7200(2..."),
     preview_offer_timeout_auto_action: str = typer.Option(None, "--preview-offer-timeout-auto-action", help="(Required if previewOfferTimeout is provided, optional otherwise) The automatic action to be performed after the previewOfferTimeout duration has elapsed, if agent takes no action on the preview campaign record offered. Should be one of \"ACCEPT\", \"SKIP\", \"REMOVE\". The default is \"SKIP\"."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Start Campaign Request\n\nExample --json-body:\n  '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if id_param is not None:
@@ -88,14 +97,17 @@ def create(
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    if output == "json":
-        print_json(result)
-    elif isinstance(result, dict) and "id" in result:
-        typer.echo(f"Created: {result['id']}")
-    elif not result or result == {}:
-        typer.echo("Created.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
     else:
-        print_json(result)
+        emit(result, output=output, fields=fields)
 
 
 
@@ -104,7 +116,8 @@ def cmd_list(
     campaign_id: str = typer.Option(..., "--campaign-id", help="The campaign ID for which valid campaign times are being requested."),
     agent_id: str = typer.Option(..., "--agent-id", help="The agent ID for whom valid campaign times are being requested."),
     tracking_id: str = typer.Option(None, "--tracking-id", help="Optional tracking identifier for request tracing."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -130,14 +143,15 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
+
+_BODY_SKELETON_UPDATE = '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0}'
 
 @app.command("update")
 def update(
@@ -152,15 +166,21 @@ def update(
     reservation_percentage: str = typer.Option(None, "--reservation-percentage", help="(Not in use) The percentage of agents to reserve within the queue associated with the campaign. The range is from 0 to 100 , default is 100."),
     preview_offer_timeout: str = typer.Option(None, "--preview-offer-timeout", help="(Required only if previewOfferTimeoutAutoAction is provided) The number of seconds dialer waits for an agent to act on a preview campaign record, before performing the provided previewOfferTimeoutAutoAction. The range is from 0 to 7200 seconds(2 hours) for ACCEPT auto-action, and from 10 to 7200..."),
     preview_offer_timeout_auto_action: str = typer.Option(None, "--preview-offer-timeout-auto-action", help="(Required only if previewOfferTimeout is provided) The automatic action to be performed after the previewOfferTimeout duration has elapsed, if agent takes no action on the preview campaign record offered. The action can be \"ACCEPT\", \"SKIP\" or \"REMOVE\". The default action is \"SKIP\"."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Campaign Request\n\nExample --json-body:\n  '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
     if json_body:
-        body = json.loads(json_body)
+        body = load_json_body(json_body)
     else:
         body = {}
         if dialing_rate is not None:
@@ -187,7 +207,12 @@ def update(
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Updated.")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Updated.")
 
 
 
@@ -195,6 +220,8 @@ def update(
 def delete(
     campaign_id: str = typer.Argument(help="campaignId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Stop Campaign Request."""
@@ -204,9 +231,14 @@ def delete(
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
     try:
-        api.session.rest_delete(url)
+        result = api.session.rest_delete(url)
     except WebexError as e:
         handle_rest_error(e)
-    typer.echo(f"Deleted: {campaign_id}")
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    else:
+        typer.echo(f"Deleted: {campaign_id}")
 
 

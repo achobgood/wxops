@@ -1,8 +1,10 @@
 import json
+import httpx
 import typer
 from wxcli.auth import get_api
-from wxcli.errors import WebexError, handle_rest_error
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
 
 
 app = typer.Typer(help="Manage Webex Calling workspace-metrics.")
@@ -17,7 +19,8 @@ def cmd_list(
     to: str = typer.Option(None, "--to", help="List data points before a specific date and time (ISO 8601 timestamp)"),
     unit: str = typer.Option(None, "--unit", help="Choices: celsius, fahrenheit"),
     sort_by: str = typer.Option(None, "--sort-by", help="Choices: newestFirst, oldestFirst"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -49,12 +52,11 @@ def cmd_list(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('Start', 'start'), ('End', 'end'), ('Metric', 'metricName'), ('Value', 'value')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Start', 'start'), ('End', 'end'), ('Metric', 'metricName'), ('Value', 'value')], limit=limit)
 
 
 
@@ -65,7 +67,8 @@ def list_workspace_duration_metrics(
     measurement: str = typer.Option(None, "--measurement", help="Choices: timeUsed, timeBooked"),
     from_param: str = typer.Option(None, "--from", help="Include data points after a specific date and time (ISO 8601 timestamp)."),
     to: str = typer.Option(None, "--to", help="Include data points before a specific date and time (ISO 8601 timestamp)."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
@@ -93,11 +96,10 @@ def list_workspace_duration_metrics(
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    if output == "json":
-        print_json(items)
-    else:
-        print_table(items, columns=[('Start', 'start'), ('End', 'end'), ('Duration', 'duration')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Start', 'start'), ('End', 'end'), ('Duration', 'duration')], limit=limit)
 
 
