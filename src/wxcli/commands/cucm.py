@@ -41,6 +41,17 @@ from wxcli.output import plain_mode
 
 logger = logging.getLogger(__name__)
 console = Console()
+# stderr=True: report()/user_diff()/user_notice() below print human prose
+# (e.g. "Report generated: ...") ahead of a machine-readable
+# emit(..., output="json") on stdout, so `wxcli cucm report | jq .reportHtml`
+# failed to parse — the identical defect cleanup.py's `Console(stderr=True)`
+# already fixed. The module `console` above stays on stdout deliberately:
+# preflight/decisions/inventory/next-batch/execution-status/rollback-ops/
+# dry-run render their `-o table` result as console.print(<rich Table>), so
+# redirecting the whole module console to stderr would silently empty
+# `wxcli cucm decisions -o table > file.txt`. Scoping the stderr redirect to
+# just these three report writers' prose avoids that regression.
+report_console = Console(stderr=True)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -2860,7 +2871,7 @@ def report(
     # Check that analyze stage is complete (report is not in STAGE_PREREQUISITES)
     completed = _completed_stages(project_dir)
     if "analyze" not in completed:
-        console.print(
+        report_console.print(
             "[red]Cannot generate report — 'analyze' stage has not been completed.[/red]\n"
             f"Completed stages: {', '.join(completed) if completed else '(none)'}",
         )
@@ -2887,7 +2898,7 @@ def report(
         # Write HTML file
         html_path = project_dir / f"{output}.html"
         html_path.write_text(html_content, encoding="utf-8")
-        console.print(f"[green]Report generated:[/green] {html_path}")
+        report_console.print(f"[green]Report generated:[/green] {html_path}")
         pdf_generated_path: str | None = None
 
         # Optional PDF generation via headless Chrome
@@ -2940,16 +2951,16 @@ def report(
                         capture_output=True,
                         timeout=60,
                     )
-                    console.print(f"[green]PDF generated:[/green] {pdf_path}")
+                    report_console.print(f"[green]PDF generated:[/green] {pdf_path}")
                     pdf_generated_path = str(pdf_path)
                 except subprocess.CalledProcessError as exc:
-                    console.print(
+                    report_console.print(
                         f"[yellow]PDF generation failed:[/yellow] {exc.stderr.decode()[:200]}"
                     )
                 except subprocess.TimeoutExpired:
-                    console.print("[yellow]PDF generation timed out after 60 seconds.[/yellow]")
+                    report_console.print("[yellow]PDF generation timed out after 60 seconds.[/yellow]")
             else:
-                console.print(
+                report_console.print(
                     "[yellow]No Chrome/Chromium found — skipping PDF generation.[/yellow]\n"
                     "Install Chrome or Chromium to enable PDF output."
                 )
@@ -2988,7 +2999,7 @@ def user_diff(
 
     completed = _completed_stages(project_dir)
     if "analyze" not in completed:
-        console.print(
+        report_console.print(
             "[red]Cannot generate user diff — 'analyze' stage has not been completed.[/red]\n"
             f"Completed stages: {', '.join(completed) if completed else '(none)'}",
         )
@@ -3018,8 +3029,8 @@ def user_diff(
 
         out_path = project_dir / f"{output}.{ext}"
         out_path.write_text(content, encoding="utf-8")
-        console.print(f"[green]User diff generated:[/green] {out_path}")
-        console.print(f"  {len(records)} user{'s' if len(records) != 1 else ''} included")
+        report_console.print(f"[green]User diff generated:[/green] {out_path}")
+        report_console.print(f"  {len(records)} user{'s' if len(records) != 1 else ''} included")
         emit(
             {"diffPath": str(out_path), "format": ext, "userCount": len(records)},
             output="json", fields=fields,
@@ -3056,7 +3067,7 @@ def user_notice(
 
     completed = _completed_stages(project_dir)
     if "analyze" not in completed:
-        console.print(
+        report_console.print(
             "[red]Cannot generate notice — 'analyze' stage has not been completed.[/red]\n"
             f"Completed stages: {', '.join(completed) if completed else '(none)'}",
         )
@@ -3079,7 +3090,7 @@ def user_notice(
         ext = "txt" if text_only else "html"
         output_path = project_dir / f"{output}.{ext}"
         output_path.write_text(content, encoding="utf-8")
-        console.print(f"[green]User notice generated:[/green] {output_path}")
+        report_console.print(f"[green]User notice generated:[/green] {output_path}")
         emit(
             {"noticePath": str(output_path), "format": ext, "audience": audience, "brand": brand},
             output="json", fields=fields,
