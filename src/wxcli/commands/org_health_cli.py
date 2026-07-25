@@ -13,8 +13,12 @@ import typer
 from wxcli.org_health.analyze import run_analysis
 from wxcli.org_health.collector import validate_collection
 from wxcli.org_health.report import _deserialize_result, generate_report
+from wxcli.output import plain_mode
 
-app = typer.Typer(help="Org health assessment — analyze collected data, generate the report.")
+app = typer.Typer(
+    help="Org health assessment — analyze collected data, generate the report.",
+    rich_markup_mode=None if plain_mode() else "rich",
+)
 
 
 @app.command()

@@ -36,6 +36,7 @@ from wxcli.commands.cucm_config import (
     load_config,
     save_config,
 )
+from wxcli.output import plain_mode
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -76,12 +77,14 @@ app = typer.Typer(
     name="cucm",
     help="CUCM-to-Webex Calling migration tools.",
     no_args_is_help=True,
+    rich_markup_mode=None if plain_mode() else "rich",
 )
 
 config_app = typer.Typer(
     name="config",
     help="Migration project configuration.",
     no_args_is_help=True,
+    rich_markup_mode=None if plain_mode() else "rich",
 )
 app.add_typer(config_app, name="config")
 
