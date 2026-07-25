@@ -27,6 +27,37 @@ Three decision paths, evaluated in order:
 
 5. **No address, no devices** --> return `None` (genuinely ambiguous)
 
+### CROSS_SITE_DEPENDENCY: Constructs That Straddle a Location Boundary
+<!-- Source: transform/analyzers/cross_site.py, CROSS_SITE_RULES -->
+
+A CUCM cluster is one flat dial plan; a Webex org is a set of locations. Once device pools
+are consolidated into locations, any construct whose members resolve to more than one of
+those locations becomes a **phased-migration hazard**: Webex builds it at exactly one
+location, and during a site-by-site cutover the members on the other side are either not
+in Webex yet or are unreachable as shared state.
+
+The analyzer sweeps 18 rule rows across four classes: membership (hunt group, call queue,
+pickup group, paging group, DECT handsets), relationships (BLF monitoring, receptionist,
+executive/assistant, device layout line members, device-to-owner placement, hot-desk
+hosts), forwarding and overflow destinations, and shared DN appearances.
+
+| Condition | Severity | Reasoning |
+|-----------|----------|-----------|
+| Members span 3+ locations | `HIGH` | No single wave contains the construct |
+| Relation is `line_appearance` (shared DN/DID) | `HIGH` | No cross-system shared-line equivalent — a line lives in one system at a time |
+| Membership construct where the home location is not a strict majority | `HIGH` | The construct landed away from most of its people (the majority-vote trap) |
+| Everything else | `MEDIUM` | Reviewable, but never auto-resolvable |
+
+**There is no recommendation rule, and there never should be.** The choice between moving
+the stragglers forward into an earlier wave and accepting partial membership is a customer
+scheduling decision, not a technical one. The type is excluded from auto-resolution and
+blocks plan expansion of its construct until resolved.
+
+**Why the majority vote matters:** `feature_mapper._resolve_feature_location` picks a
+feature's location by majority vote of its members and records nothing when the vote is
+split. A group that is 3-in-site-A / 4-in-site-B is created in site B silently. The
+`location_vote` key in the decision context exposes the tally.
+
 ### When to Consolidate vs. Keep Separate
 
 The consolidation question maps to: "Does this CUCM device pool represent a distinct physical site, or is it a logical grouping within one site?"
@@ -293,6 +324,18 @@ If any signal fires, recommend either (a) integrating RedSky Horizon / dynamic-l
 **Confidence:** HIGH — grounded in `emergency-services.md` (Kari's Law + RAY BAUM's Act requirements) and `advisory_patterns.py:1066` (`detect_e911_migration_flag` always-fires design). The three topology signals are industry-standard concerns documented in RAY BAUM's Act compliance guidance.
 
 <!-- Source: emergency-services.md lines 17, 581-609, 595-596; ecbn_mapper.py LOCATION_ECBN selection path; advisory_patterns.py e911 pattern -->
+
+---
+
+### DT-LOC-007: Cross-Site Construct Flagged but the Real Problem Is the Location Split
+
+**Condition:** `CROSS_SITE_DEPENDENCY` decisions cluster on a single pair of locations — the same two locations account for most of the flagged constructs, and their members overlap heavily.
+
+**Why the static rule misses this:** The analyzer evaluates each construct independently. It correctly reports that a hunt group, a pickup group, three BLF lists, and two shared DNs each straddle Site A and Site B — but it cannot see that this is one signal repeated seven times. When two CUCM device pools were consolidated into two Webex locations even though they are one operational site (one team, one floor, shared coverage), every construct that spans them is flagged, and the operator's instinct is to work through them one at a time.
+
+**Advisor should:** When 3+ cross-site decisions share the same location pair AND the member sets overlap, do not review them individually. Re-open the `LOCATION_AMBIGUOUS` / location-consolidation decision for those two locations first — merging them at the design stage resolves every dependent decision at once. Cross-check against the "One Building, Five Device Pools" pattern above: heavy cross-site coupling is evidence the split is logical rather than physical. Only when the two locations are genuinely separate sites (different addresses, different emergency response zones — see DT-LOC-001) should the constructs be reviewed one by one.
+
+**Signals to look for:** A single `(home_location, remote_location)` pair dominating Appendix AF of the assessment report; the same user canonical IDs appearing as remote members across several unrelated construct types; both locations sharing a street address or an ERL.
 
 ---
 
