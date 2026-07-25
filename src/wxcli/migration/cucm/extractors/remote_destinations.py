@@ -16,21 +16,15 @@ from wxcli.migration.cucm.extractors.base import BaseExtractor, ExtractionResult
 
 logger = logging.getLogger(__name__)
 
-# returnedTags for listRemoteDestination (from tier2 spec §4)
+# returnedTags for listRemoteDestination (from tier2 spec §4).
+# LRemoteDestination has no <ownerUserId> in the AXL schema — it exists only on
+# the getRemoteDestination response, which _extract_remote_destinations merges
+# over each summary, so owner attribution is not lost.
 REMOTE_DEST_LIST_RETURNED_TAGS = {
     "name": "",
     "destination": "",
-    "ownerUserId": "",
     "isMobilePhone": "",
     "enableMobileConnect": "",
-}
-
-# Additional fields from getRemoteDestination
-REMOTE_DEST_GET_RETURNED_TAGS = {
-    "answerTooSoonTimer": "",
-    "answerTooLateTimer": "",
-    "lineAssociations": "",
-    "remoteDestinationProfileName": "",
 }
 
 

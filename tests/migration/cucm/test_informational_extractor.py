@@ -22,6 +22,12 @@ def _mock_connection(list_results=None, sql_results=None, get_results=None):
     get_results = get_results or {}
 
     def paginated_list(method_name, search_criteria, returned_tags, page_size):
+        # listServiceParameter is issued twice with different criteria
+        # (enterprise params vs telephony service params) — let a key of
+        # "method:<service criterion>" target one of them.
+        keyed = f"{method_name}:{search_criteria.get('service')}"
+        if keyed in list_results:
+            return list_results[keyed]
         return list_results.get(method_name, [])
 
     conn.paginated_list = MagicMock(side_effect=paginated_list)
@@ -145,23 +151,29 @@ class TestInformationalExtractorEnterprise:
     """Test enterprise params and service params."""
 
     def test_extracts_enterprise_params(self):
-        conn = _mock_connection()
-        from unittest.mock import patch
-        mock_params = {"clusterName": "CUCM-LAB", "clusterDescription": "Lab cluster"}
-        conn.service.getEnterprise.return_value = mock_params
-        with patch(
-            "zeep.helpers.serialize_object",
-            return_value=mock_params,
-        ):
-            ext = InformationalExtractor(conn)
-            ext.extract()
+        conn = _mock_connection(list_results={
+            "listServiceParameter:Enterprise Wide": [
+                {"name": "ClusterID", "value": "CUCM-LAB"},
+                {"name": "AutoRegistrationPartition", "value": ""},
+            ],
+        })
+        ext = InformationalExtractor(conn)
+        ext.extract()
         ep = ext.results.get("enterprise_params", [])
         assert len(ep) == 1
         assert ep[0]["_category"] == "planning"
+        assert ep[0]["name"] == "Enterprise Parameters"
+        assert ep[0]["ClusterID"] == "CUCM-LAB"
+
+    def test_enterprise_params_absent_when_no_rows(self):
+        conn = _mock_connection()
+        ext = InformationalExtractor(conn)
+        ext.extract()
+        assert ext.results.get("enterprise_params") == []
 
     def test_extracts_service_params_filtered(self):
         conn = _mock_connection(list_results={
-            "listProcessConfig": [
+            "listServiceParameter:%": [
                 {"name": "MaxCallDuration", "service": "Cisco CallManager", "value": "720"},
                 {"name": "SomeWebParam", "service": "Cisco Tomcat", "value": "true"},
                 {"name": "TFTPMaxThreads", "service": "Cisco TFTP", "value": "50"},
@@ -176,6 +188,133 @@ class TestInformationalExtractorEnterprise:
         assert "Cisco CallManager" in services
         assert "Cisco TFTP" in services
         assert "Cisco Tomcat" not in services
+
+
+class TestInformationalAXL14Signatures:
+    """returnedTags must match the AXL schema — invalid tags fail the whole call."""
+
+    # field -> AXL list method that must no longer request it
+    INVALID_TAGS = {
+        "listMediaResourceList": ["description"],
+        "listAarGroup": ["description"],
+        "listCredentialPolicy": ["description"],
+        "listAppUser": ["description", "associatedDevices"],
+    }
+
+    def test_requested_tags_omit_fields_absent_from_axl_schema(self):
+        conn = _mock_connection()
+        conn.version = "14.0"
+        ext = InformationalExtractor(conn)
+        ext.extract()
+
+        requested = {
+            call.args[0]: call.args[2] for call in conn.paginated_list.call_args_list
+        }
+        for method, bad_fields in self.INVALID_TAGS.items():
+            assert method in requested, f"{method} was never called"
+            for field in bad_fields:
+                assert field not in requested[method], (
+                    f"{method} still requests '{field}', which AXL rejects"
+                )
+
+    def test_constant_table_omits_invalid_tags(self):
+        by_method = {t[1]: t[3] for t in INFORMATIONAL_TYPES}
+        for method, bad_fields in self.INVALID_TAGS.items():
+            for field in bad_fields:
+                assert field not in by_method[method]
+
+
+class TestInformationalRealOperationNames:
+    """The AXL operations these types need exist, under their real names."""
+
+    def test_ip_phone_services_uses_plural_operation(self):
+        conn = _mock_connection(list_results={
+            "listIpPhoneServices": [
+                {
+                    "serviceName": "Corp Directory",
+                    "serviceDescription": "LDAP lookup",
+                    "serviceUrl": "http://dir.local",
+                    "serviceType": "Standard",
+                },
+            ],
+        })
+        ext = InformationalExtractor(conn)
+        ext.extract()
+        svcs = ext.results.get("ip_phone_service", [])
+        assert len(svcs) == 1
+        # aliased so the normalizer (keys on "name") and report still work
+        assert svcs[0]["name"] == "Corp Directory"
+        assert svcs[0]["url"] == "http://dir.local"
+        assert svcs[0]["description"] == "LDAP lookup"
+        # raw AXL fields preserved alongside the aliases
+        assert svcs[0]["serviceName"] == "Corp Directory"
+
+    def test_aliased_object_normalizes_to_canonical_id(self):
+        """End-to-end guard: extractor output must survive the normalizer."""
+        conn = _mock_connection(list_results={
+            "listIpPhoneServices": [
+                {"serviceName": "Weather", "serviceUrl": "http://w.local"},
+            ],
+        })
+        ext = InformationalExtractor(conn)
+        ext.extract()
+        normalizer = NORMALIZER_REGISTRY["info_ip_phone_service"]
+        obj = normalizer(ext.results["ip_phone_service"][0], cluster="default")
+        assert obj is not None
+        assert obj.canonical_id == "info_ip_phone_service:Weather"
+
+    def test_no_call_uses_a_nonexistent_operation(self):
+        """listIpPhoneService / listProcessConfig / getEnterprise do not exist."""
+        conn = _mock_connection()
+        ext = InformationalExtractor(conn)
+        ext.extract()
+        called = {c.args[0] for c in conn.paginated_list.call_args_list}
+        assert "listIpPhoneService" not in called
+        assert "listProcessConfig" not in called
+        assert "listIpPhoneServices" in called
+        assert "listServiceParameter" in called
+        conn.service.getEnterprise.assert_not_called()
+
+
+class TestInformationalUnsupportedOperations:
+    """Operations absent from the WSDL are skipped, not counted as failures."""
+
+    UNSUPPORTED_MSG = "Service has no operation 'listIpPhoneService'"
+
+    def test_missing_list_operation_is_unsupported_not_failed(self):
+        conn = _mock_connection()
+        conn.version = "14.0"
+        conn.paginated_list.side_effect = AttributeError(self.UNSUPPORTED_MSG)
+        ext = InformationalExtractor(conn)
+        result = ext.extract()
+        assert result.failed == 0
+        assert any(
+            "unsupported on AXL 14.0" in e and "listIpPhoneService" in e
+            for e in result.errors
+        )
+
+    def test_missing_service_parameter_op_is_unsupported_not_failed(self):
+        conn = _mock_connection()
+        conn.version = "14.0"
+        conn.paginated_list.side_effect = AttributeError(
+            "Service has no operation 'listServiceParameter'"
+        )
+        ext = InformationalExtractor(conn)
+        result = ext.extract()
+        assert result.failed == 0
+        assert (
+            result.errors.count("listServiceParameter unsupported on AXL 14.0 — skipped")
+            == 2  # enterprise params + telephony service params
+        )
+
+    def test_genuine_failure_is_still_an_error(self):
+        conn = _mock_connection()
+        conn.version = "14.0"
+        conn.paginated_list.side_effect = Exception("AXL timeout")
+        ext = InformationalExtractor(conn)
+        result = ext.extract()
+        assert result.failed > 0
+        assert not any("unsupported" in e for e in result.errors)
 
 
 class TestInformationalTypes:

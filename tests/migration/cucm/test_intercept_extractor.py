@@ -11,6 +11,19 @@ def _make_extractor():
     return Tier4Extractor(conn), conn
 
 
+class TestCFAVoicemailSQLSchema:
+    """The CFA query must only reference columns that exist on CUCM 14.0."""
+
+    def test_uses_registrationdynamic_not_a_device_status_column(self):
+        from wxcli.migration.cucm.extractors.tier4 import _CFA_VOICEMAIL_SQL
+
+        # device has no registration-state column (verified on CUCM 14.0.1)
+        assert "tkstatus_registrationstate" not in _CFA_VOICEMAIL_SQL
+        # registration is presence in registrationdynamic, joined on fkdevice
+        assert "registrationdynamic" in _CFA_VOICEMAIL_SQL
+        assert "rd.fkdevice = d2.pkid" in _CFA_VOICEMAIL_SQL
+
+
 class TestExtractInterceptCandidates:
     def test_extract_blocked_partition_candidates(self):
         """DNs in partitions named like '%intercept%' or '%block%' are detected."""
