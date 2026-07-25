@@ -849,11 +849,36 @@ cli_name_overrides:
 # the generated group (the converged_recordings_export.register() pattern).
 # Decisions for the 13 CLI-ahead CC commands land at the first spec sync.
 keep_endpoints:
-  # 2026-07-01 operator decision (Adam): keep CLI-ahead commands — the
-  # endpoint may still work server-side even though the AI Assistant tag
-  # was removed from the published CC spec. cc_ai_assistant.py is a stale
-  # generated module kept on disk; it will NOT survive a future regen of a
-  # reintroduced AI Assistant tag (that regen would replace it wholesale).
+  # 2026-07-01 operator decision (Adam): keep the CLI-ahead cc-ai-assistant
+  # command even though the AI Assistant tag was removed from the
+  # published CC spec — the generator cannot rebuild this module while the
+  # tag is absent, so it stays a hand-maintained holdout.
+  #
+  # 2026-07-25 live probe (16:16:01 UTC) DISPROVES "may still work
+  # server-side": POST https://api.wxcc-us1.cisco.com/event -> 404,
+  # content-length: 0, empty body, server: istio-envoy, with real
+  # trackingid/x-request-id headers. Control: wxcli cc-site list -o json
+  # -> 200 with real data on the same token, ruling out an auth/scope
+  # artifact. Calibration: a different bad path on the same base URL
+  # returned 404 WITH a structured JSON backend body naming the resolved
+  # downstream path — a routed path reaches a backend that answers in
+  # JSON. /event's bare gateway 404 means no route is registered upstream
+  # for this operation at all.
+  #
+  # cc_ai_assistant.py was hand-converted on 2026-07-25 to match the
+  # uniform --output/--fields/--generate-json-body/httpx-error surface
+  # every generated command now has, because the generator cannot rebuild
+  # it while the tag is absent. If the AI Assistant tag ever returns
+  # upstream, the regen REPLACES this file wholesale and automatically
+  # produces the correct modern surface (the renderer emits --fields,
+  # uniform --output, --generate-json-body, and the httpx handler for
+  # every command) — no follow-up hand-editing needed.
+  #
+  # RECOMMENDED FOLLOW-UP: retire this command group entirely (delete the
+  # module, unregister it from _registry.py, drop this keep_endpoints
+  # entry). Deferred from this branch only because it changes the drift
+  # baseline from 176 command sets / 1872 commands to 175 / 1871, which
+  # this plan's gate is specified to match exactly.
   - "POST /event"   # cc-ai-assistant create ({cc_base_url}/event)
 
 # Per-spec tag-level overrides (command_name_overrides, body_defaults, etc.)
