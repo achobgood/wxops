@@ -52,6 +52,24 @@ def _path_var_to_param(var: str) -> str:
     return camel_to_snake(var)
 
 
+def _render_output_options(default_output: str = "json") -> list[str]:
+    """The --output/--fields pair, identical on every generated command.
+
+    --fields is deliberately not --query or --filter: those names are already
+    taken by 2 and 65 spec-derived parameters respectively. --fields is free on
+    every command, so this needs no per-command suppression. See the plan's
+    "Why --fields and not --query".
+    """
+    choices = "id|table|json|text" if default_output == "id" else "table|json|text"
+    return [
+        f'    output: str = typer.Option("{default_output}", "--output", "-o", '
+        f'help="Output format: {choices}"),',
+        '    fields: str = typer.Option(None, "--fields", '
+        'help="JMESPath expression selecting/filtering response fields, '
+        'e.g. \\"[].{name:name,id:id}\\""),',
+    ]
+
+
 def _render_imports(include_org_id: bool = False, include_org_id_path: bool = False,
                     include_cc_url: bool = False, include_cc_org_id: bool = False,
                     include_fs_url: bool = False, include_fs_project_id: bool = False) -> str:
@@ -60,6 +78,7 @@ import typer
 from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
+from wxcli.common import emit
 '''
     config_imports = []
     if include_org_id:
@@ -303,7 +322,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     limit_param_key = "limit" if has_spec_limit else "max"
     offset_param_key = "offset" if has_spec_offset else "start"
 
-    params.append('    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),')
+    params.extend(_render_output_options("table"))
     params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
     params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
@@ -379,10 +398,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             *_render_auto_inject_params(ep),
             *fetch_block,
             _render_error_handler("    "),
-            '    if output == "json":',
-            "        print_json(items)",
-            "    else:",
-            f"        print_table(items, columns={col_str}, limit=limit)",
+            f"    emit(items, output=output, fields=fields, columns={col_str}, limit=limit)",
         ]
     else:
         lines = [
@@ -400,10 +416,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             _render_error_handler("    "),
             f'    result = result or []',
         f'    items = result.get("{list_key}", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
-            '    if output == "json":',
-            "        print_json(items)",
-            "    else:",
-            f"        print_table(items, columns={col_str}, limit=limit)",
+            f"    emit(items, output=output, fields=fields, columns={col_str}, limit=limit)",
         ]
     return "\n".join(lines)
 
@@ -418,24 +431,16 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
         params.append(f'    {param}: str = typer.Argument(help="{var}"),')
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
-    params.append('    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json"),')
+    params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
 
-    # Show/settings-get commands: support --output for table rendering
-    # Empty-string accessors intentionally trigger print_table's auto-detect fallback,
-    # which derives columns from the response dict's actual keys.
+    # Show/settings-get commands: support --output for table rendering. The
+    # dict-in-table auto-detect behaviour is preserved inside emit() (Task 1's
+    # dict branch).
     show_output = [
-        '    if output == "json":',
-        "        print_json(result)",
-        "    else:",
-        '        if isinstance(result, dict):',
-        '            print_table([result], columns=[("Key", ""), ("Value", "")], limit=0)',
-        '        elif isinstance(result, list):',
-        '            print_table(result, columns=[("ID", "id"), ("Name", "name")], limit=0)',
-        '        else:',
-        '            print_json(result)',
+        "    emit(result, output=output, fields=fields)",
     ]
 
     has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
@@ -480,36 +485,44 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
 def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     # A destructive POST creates no resource, so there is no id to report and
     # "Created:" would be a lie — report what actually happened instead.
+    # The output == "id" branch keeps its per-endpoint id/message logic exactly
+    # as before; every other format routes through emit() (Task 3 decision:
+    # emit's id branch is data.get("id", ""), which can't handle a non-"id"
+    # response_id_key or the destructive-POST message).
     if getattr(ep, "real_semantics", None):
         return "\n".join([
-            '    if output == "json":',
-            '        print_json(result)',
-            '    else:',
+            '    if output == "id":',
             f'        typer.echo("{_success_message(ep, "Created.")}")',
+            '    else:',
+            '        emit(result, output=output, fields=fields)',
         ])
     # Prefer schema-derived response_id_key, fall back to folder overrides
     id_key = ep.response_id_key or (folder_overrides or {}).get("create", {}).get("id_key")
-    lines = ['    if output == "json":', '        print_json(result)']
+    lines = ['    if output == "id":']
     if id_key and id_key != "id":
         lines.extend([
-            f'    elif isinstance(result, dict) and "{id_key}" in result:',
-            f'        typer.echo(f"Created: {{result[\'{id_key}\']}}")',
-            f'    elif isinstance(result, dict) and "id" in result:',
-            f'        typer.echo(f"Created: {{result[\'id\']}}")',
-            f'    elif not result or result == {{}}:',
-            f'        typer.echo("Created.")',
-            f'    else:',
-            f'        print_json(result)',
+            f'        if isinstance(result, dict) and "{id_key}" in result:',
+            f'            typer.echo(f"Created: {{result[\'{id_key}\']}}")',
+            f'        elif isinstance(result, dict) and "id" in result:',
+            f'            typer.echo(f"Created: {{result[\'id\']}}")',
+            f'        elif not result or result == {{}}:',
+            f'            typer.echo("Created.")',
+            f'        else:',
+            f'            print_json(result)',
         ])
     else:
         lines.extend([
-            '    elif isinstance(result, dict) and "id" in result:',
-            '        typer.echo(f"Created: {result[\'id\']}")',
-            '    elif not result or result == {}:',
-            '        typer.echo("Created.")',
-            '    else:',
-            '        print_json(result)',
+            '        if isinstance(result, dict) and "id" in result:',
+            '            typer.echo(f"Created: {result[\'id\']}")',
+            '        elif not result or result == {}:',
+            '            typer.echo("Created.")',
+            '        else:',
+            '            print_json(result)',
         ])
+    lines.extend([
+        '    else:',
+        '        emit(result, output=output, fields=fields)',
+    ])
     return "\n".join(lines)
 
 
@@ -546,7 +559,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
-    params.append('    output: str = typer.Option("id", "--output", "-o", help="Output format: id|json"),')
+    params.extend(_render_output_options("id"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
@@ -641,6 +654,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+    params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
@@ -697,7 +711,10 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    try:",
         f"        {method_call}",
         _render_error_handler("    "),
-        f'    typer.echo(f"{_success_message(ep, "Updated.")}")',
+        "    if result:",
+        "        emit(result, output=output, fields=fields)",
+        "    else:",
+        f'        typer.echo(f"{_success_message(ep, "Updated.")}")',
     ]
     return "\n".join(lines)
 
@@ -736,6 +753,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     has_spec_force = any(qp.name == "force" for qp in ep.query_params)
     if not has_spec_force:
         params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
+    params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
@@ -743,10 +761,10 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     if ep.path_vars:
         id_var = _path_var_to_param(ep.path_vars[-1])
         confirm_line = f'        typer.confirm(f"Delete {{{id_var}}}?", abort=True)'
-        echo_line = f'    typer.echo(f"Deleted: {{{id_var}}}")'
+        echo_line = f'        typer.echo(f"Deleted: {{{id_var}}}")'
     else:
         confirm_line = '        typer.confirm("Delete this resource?", abort=True)'
-        echo_line = '    typer.echo("Deleted.")'
+        echo_line = '        typer.echo("Deleted.")'
 
     has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
     auto_inject = _render_auto_inject_params(ep)
@@ -780,10 +798,10 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     # so the 5 metadata-body deletes (reason/comment on recordings) behave exactly
     # as they do today rather than newly sending `{}`.
     if has_body:
-        delete_call = ("api.session.rest_delete(url, json=body or None)" if not has_params
-                       else "api.session.rest_delete(url, json=body or None, params=params)")
+        delete_call = ("result = api.session.rest_delete(url, json=body or None)" if not has_params
+                       else "result = api.session.rest_delete(url, json=body or None, params=params)")
     else:
-        delete_call = "api.session.rest_delete(url)" if not has_params else "api.session.rest_delete(url, params=params)"
+        delete_call = "result = api.session.rest_delete(url)" if not has_params else "result = api.session.rest_delete(url, params=params)"
 
     lines = [
         f'@app.command("{ep.command_name}")',
@@ -802,6 +820,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    try:",
         f"        {delete_call}",
         _render_error_handler("    "),
+        "    if result:",
+        "        emit(result, output=output, fields=fields)",
+        "    else:",
         echo_line,
     ]
     return "\n".join(lines)
@@ -828,6 +849,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),')
+    params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
@@ -860,7 +882,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    try:",
         f"        {post_call}",
         _render_error_handler("    "),
-        "    print_json(result)",
+        "    emit(result, output=output, fields=fields)",
     ]
     return "\n".join(lines)
 
