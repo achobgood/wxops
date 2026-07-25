@@ -760,6 +760,14 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     # body is missing". They could never have worked.
     used_names = _used_param_names(ep)
     has_body = bool(ep.body_fields)
+    # The flag and its early-exit block below must share this exact condition —
+    # never test ep.json_body_example alone here. json_body_example is normally
+    # only set when body_fields is non-empty (openapi_parser only populates it
+    # for body-bearing ops), but the renderer must not assume its own caller's
+    # invariant: an Endpoint built with json_body_example set and body_fields=[]
+    # (e.g. directly in a test) previously rendered `if generate_json_body:`
+    # with no such parameter declared — a NameError at runtime.
+    emits_generate_flag = has_body and bool(ep.json_body_example)
     if has_body:
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
@@ -770,7 +778,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
                 params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
             else:
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
-        if ep.json_body_example:
+        if emits_generate_flag:
             params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
         params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
 
@@ -796,7 +804,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         qp_build = ["    params = {}"]
 
     generate_json_body_check = []
-    if ep.json_body_example:
+    if emits_generate_flag:
         generate_json_body_check = [
             "    if generate_json_body:",
             f"        typer.echo(json.dumps(json.loads(_BODY_SKELETON_{func_name.upper()}), indent=2))",
