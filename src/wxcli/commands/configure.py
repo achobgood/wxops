@@ -3,8 +3,9 @@ from datetime import datetime, timedelta, timezone
 
 from wxcli.auth import WebexApi, WebexSession
 from wxcli.config import DEFAULT_CONFIG_PATH, load_config, save_config, save_org
+from wxcli.output import plain_mode
 
-app = typer.Typer(help="Configure authentication.")
+app = typer.Typer(help="Configure authentication.", rich_markup_mode=None if plain_mode() else "rich")
 
 
 def _resolve_org(api: WebexApi) -> tuple[str | None, str | None, bool]:

@@ -4,11 +4,13 @@ from datetime import datetime, timezone
 from wxcli import __version__
 from wxcli.auth import get_api, resolve_token, WebexApi, WebexSession
 from wxcli.config import get_expires_at, get_org_id, get_org_name, save_org
+from wxcli.output import plain_mode
 
 app = typer.Typer(
     name="wxcli",
     help="Webex Calling CLI — provision and manage Webex Calling from the terminal.",
     no_args_is_help=True,
+    rich_markup_mode=None if plain_mode() else "rich",
 )
 
 

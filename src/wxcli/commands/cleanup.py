@@ -26,6 +26,7 @@ CCP_INTEGRATED_ERROR_CODE = "ERR.V.TRM.TMN60004"
 
 from wxcli.auth import get_api
 from wxcli.config import get_org_id
+from wxcli.output import plain_mode
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -36,6 +37,7 @@ app = typer.Typer(
     name="cleanup",
     help="Batch-delete Webex Calling resources in dependency-safe order.",
     no_args_is_help=True,
+    rich_markup_mode=None if plain_mode() else "rich",
 )
 
 
