@@ -36,6 +36,7 @@ from wxcli.commands.cucm_config import (
     load_config,
     save_config,
 )
+from wxcli.common import emit, FIELDS_HELP
 from wxcli.output import plain_mode
 
 logger = logging.getLogger(__name__)
@@ -1449,6 +1450,7 @@ def preflight(
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be checked without querying Webex"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table or json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Run preflight checks against live Webex org before migration."""
@@ -1468,7 +1470,7 @@ def preflight(
         elapsed = time.time() - t0
 
         if output == "json":
-            _preflight_json_output(result)
+            _preflight_json_output(result, fields=fields)
         else:
             _preflight_table_output(result, elapsed)
 
@@ -1532,11 +1534,10 @@ def _preflight_table_output(result, elapsed: float) -> None:
         console.print("\n  After fixing, run [bold]wxcli cucm preflight[/bold] again.")
 
 
-def _preflight_json_output(result) -> None:
+def _preflight_json_output(result, fields: str | None = None) -> None:
     """Print JSON preflight results.
     (from 05a-preflight-checks.md, JSON output format)
     """
-    import json as json_mod
     data = {
         "overall": result.overall.value,
         "checks": [
@@ -1552,7 +1553,7 @@ def _preflight_json_output(result) -> None:
         "merge_result": result.merge_result,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    typer.echo(json_mod.dumps(data, indent=2))
+    emit(data, output="json", fields=fields)
 
 
 # ===================================================================
@@ -1567,6 +1568,7 @@ def decisions(
     status_filter: Optional[str] = typer.Option(None, "--status", help="Filter: pending or resolved"),
     export_review: bool = typer.Option(False, "--export-review", help="Generate markdown decision review file"),
     output: Optional[str] = typer.Option(None, "-o", "--output", help="Output format: table (default) or json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """List all migration decisions in a Rich table."""
@@ -1592,7 +1594,6 @@ def decisions(
 
         # --export-review: generate markdown review file + optional JSON
         if export_review:
-            import json as json_mod
             from wxcli.migration.transform.analysis_pipeline import (
                 enrich_cross_decision_context,
             )
@@ -1635,7 +1636,7 @@ def decisions(
                     "auto_apply": [_serialize_decision(d) for d in auto],
                     "needs_input": [_serialize_decision(d) for d in needs],
                 }
-                typer.echo(json_mod.dumps(data, indent=2))
+                emit(data, output="json", fields=fields)
             else:
                 console.print(f"[green]Decision review written to:[/green] {review_path}")
                 console.print(f"  Auto-apply: {len(auto)} decisions")
@@ -1661,16 +1662,15 @@ def decisions(
 
         if not decs:
             if output == "json":
-                typer.echo("[]")
+                emit([], output="json", fields=fields)
             else:
                 console.print("No decisions found matching filters.")
             return
 
         # JSON output for filtered decisions (without --export-review)
         if output == "json":
-            import json as json_mod
             data = [_serialize_decision(d) for d in decs]
-            typer.echo(json_mod.dumps(data, indent=2))
+            emit(data, output="json", fields=fields)
             return
 
         # Summary line
@@ -2201,6 +2201,7 @@ def inventory(
     type: Optional[str] = typer.Option(None, "--type", "-t", help="Object type to list"),
     filter: Optional[str] = typer.Option(None, "--filter", help="Key=value filter"),
     output: str = typer.Option("table", "--output", "-o", help="Output: table, detail, json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Browse the migration inventory — summary counts or object details."""
@@ -2243,7 +2244,7 @@ def inventory(
                 return
 
         if output == "json":
-            typer.echo(json.dumps(objects, indent=2, default=str))
+            emit(objects, output="json", fields=fields)
             return
 
         if output == "detail":
@@ -2343,6 +2344,7 @@ def _print_object_detail(objects: list[dict], store) -> None:
 @app.command("next-batch")
 def next_batch(
     output: str = typer.Option("table", "--output", "-o", help="Output: table, json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Show the next batch of migration operations ready to execute.
@@ -2364,7 +2366,7 @@ def next_batch(
             return
 
         if output == "json":
-            typer.echo(json.dumps(batch, indent=2, default=str))
+            emit(batch, output="json", fields=fields)
             return
 
         # Table output
@@ -2475,6 +2477,7 @@ def mark_failed(
 @app.command("execution-status")
 def execution_status(
     output: str = typer.Option("table", "--output", "-o", help="Output: table, json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Show migration execution progress."""
@@ -2487,7 +2490,7 @@ def execution_status(
         progress = get_execution_progress(store)
 
         if output == "json":
-            typer.echo(json.dumps(progress, indent=2, default=str))
+            emit(progress, output="json", fields=fields)
             return
 
         # Summary table
@@ -2564,6 +2567,7 @@ def execution_status(
 def rollback_ops(
     batch: Optional[str] = typer.Option(None, "--batch", help="Only show ops from this batch"),
     output: str = typer.Option("table", "--output", "-o", help="Output: table, json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Show completed create operations in reverse order for rollback.
@@ -2586,7 +2590,7 @@ def rollback_ops(
             return
 
         if output == "json":
-            typer.echo(json.dumps(ops, indent=2, default=str))
+            emit(ops, output="json", fields=fields)
             return
 
         # Table output
@@ -2621,6 +2625,7 @@ def rollback_ops(
 @app.command("dry-run")
 def dry_run(
     output: str = typer.Option("table", "--output", "-o", help="Output: table, json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Preview the full execution sequence without making changes.
@@ -2637,7 +2642,7 @@ def dry_run(
         result = dry_run_all_batches(store)
 
         if output == "json":
-            typer.echo(json.dumps(result, indent=2, default=str))
+            emit(result, output="json", fields=fields)
             return
 
         batches = result["batches"]
@@ -2823,6 +2828,7 @@ def report(
         False, "--executive-only",
         help="Generate executive summary only, skip technical appendix",
     ),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Generate a migration assessment report (HTML + optional PDF)."""
@@ -2859,6 +2865,7 @@ def report(
         html_path = project_dir / f"{output}.html"
         html_path.write_text(html_content, encoding="utf-8")
         console.print(f"[green]Report generated:[/green] {html_path}")
+        pdf_generated_path: str | None = None
 
         # Optional PDF generation via headless Chrome
         if pdf:
@@ -2911,6 +2918,7 @@ def report(
                         timeout=60,
                     )
                     console.print(f"[green]PDF generated:[/green] {pdf_path}")
+                    pdf_generated_path = str(pdf_path)
                 except subprocess.CalledProcessError as exc:
                     console.print(
                         f"[yellow]PDF generation failed:[/yellow] {exc.stderr.decode()[:200]}"
@@ -2922,6 +2930,17 @@ def report(
                     "[yellow]No Chrome/Chromium found — skipping PDF generation.[/yellow]\n"
                     "Install Chrome or Chromium to enable PDF output."
                 )
+
+        emit(
+            {
+                "reportHtml": str(html_path),
+                "reportPdf": pdf_generated_path,
+                "brand": brand,
+                "preparedBy": prepared_by,
+                "executiveOnly": executive_only,
+            },
+            output="json", fields=fields,
+        )
     finally:
         store.close()
 
@@ -2938,6 +2957,7 @@ def user_diff(
     output: str = typer.Option("user-diff", "--output", "-o", help="Output filename (without extension)"),
     location: str = typer.Option(None, "--location", help="Filter to users in a specific location canonical_id"),
     include_no_change: bool = typer.Option(False, "--include-no-change", help="Include users with no detected changes"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Generate a per-user CUCM-vs-Webex migration diff."""
@@ -2977,6 +2997,10 @@ def user_diff(
         out_path.write_text(content, encoding="utf-8")
         console.print(f"[green]User diff generated:[/green] {out_path}")
         console.print(f"  {len(records)} user{'s' if len(records) != 1 else ''} included")
+        emit(
+            {"diffPath": str(out_path), "format": ext, "userCount": len(records)},
+            output="json", fields=fields,
+        )
     finally:
         store.close()
 
@@ -3001,6 +3025,7 @@ def user_notice(
         "all", "--audience",
         help="Target audience: all, phone-upgrade, webex-app, general",
     ),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
     """Generate user-facing migration communication notice (HTML or text)."""
@@ -3032,5 +3057,9 @@ def user_notice(
         output_path = project_dir / f"{output}.{ext}"
         output_path.write_text(content, encoding="utf-8")
         console.print(f"[green]User notice generated:[/green] {output_path}")
+        emit(
+            {"noticePath": str(output_path), "format": ext, "audience": audience, "brand": brand},
+            output="json", fields=fields,
+        )
     finally:
         store.close()

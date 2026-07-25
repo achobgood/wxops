@@ -25,6 +25,7 @@ LOCATION_DELETE_RETRY_SLEEP = 60
 CCP_INTEGRATED_ERROR_CODE = "ERR.V.TRM.TMN60004"
 
 from wxcli.auth import get_api
+from wxcli.common import emit, FIELDS_HELP
 from wxcli.config import get_org_id
 from wxcli.output import plain_mode
 
@@ -1079,6 +1080,8 @@ def cleanup_run(
         False, "--force",
         help="Skip confirmation prompt.",
     ),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json"),
+    fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Webex Calling resources in dependency-safe order.
@@ -1211,7 +1214,10 @@ def cleanup_run(
             click.echo(f"  - {entry}")
 
     if not inventory:
-        console.print("[green]Nothing to delete — org is clean.[/green]")
+        if output == "json":
+            emit({"deleted": 0, "failed": 0, "ccpBlocked": 0, "failures": []}, output="json", fields=fields)
+        else:
+            console.print("[green]Nothing to delete — org is clean.[/green]")
         return
 
     # Dry run
@@ -1389,7 +1395,28 @@ def cleanup_run(
         console.print(f"  Done: {successes} deleted, {failures} failed")
 
     # Final summary
-    console.print(format_results_summary(all_results))
+    if output == "json":
+        real_failures = [r for r in all_results if not r.success and not r.ccp_blocked]
+        ccp_blocked_results = [r for r in all_results if r.ccp_blocked]
+        emit(
+            {
+                "deleted": sum(1 for r in all_results if r.success),
+                "failed": len(real_failures),
+                "ccpBlocked": len(ccp_blocked_results),
+                "failures": [
+                    {
+                        "resourceType": f.resource_type,
+                        "resourceName": f.resource_name,
+                        "resourceId": f.resource_id,
+                        "error": f.error,
+                    }
+                    for f in real_failures
+                ],
+            },
+            output="json", fields=fields,
+        )
+    else:
+        console.print(format_results_summary(all_results))
 
 
 def format_results_summary(results: list[DeleteResult]) -> str:
