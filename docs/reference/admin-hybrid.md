@@ -287,14 +287,16 @@ List all connectors, then inspect any that show issues.
 
 ```bash
 # Step 1: List all connectors
-wxcli hybrid-connectors list -o json | jq '.[] | {id, hostname, status: .status.state}'
+wxcli hybrid-connectors list --fields '[].{id:id,hostname:hostname,status:status}' -o json
 
 # Step 2: Get details on a specific connector that looks unhealthy
-wxcli hybrid-connectors show <connector-id> -o json | jq '{hostname, status, version, cluster}'
+wxcli hybrid-connectors show <connector-id> --fields '{hostname:hostname,status:status,version:version,cluster:hybridClusterId}' -o json
 
 # Step 3: Cross-reference with the parent cluster
 wxcli hybrid-clusters show <cluster-id>
 ```
+
+**Note:** The `--fields` expressions above (`status` as a flat string, `cluster` projected from `hybridClusterId`) are derived from the OpenAPI schema, not confirmed against a live hybrid deployment -- this org has no registered hybrid connectors to test against. If you have one, verify the output shape before relying on it.
 
 Raw HTTP version (if CLI is unavailable):
 

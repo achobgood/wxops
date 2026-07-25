@@ -76,6 +76,107 @@ Mock server URLs (public, no auth required — return saved response examples):
 - **CC response data key:** CC v2 list endpoints return `{"data": [...]}` not `{"items": [...]}`. The renderer adds a `"data"` fallback automatically. If adding a new CC list endpoint manually, use `result.get("items", result.get("data", ...))` for extraction.
 - Reinstall after regen: `pip3.14 install -e . -q`
 
+## Decision Record — CLI Surface
+
+Why the generated CLI looks the way it does. Recorded because each of these was
+re-derived from scratch at least once after the reasoning was lost to a commit
+message. If you are about to change one, read the row first.
+
+### `--output` reaches only three of six command types (defect, being fixed)
+
+**State as of 2026-07-25:** the renderer emits `--output` at exactly three sites —
+`command_renderer.py:306` (list, default `table`), `:421` (show, default `json`),
+`:549` (create, default `id`). `_render_update_command`, `_render_delete_command`,
+and `_render_action_command` emit **no `--output` at all**. Verify on
+`src/wxcli/commands/locations.py:139-146`: `update` declares only `--json-body`
+and `--debug`, so `wxcli locations update … -o json` fails with `No such option`.
+The same gap covers some hand-written commands — `wxcli whoami -o json` fails
+(`main.py:38-40`), as do `switch-org`, `clear-org`, and `cleanup run`.
+
+**But `--output` is not simply absent everywhere else — on four hand-written
+commands it already means a filesystem path**, and adding a format flag there
+would collide two meanings onto one name:
+
+| Command | `--output` means |
+|---|---|
+| `org_health_cli.py:23` | required `Path` — *"Directory to write results.json into"* |
+| `cucm.py:2815, 2935, 2993` | output **filename** for assessment-report / user-diff / user-notice |
+| `cucm.py:1448, 1566, 2200, 2342, 2474, 2563, 2620` | already a proper `table\|json` format flag — nothing to do |
+
+Those four path-valued commands keep their path meaning and receive `--fields`
+only. Check what an `--output` *means* before assuming a command lacks one.
+(Corrected 2026-07-25 after external review: `cucm.py:1566` is the `decisions`
+command's *format* flag — `help="Output format: table (default) or json"` —
+not a report-writer filename; the writers are three, not four.)
+
+**There is no design reason.** It grew. `--output` originally existed only on the
+read commands (list, show). On **2026-03-24, `a795b58`** — *"fix: add -o json to
+create commands"* — create was added, because create returns an id you script
+against. The word *fix* is the tell: a gap noticed in use and patched, not a
+design being implemented. Nobody revisited update/delete/action.
+
+**Do not "explain" this split to a future reader as intentional, and do not
+preserve it.** `2026-07-24-cli-ergonomics.md` Task 3 adds the missing three;
+Task 6 covers the hand-written commands. An option present on most commands but
+not all is worse for an agent than one that does not exist — it teaches a rule
+that breaks unpredictably, costing a failed call plus a `--help` round trip each
+time.
+
+### The projection flag is `--fields` — not `--query`, not `--filter`
+
+**Decided 2026-07-25.** The generator turns every spec parameter into a CLI
+option, so any name we add globally must be free across all 1,872 commands or it
+collides with something Cisco already named.
+
+| Candidate | Commands already declaring it | Failure mode if reused |
+|---|---|---|
+| `--query` | **2** — `cc_search.py:14` (graphQL query string), `fs_flows.py:741` (flow search text, required) | Both bind the Python name `query` → duplicate argument → `SyntaxError`, module fails to import. **Loud.** |
+| `--filter` | **65**, across 35 CC modules | Spec ones bind `filter_param`, so a renderer-added `filter` raises no Python error — two Click options share one flag string and silently shadow. **Silent, on 65 commands.** |
+| `--project` | 26 | Same class |
+| **`--fields`** | **0 commands, 0 doc citations** | — |
+
+`--fields` was chosen because it is free everywhere, so the flag is uniform on
+every command with **no per-command suppression logic and no exceptions**. It
+also describes what it does.
+
+**If a future spec revision introduces a `fields` parameter**, the fix is the
+`_SUPPRESS_SPEC_PAGING_NAMES`-style guard (`command_renderer.py:40`) or a
+`cli_name_overrides` entry for that endpoint — *not* renaming `--fields`, which
+would break every doc and skill citing it and trip `drift_check` check 6. The
+tree-wide duplicate-flag scan in the ergonomics plan's Task 7 step 4 is what
+catches it; keep that scan in every future regen.
+
+**One collision already exists in the spec today, not just hypothetically:**
+`webex-contact-center.json`'s `GET /v1/{orgId}/functions` (tag `Functions`)
+declares a spec parameter literally named `fields`. It is inert only because
+that tag is in `skip_tags` for an unrelated reason (colon-action paths,
+`tools/field_overrides.yaml:588`) — if `Functions` were ever un-skipped,
+`_check_reserved_collisions` (`command_renderer.py:328`) raises
+`ReservedParamCollisionError` at generation time instead of silently emitting
+a duplicate `fields` function argument. The tree-wide duplicate-flag scan
+above is the standing backstop for this and any other case a regen surfaces.
+
+**Note for anyone reading `docs/plans/llm-cli-ergonomics.md`:** it recommends
+`--filter` on the grounds that `--query` is taken twice. The observation is
+correct and the conclusion is inverted — see the table above. Its `--output`
+finding is real and valuable; its token figures are file bytes ÷ 4 and are not
+measurements; its claim that request-template generation does not exist is false
+(see `locations.py:147`).
+
+### Rich strips colour on a non-TTY but keeps box-drawing
+
+**Verified 2026-07-25.** A common misreading is that constructing `Console()` is
+enough for output to degrade gracefully when piped. It is not. Rendering a 1×1
+table with stdout redirected produces
+`'┏━━━━━━━┓\n┃ Name  ┃\n┡━━━━━━━┩\n│ Sales │\n└───────┘\n'` — no ANSI escapes,
+but 24 of 40 characters are box-drawing. Suppressing them requires
+`Table(box=None)` explicitly, and for help screens `typer.Typer(rich_markup_mode=None)`
+(Typer 0.24.1 declares `None` as a supported value). `print_json`
+(`output.py:74-76`) uses builtin `print()` and never involved Rich, so it is
+unaffected — any claim of a repo-wide reduction is overcounting.
+
+See `docs/superpowers/plans/2026-07-25-cli-plain-output.md`.
+
 ## Known Issues — Generator / Pipeline Only
 
 These were removed from root CLAUDE.md (not needed by the builder agent at runtime):
