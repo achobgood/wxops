@@ -1469,8 +1469,12 @@ def preflight(
         result = runner.run(store, check_filter=check, dry_run=dry_run)
         elapsed = time.time() - t0
 
-        if output == "json":
-            _preflight_json_output(result, fields=fields)
+        if output == "json" or fields:
+            # A --fields projection changes the shape of the data, so the
+            # bespoke Rich rendering below can't render it — emit()'s
+            # projection-driven table (or JSON fallback) is what fields
+            # needs, in whatever --output mode was requested.
+            _preflight_json_output(result, output=output, fields=fields)
         else:
             _preflight_table_output(result, elapsed)
 
@@ -1534,8 +1538,8 @@ def _preflight_table_output(result, elapsed: float) -> None:
         console.print("\n  After fixing, run [bold]wxcli cucm preflight[/bold] again.")
 
 
-def _preflight_json_output(result, fields: str | None = None) -> None:
-    """Print JSON preflight results.
+def _preflight_json_output(result, output: str = "json", fields: str | None = None) -> None:
+    """Print preflight results via emit() (JSON, or a --fields-projected table).
     (from 05a-preflight-checks.md, JSON output format)
     """
     data = {
@@ -1553,7 +1557,7 @@ def _preflight_json_output(result, fields: str | None = None) -> None:
         "merge_result": result.merge_result,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    emit(data, output="json", fields=fields)
+    emit(data, output=output, fields=fields)
 
 
 # ===================================================================
@@ -1622,7 +1626,7 @@ def decisions(
 
             auto, needs = classify_decisions(store, config)
 
-            if output == "json":
+            if output == "json" or fields:
                 # NOTE: The "auto_apply" key here is the JSON output-contract
                 # name for "decisions matched by auto_rules config." It is
                 # NOT the resolved_by column value — pre-Bug-F projects
@@ -1636,7 +1640,11 @@ def decisions(
                     "auto_apply": [_serialize_decision(d) for d in auto],
                     "needs_input": [_serialize_decision(d) for d in needs],
                 }
-                emit(data, output="json", fields=fields)
+                # output defaults to None (bespoke table mode) — normalize to
+                # "table" so a --fields projection renders as an auto-column
+                # table via emit() rather than falling through to its JSON
+                # fallback (which only kicks in for scalar/non-dict data).
+                emit(data, output=output or "table", fields=fields)
             else:
                 console.print(f"[green]Decision review written to:[/green] {review_path}")
                 console.print(f"  Auto-apply: {len(auto)} decisions")
@@ -1661,16 +1669,18 @@ def decisions(
                 decs = [d for d in decs if d.get("chosen_option") is not None]
 
         if not decs:
-            if output == "json":
-                emit([], output="json", fields=fields)
+            if output == "json" or fields:
+                emit([], output=output or "table", fields=fields)
             else:
                 console.print("No decisions found matching filters.")
             return
 
-        # JSON output for filtered decisions (without --export-review)
-        if output == "json":
+        # JSON output for filtered decisions (without --export-review), or
+        # any --fields projection (which the bespoke Rich table below can't
+        # render — a projection changes the data's shape).
+        if output == "json" or fields:
             data = [_serialize_decision(d) for d in decs]
-            emit(data, output="json", fields=fields)
+            emit(data, output=output or "table", fields=fields)
             return
 
         # Summary line
@@ -2243,8 +2253,10 @@ def inventory(
                 console.print(f"No '{type}' objects matching filter '{filter}'.")
                 return
 
-        if output == "json":
-            emit(objects, output="json", fields=fields)
+        if output == "json" or fields:
+            # A --fields projection changes the data's shape, so neither the
+            # bespoke table nor the detail view below can render it.
+            emit(objects, output=output, fields=fields)
             return
 
         if output == "detail":
@@ -2365,8 +2377,8 @@ def next_batch(
             console.print("Tip: Run 'wxcli cucm execution-status' to check progress.")
             return
 
-        if output == "json":
-            emit(batch, output="json", fields=fields)
+        if output == "json" or fields:
+            emit(batch, output=output, fields=fields)
             return
 
         # Table output
@@ -2489,8 +2501,8 @@ def execution_status(
     try:
         progress = get_execution_progress(store)
 
-        if output == "json":
-            emit(progress, output="json", fields=fields)
+        if output == "json" or fields:
+            emit(progress, output=output, fields=fields)
             return
 
         # Summary table
@@ -2589,8 +2601,8 @@ def rollback_ops(
             console.print("No completed create operations to roll back.")
             return
 
-        if output == "json":
-            emit(ops, output="json", fields=fields)
+        if output == "json" or fields:
+            emit(ops, output=output, fields=fields)
             return
 
         # Table output
@@ -2641,8 +2653,8 @@ def dry_run(
     try:
         result = dry_run_all_batches(store)
 
-        if output == "json":
-            emit(result, output="json", fields=fields)
+        if output == "json" or fields:
+            emit(result, output=output, fields=fields)
             return
 
         batches = result["batches"]
