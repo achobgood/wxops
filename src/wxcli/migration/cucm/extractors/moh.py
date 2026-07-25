@@ -20,12 +20,17 @@ logger = logging.getLogger(__name__)
 # ReturnedTags constants
 # ------------------------------------------------------------------
 
+# AXL names the file field <sourceFile>; there is no <isDefault> or
+# <sourceFileName> on LMohAudioSource in any supported schema version.
 MOH_AUDIO_SOURCE_LIST_RETURNED_TAGS = {
     "name": "",
-    "sourceFileName": "",
-    "isDefault": "",
+    "sourceFile": "",
     "sourceId": "",
 }
+
+# normalize_moh_source() reads "sourceFileName"; alias AXL's real field onto it
+# so the normalizer, MOH mapper, and Audio Assets appendix keep working.
+MOH_FIELD_ALIASES = {"sourceFile": "sourceFileName"}
 
 
 class MOHExtractor(BaseExtractor):
@@ -83,18 +88,32 @@ class MOHExtractor(BaseExtractor):
             if not name:
                 result.failed += 1
                 continue
+            # getMohAudioSource keys on sourceId or uuid — it has no name field.
+            source_id = summary.get("sourceId")
             try:
-                detail = self.get_detail("getMohAudioSource", name=name)
+                detail = (
+                    self.get_detail("getMohAudioSource", sourceId=source_id)
+                    if source_id not in (None, "")
+                    else None
+                )
             except Exception as exc:
                 logger.warning(
                     "[%s] getMohAudioSource error for %s: %s",
                     self.name, name, exc,
                 )
-                sources.append(summary)
+                sources.append(self._apply_aliases(summary))
                 continue
             if detail is None:
-                sources.append(summary)
+                sources.append(self._apply_aliases(summary))
                 continue
-            sources.append({**summary, **detail})
+            sources.append(self._apply_aliases({**summary, **detail}))
 
         return sources
+
+    @staticmethod
+    def _apply_aliases(source: dict[str, Any]) -> dict[str, Any]:
+        """Add the field names downstream normalizers expect."""
+        for src, dst in MOH_FIELD_ALIASES.items():
+            if src in source and dst not in source:
+                source[dst] = source[src]
+        return source

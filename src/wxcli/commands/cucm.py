@@ -11,6 +11,7 @@ prints a summary.
 from __future__ import annotations
 
 import csv
+import glob
 import io
 import json
 import logging
@@ -18,6 +19,7 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -312,13 +314,178 @@ def _render_skip_summary(report) -> None:
         )
 
 
+# Where an already-downloaded AXL SQL Toolkit is likely to live, searched in
+# order. ``{version}`` is the detected AXL schema version (e.g. "14.0").
+WSDL_SEARCH_GLOBS = (
+    "~/Downloads/axlsqltoolkit/schema/{version}/AXLAPI.wsdl",
+    "~/Downloads/axlsqltoolkit/schema/*/AXLAPI.wsdl",
+    "~/axlsqltoolkit/schema/*/AXLAPI.wsdl",
+    "./axlsqltoolkit/schema/*/AXLAPI.wsdl",
+)
+
+
+def _find_local_wsdl(schema_version: str) -> Path | None:
+    """Find an already-downloaded AXLAPI.wsdl matching the cluster's AXL version.
+
+    Only a file whose declared AXL version matches is returned — a mismatched
+    schema makes every AXL call fail with "Unknown fault occured".
+    """
+    from wxcli.migration.cucm.connection import read_wsdl_axl_version
+
+    for pattern in WSDL_SEARCH_GLOBS:
+        expanded = str(Path(pattern.format(version=schema_version)).expanduser())
+        for candidate in sorted(glob.glob(expanded)):
+            if read_wsdl_axl_version(candidate) == schema_version:
+                return Path(candidate)
+    return None
+
+
+def _expected_wsdl_path(wsdl: str, schema_version: str) -> str:
+    """Name the schema file the cluster actually needs, next to the wrong one."""
+    path = Path(wsdl).expanduser()
+    if path.parent.parent.name == "schema":
+        return str(path.parent.parent / schema_version / path.name)
+    return f"<axlsqltoolkit>/schema/{schema_version}/AXLAPI.wsdl"
+
+
+def _validate_wsdl_version(
+    wsdl: str, schema_version: str | None, source: str,
+) -> None:
+    """Refuse a WSDL whose AXL version does not match the cluster.
+
+    A mismatched schema does not fail loudly on its own: every AXL call comes
+    back as "Unknown fault occured" and discovery extracts nothing.
+    """
+    from wxcli.migration.cucm.connection import read_wsdl_axl_version
+
+    wsdl_version = read_wsdl_axl_version(wsdl)
+    if wsdl_version is None:
+        console.print(
+            f"[yellow]Warning:[/yellow] could not read the AXL version from {wsdl}.\n"
+            "  Proceeding — but if every AXL call fails, check this file first."
+        )
+        return
+    if schema_version is None:
+        console.print(
+            f"[dim]WSDL AXL version: {wsdl_version} ({source})[/dim]\n"
+            "[yellow]Warning:[/yellow] the CUCM version could not be detected, so the\n"
+            "  WSDL could not be verified against the cluster."
+        )
+        return
+    if wsdl_version == schema_version:
+        console.print(
+            f"[dim]WSDL AXL version {wsdl_version} matches CUCM {schema_version} "
+            f"({source})[/dim]"
+        )
+        return
+
+    console.print(
+        "[red]WSDL version mismatch — refusing to continue.[/red]\n"
+        f"  Cluster AXL version: [bold]{schema_version}[/bold]\n"
+        f"  WSDL file version:   [bold]{wsdl_version}[/bold] ({source}: {wsdl})\n"
+        "\n"
+        "  Every AXL call would fail with \"Unknown fault occured\" and discovery\n"
+        "  would extract 0 objects.\n"
+        "\n"
+        "  Use the schema matching your cluster:\n"
+        f"    [bold]--wsdl {_expected_wsdl_path(wsdl, schema_version)}[/bold]\n"
+        "  Note: schema/current/ is the NEWEST schema in the toolkit, not necessarily yours."
+    )
+    if source == "saved in config.json":
+        console.print(
+            "  This path was reused from the project's config.json; passing --wsdl "
+            "replaces it."
+        )
+    raise typer.Exit(1)
+
+
+def _resolve_wsdl(
+    host: str,
+    username: str,
+    password: str,
+    port: int,
+    version: str | None,
+    wsdl: str | None,
+    wsdl_source: str,
+) -> tuple[str | None, str | None]:
+    """Settle on a WSDL file before connecting, and learn the cluster's version.
+
+    Detects the CUCM version over plain SOAP (no WSDL needed), validates any
+    supplied WSDL against it, and otherwise looks for an already-downloaded
+    AXL SQL Toolkit locally. Returns (wsdl path or None, AXL schema version
+    or None).
+    """
+    from wxcli.migration.cucm.connection import (
+        axl_schema_version,
+        detect_cucm_version,
+    )
+
+    detected = detect_cucm_version(host, username, password, port=port)
+    schema_version = axl_schema_version(detected)
+    if schema_version:
+        console.print(
+            f"[dim]Detected CUCM version {detected} (AXL schema {schema_version})[/dim]"
+        )
+    else:
+        schema_version = axl_schema_version(version)
+        console.print(
+            "[yellow]Could not detect the CUCM version.[/yellow] "
+            + (
+                f"Assuming AXL {schema_version} from --version."
+                if schema_version
+                else "The WSDL cannot be checked against the cluster."
+            )
+        )
+
+    if wsdl:
+        _validate_wsdl_version(wsdl, schema_version, wsdl_source)
+        return wsdl, schema_version
+
+    if schema_version:
+        found = _find_local_wsdl(schema_version)
+        if found:
+            console.print(
+                f"[dim]Using local AXL {schema_version} WSDL found at {found}[/dim]"
+            )
+            return str(found), schema_version
+
+    return None, schema_version
+
+
 def _prompt_for_wsdl(host: str, version: str | None) -> str | None:
     """Guide the user through downloading the AXL WSDL and return the path.
 
     Called when CUCM blocks remote WSDL fetch (403). Prints plain-language
-    instructions and prompts for the file path. Returns None if the user
-    cancels.
+    instructions and prompts for the file path. ``version`` is the cluster's
+    AXL schema version when known, so the instructions can name the right
+    schema directory. Returns None if the user cancels.
     """
+    if not sys.stdin.isatty():
+        console.print(
+            "\n[red]A local AXL WSDL file is required and this session is not "
+            "interactive.[/red]\n"
+            "  Supply one explicitly: [bold]--wsdl <axlsqltoolkit>/schema/"
+            f"{version or '<your-cucm-version>'}/AXLAPI.wsdl[/bold]\n"
+            f"  Download it from https://{host}/ccmadmin → Application → Plugins →\n"
+            "  Cisco AXL Toolkit, unzip it, and pick the schema directory matching\n"
+            "  your CUCM version (schema/current/ is the newest schema, not"
+            " necessarily yours)."
+        )
+        raise typer.Exit(1)
+
+    if version:
+        schema_line = (
+            f"  5. The file you need is at: [bold]schema/{version}/AXLAPI.wsdl[/bold]\n"
+            f"     (your cluster is AXL {version}; schema/current/ is the newest\n"
+            "     schema in the toolkit, not necessarily yours)\n"
+        )
+    else:
+        schema_line = (
+            "  5. The file you need is at: [bold]schema/<your-cucm-version>/AXLAPI.wsdl"
+            "[/bold]\n"
+            "     (your CUCM version could not be detected; schema/current/ is the\n"
+            "     newest schema in the toolkit, not necessarily yours)\n"
+        )
     console.print(
         "\n[yellow]Your CUCM server requires a local copy of the AXL schema file.[/yellow]\n"
         "\n"
@@ -329,7 +496,7 @@ def _prompt_for_wsdl(host: str, version: str | None) -> str | None:
         "  2. Go to [bold]Application → Plugins[/bold]\n"
         "  3. Find [bold]Cisco AXL Toolkit[/bold] and click [bold]Download[/bold]\n"
         "  4. Unzip the downloaded file\n"
-        "  5. The file you need is at: [bold]schema/current/AXLAPI.wsdl[/bold]\n"
+        + schema_line
     )
     for attempt in range(3):
         wsdl_path_str = typer.prompt(
@@ -370,12 +537,15 @@ def _connect_axl(
     port: int,
     wsdl: str | None,
     project_dir: Path,
+    cluster_version: str | None = None,
 ):
     """Connect to CUCM via AXL, handling WSDL download guidance on 403.
 
     On success, saves the WSDL path (if used) to project config so
     subsequent runs don't ask again. If a saved WSDL path no longer
-    exists on disk, clears it and retries.
+    exists on disk, clears it and retries. ``cluster_version`` is the
+    cluster's detected AXL schema version, used to name the right schema
+    directory and to reject a mismatched WSDL.
     """
     from wxcli.migration.cucm.connection import AXLConnection
 
@@ -427,19 +597,27 @@ def _connect_axl(
             cfg.pop("wsdl_path", None)
             save_config(project_dir, cfg)
             # Guide the user to provide the new path
-            new_wsdl = _prompt_for_wsdl(host, version)
+            new_wsdl = _prompt_for_wsdl(host, cluster_version)
             if new_wsdl:
+                _validate_wsdl_version(
+                    new_wsdl, cluster_version, "supplied at the prompt",
+                )
                 return _connect_axl(
                     host, username, password, version, port, new_wsdl, project_dir,
+                    cluster_version,
                 )
             raise typer.Exit(1)
 
         if "403" in err_str and "wsdl" in err_str.lower():
-            new_wsdl = _prompt_for_wsdl(host, version)
+            new_wsdl = _prompt_for_wsdl(host, cluster_version)
             if new_wsdl:
+                _validate_wsdl_version(
+                    new_wsdl, cluster_version, "supplied at the prompt",
+                )
                 console.print(f"\n[bold]Retrying connection with local WSDL...[/bold]")
                 return _connect_axl(
                     host, username, password, version, port, new_wsdl, project_dir,
+                    cluster_version,
                 )
             console.print("[red]Cannot connect without the WSDL file.[/red]")
             raise typer.Exit(1)
@@ -921,12 +1099,14 @@ def discover(
     from wxcli.migration.cucm.discovery import run_discovery
 
     # Check project config for a previously saved WSDL path
+    wsdl_source = "--wsdl"
     if not wsdl:
         cfg = load_config(project_dir)
         saved_wsdl = cfg.get("wsdl_path")
         if saved_wsdl:
             if Path(saved_wsdl).exists():
                 wsdl = saved_wsdl
+                wsdl_source = "saved in config.json"
                 console.print(f"[dim]Using saved WSDL: {wsdl}[/dim]")
             else:
                 console.print(
@@ -936,11 +1116,17 @@ def discover(
                 cfg.pop("wsdl_path", None)
                 save_config(project_dir, cfg)
 
+    wsdl, cluster_version = _resolve_wsdl(
+        host, username, password, port, version, wsdl, wsdl_source,
+    )
+
     ver_display = f" (AXL v{version})" if version else ""
     console.print(f"[bold]Connecting to CUCM[/bold] at {host}:{port}{ver_display}...")
     t0 = time.time()
 
-    conn = _connect_axl(host, username, password, version, port, wsdl, project_dir)
+    conn = _connect_axl(
+        host, username, password, version, port, wsdl, project_dir, cluster_version,
+    )
 
     store = _open_store(project_dir)
     try:
