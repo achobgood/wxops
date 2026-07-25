@@ -1527,7 +1527,7 @@
         "summary": "Update a Data Source"
       }
     },
-    "/identity/organizations/{orgId}/v1/ArchivedUser/{useruuid}": {
+    "/identity/organizations/{orgId}/v1/ArchivedUser": {
       "get": {
         "responses": {
           "200": {
@@ -1536,34 +1536,39 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ArchiveUser"
+                  "$ref": "#/components/schemas/ArchiveUserQueryResponse"
                 },
                 "example": {
+                  "totalResults": "1",
                   "schemas": [
                     "urn:scim:schemas:core:1.0",
                     "urn:scim:schemas:extension:cisco:commonidentity:1.0"
                   ],
-                  "userName": "test_user2@example.com",
-                  "emails": [
+                  "Resources": [
                     {
-                      "primary": true,
-                      "type": "work",
-                      "value": "test_user2@example.com"
+                      "userName": "test_user2@example.com",
+                      "emails": [
+                        {
+                          "primary": true,
+                          "type": "work",
+                          "value": "test_user2@example.com"
+                        }
+                      ],
+                      "name": {
+                        "givenName": "Mike",
+                        "familyName": "Tang"
+                      },
+                      "organization": "410139c6-3bff-4404-9782-09a456ba2cae",
+                      "id": "b96936c9-5b86-4a01-8969-e945c91b62f6",
+                      "meta": {
+                        "created": "2019-01-25T00:53:13.000Z",
+                        "lastModified": "2019-01-25T00:53:13.000Z",
+                        "location": "https://webexapis.com/identity/scim/410139c6-3bff-4404-9782-09a456ba2cae/v1/UserArchives/b96936c9-5b86-4a01-8969-e945c91b62f6",
+                        "deleted": "2019-01-25T00:53:13.001Z"
+                      },
+                      "displayName": "Mike Tang"
                     }
-                  ],
-                  "name": {
-                    "givenName": "Mike",
-                    "familyName": "Tang"
-                  },
-                  "organization": "410139c6-3bff-4404-9782-09a456ba2cae",
-                  "id": "b96936c9-5b86-4a01-8969-e945c91b62f6",
-                  "meta": {
-                    "created": "2019-01-25T00:53:13.000Z",
-                    "lastModified": "2019-01-25T00:53:13.000Z",
-                    "location": "https://webexapis.com/identity/scim/410139c6-3bff-4404-9782-09a456ba2cae/v1/UserArchives/b96936c9-5b86-4a01-8969-e945c91b62f6",
-                    "deleted": "2019-01-25T00:53:13.001Z"
-                  },
-                  "displayName": "Mike Tang"
+                  ]
                 }
               }
             }
@@ -1614,9 +1619,9 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get Archive User",
-        "operationId": "getArchiveUser",
-        "description": "The `useruuid` is the unique identifier of a user in the system. It is assigned when the user is created and can be retrieved through **GET Users** API.<br/>\n\n**Authorization**\n\nOAuth token issued by the Identity Broker.\n\nOne of the following OAuth scopes is required:\n\n- `identity:people_rw`.\n- `identity:people_read`.\n\nThe following administrators can use this API:\n\n- `Account in the specified organization with one of the following roles: id_full_admin, id_user_admin, id_readonly_admin`.\n- `Proxy account managing the specified organization with one of the following roles: id_full_admin, id_user_admin, id_readonly_admin`.\n\n<br/>",
+        "summary": "Query Archive User",
+        "operationId": "queryArchiveUser",
+        "description": "Retrieves archived user information for the specified organization. Supported attributes are `id`, which is the unique identifier of a user in the system, and `username`. It is assigned when the user is created and can be retrieved through **GET Users** API.<br/>\n\n**Authorization**\n\nOAuth token issued by the Identity Broker.\n\nOne of the following OAuth scopes is required:\n\n- `identity:people_rw`.\n- `identity:people_read`.\n\nThe following administrators can use this API:\n\n- `Account in the specified organization with one of the following roles: id_full_admin, id_user_admin, id_readonly_admin`.\n- `Proxy account managing the specified organization with one of the following roles: id_full_admin, id_user_admin, id_readonly_admin`.\n\n<br/>",
         "tags": [
           "Archive Users"
         ],
@@ -1632,11 +1637,11 @@
             }
           },
           {
-            "name": "useruuid",
-            "in": "path",
-            "description": "The unique identifier for the user.",
+            "name": "filter",
+            "in": "query",
+            "description": "A SCIM-style filter expression used to search archived users. Supported attributes are `username` and `id`, and only the `eq` operator is supported.\n\nExamples:\n\n- `username eq \"test_user_1@example.com\"`\n- `id eq \"40929cc6-2df2-4ab5-871c-ec8e38f07b93\"`",
             "required": true,
-            "example": "b96936c9-5b86-4a01-8969-e945c91b62f6",
+            "example": "username eq \"test_user_1@example.com\"",
             "schema": {
               "type": "string"
             }
@@ -13939,16 +13944,6 @@
                   },
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                     "usage": "location",
-                    "inheritances": [
-                      {
-                        "type": "role",
-                        "value": "id_full_admin",
-                        "nested": false,
-                        "scope": [
-                          "user"
-                        ]
-                      }
-                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14062,16 +14057,6 @@
                 ],
                 "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                   "usage": "policy",
-                  "inheritances": [
-                    {
-                      "type": "role",
-                      "value": "id_full_admin",
-                      "nested": false,
-                      "scope": [
-                        "user"
-                      ]
-                    }
-                  ],
                   "owners": [
                     {
                       "value": "c5349664-9f3d-410b-8bd3-6c31f181f13d"
@@ -14143,16 +14128,6 @@
                       },
                       "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                         "usage": "location",
-                        "inheritances": [
-                          {
-                            "type": "role",
-                            "value": "id_full_admin",
-                            "nested": false,
-                            "scope": [
-                              "user"
-                            ]
-                          }
-                        ],
                         "owners": [
                           {
                             "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14434,16 +14409,6 @@
                   },
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                     "usage": "location",
-                    "inheritances": [
-                      {
-                        "type": "role",
-                        "value": "id_full_admin",
-                        "nested": false,
-                        "scope": [
-                          "user"
-                        ]
-                      }
-                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14593,16 +14558,6 @@
                   ],
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                     "usage": "policy",
-                    "inheritances": [
-                      {
-                        "type": "role",
-                        "value": "id_full_admin",
-                        "nested": false,
-                        "scope": [
-                          "user"
-                        ]
-                      }
-                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14733,16 +14688,6 @@
                 ],
                 "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                   "usage": "policy",
-                  "inheritances": [
-                    {
-                      "type": "role",
-                      "value": "id_full_admin",
-                      "nested": false,
-                      "scope": [
-                        "user"
-                      ]
-                    }
-                  ],
                   "owners": [
                     {
                       "value": "c5349664-9f3d-410b-8bd3-6c31f181f13d"
@@ -14806,16 +14751,6 @@
                   },
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                     "usage": "location",
-                    "inheritances": [
-                      {
-                        "type": "role",
-                        "value": "id_full_admin",
-                        "nested": false,
-                        "scope": [
-                          "user"
-                        ]
-                      }
-                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14931,17 +14866,8 @@
                 "Operations": [
                   {
                     "op": "add",
-                    "path": "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances",
-                    "value": [
-                      {
-                        "type": "role",
-                        "value": "id_user_admin",
-                        "nested": false,
-                        "scope": [
-                          "user"
-                        ]
-                      }
-                    ]
+                    "path": "displayName",
+                    "value": "new attribute value"
                   }
                 ]
               },
@@ -23835,8 +23761,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "primaryOwner",
           "port",
           "lineType",
@@ -24335,8 +24259,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "lineType",
           "allowCallDeclineEnabled",
           "memberType"
@@ -25116,9 +25038,7 @@
         "type": "object",
         "required": [
           "id",
-          "type",
-          "firstName",
-          "lastName"
+          "type"
         ],
         "properties": {
           "id": {
@@ -25131,11 +25051,11 @@
           },
           "firstName": {
             "type": "string",
-            "description": "First name of device owner."
+            "description": "First name of the device owner. This field is not returned when the value is a placeholder such as `.` or `-`."
           },
           "lastName": {
             "type": "string",
-            "description": "Last name of device owner."
+            "description": "Last name of the device owner. This field is not returned when the value is a placeholder such as `.` or `-`."
           }
         }
       },
@@ -33341,17 +33261,11 @@
           "id",
           "userName",
           "emails",
+          "name",
+          "organization",
           "meta"
         ],
         "properties": {
-          "schemas": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "example": "urn:scim:schemas:core:1.0,urn:scim:schemas:extension:cisco:commonidentity:1.0"
-            },
-            "description": "An array of schema URNs that define the structure of the SCIM resource."
-          },
           "userName": {
             "type": "string",
             "example": "test_user2@example.com",
@@ -33415,6 +33329,31 @@
             "type": "string",
             "example": "III",
             "description": "The honorific suffix(es) of the user, or suffix in most Western languages (e.g., \"III\" given the full name \"Ms. Sarah J Henderson, III\")."
+          }
+        }
+      },
+      "ArchiveUserQueryResponse": {
+        "type": "object",
+        "properties": {
+          "totalResults": {
+            "type": "integer",
+            "description": "Total number of archived user that match the query.",
+            "example": 1
+          },
+          "schemas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "urn:scim:schemas:core:1.0,urn:scim:schemas:extension:cisco:commonidentity:1.0"
+            },
+            "description": "An array of schema URNs that define the structure of the SCIM resource."
+          },
+          "Resources": {
+            "type": "array",
+            "description": "A list of archived users matching the filter.",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveUser"
+            }
           }
         }
       },
@@ -34239,13 +34178,6 @@
                 },
                 "description": "The owners of this group."
               },
-              "inheritances": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/GroupInheritancesObject"
-                },
-                "description": "An array of inheritances"
-              },
               "managedBy": {
                 "type": "array",
                 "items": {
@@ -34296,10 +34228,8 @@
                   "description": "A string containing an attribute path describing the target of the operation."
                 },
                 "value": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/GroupInheritancesObject"
-                  },
+                  "type": "string",
+                  "example": "new attribute value",
                   "description": "New value."
                 }
               }
@@ -36464,13 +36394,6 @@
                 },
                 "description": "The owners of this group."
               },
-              "inheritances": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/GroupInheritancesObject"
-                },
-                "description": "An array of inheritances"
-              },
               "managedBy": {
                 "type": "array",
                 "items": {
@@ -36587,13 +36510,6 @@
                 "example": "AD",
                 "description": "The identifier of the source."
               },
-              "inheritances": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/GroupInheritancesObject"
-                },
-                "description": "An array of inheritances"
-              },
               "meta": {
                 "type": "object",
                 "required": [
@@ -36648,39 +36564,6 @@
               "$ref": "#/components/schemas/GetGroupResponse"
             },
             "description": "An array of group objects."
-          }
-        }
-      },
-      "GroupInheritancesObject": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "role"
-            ],
-            "example": "role",
-            "description": "Type of inheritance. Currently, only the `role` type is supported. Only `policy` usage supports inheritance."
-          },
-          "value": {
-            "type": "string",
-            "example": "id_full_admin",
-            "description": "The value of the inheritance. For the role type, this can be role names such as `id_full_admin`, `id_user_admin`, etc."
-          },
-          "nested": {
-            "type": "boolean",
-            "example": false,
-            "description": "Indicates whether this inheritance is nested."
-          },
-          "scope": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "example": [
-                "user"
-              ]
-            },
-            "description": "Indicates which types of entities can inherit this property."
           }
         }
       },
