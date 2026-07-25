@@ -115,8 +115,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": mode_id}, output=output, fields=fields)
 
 
 
@@ -145,8 +147,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {mode_id}")
+    else:
+        emit({"status": "deleted", "id": mode_id}, output=output, fields=fields)
 
 
 
@@ -285,8 +289,10 @@ def update_holidays(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": holiday_id}, output=output, fields=fields)
 
 
 
@@ -316,8 +322,10 @@ def delete_holidays(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {holiday_id}")
+    else:
+        emit({"status": "deleted", "id": holiday_id}, output=output, fields=fields)
 
 
 

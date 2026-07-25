@@ -71,8 +71,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -154,8 +156,10 @@ def update_voice_portal(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -316,8 +320,10 @@ def update_voicemail_groups(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": voicemail_group_id}, output=output, fields=fields)
 
 
 
@@ -347,8 +353,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {voicemail_group_id}")
+    else:
+        emit({"status": "deleted", "id": voicemail_group_id}, output=output, fields=fields)
 
 
 

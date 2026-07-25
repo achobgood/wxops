@@ -119,8 +119,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -176,8 +178,10 @@ def update_preferred_answer_endpoint(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": line_owner_id}, output=output, fields=fields)
 
 
 
@@ -231,8 +235,10 @@ def update_webex_go_override(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -289,8 +295,10 @@ def update_caller_id_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -349,8 +357,10 @@ def update_caller_id_secondary_lines(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": lineowner_id}, output=output, fields=fields)
 
 
 
@@ -401,8 +411,10 @@ def update_selected_caller_id_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -455,8 +467,10 @@ def update_selected_caller_id_secondary_lines(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": lineowner_id}, output=output, fields=fields)
 
 
 
@@ -597,8 +611,10 @@ def update_endpoints(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": endpoint_id}, output=output, fields=fields)
 
 
 
@@ -779,8 +795,10 @@ def update_assigned_assistants(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -876,8 +894,10 @@ def update_assistant(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -1000,8 +1020,10 @@ def update_single_number_reach(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -1106,8 +1128,10 @@ def update_numbers(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": phone_number_id}, output=output, fields=fields)
 
 
 
@@ -1132,8 +1156,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {phone_number_id}")
+    else:
+        emit({"status": "deleted", "id": phone_number_id}, output=output, fields=fields)
 
 
 
@@ -1184,8 +1210,10 @@ def update_call_forwarding_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -1238,8 +1266,10 @@ def update_call_forwarding_secondary_lines(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": lineowner_id}, output=output, fields=fields)
 
 
 
@@ -1411,8 +1441,10 @@ def update_voicemail_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -1468,8 +1500,10 @@ def update_voicemail_secondary_lines(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": lineowner_id}, output=output, fields=fields)
 
 
 
@@ -1588,8 +1622,10 @@ def delete_numbers(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {phone_number_id}")
+    else:
+        emit({"status": "deleted", "id": phone_number_id}, output=output, fields=fields)
 
 
 
@@ -1682,8 +1718,10 @@ def update_queues_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -1749,8 +1787,10 @@ def update_queues_secondary_lines(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": lineowner_id}, output=output, fields=fields)
 
 
 
@@ -1833,8 +1873,10 @@ def update_priority_alert(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -1967,8 +2009,10 @@ def update_criteria_priority_alert(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
 
 
 
@@ -1993,8 +2037,10 @@ def delete_criteria_priority_alert(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
 
 
 
@@ -2129,8 +2175,10 @@ def update_schedules(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": schedule_id}, output=output, fields=fields)
 
 
 
@@ -2156,8 +2204,10 @@ def delete_schedules(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {schedule_id}")
+    else:
+        emit({"status": "deleted", "id": schedule_id}, output=output, fields=fields)
 
 
 
@@ -2297,8 +2347,10 @@ def update_events(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": event_id}, output=output, fields=fields)
 
 
 
@@ -2325,8 +2377,10 @@ def delete_events(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {event_id}")
+    else:
+        emit({"status": "deleted", "id": event_id}, output=output, fields=fields)
 
 
 
@@ -2414,8 +2468,10 @@ def update_call_notify(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -2548,8 +2604,10 @@ def update_criteria_call_notify(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
 
 
 
@@ -2574,8 +2632,10 @@ def delete_criteria_call_notify(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
 
 
 
@@ -2639,8 +2699,10 @@ def update_selective_accept(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -2777,8 +2839,10 @@ def update_criteria_selective_accept(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
 
 
 
@@ -2803,8 +2867,10 @@ def delete_criteria_selective_accept(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
 
 
 
@@ -2990,8 +3056,10 @@ def update_criteria_selective_forward(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
 
 
 
@@ -3016,8 +3084,10 @@ def delete_criteria_selective_forward(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
 
 
 
@@ -3090,8 +3160,10 @@ def update_selective_forward(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -3155,8 +3227,10 @@ def update_selective_reject(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -3273,8 +3347,10 @@ def update_anonymous_call_reject(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -3348,8 +3424,10 @@ def update_criteria_selective_reject(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
 
 
 
@@ -3374,8 +3452,10 @@ def delete_criteria_selective_reject(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
 
 
 
@@ -3429,8 +3509,10 @@ def update_call_waiting(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -3506,8 +3588,10 @@ def update_sequential_ring(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -3644,8 +3728,10 @@ def update_criteria_sequential_ring(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
 
 
 
@@ -3670,8 +3756,10 @@ def delete_criteria_sequential_ring(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
 
 
 
@@ -3741,8 +3829,10 @@ def update_simultaneous_ring(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -3816,8 +3906,10 @@ def update_criteria_simultaneous_ring(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
 
 
 
@@ -3842,8 +3934,10 @@ def delete_criteria_simultaneous_ring(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
 
 
 
@@ -3996,8 +4090,10 @@ def update_speed_dials(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 

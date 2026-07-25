@@ -129,8 +129,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {person_id}")
+    else:
+        emit({"status": "unassigned", "id": person_id}, output=output, fields=fields)
 
 
 
@@ -155,7 +157,9 @@ def delete_partner_admin(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {person_id}")
+    else:
+        emit({"status": "revoked", "id": person_id}, output=output, fields=fields)
 
 

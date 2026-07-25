@@ -225,8 +225,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": dial_plan_id}, output=output, fields=fields)
 
 
 
@@ -429,8 +431,10 @@ def update_dial_plans(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": dial_plan_id}, output=output, fields=fields)
 
 
 
@@ -459,8 +463,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {dial_plan_id}")
+    else:
+        emit({"status": "deleted", "id": dial_plan_id}, output=output, fields=fields)
 
 
 
@@ -702,8 +708,10 @@ def update_trunks(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": trunk_id}, output=output, fields=fields)
 
 
 
@@ -732,8 +740,10 @@ def delete_trunks(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {trunk_id}")
+    else:
+        emit({"status": "deleted", "id": trunk_id}, output=output, fields=fields)
 
 
 
@@ -916,8 +926,10 @@ def update_route_groups(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": route_group_id}, output=output, fields=fields)
 
 
 
@@ -946,8 +958,10 @@ def delete_route_groups(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {route_group_id}")
+    else:
+        emit({"status": "removed", "id": route_group_id}, output=output, fields=fields)
 
 
 
@@ -1290,8 +1304,10 @@ def update_route_lists(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": route_list_id}, output=output, fields=fields)
 
 
 
@@ -1320,8 +1336,10 @@ def delete_route_lists(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {route_list_id}")
+    else:
+        emit({"status": "deleted", "id": route_list_id}, output=output, fields=fields)
 
 
 
@@ -1400,8 +1418,10 @@ def update_numbers(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": route_list_id}, output=output, fields=fields)
 
 
 
@@ -1612,8 +1632,10 @@ def update_translation_patterns_call_routing(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": translation_id}, output=output, fields=fields)
 
 
 
@@ -1642,8 +1664,10 @@ def delete_translation_patterns_call_routing(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {translation_id}")
+    else:
+        emit({"status": "deleted", "id": translation_id}, output=output, fields=fields)
 
 
 
@@ -1771,8 +1795,10 @@ def update_translation_patterns_call_routing_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": translation_id}, output=output, fields=fields)
 
 
 
@@ -1802,7 +1828,9 @@ def delete_translation_patterns_call_routing_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {translation_id}")
+    else:
+        emit({"status": "deleted", "id": translation_id}, output=output, fields=fields)
 
 

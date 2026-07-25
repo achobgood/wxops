@@ -229,8 +229,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -424,8 +426,10 @@ def update_emergency_callback_number(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -561,8 +565,10 @@ def update_music_on_hold(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -626,8 +632,10 @@ def update_private_network_connect(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -1033,8 +1041,10 @@ def update_directories(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": directory_id}, output=output, fields=fields)
 
 
 
@@ -1064,8 +1074,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {directory_id}")
+    else:
+        emit({"status": "deleted", "id": directory_id}, output=output, fields=fields)
 
 
 
@@ -1405,7 +1417,9 @@ def update_call_captions(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 

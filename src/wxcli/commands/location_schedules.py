@@ -169,8 +169,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": schedule_id}, output=output, fields=fields)
 
 
 
@@ -201,8 +203,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {schedule_id}")
+    else:
+        emit({"status": "deleted", "id": schedule_id}, output=output, fields=fields)
 
 
 
@@ -287,8 +291,10 @@ def update_events(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": event_id}, output=output, fields=fields)
 
 
 
@@ -320,8 +326,10 @@ def delete_events(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {event_id}")
+    else:
+        emit({"status": "deleted", "id": event_id}, output=output, fields=fields)
 
 
 

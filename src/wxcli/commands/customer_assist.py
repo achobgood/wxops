@@ -152,8 +152,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": wrapup_reason_id}, output=output, fields=fields)
 
 
 
@@ -178,8 +180,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {wrapup_reason_id}")
+    else:
+        emit({"status": "deleted", "id": wrapup_reason_id}, output=output, fields=fields)
 
 
 
@@ -316,8 +320,10 @@ def update_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": queue_id}, output=output, fields=fields)
 
 
 
@@ -389,8 +395,10 @@ def update_screen_pop(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": queue_id}, output=output, fields=fields)
 
 
 
@@ -495,7 +503,9 @@ def update_call_recordings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": queue_id}, output=output, fields=fields)
 
 

@@ -167,8 +167,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": contact_id}, output=output, fields=fields)
 
 
 
@@ -194,8 +196,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {contact_id}")
+    else:
+        emit({"status": "deleted", "id": contact_id}, output=output, fields=fields)
 
 
 

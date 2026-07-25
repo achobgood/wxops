@@ -200,8 +200,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": extension_id}, output=output, fields=fields)
 
 
 
@@ -230,8 +232,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {extension_id}")
+    else:
+        emit({"status": "deleted", "id": extension_id}, output=output, fields=fields)
 
 
 
@@ -293,8 +297,10 @@ def update_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -483,8 +489,10 @@ def delete_virtual_extension_ranges(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {extension_range_id}")
+    else:
+        emit({"status": "deleted", "id": extension_range_id}, output=output, fields=fields)
 
 
 
@@ -530,8 +538,10 @@ def update_virtual_extension_ranges(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": extension_range_id}, output=output, fields=fields)
 
 
 

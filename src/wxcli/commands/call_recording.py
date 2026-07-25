@@ -69,8 +69,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -134,8 +136,10 @@ def update_terms_of_service(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": vendor_id}, output=output, fields=fields)
 
 
 
@@ -212,8 +216,10 @@ def update_compliance_announcement_call_recording(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -292,8 +298,10 @@ def update_compliance_announcement_call_recording_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -415,8 +423,10 @@ def update_vendor_call_recording(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -642,8 +652,10 @@ def update_vendor_call_recording_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -702,8 +714,10 @@ def update_announcements_call_recording(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -767,7 +781,9 @@ def update_announcements_call_recording_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
