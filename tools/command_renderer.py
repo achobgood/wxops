@@ -78,7 +78,7 @@ import typer
 from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error
 from wxcli.output import print_table, print_json
-from wxcli.common import emit
+from wxcli.common import emit, load_json_body
 '''
     config_imports = []
     if include_org_id:
@@ -558,13 +558,23 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         else:
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
-    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+    if ep.json_body_example:
+        params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
+    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
     params.extend(_render_output_options("id"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
 
-    body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
+    generate_json_body_check = []
+    if ep.json_body_example:
+        generate_json_body_check = [
+            "    if generate_json_body:",
+            f"        typer.echo(json.dumps(json.loads(_BODY_SKELETON_{func_name.upper()}), indent=2))",
+            "        raise typer.Exit(0)",
+        ]
+
+    body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
@@ -604,6 +614,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *params,
         "):",
         _render_docstring(ep),
+        *generate_json_body_check,
         "    api = get_api(debug=debug)",
         *_render_path_inject(ep),
         f'    url = f"{url_expr}"',
@@ -653,17 +664,27 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
             else:
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
-    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+    if ep.json_body_example:
+        params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
+    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
 
+    generate_json_body_check = []
+    if ep.json_body_example:
+        generate_json_body_check = [
+            "    if generate_json_body:",
+            f"        typer.echo(json.dumps(json.loads(_BODY_SKELETON_{func_name.upper()}), indent=2))",
+            "        raise typer.Exit(0)",
+        ]
+
     if is_json_patch:
         # JSON Patch: --json-body passes through as-is; flags build [{op, path, value}]
         body_build = [
             "    if json_body:",
-            "        body = json.loads(json_body)",
+            "        body = load_json_body(json_body)",
             "    else:",
             "        patch_op = {}",
         ]
@@ -681,7 +702,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
             '        body = [patch_op]',
         ])
     else:
-        body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
+        body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
@@ -702,6 +723,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *params,
         "):",
         _render_docstring(ep),
+        *generate_json_body_check,
         "    api = get_api(debug=debug)",
         *_render_path_inject(ep),
         f'    url = f"{url_expr}"',
@@ -748,7 +770,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
                 params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
             else:
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
-        params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options)"),')
+        if ep.json_body_example:
+            params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
+        params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
 
     has_spec_force = any(qp.name == "force" for qp in ep.query_params)
     if not has_spec_force:
@@ -771,9 +795,17 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     if not qp_build and has_params:
         qp_build = ["    params = {}"]
 
+    generate_json_body_check = []
+    if ep.json_body_example:
+        generate_json_body_check = [
+            "    if generate_json_body:",
+            f"        typer.echo(json.dumps(json.loads(_BODY_SKELETON_{func_name.upper()}), indent=2))",
+            "        raise typer.Exit(0)",
+        ]
+
     body_build: list[str] = []
     if has_body:
-        body_build = ["    if json_body:", "        body = json.loads(json_body)",
+        body_build = ["    if json_body:", "        body = load_json_body(json_body)",
                       "    else:", "        body = {}"]
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
@@ -809,6 +841,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *params,
         "):",
         _render_docstring(ep),
+        *generate_json_body_check,
         "    if not force:",
         confirm_line,
         "    api = get_api(debug=debug)",
@@ -848,13 +881,23 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         help_text = _enum_help(bf)
         params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
 
-    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body"),')
+    if ep.json_body_example:
+        params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
+    params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars)
 
-    body_build = ["    if json_body:", "        body = json.loads(json_body)", "    else:", "        body = {}"]
+    generate_json_body_check = []
+    if ep.json_body_example:
+        generate_json_body_check = [
+            "    if generate_json_body:",
+            f"        typer.echo(json.dumps(json.loads(_BODY_SKELETON_{func_name.upper()}), indent=2))",
+            "        raise typer.Exit(0)",
+        ]
+
+    body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array") or param in used_names:
@@ -873,6 +916,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *params,
         "):",
         _render_docstring(ep),
+        *generate_json_body_check,
         "    api = get_api(debug=debug)",
         *_render_path_inject(ep),
         f'    url = f"{url_expr}"',
@@ -943,6 +987,9 @@ def render_command_file(
         if renderer is None:
             sections.append(f"# SKIPPED: {ep.name} — unknown command type {ep.command_type}\n")
             continue
+        if ep.json_body_example:
+            func_name = _safe_func_name(ep.command_name)
+            sections.append(f"_BODY_SKELETON_{func_name.upper()} = {ep.json_body_example!r}")
         sections.append(renderer(ep, folder_overrides))
         sections.append("")
 
