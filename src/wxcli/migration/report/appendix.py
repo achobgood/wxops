@@ -84,6 +84,7 @@ def generate_appendix(store: MigrationStore) -> str:
         ("AC", _device_settings_coverage(store)),
         ("AD", _feature_forwarding_status(store)),
         ("AE", _workspace_settings_coverage(store)),
+        ("AF", _cross_site_group(store)),
     ]
     # Filter out empty sections
     sections = [(letter, section_html) for letter, section_html in sections if section_html]
@@ -2434,4 +2435,116 @@ def _workspace_settings_coverage(store: MigrationStore) -> str:
         )
 
     parts.extend(['</div></details>'])
+    return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# AF. Cross-Site Dependencies
+# ---------------------------------------------------------------------------
+
+_RELATION_LABELS = {
+    "membership": "Group membership",
+    "monitoring": "Monitored lines",
+    "delegation": "Delegation",
+    "destination": "Call destination",
+    "device_placement": "Phone placement",
+    "line_appearance": "Shared line",
+}
+
+
+def _cross_site_group(store: MigrationStore) -> str:
+    """AF. Cross-Site Dependencies — constructs that straddle two offices.
+
+    Grouped by site pair, because the site pair is the wave-planning unit: every
+    pair listed here is two offices that have to be migrated together, or a set of
+    members that has to be reconnected by hand afterwards.
+    """
+    decisions = [
+        d for d in store.get_all_decisions()
+        if d.get("type") == "CROSS_SITE_DEPENDENCY"
+        and d.get("chosen_option") != "__stale__"
+    ]
+    if not decisions:
+        return ""
+
+    em_dash = "—"
+    # (home site, remote site) -> rows
+    pairs: dict[tuple[str, str], list[dict[str, str]]] = {}
+    unreviewed = 0
+
+    for dec in decisions:
+        ctx = dec.get("context") or {}
+        home = str(ctx.get("home_location_name") or em_dash)
+        name = str(ctx.get("object_name") or em_dash)
+        relation = str(ctx.get("relation") or "")
+        chosen = dec.get("chosen_option")
+        if not chosen:
+            unreviewed += 1
+        members = ctx.get("remote_members") or []
+
+        for remote in ctx.get("remote_locations") or []:
+            remote_name = str(remote.get("location_name") or em_dash)
+            member_names = ", ".join(
+                str(m.get("display_name", ""))
+                for m in members
+                if m.get("location_canonical_id") == remote.get("location_canonical_id")
+            )
+            pairs.setdefault((home, remote_name), []).append({
+                "name": name,
+                "relation": _RELATION_LABELS.get(relation, relation.replace("_", " ").title()),
+                "severity": str(dec.get("severity") or ""),
+                "members": member_names or em_dash,
+                "member_count": str(remote.get("member_count") or len(members)),
+                "status": str(chosen) if chosen else "Unreviewed",
+            })
+
+    total = len(decisions)
+    parts = [
+        '<details id="cross-site-dependencies">',
+        f'<summary>AF. Cross-Site Dependencies <span class="summary-count">'
+        f'— {total} across {len(pairs)} site pair'
+        f'{"s" if len(pairs) != 1 else ""}</span></summary>',
+        '<div class="details-content">',
+        '<p>These groups, lines, and phones have people or destinations at more than one '
+        'office. Webex builds each one at a single office, so anything listed here has to '
+        'move as a unit — or the people at the other office have to be added by hand '
+        'after their office moves. Use this list to decide which offices go in the same '
+        'migration wave.</p>',
+    ]
+
+    if unreviewed:
+        parts.append(
+            '<div class="callout">'
+            f'<p><strong>{unreviewed} of {total} still need a decision.</strong> '
+            'The migration will not build these until someone chooses what happens to the '
+            'people at the other office.</p>'
+            '</div>'
+        )
+
+    for (home, remote), rows in sorted(pairs.items()):
+        parts.extend([
+            f'<h4>{html.escape(home)} ↔ {html.escape(remote)} '
+            f'<span class="summary-count">— {len(rows)} item'
+            f'{"s" if len(rows) != 1 else ""}</span></h4>',
+            '<table>',
+            '<thead><tr>'
+            '<th>Item</th><th>What is shared</th><th>Priority</th>'
+            '<th class="num">People at other office</th><th>Who</th><th>Decision</th>'
+            '</tr></thead>',
+            '<tbody>',
+        ])
+        for row in sorted(rows, key=lambda r: r["name"]):
+            parts.append(
+                '<tr>'
+                f'<td>{html.escape(row["name"])}</td>'
+                f'<td>{html.escape(row["relation"])}</td>'
+                f'<td>{html.escape(row["severity"].title())}</td>'
+                f'<td class="num">{html.escape(row["member_count"])}</td>'
+                f'<td>{html.escape(row["members"])}</td>'
+                f'<td>{html.escape(row["status"])}</td>'
+                '</tr>'
+            )
+        parts.append('</tbody></table>')
+
+    parts.append('</div></details>')
     return "\n".join(parts)

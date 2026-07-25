@@ -13,7 +13,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `pipeline.py` | `normalize_discovery(raw_data, store)` — Phase 04 entry point: runs Pass 1 normalizers + Pass 2 cross-refs |
 | `normalizers.py` | 41 Pass 1 normalizer functions + `NORMALIZER_REGISTRY` + `RAW_DATA_MAPPING` |
 | `cross_reference.py` | `CrossReferenceBuilder` — Pass 2: builds `cross_refs` table (34 relationships + 3 enrichments) |
-| `analysis_pipeline.py` | `AnalysisPipeline` — runs 14 analyzers, merges decisions, applies auto-rules, runs advisor |
+| `analysis_pipeline.py` | `AnalysisPipeline` — runs 15 analyzers, merges decisions, applies auto-rules, runs advisor |
 | `rules.py` | `apply_auto_rules(store, config)` — auto-resolution rules (simple cases resolved without user input) |
 | `decisions.py` | Decision-related helpers and constants |
 | `e164.py` | E.164 normalization with site prefix stripping |
@@ -21,7 +21,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `pattern_converter.py` | Route pattern wildcard conversion |
 | `engine.py` | Mapper execution engine — runs mappers in dependency order |
 | `mappers/` | 26 mapper classes — see `mappers/CLAUDE.md` |
-| `analyzers/` | 14 analyzer classes — see their docstrings |
+| `analyzers/` | 15 analyzer classes — see their docstrings |
 
 ## Pass 1: Normalizers
 
@@ -47,7 +47,7 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | Method | Relationships |
 |--------|--------------|
 | `_build_device_pool_refs` | device_pool_has_datetime_group, datetime_group_to_timezone |
-| `_build_user_refs` | user_in_location, user_has_line |
+| `_build_user_refs` | user_has_device, user_has_primary_dn |
 | `_build_device_dn_refs` | device_has_dn, dn_in_partition, line_uses_css |
 | `_build_device_ownership_refs` | device_owner, device_in_location, common_area_device |
 | `_build_css_partition_graph` | css_has_partition, partition_in_css |
@@ -60,6 +60,22 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `_build_template_refs` | phone_uses_button_template, phone_uses_softkey_template |
 | `_build_audio_refs` | feature_uses_moh_source (hunt pilot networkHoldMohAudioSourceID → music_on_hold canonical ID) |
 
+**`line_assigned_to_user` is written by `LineMapper`, not here.** It is read by
+`DeviceLayoutMapper` (line members), `MonitoringMapper` (BLF targets), and
+`ReceptionistMapper`. It cannot live in `CrossReferenceBuilder`: that runs before the map
+pass, and `line:` objects do not exist until `LineMapper` creates them. Nothing wrote it
+until cross-site Phase 2, so all three consumers silently resolved every line to `None` —
+which meant `member_canonical_id` was always empty and the device-members PUT was never
+emitted at all. Owner resolution is `user_has_primary_dn` first, falling back to the owner
+of the device carrying the DN at line index 1.
+
+**Shared lines: `CrossReferenceBuilder._detect_shared_lines()` is the only producer.**
+It creates `CanonicalSharedLine` objects from the `device_has_dn` cross-refs during the
+enrichment pass. `cucm/extractors/shared_lines.py:SharedLineDetector` is **dead code** —
+it has no caller anywhere in the pipeline, and wiring it would build a duplicate producer
+of the same objects. Do not wire it. `DeviceLayoutMapper._build_shared_dn_set()` reads the
+objects this method creates.
+
 **Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments. Similarly, `voicemail_group_in_location` is written by `VoicemailGroupMapper` after location resolution. `feature_forwards_to_voicemail_group` is written by `FeatureMapper` when a hunt group/call queue forwarding destination matches a voicemail group extension — this powers the dependency graph edge that ensures `voicemail_group:create` runs before `feature:configure_forwarding`.
 
 ## Mapper Execution Engine
@@ -68,15 +84,15 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 
 ## Analysis Pipeline
 
-`analysis_pipeline.py:AnalysisPipeline.run(store)` runs all 14 analyzers, then advisory, then recommendations:
+`analysis_pipeline.py:AnalysisPipeline.run(store)` runs all 15 analyzers, then advisory, then recommendations:
 
-1. Run 14 analyzers (topological order by `depends_on`) → collect `Decision` objects
+1. Run 15 analyzers (topological order by `depends_on`) → collect `Decision` objects
 2. Convert decisions to store dicts → merge via `store.merge_decisions()` (fingerprint-based, marks stale)
 3. Apply auto-resolution rules from config
 4. Run `ArchitectureAdvisor` (Phase 2 — reads merged decisions, produces `ARCHITECTURE_ADVISORY` decisions)
 5. Populate recommendations on all decisions
 
-**14 Analyzers:**
+**15 Analyzers:**
 
 | Analyzer | Decision Types |
 |----------|---------------|
@@ -94,6 +110,20 @@ raw_data (from cucm/) → Pass 1: normalizers → Pass 2: cross_refs → mappers
 | `MissingDataAnalyzer` | `MISSING_DATA` |
 | `LayoutOverflowAnalyzer` | `LAYOUT_OVERFLOW` |
 | `SelectiveCallHandlingAnalyzer` | `FEATURE_APPROXIMATION` (with `selective_call_handling_pattern` context key) |
+| `CrossSiteAnalyzer` | `CROSS_SITE_DEPENDENCY` (table-driven: 18 rules over membership / monitoring / delegation / destination / device_placement / line_appearance) |
+
+**CrossSiteAnalyzer is table-driven — add a row, not a branch.** `CROSS_SITE_RULES` in
+`analyzers/cross_site.py` is the single source of truth for what counts as cross-site. Each
+row names the object type, the member field, a collector kind (`_COLLECTORS` registry), and
+how the construct's own location is determined (`field:` / `owner:` / `vote`). The sweep has
+no per-type branching; new constructs are one-line additions. `resolve_entity_location()` in
+the same module is the only correct way to get an entity's location — the field name is
+`location_id` on some canonical types, `location_canonical_id` on others, and absent (inherit
+from the owner) on the rest.
+
+Two behaviours are unique to `CROSS_SITE_DEPENDENCY`: it is excluded from auto-resolution
+(`_NEVER_AUTO_RESOLVE` in `rules.py`) and an *unresolved* one blocks plan expansion of its
+construct. See `execute/CLAUDE.md` for the gate.
 
 **Cascade re-evaluation:** `resolve_and_cascade(store, decision_id, chosen_option)` resolves one decision and re-runs only the analyzers whose `decision_types` intersect `cascades_to` from the decision's context. Uses `save_decision()` (not `merge_decisions()`) in the cascade path to avoid incorrectly staling decisions from non-cascaded analyzers.
 

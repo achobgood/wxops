@@ -660,16 +660,68 @@ wxcli device-settings list-available-members DEVICE_ID --member-name "Jane" --us
 wxcli device-settings list-available-members DEVICE_ID --location-id LOCATION_ID
 
 # Update members on a device (requires --json-body)
+# NOTE: id, port, lineType, lineWeight, primaryOwner are ALL mandatory, and the
+# shared value is SHARED_CALL_APPEARANCE (not SHARED_LINE). See the gotcha below.
 wxcli device-settings update DEVICE_ID --json-body '{
   "members": [
-    {"id": "PERSON_ID_1", "port": 1, "lineType": "PRIMARY", "primaryOwner": true},
-    {"id": "PERSON_ID_2", "port": 2, "lineType": "SHARED_LINE", "primaryOwner": false}
+    {"id": "PERSON_ID_1", "port": 1, "lineType": "PRIMARY", "lineWeight": 1, "primaryOwner": true},
+    {"id": "PERSON_ID_2", "port": 2, "lineType": "SHARED_CALL_APPEARANCE", "lineWeight": 1, "primaryOwner": false}
   ]
 }'
 
 # Apply configuration changes to the physical device
 wxcli device-settings apply-changes-for DEVICE_ID
 ```
+
+##### Gotcha: the device-members PUT has five mandatory fields, and `SHARED_LINE` is not one of the values
+
+<!-- Verified live against org a9527d60-e78c-4330-9c53-8331a0c5aa7b on a
+     DMS Cisco 8851 (maxLineCount 16), 2026-07-24. Device members were captured
+     before the probes and restored field-for-field afterwards. -->
+
+`PUT /telephony/config/devices/{deviceId}/members` rejects anything less than the
+full member object. Adding one field at a time produced this chain:
+
+| Body sent per member | Result |
+|---|---|
+| `id`, `port` | 400 · `errorCode 25024` · `Invalid field value: members.type` |
+| `+ lineType: "PRIMARY"` | 400 · `errorCode 25008` · `Missing Mandatory field name:  members.lineWeight` |
+| `+ lineWeight: 1` | 400 · `errorCode 25008` · `Missing Mandatory field name:  members.primaryOwner` |
+| `+ primaryOwner: true` | **200** |
+
+Consequences, each observed rather than inferred:
+
+1. **`{"id", "port"}` alone is always HTTP 400** — a single-member PUT fails
+   identically to a two-member one, so the rejection is about the missing field,
+   not about the extra member. There is no "omitted `lineType`" behaviour to
+   preserve: nothing is stored, and `primaryOwner` is **not** inferred from port 1.
+2. **The shared value is `SHARED_CALL_APPEARANCE`, not `SHARED_LINE`.** Sending
+   `SHARED_LINE` returns the same `25024 Invalid field value: members.type` as
+   omitting the field entirely, and the device is left unchanged. Every entry
+   returned by `list-available-members` reports
+   `"lineType": "SHARED_CALL_APPEARANCE"`. `SHARED_LINE` is valid only as the
+   `--usage-type` **query parameter** on `list-available-members`, and as a
+   `LineKeyType` on the *line key template* API (§ Line Key Templates above) —
+   that is a different enum on a different endpoint; do not "correct" it.
+   Because both failure modes share code 25024, the error cannot distinguish a
+   bad value from an absent one.
+3. **The API does not validate that `lineType` suits the port.** Sending
+   `PRIMARY` on port 1 *and* port 2 (with `primaryOwner` false on the second)
+   returns 200 and persists both as `PRIMARY` — no coercion, no warning. The
+   caller must derive the value itself: port 1 → `PRIMARY`, ports ≥ 2 →
+   `SHARED_CALL_APPEARANCE`. A 2xx here proves the request was well-formed, not
+   that the layout is correct.
+4. **Cross-location members are accepted.** A person whose own location is
+   `Site1` was added as port 2 on an `HQ`-owned device: HTTP 200, no error, and
+   the subsequent GET reports the member with their own foreign `location`.
+   Cross-location candidates are also offered by `list-available-members` by
+   default, not only when `--location-id` names the other location. Whether the
+   appearance *rings* is *not* API-observable and was not tested.
+5. **Virtual lines are eligible members** — `list-available-members` returns
+   entries with `"memberType": "VIRTUAL_LINE"` alongside `PEOPLE`.
+
+`hotlineEnabled` and `allowCallDeclineEnabled` may be omitted; they default to
+`false` / `true`.
 
 #### Person & Workspace Devices (`device-settings`)
 

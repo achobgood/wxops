@@ -18,7 +18,7 @@ All 11 phases complete. **2535 tests passing.** Wired into the CLI as `wxcli cuc
 | `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (31 relationships + 3 enrichments) |
 | `transform/pipeline.py` | Phase 04 — `normalize_discovery()` entry point |
 | `transform/mappers/` | Phase 05 — 26 mappers + base.py (announcement, button_template, call_forwarding, call_settings, css, dect, device, device_layout, device_profile, e911, ecbn, executive_assistant, feature, line, location, moh, monitoring, receptionist, routing, snr, softkey, user, voicemail, voicemail_group, workspace, device_settings) |
-| `transform/analyzers/` | Phase 06 — 13 analyzers (css_permission, css_routing, device_compatibility, dn_ambiguity, duplicate_user, extension_conflict, feature_approximation, layout_overflow, location_ambiguity, missing_data, shared_line, voicemail_compatibility, workspace_license) |
+| `transform/analyzers/` | Phase 06 — 15 analyzers (cross_site, css_permission, css_routing, device_compatibility, dn_ambiguity, duplicate_user, extension_conflict, feature_approximation, layout_overflow, location_ambiguity, missing_data, selective_call_handling, shared_line, voicemail_compatibility, workspace_license) |
 | `transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
 | `execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
 | `export/` | Phase 09 — deployment_plan.py, json/csv exports (command_builder.py removed in Phase 12b) |
