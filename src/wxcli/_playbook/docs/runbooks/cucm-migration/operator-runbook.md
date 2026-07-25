@@ -652,6 +652,57 @@ Both artifacts can be regenerated at any time without affecting the store — th
 
 Decision review is Step 1c of the `cucm-migrate` skill. It runs after the pipeline has produced static recommendations for every discovered entity. The operator works alongside Claude (acting as migration-advisor) to accept, reject, skip, or override each recommendation before anything is provisioned. Nothing is committed to Webex until review is complete and you approve the final plan.
 
+### Wave Planning: Start With the Cross-Site List
+
+If you are migrating site by site rather than all at once, review `CROSS_SITE_DEPENDENCY`
+decisions **before** you commit to a wave order. They are the only decisions that tell you
+which sites cannot be separated.
+
+```bash
+wxcli cucm decisions --type CROSS_SITE_DEPENDENCY -p <project>
+wxcli cucm decisions --type CROSS_SITE_DEPENDENCY -o json -p <project>   # full member lists
+```
+
+Each decision names a construct, the location it will be built in, and the members that
+live somewhere else. Appendix AF of the assessment report presents the same data grouped
+by **site pair** — that grouping is the wave-planning unit. Two sites that appear together
+repeatedly either migrate in the same wave, or you accept manual reconnection work for
+every construct that spans them.
+
+Four things to know before you start resolving them:
+
+1. **They block the plan.** An unresolved cross-site decision stops its construct from
+   being planned at all — `wxcli cucm plan` reports it under `cross_site_unreviewed` and
+   `--fail-on-unresolved` exits non-zero. The members themselves are unaffected and still
+   get provisioned. This is deliberate: a phased migration should not be able to silently
+   build a half-populated hunt group.
+2. **They cannot be auto-resolved.** A config `auto_rules` entry targeting this type is
+   refused with a logged warning. There is no recommendation rule either — the choice is a
+   scheduling decision, not a technical one.
+3. **`proceed_partial` now finishes itself.** Choosing it emits a `reconcile_members`
+   operation (tier 9 — the last thing that touches a group) alongside the normal create.
+   The group is still built in wave 1 with whoever exists locally, and the reconcile op
+   holds until *every* member has been provisioned, then rewrites the full membership.
+   Across separate wave runs it stays pending and executes on the final one. Covers hunt
+   groups, call queues, pickup groups, and paging groups.
+
+   Two things to watch:
+   - **If any member is still unresolved, the op skips rather than writing.** These
+     endpoints replace the whole member list, so a short write would *remove* people —
+     including anyone you added by hand. You will see the op as `skipped` with the
+     unresolved members named. Re-run the wave once they exist.
+   - **A user may belong to only one pickup group** (error 4471). If a reconcile adds a
+     user who is already in another pickup group, the API rejects it. The error surfaces
+     on the op; it is not retried blindly.
+
+4. **`reassign_home` moves the construct** — answer with a location canonical id rather
+   than the literal `reassign_home`. See the
+   [decision guide](decision-guide.md#cross-site-dependency).
+
+The safe default is still `migrate_together`: pull the handful of straggler users into the
+same wave as the construct, even when that crosses a site boundary. It is simpler to
+reason about than a two-wave create-then-reconcile, and needs no second run.
+
 ### How `cucm-migrate` Invokes the Advisor
 
 At Step 1c, `cucm-migrate` spawns the `migration-advisor` agent (Opus model, `bypassPermissions`) with a review-mode prompt. The agent reads the migration narrative from `<project>/exports/migration-narrative.md`, loads the static recommendations from the pipeline, and presents two review phases in sequence.

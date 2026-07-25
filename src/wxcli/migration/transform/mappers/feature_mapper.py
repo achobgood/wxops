@@ -775,6 +775,7 @@ class FeatureMapper(Mapper):
                 )
                 store.upsert_object(pg)
                 result.objects_created += 1
+                self._link_paging_members(store, pg.canonical_id, targets, originators)
             else:
                 # Split targets into chunks of 75
                 for chunk_idx, start in enumerate(
@@ -793,6 +794,29 @@ class FeatureMapper(Mapper):
                     )
                     store.upsert_object(pg)
                     result.objects_created += 1
+                    self._link_paging_members(
+                        store, pg.canonical_id, chunk, originators
+                    )
+
+    @staticmethod
+    def _link_paging_members(
+        store: MigrationStore,
+        feature_cid: str,
+        targets: list,
+        originators: list,
+    ) -> None:
+        """Write feature_has_agent for paging targets and originators.
+
+        The other three group types have carried this cross-ref since Fix 8;
+        paging groups never did, so they had no member edges in the dependency
+        graph at all. ``reconcile_members`` needs them to know when the last
+        member exists. Deliberately NOT paired with a SOFT rule on
+        ``paging_group:create`` — creating a paging group with the members that
+        happen to exist stays the wave-1 behaviour.
+        """
+        for agent_cid in dict.fromkeys([*targets, *originators]):
+            if agent_cid:
+                store.add_cross_ref(feature_cid, agent_cid, "feature_has_agent")
 
     # ------------------------------------------------------------------
     # Schedules: Time Schedule + Time Period -> CanonicalOperatingMode

@@ -1497,8 +1497,18 @@ class TestDeviceLayoutConfigure:
         assert method1 == "PUT"
         assert "wx-dev-bbb" in url1
         assert "/members" in url1
-        assert {"id": "wx-person-aaa", "port": 1} in body1["members"]
-        assert {"id": "wx-person-ccc", "port": 2} in body1["members"]
+        # All five fields are mandatory; a body missing any of them is 400.
+        # SHARED_CALL_APPEARANCE is the members enum — "SHARED_LINE" is the
+        # LineKeyType used on the /layout call below and is rejected here.
+        # (verified live 2026-07-24 — devices-core.md members gotcha)
+        assert {
+            "id": "wx-person-aaa", "port": 1, "lineType": "PRIMARY",
+            "lineWeight": 1, "primaryOwner": True,
+        } in body1["members"]
+        assert {
+            "id": "wx-person-ccc", "port": 2, "lineType": "SHARED_CALL_APPEARANCE",
+            "lineWeight": 1, "primaryOwner": False,
+        } in body1["members"]
         method2, url2, body2 = result[1]
         assert method2 == "PUT"
         assert "/layout" in url2
