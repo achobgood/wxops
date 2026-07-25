@@ -478,8 +478,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": meeting_id}, output=output, fields=fields)
 
 
 
@@ -615,8 +617,10 @@ def update_meetings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": meeting_id}, output=output, fields=fields)
 
 
 
@@ -648,8 +652,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {meeting_id}")
+    else:
+        emit({"status": "deleted", "id": meeting_id}, output=output, fields=fields)
 
 
 
@@ -862,8 +868,10 @@ def update_controls(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 
 
@@ -1042,8 +1050,10 @@ def update_registration(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": meeting_id}, output=output, fields=fields)
 
 
 
@@ -1068,8 +1078,10 @@ def delete_registration(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {meeting_id}")
+    else:
+        emit({"status": "deleted", "id": meeting_id}, output=output, fields=fields)
 
 
 
@@ -1313,8 +1325,10 @@ def delete_registrants(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {registrant_id}")
+    else:
+        emit({"status": "deleted", "id": registrant_id}, output=output, fields=fields)
 
 
 
@@ -1604,8 +1618,10 @@ def update_simultaneous_interpretation(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": meeting_id}, output=output, fields=fields)
 
 
 
@@ -1776,8 +1792,10 @@ def update_interpreters(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": interpreter_id}, output=output, fields=fields)
 
 
 
@@ -1810,8 +1828,10 @@ def delete_interpreters(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {interpreter_id}")
+    else:
+        emit({"status": "deleted", "id": interpreter_id}, output=output, fields=fields)
 
 
 
@@ -1880,8 +1900,10 @@ def update_breakout_sessions(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": meeting_id}, output=output, fields=fields)
 
 
 
@@ -1910,8 +1932,10 @@ def delete_breakout_sessions(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {meeting_id}")
+    else:
+        emit({"status": "deleted", "id": meeting_id}, output=output, fields=fields)
 
 
 

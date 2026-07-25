@@ -184,8 +184,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": dect_network_id}, output=output, fields=fields)
 
 
 
@@ -215,8 +217,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {dect_network_id}")
+    else:
+        emit({"status": "deleted", "id": dect_network_id}, output=output, fields=fields)
 
 
 
@@ -326,8 +330,10 @@ def delete_base_stations_dect_networks(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {dect_network_id}")
+    else:
+        emit({"status": "deleted", "id": dect_network_id}, output=output, fields=fields)
 
 
 
@@ -384,8 +390,10 @@ def delete_base_stations_dect_networks_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {base_station_id}")
+    else:
+        emit({"status": "deleted", "id": base_station_id}, output=output, fields=fields)
 
 
 
@@ -556,8 +564,10 @@ def update_handsets(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": handset_id}, output=output, fields=fields)
 
 
 
@@ -588,8 +598,10 @@ def delete_handsets_dect_networks(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {handset_id}")
+    else:
+        emit({"status": "deleted", "id": handset_id}, output=output, fields=fields)
 
 
 
@@ -637,8 +649,10 @@ def delete_handsets_dect_networks_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {dect_network_id}")
+    else:
+        emit({"status": "deleted", "id": dect_network_id}, output=output, fields=fields)
 
 
 
@@ -899,7 +913,9 @@ def update_serviceability_password(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": dect_network_id}, output=output, fields=fields)
 
 

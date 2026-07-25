@@ -43,8 +43,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": person_id}, output=output, fields=fields)
 
 
 
@@ -71,8 +73,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {person_id}")
+    else:
+        emit({"status": "deleted", "id": person_id}, output=output, fields=fields)
 
 
 
@@ -114,8 +118,10 @@ def update_person_id_workspace_id(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": person_id}, output=output, fields=fields)
 
 
 
@@ -151,8 +157,10 @@ def update_person_id_workspace_id_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Removed.")
+    else:
+        emit({"status": "removed", "id": person_id}, output=output, fields=fields)
 
 
 
@@ -497,8 +505,10 @@ def update_template_id(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": template_id}, output=output, fields=fields)
 
 
 
@@ -525,8 +535,10 @@ def delete_template_id(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {template_id}")
+    else:
+        emit({"status": "deleted", "id": template_id}, output=output, fields=fields)
 
 
 
@@ -923,8 +935,10 @@ def delete_workspace_id_wxcc_subscription(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {workspace_id}")
+    else:
+        emit({"status": "deleted", "id": workspace_id}, output=output, fields=fields)
 
 
 
@@ -1125,8 +1139,10 @@ def update_action_id(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": action_id}, output=output, fields=fields)
 
 
 
@@ -1154,8 +1170,10 @@ def delete_action_id(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {action_id}")
+    else:
+        emit({"status": "deleted", "id": action_id}, output=output, fields=fields)
 
 
 
@@ -1216,8 +1234,10 @@ def update_workspace_id(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": workspace_id}, output=output, fields=fields)
 
 
 
@@ -1243,8 +1263,10 @@ def delete_workspace_id_api(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {workspace_id}")
+    else:
+        emit({"status": "deleted", "id": workspace_id}, output=output, fields=fields)
 
 
 

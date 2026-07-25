@@ -124,6 +124,7 @@ _BODY_SKELETON_UPDATE = '{"name":"...","siteUrl":"...","options":[{"value":"..."
 
 @app.command("update")
 def update(
+    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
     name: str = typer.Option(None, "--name", help="Name for tracking code. The name cannot be empty and the maximum size is 120 characters."),
     site_url: str = typer.Option(None, "--site-url", help="Site URL for the tracking code."),
     input_mode: str = typer.Option(None, "--input-mode", help="Choices: text, select, editableSelect, hostProfileSelect"),
@@ -139,7 +140,7 @@ def update(
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{trackingCodeId}"
+    url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -160,8 +161,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": tracking_code_id}, output=output, fields=fields)
 
 
 
@@ -190,8 +193,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {tracking_code_id}")
+    else:
+        emit({"status": "deleted", "id": tracking_code_id}, output=output, fields=fields)
 
 
 
@@ -267,7 +272,9 @@ def update_tracking_codes(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated"}, output=output, fields=fields)
 
 

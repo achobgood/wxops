@@ -77,8 +77,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": device_id}, output=output, fields=fields)
 
 
 
@@ -311,8 +313,10 @@ def update_settings_devices(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": device_id}, output=output, fields=fields)
 
 
 
@@ -400,8 +404,10 @@ def update_devices_config(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": device_id}, output=output, fields=fields)
 
 
 
@@ -471,8 +477,10 @@ def update_hoteling(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": person_id}, output=output, fields=fields)
 
 
 
@@ -551,8 +559,10 @@ def update_devices_workspaces(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": workspace_id}, output=output, fields=fields)
 
 
 
@@ -726,8 +736,10 @@ def update_line_key_templates(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": template_id}, output=output, fields=fields)
 
 
 
@@ -756,8 +768,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {template_id}")
+    else:
+        emit({"status": "deleted", "id": template_id}, output=output, fields=fields)
 
 
 
@@ -1257,8 +1271,10 @@ def update_layout(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": device_id}, output=output, fields=fields)
 
 
 
@@ -1460,8 +1476,10 @@ def update_settings_devices_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": person_id}, output=output, fields=fields)
 
 
 
@@ -1525,8 +1543,10 @@ def update_settings_devices_2(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": workspace_id}, output=output, fields=fields)
 
 
 
@@ -1601,8 +1621,10 @@ def delete_background_images(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo("Deleted.")
+    else:
+        emit({"status": "deleted"}, output=output, fields=fields)
 
 
 

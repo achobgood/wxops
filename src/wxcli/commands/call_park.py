@@ -168,8 +168,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": call_park_id}, output=output, fields=fields)
 
 
 
@@ -199,8 +201,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {call_park_id}")
+    else:
+        emit({"status": "deleted", "id": call_park_id}, output=output, fields=fields)
 
 
 
@@ -345,8 +349,10 @@ def update_settings(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -464,8 +470,10 @@ def update_call_park_extensions(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": call_park_extension_id}, output=output, fields=fields)
 
 
 
@@ -495,8 +503,10 @@ def delete_call_park_extensions(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {call_park_extension_id}")
+    else:
+        emit({"status": "deleted", "id": call_park_extension_id}, output=output, fields=fields)
 
 
 

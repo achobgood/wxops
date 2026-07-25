@@ -106,8 +106,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -171,8 +173,10 @@ def update_intercept(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -242,8 +246,10 @@ def update_outgoing_permission(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -313,8 +319,10 @@ def update_auto_transfer_numbers(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -418,8 +426,10 @@ def update_access_codes(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted.")
+    else:
+        emit({"status": "deleted", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -448,8 +458,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {location_id}")
+    else:
+        emit({"status": "deleted", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -570,8 +582,10 @@ def delete_digit_patterns_outgoing_permission(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {location_id}")
+    else:
+        emit({"status": "deleted", "id": location_id}, output=output, fields=fields)
 
 
 
@@ -646,8 +660,10 @@ def update_digit_patterns(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": digit_pattern_id}, output=output, fields=fields)
 
 
 
@@ -677,7 +693,9 @@ def delete_digit_patterns_outgoing_permission_1(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {digit_pattern_id}")
+    else:
+        emit({"status": "deleted", "id": digit_pattern_id}, output=output, fields=fields)
 
 

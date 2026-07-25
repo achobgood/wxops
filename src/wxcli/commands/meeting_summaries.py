@@ -95,7 +95,9 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {summary_id}")
+    else:
+        emit({"status": "deleted", "id": summary_id}, output=output, fields=fields)
 
 

@@ -149,8 +149,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": auto_attendant_id}, output=output, fields=fields)
 
 
 
@@ -180,8 +182,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {auto_attendant_id}")
+    else:
+        emit({"status": "deleted", "id": auto_attendant_id}, output=output, fields=fields)
 
 
 
@@ -327,8 +331,10 @@ def update_call_forwarding(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": auto_attendant_id}, output=output, fields=fields)
 
 
 
@@ -465,8 +471,10 @@ def update_selective_rules(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": rule_id}, output=output, fields=fields)
 
 
 
@@ -497,8 +505,10 @@ def delete_selective_rules(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {rule_id}")
+    else:
+        emit({"status": "deleted", "id": rule_id}, output=output, fields=fields)
 
 
 
@@ -673,8 +683,10 @@ def delete_announcements(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {file_name}")
+    else:
+        emit({"status": "deleted", "id": file_name}, output=output, fields=fields)
 
 
 

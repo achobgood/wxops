@@ -226,8 +226,10 @@ def update(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": hunt_group_id}, output=output, fields=fields)
 
 
 
@@ -257,8 +259,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {hunt_group_id}")
+    else:
+        emit({"status": "deleted", "id": hunt_group_id}, output=output, fields=fields)
 
 
 
@@ -321,8 +325,10 @@ def update_call_forwarding(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": hunt_group_id}, output=output, fields=fields)
 
 
 
@@ -459,8 +465,10 @@ def update_selective_rules(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": rule_id}, output=output, fields=fields)
 
 
 
@@ -491,8 +499,10 @@ def delete_selective_rules(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {rule_id}")
+    else:
+        emit({"status": "deleted", "id": rule_id}, output=output, fields=fields)
 
 
 

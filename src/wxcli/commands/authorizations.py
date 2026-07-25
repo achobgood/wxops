@@ -73,8 +73,10 @@ def delete(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo("Deleted.")
+    else:
+        emit({"status": "deleted"}, output=output, fields=fields)
 
 
 
@@ -99,8 +101,10 @@ def delete_authorizations(
         handle_network_error(e)
     if result:
         emit(result, output=output, fields=fields)
-    else:
+    elif output in ("table", "id") and not fields:
         typer.echo(f"Deleted: {authorization_id}")
+    else:
+        emit({"status": "deleted", "id": authorization_id}, output=output, fields=fields)
 
 
 
