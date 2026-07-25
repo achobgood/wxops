@@ -37,6 +37,8 @@ def _record_count(data: Any) -> int:
         return len(data)
     if isinstance(data, dict):
         return 1 if data else 0
+    if isinstance(data, str):
+        return 1 if data else 0
     return 0 if data is None else 1
 
 
