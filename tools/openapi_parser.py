@@ -215,7 +215,10 @@ def generate_body_example(op: dict, spec: dict, nested_only: bool = False) -> st
     if "$ref" in schema:
         schema = resolve_ref(spec, schema["$ref"])
 
-    # Only generate example if there are nested object/array fields
+    # By default (nested_only=False) an example is generated for any body,
+    # nested or flat. has_nested is only consulted below to restore the old
+    # nested-only-gate behaviour when a caller explicitly passes
+    # nested_only=True.
     props = schema.get("properties", {})
     has_nested = any(
         p.get("type") in ("object", "array") or "$ref" in p

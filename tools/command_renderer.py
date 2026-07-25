@@ -39,6 +39,35 @@ V2_MODULES = {
 # declared "limit" when present) and --offset to {offset, start}.
 _SUPPRESS_SPEC_PAGING_NAMES = {"max", "start", "offset", "limit"}
 
+# CLI option names the renderer injects unconditionally, via
+# _render_output_options(), on every generated command (list, show, create,
+# update, delete, settings-get, settings-update, action). Unlike the paging
+# names above, there is no renderer flag with equivalent semantics that a
+# colliding spec parameter could be folded into: --fields is a client-side
+# JMESPath post-filter over an already-fetched response, not the same
+# operation as a spec's own server-side field-selection query parameter
+# (e.g. CC Functions' `fields=id,name,status`, evaluated by the API). Nor
+# does PYTHON_KEYWORDS-style suffixing help here — that renames the local
+# variable but leaves the CLI flag text ("--fields") unchanged, so a spec
+# "fields" param would still emit a second --fields option bound to a
+# different variable: two Click options sharing one flag string, which
+# Typer accepts silently and just shadows (see tools/CLAUDE.md's --filter
+# discussion of the same failure mode). So a collision here fails the
+# generator build loudly (ReservedParamCollisionError) instead of being
+# silently dropped or silently shadowed.
+_RESERVED_OUTPUT_PARAM_NAMES = {"output", "fields"}
+
+
+class ReservedParamCollisionError(Exception):
+    """A spec-derived parameter's CLI name collides with an option the
+    renderer injects unconditionally on every command (see
+    _RESERVED_OUTPUT_PARAM_NAMES). Left unguarded, the generated function
+    would declare two parameters with the same name — a SyntaxError at
+    import time, discovered only when someone tries to load the generated
+    module. Raising here turns that into a clear failure at generation
+    time, naming the endpoint and the colliding parameter.
+    """
+
 
 def folder_name_to_module(folder_name: str) -> tuple[str, str]:
     cleaned = re.sub(r"^Features:\s*", "", folder_name).strip()
@@ -117,6 +146,15 @@ def _render_url_expr(url_path: str, path_vars: list[str]) -> str:
 
 
 def _render_error_handler(indent: str = "    ") -> str:
+    # WebexError is not currently a subclass of httpx.HTTPError (verified:
+    # issubclass(WebexError, httpx.HTTPError) is False), so these two except
+    # clauses are disjoint and this order isn't load-bearing today — either
+    # clause could run first with identical results. It's kept in this order
+    # as a defensive convention: WebexError before the broader httpx.HTTPError
+    # clause, so that if WebexError ever gains an httpx exception as a base
+    # class, the more specific handler still wins instead of being shadowed.
+    # Do not reorder or merge these clauses on the assumption that the order
+    # is arbitrary.
     return f'''{indent}except WebexError as e:
 {indent}    handle_rest_error(e)
 {indent}except httpx.HTTPError as e:
@@ -287,7 +325,55 @@ def _used_param_names(ep: Endpoint) -> set[str]:
     return used
 
 
+def _check_reserved_collisions(ep: Endpoint) -> None:
+    """Raise ReservedParamCollisionError if a spec-derived parameter that
+    would actually be rendered as a CLI flag collides with a CLI option the
+    renderer injects unconditionally (see _RESERVED_OUTPUT_PARAM_NAMES).
+
+    Spec-declared pagination names (limit/max/start/offset) are exempt —
+    those are already handled by _SUPPRESS_SPEC_PAGING_NAMES, which folds
+    them into the renderer's own --limit/--offset flags with equivalent
+    semantics (see that constant's docstring for why --fields/--output
+    can't use the same trick). Object/array-typed body fields are also
+    exempt — they are never rendered as flags (--json-body only), and body
+    fields already dropped as flags because they collide with a path/query
+    param name (_used_param_names, issue #19) can't collide here either,
+    since they never reach the flag-rendering step.
+    """
+    used_names = _used_param_names(ep)
+    candidates: list[tuple[str, str, str]] = []
+    for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
+        candidates.append(("path parameter", var, _path_var_to_param(var)))
+    for qp in ep.query_params:
+        if qp.name in _SUPPRESS_SPEC_PAGING_NAMES:
+            continue
+        candidates.append(("query parameter", qp.name, _safe_param_name(qp.python_name)))
+    for bf in ep.body_fields:
+        if bf.field_type in ("object", "array"):
+            continue
+        python_name = _safe_param_name(bf.python_name)
+        if python_name in used_names:
+            continue
+        candidates.append(("body field", bf.name, python_name))
+
+    for kind, spec_name, python_name in candidates:
+        if python_name in _RESERVED_OUTPUT_PARAM_NAMES:
+            raise ReservedParamCollisionError(
+                f"{ep.method} {ep.url_path} (command {ep.command_name!r}) "
+                f"declares {kind} {spec_name!r}, whose CLI parameter name "
+                f"({python_name!r}) collides with the --{python_name} option "
+                f"the renderer adds to every command. Generating this "
+                f"endpoint would produce a function with a duplicate "
+                f"argument (SyntaxError at import time). Add a rename for "
+                f"this parameter (field_overrides.yaml / cli_name_overrides) "
+                f"before regenerating."
+            )
+
+
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
+    _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     folder_overrides = folder_overrides or {}
     params = []
@@ -425,6 +511,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
 
 
 def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
@@ -530,6 +617,7 @@ def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = N
 
 
 def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     folder_overrides = folder_overrides or {}
     params = []
@@ -634,6 +722,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
 
 def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     is_json_patch = ep.content_type == "application/json-patch+json"
     params = []
@@ -745,6 +834,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
 
 def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
@@ -873,6 +963,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
 
 def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
     for var in ep.path_vars:
