@@ -43,7 +43,7 @@ def format_as_json(data: Any) -> str:
     return json.dumps(data, indent=2, default=str)
 
 
-def _auto_detect_columns(item: dict) -> list[tuple[str, str]]:
+def auto_columns(item: dict) -> list[tuple[str, str]]:
     """Derive table columns from a dict's keys, skipping nested dicts/lists."""
     cols = []
     for key, val in item.items():
@@ -73,7 +73,7 @@ def print_table(data: list, columns: list[tuple[str, str]], limit: int = 50) -> 
     if items and isinstance(items[0], dict):
         first_row = [_resolve_accessor(items[0], acc) for _, acc in columns]
         if all(val is None or val == "" for val in first_row):
-            columns = _auto_detect_columns(items[0])
+            columns = auto_columns(items[0])
 
     table = Table(show_header=True, header_style="bold",
                   box=None if plain_mode() else _box.HEAVY_HEAD)
@@ -121,3 +121,31 @@ def _resolve_accessor(obj: Any, accessor: str) -> Any:
     if isinstance(current, list) and len(current) > 0:
         return current[0]
     return current
+
+
+def _text_row(item: Any) -> str:
+    """One --output text row: tab-separated scalars, nested values as compact JSON."""
+    if isinstance(item, dict):
+        cells = []
+        for val in item.values():
+            if isinstance(val, (dict, list)):
+                cells.append(json.dumps(val, separators=(",", ":"), default=str))
+            elif val is None:
+                cells.append("")
+            else:
+                cells.append(str(val))
+        return "\t".join(cells)
+    return "" if item is None else str(item)
+
+
+def print_text(data: Any) -> None:
+    """AWS-style --output text: one record per line, tab-separated fields.
+
+    This is what makes --fields composable in a shell pipeline:
+        wxcli call-queue list --fields '[].name' -o text | while read name; do ...
+    """
+    if isinstance(data, list):
+        for item in data:
+            print(_text_row(item))
+    else:
+        print(_text_row(data))
