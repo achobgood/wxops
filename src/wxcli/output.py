@@ -17,7 +17,7 @@ def plain_mode() -> bool:
     """
     override = os.environ.get("WXCLI_PLAIN")
     if override is not None:
-        return override.strip() not in ("", "0", "false", "no")
+        return override.strip().lower() not in ("", "0", "false", "no")
     return not sys.stdout.isatty()
 
 
