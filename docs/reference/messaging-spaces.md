@@ -677,7 +677,7 @@ These issues span multiple messaging API surfaces. Check per-section Gotchas for
 2. **Pagination is cursor-based, not offset-based — and `--limit N` turns it off.** All `list` commands use `items` arrays with `Link` headers for the next page. There is no `--max` flag: the generator suppresses the spec's paging parameters in favour of `--limit`. Two behaviours follow, and the difference matters:
 
    - **Omit `--limit` (the default)** and wxcli follows `Link: <url>; rel="next"` until every result is in. This is the complete-and-correct path.
-   - **Pass `--limit N`** and it collapses to a **single** API call sending `max=N`, returning at most one response worth of records. When N is larger than that endpoint's page size you get fewer than N records with exit code 0 and no warning; a very large N may instead be rejected by the API. The caps are undeclared in the spec for almost every endpoint, so treat a large `--limit` as unreliable and check the count you actually got.
+   - **Pass `--limit N`** and it collapses to a **single** API call sending `max=N`. For any N up to one page — the normal case — you get exactly N, and an N larger than the total returns everything without error (verified live). The boundary is the page: the call returns at most one response worth of records, so when N exceeds that endpoint's page size you get fewer than N with exit code 0 and no warning, and a very large N may instead be rejected by the API. That above-one-page case is derived from the rendered code, not observed. Caps are undeclared in the spec for almost every endpoint, so check the count you actually got.
 
    For raw HTTP, follow the `Link: <url>; rel="next"` header to walk through pages.
 
