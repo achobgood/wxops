@@ -21,6 +21,7 @@ from wxcli.migration.transform.analyzers import (
     AnalysisResult,
     Decision,
 )
+from wxcli.migration.transform.analyzers.cross_site import CrossSiteAnalyzer
 from wxcli.migration.transform.analyzers.css_permission import CSSPermissionAnalyzer
 from wxcli.migration.transform.analyzers.css_routing import CSSRoutingAnalyzer
 from wxcli.migration.transform.analyzers.device_compatibility import DeviceCompatibilityAnalyzer
@@ -57,6 +58,7 @@ ALL_ANALYZERS: list[type[Analyzer]] = [
     MissingDataAnalyzer,
     LayoutOverflowAnalyzer,
     SelectiveCallHandlingAnalyzer,
+    CrossSiteAnalyzer,
 ]
 
 
