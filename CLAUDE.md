@@ -377,6 +377,31 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 **176 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
+### Common Flags (`--fields`, `--output`, `--json-body`)
+
+Every generated command takes `--fields` and `--output`/`-o` — **including `update`, `delete`, and action commands.** An earlier build had `--output` only on list/show/create and no `--fields` at all; that split is gone, so don't assume a write command lacks them.
+
+- **`--fields`** — a JMESPath expression applied to the response before rendering. Same syntax on every command: a projection (`[].{name:name,id:id}`) reshapes the output, a filter (`` [?enabled==`false`] ``) narrows it.
+- **`--output`/`-o`** — `table|json|text` on every command, plus `id` (create's default) on create only.
+- **`--json-body`** accepts inline JSON, `file://path`, a bare path, or `-` for stdin (pairs with `--generate-json-body`; see Known Issue #2 below).
+
+Three worked examples:
+
+```bash
+# Projection — pick just the fields you need
+wxcli people list --calling-data true --fields '[].{name:displayName,extension:extension}' -o json
+
+# Filter — JMESPath predicates narrow the response client-side, before rendering
+wxcli call-queue list --fields '[?enabled==`false`].name' -o json
+
+# --fields + -o text: one bare value per line, composable in a shell pipeline
+wxcli locations list --fields '[].id' -o text | while read -r LOC_ID; do
+  wxcli call-park list "$LOC_ID" -o json
+done
+```
+
+If `--fields` reduces a non-empty response to an empty one, a note goes to stderr naming the unfiltered record count — stdout stays pipeable, but that note means "re-check your expression," not "there are none."
+
 ### Partner Multi-Org Support
 
 wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a single partner token.
@@ -405,12 +430,12 @@ When you hit one of these errors, jump to the matching known issue:
 | 409 on location delete | Resources still assigned | See `.claude/rules/cleanup.md` |
 | 400 "Required request parameter 'orgId' ... is not present" | `audit-events list`, `security-audit list`, or any `video-mesh` command | No org saved in config — run `wxcli switch-org` (or `wxcli switch-org <orgId>` in automation); fixed for new configs. See `docs/reference/meetings-infrastructure.md` gotcha #8. |
 | Unexpected command name | `show-*` vs `list-*`, singular vs plural | #5 — two path families; always run `--help` first |
-| `--json-body` needed | Complex nested fields in request body | #2 — check `--help` for JSON example |
+| `--json-body` needed | Complex nested fields in request body | #2 — run the command with `--generate-json-body` for a skeleton |
 
 ### Known issues
 
 1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". The CLI now detects this error and prints a tip about needing user-level OAuth.
-2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Commands with nested fields now show an example JSON snippet in `--help` output (e.g., `wxcli user-settings update-call-forwarding --help`).
+2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Run the command with `--generate-json-body` to print an indented request-body skeleton and exit before authenticating, e.g. `wxcli user-settings update-call-forwarding PERSON_ID --generate-json-body`; edit the printed skeleton and pass it back via `--json-body`. Caveat, verified live: `--generate-json-body` does not bypass required positional arguments — `wxcli call-queue create --generate-json-body` fails with `Missing argument 'LOCATION_ID'`; pass a placeholder positional first, e.g. `wxcli call-queue create dummy-location-id --generate-json-body`.
 3. **my-call-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The `my-call-settings` group (120 commands) covers base + UserHub Phase 2/3/4 self-service endpoints. The CLI detects this error and prints a tip.
 4. **19 person settings are user-only (no admin path).** Admin tokens get 404. Use `wxcli my-call-settings` with user-level OAuth. Includes core settings (`callBlock`, `callCaptions`, `anonymousCallReject`, `callNotify`, `preferredAnswerEndpoint`, `guestCalling`, `modeManagement`) plus informational/read-only endpoints (`availableCallerIds`, `queues`, `services`, etc.). See `docs/reference/self-service-call-settings.md` gotchas.
 5. **Two path families for person settings.** Classic `/people/{id}/features/` vs newer `/telephony/config/people/{id}/`. Some names differ. See `docs/reference/person-call-settings-behavior.md` (lines 36-54) for the full mapping table.

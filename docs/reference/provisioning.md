@@ -857,7 +857,7 @@ When tearing down resources programmatically (e.g., cleaning up after a stress t
 
 **Call Parks and Call Pickups must be listed per-location.** `wxcli call-park list` and `wxcli call-pickup list` without a location argument return empty even when resources exist. You must iterate over each location:
 ```bash
-for LOC_ID in $(wxcli locations list -o json | jq -r '.[].id // empty'); do
+for LOC_ID in $(wxcli locations list --fields '[].id' -o text); do
   wxcli call-park list "$LOC_ID" -o json
   wxcli call-pickup list "$LOC_ID" -o json
 done

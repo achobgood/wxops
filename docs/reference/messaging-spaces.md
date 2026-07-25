@@ -657,13 +657,7 @@ wxcli messages list --room-id ROOM_ID --before-message $OLDEST_ID --limit 50 --o
 
 ```bash
 # You need the membership ID to update or remove a specific person
-wxcli memberships list --room-id ROOM_ID --output json | python3 -c "
-import sys, json
-members = json.load(sys.stdin)
-for m in members:
-    if m.get('personEmail') == 'user@example.com':
-        print(m['id'])
-"
+wxcli memberships list --room-id ROOM_ID --fields "[?personEmail=='user@example.com'].id" -o text
 ```
 
 ---
