@@ -750,6 +750,7 @@ cli_name_overrides:
     "Realtime": "cc-realtime"
     "CC Journey": "cc-journey"
     "Campaign Manager": "cc-campaign"
+    "Campaign Group": "cc-campaign-group"
     "Captures": "cc-captures"
     "Notification": "cc-notification"
     "Search": "cc-search"
@@ -766,6 +767,10 @@ cli_name_overrides:
     "Device Call Settings": "device-settings"
     "Emergency Services Settings": "emergency-services"
     "Calling Service Settings": "calling-service"
+    # all 5 ops are /telephony/config/dataPolicies* — named for the resource
+    # (as announcements/locations/numbers are) rather than the auto-derived
+    # call-settings-configurable-storage-region, easily the longest in the CLI
+    "Call Settings Configurable Storage Region": "data-policies"
     "Caller Reputation Provider": "caller-reputation"
     "Call Queue Settings with Playlist Settings": "cq-playlists"
     "Device Call Settings With Device Dynamic Settings": "device-dynamic-settings"
