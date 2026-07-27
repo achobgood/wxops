@@ -50,7 +50,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Location', 'locationName'), ('Enabled', 'enabled')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Location', 'locationName'), ('Phone Number', 'phoneNumber')], limit=limit)
 
 
 
@@ -544,7 +544,7 @@ def list_available_numbers_auto_attendants(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Location', 'locationName'), ('Enabled', 'enabled')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Telephony Type', 'telephonyType'), ('Toll Free', 'tollFreeNumber')], limit=limit)
 
 
 
@@ -580,7 +580,7 @@ def list_available_numbers_alternate(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Location', 'locationName'), ('Enabled', 'enabled')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Telephony Type', 'telephonyType'), ('Toll Free', 'tollFreeNumber')], limit=limit)
 
 
 
@@ -622,7 +622,7 @@ def list_available_numbers_call_forwarding(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Location', 'locationName'), ('Enabled', 'enabled')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('State', 'state'), ('Owner Type', 'owner.type'), ('Owner Name', 'owner.firstName')], limit=limit)
 
 
 
@@ -720,6 +720,6 @@ def list_announcements(
         handle_network_error(e)
     result = result or []
     items = result.get("announcements", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Location', 'locationName'), ('Enabled', 'enabled')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('File Name', 'fileName'), ('Level', 'level'), ('Media Type', 'mediaFileType')], limit=limit)
 
 

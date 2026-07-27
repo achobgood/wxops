@@ -41,14 +41,35 @@
       - ["Direction", "direction"]
       - ["Call Type", "callType"]
 
+# Per-command style, NOT the old `list: {table_columns:}` block. The old style
+# falls through command_renderer.py:580 and is applied to EVERY list-shaped
+# command in the tag, so the parent entity's columns leaked onto the
+# list-available-* siblings, which return raw number/greeting records.
 "Features:  Auto Attendant":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Extension", "extension"]
       - ["Location", "locationName"]
-      - ["Enabled", "enabled"]
+      - ["Phone Number", "phoneNumber"]
+    list-available-numbers-auto-attendants: &available_numbers_cols
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+      - ["Telephony Type", "telephonyType"]
+      - ["Toll Free", "tollFreeNumber"]
+    list-available-numbers-alternate: *available_numbers_cols
+    list-available-numbers-call-forwarding: &available_fwd_cols
+      - ["Phone Number", "phoneNumber"]
+      - ["Extension", "extension"]
+      - ["State", "state"]
+      - ["Owner Type", "owner.type"]
+      - ["Owner Name", "owner.firstName"]
+    list-announcements:
+      - ["ID", "id"]
+      - ["File Name", "fileName"]
+      - ["Level", "level"]
+      - ["Media Type", "mediaFileType"]
 
 "Features:  Call Queue":
   list:
@@ -64,18 +85,35 @@
       - {name: hasCxEssentials, type: str, description: "Include Customer Assist supervisors when true."}
 
 "Features:  Call Park":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Name", "name"]
+    # returns agents[], which has displayName/email — not `name`
+    list-available-users:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Email", "email"]
 
 "Features:  Hunt Group":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Extension", "extension"]
       - ["Enabled", "enabled"]
+    list-available-numbers-hunt-groups: &hg_available_numbers
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+      - ["Telephony Type", "telephonyType"]
+      - ["Toll Free", "tollFreeNumber"]
+    list-available-numbers-alternate: *hg_available_numbers
+    list-available-numbers-call-forwarding:
+      - ["Phone Number", "phoneNumber"]
+      - ["Extension", "extension"]
+      - ["State", "state"]
+      - ["Owner Type", "owner.type"]
+      - ["Owner Name", "owner.firstName"]
   body_defaults:
     create:
       callPolicies:
@@ -90,19 +128,29 @@
       enabled: true
 
 "Features:  Call Pickup":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Name", "name"]
+    # returns agents[], which has displayName/phoneNumber — not `name`
+    list-available-users:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Phone Number", "phoneNumber"]
 
 "Features:  Paging Group":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Extension", "extension"]
       - ["Location", "locationName"]
-      - ["Enabled", "enabled"]
+      - ["Phone Number", "phoneNumber"]
+    list-available-numbers:
+      - ["Phone Number", "phoneNumber"]
+      - ["State", "state"]
+      - ["Telephony Type", "telephonyType"]
+      - ["Toll Free", "tollFreeNumber"]
 
 "Call Routing":
   list:
@@ -112,11 +160,32 @@
       - ["Route Type", "routeType"]
 
 "DECT Devices Settings":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Model", "model"]
+    # baseStations[]/handsets[]/members[] carry none of name/model
+    list-base-stations:
+      - ["ID", "id"]
+      - ["MAC", "mac"]
+      - ["Lines Registered", "numberOfLinesRegistered"]
+    list-handsets:
+      - ["ID", "id"]
+      - ["Display Name", "defaultDisplayName"]
+      - ["Index", "index"]
+      - ["Primary", "primaryEnabled"]
+    list-dect-networks-people: &dect_network_cols
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Handsets Assigned", "numberOfHandsetsAssigned"]
+    list-dect-networks-workspaces: *dect_network_cols
+    list-available-members:
+      - ["ID", "id"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
+      - ["Extension", "extension"]
+      - ["Phone Number", "phoneNumber"]
 
 "Numbers":
   table_columns:

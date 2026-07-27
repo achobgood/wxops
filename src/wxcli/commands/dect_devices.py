@@ -254,7 +254,7 @@ def list_base_stations(
         handle_network_error(e)
     result = result or []
     items = result.get("baseStations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Model', 'model')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('MAC', 'mac'), ('Lines Registered', 'numberOfLinesRegistered')], limit=limit)
 
 
 
@@ -433,7 +433,7 @@ def list_handsets(
         handle_network_error(e)
     result = result or []
     items = result.get("handsets", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Model', 'model')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'defaultDisplayName'), ('Index', 'index'), ('Primary', 'primaryEnabled')], limit=limit)
 
 
 
@@ -731,7 +731,7 @@ def list_dect_networks_people(
         handle_network_error(e)
     result = result or []
     items = result.get("dectNetworks", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Model', 'model')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Handsets Assigned', 'numberOfHandsetsAssigned')], limit=limit)
 
 
 
@@ -764,7 +764,7 @@ def list_dect_networks_workspaces(
         handle_network_error(e)
     result = result or []
     items = result.get("dectNetworks", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Model', 'model')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Handsets Assigned', 'numberOfHandsetsAssigned')], limit=limit)
 
 
 
@@ -817,7 +817,7 @@ def list_available_members(
         handle_network_error(e)
     result = result or []
     items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Model', 'model')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Extension', 'extension'), ('Phone Number', 'phoneNumber')], limit=limit)
 
 
 
