@@ -275,6 +275,43 @@ unchanged apart from the entry) and by 6 tests in the tracked
 `tests/test_field_overrides.py`, including a control asserting the unrenamed
 case still fails loudly, so the others cannot pass for the wrong reason.
 
+### The drift gate skips *gitignored* modules, not merely untracked ones (fixed 2026-07-26)
+
+`drift_check` excluded any command module absent from the git index
+(`git ls-files`). The intent was right — `fs_*.py` are gitignored dev-only
+modules that exist only on a developer's machine, and counting them would make
+the published "N command groups" claim (which check 3 enforces) unreproducible
+on CI or a fresh clone. But index membership is the wrong proxy for "gitignored
+dev-only": it also swallows a **newly generated module that is legitimately
+required and simply has not been `git add`ed yet**.
+
+**Found live during the 2026-07-26 refresh.** With `data_policies.py` and
+`cc_campaign_group.py` generated but unstaged, the gate reported
+`[1] spec->CLI missing: 6` — naming six endpoints as having no CLI command when
+all six existed and were correct — and froze the count at 176 instead of 178.
+`git add` alone flipped it to `missing: 0` and 178, with no regeneration.
+
+That failure is worse than wrong, it is *misleading*: "spec->CLI missing" reads
+as "the generator failed", which invites adding those endpoints to `skip_tags`
+or the out-of-scope table and cementing the opposite of the truth — the same
+trap as known issue #22, where the gate blamed the docs and the docs were right.
+
+**The fix:** `module_state()` classifies stems as
+`countable = (tracked | on_disk) - ignored` and `untracked = on_disk - ignored -
+tracked`, with `ignored` from one batched `git check-ignore --stdin`. Because
+`git check-ignore` consults the index, a tracked path is never reported as
+ignored — so no tracked module can be dropped by any future pattern change; the
+`fs_*` behaviour is structurally preserved, not merely tested. The third state
+gets its own **check 8**, which fails `--enforce`: not because a clone always
+breaks (it only breaks when `_registry.py` is committed and the module is not,
+since `main.py` imports every manifest entry unguarded), but because the gate's
+premise is that its numbers are reproducible from a clone, and in that state they
+are not. Now that these modules count, leaving it advisory would also let check
+3 drift silently.
+
+Guarded by `tests/test_drift_check_untracked.py`, tracked via a `.gitignore`
+negation alongside the other artifact guards.
+
 ### Rich strips colour on a non-TTY but keeps box-drawing
 
 **Verified 2026-07-25.** A common misreading is that constructing `Console()` is
