@@ -25,6 +25,16 @@ Checks (docs/arch/target-architecture.md §A6):
      proves the command name resolves; it never looks at flags, so docs could
      (and did) tell an operator to type options the generator had made
      positional arguments.
+  7. Prose flags: every backticked `--flag` anywhere in those same files —
+     not just ones trailing a resolvable `wxcli <group> <command>` — exists
+     on at least one command somewhere in the CLI. This is the command-free
+     complement to check 6: weaker, because with no command in front of the
+     flag it can only prove the flag exists *somewhere*, never that it is the
+     right flag for the command actually named nearby (`--media-type` on
+     `cc-ewt show` is real only on `cc-tasks create`, and passes this check
+     regardless). Flags documented on purpose as non-existent — to warn an
+     operator away from reaching for one — are allowlisted per file/flag
+     rather than flagged as drift.
 
   8. Untracked modules: a src/wxcli/commands/*.py module that is present and
      not gitignored, but not staged. Separate from check 1 — the command
