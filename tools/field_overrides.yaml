@@ -345,6 +345,19 @@
       - ["Name", "name"]
       - ["VM Restricted", "isVoicemailStorageRestrictionEnabled"]
 
+# Same defect class as the block above, found on the other group this refresh
+# added: the campaigns array carries campaignId/campaignName/status and has no
+# id or name at all, so the generic ("ID","id"),("Name","name") default renders
+# two blank columns for every row. Fields taken from the spec's 200 response
+# schema for /v3/campaign-management/campaign-groups/{}/campaigns.
+"Campaign Group":
+  table_columns:
+    list:
+      - ["Campaign ID", "campaignId"]
+      - ["Name", "campaignName"]
+      - ["Status", "status"]
+      - ["Dialing Mode", "campaignDialingMode"]
+
 "Virtual Line Call Settings":
   table_columns:
     list-available-numbers-fax-message:
