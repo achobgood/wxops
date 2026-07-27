@@ -304,7 +304,7 @@ def list_manage_numbers(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Operation', 'operationType'), ('Status', 'latestExecutionStatus')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Tracking ID', 'trackingId'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 

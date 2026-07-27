@@ -38,7 +38,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Site URL', 'siteUrl'), ('Service', 'service')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Site URL', 'siteUrl')], limit=limit)
 
 
 
@@ -231,7 +231,7 @@ def list_tracking_codes(
         handle_network_error(e)
     result = result or []
     items = result.get("trackingCodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Site URL', 'siteUrl'), ('Service', 'service')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Value', 'value')], limit=limit)
 
 
 

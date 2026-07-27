@@ -46,7 +46,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('Start Time', 'startTime'), ('Calling Number', 'callingNumber'), ('Called Number', 'calledNumber'), ('Duration', 'duration'), ('Direction', 'direction'), ('Call Type', 'callType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Start Time', 'Start time'), ('Calling Number', 'Calling number'), ('Called Number', 'Called number'), ('Duration', 'Duration'), ('Direction', 'Direction'), ('Call Type', 'Call type')], limit=limit)
 
 
 
@@ -86,6 +86,6 @@ def list_cdr_stream(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('Start Time', 'startTime'), ('Calling Number', 'callingNumber'), ('Called Number', 'calledNumber'), ('Duration', 'duration'), ('Direction', 'direction'), ('Call Type', 'callType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Start Time', 'Start time'), ('Calling Number', 'Calling number'), ('Called Number', 'Called number'), ('Duration', 'Duration'), ('Direction', 'Direction'), ('Call Type', 'Call type')], limit=limit)
 
 

@@ -95,7 +95,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("dialPlans", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -128,7 +128,7 @@ def list_usage_pstn_connection_trunks(
         handle_network_error(e)
     result = result or []
     items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -161,7 +161,7 @@ def list_usage_route_group(
         handle_network_error(e)
     result = result or []
     items = result.get("routeGroup", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('In Use', 'inUse')], limit=limit)
 
 
 
@@ -306,7 +306,7 @@ def list_dial_plans(
         handle_network_error(e)
     result = result or []
     items = result.get("dialPlans", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -553,7 +553,7 @@ def list_trunks(
         handle_network_error(e)
     result = result or []
     items = result.get("trunks", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Trunk Type', 'trunkType')], limit=limit)
 
 
 
@@ -775,7 +775,7 @@ def list_trunk_types(
         handle_network_error(e)
     result = result or []
     items = result.get("trunkTypes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Trunk Type', 'trunkType'), ('Device Types', 'deviceTypes')], limit=limit)
 
 
 
@@ -813,7 +813,7 @@ def list_route_groups(
         handle_network_error(e)
     result = result or []
     items = result.get("routeGroups", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('In Use', 'inUse')], limit=limit)
 
 
 
@@ -1024,7 +1024,7 @@ def list_usage_call_to_extension_route_groups(
         handle_network_error(e)
     result = result or []
     items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -1063,7 +1063,7 @@ def list_usage_dial_plan(
         handle_network_error(e)
     result = result or []
     items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -1102,7 +1102,7 @@ def list_usage_pstn_connection_route_groups(
         handle_network_error(e)
     result = result or []
     items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -1141,7 +1141,7 @@ def list_usage_route_list(
         handle_network_error(e)
     result = result or []
     items = result.get("routeGroupUsageRouteListGet", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -1182,7 +1182,7 @@ def list_route_lists(
         handle_network_error(e)
     result = result or []
     items = result.get("routeLists", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Location', 'locationName')], limit=limit)
 
 
 
@@ -1378,7 +1378,7 @@ def list_numbers(
         handle_network_error(e)
     result = result or []
     items = result.get("numbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1460,7 +1460,7 @@ def list_usage_call_to_extension_trunks(
         handle_network_error(e)
     result = result or []
     items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -1507,7 +1507,7 @@ def list_translation_patterns(
         handle_network_error(e)
     result = result or []
     items = result.get("translationPatterns", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Pattern', 'matchingPattern'), ('Level', 'level')], limit=limit)
 
 
 
