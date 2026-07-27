@@ -26,20 +26,26 @@
 "Report Templates":
   list:
     table_columns:
-      - ["ID", "Id"]
+      - ["ID", "id"]   # schema field is lowercase; _resolve_accessor is case-sensitive
       - ["Title", "title"]
       - ["Service", "service"]
       - ["Max Days", "maxDays"]
 
+# CDR record keys are space-separated Title-case, NOT camelCase — confirmed by
+# the spec's own property names, docs/reference/reporting-analytics.md, and the
+# cdr-recipes written against real data (r.get('Start time')). With camelCase
+# every column resolved empty, which tripped output.py's auto_columns fallback
+# and ballooned the table to 40+ auto-detected columns instead of rendering blank.
 "Reports: Detailed Call History":
-  list:
-    table_columns:
-      - ["Start Time", "startTime"]
-      - ["Calling Number", "callingNumber"]
-      - ["Called Number", "calledNumber"]
-      - ["Duration", "duration"]
-      - ["Direction", "direction"]
-      - ["Call Type", "callType"]
+  table_columns:
+    list: &cdr_cols
+      - ["Start Time", "Start time"]
+      - ["Calling Number", "Calling number"]
+      - ["Called Number", "Called number"]
+      - ["Duration", "Duration"]
+      - ["Direction", "Direction"]
+      - ["Call Type", "Call type"]
+    list-cdr_stream: *cdr_cols
 
 # Per-command style, NOT the old `list: {table_columns:}` block. The old style
 # falls through command_renderer.py:580 and is applied to EVERY list-shaped
@@ -152,12 +158,42 @@
       - ["Telephony Type", "telephonyType"]
       - ["Toll Free", "tollFreeNumber"]
 
+# `routeType` exists nowhere in the premisePstn/routeGroups/trunks/dialPlan
+# schemas — it rendered blank on all 13 commands. The nearest real concept is
+# Trunk.trunkType. Migrated to per-command style so each endpoint's own shape
+# is respected (most return a bare {id,name} Location or usage record).
 "Call Routing":
-  list:
-    table_columns:
+  table_columns:
+    list: &route_id_name
       - ["ID", "id"]
       - ["Name", "name"]
-      - ["Route Type", "routeType"]
+    list-usage-pstn-connection-trunks: *route_id_name
+    list-usage-call-to-extension-route-groups: *route_id_name
+    list-usage-dial-plan: *route_id_name
+    list-usage-pstn-connection-route-groups: *route_id_name
+    list-usage-call-to-extension-trunks: *route_id_name
+    list-usage-route-list: *route_id_name
+    list-usage-route-group: &route_in_use
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["In Use", "inUse"]
+    list-route-groups: *route_in_use
+    list-trunks:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Trunk Type", "trunkType"]
+    list-trunk-types:
+      - ["Trunk Type", "trunkType"]
+      - ["Device Types", "deviceTypes"]
+    list-route-lists:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Location", "locationName"]
+    list-translation-patterns:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Pattern", "matchingPattern"]
+      - ["Level", "level"]
 
 "DECT Devices Settings":
   table_columns:
@@ -196,8 +232,9 @@
       - ["Owner Type", "owner.type"]
       - ["Owner Name", "owner.firstName"]
     list-manage-numbers:
+      # JobDetailsResponse has no operationType; trackingId is the useful third
       - ["ID", "id"]
-      - ["Operation", "operationType"]
+      - ["Tracking ID", "trackingId"]
       - ["Status", "latestExecutionStatus"]
 
 "User Call Settings":
@@ -504,18 +541,28 @@
       - ["Name", "name"]
 
 "Groups":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Display Name", "displayName"]
       - ["Member Count", "memberSize"]
+    # a Member row is {id, type, displayName}; memberSize is on the parent group
+    list-members:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Type", "type"]
 
 "Workspace Locations":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Display Name", "displayName"]
       - ["City", "cityName"]
+    # cityName is on the parent location, not on a floor
+    list-floors:
+      - ["ID", "id"]
+      - ["Display Name", "displayName"]
+      - ["Floor Number", "floorNumber"]
 
 "Rooms":
   list:
@@ -598,14 +645,50 @@
 # Meetings spec — table columns
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# Every list-* here extracts a different sub-resource (questions, registrants,
+# breakout sessions...), none of which has title/start/end/state. Note
+# list-registrants is the dangerous one: Registrant HAS an address `state`, so
+# the old column silently rendered a US state code under a "State" header an
+# operator would read as registration status.
 "Meetings":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Title", "title"]
       - ["Start", "start"]
       - ["End", "end"]
       - ["State", "state"]
+    list-registration:
+      - ["ID", "id"]
+      - ["Question", "question"]
+      - ["Type", "type"]
+      - ["Required", "required"]
+    list-registrants:
+      - ["ID", "id"]
+      - ["First Name", "firstName"]
+      - ["Last Name", "lastName"]
+      - ["Email", "email"]
+      - ["Status", "status"]
+    list-breakout-sessions:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Start Time", "startTime"]
+      - ["End Time", "endTime"]
+    list-survey:
+      - ["ID", "id"]
+      - ["Question", "question"]
+      - ["Type", "type"]
+    list-invitation-sources:
+      - ["ID", "id"]
+      - ["Source ID", "sourceId"]
+      - ["Source Email", "sourceEmail"]
+      - ["Join Link", "joinLink"]
+    list-tracking-codes:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Site URL", "siteUrl"]
+      - ["Service", "service"]
+      - ["Type", "type"]
 
 "Participants":
   list:
@@ -643,12 +726,18 @@
       - ["Name", "name"]
       - ["Type", "type"]
 
+# GetTrackingCodeObject has no `service`; the per-user item has only id/name/value
+# (siteUrl belongs to the request wrapper, not the item).
 "Tracking Codes":
-  list:
-    table_columns:
+  table_columns:
+    list:
+      - ["ID", "id"]
       - ["Name", "name"]
       - ["Site URL", "siteUrl"]
-      - ["Service", "service"]
+    list-tracking-codes:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["Value", "value"]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Global settings

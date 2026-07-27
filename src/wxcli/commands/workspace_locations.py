@@ -252,7 +252,7 @@ def list_floors(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('City', 'cityName')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Floor Number', 'floorNumber')], limit=limit)
 
 
 

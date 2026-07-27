@@ -169,7 +169,7 @@ def list_meetings(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -776,7 +776,7 @@ def list_templates(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -906,7 +906,7 @@ def list_session_types(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -969,7 +969,7 @@ def list_registration(
         handle_network_error(e)
     result = result or []
     items = result.get("customizedQuestions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Question', 'question'), ('Type', 'type'), ('Required', 'required')], limit=limit)
 
 
 
@@ -1126,7 +1126,7 @@ def list_registrants(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Email', 'email'), ('Status', 'status')], limit=limit)
 
 
 
@@ -1654,7 +1654,7 @@ def list_interpreters(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -1861,7 +1861,7 @@ def list_breakout_sessions(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Start Time', 'startTime'), ('End Time', 'endTime')], limit=limit)
 
 
 
@@ -1965,7 +1965,7 @@ def list_survey(
         handle_network_error(e)
     result = result or []
     items = result.get("questions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Question', 'question'), ('Type', 'type')], limit=limit)
 
 
 
@@ -2001,7 +2001,7 @@ def list_survey_results(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -2079,7 +2079,7 @@ def list_invitation_sources(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Source ID', 'sourceId'), ('Source Email', 'sourceEmail'), ('Join Link', 'joinLink')], limit=limit)
 
 
 
@@ -2162,7 +2162,7 @@ def list_tracking_codes(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Start', 'start'), ('End', 'end'), ('State', 'state')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Site URL', 'siteUrl'), ('Service', 'service'), ('Type', 'type')], limit=limit)
 
 
 

@@ -232,6 +232,6 @@ def list_members(
         handle_network_error(e)
     result = result or []
     items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Member Count', 'memberSize')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Type', 'type')], limit=limit)
 
 
