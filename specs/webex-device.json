@@ -14784,8 +14784,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "primaryOwner",
           "port",
           "lineType",
@@ -15284,8 +15282,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "lineType",
           "allowCallDeclineEnabled",
           "memberType"
@@ -16065,9 +16061,7 @@
         "type": "object",
         "required": [
           "id",
-          "type",
-          "firstName",
-          "lastName"
+          "type"
         ],
         "properties": {
           "id": {
@@ -16080,11 +16074,11 @@
           },
           "firstName": {
             "type": "string",
-            "description": "First name of device owner."
+            "description": "First name of the device owner. This field is not returned when the value is a placeholder such as `.` or `-`."
           },
           "lastName": {
             "type": "string",
-            "description": "Last name of device owner."
+            "description": "Last name of the device owner. This field is not returned when the value is a placeholder such as `.` or `-`."
           }
         }
       },

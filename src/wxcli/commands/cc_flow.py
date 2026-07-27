@@ -67,6 +67,93 @@ def cmd_list(
 
 
 
+@app.command("list-search")
+def list_search(
+    project_id: str = typer.Argument(help="projectId"),
+    query: str = typer.Option(..., "--query", help="Searches for flows with the given query. The search is case-sensitive."),
+    flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW' or 'ALL'. Default value is 'ALL'."),
+    page: str = typer.Option(None, "--page", help="Defines the number of the displayed page. The page number starts from 0."),
+    size: str = typer.Option(None, "--size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
+    key_value_filter: str = typer.Option(None, "--key-value-filter", help="Filters results based on key-value pairs. Format: 'key1|value1,key2|value2'. This will add a filter on normalizedFlow collection directly instead of running query on atlas."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Search Flows."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    org_id = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/{org_id}/project/{project_id}/flows:search"
+    params = {}
+    if query is not None:
+        params["query"] = query
+    if flow_type is not None:
+        params["flowType"] = flow_type
+    if page is not None:
+        params["page"] = page
+    if size is not None:
+        params["size"] = size
+    if key_value_filter is not None:
+        params["keyValueFilter"] = key_value_filter
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("delete")
+def delete(
+    project_id: str = typer.Argument(help="projectId"),
+    flow_id: str = typer.Argument(help="flowId"),
+    force: str = typer.Option(None, "--force", help="If 'yes', the flow is deleted even if it is still referenced by other entities. Defaults to 'no'."),
+    skip_rs_ep_check: str = typer.Option(None, "--skip-rs-ep-check", help="If true, skips the check for routing strategy and entry point associations before deleting the flow."),
+    flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete a Flow or Subflow."""
+    if not force:
+        typer.confirm(f"Delete {flow_id}?", abort=True)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    org_id = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/{org_id}/project/{project_id}/flows/{flow_id}"
+    params = {}
+    if force is not None:
+        params["force"] = force
+    if skip_rs_ep_check is not None:
+        params["skipRsEPCheck"] = skip_rs_ep_check
+    if flow_type is not None:
+        params["flowType"] = flow_type
+    try:
+        result = api.session.rest_delete(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Deleted: {flow_id}")
+    else:
+        emit({"status": "deleted", "id": flow_id}, output=output, fields=fields)
+
+
+
 _BODY_SKELETON_PUBLISH = '{"comment":"...","tagIds":["..."]}'
 
 @app.command("publish")

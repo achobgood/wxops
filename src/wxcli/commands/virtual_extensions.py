@@ -464,6 +464,55 @@ def show_virtual_extension_ranges(
 
 
 
+_BODY_SKELETON_UPDATE_VIRTUAL_EXTENSION_RANGES = '{"name":"...","prefix":"...","patterns":["..."],"action":"ADD"}'
+
+@app.command("update-virtual-extension-ranges")
+def update_virtual_extension_ranges(
+    extension_range_id: str = typer.Argument(help="extensionRangeId"),
+    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name for the virtual extension range."),
+    prefix: str = typer.Option(None, "--prefix", help="Prefix used for a virtual extension range."),
+    action: str = typer.Option(None, "--action", help="Choices: ADD, REMOVE, REPLACE"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Modify Virtual Extension Range\n\nExample --json-body:\n  '{"name":"...","prefix":"...","patterns":["..."],"action":"ADD"}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VIRTUAL_EXTENSION_RANGES), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/virtualExtensionRanges/{extension_range_id}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if prefix is not None:
+            body["prefix"] = prefix
+        if action is not None:
+            body["action"] = action
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": extension_range_id}, output=output, fields=fields)
+
+
+
 @app.command("delete-virtual-extension-ranges")
 def delete_virtual_extension_ranges(
     extension_range_id: str = typer.Argument(help="extensionRangeId"),
@@ -493,55 +542,6 @@ def delete_virtual_extension_ranges(
         typer.echo(f"Deleted: {extension_range_id}")
     else:
         emit({"status": "deleted", "id": extension_range_id}, output=output, fields=fields)
-
-
-
-_BODY_SKELETON_UPDATE_VIRTUAL_EXTENSION_RANGES = '{"name":"...","prefix":"...","patterns":["..."],"action":"ADD"}'
-
-@app.command("update-virtual-extension-ranges")
-def update_virtual_extension_ranges(
-    extension_range_id: str = typer.Argument(help="extensionRangeId"),
-    name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name for the virtual extension range."),
-    prefix: str = typer.Option(None, "--prefix", help="Prefix used for a virtual extension range."),
-    action: str = typer.Option(None, "--action", help="Choices: ADD, REMOVE, REPLACE"),
-    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
-    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
-    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Modify Virtual Extension Range\n\nExample --json-body:\n  '{"name":"...","prefix":"...","patterns":["..."],"action":"ADD"}'."""
-    if generate_json_body:
-        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VIRTUAL_EXTENSION_RANGES), indent=2))
-        raise typer.Exit(0)
-    api = get_api(debug=debug)
-    url = f"https://webexapis.com/v1/telephony/config/virtualExtensionRanges/{extension_range_id}/"
-    params = {}
-    org_id = get_org_id()
-    if org_id is not None:
-        params["orgId"] = org_id
-    if json_body:
-        body = load_json_body(json_body)
-    else:
-        body = {}
-        if name is not None:
-            body["name"] = name
-        if prefix is not None:
-            body["prefix"] = prefix
-        if action is not None:
-            body["action"] = action
-    try:
-        result = api.session.rest_put(url, json=body, params=params)
-    except WebexError as e:
-        handle_rest_error(e)
-    except httpx.HTTPError as e:
-        handle_network_error(e)
-    if result:
-        emit(result, output=output, fields=fields)
-    elif output in ("table", "id") and not fields:
-        typer.echo(f"Updated.")
-    else:
-        emit({"status": "updated", "id": extension_range_id}, output=output, fields=fields)
 
 
 

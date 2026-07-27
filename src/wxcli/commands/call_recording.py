@@ -372,15 +372,13 @@ def list_vendor_users_call_recording(
 
 
 
-_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING = '{"id":"...","orgDefaultEnabled":true,"storageRegion":"...","orgStorageRegionEnabled":true,"failureBehavior":{},"orgFailureBehaviorEnabled":true}'
+_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING = '{"id":"...","orgDefaultEnabled":true,"failureBehavior":{},"orgFailureBehaviorEnabled":true}'
 
 @app.command("update-vendor-call-recording")
 def update_vendor_call_recording(
     location_id: str = typer.Argument(help="locationId"),
     id_param: str = typer.Option(None, "--id", help="Unique identifier of the call recording vendor."),
     org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help="Vendor is enabled by default."),
-    storage_region: str = typer.Option(None, "--storage-region", help="Regions where call recordings are stored."),
-    org_storage_region_enabled: bool = typer.Option(None, "--org-storage-region-enabled/--no-org-storage-region-enabled", help="Region-based call recording storage is enabled."),
     failure_behavior: str = typer.Option(None, "--failure-behavior", help="Type of failure behavior."),
     org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help="Failure behavior is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -389,7 +387,7 @@ def update_vendor_call_recording(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Set Call Recording Vendor for a Location\n\nExample --json-body:\n  '{"id":"...","orgDefaultEnabled":true,"storageRegion":"...","orgStorageRegionEnabled":true,"failureBehavior":{},"orgFailureBehaviorEnabled":true}'."""
+    """Set Call Recording Vendor for a Location\n\nExample --json-body:\n  '{"id":"...","orgDefaultEnabled":true,"failureBehavior":{},"orgFailureBehaviorEnabled":true}'."""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING), indent=2))
         raise typer.Exit(0)
@@ -407,10 +405,6 @@ def update_vendor_call_recording(
             body["id"] = id_param
         if org_default_enabled is not None:
             body["orgDefaultEnabled"] = org_default_enabled
-        if storage_region is not None:
-            body["storageRegion"] = storage_region
-        if org_storage_region_enabled is not None:
-            body["orgStorageRegionEnabled"] = org_storage_region_enabled
         if failure_behavior is not None:
             body["failureBehavior"] = failure_behavior
         if org_failure_behavior_enabled is not None:
@@ -611,12 +605,11 @@ def show_vendors(
 
 
 
-_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING_1 = '{"vendorId":"...","storageRegion":"...","failureBehavior":{}}'
+_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING_1 = '{"vendorId":"...","failureBehavior":{}}'
 
 @app.command("update-vendor-call-recording-1")
 def update_vendor_call_recording_1(
     vendor_id: str = typer.Option(None, "--vendor-id", help="Unique identifier of the vendor."),
-    storage_region: str = typer.Option(None, "--storage-region", help="Call recording storage region. Only applicable for Webex as a vendor and isn't used for other vendors."),
     failure_behavior: str = typer.Option(None, "--failure-behavior", help="Call recording failure behavior."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -624,7 +617,7 @@ def update_vendor_call_recording_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Set Organization Call Recording Vendor\n\nExample --json-body:\n  '{"vendorId":"...","storageRegion":"...","failureBehavior":{}}'."""
+    """Set Organization Call Recording Vendor\n\nExample --json-body:\n  '{"vendorId":"...","failureBehavior":{}}'."""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING_1), indent=2))
         raise typer.Exit(0)
@@ -640,8 +633,6 @@ def update_vendor_call_recording_1(
         body = {}
         if vendor_id is not None:
             body["vendorId"] = vendor_id
-        if storage_region is not None:
-            body["storageRegion"] = storage_region
         if failure_behavior is not None:
             body["failureBehavior"] = failure_behavior
     try:

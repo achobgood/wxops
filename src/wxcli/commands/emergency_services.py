@@ -860,7 +860,7 @@ def show_emergency_callback_number_virtual_lines(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the Virtual Line's Emergency Callback settings."""
+    """Get the Virtual Line's Emergency Callback Settings."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/emergencyCallbackNumber"
     params = {}
