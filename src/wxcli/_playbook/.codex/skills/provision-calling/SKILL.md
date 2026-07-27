@@ -296,19 +296,43 @@ Scope check: if the setting is per-location, use the `configure-features` skill.
 
 | Command | What it reads/sets |
 |---------|-------------------|
-| `data-policies list` | Storage regions available to configure |
+| `data-policies list` | Storage regions available to configure (`code`/`name`/`isVoicemailStorageRestrictionEnabled`) |
 | `data-policies show` / `update` | Org-level storage region (`--org-data-region`, ISO 3166-1 alpha-2) |
 | `data-policies show-data-policies` / `update-data-policies` | Per-location storage region, or inherit the org's |
 
+`data-policies list` is how you discover valid region codes before setting `--org-data-region` or `--location-data-region` — its table is the only source of truth for what's configurable; don't guess a code.
+
 ```bash
-# Which regions can be configured, and what the org uses today
-wxcli data-policies list
+# Which regions can be configured
+wxcli data-policies list -o json
+```
+Verified live: 9 regions — `AU`, `CA`, `DE`, `GB`, `JP`, `SG`, `SA`, `IN`, `US` — each as `{"code": "US", "name": "United States", "isVoicemailStorageRestrictionEnabled": false}`. Only `SA` (Saudi Arabia) has voicemail storage restriction enabled today.
+
+```bash
+# What the org uses today
 wxcli data-policies show
+```
+Verified live: `{"orgDataRegion": "US", "allowEditEnabled": true}`.
+
+```bash
+# What a specific location uses today
+wxcli data-policies show-data-policies LOCATION_ID
+```
+Verified live: `{"useOrgDataRegionEnabled": true, "orgDataRegion": "US", "allowEditEnabled": true}`. A location inheriting the org's region still reports it under `orgDataRegion` — there is no separate `locationDataRegion` field until the location is set to its own region.
+
+**Write commands (not live-exercised — changes org/location config; flags confirmed from source):**
+
+```bash
+# Set the org-level storage region
+wxcli data-policies update --org-data-region US
 
 # Set a location's region, or have it inherit the org-level one
 wxcli data-policies update-data-policies LOCATION_ID --location-data-region US
 wxcli data-policies update-data-policies LOCATION_ID --use-org-data-region-enabled
+wxcli data-policies update-data-policies LOCATION_ID --no-use-org-data-region-enabled
 ```
+
+Both writes also accept `--json-body` / `--generate-json-body` for the same fields (`{"orgDataRegion":"..."}` and `{"locationDataRegion":"...","useOrgDataRegionEnabled":true}` respectively).
 
 
 **Read the current org defaults (all read-only, safe to run during prerequisite checks):**

@@ -544,6 +544,22 @@ wxcli cc-dial-number create --json-body '{
 
 ---
 
+### Campaign Group Lookup
+
+`cc-campaign-group list` looks up campaigns by campaign group name. There is no CLI command to enumerate campaign group names themselves — get the name from Control Hub or wherever the campaign group was created.
+
+```bash
+wxcli cc-campaign-group list CAMPAIGN_GROUP_NAME -o json
+```
+
+Takes one required argument, `CAMPAIGN_GROUP_NAME`. Optional `--page`, `--page-size` (1-100), and `--campaign-status` (`Draft`, `Running`, `Pending`, `Paused`, `Completed`, `Ended`) filter/paginate the result.
+
+The response is `{"outcome", "statusCode", "pagination", "campaigns": [...]}`; the CLI extracts `campaigns`. Each campaign carries `campaignId`, `campaignName`, `status`, `campaignDialingMode`, `campaignType`, `channel`, `outdialANI`, `scheduleInfo` and more — note there is **no** `id` or `name` field, so project on the real names: `--fields '[].{id:campaignId,name:campaignName}'`.
+
+> **Verified live:** an unknown or nonexistent campaign group name does not 404 — the API returns `500 {"code":"InternalServerError","message":"An unexpected error occurred"}` after the CLI's automatic retry. A 500 here means the group name is wrong, not that the CLI is broken.
+
+---
+
 ### Business Hours & Holidays
 
 **Create business hours:**
