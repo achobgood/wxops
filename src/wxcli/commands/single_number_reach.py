@@ -131,7 +131,7 @@ def list_single_number_reach(
         handle_network_error(e)
     result = result or []
     items = result.get("numbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Phone Number', 'phoneNumber'), ('Enabled', 'enabled'), ('Do Not Forward Calls Enabled', 'doNotForwardCallsEnabled')], limit=limit)
 
 
 

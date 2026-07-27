@@ -64,7 +64,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Create Time', 'createTime'), ('Time Recorded', 'timeRecorded'), ('Format', 'format')], limit=limit)
 
 
 
@@ -128,7 +128,7 @@ def list_converged_recordings(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Create Time', 'createTime'), ('Time Recorded', 'timeRecorded'), ('Format', 'format')], limit=limit)
 
 
 

@@ -424,7 +424,12 @@
     list:
       - ["ID", "id"]
       - ["Display Name", "displayName"]
-      - ["Email", "emails[0]"]
+      # `emails`, not `emails[0]`: output.py's _resolve_accessor splits on "."
+      # and has no bracket syntax, so "emails[0]" was a dict lookup for a key
+      # of that literal name and every row's Email cell rendered blank on the
+      # CLI's most-used list command. A list-valued accessor already yields
+      # its first element (output.py:144).
+      - ["Email", "emails"]
 
 "Devices":
   table_columns:
@@ -706,25 +711,31 @@
       - ["Display Name", "displayName"]
       - ["Email", "email"]
 
+# Per-command style: the old `list: {table_columns:}` block applied to every
+# list-shaped command in the tag, so the transcript columns leaked onto
+# list-snippets, whose items are snippet text, not transcripts. There is no
+# `title` on either — the transcript's label is `meetingTopic`.
 "Transcripts":
-  list:
-    table_columns:
+  table_columns:
+    list: &transcript_cols
       - ["ID", "id"]
+      - ["Meeting Topic", "meetingTopic"]
       - ["Meeting ID", "meetingId"]
-      - ["Title", "title"]
-
-"Video Mesh":
-  list:
-    table_columns:
+      - ["Start Time", "startTime"]
+      - ["Status", "status"]
+    list-meeting-transcripts: *transcript_cols
+    list-snippets:
       - ["ID", "id"]
-      - ["Name", "name"]
+      - ["Person Name", "personName"]
+      - ["Text", "text"]
 
-"Session Types":
-  list:
-    table_columns:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Type", "type"]
+# Video Mesh and Session Types deliberately carry NO table_columns. Both
+# returned ID/Name from an old-style block and rendered blank on every row:
+# neither response has an `id` or a `name`. The renderer now derives columns
+# from each endpoint's own item schema, which is the best available answer for
+# both. Video Mesh nests its real payload one level deeper than the extractor
+# reaches (`items[].items`), so its tables show the response window, not the
+# measurements — the video-mesh skill tells operators to use -o json for those.
 
 # GetTrackingCodeObject has no `service`; the per-user item has only id/name/value
 # (siteUrl belongs to the request wrapper, not the item).

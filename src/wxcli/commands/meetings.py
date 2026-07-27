@@ -169,7 +169,7 @@ def list_meetings(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Meeting Series ID', 'meetingSeriesId'), ('Scheduled Meeting ID', 'scheduledMeetingId'), ('Meeting Number', 'meetingNumber')], limit=limit)
 
 
 
@@ -776,7 +776,7 @@ def list_templates(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Locale', 'locale'), ('Site URL', 'siteUrl'), ('Template Type', 'templateType')], limit=limit)
 
 
 
@@ -906,7 +906,7 @@ def list_session_types(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Attendees Capacity', 'attendeesCapacity')], limit=limit)
 
 
 
@@ -1654,7 +1654,7 @@ def list_interpreters(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Language Code1', 'languageCode1'), ('Language Code2', 'languageCode2'), ('Email', 'email')], limit=limit)
 
 
 
@@ -2001,7 +2001,7 @@ def list_survey_results(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Survey Name', 'surveyName'), ('Meeting ID', 'meetingId'), ('Email', 'email')], limit=limit)
 
 
 

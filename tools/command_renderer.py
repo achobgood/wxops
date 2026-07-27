@@ -514,6 +514,92 @@ def _check_reserved_collisions(ep: Endpoint) -> None:
             )
 
 
+# Types that render as one readable table cell. A dict or list renders as a
+# Python repr — never useful in a column, and output.py's auto_columns skips
+# them for the same reason.
+_SCALAR_RESPONSE_TYPES = {"string", "integer", "number", "boolean"}
+
+# Most preferred human-readable label first. Ordered by what a Webex list
+# response actually carries — measured across every list endpoint in the nine
+# tracked specs, not guessed.
+_LABEL_FIELDS = (
+    "name", "displayName", "fileName", "title", "meetingTopic", "topic",
+    "label", "scheduleName", "code", "firstName", "email", "phoneNumber",
+    "extension",
+)
+
+# Identical on every row of an org-scoped response, so it buys no information
+# for the width it costs. Still used if the item has nothing else.
+_LOW_VALUE_FIELDS = {"orgId"}
+
+# Rendered upper-case in a header rather than title-cased.
+_HEADER_ACRONYMS = {
+    "id", "url", "uri", "esn", "sip", "pstn", "mwi", "dn", "mac", "ip", "api",
+    "cdr", "dect", "uuid", "sso", "dns", "cscf", "ecbn",
+}
+
+_MAX_DEFAULT_COLUMNS = 5
+
+
+def _column_header(name: str) -> str:
+    """camelCase response field -> Title Case column header."""
+    words = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", name).split()
+    return " ".join(
+        w.upper() if w.lower() in _HEADER_ACRONYMS else w[:1].upper() + w[1:]
+        for w in words
+    )
+
+
+def _derive_default_columns(ep: Endpoint) -> list[tuple[str, str]] | None:
+    """Default table columns from the endpoint's own 200 item schema.
+
+    The hardcoded ("ID", "id"), ("Name", "name") pair this replaces is wrong
+    for most Webex list endpoints: they return phoneNumber, clusterId,
+    displayName, trunkType — and no `id` or `name` at all. The command still
+    exited 0 and printed a table, just a blank one (or, when every column
+    resolved empty, tripped output.py's auto_columns fallback and ballooned to
+    40+ columns). Measured on the tree before this change: 224 of 513 list
+    commands named at least one field the API does not return, and all 224 had
+    inherited this pair.
+
+    Returns None when no schema resolves, leaving that fallback in place.
+    """
+    fields = ep.response_item_fields.get(ep.response_list_key or "items")
+    if not fields:
+        return None
+    names = [f.name for f in fields if f.field_type in _SCALAR_RESPONSE_TYPES]
+    if not names:
+        return None
+
+    chosen: list[str] = []
+    if "id" in names:
+        chosen.append("id")
+    else:
+        ident = next((n for n in names
+                      if n.endswith("Id") and n not in _LOW_VALUE_FIELDS), None)
+        if ident:
+            chosen.append(ident)
+
+    label = next((n for n in _LABEL_FIELDS if n in names), None)
+    if label is None:
+        label = next((n for n in names if n.endswith("Name")), None)
+    if label and label not in chosen:
+        chosen.append(label)
+
+    for pool in (
+        [n for n in names if n not in _LOW_VALUE_FIELDS],
+        names,  # second pass: a low-value field beats no column at all
+    ):
+        for name in pool:
+            if len(chosen) >= _MAX_DEFAULT_COLUMNS:
+                break
+            if name not in chosen:
+                chosen.append(name)
+        if chosen:
+            break
+    return [(_column_header(n), n) for n in chosen[:_MAX_DEFAULT_COLUMNS]]
+
+
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
@@ -581,7 +667,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         if columns:
             col_str = repr([(c[0], c[1]) for c in columns])
         else:
-            col_str = '[("ID", "id"), ("Name", "name")]'
+            derived = _derive_default_columns(ep)
+            col_str = repr(derived) if derived else '[("ID", "id"), ("Name", "name")]'
 
     if ep.paginates:
         # Paginating endpoint: use follow_pagination for complete results when

@@ -104,7 +104,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Created Date', 'createdDate'), ('Last Modified Date', 'lastModifiedDate'), ('Version', 'version')], limit=limit)
 
 
 
@@ -150,6 +150,6 @@ def list_audio_file(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Organization ID', 'organizationId'), ('Version', 'version'), ('Content Type', 'contentType')], limit=limit)
 
 

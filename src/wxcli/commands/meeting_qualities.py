@@ -40,6 +40,6 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Meeting Instance ID', 'meetingInstanceId'), ('Webex User Name', 'webexUserName'), ('Webex User Email', 'webexUserEmail'), ('Join Time', 'joinTime'), ('Leave Time', 'leaveTime')], limit=limit)
 
 

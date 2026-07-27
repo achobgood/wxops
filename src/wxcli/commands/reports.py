@@ -50,7 +50,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("Report Attributes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Title', 'title'), ('Service', 'service'), ('Start Date', 'startDate'), ('End Date', 'endDate')], limit=limit)
 
 
 

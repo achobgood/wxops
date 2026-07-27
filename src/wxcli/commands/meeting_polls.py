@@ -38,7 +38,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Meeting ID', 'meetingId'), ('Start Time', 'startTime'), ('End Time', 'endTime')], limit=limit)
 
 
 
@@ -72,7 +72,7 @@ def list_poll_results(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Meeting ID', 'meetingId'), ('Total Attendees', 'totalAttendees'), ('Total Respondents', 'totalRespondents')], limit=limit)
 
 
 
@@ -108,6 +108,6 @@ def list_respondents(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Display Name', 'displayName'), ('Email', 'email')], limit=limit)
 
 

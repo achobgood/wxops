@@ -41,7 +41,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("sites", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Site URL', 'siteUrl'), ('Default', 'default')], limit=limit)
 
 
 
@@ -76,7 +76,7 @@ def list_personal_meeting_room(
         handle_network_error(e)
     result = result or []
     items = result.get("coHosts", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Display Name', 'displayName'), ('Email', 'email')], limit=limit)
 
 
 
@@ -266,7 +266,7 @@ def list_video(
         handle_network_error(e)
     result = result or []
     items = result.get("videoDevices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Device Name', 'deviceName'), ('Device Address', 'deviceAddress'), ('Is Default', 'isDefault')], limit=limit)
 
 
 
@@ -517,7 +517,7 @@ def list_sites(
         handle_network_error(e)
     result = result or []
     items = result.get("sites", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Site URL', 'siteUrl'), ('Default', 'default')], limit=limit)
 
 
 

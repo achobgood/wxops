@@ -23,6 +23,19 @@ class EndpointField:
 
 
 @dataclass
+class ResponseField:
+    """One property of a list response's item schema.
+
+    Deliberately not an EndpointField: a response field never becomes a CLI
+    flag, so it has no python_name. It exists to let the renderer pick default
+    table columns the endpoint actually returns.
+    """
+    name: str
+    field_type: str
+    required: bool = False
+
+
+@dataclass
 class Endpoint:
     name: str
     method: str
@@ -42,6 +55,10 @@ class Endpoint:
     content_type: str | None = None
     paginates: bool = False
     real_semantics: str | None = None
+    # {extraction key -> item-schema fields}, list endpoints only. Keyed by the
+    # key the generated code extracts with, so a response_list_keys override
+    # applied after parse still resolves (see apply_endpoint_overrides).
+    response_item_fields: dict[str, list[ResponseField]] = field(default_factory=dict)
 
 
 # Known issue #20: command_type comes from the HTTP method, but Cisco models

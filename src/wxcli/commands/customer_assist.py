@@ -36,7 +36,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("wrapupReasons", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Description', 'description'), ('Number Of Queues Assigned', 'numberOfQueuesAssigned')], limit=limit)
 
 
 
@@ -246,7 +246,7 @@ def list_available_queues(
         handle_network_error(e)
     result = result or []
     items = result.get("queues", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Location Name', 'locationName'), ('Location ID', 'locationId'), ('Phone Number', 'phoneNumber')], limit=limit)
 
 
 
@@ -277,7 +277,7 @@ def list_settings(
         handle_network_error(e)
     result = result or []
     items = result.get("wrapupReasons", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Description', 'description'), ('Is Default Enabled', 'isDefaultEnabled')], limit=limit)
 
 
 
@@ -434,7 +434,7 @@ def list_available_agents(
         handle_network_error(e)
     result = result or []
     items = result.get("agents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Type', 'type')], limit=limit)
 
 
 

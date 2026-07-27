@@ -48,7 +48,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('External ID', 'externalId'), ('Status', 'status')], limit=limit)
 
 
 
@@ -294,7 +294,7 @@ def list_sub_partners(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Subscription ID', 'subscriptionId'), ('Provisioning State', 'provisioningState'), ('Created', 'created'), ('Billing Start Date', 'billingStartDate')], limit=limit)
 
 
 
@@ -353,7 +353,7 @@ def list_subscribers(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Email', 'email'), ('Person ID', 'personId'), ('Customer ID', 'customerId'), ('External Customer ID', 'externalCustomerId')], limit=limit)
 
 
 

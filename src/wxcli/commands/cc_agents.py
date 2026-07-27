@@ -294,7 +294,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Agent ID', 'agentId'), ('Agent Name', 'agentName'), ('Active', 'active'), ('Agent DN', 'agentDn'), ('Agent Login', 'agentLogin')], limit=limit)
 
 
 
@@ -339,7 +339,7 @@ def list_statistics(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Agent ID', 'agentId'), ('Agent Name', 'agentName'), ('Interval Start Time', 'intervalStartTime'), ('Team ID', 'teamId'), ('Team Name', 'teamName')], limit=limit)
 
 
 

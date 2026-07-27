@@ -50,7 +50,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Meeting ID', 'meetingId'), ('Title', 'title')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Meeting Topic', 'meetingTopic'), ('Meeting ID', 'meetingId'), ('Start Time', 'startTime'), ('Status', 'status')], limit=limit)
 
 
 
@@ -88,7 +88,7 @@ def list_meeting_transcripts(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Meeting ID', 'meetingId'), ('Title', 'title')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Meeting Topic', 'meetingTopic'), ('Meeting ID', 'meetingId'), ('Start Time', 'startTime'), ('Status', 'status')], limit=limit)
 
 
 
@@ -124,7 +124,7 @@ def list_download(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Meeting ID', 'meetingId'), ('Title', 'title')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -154,7 +154,7 @@ def list_snippets(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Meeting ID', 'meetingId'), ('Title', 'title')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Person Name', 'personName'), ('Text', 'text')], limit=limit)
 
 
 

@@ -312,6 +312,83 @@ are not. Now that these modules count, leaving it advisory would also let check
 Guarded by `tests/test_drift_check_untracked.py`, tracked via a `.gitignore`
 negation alongside the other artifact guards.
 
+### Table columns come from the response schema, not from ID/Name (2026-07-27)
+
+**The defect.** Every generated `list` renders a Rich table from a hardcoded
+`columns=[(header, accessor)]` list, and `command_renderer.py` fell back to
+`[("ID", "id"), ("Name", "name")]` whenever a tag had no override. Most Webex
+list endpoints return neither — they return `phoneNumber`, `clusterId`,
+`displayName`, `campaignId`, `trunkType`. **Measured on the tree before this
+change: 215 of 513 list commands named at least one field the API cannot
+return.**
+
+It is the quietest possible failure. The command exits 0 and prints a table
+that *looks* fine but has blank columns; when every column resolves empty,
+`output.py`'s `auto_columns` fallback fires and balloons the table to 40+
+auto-detected columns (seen on `cdr`). `-o json` was always correct. Only the
+table lied — so nobody scripting against JSON ever hit it, and anyone reading a
+table drew conclusions from blanks.
+
+**Three root causes, and what was done about each:**
+
+1. **The generic default was usually wrong** — fixed at the source.
+   `_derive_default_columns` picks columns from the endpoint's own resolved 200
+   item schema (an identifier, a human-readable label, then scalars in schema
+   order, capped at 5). The ID/Name pair survives only as the last resort when
+   no schema resolves — still 122 commands, all of which declare no item schema
+   at all, so nothing better is knowable from the spec.
+2. **The old-style override block leaked to siblings.** A tag's single
+   `list: {table_columns: [...]}` entry applies to *every* list-shaped command
+   in that tag, so `auto-attendant list-available-numbers-*` inherited the
+   parent entity's five columns and rendered all five blank. Migrating a tag to
+   the per-command `table_columns: {cmd: [...]}` style fixes it. `Transcripts`
+   was migrated here; `Video Mesh` and `Session Types` had their blocks deleted
+   outright (both were ID/Name on responses with neither, so the derived
+   default is strictly better). **21 tags still use the old style** — that is
+   latent, not broken: check 9 catches it the moment it produces a wrong column.
+3. **Single-level extraction.** `list_key = ep.response_list_key or "items"`
+   then one flat `result.get(list_key)`. Video Mesh nests 2-3 deep
+   (`{items: [{orgId, from, to, items: [...real...]}]}`), so the table renders
+   the *wrapper*. **Deliberately NOT built (Adam, 2026-07-27).** Measured
+   precisely, only 14 commands extract an item with no scalar field at all, and
+   they are almost entirely Video Mesh, which is not used here. Nested
+   extraction would be built for effectively one other command
+   (`call-routing list-usage-route-list`). The video-mesh skill instead tells
+   operators to use `-o json`, which was always correct. Careful with the
+   measurement if you revisit: a naive "extracted item contains an array" test
+   over-counts badly — most of those hits are real records that merely carry a
+   sub-array (`user_settings list-privacy` returns `monitoringAgents[]` with
+   `displayName`/`email`/`id`/`type` *plus* a `numbers` array) and need a
+   column fix, not an extraction fix.
+
+**`emails[0]` never worked.** `wxcli people list` — the most-used list command
+in the CLI — shipped an override of `[("Email", "emails[0]")]`.
+`output.py:_resolve_accessor` splits on `.` and has no bracket syntax, so that
+was a dict lookup for a key of that literal name and every Email cell rendered
+blank. The accessor is `emails`: a list-valued accessor already yields its
+first element (`output.py:144`). Verified before and after, not inferred.
+
+**Gate check 9 makes it permanent.** `check_table_columns` re-runs the audit
+over the *generated* files on every gate run: 215 findings at `HEAD`, 0 after.
+Three exclusions, each of which was a real false positive first:
+- **dotted accessors** (`owner.type`) — legitimately supported by
+  `_resolve_accessor`; 3 of the first 67 triaged findings were exactly this;
+- **cross-spec operations** — 151 operations are declared in more than one
+  tracked spec (`/telephony/config/jobs/devices/callDeviceSettings/{}/errors`
+  is in both `webex-cloud-calling.json` and `webex-device.json`, with a
+  different `ItemObject` in each) and the generator rendered from exactly one.
+  The check unions all declaring specs, so it under-reports rather than failing
+  a correct command. A last-wins lookup produced 3 false positives here before
+  this was fixed;
+- **wrapper-shaped responses** — the root cause 3 class above. Counted and
+  printed separately, never failed, so the decision stays visible.
+
+Guarded by `tests/test_drift_check_columns.py` (tracked via a `.gitignore`
+negation). Its harness borrows a registered module name — an earlier draft
+borrowed `__init__`, which no group registers, and 6 of its 8 cases passed
+without ever reaching the check. Proven by mutation: reverting the union to
+last-wins fails the union case *and* the live-tree case.
+
 ### Rich strips colour on a non-TTY but keeps box-drawing
 
 **Verified 2026-07-25.** A common misreading is that constructing `Console()` is

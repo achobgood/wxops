@@ -40,6 +40,14 @@ Checks (docs/arch/target-architecture.md §A6):
      not gitignored, but not staged. Separate from check 1 — the command
      exists, only the `git add` is missing.
 
+  9. Table columns: every accessor in a generated list command's `columns=`
+     exists on the item schema of the 200 response, resolved through the key
+     that command actually extracts with. Unlike checks 6/7 — which prove a
+     documented flag exists — this one catches a defect an operator cannot
+     see: the command exits 0 and prints a table whose columns are blank,
+     because the API returns phoneNumber/clusterId and the table asked for
+     id/name. -o json was always correct; only the table lied.
+
 Fresh-clone semantics: only git-tracked specs count
 (specs/webex-flow-store.json is untracked). Command modules count unless a
 gitignore rule excludes them (dev-only fs_*), so a newly generated module is
@@ -709,6 +717,166 @@ def check_untracked_modules() -> list:
             for m in sorted(module_state()["untracked"])]
 
 
+# ------------------------------------------------------------------ check 9
+
+# A dict or list never renders as a useful table cell (output.py's auto_columns
+# skips them for the same reason), so only these can be a column.
+SCALAR_TYPES = {"string", "integer", "number", "boolean"}
+
+
+def _resolve_schema(spec: dict, schema, depth: int = 0) -> dict:
+    """Resolve $ref / allOf / oneOf / anyOf into one schema dict."""
+    if not isinstance(schema, dict) or depth > 8:
+        return {}
+    if "$ref" in schema:
+        node = spec
+        for part in schema["$ref"].lstrip("#/").split("/"):
+            node = node.get(part, {}) if isinstance(node, dict) else {}
+        return _resolve_schema(spec, node, depth + 1)
+    for key in ("allOf", "oneOf", "anyOf"):
+        if key not in schema:
+            continue
+        merged: dict = {}
+        for sub in schema[key]:
+            merged.update(_resolve_schema(spec, sub, depth + 1).get("properties", {}))
+        out = {k: v for k, v in schema.items() if k != key}
+        merged.update(out.get("properties", {}))
+        out["properties"] = merged
+        out.setdefault("type", "object")
+        return out
+    return schema
+
+
+def spec_item_fields() -> dict:
+    """{(METHOD, norm_path): {extraction key: {field: type}}} across all specs.
+
+    Unioned, never last-wins: 151 operations are declared in more than one
+    tracked spec — `/telephony/config/jobs/devices/callDeviceSettings/{}/errors`
+    is in both webex-cloud-calling.json and webex-device.json with a different
+    ItemObject in each — and the generator rendered from exactly one of them.
+    Taking the union means this check can never flag an accessor that some spec
+    declaring the operation does return. A gate that cries wolf gets ignored,
+    so it under-reports by construction rather than over-reports.
+    """
+    out: dict[tuple[str, str], dict[str, dict[str, str]]] = {}
+    for rel in sorted(tracked_specs()):
+        spec = json.loads((REPO / rel).read_text())
+        spec = merge_overlay(spec, load_overlay(REPO / rel))
+        for path, methods in spec.get("paths", {}).items():
+            for method, op in methods.items():
+                if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+                    continue
+                content = op.get("responses", {}).get("200", {}).get("content", {})
+                js = (content.get("application/json")
+                      or content.get("application/json;charset=UTF-8") or {})
+                schema = _resolve_schema(spec, js.get("schema"))
+                if not schema:
+                    continue
+                by_key = out.setdefault((method.upper(), normalize_path(path)), {})
+                arrays = ([("items", schema)] if schema.get("type") == "array"
+                          else [(n, _resolve_schema(spec, p))
+                                for n, p in schema.get("properties", {}).items()])
+                for name, prop in arrays:
+                    if prop.get("type") != "array" and "items" not in prop:
+                        continue
+                    item = _resolve_schema(spec, prop.get("items", {}))
+                    fields = {f: _resolve_schema(spec, s).get("type", "string")
+                              for f, s in item.get("properties", {}).items()}
+                    if fields:
+                        by_key.setdefault(name, {}).update(fields)
+    return out
+
+
+def parse_module_columns(module: str, commands_dir: Path) -> list:
+    """[(command, [(header, accessor)], extraction key, METHOD, norm_path)].
+
+    Reads the generated file, not the generator: what an operator sees is what
+    this module renders, and check 9 exists to prove those two agree.
+    """
+    path = commands_dir / f"{module}.py"
+    if not path.exists():
+        return []
+    src = path.read_text()
+    lines = src.splitlines()
+    out = []
+    for node in ast.walk(ast.parse(src)):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        name = _command_name(node)
+        if name is None:
+            continue
+        columns = None
+        for sub in ast.walk(node):
+            if (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name)
+                    and sub.func.id == "emit"):
+                for kw in sub.keywords:
+                    if kw.arg != "columns":
+                        continue
+                    try:
+                        columns = ast.literal_eval(kw.value)
+                    except ValueError:
+                        columns = None
+        if not columns:
+            continue
+        body = "\n".join(lines[node.lineno - 1:node.end_lineno])
+        key = re.search(r'item_key="([^"]*)"', body) or re.search(
+            r'items = result\.get\("([^"]*)"', body)
+        url = re.search(r'url = f?"([^"]+)"', body)
+        raw_url = url.group(1) if url else ""
+        for base in URL_BASES:
+            if raw_url.startswith(base):
+                raw_url = raw_url[len(base):]
+                break
+        verb = re.search(r"rest_(get|put|post|patch|delete)\(|follow_pagination\(", body)
+        method = verb.group(1).upper() if verb and verb.group(1) else "GET"
+        out.append((name, columns, key.group(1) if key else "items",
+                    method, normalize_path(raw_url)))
+    return out
+
+
+def check_table_columns(commands_dir: Path = COMMANDS_DIR) -> tuple[list, list]:
+    """Table columns naming a field the endpoint's 200 item schema has no room for.
+
+    The failure is silent by design of the CLI: the command exits 0 and prints
+    a table that looks fine but has blank columns, while -o json was always
+    correct. 224 of 513 list commands were in this state before the renderer
+    started deriving defaults from the response schema.
+
+    Two classes are deliberately not failures, and are returned separately:
+      - dotted accessors ("owner.type"), which output.py:_resolve_accessor
+        legitimately supports and this check cannot follow;
+      - responses whose extracted item carries no scalar field at all — the
+        payload nests one level deeper than the extractor reaches (`items[]
+        .items`, Video Mesh). No column list can fix those, so flagging them
+        would be permanent noise; nested extraction was cut deliberately.
+    """
+    fields_by_op = spec_item_fields()
+    countable = module_state()["countable"]
+    findings, wrapper_only = [], []
+    for group, module in sorted(parse_registrations().items()):
+        seen = set()
+        for cmd, columns, key, method, path in parse_module_columns(module, commands_dir):
+            if module not in countable or (group, cmd) in seen:
+                continue
+            seen.add((group, cmd))
+            item = (fields_by_op.get((method, path)) or {}).get(key)
+            if not item:
+                continue  # hand-written command, or a schema declaring nothing
+            if not any(t in SCALAR_TYPES for t in item.values()):
+                wrapper_only.append({"group": group, "command": cmd, "path": path})
+                continue
+            missing = [a for _, a in columns
+                       if a and "." not in a and a not in item]
+            if missing:
+                findings.append({
+                    "group": group, "command": cmd, "path": path,
+                    "missing": missing,
+                    "available": sorted(f for f, t in item.items()
+                                        if t in SCALAR_TYPES),
+                })
+    return findings, wrapper_only
+
+
 # ---------------------------------------------------------- deliberate gaps
 
 GAPS_DOC = REPO / "docs" / "arch" / "deliberate-gaps.md"
@@ -786,6 +954,7 @@ def main() -> int:
     dead_flags = check_flags(surface, flag_surface)
     prose_flags = check_prose_flags(flag_surface)
     untracked_mods = check_untracked_modules()
+    bad_columns, wrapper_only = check_table_columns()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -796,11 +965,13 @@ def main() -> int:
         "6_dead_flags": dead_flags,
         "7_prose_flags": prose_flags,
         "8_untracked_modules": untracked_mods,
+        "9_table_columns": bad_columns,
+        "9_wrapper_only_responses": wrapper_only,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
                   or stale_overlays or dead_flags or prose_flags
-                  or untracked_mods)
+                  or untracked_mods or bad_columns)
 
     if args.json:
         print(json.dumps(results, indent=2))
@@ -849,6 +1020,14 @@ def main() -> int:
             print(f"      {u['module']}"
                   f"{' (registered in the CLI)' if u['registered'] else ''}"
                   f" — run git add src/wxcli/commands/{u['module']}.py")
+        print(f"[9] list commands with columns the response cannot fill: {len(bad_columns)}"
+              f"   ({len(wrapper_only)} wrapper-shaped responses excluded — no"
+              f" column can fix those, use -o json)")
+        for c in bad_columns[:20]:
+            print(f"      wxcli {c['group']} {c['command']}  missing "
+                  f"{', '.join(c['missing'])}  (have: {', '.join(c['available'][:6])})")
+        if len(bad_columns) > 20:
+            print(f"      ... and {len(bad_columns) - 20} more (--json for all)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

@@ -71,7 +71,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("jobExecutionStatus", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Start Time', 'startTime'), ('End Time', 'endTime'), ('Last Updated', 'lastUpdated')], limit=limit)
 
 
 
@@ -104,6 +104,6 @@ def list_errors(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Tracking ID', 'trackingId'), ('Item Number', 'itemNumber')], limit=limit)
 
 

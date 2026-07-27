@@ -49,7 +49,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Meeting ID', 'meetingId'), ('Host Display Name', 'hostDisplayName'), ('Meeting Number', 'meetingNumber'), ('Meeting Title', 'meetingTitle'), ('Start', 'start')], limit=limit)
 
 
 
@@ -98,6 +98,6 @@ def list_attendees(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Meeting ID', 'meetingId'), ('Display Name', 'displayName'), ('Meeting Number', 'meetingNumber'), ('Meeting Title', 'meetingTitle'), ('Email', 'email')], limit=limit)
 
 

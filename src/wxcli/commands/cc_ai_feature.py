@@ -282,7 +282,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Organization ID', 'organizationId'), ('Version', 'version'), ('Created Time', 'createdTime'), ('Last Updated Time', 'lastUpdatedTime')], limit=limit)
 
 
 

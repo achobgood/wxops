@@ -50,7 +50,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Resource Group ID', 'resourceGroupId'), ('License ID', 'licenseId'), ('Person ID', 'personId'), ('Person Org ID', 'personOrgId')], limit=limit)
 
 
 
@@ -96,7 +96,7 @@ def list_v2(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Resource Group ID', 'resourceGroupId'), ('License ID', 'licenseId'), ('Person ID', 'personId'), ('Person Org ID', 'personOrgId')], limit=limit)
 
 
 
