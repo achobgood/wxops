@@ -1,6 +1,6 @@
 # wxcli — Webex Calling CLI
 
-A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 176 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
+A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 178 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
 
 > **Unofficial community CLI — not affiliated with or endorsed by Cisco.**
 
@@ -45,7 +45,7 @@ At every step the agent is forced back to an authoritative source: data model fr
 
 ### Why a CLI, not an MCP server?
 
-The natural question for an agent-driven tool: why not expose the API as MCP tools? Because at this surface area — 176 command groups and several hundred individual operations — one tool per endpoint breaks down:
+The natural question for an agent-driven tool: why not expose the API as MCP tools? Because at this surface area — 178 command groups and several hundred individual operations — one tool per endpoint breaks down:
 
 - **MCP tool schemas load eagerly, every turn.** Hundreds of operations means hundreds of JSON tool definitions sitting in the model's context *before it reads your request* — tens of thousands of tokens of overhead on every call. A CLI loads nothing up front; the model pulls a single command's schema on demand with `wxcli <group> <command> --help`. Just-in-time, not all-at-once.
 - **Tool-selection accuracy collapses well before hundreds.** Models reliably pick from a handful of tools, not a sea of near-duplicates — and this surface is full of overloaded names ("queue" means three different things across Calling, Contact Center, and Customer Assist). The skill layer disambiguates intent; a flat tool list just hands the model the ambiguity.
@@ -158,7 +158,7 @@ The AI playbook is optional — everything else works standalone:
 ## CLI Reference
 
 ```bash
-# See all 176 command groups
+# See all 178 command groups
 wxcli --help
 
 # List calling-enabled locations
@@ -365,7 +365,7 @@ wxcli cleanup run --all --dry-run             # Preview without deleting
 ```
 wxops/
 ├── src/wxcli/                    # CLI source (Typer + httpx REST client)
-│   ├── main.py                   # Entry point — registers 176 command groups
+│   ├── main.py                   # Entry point — registers 178 command groups
 │   ├── auth.py                   # Token storage and API client init
 │   ├── output.py                 # Table/JSON output formatting
 │   ├── commands/                 # generated command modules (one per API tag) + _registry.py manifest
@@ -410,7 +410,7 @@ wxops/
 
 ### OAuth Scopes
 
-The CLI covers 176 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
+The CLI covers 178 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
 
 **Minimum scopes for Webex Calling admin operations:**
 

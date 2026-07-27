@@ -292,6 +292,25 @@ Scope check: if the setting is per-location, use the `configure-features` skill.
 | `calling-service show-large-org-status` | Whether the org crosses the large-org threshold | Check before bulk provisioning — large orgs behave differently |
 | `calling-service show-call-captions` / `update-call-captions` | Org closed captions and transcripts | Enable/disable captions org-wide |
 
+**Data (storage) policy region** is a separate group, `data-policies` — it sets the country where the org's calling data is stored, at org level or per location. Upstream moved this off the call recording vendor endpoints, so `call-recording ... --storage-region` no longer exists.
+
+| Command | What it reads/sets |
+|---------|-------------------|
+| `data-policies list` | Storage regions available to configure |
+| `data-policies show` / `update` | Org-level storage region (`--org-data-region`, ISO 3166-1 alpha-2) |
+| `data-policies show-data-policies` / `update-data-policies` | Per-location storage region, or inherit the org's |
+
+```bash
+# Which regions can be configured, and what the org uses today
+wxcli data-policies list
+wxcli data-policies show
+
+# Set a location's region, or have it inherit the org-level one
+wxcli data-policies update-data-policies LOCATION_ID --location-data-region US
+wxcli data-policies update-data-policies LOCATION_ID --use-org-data-region-enabled
+```
+
+
 **Read the current org defaults (all read-only, safe to run during prerequisite checks):**
 
 ```bash

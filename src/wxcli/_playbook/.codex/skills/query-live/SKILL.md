@@ -60,9 +60,19 @@ Read the domain module(s) that match the question. Cross-domain queries load mul
 
 ## Step 3: Execute the domain module's recipes
 
-Follow the loaded domain module's command recipes, resolution rules, and join patterns exactly. Use `-o json` on all commands for programmatic parsing.
+Follow the loaded domain module's command recipes, resolution rules, and join patterns exactly. Use `-o json` on all commands for programmatic parsing, and `--fields` to project only the fields the question actually needs.
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli people list --help`). Even read-only commands differ by name (`show` vs `list`, singular vs plural — known issue #5), so confirm before running. Do NOT rely on examples in this skill, the domain modules, or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+
+### Field Projection with `--fields`
+
+Every command — including every read command this skill uses — takes `--fields`, a JMESPath expression applied to the response before rendering. Use it instead of dumping the full JSON when the question only needs a few fields:
+
+- Project just the columns the question needs: `wxcli people list --calling-data true --fields '[].{name:displayName,ext:extension}' -o json`
+- Pull bare IDs for a resolution step: `wxcli locations list --fields '[].id' -o text`
+- Filter before rendering, not after: `wxcli call-queue list --fields '[?enabled==`false`].name' -o json`
+
+If `--fields` reduces a non-empty response to empty, the CLI prints a note to stderr in the form "matched 0 of N record(s)." That note states a fact, not a diagnosis — it fires identically whether the expression is wrong or the filter genuinely matched zero of N. Decide which: check the expression against what you expected, and if there's any doubt, re-run without `--fields` to see the unfiltered N before reporting "none found" (this is the same Discovery-First guard the rest of this skill follows). Do not report the 0-match result as an error on sight — a correct filter that legitimately matches nothing is a valid answer.
 
 ### Resource Resolution Protocol
 

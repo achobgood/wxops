@@ -118,6 +118,7 @@ Ask the user what they want to configure. Present this decision matrix if they a
 | Need | Operation | CLI Group(s) |
 |------|-----------|-------------|
 | Run outbound campaigns | Start/stop/update campaigns | `cc-campaign` |
+| List campaigns in a group | Look up campaigns by campaign group name | `cc-campaign-group` |
 | Manage contact lists | Upload/manage contact lists for campaigns | `cc-contact-list` |
 | Manage contact numbers | Contact number validation/management | `cc-contact-number` |
 | Do-not-call lists | DNC list management | `cc-dnc` |
@@ -1156,6 +1157,7 @@ Next steps:
 2. Upload contact list → `wxcli cc-contact-list create --json-body '...'`
 3. Create outbound entry point → `wxcli cc-entry-point create --json-body '...'`
 4. Start campaign → `wxcli cc-campaign create --json-body '...'`
+5. Verify it joined its group → `wxcli cc-campaign-group list "GROUP_NAME" -o json`
 
 ### Workflow D: Configure agent monitoring
 
