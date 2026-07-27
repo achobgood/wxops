@@ -334,6 +334,17 @@
       - ["Name", "name"]
       - ["Code", "code"]
 
+# /telephony/config/dataPolicies/regions returns code/name/voicemail-restriction
+# and no id, so the generic ("ID","id") default renders an empty first column and
+# hides `code` — which is the exact value --org-data-region takes. Verified live
+# 2026-07-27 against the org.
+"Call Settings Configurable Storage Region":
+  table_columns:
+    list:
+      - ["Code", "code"]
+      - ["Name", "name"]
+      - ["VM Restricted", "isVoicemailStorageRestrictionEnabled"]
+
 "Virtual Line Call Settings":
   table_columns:
     list-available-numbers-fax-message:
