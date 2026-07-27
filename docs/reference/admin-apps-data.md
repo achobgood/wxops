@@ -150,7 +150,13 @@ The activation email job is an asynchronous bulk operation: you initiate it, the
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `archive-users show` | Get archived user data | `ORG_ID` (arg), `USERUUID` (arg) |
+| `archive-users list` | Query archived user data | `--filter` (**required**, SCIM-style) |
+
+> Upstream replaced the per-user item endpoint (`GET .../ArchivedUser/{useruuid}`)
+> with the collection endpoint (`GET .../ArchivedUser`), so `archive-users show`
+> no longer exists — use `list` with a `--filter`. The org ID is resolved from
+> the token and injected, so it is not a positional argument. `--filter` accepts
+> only the `eq` operator on `username` or `id`.
 
 #### guest-management
 
@@ -171,8 +177,11 @@ wxcli activation-email list "Y2lzY29zcGFyazovL3VzL09SR..." "JOB_ID_HERE"
 # Check for errors in the job
 wxcli activation-email list-errors "Y2lzY29zcGFyazovL3VzL09SR..." "JOB_ID_HERE"
 
-# Look up an archived user
-wxcli archive-users show "Y2lzY29zcGFyazovL3VzL09SR..." "USER_UUID_HERE"
+# Look up an archived user by UUID (org ID is injected, not passed)
+wxcli archive-users list --filter 'id eq "USER_UUID_HERE"'
+
+# ...or by username
+wxcli archive-users list --filter 'username eq "test_user_1@example.com"'
 
 # Create a guest
 wxcli guest-management create \

@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 176 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 178 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -238,6 +238,8 @@ When multiple skills could match, use this lookup. (Basic skill-vs-skill routing
 | Verify domain for SCIM / DNS setup | `manage-identity` | `provision-calling` (domain verification is identity, not calling provisioning) |
 | Enable hoteling on a workspace | `manage-call-settings` | `manage-devices` (hoteling is a workspace calling setting, not device provisioning) |
 | Import org contacts / directory entries | `manage-identity` | `provision-calling` (org contacts are directory, not calling users) |
+| Set where calling data is stored (data/storage policy region, org or per-location) | `provision-calling` (group: `data-policies`) | `manage-call-settings` (it is an org/location storage policy, not a per-person setting) |
+| List the campaigns belonging to a campaign group | `contact-center` (group: `cc-campaign-group`) | `configure-features` (outbound campaigns are Contact Center, not Calling) |
 | Reclaim licenses from inactive users | `manage-licensing` | `teardown` (license reclamation ≠ resource deletion) |
 | Manage announcement repository files/playlists (AA/CQ greetings), or generate text-to-speech prompts | `configure-features` (groups: `announcements` — incl. `tts-generate`/`tts-usage`/`tts-status`/`tts-voices`; `announcement-playlists`, `cq-playlists`) | `reporting` (that's recordings, not announcements) |
 | Configure E911 emergency services/addresses (`emergency-services` group) | `provision-calling` (location addresses) + `manage-call-settings` (per-person ECBN) | `wxc-calling-debug` |
@@ -375,7 +377,7 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 ## CLI Status & Known Issues
 
-**176 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+**178 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
 ### Common Flags (`--fields`, `--output`, `--json-body`)
 

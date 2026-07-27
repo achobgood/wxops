@@ -54,7 +54,7 @@ Mock server URLs (public, no auth required — return saved response examples):
 
 ## CLI Test Status
 
-176 command groups (171 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+178 command groups (173 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ## Generator Rules
 
@@ -175,6 +175,105 @@ correct and the conclusion is inverted — see the table above. Its `--output`
 finding is real and valuable; its token figures are file bytes ÷ 4 and are not
 measurements; its claim that request-template generation does not exist is false
 (see `locations.py:147`).
+
+### Upstream refresh, 2026-07-26 — +16 ops, −3 ops, and the first live `--fields` collision
+
+Landed from `stash@{0}` rather than a `tools/update-specs.py` pull: the refresh
+had been stashed by the CLI-ergonomics plan because that plan's regen was
+flags-only and gated on **zero** command-name changes, while this refresh
+legitimately renames one. It was therefore reviewed as a name diff instead.
+7 spec files changed (+15,534 / −12,907); only 3 changed semantically.
+
+**Baseline moved — 176 command sets / 1872 commands → 178 / 1886.** Do not treat
+the old numbers as current; `drift_check` check 3 enforces the published figure
+in `CLAUDE.md` and `README.md`.
+
+**The reviewed name diff — 15 additions, 1 removal, all accounted for:**
+
+| Change | Cause |
+|---|---|
+| `archive-users show` → `list` | Upstream replaced item `GET /identity/organizations/{orgId}/v1/ArchivedUser/{useruuid}` with collection `GET .../ArchivedUser`. `list` requires `--filter` (SCIM `eq` on `username` or `id`) and takes no positional org ID |
+| `announcements` +4 | file-URI and upload-URL operations |
+| `data-policies` +5 *(new group)* | new tag `Call Settings Configurable Storage Region` |
+| `cc-campaign-group` +1 *(new group)* | new tag `Campaign Group` |
+| `cc-contact-list` +2, `cc-flow` +2 | join existing groups |
+| `virtual-extensions` — **no name change** | upstream merged the `PUT` onto the correct item path and dropped a stray trailing-slash duplicate; only the URL changed |
+
+The other 2 removals were inert: `POST /v1/{orgId}/functions/{id}:test` is under
+the `Functions` tag, already in `skip_tags`; the third was the trailing-slash
+path above, not a real removal.
+
+**Group names were chosen BEFORE regenerating** so it only ran once. Neither new
+tag had a `cli_name_overrides` entry, so the generator would have auto-derived
+`campaign-group` (breaking the `cc-` prefix all 26 other Contact Center groups
+use) and `call-settings-configurable-storage-region` (by a wide margin the
+longest name in the CLI). Both entries go in `_global`, not a per-spec block —
+verified neither tag appears in more than one spec, and the per-spec blocks
+exist only to resolve cross-spec tag collisions. `data-policies` is named for
+its resource: all 5 ops are `/telephony/config/dataPolicies*`.
+
+**Storage region moved off the call recording vendor endpoints.** Upstream
+deleted `storageRegion` and `orgStorageRegionEnabled` from the bodies of both
+`PUT /telephony/config/callRecording/vendor` and
+`PUT /telephony/config/locations/{locationId}/callRecording/vendor` — verified
+by diffing the resolved request-body schemas old vs new, not inferred from the
+generated diff. That is what the new `data-policies` group replaces it with.
+This surfaced as `drift_check` check 6 ("docs cite flags that don't exist"),
+which per known issue #22 can equally mean the CLI regressed — it did not here,
+and the spec diff is the evidence. `docs/reference/location-recording-advanced.md` § 1.7 records the move.
+
+### `param_name_overrides` — renaming a spec param's flag without changing the wire (added 2026-07-26)
+
+The `--fields` section above predicted this: *"If a future spec revision
+introduces a `fields` parameter, the fix is a guard or an override entry — not
+renaming `--fields`."* The 2026-07-26 refresh made it real, and the prediction
+held. `ReservedParamCollisionError` fired at generation time and stopped the
+regen dead:
+
+```
+PATCH v3/campaign-management/campaigns/{campaignId}/contacts/{contactId}
+(command 'update-contacts') declares query parameter 'fields' ...
+```
+
+**Why neither existing escape hatch worked.** The error message told the reader
+to "add a rename for this parameter (field_overrides.yaml / cli_name_overrides)"
+— but no such mechanism existed; `cli_name_overrides` maps *tags to group
+names*. `omit_query_params` would have worked mechanically but is global and
+silent, converting a deliberate loud guard into a silent drop everywhere.
+
+**Why dropping Cisco's parameter was the wrong instinct.** The two are not the
+same operation: the spec's `fields` is *server-side* selection of which contact
+fields the API returns, while `--fields` is a *client-side* JMESPath post-filter
+over whatever already arrived. Dropping the spec one loses a capability
+`--fields` cannot supply — and worse, if the endpoint returns a reduced default
+set, no client-side filter can recover the missing fields (the `--calling-data`
+trap in the root `CLAUDE.md`). They clash only on **spelling**, so the fix is to
+spell them differently.
+
+**The mechanism.** `_apply_param_name_overrides` (`command_renderer.py`) runs
+once in `render_command_file` before any renderer, so a rename is visible to
+every render path *and* to `_check_reserved_collisions`. It rewrites only
+`EndpointField.python_name`, which is what the flag string is built from;
+request assembly keys the params dict off `qp.name`, so the wire is unchanged.
+Shipped entry:
+
+```yaml
+"Contact List Management":
+  param_name_overrides:
+    update-contacts:
+      fields: contact-fields
+```
+
+Result: `--contact-fields` and `--fields` coexist on one command, and the
+request still sends `fields=`.
+
+**It cannot rot** — the same contract `verb_semantics_ack` has. Naming a command
+the tag no longer renders, targeting a parameter upstream dropped, or renaming
+onto another reserved name each raise `ParamNameOverrideError` at generation
+time. Proven by the real before/after (the regen failed, then succeeded
+unchanged apart from the entry) and by 6 tests in the tracked
+`tests/test_field_overrides.py`, including a control asserting the unrenamed
+case still fails loudly, so the others cannot pass for the wrong reason.
 
 ### Rich strips colour on a non-TTY but keeps box-drawing
 

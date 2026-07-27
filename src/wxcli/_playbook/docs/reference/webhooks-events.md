@@ -539,7 +539,7 @@ wxcli webhooks create \
 
 ```bash
 # 1. Clean up old webhooks with the same name (optional)
-wxcli webhooks list -o json | jq -r '.[] | select(.name=="My Call Monitor") | .id' | \
+wxcli webhooks list --fields "[?name=='My Call Monitor'].id" -o text | \
   xargs -I{} wxcli webhooks delete {} --force
 
 # 2. Create webhook for all telephony call events

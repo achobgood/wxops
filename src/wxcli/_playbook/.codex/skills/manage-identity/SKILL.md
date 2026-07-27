@@ -567,13 +567,19 @@ and `totalUsers`. There is no webhook for completion — you must poll.
 
 ### Operation M: Archived User Lookup
 
-`archive-users show` retrieves the retained record of a user who has been **deleted** from the org.
+`archive-users list` retrieves the retained record of a user who has been **deleted** from the org.
 Use it after a directory cleanup (Operation G) when someone asks "what was this deleted account?" or
 you need to confirm an offboarding actually removed a user.
 
+Upstream replaced the per-user item endpoint with a collection endpoint, so `archive-users show` no
+longer exists. `--filter` is **required** and accepts only the `eq` operator on `username` or `id`.
+
 ```bash
-# USERUUID is the deleted user's UUID -- the only argument
-wxcli archive-users show "USER_UUID_HERE" -o json
+# By UUID -- the org ID is injected from the token, so pass no positional argument
+wxcli archive-users list --filter 'id eq "USER_UUID_HERE"' -o json
+
+# By username
+wxcli archive-users list --filter 'username eq "test_user_1@example.com"' -o json
 ```
 
 This is read-only; it cannot restore a user. To bring someone back, create them again (Operation C).
@@ -732,7 +738,7 @@ Identity-specific errors:
 - **Domain verification failure**: DNS TXT record not yet propagated. Wait and retry after confirming TXT record is in place.
 - **400 on `org-contacts create`**: Missing `--schemas` or `--source`. Both are required. Schema value is always `"urn:cisco:codev:identity:contact:core:1.0"`. Source must be `CH` or `Webex4Broadworks`.
 - **404 on `identity-org show`/`update`**: Verified against a live org with a full-admin personal access token — the request URL and org ID were correct and the API still returned 404. Personal access tokens do not carry `identity:organizations_read`/`_rw`, and these endpoints answer missing identity scope with 404 rather than 403. Use an OAuth integration or service app with identity scopes granted. Do not chase this as a wrong-org-ID bug.
-- **401 on `archive-users show`**: Same root cause pattern as above — the token is not accepted for the identity API path this command uses. Needs `spark-admin:people_read` on a token that carries it (OAuth integration/service app), not a PAT.
+- **401 on `archive-users list`**: Same root cause pattern as above — the token is not accepted for the identity API path this command uses. Needs `spark-admin:people_read` on a token that carries it (OAuth integration/service app), not a PAT.
 - **"Target item with key: X does not exist" on `org-settings show`**: The setting key is not set for this org, or the key name is wrong. There is no command to list valid keys — confirm the exact key with the user. An unset key errors rather than returning a default.
 - **"The space classification is not enabled for the org" on `classifications list`**: Not a permissions or CLI problem. Space classification is opt-in and is off for this org; it must be enabled in Control Hub first. Report this to the user rather than retrying.
 - **`activation-email` sends real email**: There is no dry-run and no way to scope it to a subset of users. If run by mistake, the job cannot be recalled — let it finish and report the counts.

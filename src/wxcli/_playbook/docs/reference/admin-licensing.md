@@ -228,7 +228,7 @@ wxcli licenses show "Y2lzY29zcGFyazov..."
 
 **Table columns:** ID, Name, Total, Consumed.
 
-> **Gotcha — there is no `--calling-only` filter.** `licenses list` takes only `--output/-o`, `--limit`, `--offset`, and `--debug`. Earlier revisions of this doc described a `--calling-only` convenience flag; it is not present on the command. To narrow to calling licenses, filter the JSON output yourself (for example, `wxcli licenses list -o json | jq '[.[] | select(.name | test("calling"; "i"))]'` — the JSON output is a bare array, not an `items`-wrapped object), and note that name-substring matching may miss licenses with non-standard naming.
+> **Gotcha — there is no `--calling-only` filter.** `licenses list` takes only `--output/-o`, `--fields`, `--limit`, `--offset`, and `--debug`. Earlier revisions of this doc described a `--calling-only` convenience flag; it is not present on the command. To narrow to calling licenses, use `--fields` to filter the output (for example, `wxcli licenses list --fields "[?contains(name, 'Calling')]" -o json` — the JSON output is a bare array, not an `items`-wrapped object), and note that this is a case-sensitive substring match, so it may miss licenses with non-standard naming or unexpected casing.
 
 ---
 

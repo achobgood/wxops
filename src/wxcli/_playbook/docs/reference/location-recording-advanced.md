@@ -280,8 +280,11 @@ wxcli call-recording list-vendors <location_id>
 
 # Set recording vendor for a location
 wxcli call-recording update-vendor-call-recording <location_id> \
-  --id <vendor_id> --no-org-default-enabled \
-  --storage-region US --no-org-storage-region-enabled
+  --id <vendor_id> --no-org-default-enabled
+
+# Storage region moved off the vendor endpoints — see "Storage region" below
+wxcli data-policies update-data-policies <location_id> \
+  --location-data-region US --no-use-org-data-region-enabled
 
 # List call recording regions
 wxcli call-recording list
@@ -306,8 +309,35 @@ wxcli call-recording list-errors <job_id>
 
 - Setting the org-level or location-level recording vendor returns a **job ID** (string). Use the jobs API to check status if the change cannot be applied immediately (HTTP 200 with jobId vs. 204 for immediate).
 - Enabling/disabling recording is **Cisco partners only**.
-- Storage region is **only applicable when vendor is Webex**; ignored for third-party vendors.
+- Storage region is **only applicable when vendor is Webex**; ignored for third-party vendors. It is no longer set on the vendor endpoints — see 1.7.
 - `standard_user_only` parameter filters to Webex Calling standard license users only.
+
+### 1.7 Storage Region — Moved to Data Policies
+
+Upstream removed `storageRegion` and `orgStorageRegionEnabled` from both call
+recording vendor endpoints (`PUT /telephony/config/callRecording/vendor` and
+`PUT /telephony/config/locations/{locationId}/callRecording/vendor`) and moved
+storage region configuration to dedicated data policy endpoints under the
+`Call Settings Configurable Storage Region` tag. So `wxcli call-recording
+update-vendor-call-recording --storage-region ...` no longer exists; use the
+`data-policies` group instead. Regions are ISO 3166-1 alpha-2 country codes.
+
+```bash
+# List the storage regions available to configure
+wxcli data-policies list
+
+# Org-level storage region
+wxcli data-policies show
+wxcli data-policies update --org-data-region US
+
+# Location-level storage region (the old --storage-region equivalent)
+wxcli data-policies show-data-policies <location_id>
+wxcli data-policies update-data-policies <location_id> \
+  --location-data-region US --no-use-org-data-region-enabled
+
+# Inherit the org-level region instead of setting one per location
+wxcli data-policies update-data-policies <location_id> --use-org-data-region-enabled
+```
 
 ---
 
