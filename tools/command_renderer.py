@@ -69,6 +69,17 @@ class ReservedParamCollisionError(Exception):
     """
 
 
+class ParamNameOverrideError(Exception):
+    """A param_name_overrides entry does not match a real parameter on a real
+    command, or renames one to a name that still collides.
+
+    Checked at generation time so the override cannot rot: if upstream renames
+    or drops the parameter the entry targets, the build fails naming the stale
+    entry instead of silently leaving it inert (the same anti-rot contract
+    verb_semantics_ack has).
+    """
+
+
 class UnboundUrlPlaceholderError(Exception):
     """A rendered URL f-string references a `{name}` that no path variable,
     base-URL injection, or other renderer local actually binds.
@@ -101,6 +112,67 @@ def folder_name_to_module(folder_name: str) -> tuple[str, str]:
 
 def _path_var_to_param(var: str) -> str:
     return camel_to_snake(var)
+
+
+def _apply_param_name_overrides(endpoints: list, folder_overrides: dict) -> None:
+    """Rename a spec parameter's CLI flag without changing its wire name.
+
+    A spec parameter whose CLI name collides with an option the renderer
+    injects on every command (_RESERVED_OUTPUT_PARAM_NAMES) cannot be rendered
+    as-is: the flag text is built from python_name, so both would emit the
+    same "--fields" string and Typer would silently shadow one. Renaming
+    python_name changes only the CLI spelling — request assembly keys the
+    params dict off qp.name, so the spec's own name still goes on the wire.
+
+    This is the mechanism ReservedParamCollisionError's message points at. It
+    exists because the two flags are genuinely different operations: a spec
+    "fields" param is server-side field selection, while --fields is a
+    client-side JMESPath post-filter. Dropping either would lose a capability
+    the other cannot provide, so the fix is to spell them differently.
+
+    Shape, per tag block:
+        param_name_overrides:
+          <command-name>:
+            <spec-param-name>: <new-kebab-cli-name>
+    """
+    overrides = (folder_overrides or {}).get("param_name_overrides") or {}
+    if not overrides:
+        return
+    by_command: dict[str, list] = {}
+    for ep in endpoints:
+        by_command.setdefault(ep.command_name, []).append(ep)
+
+    for command_name, renames in overrides.items():
+        eps = by_command.get(command_name)
+        if not eps:
+            raise ParamNameOverrideError(
+                f"param_name_overrides names command {command_name!r}, which "
+                f"this tag does not render. Known commands: "
+                f"{sorted(by_command)}. Remove the stale entry or correct the "
+                f"command name."
+            )
+        for spec_name, new_name in (renames or {}).items():
+            if _safe_param_name(new_name) in _RESERVED_OUTPUT_PARAM_NAMES:
+                raise ParamNameOverrideError(
+                    f"param_name_overrides renames {spec_name!r} on "
+                    f"{command_name!r} to {new_name!r}, which still collides "
+                    f"with the --{new_name} option the renderer injects on "
+                    f"every command. Choose a name outside "
+                    f"{sorted(_RESERVED_OUTPUT_PARAM_NAMES)}."
+                )
+            matched = False
+            for ep in eps:
+                for qp in ep.query_params:
+                    if qp.name == spec_name:
+                        qp.python_name = new_name
+                        matched = True
+            if not matched:
+                raise ParamNameOverrideError(
+                    f"param_name_overrides targets query parameter "
+                    f"{spec_name!r} on command {command_name!r}, which no "
+                    f"longer declares it. Upstream may have renamed or "
+                    f"dropped it — remove the stale entry."
+                )
 
 
 def _render_output_options(default_output: str = "json") -> list[str]:
@@ -1182,6 +1254,10 @@ def render_command_file(
                         include_fs_url=needs_fs_url, include_fs_project_id=needs_fs_project_id),
         f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]
+
+    # Before any renderer runs: a rename must be visible to every render path
+    # and to _check_reserved_collisions alike.
+    _apply_param_name_overrides(endpoints, folder_overrides)
 
     for ep in endpoints:
         renderer = RENDERERS.get(ep.command_type)

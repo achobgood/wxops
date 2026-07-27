@@ -12,6 +12,12 @@
 #   cli_name_overrides  — human-friendly CLI group names (tag → CLI name)
 #   omit_query_params   — query params stripped from all commands
 #
+# Per-tag keys (alongside table_columns etc.):
+#   param_name_overrides — rename a spec param's CLI flag; wire name unchanged.
+#                          Use when a spec param collides with --fields/--output.
+#                          {command: {spec_param: new-kebab-name}}. Validated at
+#                          generation time, so a stale entry fails loudly.
+#
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Table columns — display preferences for CLI table output
@@ -481,6 +487,19 @@
       - ["Topic", "topic"]
       - ["Format", "format"]
       - ["Created", "timeRecorded"]
+
+# Upstream's PATCH .../campaigns/{campaignId}/contacts/{contactId} declares a
+# query param literally named "fields" — server-side selection of which contact
+# fields come back. That is NOT the same operation as wxcli's universal
+# --fields, a client-side JMESPath post-filter, so neither can be dropped in
+# favour of the other. They only clash on spelling, so the spec one is spelled
+# --contact-fields; the wire still receives "fields" (request assembly keys off
+# the spec name). Without this the generator hard-fails with
+# ReservedParamCollisionError, by design.
+"Contact List Management":
+  param_name_overrides:
+    update-contacts:
+      fields: contact-fields
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Meetings spec — table columns

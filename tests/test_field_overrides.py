@@ -15,7 +15,12 @@ from tools.postman_parser import (
     apply_endpoint_overrides,
     camel_to_kebab,
 )
-from tools.command_renderer import render_command_file, _render_list_command
+from tools.command_renderer import (
+    render_command_file,
+    _render_list_command,
+    ParamNameOverrideError,
+    ReservedParamCollisionError,
+)
 from tools.openapi_parser import load_spec, parse_operation, parse_tag
 from tools.generate_commands import KNOWN_GLOBAL_KEYS, should_skip_tag, merge_tags
 
@@ -69,6 +74,7 @@ class TestOverridesYamlValidity:
             "list", "table_columns", "command_type_overrides", "response_list_keys",
             "url_overrides", "add_query_params", "keep_query_params",
             "command_name_overrides", "make_optional", "body_defaults",
+            "param_name_overrides",
         }
         for key, value in data.items():
             if key in known_global_keys or key.startswith("_"):
@@ -266,6 +272,95 @@ class TestTableColumnsApplied:
         assert "Number" in code
         # Folder-level columns should NOT be used
         assert ('("ID", "id")' not in code) or ("directNumber" in code)
+
+
+# ── param_name_overrides ─────────────────────────────────────────────────────
+
+
+def _fields_collision_endpoint(command_name="update-contacts"):
+    """An endpoint whose spec query param is literally named 'fields'.
+
+    Real case: upstream's PATCH .../campaigns/{campaignId}/contacts/{contactId}
+    (tag 'Contact List Management'), added in the 2026-07 spec refresh.
+    """
+    return _make_endpoint(
+        method="PATCH",
+        command_type="update",
+        command_name=command_name,
+        url_path="v3/campaign-management/campaigns/{campaignId}/contacts/{contactId}",
+        path_vars=["campaignId", "contactId"],
+        query_params=[EndpointField(
+            name="fields", python_name="fields", field_type="string",
+            description="Contact field names to include in the response.",
+        )],
+    )
+
+
+class TestParamNameOverrides:
+    def test_unrenamed_fields_param_still_fails_loudly(self):
+        """Without an override the reserved-name guard must still fire.
+
+        This is the control: if it ever stops raising, the tests below would
+        pass for the wrong reason.
+        """
+        ep = _fields_collision_endpoint()
+        with pytest.raises(ReservedParamCollisionError):
+            render_command_file("cc-contact-list", [ep], {})
+
+    def test_rename_changes_flag_but_not_wire_name(self):
+        """--contact-fields on the CLI; still params["fields"] on the wire.
+
+        The two are different operations — a spec 'fields' param is server-side
+        field selection, --fields is a client-side JMESPath post-filter — so
+        both must coexist rather than one replacing the other.
+        """
+        ep = _fields_collision_endpoint()
+        overrides = {"param_name_overrides": {"update-contacts": {"fields": "contact-fields"}}}
+        code = render_command_file("cc-contact-list", [ep], overrides)
+        assert '"--contact-fields"' in code
+        assert 'params["fields"] = contact_fields' in code
+        # the renderer's own universal --fields survives alongside it
+        assert '"--fields"' in code
+        # exactly one parameter is named exactly `fields` (the injected one).
+        # Match on the line start so `contact_fields:` is not counted as a
+        # substring hit — the whole point is that they are two distinct params.
+        assert code.count("\n    fields: str = typer.Option") == 1
+        assert code.count("\n    contact_fields: str = typer.Option") == 1
+
+    def test_stale_command_name_raises(self):
+        """An entry naming a command the tag no longer renders must fail."""
+        ep = _fields_collision_endpoint()
+        overrides = {"param_name_overrides": {"no-such-command": {"fields": "contact-fields"}}}
+        with pytest.raises(ParamNameOverrideError, match="no-such-command"):
+            render_command_file("cc-contact-list", [ep], overrides)
+
+    def test_stale_param_name_raises(self):
+        """Upstream renaming/dropping the param must fail, not sit inert."""
+        ep = _fields_collision_endpoint()
+        overrides = {"param_name_overrides": {"update-contacts": {"gone": "contact-fields"}}}
+        with pytest.raises(ParamNameOverrideError, match="gone"):
+            render_command_file("cc-contact-list", [ep], overrides)
+
+    def test_rename_onto_another_reserved_name_raises(self):
+        """Renaming 'fields' to 'output' just moves the collision."""
+        ep = _fields_collision_endpoint()
+        overrides = {"param_name_overrides": {"update-contacts": {"fields": "output"}}}
+        with pytest.raises(ParamNameOverrideError, match="output"):
+            render_command_file("cc-contact-list", [ep], overrides)
+
+    def test_live_override_matches_the_shipped_spec(self):
+        """The shipped override must still describe a real endpoint.
+
+        Guards the same rot the renderer does, but against the real spec, so a
+        future refresh that drops the param fails here too.
+        """
+        with open(OVERRIDES_PATH) as f:
+            data = yaml.safe_load(f)
+        block = data.get("Contact List Management", {}).get("param_name_overrides", {})
+        assert block.get("update-contacts", {}).get("fields") == "contact-fields", (
+            "the Contact List Management rename is missing — regeneration will "
+            "fail with ReservedParamCollisionError"
+        )
 
 
 # ── response_list_key applied ────────────────────────────────────────────────
