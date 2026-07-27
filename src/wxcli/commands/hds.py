@@ -56,7 +56,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("clusters", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Cluster ID', 'clusterId'), ('Cluster Name', 'clusterName'), ('Cluster Status', 'clusterStatus'), ('Release Channel', 'releaseChannel')], limit=limit)
 
 
 
@@ -106,7 +106,7 @@ def list_nodes(
         handle_network_error(e)
     result = result or []
     items = result.get("nodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Node ID', 'nodeId'), ('Host', 'host'), ('Release Version', 'releaseVersion'), ('Proxy Type', 'proxyType'), ('Proxy Status', 'proxyStatus')], limit=limit)
 
 
 
@@ -176,7 +176,7 @@ def list_tenants(
         handle_network_error(e)
     result = result or []
     items = result.get("tenants", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Tenant Org ID', 'tenantOrgId'), ('Tenant Org Name', 'tenantOrgName'), ('Cmk State', 'cmkState'), ('Tenant Org State', 'tenantOrgState')], limit=limit)
 
 
 
@@ -212,7 +212,7 @@ def list_alarms(
         handle_network_error(e)
     result = result or []
     items = result.get("alarms", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Alarm ID', 'alarmId'), ('Alarm Name', 'alarmName'), ('Alarm Severity', 'alarmSeverity'), ('Alarm Details', 'alarmDetails'), ('Possible Remediation', 'possibleRemediation')], limit=limit)
 
 
 
@@ -245,7 +245,7 @@ def list_network_test(
         handle_network_error(e)
     result = result or []
     items = result.get("testResults", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Timestamp', 'timestamp'), ('Trigger Type', 'triggerType')], limit=limit)
 
 
 
@@ -281,7 +281,7 @@ def list_resource_usage(
         handle_network_error(e)
     result = result or []
     items = result.get("resourceUsage", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Start Time', 'startTime'), ('End Time', 'endTime')], limit=limit)
 
 
 
@@ -317,6 +317,6 @@ def list_availability(
         handle_network_error(e)
     result = result or []
     items = result.get("availabilitySegments", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Segment Start Time', 'segmentStartTime'), ('Segment End Time', 'segmentEndTime'), ('No Of Online Nodes', 'noOfOnlineNodes'), ('No Of Offline Nodes', 'noOfOfflineNodes'), ('Total Nodes', 'totalNodes')], limit=limit)
 
 

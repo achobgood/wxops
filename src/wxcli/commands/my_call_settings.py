@@ -35,7 +35,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
 
 
 
@@ -65,7 +65,7 @@ def list_available_preferred_answer_endpoints(
         handle_network_error(e)
     result = result or []
     items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
 
 
 
@@ -499,7 +499,7 @@ def list_available_caller_ids_settings(
         handle_network_error(e)
     result = result or []
     items = result.get("availableCallerIds", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Direct Number', 'directNumber'), ('Extension', 'extension')], limit=limit)
 
 
 
@@ -529,7 +529,7 @@ def list_available_caller_ids_secondary_lines(
         handle_network_error(e)
     result = result or []
     items = result.get("availableCallerIds", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Direct Number', 'directNumber'), ('Extension', 'extension')], limit=limit)
 
 
 
@@ -558,7 +558,7 @@ def list_endpoints(
         handle_network_error(e)
     result = result or []
     items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Auto And Forced Answer Enabled', 'autoAndForcedAnswerEnabled'), ('Owner ID', 'ownerId')], limit=limit)
 
 
 
@@ -701,7 +701,7 @@ def list_feature_access_code_settings(
         handle_network_error(e)
     result = result or []
     items = result.get("featureAccessCodeList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Code', 'code'), ('Alternate Code', 'alternateCode')], limit=limit)
 
 
 
@@ -731,7 +731,7 @@ def list_feature_access_code_secondary_lines(
         handle_network_error(e)
     result = result or []
     items = result.get("featureAccessCodeList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Code', 'code'), ('Alternate Code', 'alternateCode')], limit=limit)
 
 
 
@@ -760,7 +760,7 @@ def list_assigned_assistants(
         handle_network_error(e)
     result = result or []
     items = result.get("assistants", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Direct Number', 'directNumber'), ('Extension', 'extension')], limit=limit)
 
 
 
@@ -827,7 +827,7 @@ def list_available_assistants(
         handle_network_error(e)
     result = result or []
     items = result.get("assistants", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Direct Number', 'directNumber'), ('Extension', 'extension')], limit=limit)
 
 
 
@@ -856,7 +856,7 @@ def list_assistant(
         handle_network_error(e)
     result = result or []
     items = result.get("executives", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Direct Number', 'directNumber'), ('Extension', 'extension')], limit=limit)
 
 
 
@@ -985,7 +985,7 @@ def list_single_number_reach(
         handle_network_error(e)
     result = result or []
     items = result.get("numbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Phone Number', 'phoneNumber'), ('Enabled', 'enabled'), ('Do Not Forward Calls Enabled', 'doNotForwardCallsEnabled')], limit=limit)
 
 
 
@@ -1298,7 +1298,7 @@ def list_call_pickup_group_settings(
         handle_network_error(e)
     result = result or []
     items = result.get("memberList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Type', 'type'), ('Last Name', 'lastName'), ('Department Name', 'departmentName')], limit=limit)
 
 
 
@@ -1328,7 +1328,7 @@ def list_call_pickup_group_secondary_lines(
         handle_network_error(e)
     result = result or []
     items = result.get("memberList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Type', 'type'), ('Last Name', 'lastName'), ('Department Name', 'departmentName')], limit=limit)
 
 
 
@@ -1357,7 +1357,7 @@ def list_call_park_settings(
         handle_network_error(e)
     result = result or []
     items = result.get("memberList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Type', 'type'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
 
 
 
@@ -1387,7 +1387,7 @@ def list_call_park_secondary_lines(
         handle_network_error(e)
     result = result or []
     items = result.get("memberList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Type', 'type'), ('First Name', 'firstName'), ('Last Name', 'lastName')], limit=limit)
 
 
 
@@ -1532,7 +1532,7 @@ def list_call_block(
         handle_network_error(e)
     result = result or []
     items = result.get("numbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Phone Number', 'phoneNumber')], limit=limit)
 
 
 
@@ -1683,7 +1683,7 @@ def list_queues_settings(
         handle_network_error(e)
     result = result or []
     items = result.get("queues", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Phone Number', 'phoneNumber'), ('Has Cx Essentials', 'hasCxEssentials'), ('Available', 'available'), ('Skill Level', 'skillLevel')], limit=limit)
 
 
 
@@ -1751,7 +1751,7 @@ def list_queues_secondary_lines(
         handle_network_error(e)
     result = result or []
     items = result.get("queues", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Phone Number', 'phoneNumber'), ('Has Cx Essentials', 'hasCxEssentials'), ('Available', 'available'), ('Skill Level', 'skillLevel')], limit=limit)
 
 
 
@@ -1838,7 +1838,7 @@ def list_priority_alert(
         handle_network_error(e)
     result = result or []
     items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Notification Enabled', 'notificationEnabled')], limit=limit)
 
 
 
@@ -2069,7 +2069,7 @@ def list_schedules(
         handle_network_error(e)
     result = result or []
     items = result.get("schedules", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Level', 'level')], limit=limit)
 
 
 
@@ -2430,7 +2430,7 @@ def list_call_notify(
         handle_network_error(e)
     result = result or []
     items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Notification Enabled', 'notificationEnabled')], limit=limit)
 
 
 
@@ -2664,7 +2664,7 @@ def list_selective_accept(
         handle_network_error(e)
     result = result or []
     items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Accept Enabled', 'acceptEnabled')], limit=limit)
 
 
 
@@ -2911,7 +2911,7 @@ def list_assigned_numbers(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('State', 'state'), ('Phone Number Type', 'phoneNumberType'), ('Toll Free Number', 'tollFreeNumber')], limit=limit)
 
 
 
@@ -3116,7 +3116,7 @@ def list_selective_forward(
         handle_network_error(e)
     result = result or []
     items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Ring Enabled', 'ringEnabled')], limit=limit)
 
 
 
@@ -3192,7 +3192,7 @@ def list_selective_reject(
         handle_network_error(e)
     result = result or []
     items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Reject Enabled', 'rejectEnabled')], limit=limit)
 
 
 
@@ -3541,7 +3541,7 @@ def list_sequential_ring(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Answer Confirmation Required Enabled', 'answerConfirmationRequiredEnabled'), ('Number Of Rings', 'numberOfRings')], limit=limit)
 
 
 
@@ -3788,7 +3788,7 @@ def list_simultaneous_ring(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Answer Confirmation Required Enabled', 'answerConfirmationRequiredEnabled')], limit=limit)
 
 
 
@@ -4029,7 +4029,7 @@ def list_numbers(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber')], limit=limit)
 
 
 
@@ -4058,7 +4058,7 @@ def list_speed_dials(
         handle_network_error(e)
     result = result or []
     items = result.get("speedDials", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Type', 'type')], limit=limit)
 
 
 
@@ -4134,7 +4134,7 @@ def list_available_members(
         handle_network_error(e)
     result = result or []
     items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Phone Number', 'phoneNumber')], limit=limit)
 
 
 
@@ -4169,7 +4169,7 @@ def list_organization(
         handle_network_error(e)
     result = result or []
     items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Routing Prefix', 'routingPrefix')], limit=limit)
 
 
 

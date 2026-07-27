@@ -55,7 +55,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Resource', 'resource'), ('Type', 'type'), ('App ID', 'appId'), ('Actor ID', 'actorId')], limit=limit)
 
 
 

@@ -8,6 +8,7 @@ from typing import Any
 from tools.postman_parser import (
     Endpoint,
     EndpointField,
+    ResponseField,
     camel_to_kebab,
     camel_to_snake,
     classify_real_semantics,
@@ -383,6 +384,74 @@ def extract_response_list_key(op: dict, spec: dict) -> str | None:
     return array_props[0]
 
 
+def _resolve_schema_node(spec: dict, schema: dict, depth: int = 0) -> dict:
+    """Resolve $ref / allOf / oneOf / anyOf into one schema dict.
+
+    _get_response_schema does this for the top-level response only. An item
+    schema sits one level further in (inside the array), and Cisco $refs or
+    allOf-composes most of them, so it needs the same treatment.
+    """
+    if not isinstance(schema, dict) or depth > 8:
+        return {}
+    if "$ref" in schema:
+        return _resolve_schema_node(spec, resolve_ref(spec, schema["$ref"]), depth + 1)
+    for key in ("allOf", "oneOf", "anyOf"):
+        if key not in schema:
+            continue
+        merged: dict = {}
+        required: list[str] = []
+        for sub in schema[key]:
+            resolved = _resolve_schema_node(spec, sub, depth + 1)
+            merged.update(resolved.get("properties", {}))
+            required.extend(resolved.get("required", []))
+        out = {k: v for k, v in schema.items() if k != key}
+        merged.update(out.get("properties", {}))
+        out["properties"] = merged
+        out["required"] = list(dict.fromkeys(required + out.get("required", [])))
+        out.setdefault("type", "object")
+        return out
+    return schema
+
+
+def _item_fields(spec: dict, item_schema: dict) -> list[ResponseField]:
+    """Properties of one array's item schema, in declaration order."""
+    item = _resolve_schema_node(spec, item_schema)
+    required = set(item.get("required", []))
+    return [
+        ResponseField(
+            name=name,
+            field_type=_resolve_schema_node(spec, prop).get("type", "string"),
+            required=name in required,
+        )
+        for name, prop in item.get("properties", {}).items()
+    ]
+
+
+def extract_response_item_fields(op: dict, spec: dict) -> dict[str, list[ResponseField]]:
+    """Item-schema fields per extraction key for a 200 list response.
+
+    Keyed by the key the generated code extracts with — a direct array response
+    under "items", which is the renderer's default list_key. Every array
+    property is resolved, not just the one extract_response_list_key picks, so
+    a response_list_keys override applied later still finds its fields.
+    """
+    schema = _get_response_schema(op, spec, "200")
+    if not schema:
+        return {}
+    if schema.get("type") == "array":
+        fields = _item_fields(spec, schema.get("items", {}))
+        return {"items": fields} if fields else {}
+    out: dict[str, list[ResponseField]] = {}
+    for name, prop in schema.get("properties", {}).items():
+        resolved = _resolve_schema_node(spec, prop)
+        if resolved.get("type") != "array" and "items" not in resolved:
+            continue
+        fields = _item_fields(spec, resolved.get("items", {}))
+        if fields:
+            out[name] = fields
+    return out
+
+
 def extract_response_id_key(op: dict, spec: dict) -> str | None:
     """For create commands, find the ID field in the 201 response schema.
 
@@ -470,8 +539,10 @@ def parse_operation(
     command_type = detect_command_type(method, path, op, spec)
 
     response_list_key = None
+    response_item_fields: dict[str, list[ResponseField]] = {}
     if command_type == "list":
         response_list_key = extract_response_list_key(op, spec)
+        response_item_fields = extract_response_item_fields(op, spec)
 
     response_id_key = None
     if command_type == "create":
@@ -517,6 +588,7 @@ def parse_operation(
         content_type=content_type,
         paginates=paginates,
         real_semantics=classify_real_semantics(name, body_fields),
+        response_item_fields=response_item_fields,
     )
 
 

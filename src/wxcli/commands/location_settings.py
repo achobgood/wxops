@@ -86,7 +86,7 @@ def list_1(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Outside Dial Digit', 'outsideDialDigit'), ('Enforce Outside Dial Digit', 'enforceOutsideDialDigit'), ('Routing Prefix', 'routingPrefix')], limit=limit)
 
 
 
@@ -676,7 +676,7 @@ def list_route_choices(
         handle_network_error(e)
     result = result or []
     items = result.get("routeIdentities", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
 
 
 
@@ -907,7 +907,7 @@ def list_directories(
         handle_network_error(e)
     result = result or []
     items = result.get("directories", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -1323,7 +1323,7 @@ def list_errors(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Tracking ID', 'trackingId'), ('Item Number', 'itemNumber'), ('Item', 'item')], limit=limit)
 
 
 

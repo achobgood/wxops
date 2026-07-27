@@ -53,7 +53,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Organization ID', 'organizationId'), ('Version', 'version'), ('Last Name', 'lastName')], limit=limit)
 
 
 
@@ -352,7 +352,7 @@ def list_with_user_profile(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Organization ID', 'organizationId'), ('Version', 'version'), ('Last Name', 'lastName')], limit=limit)
 
 
 
@@ -593,7 +593,7 @@ def list_incoming_references(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Created Date', 'createdDate'), ('Last Modified Date', 'lastModifiedDate'), ('Version', 'version')], limit=limit)
 
 
 
@@ -716,7 +716,7 @@ def list_user(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Organization ID', 'organizationId'), ('Version', 'version'), ('Last Name', 'lastName')], limit=limit)
 
 
 

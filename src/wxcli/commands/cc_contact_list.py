@@ -267,7 +267,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("contactLists", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Contact List ID', 'contactListId'), ('Contact List Source File Name', 'contactListSourceFileName'), ('Contact List Status', 'contactListStatus'), ('Contact List Source', 'contactListSource'), ('Contact List Counts Timestamp Utc', 'contactListCountsTimestampUtc')], limit=limit)
 
 
 
@@ -304,6 +304,6 @@ def list_contact_lists(
         handle_network_error(e)
     result = result or []
     items = result.get("contactLists", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Contact List ID', 'contactListId'), ('Contact List Source File Name', 'contactListSourceFileName'), ('Contact List Status', 'contactListStatus'), ('Contact List Source', 'contactListSource'), ('Contact List Counts Timestamp Utc', 'contactListCountsTimestampUtc')], limit=limit)
 
 

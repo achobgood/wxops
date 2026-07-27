@@ -45,7 +45,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('From', 'from'), ('To', 'to')], limit=limit)
 
 
 
@@ -110,7 +110,7 @@ def list_availability(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('From', 'from'), ('To', 'to')], limit=limit)
 
 
 
@@ -178,7 +178,7 @@ def list_media_health_monitor_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -219,7 +219,7 @@ def list_clusters_media_health_monitor_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -260,7 +260,7 @@ def list_nodes_media_health_monitor_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -298,7 +298,7 @@ def list_cloud_overflow(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('From', 'from'), ('To', 'to'), ('Aggregation Interval', 'aggregationInterval')], limit=limit)
 
 
 
@@ -336,7 +336,7 @@ def list_call_redirects_video_mesh(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('From', 'from'), ('To', 'to'), ('Aggregation Interval', 'aggregationInterval')], limit=limit)
 
 
 
@@ -374,7 +374,7 @@ def list_call_redirects_clusters(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('From', 'from'), ('To', 'to'), ('Aggregation Interval', 'aggregationInterval')], limit=limit)
 
 
 
@@ -412,7 +412,7 @@ def list_utilization_video_mesh(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Aggregation Interval', 'aggregationInterval'), ('From', 'from'), ('To', 'to')], limit=limit)
 
 
 
@@ -450,7 +450,7 @@ def list_utilization_clusters(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Aggregation Interval', 'aggregationInterval'), ('From', 'from'), ('To', 'to')], limit=limit)
 
 
 
@@ -491,7 +491,7 @@ def list_reachability_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -532,7 +532,7 @@ def list_clusters_reachability_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -573,7 +573,7 @@ def list_nodes_reachability_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -605,7 +605,7 @@ def list_clusters_video_mesh(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Org ID', 'orgId')], limit=limit)
 
 
 
@@ -741,7 +741,7 @@ def list_test_status(
         handle_network_error(e)
     result = result or []
     items = result.get("nodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Node ID', 'nodeId'), ('Status', 'status')], limit=limit)
 
 
 
@@ -773,7 +773,7 @@ def list_test_results(
         handle_network_error(e)
     result = result or []
     items = result.get("results", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -814,7 +814,7 @@ def list_network_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -855,7 +855,7 @@ def list_clusters_network_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -896,7 +896,7 @@ def list_nodes_network_test(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
 
@@ -937,7 +937,7 @@ def list_client_type_distribution(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('From', 'from'), ('To', 'to'), ('Aggregation Interval', 'aggregationInterval')], limit=limit)
 
 
 
@@ -978,7 +978,7 @@ def list_clusters_client_type_distribution(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('From', 'from'), ('To', 'to'), ('Aggregation Interval', 'aggregationInterval')], limit=limit)
 
 
 
@@ -1019,7 +1019,7 @@ def list_event_thresholds(
         handle_network_error(e)
     result = result or []
     items = result.get("eventThresholds", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Event Threshold ID', 'eventThresholdId'), ('Event Name', 'eventName'), ('Event Scope', 'eventScope'), ('Entity ID', 'entityId')], limit=limit)
 
 
 

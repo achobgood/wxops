@@ -65,6 +65,7 @@ tests/*
 !tests/test_readme_distribution.py
 !tests/test_release_integrity.py
 !tests/test_drift_check_untracked.py
+!tests/test_drift_check_columns.py
 tests/migration/**/__pycache__/
 tests/org_health/**/__pycache__/
 

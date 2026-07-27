@@ -306,7 +306,7 @@ def list_dial_plans(
         handle_network_error(e)
     result = result or []
     items = result.get("dialPlans", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route ID', 'routeId'), ('Route Name', 'routeName'), ('Route Type', 'routeType')], limit=limit)
 
 
 

@@ -358,7 +358,20 @@ Next steps:
 6. **Video Mesh is read-heavy.** Most operations are monitoring queries. Only threshold configuration and on-demand test triggers are write operations.
 7. **Time-range queries default to recent data.** If availability/utilization commands return empty, the time range may need to be specified with `--from` and `--to` flags (where supported).
 8. **Node IDs come from cluster details.** You cannot list all nodes directly — get them from `wxcli video-mesh show CLUSTER_ID --output json` which includes the node list.
-9. **Cross-skill handoffs:**
+9. **Read the metrics commands with `-o json` — their tables cannot show the data.**
+    20 of the 22 Video Mesh list commands wrap their measurements one level deeper
+    than the CLI's table renderer reaches: the body is `{items: [{orgId, from, to,
+    items: [...the real rows...]}]}` (or `{items: [{clusters: [...]}]}`), and the
+    renderer extracts the outer `items` only. So the table shows the response window
+    (`From`/`To`) or a single empty column, while the measurements sit inside
+    untouched. **The data is not missing — `-o json` returns all of it, and always
+    did.** Never report a Video Mesh metric as absent based on a table.
+    The two exceptions return flat rows and their tables are correct:
+    `list-test-status` (Node ID / Status) and `list-event-thresholds` (Event
+    Threshold ID / Event Name / Event Scope / Entity ID). This nesting is specific
+    to Video Mesh — elsewhere table columns are derived from the response schema
+    and are trustworthy.
+10. **Cross-skill handoffs:**
     - Meeting scheduling/management → `manage-meetings` skill
     - CDR and call quality reports → `reporting` skill
     - Network infrastructure/PSTN → `configure-routing` skill

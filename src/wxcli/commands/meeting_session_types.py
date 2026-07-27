@@ -38,7 +38,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Short Name', 'shortName'), ('Site URL', 'siteUrl'), ('Type', 'type')], limit=limit)
 
 
 
@@ -73,7 +73,7 @@ def list_session_types(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Person ID', 'personId'), ('Email', 'email'), ('Site URL', 'siteUrl')], limit=limit)
 
 
 

@@ -63,7 +63,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Created By', 'createdBy'), ('Created Date', 'createdDate'), ('Description', 'description')], limit=limit)
 
 
 
@@ -110,7 +110,7 @@ def list_search(
         handle_network_error(e)
     result = result or []
     items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Flow Type', 'flowType'), ('Last Modified Date', 'lastModifiedDate')], limit=limit)
 
 
 
@@ -580,7 +580,7 @@ def list_validate(
         handle_network_error(e)
     result = result or []
     items = result.get("results", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Code', 'code'), ('Doc Link', 'docLink'), ('Hint', 'hint'), ('Message', 'message'), ('Severity', 'severity')], limit=limit)
 
 
 
@@ -619,6 +619,6 @@ def export(
         handle_network_error(e)
     result = result or []
     items = result.get("nodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Activity Name', 'activityName')], limit=limit)
 
 

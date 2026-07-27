@@ -288,7 +288,7 @@ def list_available_recall_hunt_groups(
         handle_network_error(e)
     result = result or []
     items = result.get("huntGroups", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -401,7 +401,7 @@ def list_call_park_extensions(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Extension', 'extension'), ('Routing Prefix', 'routingPrefix'), ('ESN', 'esn')], limit=limit)
 
 
 

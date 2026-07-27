@@ -1089,7 +1089,7 @@ def list_call_device_settings(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Tracking ID', 'trackingId'), ('Source User ID', 'sourceUserId'), ('Source Customer ID', 'sourceCustomerId'), ('Target Customer ID', 'targetCustomerId')], limit=limit)
 
 
 
@@ -1192,7 +1192,7 @@ def list_errors_call_device_settings(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Tracking ID', 'trackingId'), ('Item', 'item'), ('Item Number', 'itemNumber')], limit=limit)
 
 
 
@@ -1225,7 +1225,7 @@ def list_layout(
         handle_network_error(e)
     result = result or []
     items = result.get("lineKeys", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Line Key Index', 'lineKeyIndex'), ('Line Key Type', 'lineKeyType'), ('Line Key Label', 'lineKeyLabel'), ('Line Key Value', 'lineKeyValue'), ('Shared Line Index', 'sharedLineIndex')], limit=limit)
 
 
 
@@ -1412,7 +1412,7 @@ def list_errors_rebuild_phones(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Tracking ID', 'trackingId'), ('Item', 'item'), ('Item Number', 'itemNumber')], limit=limit)
 
 
 
@@ -1578,7 +1578,7 @@ def list_background_images(
         handle_network_error(e)
     result = result or []
     items = result.get("backgroundImages", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('File Name', 'fileName'), ('Background Image URL', 'backgroundImageUrl')], limit=limit)
 
 
 
