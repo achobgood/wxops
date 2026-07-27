@@ -142,6 +142,57 @@ def update(
 
 
 
+_BODY_SKELETON_UPDATE_CONTACTS = '{"contactStatus":"CLOSED","searchAcrossTheCampaignChain":"yes"}'
+
+@app.command("update-contacts")
+def update_contacts(
+    campaign_id: str = typer.Argument(help="campaignId"),
+    contact_id: str = typer.Argument(help="contactId"),
+    contact_list_id: str = typer.Option(None, "--contact-list-id", help="Optional. Search only the specific contact-list within the campaign specified in the request path. If `searchAcrossTheCampaignChain` is set to `yes`, then all active contact-lists in the other downstream target campaigns in the chain are also searched. When omitted, all active contact lists in that..."),
+    contact_fields: str = typer.Option(None, "--contact-fields", help="Optional. Contact field names to include in the response (comma-separated names)."),
+    contact_status: str = typer.Option(None, "--contact-status", help="Choices: CLOSED"),
+    search_across_the_campaign_chain: str = typer.Option(None, "--search-across-the-campaign-chain", help="Choices: yes, no"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update contact status across the campaign chain\n\nExample --json-body:\n  '{"contactStatus":"CLOSED","searchAcrossTheCampaignChain":"yes"}'."""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CONTACTS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contacts/{contact_id}"
+    params = {}
+    if contact_list_id is not None:
+        params["contactListId"] = contact_list_id
+    if contact_fields is not None:
+        params["fields"] = contact_fields
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if contact_status is not None:
+            body["contactStatus"] = contact_status
+        if search_across_the_campaign_chain is not None:
+            body["searchAcrossTheCampaignChain"] = search_across_the_campaign_chain
+    try:
+        result = api.session.rest_patch(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": contact_id}, output=output, fields=fields)
+
+
+
 _BODY_SKELETON_UPDATE_STATUS = '{"contactListStatus":"..."}'
 
 @app.command("update-status")
@@ -187,7 +238,7 @@ def update_status(
 def cmd_list(
     campaign_id: str = typer.Argument(help="campaignId"),
     status: str = typer.Option(None, "--status", help="Choices: Active, Expired, UploadFailed"),
-    source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile, GlobalUpload, GlobalSFTP"),
+    source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -198,6 +249,43 @@ def cmd_list(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-lists"
+    params = {}
+    if status is not None:
+        params["status"] = status
+    if source is not None:
+        params["source"] = source
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("contactLists", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-contact-lists")
+def list_contact_lists(
+    campaign_id: str = typer.Argument(help="campaignId"),
+    status: str = typer.Option(None, "--status", help="Choices: Active, Expired, UploadFailed"),
+    source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Contact Lists within a Campaign."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v4/campaign-management/campaigns/{campaign_id}/contact-lists"
     params = {}
     if status is not None:
         params["status"] = status

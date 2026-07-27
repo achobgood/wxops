@@ -7,6 +7,10 @@
   },
   "tags": [
     {
+      "name": "AI Receptionist",
+      "description": "APIs for retrieving AI Receptionist sessions and conversational transcripts. Restricted to organization Full Administrators (CI role `id_full_admin`)."
+    },
+    {
       "name": "External Voicemail",
       "description": "Operations related to external voicemail Message Waiting Indicator (MWI) status."
     },
@@ -41583,9 +41587,9 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get the Virtual Line's Emergency Callback settings",
-        "operationId": "Get the Virtual Line's Emergency Callback settings",
-        "description": "Retrieves the emergency callback number settings for a specific virtual line.\n\nVirtual line is a capability in Webex Calling that allows administrators to configure multiple lines for Webex Calling users.\n\nRetrieving the dependencies requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "summary": "Get the Virtual Line's Emergency Callback Settings",
+        "operationId": "getVirtualLineEmergencyCallbackSettings",
+        "description": "Retrieve the emergency callback number settings for a specific virtual line.\n\nA virtual line is a capability in Webex Calling that allows administrators to configure multiple lines for Webex Calling users.\n\nRetrieving these settings requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
           "Emergency Services Settings"
         ],
@@ -41593,7 +41597,7 @@
           {
             "name": "virtualLineId",
             "in": "path",
-            "description": "Unique identifier for the virtual line.",
+            "description": "The unique identifier for the virtual line.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS84ZDRkMDNlYS03NTUzLTQ0NTgtYmI4OS02YzExNzgyMzA4OWY=",
             "schema": {
@@ -42610,7 +42614,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the number of objects returned to this maximum count.",
-            "example": "5",
+            "example": 5,
             "schema": {
               "type": "number"
             }
@@ -42619,7 +42623,7 @@
             "name": "start",
             "in": "query",
             "description": "Start at the zero-based offset in the list of matching objects.",
-            "example": "0",
+            "example": 0,
             "schema": {
               "type": "number"
             }
@@ -43152,6 +43156,166 @@
         }
       }
     },
+    "/telephony/config/announcements/{announcementId}/fileUri": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementFileUriResponse"
+                },
+                "example": {
+                  "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/urls/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Announcement File URI",
+        "operationId": "getAnnouncementFileUri",
+        "description": "Retrieve the `fileUri` for an existing binary announcement greeting at the organization level. Use the returned `fileUri` with the Get Media Download URL API to get URLs for downloading the announcement media file.\n\nThis API is part of the Announcement Repository with Media URLs feature, which optimizes the media file upload process by enabling direct S3 uploads and adds the ability to preview existing announcement audio files.\n\nThis API requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "Unique identifier of an announcement.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get announcement fileUri in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/announcements/uploadUrls/actions/generate/invoke": {
+      "post": {
+        "summary": "Generate Upload URL",
+        "operationId": "generateUploadUrl",
+        "description": "Generate a pre-signed S3 upload URL, KMS encryption key for uploading an announcement media file. And file URI to create announcement using the media file.\n\nTo encrypt and upload the announcement media file:\n\n1. Download the KMS key - Use the Webex Node.js SDK and provide `kmsKeyUri` to download the key from KMS.\n\n2. Encrypt media file - Use the jose library to encrypt the raw media file with the downloaded key.\n\n3. Upload the encrypted media file - Send a `PUT` request with encrypted media file to the `preSignedUrl`. The request must include following headers:\n\n- `x-amz-meta-contenttype`: The media MIME type, for example: `audio/wav`\n\n- `x-amz-meta-kmskeyuri`: The returned `kmsKeyUri`, for example: `kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7`\n\n- `x-amz-tagging`: `tmp=true`\n\nThis API is part of the Announcement Repository with Media URLs feature, which optimizes the media file upload process by enabling direct S3 uploads and adds the ability to preview existing announcement audio files.\n\nThis API requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Generate the upload URL for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateUploadUrlResponse"
+                },
+                "example": {
+                  "preSignedUrl": "https://s3.amazonaws.com/wxc-media/uploads/af01164f-ed87-44d9-bc41-f63f26fb8663?X-Amz-Signature=abc123",
+                  "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7",
+                  "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/af01164f-ed87-44d9-bc41-f63f26fb8663"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
     "/telephony/config/locations/{locationId}/announcements": {
       "post": {
         "responses": {
@@ -43670,6 +43834,188 @@
                 "isTextToSpeech": false
               }
             }
+          }
+        }
+      }
+    },
+    "/telephony/config/locations/{locationId}/announcements/{announcementId}/fileUri": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementFileUriResponse"
+                },
+                "example": {
+                  "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/urls/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Location Announcement File URI",
+        "operationId": "getLocationAnnouncementFileUri",
+        "description": "Retrieve the `fileUri` for an existing binary announcement greeting at the location level. Use the returned `fileUri` with the Get Media Download URL API to get URLs for downloading the announcement media file.\n\nThis API is part of the Announcement Repository with Media URLs feature, which optimizes the media file upload process by enabling direct S3 uploads and adds the ability to preview existing announcement audio files.\n\nThis API requires a full or read-only administrator or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Unique identifier of a location where an announcement is stored.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2U1MjQ0OGU5LTE1NjQtNDNlOS04YzY1LWMyYWMwNDY1ZWMwYw",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "announcementId",
+            "in": "path",
+            "description": "Unique identifier of an announcement.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0FOTk9VTkNFTUVOVC8zMjAxNjRmNC1lNWEzLTQxZmYtYTMyNi02N2MwOThlNDFkMWQ",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Get announcement fileUri for location in this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/media/urls/{s3Path}": {
+      "get": {
+        "summary": "Get Media Download URL",
+        "operationId": "getMediaDownloadUrl",
+        "description": "Retrieve a pre-signed S3 download URL and KMS encryption key for a previously uploaded announcement media file identified by its S3 path.\n\nTo preview the announcement media file:\n\n1. Download the KMS key - Use the Webex Node.js SDK and provide `kmsKeyUri` to download the key from KMS.\n\n2. Download the encrypted media file - The encrypted media file content is stored in cloud and can be retrieved using `preSignedUrl`.\n\n3. Decrypt the media content - Use the jose library to decrypt the content downloaded from `preSignedUrl` using the downloaded key.\n\nThis API is part of the Announcement Repository with Media URLs feature, which optimizes the media file upload process and adds the ability to preview existing announcement audio files by generating pre-signed S3 download URLs.\n\nThis API requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Announcement Repository"
+        ],
+        "parameters": [
+          {
+            "name": "s3Path",
+            "in": "path",
+            "description": "The storage path of the announcement media file. Use the value after `/media/urls/` in the `fileUri` returned by the Get Announcement File URI or Get Location Announcement File URI API. For example, if `fileUri` is `cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/urls/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663`, then `s3Path` is `tmp/af01164f-ed87-44d9-bc41-f63f26fb8663`.",
+            "required": true,
+            "example": "tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Retrieve the media download URL for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMediaUrlResponse"
+                },
+                "example": {
+                  "preSignedUrl": "https://s3.amazonaws.com/wxc-media/customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/af01164f-ed87-44d9-bc41-f63f26fb8663?X-Amz-Signature=def456",
+                  "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "410": {
+            "description": "Gone: The requested media resource has expired and is no longer available."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         }
       }
@@ -44388,7 +44734,7 @@
           {
             "name": "orgId",
             "in": "query",
-            "description": "Retrieve auto attendant details from this organization.",
+            "description": "Retrieve the auto attendant details from this organization.",
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
             "schema": {
               "type": "string"
@@ -54160,7 +54506,7 @@
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS81NzJjNWMwZS1jMDY4LTQ0NmItOWM0Ny04MjYwYTIzZTY0NmI",
                       "firstName": "Lobby",
-                      "lastName": ".",
+                      "lastName": "Space",
                       "phoneNumber": "+19458880334",
                       "routingPrefix": "8002",
                       "queueCount": 1,
@@ -54176,7 +54522,7 @@
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9mNWYxNTg1YS03MWM2LTQyZGEtYmRkNC1iMzYzYzlhYzQwZGI",
                       "firstName": "Quiet Room",
-                      "lastName": ".",
+                      "lastName": "Space",
                       "phoneNumber": "+19458880338",
                       "routingPrefix": "8003",
                       "queueCount": 1,
@@ -56951,7 +57297,7 @@
                   "members": [
                     {
                       "id": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLXdlc3QtMl9yL1BMQUNFL2U2OTczZDgyLWM1NTUtNDMwOC05NGU3LWI3ZWU2MjczY2YyMg",
-                      "lastName": ".",
+                      "lastName": "Last",
                       "firstName": "HQ-Shared-Device",
                       "type": "PLACE",
                       "licenseType": "WORKSPACE"
@@ -57161,8 +57507,6 @@
               "example": {
                 "id": "Y2lzY29zcGFyazovL3VzL1JFQ09SRElOR19WRU5ET1IvMGE0MjY3NTQtYTQ3MC00YzJkLThiYTAtZmJjNjc3M2E4YTdj",
                 "orgDefaultEnabled": false,
-                "storageRegion": "US",
-                "orgStorageRegionEnabled": true,
                 "failureBehavior": "PROCEED_CALL_WITH_ANNOUNCEMENT",
                 "orgFailureBehaviorEnabled": true
               },
@@ -57302,7 +57646,7 @@
                   "members": [
                     {
                       "id": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLXdlc3QtMl9yL1BMQUNFL2U2OTczZDgyLWM1NTUtNDMwOC05NGU3LWI3ZWU2MjczY2YyMg",
-                      "lastName": ".",
+                      "lastName": "Last",
                       "firstName": "HQ-Shared-Device",
                       "type": "PLACE",
                       "licenseType": "WORKSPACE"
@@ -58021,7 +58365,6 @@
             "application/json": {
               "example": {
                 "vendorId": "Y2lzY29zcGFyazovL3VzL1JFQ09SRElOR19WRU5ET1IvMGE0MjY3NTQtYTQ3MC00YzJkLThiYTAtZmJjNjc3M2E4YTdj",
-                "storageRegion": "US",
                 "failureBehavior": "PROCEED_WITH_CALL_NO_ANNOUNCEMENT"
               },
               "schema": {
@@ -59766,6 +60109,454 @@
         ]
       }
     },
+    "/telephony/config/dataPolicies": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDataPoliciesGetResponseObject"
+                },
+                "example": {
+                  "orgDataRegion": "IN",
+                  "allowEditEnabled": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get the Data (Storage) Policy Settings for the Organization",
+        "operationId": "ReadDataPolicySettings",
+        "description": "Retrieve the settings for data (storage) policy region of the organization.\n\nData policies allow administrators to configure the storage region for organization data at the organization or location level.\n\nRetrieving data policy settings requires a user auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Call Settings Configurable Storage Region"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Retrieve data policy settings from this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9lNTEzMTg1Zi01YTJmLTQ0OTUtYjM1Yi03MDY3YmY3Y2U0OGU",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update the Data (Storage) Policy Settings for the Organization",
+        "operationId": "ModifyDataPolicySettings",
+        "description": "Modify the configurations for data (storage) policy region of the organization.\n\nData policies allow administrators to configure the storage region for organization data at the organization or location level.\n\nConfiguring data policy settings requires a user auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Call Settings Configurable Storage Region"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Modify data policy settings for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9lNTEzMTg1Zi01YTJmLTQ0OTUtYjM1Yi03MDY3YmY3Y2U0OGU",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "orgDataRegion": "US"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CustomerDataPoliciesPatchRequestObject"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telephony/config/dataPolicies/regions": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataPolicyRegionsListGetObject"
+                },
+                "example": {
+                  "regions": [
+                    {
+                      "code": "JP",
+                      "name": "Japan",
+                      "isVoicemailStorageRestrictionEnabled": false
+                    },
+                    {
+                      "code": "US",
+                      "name": "United States",
+                      "isVoicemailStorageRestrictionEnabled": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get All the Storage Regions Available for Configuring as Data Policy Region",
+        "operationId": "GetAvailableDataPolicyRegions",
+        "description": "Retrieve all the storage regions available for configuring data (storage) policy of an organization or organization's location.\n\nData policies allow administrators to configure the storage region for organization data at the organization or location level.\n\nRetrieving available data policy regions requires a user auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Call Settings Configurable Storage Region"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Retrieve available data policy regions for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9lNTEzMTg1Zi01YTJmLTQ0OTUtYjM1Yi03MDY3YmY3Y2U0OGU",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/locations/{locationId}/dataPolicies": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationDataPoliciesGetResponseObject"
+                },
+                "example": {
+                  "orgDataRegion": "JP",
+                  "locationDataRegion": "US",
+                  "useOrgDataRegionEnabled": false,
+                  "allowEditEnabled": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get the Data (Storage) Policy Settings for the Organization's Location",
+        "operationId": "GetLocationDataPolicySettings",
+        "description": "Retrieve the settings for data (storage) policy region of the organization's location.\n\nData policies allow administrators to configure the storage region for organization data at the organization or location level.\n\nRetrieving location data policy settings requires a user auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Call Settings Configurable Storage Region"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Fetch the data policy for this location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2NkMzNhMzA0LTdlYjgtNGVlOC04ZDhmLWFkNjA1YjVkNDQ2Zg",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Retrieve location data policy settings from this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9lNTEzMTg1Zi01YTJmLTQ0OTUtYjM1Yi03MDY3YmY3Y2U0OGU",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update the Data (Storage) Policy Settings for the Organization's Location",
+        "operationId": "ModifyLocationDataPolicySettings",
+        "description": "Modify the configurations for data (storage) policy region of the organization's location.\n\nData policies allow administrators to configure the storage region for organization data at the organization or location level.\n\nConfiguring location data policy settings requires a user auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Call Settings Configurable Storage Region"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Modify the data policy for this location.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2NkMzNhMzA0LTdlYjgtNGVlOC04ZDhmLWFkNjA1YjVkNDQ2Zg",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Modify location data policy settings for this organization.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9lNTEzMTg1Zi01YTJmLTQ0OTUtYjM1Yi03MDY3YmY3Y2U0OGU",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "locationDataRegion": "US",
+                "useOrgDataRegionEnabled": false
+              },
+              "schema": {
+                "$ref": "#/components/schemas/LocationDataPoliciesPatchObject"
+              }
+            }
+          }
+        }
+      }
+    },
     "/telephony/config/locations/{locationId}/features/hotDesking": {
       "get": {
         "responses": {
@@ -60598,7 +61389,7 @@
                   "alternateNumbers": [],
                   "language": "English",
                   "languageCode": "en-US",
-                  "callingFirstName": ".",
+                  "callingFirstName": "FirstName",
                   "callingLastName": "hgnME3",
                   "timeZone": "America/Los_Angeles",
                   "callPolicies": {
@@ -60733,7 +61524,7 @@
           {
             "name": "huntGroupId",
             "in": "path",
-            "description": "Retrieve settings for the hunt group with this identifier.",
+            "description": "Retrieve the settings for the hunt group with this identifier.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL0hVTlRfR1JPVVAvYUhaaFpUTjJNRzh5YjBBMk5EazBNVEk1Tnk1cGJuUXhNQzVpWTJ4a0xuZGxZbVY0TG1OdmJRPT0",
             "schema": {
@@ -60743,7 +61534,7 @@
           {
             "name": "orgId",
             "in": "query",
-            "description": "Retrieve hunt group settings from this organization.",
+            "description": "Retrieve the hunt group settings from this organization.",
             "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
             "schema": {
               "type": "string"
@@ -66354,9 +67145,7 @@
             }
           }
         ]
-      }
-    },
-    "/telephony/config/virtualExtensionRanges/{extensionRangeId}/": {
+      },
       "put": {
         "responses": {
           "204": {
@@ -92029,7 +92818,7 @@
         "deprecated": true,
         "summary": "Search Shared-Line Appearance Members",
         "operationId": "searchSharedLineAppearanceMembers",
-        "description": "Get members available for shared-line assignment to a Webex Calling Apps Desktop device.\n\nThis API requires a full or user administrator or location administrator auth token with the `spark-admin:people_read` scope.",
+        "description": "Retrieve members available for shared-line assignment to a Webex Calling Apps Desktop device.\n\nThis API requires a full, user, or location administrator auth token with the `spark-admin:people_read` scope.",
         "tags": [
           "User Call Settings (2/2)"
         ],
@@ -92037,7 +92826,7 @@
           {
             "name": "personId",
             "in": "path",
-            "description": "A unique identifier for the person.",
+            "description": "Unique identifier for the person.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
             "schema": {
@@ -92049,7 +92838,7 @@
           {
             "name": "applicationId",
             "in": "path",
-            "description": "A unique identifier for the application.",
+            "description": "Unique identifier for the application.",
             "required": true,
             "example": "2lzY29zcGFyazovL3VzL0FQUExJQ0FUSU9OLzFmNWUwYWYzLTIwMjgtNDFkNS05OWI3LTVkNTQyMzI3Y2MwMA",
             "schema": {
@@ -92092,7 +92881,7 @@
           {
             "name": "name",
             "in": "query",
-            "description": "Search for users with names that match the query.",
+            "description": "Search for users whose names match the query.",
             "example": "john",
             "schema": {
               "type": "string",
@@ -92103,7 +92892,7 @@
           {
             "name": "number",
             "in": "query",
-            "description": "Search for users with numbers that match the query.",
+            "description": "Search for users whose numbers match the query.",
             "example": "1234567890",
             "schema": {
               "type": "string",
@@ -92125,7 +92914,7 @@
           {
             "name": "extension",
             "in": "query",
-            "description": "Search for users with extensions that match the query.",
+            "description": "Search for users whose extensions match the query.",
             "example": "1111",
             "schema": {
               "type": "string",
@@ -92229,7 +93018,7 @@
         "deprecated": true,
         "summary": "Get Shared-Line Appearance Members",
         "operationId": "getSharedLineAppearanceMembers",
-        "description": "Get primary and secondary members assigned to a shared line on a Webex Calling Apps Desktop device.\n\nThis API requires a full or user administrator or location administrator auth token with the `spark-admin:people_read` scope.",
+        "description": "Retrieve primary and secondary members assigned to a shared line on a Webex Calling Apps Desktop device.\n\nThis API requires a full, user, or location administrator auth token with the `spark-admin:people_read` scope.",
         "tags": [
           "User Call Settings (2/2)"
         ],
@@ -92237,7 +93026,7 @@
           {
             "name": "personId",
             "in": "path",
-            "description": "A unique identifier for the person.",
+            "description": "Unique identifier for the person.",
             "required": true,
             "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8wZTQ5NjAzNC1lNTQ1LTRmMmEtODI4ZC03MjhjYjJlNjNlMWQ",
             "schema": {
@@ -92249,7 +93038,7 @@
           {
             "name": "applicationId",
             "in": "path",
-            "description": "A unique identifier for the application.",
+            "description": "Unique identifier for the application.",
             "required": true,
             "example": "2lzY29zcGFyazovL3VzL0FQUExJQ0FUSU9OLzFmNWUwYWYzLTIwMjgtNDFkNS05OWI3LTVkNTQyMzI3Y2MwMA",
             "schema": {
@@ -121836,8 +122625,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "primaryOwner",
           "port",
           "lineType",
@@ -122335,8 +123122,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "lineType",
           "allowCallDeclineEnabled",
           "memberType"
@@ -123136,9 +123921,7 @@
         "type": "object",
         "required": [
           "id",
-          "type",
-          "firstName",
-          "lastName"
+          "type"
         ],
         "properties": {
           "id": {
@@ -123153,12 +123936,12 @@
           "firstName": {
             "type": "string",
             "example": "Christian",
-            "description": "First name of device owner."
+            "description": "The first name of the device owner."
           },
           "lastName": {
             "type": "string",
             "example": "Smith",
-            "description": "Last name of device owner."
+            "description": "The last name of the device owner."
           }
         }
       },
@@ -130640,8 +131423,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "lineType",
           "memberType",
           "location"
@@ -131263,6 +132044,366 @@
             "type": "boolean",
             "example": true,
             "description": "DECT serviceability password status. When `enabled` is set to `true`, the serviceability password can be used to manage DECT. When `enabled` is set to `false`, the serviceability password is disabled and the password owned and known by Cisco is required to perform serviceability and troubleshooting."
+          }
+        }
+      },
+      "Meta": {
+        "type": "object",
+        "description": "Pagination metadata.",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of items returned per page.",
+            "example": 10
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Zero-based index of the first item in the current page.",
+            "example": 0
+          },
+          "total_count": {
+            "type": "integer",
+            "description": "Total number of items available across all pages.",
+            "example": 1
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL to the next page of results, or null if this is the last page."
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL to the previous page of results, or null if this is the first page."
+          }
+        }
+      },
+      "SessionObject": {
+        "type": "object",
+        "description": "Represents a single AI Receptionist conversation session.",
+        "required": [
+          "id",
+          "interaction_id",
+          "state",
+          "created_at",
+          "updated_at",
+          "is_test"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique session identifier. Use as `sessionId` in the transcripts API."
+          },
+          "interaction_id": {
+            "type": "string",
+            "description": "Unique call identifier (This is same as call correlation ID in Control Hub troubleshooting)."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "description": "State of the session."
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Creation timestamp in epoch milliseconds."
+          },
+          "updated_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Last-updated timestamp in epoch milliseconds."
+          },
+          "is_test": {
+            "type": "boolean",
+            "description": "Indicates a test invocation. Always `false` for AI Receptionist."
+          }
+        }
+      },
+      "SessionsResponse": {
+        "type": "object",
+        "description": "Response containing a list of AI Receptionist sessions.",
+        "required": [
+          "meta",
+          "objects",
+          "transaction_id"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Pagination metadata for the response."
+          },
+          "objects": {
+            "type": "array",
+            "description": "List of session objects.",
+            "items": {
+              "$ref": "#/components/schemas/SessionObject"
+            }
+          },
+          "transaction_id": {
+            "type": "string",
+            "description": "Unique identifier for this API transaction."
+          }
+        }
+      },
+      "MessageText": {
+        "type": "object",
+        "description": "A text segment within a message.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Utterance text."
+          }
+        }
+      },
+      "KnowledgeBaseDocument": {
+        "type": "object",
+        "description": "A knowledge base document retrieved during tool execution.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the knowledge base document."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name or filename of the knowledge base document."
+          },
+          "score": {
+            "type": "number",
+            "description": "Relevance score of the document."
+          },
+          "text": {
+            "type": "string",
+            "description": "Extracted text content from the document."
+          }
+        }
+      },
+      "ToolInvocation": {
+        "type": "object",
+        "description": "Details of a tool invoked during the AI Receptionist conversation.",
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "description": "Unique identifier of the tool."
+          },
+          "tool_name": {
+            "type": "string",
+            "description": "Display name of the tool."
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the tool response (e.g., tool_execution_response)."
+          },
+          "capability": {
+            "type": "string",
+            "description": "Capability type of the tool (e.g., custom_transfer)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the tool's purpose."
+          },
+          "state": {
+            "type": "string",
+            "description": "Execution state of the tool invocation (e.g., SUCCESS)."
+          },
+          "latency": {
+            "type": "integer",
+            "description": "Time in milliseconds taken to execute the tool."
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of the tool response in bytes."
+          },
+          "input": {
+            "type": "object",
+            "description": "Input parameters passed to the tool."
+          },
+          "kb_id": {
+            "type": "string",
+            "description": "Unique identifier of the knowledge base used."
+          },
+          "kb_name": {
+            "type": "string",
+            "description": "Name of the knowledge base used."
+          },
+          "kb_docs": {
+            "type": "array",
+            "description": "Knowledge base documents retrieved during tool execution.",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeBaseDocument"
+            }
+          },
+          "output": {
+            "type": "object",
+            "description": "Output returned by the tool."
+          },
+          "classification": {
+            "type": "array",
+            "description": "Classification results from the tool.",
+            "items": {
+              "type": "object"
+            }
+          },
+          "slots": {
+            "type": "array",
+            "description": "Slot values collected during tool execution.",
+            "items": {
+              "type": "object",
+              "description": "A slot object containing name-value pairs."
+            }
+          },
+          "requestId": {
+            "type": "string",
+            "description": "Request identifier for the tool invocation."
+          },
+          "transaction_id": {
+            "type": "string",
+            "description": "Transaction identifier for the tool invocation."
+          }
+        }
+      },
+      "MessageMetadata": {
+        "type": "object",
+        "description": "Metadata associated with a transcript message.",
+        "properties": {
+          "ai_name": {
+            "type": "string",
+            "description": "Name of the AI engine used.",
+            "example": "PRO"
+          },
+          "ai_version": {
+            "type": "string",
+            "description": "Version of the AI engine.",
+            "example": "1.0.0"
+          },
+          "chat_message_id": {
+            "type": "string",
+            "description": "Unique identifier of the chat message."
+          },
+          "engine_identifier": {
+            "type": "string",
+            "description": "Identifier of the AI engine.",
+            "example": "PRO"
+          },
+          "language": {
+            "type": "string",
+            "description": "Language code of the message (e.g., en-US, en-GB).",
+            "example": "en-US"
+          },
+          "latency": {
+            "type": "integer",
+            "description": "Response latency in milliseconds."
+          },
+          "parameters": {
+            "type": "object",
+            "nullable": true,
+            "description": "Additional parameters associated with the message."
+          },
+          "size": {
+            "type": "integer",
+            "description": "Size of the message in characters."
+          },
+          "tools": {
+            "type": "array",
+            "nullable": true,
+            "description": "List of tools invoked while processing this message.",
+            "items": {
+              "$ref": "#/components/schemas/ToolInvocation"
+            }
+          }
+        }
+      },
+      "TranscriptObject": {
+        "type": "object",
+        "description": "A single message in the AI Receptionist conversation transcript.",
+        "required": [
+          "id",
+          "transaction_id",
+          "user_type",
+          "message",
+          "metadata",
+          "error",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the transcript message."
+          },
+          "transaction_id": {
+            "type": "string",
+            "description": "Transaction identifier grouping related messages."
+          },
+          "user_type": {
+            "type": "string",
+            "enum": [
+              "human",
+              "bot"
+            ],
+            "description": "Indicates whether the message is from the caller (human) or the AI Receptionist (bot)."
+          },
+          "message": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Plain text message (human utterance)."
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MessageText"
+                },
+                "description": "Array of text objects (bot response)."
+              }
+            ],
+            "description": "Message content. For human messages this is a string; for bot messages it is an array of text objects."
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/MessageMetadata",
+            "description": "Additional metadata for the message."
+          },
+          "error": {
+            "type": "boolean",
+            "description": "Indicates whether an error occurred while processing this message."
+          },
+          "created_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Creation timestamp in epoch milliseconds."
+          },
+          "updated_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Last-updated timestamp in epoch milliseconds."
+          }
+        }
+      },
+      "TranscriptsResponse": {
+        "type": "object",
+        "description": "Response containing transcript messages for an AI Receptionist session.",
+        "required": [
+          "meta",
+          "objects",
+          "transaction_id"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Pagination metadata for the response."
+          },
+          "objects": {
+            "type": "array",
+            "description": "List of transcript message objects.",
+            "items": {
+              "$ref": "#/components/schemas/TranscriptObject"
+            }
+          },
+          "transaction_id": {
+            "type": "string",
+            "description": "Unique identifier for this API transaction."
           }
         }
       },
@@ -143460,8 +144601,6 @@
           "directLineInfo": {
             "type": "object",
             "required": [
-              "firstName",
-              "lastName",
               "effectiveLevel",
               "quality"
             ],
@@ -143474,12 +144613,12 @@
               "firstName": {
                 "type": "string",
                 "example": "John",
-                "description": "First name of a user."
+                "description": "The first name of the user."
               },
               "lastName": {
                 "type": "string",
                 "example": "Smith",
-                "description": "Last name of a user."
+                "description": "The last name of the user."
               },
               "effectiveLevel": {
                 "$ref": "#/components/schemas/ECBNDirectLineEffectiveLevelType",
@@ -143512,12 +144651,12 @@
               "firstName": {
                 "type": "string",
                 "example": "John",
-                "description": "First name for the location. This field will be populated with group name when the `effectiveLevel` is `LOCATION_ECBN` or `LOCATION_NUMBER`."
+                "description": "The first name for the location. This field is populated with the group name when the `effectiveLevel` is `LOCATION_ECBN` or `LOCATION_NUMBER`."
               },
               "lastName": {
                 "type": "string",
                 "example": "Smith",
-                "description": "This field contains the location member's last name when the `effectiveLevel` is `LOCATION_ECBN`, the location is using a location member number, and the selected member is a user. This field will always return \".\" when the `effectiveLevel` is `LOCATION_ECBN`, the location is using the location member number, and the selected member is a place."
+                "description": "The location member's last name when the `effectiveLevel` is `LOCATION_ECBN`, the location is using a location member number, and the selected member is a user. This field will not be present when the `effectiveLevel` is `LOCATION_ECBN`, the location is using the location member number, and the selected member is a place."
               },
               "effectiveLevel": {
                 "$ref": "#/components/schemas/ECBNDirectLineEffectiveLevelType",
@@ -143550,12 +144689,12 @@
               "firstName": {
                 "type": "string",
                 "example": "James",
-                "description": "First name for the location member."
+                "description": "The first name of the location member."
               },
               "lastName": {
                 "type": "string",
                 "example": "Johnson",
-                "description": "Last name for the location member. This field will always return \".\" when `effectiveLevel` is `DIRECT_LINE` or `LOCATION_MEMBER_NUMBER`, and the selected member is a place."
+                "description": "The last name of the location member. This field will not be present when `effectiveLevel` is `DIRECT_LINE` or `LOCATION_MEMBER_NUMBER`, and the selected member is a place."
               },
               "memberId": {
                 "type": "string",
@@ -143619,10 +144758,6 @@
           },
           "directLineInfo": {
             "type": "object",
-            "required": [
-              "firstName",
-              "lastName"
-            ],
             "properties": {
               "phoneNumber": {
                 "type": "string",
@@ -143632,12 +144767,12 @@
               "firstName": {
                 "type": "string",
                 "example": "backUpworkspace",
-                "description": "First name of a user."
+                "description": "The first name of the user."
               },
               "lastName": {
                 "type": "string",
                 "example": ".",
-                "description": "Last name of a user."
+                "description": "The last name of the user."
               },
               "effectiveLevel": {
                 "$ref": "#/components/schemas/ECBNDirectLineEffectiveLevelType",
@@ -143657,10 +144792,6 @@
           },
           "locationECBNInfo": {
             "type": "object",
-            "required": [
-              "lastName",
-              "firstName"
-            ],
             "properties": {
               "phoneNumber": {
                 "type": "string",
@@ -143670,7 +144801,7 @@
               "lastName": {
                 "type": "string",
                 "example": ".",
-                "description": "Last name of the user or location member or `.`."
+                "description": "The last name of the user or location member."
               },
               "effectiveLevel": {
                 "$ref": "#/components/schemas/ECBNDirectLineEffectiveLevelType",
@@ -143688,17 +144819,13 @@
               "firstName": {
                 "type": "string",
                 "example": "backUpworkspace",
-                "description": "First name of the user or location member or group name."
+                "description": "The first name of the user, location member, or group name."
               }
             },
             "description": "Data relevant to the user/place/virtual line/hunt group selected for ECBN for this location."
           },
           "locationMemberInfo": {
             "type": "object",
-            "required": [
-              "firstName",
-              "lastName"
-            ],
             "properties": {
               "phoneNumber": {
                 "type": "string",
@@ -143708,12 +144835,12 @@
               "firstName": {
                 "type": "string",
                 "example": "backUpworkspace",
-                "description": "First name of a user."
+                "description": "The first name of the user."
               },
               "lastName": {
                 "type": "string",
                 "example": ".",
-                "description": "Last name of the user or location member or `.`."
+                "description": "The last name of the user or location member."
               },
               "memberId": {
                 "type": "string",
@@ -143811,10 +144938,6 @@
           },
           "directLineInfo": {
             "type": "object",
-            "required": [
-              "firstName",
-              "lastName"
-            ],
             "properties": {
               "phoneNumber": {
                 "type": "string",
@@ -143824,12 +144947,12 @@
               "firstName": {
                 "type": "string",
                 "example": "User1",
-                "description": "First name of the user."
+                "description": "The first name of the user."
               },
               "lastName": {
                 "type": "string",
                 "example": "User1LastName",
-                "description": "Last name of the user."
+                "description": "The last name of the user."
               },
               "effectiveLevel": {
                 "$ref": "#/components/schemas/ECBNDirectLineEffectiveLevelType",
@@ -143849,20 +144972,16 @@
           },
           "locationECBNInfo": {
             "type": "object",
-            "required": [
-              "firstName",
-              "lastName"
-            ],
             "properties": {
               "firstName": {
                 "type": "string",
                 "example": "group1",
-                "description": "First name of the user or location member or group name."
+                "description": "The first name of the user, location member, or group name."
               },
               "lastName": {
                 "type": "string",
                 "example": ".",
-                "description": "Last name of the user or location member or `.`."
+                "description": "The last name of the user or location member."
               },
               "phoneNumber": {
                 "type": "string",
@@ -143887,10 +145006,6 @@
           },
           "locationMemberInfo": {
             "type": "object",
-            "required": [
-              "firstName",
-              "lastName"
-            ],
             "properties": {
               "phoneNumber": {
                 "type": "string",
@@ -143900,12 +145015,12 @@
               "firstName": {
                 "type": "string",
                 "example": "workspace1",
-                "description": "First name of the user."
+                "description": "The first name of the user."
               },
               "lastName": {
                 "type": "string",
                 "example": ".",
-                "description": "Last name of the user or `.`."
+                "description": "The last name of the user."
               },
               "memberId": {
                 "type": "string",
@@ -144542,8 +145657,7 @@
           "fileSize",
           "mediaFileType",
           "lastUpdated",
-          "level",
-          "location"
+          "level"
         ],
         "properties": {
           "id": {
@@ -144579,7 +145693,8 @@
           "level": {
             "type": "string",
             "enum": [
-              "LOCATION"
+              "LOCATION",
+              "ORGANIZATION"
             ],
             "description": "The level at which this announcement exists."
           },
@@ -144878,6 +145993,78 @@
           }
         }
       },
+      "AnnouncementFileUriResponse": {
+        "type": "object",
+        "description": "Response containing the URI of an announcement media file.",
+        "required": [
+          "fileUri"
+        ],
+        "properties": {
+          "fileUri": {
+            "type": "string",
+            "example": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/urls/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663",
+            "description": "URI of the announcement media file URLs. Use this value with the Get Media Download URL API to get URLs for downloading the announcement media file."
+          }
+        },
+        "example": {
+          "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/urls/tmp/af01164f-ed87-44d9-bc41-f63f26fb8663"
+        }
+      },
+      "GenerateUploadUrlResponse": {
+        "type": "object",
+        "description": "Response containing the information required to encrypt and upload an announcement media file.",
+        "required": [
+          "preSignedUrl",
+          "kmsKeyUri",
+          "fileUri"
+        ],
+        "properties": {
+          "preSignedUrl": {
+            "type": "string",
+            "description": "A pre-signed S3 URL for uploading the announcement media file. The URL is time-limited and should be used promptly.",
+            "example": "https://s3.amazonaws.com/wxc-media/uploads/af01164f-ed87-44d9-bc41-f63f26fb8663?X-Amz-Signature=abc123"
+          },
+          "kmsKeyUri": {
+            "type": "string",
+            "description": "The KMS key URI used to encrypt the media file before uploading to the pre-signed URL.",
+            "example": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7"
+          },
+          "fileUri": {
+            "type": "string",
+            "description": "A file URI that identifies the uploaded media. Use this URI when configuring announcements.",
+            "example": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/af01164f-ed87-44d9-bc41-f63f26fb8663"
+          }
+        },
+        "example": {
+          "preSignedUrl": "https://s3.amazonaws.com/wxc-media/uploads/af01164f-ed87-44d9-bc41-f63f26fb8663?X-Amz-Signature=abc123",
+          "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7",
+          "fileUri": "cmf://customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/af01164f-ed87-44d9-bc41-f63f26fb8663"
+        }
+      },
+      "GetMediaUrlResponse": {
+        "type": "object",
+        "description": "Response containing the information required to download and decrypt an announcement media file.",
+        "required": [
+          "preSignedUrl",
+          "kmsKeyUri"
+        ],
+        "properties": {
+          "preSignedUrl": {
+            "type": "string",
+            "description": "A pre-signed S3 URL for downloading the announcement media file. The URL is time-limited and should be used promptly.",
+            "example": "https://s3.amazonaws.com/wxc-media/customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/af01164f-ed87-44d9-bc41-f63f26fb8663?X-Amz-Signature=def456"
+          },
+          "kmsKeyUri": {
+            "type": "string",
+            "description": "The KMS key URI required to decrypt the media file downloaded from the pre-signed URL.",
+            "example": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7"
+          }
+        },
+        "example": {
+          "preSignedUrl": "https://s3.amazonaws.com/wxc-media/customers/bf01164f-ed87-44d9-bc41-f63f26fb9663/media/af01164f-ed87-44d9-bc41-f63f26fb8663?X-Amz-Signature=def456",
+          "kmsKeyUri": "kms://kms-cisco.wbx2.com/keys/b56642f3-d597-420c-8a55-41aaa8c5b6e7"
+        }
+      },
       "AlternateNumbersObject": {
         "type": "object",
         "required": [
@@ -144902,7 +146089,7 @@
               "SHORT_SHORT_LONG",
               "SHORT_LONG_SHORT"
             ],
-            "description": "Ring pattern that will be used for the alternate number."
+            "description": "Ring pattern that will be used for the alternate number.\n * `NORMAL` - Normal incoming ring pattern.\n * `LONG_LONG` - Incoming ring pattern of two long rings.\n * `SHORT_SHORT_LONG` - Incoming ring pattern of two short rings, followed by a short ring.\n * `SHORT_LONG_SHORT` - Incoming ring pattern of a short ring, followed by a long ring, followed by a short ring.\n"
           }
         }
       },
@@ -145333,8 +146520,6 @@
           "name",
           "enabled",
           "tollFreeNumber",
-          "firstName",
-          "lastName",
           "businessSchedule",
           "extensionDialing",
           "nameDialing",
@@ -145355,7 +146540,7 @@
           "enabled": {
             "type": "boolean",
             "example": true,
-            "description": "Flag to indicate if auto attendant number is enabled or not."
+            "description": "If `true` auto attendant is enabled."
           },
           "phoneNumber": {
             "type": "string",
@@ -145424,7 +146609,7 @@
               "ENTERPRISE",
               "GROUP"
             ],
-            "description": "Extension dialing setting. If the values are not set default will be set as `ENTERPRISE`."
+            "description": "Extension dialing setting. If the values are not set default will be set as `ENTERPRISE`.\n * `ENTERPRISE` - Enterprise (organization) level extension dialing.\n * `GROUP` - Group (location) level extension dialing.\n"
           },
           "nameDialing": {
             "type": "string",
@@ -145432,7 +146617,7 @@
               "ENTERPRISE",
               "GROUP"
             ],
-            "description": "Name dialing setting. If the values are not set default will be set as `ENTERPRISE`."
+            "description": "Name dialing setting. If the values are not set default will be set as `ENTERPRISE`.\n * `ENTERPRISE` - Enterprise (organization) level name dialing.\n * `GROUP` - Group (location) level name dialing.\n"
           },
           "timeZone": {
             "type": "string",
@@ -145528,12 +146713,12 @@
               "DEFAULT",
               "CUSTOM"
             ],
-            "description": "Greeting type defined for the auto attendant."
+            "description": "Greeting type defined for the auto attendant.\n * `DEFAULT` - Play default greeting.\n * `CUSTOM` - Play custom greeting.\n"
           },
           "extensionEnabled": {
             "type": "boolean",
             "example": true,
-            "description": "Flag to indicate if auto attendant extension is enabled or not."
+            "description": "If `true`, extension dialing without requiring a menu item is enabled."
           },
           "audioAnnouncementFile": {
             "$ref": "#/components/schemas/AudioAnnouncementFileGetObject",
@@ -145607,7 +146792,7 @@
               "*",
               "#"
             ],
-            "description": "Key assigned to specific menu configuration."
+            "description": "Key assigned to specific menu configuration.\n * `0` - When the 0 key is pressed, perform the operation specified by the `action` field.\n * `1` - When the 1 key is pressed, perform the operation specified by the `action` field.\n * `2` - When the 2 key is pressed, perform the operation specified by the `action` field.\n * `3` - When the 3 key is pressed, perform the operation specified by the `action` field.\n * `4` - When the 4 key is pressed, perform the operation specified by the `action` field.\n * `5` - When the 5 key is pressed, perform the operation specified by the `action` field.\n * `6` - When the 6 key is pressed, perform the operation specified by the `action` field.\n * `7` - When the 7 key is pressed, perform the operation specified by the `action` field.\n * `8` - When the 8 key is pressed, perform the operation specified by the `action` field.\n * `9` - When the 9 key is pressed, perform the operation specified by the `action` field.\n * `*` - When the * key is pressed, perform the operation specified by the `action` field.\n * `#` - When the # key is pressed, perform the operation specified by the `action` field.\n"
           },
           "action": {
             "type": "string",
@@ -145622,7 +146807,7 @@
               "REPEAT_MENU",
               "EXIT"
             ],
-            "description": "Action assigned to specific menu key configuration.\n * `PLAY_ANNOUNCEMENT` - Plays a recorded message and then returns to the current Auto Attendant menu.\n * `TRANSFER_WITH_PROMPT` - Transfers the call to the specified number, without playing a transfer prompt.\n * `TRANSFER_WITHOUT_PROMPT` - Plays the message and then transfers the call to the specified number.\n * `TRANSFER_TO_OPERATOR` - Plays the message and then transfers the call to the specified operator number.\n * `TRANSFER_TO_MAILBOX` - Prompts the user for an extension, and transfers the user to voice mailbox of the dialed extension.\n * `NAME_DIALING` - Brings the user into the automated name directory.\n * `EXTENSION_DIALING` - Prompts the user for an extension, and transfers the user.\n * `REPEAT_MENU` - Replays the Auto Attendant greeting.\n * `EXIT` - Terminates the call.\n"
+            "description": "Action assigned to specific menu key configuration.\n * `PLAY_ANNOUNCEMENT` - Plays a recorded message and then returns to the current Auto Attendant menu.\n * `TRANSFER_WITH_PROMPT` - Plays the message and then transfers the call to the specified number.\n * `TRANSFER_WITHOUT_PROMPT` - Transfers the call to the specified number, without playing a transfer prompt.\n * `TRANSFER_TO_OPERATOR` - Plays the message and then transfers the call to the specified operator number.\n * `TRANSFER_TO_MAILBOX` - Transfers the call to the configured mailbox, without playing a transfer prompt.\n * `NAME_DIALING` - Brings the user into the automated name directory.\n * `EXTENSION_DIALING` - Prompts the user for an extension, and transfers the user.\n * `REPEAT_MENU` - Replays the Auto Attendant greeting.\n * `EXIT` - Terminates the call.\n"
           },
           "description": {
             "type": "string",
@@ -146550,7 +147735,7 @@
           "noInputTimer": {
             "type": "string",
             "example": "10",
-            "description": "Interval the Auto Attendant service waits before timing out. By default, 10 seconds. Min value is 1 and max value is 60."
+            "description": "Interval the Auto Attendant service waits before timing out. By default, 10 seconds. Min value is 1, and max value is 60."
           },
           "actionToBePerformed": {
             "$ref": "#/components/schemas/ActionToBePerformedObject",
@@ -146774,9 +147959,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
-          "displayName",
           "type",
           "email"
         ],
@@ -147151,9 +148333,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
-          "displayName",
           "type",
           "email"
         ],
@@ -150448,9 +151627,6 @@
         "type": "object",
         "required": [
           "id",
-          "lastName",
-          "firstName",
-          "displayName",
           "type",
           "email",
           "hasCxEssentials"
@@ -150830,8 +152006,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "queueCount",
           "locationCount",
           "joinCount",
@@ -150892,7 +152066,7 @@
           },
           "unjoinCount": {
             "type": "number",
-            "description": "Denotes unjoin count for call queue agent."
+            "description": "Denotes the unjoin count for call queue agent."
           },
           "location": {
             "type": "object",
@@ -150932,8 +152106,6 @@
             "type": "object",
             "required": [
               "id",
-              "firstName",
-              "lastName",
               "location",
               "type"
             ],
@@ -153080,7 +154252,7 @@
             "description": "First name of the member."
           },
           "type": {
-            "description": "Type of member.",
+            "description": "Type of the member.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/MemberType"
@@ -153120,16 +154292,6 @@
             "type": "boolean",
             "example": true,
             "description": "Vendor is enabled by default."
-          },
-          "storageRegion": {
-            "type": "string",
-            "example": "US",
-            "description": "Regions where call recordings are stored."
-          },
-          "orgStorageRegionEnabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Region-based call recording storage is enabled."
           },
           "failureBehavior": {
             "description": "Type of failure behavior.",
@@ -153492,10 +154654,6 @@
           "vendorId": {
             "type": "string",
             "description": "Unique identifier of the vendor."
-          },
-          "storageRegion": {
-            "type": "string",
-            "description": "Call recording storage region. Only applicable for Webex as a vendor and isn't used for other vendors."
           },
           "failureBehavior": {
             "description": "Call recording failure behavior.",
@@ -154494,12 +155652,12 @@
           "firstName": {
             "type": "string",
             "example": "John",
-            "description": "First name of the agent assigned to the particular location. Defaults to \".\"."
+            "description": "First name of the agent assigned to the particular location."
           },
           "displayName": {
             "type": "string",
             "example": "John Smith",
-            "description": "(string, optional) - Display name of the agent."
+            "description": "Display name of the agent."
           },
           "type": {
             "$ref": "#/components/schemas/UserType",
@@ -154824,6 +155982,121 @@
           }
         }
       },
+      "CustomerDataPoliciesGetResponseObject": {
+        "type": "object",
+        "required": [
+          "orgDataRegion",
+          "allowEditEnabled"
+        ],
+        "properties": {
+          "orgDataRegion": {
+            "type": "string",
+            "example": "US",
+            "description": "(ISO 3166-1 alpha-2) Country Code configured as the storage region for the data policy of the Organization."
+          },
+          "allowEditEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "If `true`, the storage region for the data policy of the Organization can be modified."
+          }
+        }
+      },
+      "CustomerDataPoliciesPatchRequestObject": {
+        "type": "object",
+        "properties": {
+          "orgDataRegion": {
+            "type": "string",
+            "example": "US",
+            "description": "(ISO 3166-1 alpha-2) Country Code to be configured as the storage region for the data policy of the Organization."
+          }
+        }
+      },
+      "DataPolicyRegion": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "isVoicemailStorageRestrictionEnabled"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "US",
+            "description": "(ISO 3166-1 alpha-2) Country Code."
+          },
+          "name": {
+            "type": "string",
+            "example": "United States",
+            "description": "Name of the country corresponding to the (ISO 3166-1 alpha-2) Country Code."
+          },
+          "isVoicemailStorageRestrictionEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether voicemail storage restriction is enabled for this region."
+          }
+        }
+      },
+      "DataPolicyRegionsListGetObject": {
+        "type": "object",
+        "required": [
+          "regions"
+        ],
+        "properties": {
+          "regions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataPolicyRegion"
+            },
+            "description": "List containing all the available regions for the data policy configuration."
+          }
+        }
+      },
+      "LocationDataPoliciesGetResponseObject": {
+        "type": "object",
+        "required": [
+          "orgDataRegion",
+          "useOrgDataRegionEnabled",
+          "allowEditEnabled"
+        ],
+        "properties": {
+          "orgDataRegion": {
+            "type": "string",
+            "example": "US",
+            "description": "(ISO 3166-1 alpha-2) Country Code indicating the data policy region configured for the organization to which the location belongs to."
+          },
+          "locationDataRegion": {
+            "type": "string",
+            "nullable": true,
+            "example": "JP",
+            "description": "(ISO 3166-1 alpha-2) Country Code indicating the data policy region configured for the location."
+          },
+          "useOrgDataRegionEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether the location is configured to use configuration same as the Organization's configuration for data (storage) policy region settings."
+          },
+          "allowEditEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "If `true`, the storage region for the data policy of the Location can be modified."
+          }
+        }
+      },
+      "LocationDataPoliciesPatchObject": {
+        "type": "object",
+        "properties": {
+          "locationDataRegion": {
+            "type": "string",
+            "example": "JP",
+            "description": "(ISO 3166-1 alpha-2) Country Code to be configured as the data policy region for the location."
+          },
+          "useOrgDataRegionEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether location's data (storage) policy region to be used same as the one configured at the Organization's level."
+          }
+        }
+      },
       "CreateHuntGroupObject": {
         "type": "object",
         "required": [
@@ -155077,7 +156350,7 @@
           "firstName": {
             "type": "string",
             "example": "Hakim",
-            "description": "First name to be shown when calls are forwarded out of this hunt group. Defaults to `.`. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."
+            "description": "First name to be shown when calls are forwarded out of this hunt group. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."
           },
           "lastName": {
             "type": "string",
@@ -155125,27 +156398,27 @@
           "id": {
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NDVkMzMzMC1mNjE3LTExZWItOWQyZS01NzViODE3ZGE1NmE",
-            "description": "ID of person, workspace or virtual line."
+            "description": "ID of a person, workspace or virtual line."
           },
           "firstName": {
             "type": "string",
             "example": "Hakim",
-            "description": "First name of person, workspace or virtual line."
+            "description": "First name of a person, workspace or virtual line."
           },
           "lastName": {
             "type": "string",
             "example": "Smith",
-            "description": "Last name of person, workspace or virtual line."
+            "description": "Last name of a person, workspace or virtual line."
           },
           "phoneNumber": {
             "type": "string",
             "example": "+15555551234",
-            "description": "Phone number of person, workspace or virtual line."
+            "description": "Phone number of a person, workspace or virtual line."
           },
           "extension": {
             "type": "string",
             "example": "1234",
-            "description": "Extension of person, workspace or virtual line."
+            "description": "Extension of a person, workspace or virtual line."
           },
           "routingPrefix": {
             "type": "string",
@@ -155160,7 +156433,7 @@
           "weight": {
             "type": "string",
             "example": "50",
-            "description": "Weight of person, workspace or virtual line. Only applied when call policy is `WEIGHTED`."
+            "description": "Weight of a person, workspace or virtual line. Only applied when call policy is `WEIGHTED`."
           }
         }
       },
@@ -156260,8 +157533,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "type"
         ],
         "properties": {
@@ -156292,12 +157563,12 @@
           "phoneNumber": {
             "type": "string",
             "example": "+15558675309",
-            "description": "Agent's phone number. Minimum length is 1. Maximum length is 23.  Either `phoneNumber` or `extension` is mandatory."
+            "description": "Agent's phone number. Minimum length is 1. Maximum length is 23. Either phoneNumber or extension is mandatory."
           },
           "extension": {
             "type": "string",
             "example": "7781",
-            "description": "Agent's extension. Minimum length is 2. Maximum length is 10.  Either `phoneNumber` or `extension` is mandatory."
+            "description": "Agent's extension. Minimum length is 2. Maximum length is 10. Either phoneNumber or extension is mandatory."
           },
           "routingPrefix": {
             "type": "string",
@@ -156319,8 +157590,6 @@
           "name",
           "language",
           "languageCode",
-          "firstName",
-          "lastName",
           "originatorCallerIdEnabled"
         ],
         "properties": {
@@ -156827,8 +158096,7 @@
           "extension",
           "esn",
           "phoneNumber",
-          "level",
-          "displayName"
+          "level"
         ],
         "properties": {
           "id": {
@@ -157490,7 +158758,7 @@
               "lastName": {
                 "type": "string",
                 "example": "Grey",
-                "description": "The member last name. Always contains `.` if the member is a place."
+                "description": "The member last name."
               },
               "memberId": {
                 "type": "string",
@@ -158713,8 +159981,6 @@
         "type": "object",
         "required": [
           "personId",
-          "firstName",
-          "lastName",
           "department",
           "phoneNumber",
           "extension",
@@ -160252,8 +161518,6 @@
         "required": [
           "id",
           "name",
-          "firstName",
-          "lastName",
           "enabled",
           "languageCode",
           "greeting",
@@ -160369,7 +161633,7 @@
               "destination": {
                 "type": "string",
                 "example": "user@flex2.cisco.com",
-                "description": "Notifications to be sent to provided email to SMS gateway."
+                "description": "Notifications to be sent to the provided email to SMS gateway."
               }
             },
             "description": "Message notifications"
@@ -162918,8 +164182,6 @@
           "types",
           "selected",
           "tollFreeLocationNumber",
-          "firstName",
-          "lastName",
           "blockInForwardCallsEnabled",
           "locationExternalCallerIdName"
         ],
@@ -162967,12 +164229,12 @@
           "firstName": {
             "type": "string",
             "example": "Hakim",
-            "description": "Virtual line's Caller ID first name. The characters `%`,  `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByFirstName` instead."
+            "description": "The virtual line's Caller ID first name. The characters `%`,  `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByFirstName` instead."
           },
           "lastName": {
             "type": "string",
             "example": "Gonzales",
-            "description": "Virtual line's Caller ID last name. The characters `%`,  `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByLastName` instead."
+            "description": "The virtual line's Caller ID last name. The characters `%`,  `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByLastName` instead."
           },
           "blockInForwardCallsEnabled": {
             "type": "boolean",
@@ -163688,9 +164950,6 @@
         "description": "Details of a monitored person, workspace, or virtual line.",
         "required": [
           "id",
-          "lastName",
-          "firstName",
-          "displayName",
           "type"
         ],
         "properties": {
@@ -164809,53 +166068,51 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "lineType"
         ],
         "properties": {
           "id": {
             "type": "string",
             "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS85ODhiYTQyOC0zMjMyLTRmNjItYjUyNS1iZDUzZmI4Nzc0MWE",
-            "description": "A unique member identifier."
+            "description": "Unique identifier for the member."
           },
           "firstName": {
             "type": "string",
             "example": "John",
-            "description": "First name of member."
+            "description": "First name of the member."
           },
           "lastName": {
             "type": "string",
             "example": "Doe",
-            "description": "Last name of member."
+            "description": "Last name of the member."
           },
           "phoneNumber": {
             "type": "string",
             "example": "1234567890",
-            "description": "Phone number of member. Currently, E.164 format is not supported."
+            "description": "Phone number of the member. Currently, E.164 format is not supported."
           },
           "extension": {
             "type": "string",
             "example": "0000",
-            "description": "Phone extension of member."
+            "description": "Phone extension of the member."
           },
           "routingPrefix": {
             "type": "string",
             "example": "1234",
-            "description": "Routing prefix of location."
+            "description": "Routing prefix of the location."
           },
           "esn": {
             "type": "string",
             "example": "12340000",
-            "description": "Routing prefix + extension of a person or workspace."
+            "description": "Routing prefix plus extension of a person or workspace."
           },
           "lineType": {
             "$ref": "#/components/schemas/LineType",
-            "description": "If the line is acting as a primary line or a shared line for this device."
+            "description": "Indicates if the line is acting as a primary line or a shared line for this device."
           },
           "location": {
             "$ref": "#/components/schemas/location",
-            "description": "Location object having a unique identifier for the location and its name."
+            "description": "Location object containing a unique identifier for the location and its name."
           }
         }
       },
@@ -164874,8 +166131,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "port",
           "primaryOwner",
           "lineType",
@@ -164894,51 +166149,51 @@
           "firstName": {
             "type": "string",
             "example": "John",
-            "description": "First name of person or workspace."
+            "description": "First name of the person or workspace."
           },
           "lastName": {
             "type": "string",
             "example": "Doe",
-            "description": "Last name of person or workspace."
+            "description": "Last name of the person or workspace."
           },
           "phoneNumber": {
             "type": "string",
             "example": "2056852221",
-            "description": "Phone number of a person or workspace. Currently, E.164 format is not supported. This will be supported in the future update."
+            "description": "Phone number of the person or workspace. Currently, E.164 format is not supported. This will be supported in a future update."
           },
           "extension": {
             "type": "string",
             "example": "1111",
-            "description": "Phone extension of a person or workspace."
+            "description": "Phone extension of the person or workspace."
           },
           "routingPrefix": {
             "type": "string",
             "example": "1234",
-            "description": "Routing prefix of location."
+            "description": "Routing prefix of the location."
           },
           "esn": {
             "type": "string",
             "example": "12341111",
-            "description": "Routing prefix + extension of a person or workspace."
+            "description": "Routing prefix plus extension of a person or workspace."
           },
           "port": {
             "type": "number",
             "minimum": 1,
             "example": 1,
-            "description": "Device port number assigned to a person or workspace."
+            "description": "Device port number assigned to the person or workspace."
           },
           "t38FaxCompressionEnabled `true`": {
             "type": "boolean",
-            "description": "T.38 Fax Compression setting. Valid only for ATA Devices. Overrides user level compression options."
+            "description": "T.38 Fax Compression setting. Valid only for ATA Devices. Overrides user-level compression options."
           },
           "primaryOwner": {
             "type": "string",
             "example": "true",
-            "description": "If `true` the person or the workspace is the owner of the device. Points to primary line/port of the device."
+            "description": "If `true`, the person or workspace is the owner of the device. Points to the primary line/port of the device."
           },
           "lineType": {
             "$ref": "#/components/schemas/LineType",
-            "description": "If the line is acting as a primary line or a shared line for this device."
+            "description": "Indicates if the line is acting as a primary line or a shared line for this device."
           },
           "lineWeight": {
             "type": "number",
@@ -164959,7 +166214,7 @@
           "hotlineEnabled": {
             "type": "boolean",
             "example": true,
-            "description": "Configure this line to automatically call a predefined number whenever taken off-hook. Once enabled, the line can only make calls to the predefined number set in hotlineDestination."
+            "description": "Configure this line to automatically call a predefined number whenever taken off-hook. Once enabled, the line can only make calls to the predefined number set in `hotlineDestination`."
           },
           "hotlineDestination": {
             "type": "string",
@@ -164969,7 +166224,7 @@
           "allowCallDeclineEnabled": {
             "type": "boolean",
             "example": true,
-            "description": "Set how a device behaves when a call is declined. When set to `true`, a call decline request is extended to all the endpoints on the device. When set to `false`, a call decline request is only declined at the current endpoint."
+            "description": "Set how a device behaves when a call is declined. When set to `true`, a call decline request is extended to all endpoints on the device. When set to `false`, a call decline request is only declined at the current endpoint."
           },
           "lineLabel": {
             "type": "string",
@@ -164978,11 +166233,11 @@
           },
           "memberType": {
             "$ref": "#/components/schemas/UserType",
-            "description": "If the member is of type `PEOPLE` or `PLACE`."
+            "description": "Indicates if the member is of type `PEOPLE` or `PLACE`."
           },
           "location": {
             "$ref": "#/components/schemas/location",
-            "description": "Location object having a unique identifier for the location and its name."
+            "description": "Location object containing a unique identifier for the location and its name."
           }
         }
       },
@@ -168638,8 +169893,6 @@
         "type": "object",
         "required": [
           "id",
-          "lastName",
-          "firstName",
           "externalCallerIdNamePolicy",
           "number",
           "location",
@@ -168654,12 +169907,12 @@
           "lastName": {
             "type": "string",
             "example": "Shen",
-            "description": "Last name for virtual line."
+            "description": "The last name of the virtual line."
           },
           "firstName": {
             "type": "string",
             "example": "Tom",
-            "description": "First name for virtual line."
+            "description": "The first name of the virtual line."
           },
           "callerIdLastName": {
             "type": "string",
@@ -168815,8 +170068,6 @@
         "type": "object",
         "required": [
           "id",
-          "firstName",
-          "lastName",
           "directorySearchEnabled",
           "announcementLanguage",
           "number",
@@ -168831,17 +170082,17 @@
           "firstName": {
             "type": "string",
             "example": "Bob",
-            "description": "First name defined for a virtual line. Minimum length is 1. Maximum length is 64."
+            "description": "The first name defined for the virtual line. Minimum length is 1. Maximum length is 64."
           },
           "lastName": {
             "type": "string",
             "example": "Smith",
-            "description": "Last name defined for a virtual line. Minimum length is 1. Maximum length is 64."
+            "description": "The last name defined for the virtual line. Minimum length is 1. Maximum length is 64."
           },
           "displayName": {
             "type": "string",
             "example": "Bob Smith",
-            "description": "Display name defined for a virtual line."
+            "description": "The display name defined for the virtual line."
           },
           "directorySearchEnabled": {
             "type": "boolean",
@@ -170621,8 +171872,6 @@
           "directNumber",
           "locationNumber",
           "tollFreeLocationNumber",
-          "displayName",
-          "displayDetail",
           "blockInForwardCallsEnabled",
           "externalCallerIdNamePolicy",
           "locationExternalCallerIdName"

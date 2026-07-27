@@ -252,6 +252,58 @@ def delete(
 
 
 
+@app.command("show-file-uri-announcements")
+def show_file_uri_announcements(
+    announcement_id: str = typer.Argument(help="announcementId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Announcement File URI."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/announcements/{announcement_id}/fileUri"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+@app.command("generate-upload-url")
+def generate_upload_url(
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Generate Upload URL."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/announcements/uploadUrls/actions/generate/invoke"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
 _BODY_SKELETON_CREATE_ANNOUNCEMENTS = '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'
 
 @app.command("create-announcements")
@@ -443,6 +495,55 @@ def delete_announcements(
         typer.echo(f"Deleted: {announcement_id}")
     else:
         emit({"status": "deleted", "id": announcement_id}, output=output, fields=fields)
+
+
+
+@app.command("show-file-uri-announcements-1")
+def show_file_uri_announcements_1(
+    location_id: str = typer.Argument(help="locationId"),
+    announcement_id: str = typer.Argument(help="announcementId"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Location Announcement File URI."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/{announcement_id}/fileUri"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+@app.command("show-urls")
+def show_urls(
+    s3_path: str = typer.Argument(help="s3Path"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Media Download URL."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/media/urls/{s3_path}"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 
 

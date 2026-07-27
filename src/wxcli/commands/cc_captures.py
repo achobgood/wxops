@@ -11,7 +11,7 @@ from wxcli.config import get_cc_base_url
 app = typer.Typer(help="Manage Webex Contact Center cc-captures.")
 
 
-_BODY_SKELETON_CREATE = '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true}}'
+_BODY_SKELETON_CREATE = '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'
 
 @app.command("create")
 def create(
@@ -21,7 +21,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Captures\n\nExample --json-body:\n  '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true}}'."""
+    """List Captures\n\nExample --json-body:\n  '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'."""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

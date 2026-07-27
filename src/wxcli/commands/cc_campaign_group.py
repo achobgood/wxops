@@ -5,28 +5,35 @@ from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
-from wxcli.config import resolve_org_id
+from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling archive-users.")
+app = typer.Typer(help="Manage Webex Contact Center cc-campaign-group.")
 
 
 @app.command("list")
 def cmd_list(
-    filter_param: str = typer.Option(..., "--filter", help="A SCIM-style filter expression used to search archived users. Supported attributes are `username` and `id`, and only the `eq` operator is supported. Examples: - `username eq \"test_user_1@example.com\"` - `id eq \"40929cc6-2df2-4ab5-871c-ec8e38f07b93\"`"),
+    campaign_group_name: str = typer.Argument(help="campaignGroupName"),
+    page: str = typer.Option(None, "--page", help="The page number of the result set to retrieve (1-based)."),
+    page_size: str = typer.Option(None, "--page-size", help="The number of campaigns to return per page. Must be between 1 and 100."),
+    campaign_status: str = typer.Option(None, "--campaign-status", help="Choices: Draft, Running, Pending, Paused, Completed, Ended"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Archive User."""
+    """List Campaigns by Campaign Group."""
     api = get_api(debug=debug)
-    org_id = resolve_org_id(api.session)
-    url = f"https://webexapis.com/identity/organizations/{org_id}/v1/ArchivedUser"
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v3/campaign-management/campaign-groups/{campaign_group_name}/campaigns"
     params = {}
-    if filter_param is not None:
-        params["filter"] = filter_param
+    if page is not None:
+        params["page"] = page
+    if page_size is not None:
+        params["pageSize"] = page_size
+    if campaign_status is not None:
+        params["campaignStatus"] = campaign_status
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -39,7 +46,7 @@ def cmd_list(
     except httpx.HTTPError as e:
         handle_network_error(e)
     result = result or []
-    items = result.get("schemas", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("campaigns", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
