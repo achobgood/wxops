@@ -26,8 +26,14 @@ Checks (docs/arch/target-architecture.md §A6):
      (and did) tell an operator to type options the generator had made
      positional arguments.
 
-Fresh-clone semantics: only git-tracked specs and command modules count
-(dev-only fs_* modules and specs/webex-flow-store.json are untracked).
+  8. Untracked modules: a src/wxcli/commands/*.py module that is present and
+     not gitignored, but not staged. Separate from check 1 — the command
+     exists, only the `git add` is missing.
+
+Fresh-clone semantics: only git-tracked specs count
+(specs/webex-flow-store.json is untracked). Command modules count unless a
+gitignore rule excludes them (dev-only fs_*), so a newly generated module is
+counted — and reported by check 8 — rather than silently treated as absent.
 """
 import argparse
 import ast
@@ -63,6 +69,59 @@ def tracked_files(*patterns: str) -> set[str]:
     out = subprocess.run(["git", "ls-files", "--", *patterns],
                          capture_output=True, text=True, cwd=REPO, check=True)
     return {line for line in out.stdout.splitlines() if line}
+
+
+_IGNORE_CACHE: dict[tuple[str, ...], set[str]] = {}
+
+
+def ignored_files(paths) -> set[str]:
+    """Subset of `paths` that a gitignore rule excludes — one batched git call.
+
+    git check-ignore consults the index, so a tracked path is never reported
+    even when a pattern matches it; this can only ever flag files a fresh clone
+    would not have. Exit 1 means "no path matched", a normal answer here.
+    """
+    key = tuple(sorted(paths))
+    if key not in _IGNORE_CACHE:
+        if not key:
+            return _IGNORE_CACHE.setdefault(key, set())
+        out = subprocess.run(["git", "check-ignore", "--stdin"],
+                             input="\n".join(key), capture_output=True,
+                             text=True, cwd=REPO)
+        if out.returncode not in (0, 1):
+            raise RuntimeError(f"git check-ignore failed: {out.stderr.strip()}")
+        _IGNORE_CACHE[key] = {line for line in out.stdout.splitlines() if line}
+    return _IGNORE_CACHE[key]
+
+
+_MODULE_STATE: dict[str, set[str]] | None = None
+
+
+def module_state() -> dict[str, set[str]]:
+    """Classify src/wxcli/commands/*.py module stems: countable vs untracked.
+
+    "countable" is what the published counts and checks 1/3/6 are built from. A
+    module counts unless a gitignore rule excludes it — the dev-only fs_*
+    modules (.gitignore:111) exist only on a developer's machine and counting
+    them would make the published "N command groups" claim unreproducible.
+
+    Index membership is deliberately NOT the test. A freshly generated module
+    is legitimately required but untracked until `git add`; treating it as
+    absent made check 1 report phantom "spec->CLI missing" entries for commands
+    that existed and were correct, and froze the command-set count. That third
+    state — present, not ignored, not staged — is "untracked", reported on its
+    own by check 8. Tracked stems stay countable even if the file is missing
+    locally, since a fresh clone would still have it.
+    """
+    global _MODULE_STATE
+    if _MODULE_STATE is None:
+        tracked = {Path(f).stem for f in tracked_files("src/wxcli/commands/*.py")}
+        on_disk = {f"src/wxcli/commands/{p.name}" for p in COMMANDS_DIR.glob("*.py")}
+        ignored = {Path(p).stem for p in ignored_files(on_disk)}
+        present = {Path(p).stem for p in on_disk}
+        _MODULE_STATE = {"countable": (tracked | present) - ignored,
+                         "untracked": present - ignored - tracked}
+    return _MODULE_STATE
 
 
 def tracked_specs() -> set[str]:
@@ -278,11 +337,11 @@ def parse_module_flags(module: str) -> dict[str, set[str]]:
 
 
 def build_flag_surface() -> dict[str, dict[str, set[str]]]:
-    """{group: {command: {flags}}} for tracked modules — mirrors build_cli_surface."""
-    tracked_modules = {Path(f).stem for f in tracked_files("src/wxcli/commands/*.py")}
+    """{group: {command: {flags}}} for countable modules — mirrors build_cli_surface."""
+    countable = module_state()["countable"]
     surface = {}
     for group, module in parse_registrations().items():
-        if module not in tracked_modules:
+        if module not in countable:
             continue
         surface[group] = parse_module_flags(module)
     if "converged-recordings" in surface:
@@ -292,13 +351,13 @@ def build_flag_surface() -> dict[str, dict[str, set[str]]]:
 
 
 def build_cli_surface() -> tuple[dict, set[str]]:
-    """Return ({group: {command: [(METHOD, path)]}} for tracked modules,
+    """Return ({group: {command: [(METHOD, path)]}} for countable modules,
     top-level command names from main.py)."""
-    tracked_modules = {Path(f).stem for f in tracked_files("src/wxcli/commands/*.py")}
+    countable = module_state()["countable"]
     surface = {}
     for group, module in parse_registrations().items():
-        if module not in tracked_modules:
-            continue  # dev-only (fs_*) — absent on a fresh clone
+        if module not in countable:
+            continue  # gitignored dev-only (fs_*) — absent on a fresh clone
         surface[group] = parse_module_commands(module)
     # converged_recordings_export mounts download/export onto the generated
     # group at import time (main.py register() pattern)
@@ -318,14 +377,14 @@ def build_cli_surface() -> tuple[dict, set[str]]:
 
 
 def distinct_command_sets() -> int:
-    """Distinct tracked command modules behind the registered groups.
+    """Distinct countable command modules behind the registered groups.
 
     Aliases (cx-essentials, users, licenses-api) mount an existing module under
     a second name — the same commands, not a separate command set. Published
     "N command groups" claims count command sets, so aliases are excluded.
     """
-    tracked = {Path(f).stem for f in tracked_files("src/wxcli/commands/*.py")}
-    return len({m for m in parse_registrations().values() if m in tracked})
+    countable = module_state()["countable"]
+    return len({m for m in parse_registrations().values() if m in countable})
 
 
 # ------------------------------------------------------------------ check 1
@@ -623,6 +682,23 @@ def check_prose_flags(flag_surface: dict) -> list:
     return dead
 
 
+# ------------------------------------------------------------------ check 8
+
+def check_untracked_modules() -> list:
+    """Command modules on disk and not gitignored, but never `git add`ed.
+
+    Its own check, not part of check 1: the generator did its job, so reporting
+    these as "spec->CLI missing" blames the wrong thing and invites someone to
+    skip-list an endpoint whose command already exists. A fresh clone still
+    would not have the file, and main.py imports every _registry.py manifest
+    entry unguarded, so a committed manifest entry with an uncommitted module
+    breaks the CLI at import for everyone else.
+    """
+    registered = set(parse_registrations().values())
+    return [{"module": m, "registered": m in registered}
+            for m in sorted(module_state()["untracked"])]
+
+
 # ---------------------------------------------------------- deliberate gaps
 
 GAPS_DOC = REPO / "docs" / "arch" / "deliberate-gaps.md"
@@ -699,6 +775,7 @@ def main() -> int:
     flag_surface = build_flag_surface()
     dead_flags = check_flags(surface, flag_surface)
     prose_flags = check_prose_flags(flag_surface)
+    untracked_mods = check_untracked_modules()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -708,10 +785,12 @@ def main() -> int:
         "5_stale_overlays": stale_overlays,
         "6_dead_flags": dead_flags,
         "7_prose_flags": prose_flags,
+        "8_untracked_modules": untracked_mods,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
-                  or stale_overlays or dead_flags or prose_flags)
+                  or stale_overlays or dead_flags or prose_flags
+                  or untracked_mods)
 
     if args.json:
         print(json.dumps(results, indent=2))
@@ -755,6 +834,11 @@ def main() -> int:
             print(f"      {f['file']}:{f['line']}  {f['flag']}")
         if len(prose_flags) > 20:
             print(f"      ... and {len(prose_flags) - 20} more (--json for all)")
+        print(f"[8] untracked modules present but not staged: {len(untracked_mods)}")
+        for u in untracked_mods:
+            print(f"      {u['module']}"
+                  f"{' (registered in the CLI)' if u['registered'] else ''}"
+                  f" — run git add src/wxcli/commands/{u['module']}.py")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
