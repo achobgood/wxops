@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-captions.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Meeting Closed Captions.")
 def cmd_list(
     meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) which the closed captions belong to. This parameter only applies to ended meeting instances. It does not apply to meeting series, scheduled meetings or scheduled [personal..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -19,7 +19,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Closed Captions."""
+    """List Meeting Closed Captions.\n\n\b\nExample: wxcli meeting-captions list --meeting-id MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingClosedCaptions"
     params = {}
@@ -42,9 +42,9 @@ def cmd_list(
 
 
 
-@app.command("list-snippets")
+@app.command("list-snippets", short_help="List Meeting Closed Caption Snippets.")
 def list_snippets(
-    closed_caption_id: str = typer.Argument(help="closedCaptionId"),
+    closed_caption_id: str = typer.Argument(help="from: wxcli meeting-captions list"),
     meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) which the closed caption snippets belong to. This parameter only applies to ended meeting instances. It does not apply to meeting series, scheduled meetings or scheduled [personal..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -52,7 +52,7 @@ def list_snippets(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Closed Caption Snippets."""
+    """List Meeting Closed Caption Snippets.\n\n\b\nExample: wxcli meeting-captions list-snippets CLOSED_CAPTION_ID --meeting-id MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingClosedCaptions/{closed_caption_id}/snippets"
     params = {}
@@ -75,9 +75,9 @@ def list_snippets(
 
 
 
-@app.command("list-download")
+@app.command("list-download", short_help="Download Meeting Closed Caption Snippets.")
 def list_download(
-    closed_caption_id: str = typer.Argument(help="closedCaptionId"),
+    closed_caption_id: str = typer.Argument(help="from: wxcli meeting-captions list"),
     format_param: str = typer.Option(None, "--format", help="Choices: vtt, txt"),
     meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) which the closed caption snippets belong to. This parameter only applies to meeting instances in the `ended` state. It does not apply to meeting series, scheduled meetings or..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -86,7 +86,7 @@ def list_download(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Download Meeting Closed Caption Snippets."""
+    """Download Meeting Closed Caption Snippets.\n\n\b\nExample: wxcli meeting-captions list-download CLOSED_CAPTION_ID --meeting-id MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingClosedCaptions/{closed_caption_id}/download"
     params = {}

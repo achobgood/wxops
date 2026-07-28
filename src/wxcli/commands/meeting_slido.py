@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-slido.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Compliance Events.")
 def cmd_list(
     session_org_id: str = typer.Option(..., "--session-org-id", help="Webex organization UUID."),
     session_id: str = typer.Option(..., "--session-id", help="Webex meeting instance ID (`{meetingSeriesId}_I_{conferenceId}`)."),
@@ -20,7 +20,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Compliance Events."""
+    """List Compliance Events.\n\n\b\nExample: wxcli meeting-slido list --session-org-id SESSION_ORG_ID --session-id SESSION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/slido/compliance/events"
     params = {}

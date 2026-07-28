@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling caller-reputation.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get Caller Reputation Provider Service Settings.")
 def show(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -35,7 +35,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"enabled":true,"id":"...","name":"...","clientId":"...","clientSecret":"...","callBlockScoreThreshold":"...","callAllowScoreThreshold":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update Caller Reputation Provider Service Settings.")
 def update(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Indicates if the caller reputation provider service is enabled. when set to true, all other fields are required except clientSecret."),
@@ -51,7 +51,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Caller Reputation Provider Service Settings\n\nExample --json-body:\n  '{"enabled":true,"id":"...","name":"...","clientId":"...","clientSecret":"...","callBlockScoreThreshold":"...","callAllowScoreThreshold":"..."}'."""
+    """Update Caller Reputation Provider Service Settings.\n\n\b\nExample --json-body: '{"enabled":true,"id":"...","name":"...","clientId":"...","clientSecret":"...","callBlockScoreThreshold":"...","callAllowScoreThreshold":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -93,7 +93,7 @@ def update(
 
 
 
-@app.command("show-status")
+@app.command("show-status", short_help="Get Caller Reputation Provider Status.")
 def show_status(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -118,7 +118,7 @@ def show_status(
 
 _BODY_SKELETON_UNLOCK_CALLER_REPUTATION = '{"id":"..."}'
 
-@app.command("unlock-caller-reputation")
+@app.command("unlock-caller-reputation", short_help="Unlock Caller Reputation Provider.")
 def unlock_caller_reputation(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     id_param: str = typer.Option(None, "--id", help="Unique identifier for the reputation provider."),
@@ -128,7 +128,7 @@ def unlock_caller_reputation(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unlock Caller Reputation Provider\n\nExample --json-body:\n  '{"id":"..."}'."""
+    """Unlock Caller Reputation Provider.\n\n\b\nExample: wxcli caller-reputation unlock-caller-reputation --id ID_PARAM\n\n\b\nExample --json-body: '{"id":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UNLOCK_CALLER_REPUTATION), indent=2))
         raise typer.Exit(0)
@@ -153,7 +153,7 @@ def unlock_caller_reputation(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Caller Reputation Provider Providers.")
 def cmd_list(
     organization_id: str = typer.Option(None, "--organization-id", help="Unique identifier for the organization."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),

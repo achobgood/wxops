@@ -11,9 +11,9 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-user-profiles.")
 
 
-@app.command("list")
+@app.command("list", short_help="List references for a specific User Profile.")
 def cmd_list(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -23,7 +23,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific User Profile."""
+    """List references for a specific User Profile.\n\n\b\nExample: wxcli cc-user-profiles list ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -52,7 +52,7 @@ def cmd_list(
 
 
 
-@app.command("list-user-profile")
+@app.command("list-user-profile", short_help="List user profiles.")
 def list_user_profile(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, userProfileAppModules, entryPoints, sites, queues, teams, editableFolderIds, viewableFolderIds, nonViewableFolderIds, createdTime, lastUpdatedTime The examples below show some search..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (entryPoints,sites, queues, teams, userProfileAppModules,editableFolderIds, viewableFolderIds, nonViewableFolderIds)"),
@@ -100,7 +100,7 @@ def list_user_profile(
 
 _BODY_SKELETON_CREATE = '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new User Profile.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -121,7 +121,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new User Profile\n\nExample --json-body:\n  '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'."""
+    """Create a new User Profile.\n\n\b\nExample: wxcli cc-user-profiles create --name NAME --profile-type ADMINISTRATOR --active --permission-access-level SPECIFIC --resource-access-level SPECIFIC\n\n\b\nExample --json-body: '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -183,7 +183,7 @@ def create(
 
 _BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save User Profiles.")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -191,7 +191,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save User Profiles\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save User Profiles.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -221,15 +221,15 @@ def create_bulk(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific User Profile by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-user-profiles list-user-profile"),
     include_names: str = typer.Option(None, "--include-names", help="Flag to include resource names in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific User Profile by ID."""
+    """Get specific User Profile by ID.\n\n\b\nExample: wxcli cc-user-profiles show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -249,9 +249,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific User Profile by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-user-profiles list-user-profile"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -271,7 +271,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific User Profile by ID\n\nExample --json-body:\n  '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'."""
+    """Update specific User Profile by ID.\n\n\b\nExample: wxcli cc-user-profiles update ID --name NAME --profile-type ADMINISTRATOR --active --permission-access-level SPECIFIC --resource-access-level SPECIFIC\n\n\b\nExample --json-body: '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -324,15 +324,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific User Profile by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-user-profiles list-user-profile"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific User Profile by ID."""
+    """Delete specific User Profile by ID.\n\n\b\nExample: wxcli cc-user-profiles delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -354,9 +354,9 @@ def delete(
 
 
 
-@app.command("list-acl")
+@app.command("list-acl", short_help="Get specific User Profile ACL by ID.")
 def list_acl(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-user-profiles list-user-profile"),
     names: str = typer.Option(None, "--names", help="Default all resources are returned in the ACL. If you want to filter the ACL by specific resources, provide a comma-separated list of resource names to filter the ACL. Ex: /url?names=site,team"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -364,7 +364,7 @@ def list_acl(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific User Profile ACL by ID."""
+    """Get specific User Profile ACL by ID.\n\n\b\nExample: wxcli cc-user-profiles list-acl ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)

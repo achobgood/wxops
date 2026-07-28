@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Calling call-routing.")
 
 _BODY_SKELETON_TEST_CALL_ROUTING = '{"originatorId":"...","originatorType":"PEOPLE","destination":"...","originatorNumber":"...","includeAppliedServices":true}'
 
-@app.command("test-call-routing")
+@app.command("test-call-routing", short_help="Test Call Routing.")
 def test_call_routing(
     originator_id: str = typer.Option(None, "--originator-id", help="This element is used to identify the originating party. It can be a person ID or a trunk ID."),
     originator_type: str = typer.Option(None, "--originator-type", help="Choices: PEOPLE, TRUNK"),
@@ -26,7 +26,7 @@ def test_call_routing(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Test Call Routing\n\nExample --json-body:\n  '{"originatorId":"...","originatorType":"PEOPLE","destination":"...","originatorNumber":"...","includeAppliedServices":true}'."""
+    """Test Call Routing.\n\n\b\nExample: wxcli call-routing test-call-routing --originator-id ORIGINATOR_ID --originator-type PEOPLE --destination DESTINATION\n\n\b\nExample --json-body: '{"originatorId":"...","originatorType":"PEOPLE","destination":"...","originatorNumber":"...","includeAppliedServices":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_TEST_CALL_ROUTING), indent=2))
         raise typer.Exit(0)
@@ -60,9 +60,9 @@ def test_call_routing(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Local Gateway Dial Plan Usage for a Trunk.")
 def cmd_list(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields. Available sort fields are `name`, and `locationName`. Sort order is ascending by default"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -71,7 +71,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Local Gateway Dial Plan Usage for a Trunk."""
+    """Get Local Gateway Dial Plan Usage for a Trunk.\n\n\b\nExample: wxcli call-routing list TRUNK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usageDialPlan"
     params = {}
@@ -99,16 +99,16 @@ def cmd_list(
 
 
 
-@app.command("list-usage-pstn-connection-trunks")
+@app.command("list-usage-pstn-connection-trunks", short_help="Get Locations Using the Local Gateway as PSTN Connection Routing.")
 def list_usage_pstn_connection_trunks(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Locations Using the Local Gateway as PSTN Connection Routing."""
+    """Get Locations Using the Local Gateway as PSTN Connection Routing.\n\n\b\nExample: wxcli call-routing list-usage-pstn-connection-trunks TRUNK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usagePstnConnection"
     params = {}
@@ -132,16 +132,16 @@ def list_usage_pstn_connection_trunks(
 
 
 
-@app.command("list-usage-route-group")
+@app.command("list-usage-route-group", short_help="Get Route Groups Using the Local Gateway.")
 def list_usage_route_group(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Route Groups Using the Local Gateway."""
+    """Get Route Groups Using the Local Gateway.\n\n\b\nExample: wxcli call-routing list-usage-route-group TRUNK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usageRouteGroup"
     params = {}
@@ -165,14 +165,14 @@ def list_usage_route_group(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Local Gateway Usage Count.")
 def show(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Local Gateway Usage Count."""
+    """Get Local Gateway Usage Count.\n\n\b\nExample: wxcli call-routing show TRUNK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usage"
     params = {}
@@ -191,9 +191,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"dialPatterns":[{"dialPattern":"...","action":"..."}],"deleteAllDialPatterns":true}'
 
-@app.command("update")
+@app.command("update", short_help="Modify Dial Patterns.")
 def update(
-    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    dial_plan_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-dial-plans"),
     delete_all_dial_patterns: bool = typer.Option(None, "--delete-all-dial-patterns/--no-delete-all-dial-patterns", help="Delete all the dial patterns for a dial plan."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -201,7 +201,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Dial Patterns\n\nExample --json-body:\n  '{"dialPatterns":[{"dialPattern":"...","action":"..."}],"deleteAllDialPatterns":true}'."""
+    """Modify Dial Patterns.\n\n\b\nExample: wxcli call-routing update DIAL_PLAN_ID\n\n\b\nExample --json-body: '{"dialPatterns":[{"dialPattern":"...","action":"..."}],"deleteAllDialPatterns":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -234,7 +234,7 @@ def update(
 
 _BODY_SKELETON_VALIDATE_A_DIAL = '{"dialPatterns":["..."]}'
 
-@app.command("validate-a-dial")
+@app.command("validate-a-dial", short_help="Validate a Dial Pattern.")
 def validate_a_dial(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -242,7 +242,7 @@ def validate_a_dial(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate a Dial Pattern\n\nExample --json-body:\n  '{"dialPatterns":["..."]}'."""
+    """Validate a Dial Pattern.\n\n\b\nExample --json-body: '{"dialPatterns":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_A_DIAL), indent=2))
         raise typer.Exit(0)
@@ -266,7 +266,7 @@ def validate_a_dial(
 
 
 
-@app.command("list-dial-plans")
+@app.command("list-dial-plans", short_help="Read the List of Dial Plans.")
 def list_dial_plans(
     dial_plan_name: str = typer.Option(None, "--dial-plan-name", help="Return the list of dial plans matching the dial plan name."),
     route_group_name: str = typer.Option(None, "--route-group-name", help="Return the list of dial plans matching the Route group name.."),
@@ -312,7 +312,7 @@ def list_dial_plans(
 
 _BODY_SKELETON_CREATE = '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP","dialPatterns":["..."]}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Dial Plan.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) A unique name for the dial plan."),
     route_id: str = typer.Option(None, "--route-id", help="(required) ID of route type associated with the dial plan."),
@@ -323,7 +323,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Dial Plan\n\nExample --json-body:\n  '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP","dialPatterns":["..."]}'."""
+    """Create a Dial Plan.\n\n\b\nExample: wxcli call-routing create --name NAME --route-id ROUTE_ID --route-type ROUTE_GROUP\n\n\b\nExample --json-body: '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP","dialPatterns":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -365,14 +365,14 @@ def create(
 
 
 
-@app.command("show-dial-plans")
+@app.command("show-dial-plans", short_help="Get a Dial Plan.")
 def show_dial_plans(
-    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    dial_plan_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-dial-plans"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Dial Plan."""
+    """Get a Dial Plan.\n\n\b\nExample: wxcli call-routing show-dial-plans DIAL_PLAN_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}"
     params = {}
@@ -391,9 +391,9 @@ def show_dial_plans(
 
 _BODY_SKELETON_UPDATE_DIAL_PLANS = '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP"}'
 
-@app.command("update-dial-plans")
+@app.command("update-dial-plans", short_help="Modify a Dial Plan.")
 def update_dial_plans(
-    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    dial_plan_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-dial-plans"),
     name: str = typer.Option(None, "--name", help="A unique name for the dial plan."),
     route_id: str = typer.Option(None, "--route-id", help="ID of route type associated with the dial plan."),
     route_type: str = typer.Option(None, "--route-type", help="Choices: ROUTE_GROUP, TRUNK"),
@@ -403,7 +403,7 @@ def update_dial_plans(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Dial Plan\n\nExample --json-body:\n  '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP"}'."""
+    """Modify a Dial Plan.\n\n\b\nExample: wxcli call-routing update-dial-plans DIAL_PLAN_ID --name NAME --route-id ROUTE_ID --route-type ROUTE_GROUP\n\n\b\nExample --json-body: '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DIAL_PLANS), indent=2))
         raise typer.Exit(0)
@@ -438,15 +438,15 @@ def update_dial_plans(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Dial Plan.")
 def delete(
-    dial_plan_id: str = typer.Argument(help="dialPlanId"),
+    dial_plan_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-dial-plans"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Dial Plan."""
+    """Delete a Dial Plan.\n\n\b\nExample: wxcli call-routing delete DIAL_PLAN_ID"""
     if not force:
         typer.confirm(f"Delete {dial_plan_id}?", abort=True)
     api = get_api(debug=debug)
@@ -472,7 +472,7 @@ def delete(
 
 _BODY_SKELETON_VALIDATE_LOCAL_GATEWAY = '{"address":"...","domain":"...","port":0}'
 
-@app.command("validate-local-gateway")
+@app.command("validate-local-gateway", short_help="Validate Local Gateway FQDN and Domain for a Trunk.")
 def validate_local_gateway(
     address: str = typer.Option(None, "--address", help="FQDN or SRV address of the trunk."),
     domain: str = typer.Option(None, "--domain", help="Domain name of the trunk."),
@@ -483,7 +483,7 @@ def validate_local_gateway(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate Local Gateway FQDN and Domain for a Trunk\n\nExample --json-body:\n  '{"address":"...","domain":"...","port":0}'."""
+    """Validate Local Gateway FQDN and Domain for a Trunk.\n\n\b\nExample --json-body: '{"address":"...","domain":"...","port":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_LOCAL_GATEWAY), indent=2))
         raise typer.Exit(0)
@@ -513,7 +513,7 @@ def validate_local_gateway(
 
 
 
-@app.command("list-trunks")
+@app.command("list-trunks", short_help="Read the List of Trunks.")
 def list_trunks(
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names."),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of trunks matching the location names."),
@@ -559,7 +559,7 @@ def list_trunks(
 
 _BODY_SKELETON_CREATE_TRUNKS = '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"..."}'
 
-@app.command("create-trunks")
+@app.command("create-trunks", short_help="Create a Trunk.")
 def create_trunks(
     name: str = typer.Option(None, "--name", help="(required) A unique name for the trunk."),
     location_id: str = typer.Option(None, "--location-id", help="(required) ID of location associated with the trunk."),
@@ -578,7 +578,7 @@ def create_trunks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Trunk\n\nExample --json-body:\n  '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"..."}'."""
+    """Create a Trunk.\n\n\b\nExample: wxcli call-routing create-trunks --name NAME --location-id LOCATION_ID --password PASSWORD --trunk-type REGISTERING\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRUNKS), indent=2))
         raise typer.Exit(0)
@@ -636,14 +636,14 @@ def create_trunks(
 
 
 
-@app.command("show-trunks")
+@app.command("show-trunks", short_help="Get a Trunk.")
 def show_trunks(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Trunk."""
+    """Get a Trunk.\n\n\b\nExample: wxcli call-routing show-trunks TRUNK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}"
     params = {}
@@ -662,9 +662,9 @@ def show_trunks(
 
 _BODY_SKELETON_UPDATE_TRUNKS = '{"name":"...","password":"...","dualIdentitySupportEnabled":true,"maxConcurrentCalls":0,"pChargeInfoSupportPolicy":"DISABLED"}'
 
-@app.command("update-trunks")
+@app.command("update-trunks", short_help="Modify a Trunk.")
 def update_trunks(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     name: str = typer.Option(None, "--name", help="A unique name for the dial plan."),
     password: str = typer.Option(None, "--password", help="A password to use on the trunk."),
     dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Determines the behavior of the From and PAI headers on outbound calls."),
@@ -676,7 +676,7 @@ def update_trunks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Trunk\n\nExample --json-body:\n  '{"name":"...","password":"...","dualIdentitySupportEnabled":true,"maxConcurrentCalls":0,"pChargeInfoSupportPolicy":"DISABLED"}'."""
+    """Modify a Trunk.\n\n\b\nExample: wxcli call-routing update-trunks TRUNK_ID --name NAME --password PASSWORD\n\n\b\nExample --json-body: '{"name":"...","password":"...","dualIdentitySupportEnabled":true,"maxConcurrentCalls":0,"pChargeInfoSupportPolicy":"DISABLED"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TRUNKS), indent=2))
         raise typer.Exit(0)
@@ -715,15 +715,15 @@ def update_trunks(
 
 
 
-@app.command("delete-trunks")
+@app.command("delete-trunks", short_help="Delete a Trunk.")
 def delete_trunks(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Trunk."""
+    """Delete a Trunk.\n\n\b\nExample: wxcli call-routing delete-trunks TRUNK_ID"""
     if not force:
         typer.confirm(f"Delete {trunk_id}?", abort=True)
     api = get_api(debug=debug)
@@ -747,7 +747,7 @@ def delete_trunks(
 
 
 
-@app.command("list-trunk-types")
+@app.command("list-trunk-types", short_help="Read the List of Trunk Types.")
 def list_trunk_types(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -779,7 +779,7 @@ def list_trunk_types(
 
 
 
-@app.command("list-route-groups")
+@app.command("list-route-groups", short_help="Read the List of Routing Groups.")
 def list_route_groups(
     name: str = typer.Option(None, "--name", help="Return the list of route groups matching the Route group name.."),
     order: str = typer.Option(None, "--order", help="Order the route groups according to designated fields. Available sort orders are `asc` and `desc`."),
@@ -819,7 +819,7 @@ def list_route_groups(
 
 _BODY_SKELETON_CREATE_ROUTE_GROUPS = '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'
 
-@app.command("create-route-groups")
+@app.command("create-route-groups", short_help="Create Route Group for a Organization.")
 def create_route_groups(
     name: str = typer.Option(None, "--name", help="(required) A unique name for the Route Group."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -828,7 +828,7 @@ def create_route_groups(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Route Group for a Organization\n\nExample --json-body:\n  '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'."""
+    """Create Route Group for a Organization.\n\n\b\nExample: wxcli call-routing create-route-groups --name NAME\n\n\b\nExample --json-body: '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ROUTE_GROUPS), indent=2))
         raise typer.Exit(0)
@@ -866,14 +866,14 @@ def create_route_groups(
 
 
 
-@app.command("show-route-groups")
+@app.command("show-route-groups", short_help="Read a Route Group for a Organization.")
 def show_route_groups(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex ROUTE_GROUP id, from: wxcli call-routing list-route-groups"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read a Route Group for a Organization."""
+    """Read a Route Group for a Organization.\n\n\b\nExample: wxcli call-routing show-route-groups ROUTE_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}"
     params = {}
@@ -892,9 +892,9 @@ def show_route_groups(
 
 _BODY_SKELETON_UPDATE_ROUTE_GROUPS = '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'
 
-@app.command("update-route-groups")
+@app.command("update-route-groups", short_help="Modify a Route Group for a Organization.")
 def update_route_groups(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex ROUTE_GROUP id, from: wxcli call-routing list-route-groups"),
     name: str = typer.Option(None, "--name", help="A unique name for the Route Group."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -902,7 +902,7 @@ def update_route_groups(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Route Group for a Organization\n\nExample --json-body:\n  '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'."""
+    """Modify a Route Group for a Organization.\n\n\b\nExample: wxcli call-routing update-route-groups ROUTE_GROUP_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ROUTE_GROUPS), indent=2))
         raise typer.Exit(0)
@@ -933,15 +933,15 @@ def update_route_groups(
 
 
 
-@app.command("delete-route-groups")
+@app.command("delete-route-groups", short_help="Remove a Route Group from an Organization.")
 def delete_route_groups(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex ROUTE_GROUP id, from: wxcli call-routing list-route-groups"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove a Route Group from an Organization."""
+    """Remove a Route Group from an Organization.\n\n\b\nExample: wxcli call-routing delete-route-groups ROUTE_GROUP_ID"""
     if not force:
         typer.confirm(f"Delete {route_group_id}?", abort=True)
     api = get_api(debug=debug)
@@ -965,14 +965,14 @@ def delete_route_groups(
 
 
 
-@app.command("show-usage")
+@app.command("show-usage", short_help="Read the Usage of a Routing Group.")
 def show_usage(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli call-routing list-route-groups"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the Usage of a Routing Group."""
+    """Read the Usage of a Routing Group.\n\n\b\nExample: wxcli call-routing show-usage ROUTE_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usage"
     params = {}
@@ -989,9 +989,9 @@ def show_usage(
 
 
 
-@app.command("list-usage-call-to-extension-route-groups")
+@app.command("list-usage-call-to-extension-route-groups", short_help="Read the Call to Extension Locations of a Routing Group.")
 def list_usage_call_to_extension_route_groups(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli call-routing list-route-groups"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1000,7 +1000,7 @@ def list_usage_call_to_extension_route_groups(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the Call to Extension Locations of a Routing Group."""
+    """Read the Call to Extension Locations of a Routing Group.\n\n\b\nExample: wxcli call-routing list-usage-call-to-extension-route-groups ROUTE_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usageCallToExtension"
     params = {}
@@ -1028,9 +1028,9 @@ def list_usage_call_to_extension_route_groups(
 
 
 
-@app.command("list-usage-dial-plan")
+@app.command("list-usage-dial-plan", short_help="Read the Dial Plan Locations of a Routing Group.")
 def list_usage_dial_plan(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli call-routing list-route-groups"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1039,7 +1039,7 @@ def list_usage_dial_plan(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the Dial Plan Locations of a Routing Group."""
+    """Read the Dial Plan Locations of a Routing Group.\n\n\b\nExample: wxcli call-routing list-usage-dial-plan ROUTE_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usageDialPlan"
     params = {}
@@ -1067,9 +1067,9 @@ def list_usage_dial_plan(
 
 
 
-@app.command("list-usage-pstn-connection-route-groups")
+@app.command("list-usage-pstn-connection-route-groups", short_help="Read the PSTN Connection Locations of a Routing Group.")
 def list_usage_pstn_connection_route_groups(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli call-routing list-route-groups"),
     location_name: str = typer.Option(None, "--location-name", help="Return the list of locations matching the location name."),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1078,7 +1078,7 @@ def list_usage_pstn_connection_route_groups(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the PSTN Connection Locations of a Routing Group."""
+    """Read the PSTN Connection Locations of a Routing Group.\n\n\b\nExample: wxcli call-routing list-usage-pstn-connection-route-groups ROUTE_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usagePstnConnection"
     params = {}
@@ -1106,9 +1106,9 @@ def list_usage_pstn_connection_route_groups(
 
 
 
-@app.command("list-usage-route-list")
+@app.command("list-usage-route-list", short_help="Read the Route Lists of a Routing Group.")
 def list_usage_route_list(
-    route_group_id: str = typer.Argument(help="routeGroupId"),
+    route_group_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli call-routing list-route-groups"),
     name: str = typer.Option(None, "--name", help="Return the list of locations matching the location name."),
     order: str = typer.Option(None, "--order", help="Order the locations according to designated fields. Available sort orders are `asc`, and `desc`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1117,7 +1117,7 @@ def list_usage_route_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the Route Lists of a Routing Group."""
+    """Read the Route Lists of a Routing Group.\n\n\b\nExample: wxcli call-routing list-usage-route-list ROUTE_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}/usageRouteList"
     params = {}
@@ -1145,7 +1145,7 @@ def list_usage_route_list(
 
 
 
-@app.command("list-route-lists")
+@app.command("list-route-lists", short_help="Read the List of Route Lists.")
 def list_route_lists(
     order: str = typer.Option(None, "--order", help="Order the Route List according to the designated fields. Available sort fields are `name`, and `locationId`. Sort order is ascending by default"),
     name: str = typer.Option(None, "--name", help="Return the list of Route List matching the route list name."),
@@ -1188,7 +1188,7 @@ def list_route_lists(
 
 _BODY_SKELETON_CREATE_ROUTE_LISTS = '{"name":"...","locationId":"...","routeGroupId":"..."}'
 
-@app.command("create-route-lists")
+@app.command("create-route-lists", short_help="Create a Route List.")
 def create_route_lists(
     name: str = typer.Option(None, "--name", help="(required) Name of the Route List"),
     location_id: str = typer.Option(None, "--location-id", help="(required) Location associated with the Route List."),
@@ -1199,7 +1199,7 @@ def create_route_lists(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Route List\n\nExample --json-body:\n  '{"name":"...","locationId":"...","routeGroupId":"..."}'."""
+    """Create a Route List.\n\n\b\nExample: wxcli call-routing create-route-lists --name NAME --location-id LOCATION_ID --route-group-id ROUTE_GROUP_ID\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","routeGroupId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ROUTE_LISTS), indent=2))
         raise typer.Exit(0)
@@ -1241,14 +1241,14 @@ def create_route_lists(
 
 
 
-@app.command("show-route-lists")
+@app.command("show-route-lists", short_help="Get a Route List.")
 def show_route_lists(
-    route_list_id: str = typer.Argument(help="routeListId"),
+    route_list_id: str = typer.Argument(help="from: wxcli call-routing list-route-lists"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Route List."""
+    """Get a Route List.\n\n\b\nExample: wxcli call-routing show-route-lists ROUTE_LIST_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}"
     params = {}
@@ -1267,9 +1267,9 @@ def show_route_lists(
 
 _BODY_SKELETON_UPDATE_ROUTE_LISTS = '{"name":"...","routeGroupId":"..."}'
 
-@app.command("update-route-lists")
+@app.command("update-route-lists", short_help="Modify a Route List.")
 def update_route_lists(
-    route_list_id: str = typer.Argument(help="routeListId"),
+    route_list_id: str = typer.Argument(help="from: wxcli call-routing list-route-lists"),
     name: str = typer.Option(None, "--name", help="Route List new name."),
     route_group_id: str = typer.Option(None, "--route-group-id", help="New route group ID."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -1278,7 +1278,7 @@ def update_route_lists(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Route List\n\nExample --json-body:\n  '{"name":"...","routeGroupId":"..."}'."""
+    """Modify a Route List.\n\n\b\nExample: wxcli call-routing update-route-lists ROUTE_LIST_ID\n\n\b\nExample --json-body: '{"name":"...","routeGroupId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ROUTE_LISTS), indent=2))
         raise typer.Exit(0)
@@ -1311,15 +1311,15 @@ def update_route_lists(
 
 
 
-@app.command("delete-route-lists")
+@app.command("delete-route-lists", short_help="Delete a Route List.")
 def delete_route_lists(
-    route_list_id: str = typer.Argument(help="routeListId"),
+    route_list_id: str = typer.Argument(help="UUID, from: wxcli call-routing list-route-lists"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Route List."""
+    """Delete a Route List.\n\n\b\nExample: wxcli call-routing delete-route-lists ROUTE_LIST_ID"""
     if not force:
         typer.confirm(f"Delete {route_list_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1343,9 +1343,9 @@ def delete_route_lists(
 
 
 
-@app.command("list-numbers")
+@app.command("list-numbers", short_help="Get Numbers assigned to a Route List.")
 def list_numbers(
-    route_list_id: str = typer.Argument(help="routeListId"),
+    route_list_id: str = typer.Argument(help="UUID, from: wxcli call-routing list-route-lists"),
     number: str = typer.Option(None, "--number", help="Number assigned to the route list."),
     order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or descending."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1354,7 +1354,7 @@ def list_numbers(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Numbers assigned to a Route List."""
+    """Get Numbers assigned to a Route List.\n\n\b\nExample: wxcli call-routing list-numbers ROUTE_LIST_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}/numbers"
     params = {}
@@ -1384,9 +1384,9 @@ def list_numbers(
 
 _BODY_SKELETON_UPDATE_NUMBERS = '{"numbers":[{"number":"...","action":"..."}],"deleteAllNumbers":true}'
 
-@app.command("update-numbers")
+@app.command("update-numbers", short_help="Modify Numbers for Route List.")
 def update_numbers(
-    route_list_id: str = typer.Argument(help="routeListId"),
+    route_list_id: str = typer.Argument(help="UUID, from: wxcli call-routing list-route-lists"),
     delete_all_numbers: bool = typer.Option(None, "--delete-all-numbers/--no-delete-all-numbers", help="If present, the numbers array is ignored and all numbers in the route list are deleted."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1394,7 +1394,7 @@ def update_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Numbers for Route List\n\nExample --json-body:\n  '{"numbers":[{"number":"...","action":"..."}],"deleteAllNumbers":true}'."""
+    """Modify Numbers for Route List.\n\n\b\nExample: wxcli call-routing update-numbers ROUTE_LIST_ID\n\n\b\nExample --json-body: '{"numbers":[{"number":"...","action":"..."}],"deleteAllNumbers":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -1425,9 +1425,9 @@ def update_numbers(
 
 
 
-@app.command("list-usage-call-to-extension-trunks")
+@app.command("list-usage-call-to-extension-trunks", short_help="Get Local Gateway Call to On-Premises Extension Usage for a Trunk.")
 def list_usage_call_to_extension_trunks(
-    trunk_id: str = typer.Argument(help="trunkId"),
+    trunk_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-trunks"),
     order: str = typer.Option(None, "--order", help="Order the trunks according to the designated fields. Available sort fields are `name`, and `locationName`. Sort order is ascending by default"),
     name: str = typer.Option(None, "--name", help="Return the list of trunks matching the local gateway names"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1436,7 +1436,7 @@ def list_usage_call_to_extension_trunks(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Local Gateway Call to On-Premises Extension Usage for a Trunk."""
+    """Get Local Gateway Call to On-Premises Extension Usage for a Trunk.\n\n\b\nExample: wxcli call-routing list-usage-call-to-extension-trunks TRUNK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}/usageCallToExtension"
     params = {}
@@ -1464,7 +1464,7 @@ def list_usage_call_to_extension_trunks(
 
 
 
-@app.command("list-translation-patterns")
+@app.command("list-translation-patterns", short_help="Retrieve the list of Translation Patterns.")
 def list_translation_patterns(
     limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="When a location ID is passed, then return only the corresponding location level translation patterns."),
     limit_to_org_level_enabled: str = typer.Option(None, "--limit-to-org-level-enabled", help="When set to be `true`, then return only the organization-level translation patterns."),
@@ -1513,7 +1513,7 @@ def list_translation_patterns(
 
 _BODY_SKELETON_CREATE_TRANSLATION_PATTERNS_CALL_ROUTING = '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'
 
-@app.command("create-translation-patterns-call-routing")
+@app.command("create-translation-patterns-call-routing", short_help="Create a Translation Pattern for an Organization.")
 def create_translation_patterns_call_routing(
     name: str = typer.Option(None, "--name", help="(required) Name given to a translation pattern for an organization."),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) Matching pattern given to a translation pattern for an organization."),
@@ -1524,7 +1524,7 @@ def create_translation_patterns_call_routing(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Translation Pattern for an Organization\n\nExample --json-body:\n  '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'."""
+    """Create a Translation Pattern for an Organization.\n\n\b\nExample: wxcli call-routing create-translation-patterns-call-routing --name NAME --matching-pattern MATCHING_PATTERN --replacement-pattern REPLACEMENT_PATTERN\n\n\b\nExample --json-body: '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSLATION_PATTERNS_CALL_ROUTING), indent=2))
         raise typer.Exit(0)
@@ -1566,14 +1566,14 @@ def create_translation_patterns_call_routing(
 
 
 
-@app.command("show-translation-patterns-call-routing")
+@app.command("show-translation-patterns-call-routing", short_help="Retrieve a specific Translation Pattern for an Organization.")
 def show_translation_patterns_call_routing(
-    translation_id: str = typer.Argument(help="translationId"),
+    translation_id: str = typer.Argument(help="Webex DIGIT_PATTERNS id, from: wxcli call-routing list-translation-patterns"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a specific Translation Pattern for an Organization."""
+    """Retrieve a specific Translation Pattern for an Organization.\n\n\b\nExample: wxcli call-routing show-translation-patterns-call-routing TRANSLATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns/{translation_id}"
     params = {}
@@ -1592,9 +1592,9 @@ def show_translation_patterns_call_routing(
 
 _BODY_SKELETON_UPDATE_TRANSLATION_PATTERNS_CALL_ROUTING = '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'
 
-@app.command("update-translation-patterns-call-routing")
+@app.command("update-translation-patterns-call-routing", short_help="Modify a specific Translation Pattern for an Organization.")
 def update_translation_patterns_call_routing(
-    translation_id: str = typer.Argument(help="translationId"),
+    translation_id: str = typer.Argument(help="Webex DIGIT_PATTERNS id, from: wxcli call-routing list-translation-patterns"),
     name: str = typer.Option(None, "--name", help="Name given to a translation pattern for an organization."),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="Matching pattern given to a translation pattern for an organization."),
     replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="Replacement pattern given to a translation pattern for an organization."),
@@ -1604,7 +1604,7 @@ def update_translation_patterns_call_routing(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a specific Translation Pattern for an Organization\n\nExample --json-body:\n  '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'."""
+    """Modify a specific Translation Pattern for an Organization.\n\n\b\nExample: wxcli call-routing update-translation-patterns-call-routing TRANSLATION_ID\n\n\b\nExample --json-body: '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TRANSLATION_PATTERNS_CALL_ROUTING), indent=2))
         raise typer.Exit(0)
@@ -1639,15 +1639,15 @@ def update_translation_patterns_call_routing(
 
 
 
-@app.command("delete-translation-patterns-call-routing")
+@app.command("delete-translation-patterns-call-routing", short_help="Delete a specific Translation Pattern.")
 def delete_translation_patterns_call_routing(
-    translation_id: str = typer.Argument(help="translationId"),
+    translation_id: str = typer.Argument(help="Webex DIGIT_PATTERNS id, from: wxcli call-routing list-translation-patterns"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a specific Translation Pattern."""
+    """Delete a specific Translation Pattern.\n\n\b\nExample: wxcli call-routing delete-translation-patterns-call-routing TRANSLATION_ID"""
     if not force:
         typer.confirm(f"Delete {translation_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1673,9 +1673,9 @@ def delete_translation_patterns_call_routing(
 
 _BODY_SKELETON_CREATE_TRANSLATION_PATTERNS_CALL_ROUTING_1 = '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'
 
-@app.command("create-translation-patterns-call-routing-1")
+@app.command("create-translation-patterns-call-routing-1", short_help="Create a Translation Pattern for a Location.")
 def create_translation_patterns_call_routing_1(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) A name given to a translation pattern for a location."),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="(required) A matching pattern given to a translation pattern for a location."),
     replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="(required) A replacement pattern given to a translation pattern for a location."),
@@ -1685,7 +1685,7 @@ def create_translation_patterns_call_routing_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Translation Pattern for a Location\n\nExample --json-body:\n  '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'."""
+    """Create a Translation Pattern for a Location.\n\n\b\nExample: wxcli call-routing create-translation-patterns-call-routing-1 LOCATION_ID --name NAME --matching-pattern MATCHING_PATTERN --replacement-pattern REPLACEMENT_PATTERN\n\n\b\nExample --json-body: '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSLATION_PATTERNS_CALL_ROUTING_1), indent=2))
         raise typer.Exit(0)
@@ -1727,15 +1727,15 @@ def create_translation_patterns_call_routing_1(
 
 
 
-@app.command("show-translation-patterns-call-routing-1")
+@app.command("show-translation-patterns-call-routing-1", short_help="Retrieve a specific Translation Pattern for a Location.")
 def show_translation_patterns_call_routing_1(
-    location_id: str = typer.Argument(help="locationId"),
-    translation_id: str = typer.Argument(help="translationId"),
+    location_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli location-settings list-calling-details"),
+    translation_id: str = typer.Argument(help="Webex DIGIT_PATTERNS id, from: wxcli call-routing list-translation-patterns"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a specific Translation Pattern for a Location."""
+    """Retrieve a specific Translation Pattern for a Location.\n\n\b\nExample: wxcli call-routing show-translation-patterns-call-routing-1 LOCATION_ID TRANSLATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}"
     params = {}
@@ -1754,10 +1754,10 @@ def show_translation_patterns_call_routing_1(
 
 _BODY_SKELETON_UPDATE_TRANSLATION_PATTERNS_CALL_ROUTING_1 = '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'
 
-@app.command("update-translation-patterns-call-routing-1")
+@app.command("update-translation-patterns-call-routing-1", short_help="Modify a specific Translation Pattern for a Location.")
 def update_translation_patterns_call_routing_1(
-    location_id: str = typer.Argument(help="locationId"),
-    translation_id: str = typer.Argument(help="translationId"),
+    location_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli location-settings list-calling-details"),
+    translation_id: str = typer.Argument(help="Webex DIGIT_PATTERNS id, from: wxcli call-routing list-translation-patterns"),
     name: str = typer.Option(None, "--name", help="A name given to a translation pattern for a location."),
     matching_pattern: str = typer.Option(None, "--matching-pattern", help="A matching pattern given to a translation pattern for a location."),
     replacement_pattern: str = typer.Option(None, "--replacement-pattern", help="A replacement pattern given to a translation pattern for a location."),
@@ -1767,7 +1767,7 @@ def update_translation_patterns_call_routing_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a specific Translation Pattern for a Location\n\nExample --json-body:\n  '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'."""
+    """Modify a specific Translation Pattern for a Location.\n\n\b\nExample: wxcli call-routing update-translation-patterns-call-routing-1 LOCATION_ID TRANSLATION_ID\n\n\b\nExample --json-body: '{"name":"...","matchingPattern":"...","replacementPattern":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TRANSLATION_PATTERNS_CALL_ROUTING_1), indent=2))
         raise typer.Exit(0)
@@ -1802,16 +1802,16 @@ def update_translation_patterns_call_routing_1(
 
 
 
-@app.command("delete-translation-patterns-call-routing-1")
+@app.command("delete-translation-patterns-call-routing-1", short_help="Delete a specific Translation Pattern for a Location.")
 def delete_translation_patterns_call_routing_1(
-    location_id: str = typer.Argument(help="locationId"),
-    translation_id: str = typer.Argument(help="translationId"),
+    location_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli location-settings list-calling-details"),
+    translation_id: str = typer.Argument(help="Webex DIGIT_PATTERNS id, from: wxcli call-routing list-translation-patterns"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a specific Translation Pattern for a Location."""
+    """Delete a specific Translation Pattern for a Location.\n\n\b\nExample: wxcli call-routing delete-translation-patterns-call-routing-1 LOCATION_ID TRANSLATION_ID"""
     if not force:
         typer.confirm(f"Delete {translation_id}?", abort=True)
     api = get_api(debug=debug)

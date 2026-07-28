@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-callbacks.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get scheduled callbacks.")
 def cmd_list(
     callback_number: str = typer.Option(None, "--callback-number", help="The callback customer number to filter the scheduled callbacks. Only an exact match will yield the result. Allows an optional country code followed by digits (0-9) and the special characters: space, hyphen -, parentheses ( and ), and period ., ensuring the total length is between 7 and 15..."),
     assignee_agent: str = typer.Option(None, "--assignee-agent", help="The unique identifier of the agent assigned to handle the callback. Must be in UUID format. This parameter is optional, but at least one of assigneeAgent or callbackNumber must be provided."),
@@ -62,7 +62,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Schedule a Callback.")
 def create(
     customer_name: str = typer.Option(None, "--customer-name", help="(required) Name of the Customer for which callback has to be scheduled. Max customer name length should be 250 character"),
     callback_number: str = typer.Option(None, "--callback-number", help="(required) Customer's phone number for the callback. Allows an optional country code followed by digits (0-9) and the special characters: space, hyphen -, parentheses ( and ), and period ., ensuring the total length is between 7 and 15 characters."),
@@ -80,7 +80,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Schedule a Callback\n\nExample --json-body:\n  '{"customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"..."}'."""
+    """Schedule a Callback.\n\n\b\nExample: wxcli cc-callbacks create --customer-name CUSTOMER_NAME --callback-number CALLBACK_NUMBER --timezone TIMEZONE --schedule-date SCHEDULE_DATE --start-time START_TIME --end-time END_TIME --queue-id QUEUE_ID\n\n\b\nExample --json-body: '{"customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -134,14 +134,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get scheduled callback by Id.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-callbacks list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get scheduled callback by Id."""
+    """Get scheduled callback by Id.\n\n\b\nExample: wxcli cc-callbacks show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -156,15 +156,15 @@ def show(
 
 
 
-@app.command("update")
+@app.command("update", short_help="Update scheduled callback by Id.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-callbacks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update scheduled callback by Id."""
+    """Update scheduled callback by Id.\n\n\b\nExample: wxcli cc-callbacks update ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -188,15 +188,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete scheduled callback by Id.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-callbacks list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete scheduled callback by Id."""
+    """Delete scheduled callback by Id.\n\n\b\nExample: wxcli cc-callbacks delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)

@@ -11,7 +11,7 @@ from wxcli.config import get_cc_base_url
 app = typer.Typer(help="Manage Webex Contact Center cc-campaign-group.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Campaigns by Campaign Group.")
 def cmd_list(
     campaign_group_name: str = typer.Argument(help="campaignGroupName"),
     page: str = typer.Option(None, "--page", help="The page number of the result set to retrieve (1-based)."),
@@ -23,7 +23,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Campaigns by Campaign Group."""
+    """List Campaigns by Campaign Group.\n\n\b\nExample: wxcli cc-campaign-group list CAMPAIGN_GROUP_NAME"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v3/campaign-management/campaign-groups/{campaign_group_name}/campaigns"

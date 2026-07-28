@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Calling external-voicemail.")
 
 _BODY_SKELETON_CREATE = '{"action":"SET"}'
 
-@app.command("create")
+@app.command("create", short_help="Set or Clear Message Waiting Indicator (MWI) Status.")
 def create(
     id_param: str = typer.Option(..., "--id", help="Unique identifier for the user or workspace."),
     action: str = typer.Option(None, "--action", help="(required) Choices: SET, CLEAR"),
@@ -23,7 +23,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Set or Clear Message Waiting Indicator (MWI) Status\n\nExample --json-body:\n  '{"action":"SET"}'."""
+    """Set or Clear Message Waiting Indicator (MWI) Status.\n\n\b\nExample: wxcli external-voicemail create --id ID_PARAM --action SET\n\n\b\nExample --json-body: '{"action":"SET"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

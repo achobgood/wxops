@@ -11,14 +11,14 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-summaries.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Generated Summaries resource by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Generated Summaries resource by ID."""
+    """Get specific Generated Summaries resource by ID.\n\n\b\nExample: wxcli cc-summaries show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -35,9 +35,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"organizationId":"...","id":"...","version":0,"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"agentInclusionType":"ALL","createdTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Generated Summaries resource by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -53,7 +53,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Generated Summaries resource by ID\n\nExample --json-body:\n  '{"organizationId":"...","id":"...","version":0,"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"agentInclusionType":"ALL","createdTime":0}'."""
+    """Update specific Generated Summaries resource by ID.\n\n\b\nExample: wxcli cc-summaries update ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"agentInclusionType":"ALL","createdTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -98,7 +98,7 @@ def update(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List Generated Summaries resource(s).")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),

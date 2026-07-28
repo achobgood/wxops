@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Calling scim-bulk.")
 
 _BODY_SKELETON_CREATE = '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"...","path":"...","data":"...","bulkId":"..."}]}'
 
-@app.command("create")
+@app.command("create", short_help="User bulk API.")
 def create(
     fail_on_errors: str = typer.Option(None, "--fail-on-errors", help="(required) An integer specifying the maximum number of errors that the service provider will accept before the operation is terminated and an error response is returned."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -22,7 +22,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """User bulk API\n\nExample --json-body:\n  '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"...","path":"...","data":"...","bulkId":"..."}]}'."""
+    """User bulk API.\n\n\b\nExample: wxcli scim-bulk create --fail-on-errors FAIL_ON_ERRORS\n\n\b\nExample --json-body: '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"...","path":"...","data":"...","bulkId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

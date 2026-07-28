@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-qualities.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Meeting Qualities.")
 def cmd_list(
     meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the specific meeting instance. **Note:** The `meetingId` can be obtained via the Meeting List API when meetingType=meeting. The `id` attribute in the Meeting List Response is what is needed, for example, `e5dba9613a9d455aa49f6ffdafb6e7db_I_191395283063545470`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -19,7 +19,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Meeting Qualities."""
+    """Get Meeting Qualities.\n\n\b\nExample: wxcli meeting-qualities list --meeting-id MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meeting/qualities"
     params = {}

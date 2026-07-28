@@ -11,7 +11,7 @@ from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-subscriptions.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Subscriptions.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -46,7 +46,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Register Subscription.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Client-defined string naming the subscription."),
     description: str = typer.Option(None, "--description", help="Client-defined string describing the subscription."),
@@ -59,7 +59,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register Subscription\n\nExample --json-body:\n  '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'."""
+    """Register Subscription.\n\n\b\nExample: wxcli cc-subscriptions create --name NAME --destination-url DESTINATION_URL\n\n\b\nExample --json-body: '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -102,14 +102,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Subscription.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-subscriptions list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Subscription."""
+    """Get Subscription.\n\n\b\nExample: wxcli cc-subscriptions show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/subscriptions/{id}"
@@ -129,9 +129,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"description":"...","eventTypes":["..."],"destinationUrl":"...","status":"active","secret":"...","orgId":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update Subscription.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-subscriptions list"),
     description: str = typer.Option(None, "--description", help="Client-defined string describing the subscription."),
     destination_url: str = typer.Option(None, "--destination-url", help="URL to which webhooks will be posted. Must be HTTPS on an IANA-listed top-level domain name (e.g. .com) with a path (at least /). No query parameters, userinfo, non-443 ports, or fragments allowed. We do not treat this field as sensitive data, so do not use secrets in this URL such as tokens or API..."),
     status: str = typer.Option(None, "--status", help="Choices: active, inactive"),
@@ -143,7 +143,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Subscription\n\nExample --json-body:\n  '{"description":"...","eventTypes":["..."],"destinationUrl":"...","status":"active","secret":"...","orgId":"..."}'."""
+    """Update Subscription.\n\n\b\nExample: wxcli cc-subscriptions update ID\n\n\b\nExample --json-body: '{"description":"...","eventTypes":["..."],"destinationUrl":"...","status":"active","secret":"...","orgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -179,15 +179,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete Subscription.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-subscriptions list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Subscription."""
+    """Delete Subscription.\n\n\b\nExample: wxcli cc-subscriptions delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -212,7 +212,7 @@ def delete(
 
 
 
-@app.command("list-event-types-v1")
+@app.command("list-event-types-v1", short_help="List Event Types.")
 def list_event_types_v1(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -245,7 +245,7 @@ def list_event_types_v1(
 
 
 
-@app.command("list-subscriptions")
+@app.command("list-subscriptions", short_help="List Subscriptions.")
 def list_subscriptions(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -280,7 +280,7 @@ def list_subscriptions(
 
 _BODY_SKELETON_CREATE_SUBSCRIPTIONS = '{"name":"...","eventTypes":["..."],"destinationUrl":"...","resourceVersion":"...","description":"...","secret":"...","orgId":"..."}'
 
-@app.command("create-subscriptions")
+@app.command("create-subscriptions", short_help="Register Subscription.")
 def create_subscriptions(
     name: str = typer.Option(None, "--name", help="(required) Client-defined string naming the subscription."),
     description: str = typer.Option(None, "--description", help="Client-defined string describing the subscription."),
@@ -294,7 +294,7 @@ def create_subscriptions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register Subscription\n\nExample --json-body:\n  '{"name":"...","eventTypes":["..."],"destinationUrl":"...","resourceVersion":"...","description":"...","secret":"...","orgId":"..."}'."""
+    """Register Subscription.\n\n\b\nExample: wxcli cc-subscriptions create-subscriptions --name NAME --destination-url DESTINATION_URL --resource-version RESOURCE_VERSION\n\n\b\nExample --json-body: '{"name":"...","eventTypes":["..."],"destinationUrl":"...","resourceVersion":"...","description":"...","secret":"...","orgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUBSCRIPTIONS), indent=2))
         raise typer.Exit(0)
@@ -339,14 +339,14 @@ def create_subscriptions(
 
 
 
-@app.command("show-subscriptions")
+@app.command("show-subscriptions", short_help="Get Subscription.")
 def show_subscriptions(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-subscriptions list-subscriptions"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Subscription."""
+    """Get Subscription.\n\n\b\nExample: wxcli cc-subscriptions show-subscriptions ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v2/subscriptions/{id}"
@@ -366,9 +366,9 @@ def show_subscriptions(
 
 _BODY_SKELETON_UPDATE_SUBSCRIPTIONS = '{"resourceVersion":"...","description":"...","eventTypes":["..."],"destinationUrl":"...","status":"active","secret":"...","orgId":"..."}'
 
-@app.command("update-subscriptions")
+@app.command("update-subscriptions", short_help="Update Subscription.")
 def update_subscriptions(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-subscriptions list-subscriptions"),
     description: str = typer.Option(None, "--description", help="Client-defined string describing the subscription."),
     destination_url: str = typer.Option(None, "--destination-url", help="URL to which webhooks will be posted. Must be HTTPS on an IANA-listed top-level domain name (e.g. .com) with a path (at least /). No query parameters, userinfo, non-443 ports, or fragments allowed. We do not treat this field as sensitive data, so do not use secrets in this URL such as tokens or API..."),
     status: str = typer.Option(None, "--status", help="Choices: active, inactive"),
@@ -381,7 +381,7 @@ def update_subscriptions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Subscription\n\nExample --json-body:\n  '{"resourceVersion":"...","description":"...","eventTypes":["..."],"destinationUrl":"...","status":"active","secret":"...","orgId":"..."}'."""
+    """Update Subscription.\n\n\b\nExample: wxcli cc-subscriptions update-subscriptions ID --resource-version RESOURCE_VERSION\n\n\b\nExample --json-body: '{"resourceVersion":"...","description":"...","eventTypes":["..."],"destinationUrl":"...","status":"active","secret":"...","orgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SUBSCRIPTIONS), indent=2))
         raise typer.Exit(0)
@@ -419,15 +419,15 @@ def update_subscriptions(
 
 
 
-@app.command("delete-subscriptions")
+@app.command("delete-subscriptions", short_help="Delete Subscription.")
 def delete_subscriptions(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-subscriptions list-subscriptions"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Subscription."""
+    """Delete Subscription.\n\n\b\nExample: wxcli cc-subscriptions delete-subscriptions ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -452,7 +452,7 @@ def delete_subscriptions(
 
 
 
-@app.command("list-event-types-v2")
+@app.command("list-event-types-v2", short_help="List Event Types.")
 def list_event_types_v2(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),

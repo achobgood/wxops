@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling workspace-locations.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Workspace Locations.")
 def cmd_list(
     display_name: str = typer.Option(None, "--display-name", help="Location display name."),
     address: str = typer.Option(None, "--address", help="Location address."),
@@ -57,7 +57,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"displayName":"...","address":"...","countryCode":"...","latitude":0,"longitude":0,"cityName":"...","notes":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Workspace Location.")
 def create(
     display_name: str = typer.Option(None, "--display-name", help="(required) A friendly name for the location."),
     address: str = typer.Option(None, "--address", help="(required) The location address."),
@@ -72,7 +72,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Workspace Location\n\nExample --json-body:\n  '{"displayName":"...","address":"...","countryCode":"...","latitude":0,"longitude":0,"cityName":"...","notes":"..."}'."""
+    """Create a Workspace Location.\n\n\b\nExample: wxcli workspace-locations create --display-name DISPLAY_NAME --address ADDRESS --country-code COUNTRY_CODE --latitude LATITUDE --longitude LONGITUDE\n\n\b\nExample --json-body: '{"displayName":"...","address":"...","countryCode":"...","latitude":0,"longitude":0,"cityName":"...","notes":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -118,14 +118,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Workspace Location Details.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Workspace Location Details."""
+    """Get a Workspace Location Details.\n\n\b\nExample: wxcli workspace-locations show LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaceLocations/{location_id}"
     try:
@@ -140,9 +140,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"displayName":"...","address":"...","countryCode":"...","latitude":0,"longitude":0,"id":"...","cityName":"...","notes":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Workspace Location.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
     id_param: str = typer.Option(None, "--id", help="Unique identifier for the location."),
     display_name: str = typer.Option(None, "--display-name", help="A friendly name for the location."),
     address: str = typer.Option(None, "--address", help="The location address."),
@@ -157,7 +157,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Workspace Location\n\nExample --json-body:\n  '{"displayName":"...","address":"...","countryCode":"...","latitude":0,"longitude":0,"id":"...","cityName":"...","notes":"..."}'."""
+    """Update a Workspace Location.\n\n\b\nExample: wxcli workspace-locations update LOCATION_ID --display-name DISPLAY_NAME --address ADDRESS --country-code COUNTRY_CODE --latitude LATITUDE --longitude LONGITUDE\n\n\b\nExample --json-body: '{"displayName":"...","address":"...","countryCode":"...","latitude":0,"longitude":0,"id":"...","cityName":"...","notes":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -198,15 +198,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Workspace Location.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Workspace Location."""
+    """Delete a Workspace Location.\n\n\b\nExample: wxcli workspace-locations delete LOCATION_ID"""
     if not force:
         typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
@@ -226,16 +226,16 @@ def delete(
 
 
 
-@app.command("list-floors")
+@app.command("list-floors", short_help="List Workspace Location Floors.")
 def list_floors(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Workspace Location Floors."""
+    """List Workspace Location Floors.\n\n\b\nExample: wxcli workspace-locations list-floors LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaceLocations/{location_id}/floors"
     params = {}
@@ -258,9 +258,9 @@ def list_floors(
 
 _BODY_SKELETON_CREATE_FLOORS = '{"floorNumber":0,"displayName":"..."}'
 
-@app.command("create-floors")
+@app.command("create-floors", short_help="Create a Workspace Location Floor.")
 def create_floors(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
     floor_number: str = typer.Option(None, "--floor-number", help="(required) The floor number."),
     display_name: str = typer.Option(None, "--display-name", help="The floor display name."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -269,7 +269,7 @@ def create_floors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Workspace Location Floor\n\nExample --json-body:\n  '{"floorNumber":0,"displayName":"..."}'."""
+    """Create a Workspace Location Floor.\n\n\b\nExample: wxcli workspace-locations create-floors LOCATION_ID --floor-number FLOOR_NUMBER\n\n\b\nExample --json-body: '{"floorNumber":0,"displayName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FLOORS), indent=2))
         raise typer.Exit(0)
@@ -305,15 +305,15 @@ def create_floors(
 
 
 
-@app.command("show-floors")
+@app.command("show-floors", short_help="Get a Workspace Location Floor Details.")
 def show_floors(
-    location_id: str = typer.Argument(help="locationId"),
-    floor_id: str = typer.Argument(help="floorId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
+    floor_id: str = typer.Argument(help="from: wxcli workspace-locations list-floors"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Workspace Location Floor Details."""
+    """Get a Workspace Location Floor Details.\n\n\b\nExample: wxcli workspace-locations show-floors LOCATION_ID FLOOR_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaceLocations/{location_id}/floors/{floor_id}"
     try:
@@ -328,10 +328,10 @@ def show_floors(
 
 _BODY_SKELETON_UPDATE_FLOORS = '{"floorNumber":0,"displayName":"..."}'
 
-@app.command("update-floors")
+@app.command("update-floors", short_help="Update a Workspace Location Floor.")
 def update_floors(
-    location_id: str = typer.Argument(help="locationId"),
-    floor_id: str = typer.Argument(help="floorId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
+    floor_id: str = typer.Argument(help="from: wxcli workspace-locations list-floors"),
     floor_number: str = typer.Option(None, "--floor-number", help="The floor number."),
     display_name: str = typer.Option(None, "--display-name", help="The floor display name."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -340,7 +340,7 @@ def update_floors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Workspace Location Floor\n\nExample --json-body:\n  '{"floorNumber":0,"displayName":"..."}'."""
+    """Update a Workspace Location Floor.\n\n\b\nExample: wxcli workspace-locations update-floors LOCATION_ID FLOOR_ID --floor-number FLOOR_NUMBER\n\n\b\nExample --json-body: '{"floorNumber":0,"displayName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_FLOORS), indent=2))
         raise typer.Exit(0)
@@ -369,16 +369,16 @@ def update_floors(
 
 
 
-@app.command("delete-floors")
+@app.command("delete-floors", short_help="Delete a Workspace Location Floor.")
 def delete_floors(
-    location_id: str = typer.Argument(help="locationId"),
-    floor_id: str = typer.Argument(help="floorId"),
+    location_id: str = typer.Argument(help="Webex WORKSPACE_LOCATION id, from: wxcli workspace-locations list"),
+    floor_id: str = typer.Argument(help="from: wxcli workspace-locations list-floors"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Workspace Location Floor."""
+    """Delete a Workspace Location Floor.\n\n\b\nExample: wxcli workspace-locations delete-floors LOCATION_ID FLOOR_ID"""
     if not force:
         typer.confirm(f"Delete {floor_id}?", abort=True)
     api = get_api(debug=debug)

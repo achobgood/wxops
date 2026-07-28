@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling licenses.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Licenses.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -43,9 +43,9 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get License Details.")
 def show(
-    license_id: str = typer.Argument(help="licenseId"),
+    license_id: str = typer.Argument(help="Webex LICENSE id, from: wxcli licenses list"),
     include_assigned_to: str = typer.Option(None, "--include-assigned-to", help="Choices: user"),
     next: str = typer.Option(None, "--next", help="List the next set of users. Applicable only if `includeAssignedTo` is populated."),
     limit: str = typer.Option(None, "--limit", help="A limit on the number of users to be returned in the response. Applicable only if `includeAssignedTo` is populated. limit cannot be more than 300."),
@@ -53,7 +53,7 @@ def show(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get License Details."""
+    """Get License Details.\n\n\b\nExample: wxcli licenses show LICENSE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/licenses/{license_id}"
     params = {}
@@ -75,7 +75,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"...","properties":"..."}],"siteUrls":[{"siteUrl":"...","accountType":"...","operation":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Assign Licenses to Users.")
 def update(
     email: str = typer.Option(None, "--email", help="Email address of the user."),
     person_id: str = typer.Option(None, "--person-id", help="A unique identifier for the user."),
@@ -86,7 +86,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign Licenses to Users\n\nExample --json-body:\n  '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"...","properties":"..."}],"siteUrls":[{"siteUrl":"...","accountType":"...","operation":"..."}]}'."""
+    """Assign Licenses to Users.\n\n\b\nExample --json-body: '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"...","properties":"..."}],"siteUrls":[{"siteUrl":"...","accountType":"...","operation":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

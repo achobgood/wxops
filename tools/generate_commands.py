@@ -27,6 +27,13 @@ KNOWN_GLOBAL_KEYS = {
     "omit_query_params", "skip_tags", "tag_merge", "cli_name_overrides",
     "auto_inject_from_config", "tag_overrides", "tag_op_excludes",
     "verb_semantics_ack", "_resolved_cli_name_overrides",
+    # Consumed by tools/drift_check.py (check 9), not by the generator — but it
+    # must still be declared here. An unregistered top-level key falls through
+    # to the backwards-compat branch below and is treated as a TAG override
+    # block, so "spec_authority" would silently become a tag named
+    # "spec_authority". test_field_overrides.py::test_all_keys_recognized is
+    # what catches that, and it is why this set exists.
+    "spec_authority",
 }
 
 
@@ -251,6 +258,39 @@ def generate_tag(
     # Apply endpoint-level overrides (table_columns, url_overrides)
     for ep in endpoints:
         apply_endpoint_overrides(ep, folder_ovr)
+
+    # A rename keeps its old name as a hidden alias — but ONLY if nothing else
+    # in this tag now answers to that name. `command_name_overrides` is
+    # sometimes a SWAP, not a rename: `Features:  Call Queue` moves
+    # show -> show-org-settings AND show-queues -> show, deliberately handing
+    # the bare name to the per-queue command (2026-06 pinning). Aliasing the
+    # old `show` there would re-register a second `show` on the same Typer app
+    # and shadow the command the swap exists to protect — caught live when
+    # check 6 started failing on `call-queue show --has-cx-essentials`.
+    claimed = {ep.command_name for ep in endpoints}
+    for ep in endpoints:
+        original = getattr(ep, "original_command_name", None)
+        if original and original in claimed:
+            ep.original_command_name = None
+
+    # A command_name_overrides key that matches no command is INERT, and inert
+    # is indistinguishable from applied unless something says so. Three of the
+    # 26 Wave 3 renames were keyed on a pre-merge tag name ("Journey - Customer
+    # Identification API" is folded into "CC Journey" by tag_merge before
+    # overrides resolve) and were silently ignored — regen succeeded, the gate
+    # passed, and the commands simply kept their old names. Fail loudly instead.
+    renamed = {getattr(ep, "original_command_name", None) for ep in endpoints}
+    stale = [k for k in (folder_ovr or {}).get("command_name_overrides", {})
+             if k not in renamed and k not in claimed]
+    if stale:
+        print(
+            f"\nERROR: command_name_overrides in tag {tag_name!r} names "
+            f"{len(stale)} command(s) that do not exist here: "
+            f"{', '.join(sorted(stale))}.\n"
+            f"       Rendered commands: {', '.join(sorted(claimed))}\n"
+            f"       If this tag is merged by tag_merge, key the override on "
+            f"the MERGED name.", file=sys.stderr)
+        sys.exit(1)
 
     # Known issue #20: refuse to render a destructive op behind a name that
     # gives no hint it destroys. Runs after command_name_overrides, so a name

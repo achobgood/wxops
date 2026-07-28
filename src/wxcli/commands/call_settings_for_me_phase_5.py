@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling call-settings-for-me-phase-5.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get Personal Assistant Settings.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -31,7 +31,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"enabled":true,"presence":"BUSINESS_TRIP","untilDateTime":"...","transferEnabled":true,"transferNumber":"...","alerting":"ALERT_ME_FIRST","alertMeFirstNumberOfRings":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update Personal Assistant Settings.")
 def update(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/Disable the personal assistant feature."),
     presence: str = typer.Option(None, "--presence", help="Choices: BUSINESS_TRIP, GONE_FOR_THE_DAY, LUNCH, MEETING, OUT_OF_OFFICE, TEMPORARILY_OUT, TRAINING, UNAVAILABLE, VACATION"),
@@ -46,7 +46,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Personal Assistant Settings\n\nExample --json-body:\n  '{"enabled":true,"presence":"BUSINESS_TRIP","untilDateTime":"...","transferEnabled":true,"transferNumber":"...","alerting":"ALERT_ME_FIRST","alertMeFirstNumberOfRings":0}'."""
+    """Update Personal Assistant Settings.\n\n\b\nExample: wxcli call-settings-for-me-phase-5 update --enabled\n\n\b\nExample --json-body: '{"enabled":true,"presence":"BUSINESS_TRIP","untilDateTime":"...","transferEnabled":true,"transferNumber":"...","alerting":"ALERT_ME_FIRST","alertMeFirstNumberOfRings":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -85,7 +85,7 @@ def update(
 
 
 
-@app.command("show-rules")
+@app.command("show-rules", short_help="Get Person's Voicemail Rules.")
 def show_rules(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -106,7 +106,7 @@ def show_rules(
 
 _BODY_SKELETON_UPDATE_PIN = '{"passcode":"..."}'
 
-@app.command("update-pin")
+@app.command("update-pin", short_help="Update Voicemail PIN.")
 def update_pin(
     passcode: str = typer.Option(None, "--passcode", help="Person voicemail PIN. The PIN must comply with the passcode rules defined for the organization."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -115,7 +115,7 @@ def update_pin(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Voicemail PIN\n\nExample --json-body:\n  '{"passcode":"..."}'."""
+    """Update Voicemail PIN.\n\n\b\nExample: wxcli call-settings-for-me-phase-5 update-pin --passcode PASSCODE\n\n\b\nExample --json-body: '{"passcode":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PIN), indent=2))
         raise typer.Exit(0)
@@ -142,7 +142,7 @@ def update_pin(
 
 
 
-@app.command("show-guest")
+@app.command("show-guest", short_help="Get Hoteling Guest Settings.")
 def show_guest(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -163,7 +163,7 @@ def show_guest(
 
 _BODY_SKELETON_UPDATE_GUEST = '{"enabled":true,"associationLimitEnabled":true,"associationLimitHours":0,"hostId":"..."}'
 
-@app.command("update-guest")
+@app.command("update-guest", short_help="Update Hoteling Guest Settings.")
 def update_guest(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/Disable hoteling guest functionality for the person. When enabled, the person can associate themselves with a hoteling host device."),
     association_limit_enabled: bool = typer.Option(None, "--association-limit-enabled/--no-association-limit-enabled", help="When enabled, the person's hoteling guest association will be automatically removed after the specified time period."),
@@ -175,7 +175,7 @@ def update_guest(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Hoteling Guest Settings\n\nExample --json-body:\n  '{"enabled":true,"associationLimitEnabled":true,"associationLimitHours":0,"hostId":"..."}'."""
+    """Update Hoteling Guest Settings.\n\n\b\nExample: wxcli call-settings-for-me-phase-5 update-guest --enabled\n\n\b\nExample --json-body: '{"enabled":true,"associationLimitEnabled":true,"associationLimitHours":0,"hostId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_GUEST), indent=2))
         raise typer.Exit(0)
@@ -208,7 +208,7 @@ def update_guest(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Available Hoteling Hosts.")
 def cmd_list(
     name: str = typer.Option(None, "--name", help="Filter hosts by name (first name or last name). Partial match is supported."),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter hosts by phone number. Partial match is supported."),

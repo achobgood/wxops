@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-captures.")
 
 _BODY_SKELETON_CREATE = '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'
 
-@app.command("create")
+@app.command("create", short_help="List Captures.")
 def create(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -21,7 +21,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Captures\n\nExample --json-body:\n  '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'."""
+    """List Captures.\n\n\b\nExample --json-body: '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling converged-recordings.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Recordings.")
 def cmd_list(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
@@ -68,7 +68,7 @@ def cmd_list(
 
 
 
-@app.command("list-converged-recordings")
+@app.command("list-converged-recordings", short_help="List Recordings for Admin or Compliance officer.")
 def list_converged_recordings(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`. The interval between `from` and `to` must be within 30 days."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`. The interval between `from` and `to` must be within 30 days."),
@@ -132,14 +132,14 @@ def list_converged_recordings(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Recording Details.")
 def show(
-    recording_id: str = typer.Argument(help="recordingId"),
+    recording_id: str = typer.Argument(help="UUID, from: wxcli converged-recordings list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Recording Details."""
+    """Get Recording Details.\n\n\b\nExample: wxcli converged-recordings show RECORDING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/convergedRecordings/{recording_id}"
     try:
@@ -154,9 +154,9 @@ def show(
 
 _BODY_SKELETON_DELETE = '{"reason":"...","comment":"..."}'
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Recording.")
 def delete(
-    recording_id: str = typer.Argument(help="recordingId"),
+    recording_id: str = typer.Argument(help="from: wxcli converged-recordings list"),
     reason: str = typer.Option(None, "--reason", help="Reason for deleting a recording. Only required when a Compliance Officer is operating on another user's recording."),
     comment: str = typer.Option(None, "--comment", help="Compliance Officer's explanation for deleting a recording. The comment can be a maximum of 255 characters long."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -166,7 +166,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Recording\n\nExample --json-body:\n  '{"reason":"...","comment":"..."}'."""
+    """Delete a Recording.\n\n\b\nExample: wxcli converged-recordings delete RECORDING_ID\n\n\b\nExample --json-body: '{"reason":"...","comment":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE), indent=2))
         raise typer.Exit(0)
@@ -197,15 +197,15 @@ def delete(
 
 
 
-@app.command("show-metadata")
+@app.command("show-metadata", short_help="Get Recording metadata.")
 def show_metadata(
-    recording_id: str = typer.Argument(help="recordingId"),
+    recording_id: str = typer.Argument(help="from: wxcli converged-recordings list"),
     show_all_types: str = typer.Option(None, "--show-all-types", help="If `showAllTypes` is `true`, all attributes will be shown. If it's `false` or not specified, the following attributes of the metadata will be hidden. serviceData.callActivity.mediaStreams serviceData.callActivity.participants serviceData.callActivity.redirectInfo..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Recording metadata."""
+    """Get Recording metadata.\n\n\b\nExample: wxcli converged-recordings show-metadata RECORDING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/convergedRecordings/{recording_id}/metadata"
     params = {}
@@ -223,7 +223,7 @@ def show_metadata(
 
 _BODY_SKELETON_CREATE = '{"reassignOwnerEmail":"...","ownerEmail":"...","ownerID":"...","recordingIds":["..."]}'
 
-@app.command("create")
+@app.command("create", short_help="Reassign Recordings.")
 def create(
     owner_email: str = typer.Option(None, "--owner-email", help="Recording owner email."),
     owner_id: str = typer.Option(None, "--owner-id", help="Recording owner ID. Can be a user, a virtual line, or a workspace."),
@@ -234,7 +234,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reassign Recordings\n\nExample --json-body:\n  '{"reassignOwnerEmail":"...","ownerEmail":"...","ownerID":"...","recordingIds":["..."]}'."""
+    """Reassign Recordings.\n\n\b\nExample: wxcli converged-recordings create --reassign-owner-email REASSIGN_OWNER_EMAIL\n\n\b\nExample --json-body: '{"reassignOwnerEmail":"...","ownerEmail":"...","ownerID":"...","recordingIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -274,7 +274,7 @@ def create(
 
 _BODY_SKELETON_CREATE_SOFT_DELETE = '{"trashAll":true,"ownerEmail":"...","recordingIds":["..."]}'
 
-@app.command("create-soft-delete")
+@app.command("create-soft-delete", short_help="Move Recordings into the Recycle Bin.")
 def create_soft_delete(
     trash_all: bool = typer.Option(None, "--trash-all/--no-trash-all", help="If not specified or `false`, moves the recordings specified by `recordingIds` to the recycle bin. If `true`, moves all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` to the recycle bin."),
     owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `trashAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
@@ -284,7 +284,7 @@ def create_soft_delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Move Recordings into the Recycle Bin\n\nExample --json-body:\n  '{"trashAll":true,"ownerEmail":"...","recordingIds":["..."]}'."""
+    """Move Recordings into the Recycle Bin.\n\n\b\nExample --json-body: '{"trashAll":true,"ownerEmail":"...","recordingIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SOFT_DELETE), indent=2))
         raise typer.Exit(0)
@@ -318,7 +318,7 @@ def create_soft_delete(
 
 _BODY_SKELETON_CREATE_RESTORE = '{"restoreAll":true,"ownerEmail":"...","recordingIds":["..."]}'
 
-@app.command("create-restore")
+@app.command("create-restore", short_help="Restore Recordings from Recycle Bin.")
 def create_restore(
     restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specified by `recordingIds` from the recycle bin. If `true`, restores all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` from the recycle bin."),
     owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `restoreAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
@@ -328,7 +328,7 @@ def create_restore(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Restore Recordings from Recycle Bin\n\nExample --json-body:\n  '{"restoreAll":true,"ownerEmail":"...","recordingIds":["..."]}'."""
+    """Restore Recordings from Recycle Bin.\n\n\b\nExample --json-body: '{"restoreAll":true,"ownerEmail":"...","recordingIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESTORE), indent=2))
         raise typer.Exit(0)
@@ -360,10 +360,11 @@ def create_restore(
 
 
 
-_BODY_SKELETON_CREATE_PURGE = '{"purgeAll":true,"ownerEmail":"...","recordingIds":["..."]}'
+_BODY_SKELETON_DELETE_RECORDINGS_RECYCLE = '{"purgeAll":true,"ownerEmail":"...","recordingIds":["..."]}'
 
-@app.command("create-purge")
-def create_purge(
+@app.command("create-purge", hidden=True)
+@app.command("delete-recordings-recycle", short_help="Purge Recordings from Recycle Bin.")
+def delete_recordings_recycle(
     purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified by `recordingIds` from the recycle bin. If `true`, purges all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` from the recycle bin."),
     owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `purgeAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -372,9 +373,9 @@ def create_purge(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Purge Recordings from Recycle Bin\n\nExample --json-body:\n  '{"purgeAll":true,"ownerEmail":"...","recordingIds":["..."]}'."""
+    """Purge Recordings from Recycle Bin.\n\n\b\nExample --json-body: '{"purgeAll":true,"ownerEmail":"...","recordingIds":["..."]}'"""
     if generate_json_body:
-        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PURGE), indent=2))
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_RECORDINGS_RECYCLE), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/convergedRecordings/purge"

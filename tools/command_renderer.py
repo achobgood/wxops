@@ -1,5 +1,8 @@
 """Render Endpoint objects into complete wxcli Typer command .py files."""
+import base64
 import re
+from pathlib import Path
+
 from tools.postman_parser import (
     DESTRUCTIVE_SEMANTICS,
     Endpoint,
@@ -24,6 +27,13 @@ ANALYTICS_PREFIXES = ("cdr_feed", "cdr_stream")
 
 # Module-level override set by render_command_file for spec-specific base URLs (e.g., CC)
 _active_base_url_override: str | None = None
+
+# The CLI group currently being rendered ("locations", "call-queue"). Argument
+# help and the runnable example both need to name the command as an operator
+# types it, and the six render paths are dispatched through a fixed
+# (ep, folder_overrides) signature — same reason _active_base_url_override is
+# a module global rather than a parameter.
+_active_cli_name: str = ""
 
 # Existing v2 command modules — generate with _generated suffix to avoid collision
 V2_MODULES = {
@@ -380,8 +390,27 @@ def _no_body_result_expr(ep: Endpoint, default_message: str) -> str:
 
 
 def _render_docstring(ep) -> str:
-    """Render docstring with a destructive-semantics note and --json-body example."""
-    doc = ep.name
+    """Render docstring with a destructive-semantics note, a runnable example,
+    and the --json-body skeleton.
+
+    The trailing "." is now attached to the summary rather than to whatever
+    ended up last. It used to be appended after the --json-body skeleton, so
+    every skeleton ended `..."}'.` and every DESTRUCTIVE note ended `modify..`
+    — harmless while the docstring's last line was prose, actively wrong now
+    that it can end with a command an operator is meant to copy.
+
+    Both example blocks open with Click's `\\b` no-rewrap marker, which only
+    takes effect when it is the FIRST line of its paragraph (verified against
+    click 8.3.2 in plain mode; measured: without it Click reflowed
+    `Example:\\n  wxcli ...` onto one run-together line, and it had been
+    breaking the --json-body skeleton mid-token — `"callBo\\nunceMaxRings"` —
+    so the one piece of example text the CLI already had could not actually be
+    pasted). Rich mode ignores `\\b` and still wraps; every agent invocation is
+    non-TTY and therefore plain.
+    """
+    doc = " ".join((ep.name or "").split())
+    if doc and not doc.endswith("."):
+        doc += "."
     semantics = getattr(ep, "real_semantics", None)
     if semantics and summary_leading_verb(ep.name) not in DESTRUCTIVE_SEMANTICS:
         # The summary itself is misleading — "Modify Access Codes for a Person"
@@ -391,9 +420,51 @@ def _render_docstring(ep) -> str:
             f"\\n\\nDESTRUCTIVE: this {ep.method} only {semantics}s despite the "
             f"summary above. It cannot add or modify."
         )
+    example = _render_example(ep)
+    if example:
+        doc += f"\\n\\n\\b\\nExample: {example}"
     if ep.json_body_example:
-        doc += f"\\n\\nExample --json-body:\\n  '{ep.json_body_example}'"
-    return f'    """{doc}."""'
+        doc += f"\\n\\n\\b\\nExample --json-body: '{ep.json_body_example}'"
+    return f'    """{doc}"""'
+
+
+def _command_decorator(ep) -> str:
+    """The `@app.command(...)` line(s) for an endpoint — short_help, plus any alias.
+
+    TWO separate defects live here.
+
+    1. GROUP-SCREEN TRUNCATION. Click derives a command's group-screen summary
+       with `make_default_short_help(help, max_length=45)` — a 45-CHARACTER cap,
+       and it is Click's, not ours. `_clean_desc`'s 300-char cap never touches a
+       command docstring (measured: 0 of 1,863 generated docstrings are
+       truncated in the source; 220 *option* help strings are, which is a
+       genuinely separate issue). So "Read the List of Call Queues with Customer
+       Assist." — 49 chars — reached the group screen as "Read the List of Call
+       Queues...". 579 of 1,666 summaries were cut this way, on the screen an
+       agent reads to discover the CLI. Passing short_help explicitly bypasses
+       Click's truncation entirely; it does not truncate what it is given.
+
+    2. RENAMES NEED THEIR OLD NAME TO KEEP WORKING. When
+       `command_name_overrides` renames a command, the original spec-derived
+       name is emitted as a HIDDEN alias. Stacked decorators register one
+       function under both names (verified on typer 0.24.1 / click 8.3.2): the
+       new name shows in --help, the old one runs and stays invisible. Nothing
+       anyone scripted against the old name breaks.
+    """
+    summary = " ".join((ep.name or "").split())
+    if summary and not summary.endswith("."):
+        summary += "."
+    lines = []
+    original = getattr(ep, "original_command_name", None)
+    if original and original != ep.command_name:
+        # Emitted FIRST so it is the outer decorator; Typer registers both and
+        # the visible name is the one carrying short_help.
+        lines.append(f'@app.command("{original}", hidden=True)')
+    head = f'@app.command("{ep.command_name}"'
+    if summary:
+        head += f', short_help="{_escape_help(summary)}"'
+    lines.append(head + ")")
+    return "\n".join(lines)
 
 
 def _dedup_enum_values(values: list[str]) -> list[str]:
@@ -429,6 +500,323 @@ def _enum_help(field: EndpointField, max_desc: int = 300) -> str:
             return _escape_help(f"Choices: {', '.join(deduped)}")
         return _escape_help(f"{_clean_desc(field.description, max_desc)} (use --help for choices)")
     return _escape_help(_clean_desc(field.description, max_desc))
+
+
+# ── Positional argument help ────────────────────────────────────────────────
+#
+# An argument used to render as `LOCATION_ID  locationId  [required]` — the
+# argument's own name echoed back, on 1,499 of 1,508 arguments. Two facts the
+# screen never carried are what an agent actually needs, and both are derivable
+# from the spec:
+#
+#   1. WHAT THE VALUE LOOKS LIKE. 1,961 of 2,120 path params declare an
+#      `example`. The Webex ones are real base64 Spark IDs that decode to
+#      `ciscospark://us/<KIND>/<uuid>`, and <KIND> is the fact that matters —
+#      it is what distinguishes a LOCATION id from a PEOPLE id, which is the
+#      error an agent actually makes. Printing the base64 blob itself would
+#      cost ~25 tokens to say the same thing less clearly.
+#   2. WHICH COMMAND PRODUCES IT. See _producer_for below.
+
+_UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                      r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+_HEX24_RE = re.compile(r"^[0-9a-f]{24}$")
+# A word-ish literal (`businessHours`) is worth echoing; an opaque hex/uuid
+# sample is not — it teaches nothing the shape name does not already say.
+_WORDISH_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{2,19}$")
+
+
+def _spark_id_kind(example: str) -> str | None:
+    """`Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4...` -> `LOCATION`.
+
+    Spec examples are frequently truncated mid-uuid, so the tail may not be
+    valid utf-8 or valid base64 padding — decode leniently and only trust the
+    `ciscospark://` prefix and the kind segment, both of which land well
+    before any truncation point.
+    """
+    if len(example) < 24 or not example.startswith("Y2lzY29zcGFyazovL"):
+        return None
+    try:
+        decoded = base64.b64decode(example + "===", validate=False).decode(
+            "utf-8", errors="ignore")
+    except Exception:
+        return None
+    if not decoded.startswith("ciscospark://"):
+        return None
+    # "ciscospark://us/LOCATION/<uuid>" -> ['ciscospark:', '', 'us', 'LOCATION', ...]
+    parts = decoded.split("/")
+    kind = parts[3] if len(parts) > 3 else ""
+    return kind if kind and kind.replace("_", "").isalnum() else None
+
+
+def _value_shape(meta: dict) -> tuple[str | None, str | None]:
+    """Describe a path argument's value: (human shape, literal example or None).
+
+    The literal is returned separately because the runnable example line can
+    only paste a value that is genuinely usable — an enum member or a word-ish
+    constant is, an opaque id is not.
+    """
+    meta = meta or {}
+    enum = meta.get("enum")
+    if enum:
+        values = _dedup_enum_values([str(v) for v in enum])
+        if len(values) <= 6:
+            return "one of: " + "|".join(values), values[0]
+        return f"one of {len(values)} values (see the API docs)", values[0]
+    example = meta.get("example")
+    example = "" if example is None else str(example).strip()
+    if example:
+        kind = _spark_id_kind(example)
+        if kind:
+            return f"Webex {kind} id", None
+        if _UUID_RE.match(example):
+            return "UUID", None
+        if _HEX24_RE.match(example):
+            return "24-char hex id", None
+        if _WORDISH_RE.match(example):
+            return f"e.g. {example}", example
+    if meta.get("format") == "date-time":
+        return "ISO-8601 timestamp", None
+    return None, None
+
+
+# ── Which command produces this id ──────────────────────────────────────────
+#
+# Built once per process from every tracked spec, because the producing command
+# is routinely in a DIFFERENT group than the command that consumes the id
+# (`cq-playlists list` needs a playlist id from `announcement-playlists list`).
+# Two resolution rules, in strict order — a wrong pointer is worse than none,
+# so the exact rule always wins and the heuristic only fills gaps:
+#
+#   1. EXACT PARENT COLLECTION. For `{locationId}` in
+#      `/telephony/config/locations/{locationId}/dectNetworks`, the parent
+#      collection is `/telephony/config/locations`; whatever list command sits
+#      at that exact URL is the producer BY CONSTRUCTION. 821 of 1,503.
+#   2. SAME RESOURCE, SHALLOWER PATH. `/telephony/config/people` has no list
+#      command of its own, but `/people` does, and `people` is a contiguous
+#      tail of `telephony/config/people` — same resource, fewer scoping
+#      segments. 258 of 1,503, dominated by people (115) and workspaces (86).
+#
+# Rule 2 needs a guard, and it was measured, not assumed: without one it also
+# matched `.../schedules/{type}/{scheduleId}/events` -> `wxcli events list`
+# (schedule events are not admin events) and
+# `partner/tags/organizations/{orgId}/subscriptions` -> `cc-subscriptions
+# list`. Both drop a segment that SCOPES some other resource somewhere in the
+# API (`locations/{...}`, `organizations/{...}`), which is the tell: a dropped
+# namespace (`telephony/config`, `hds`) is never a scoping segment. Requiring
+# the candidate to be named `list*` drops a third bad class
+# (`cc-flow export`). The remaining 312 arguments resolve to nothing and
+# deliberately say nothing.
+_TRACKED_SPECS = Path(__file__).resolve().parent.parent / "specs"
+
+_producer_index: dict | None = None
+
+
+def _path_literals(url_path: str) -> list[str]:
+    return [s for s in url_path.split("/") if s and not s.startswith("{")]
+
+
+def build_producer_index(specs_dir: Path | None = None) -> dict:
+    """{url_path -> "group command"} for every list command, plus the lookup
+    tables rule 2 needs. Imports generate_commands lazily: that module imports
+    this one, and the override resolvers it owns (skip_tags, tag_merge,
+    cli_name_overrides, tag_op_excludes) must not be duplicated here or the
+    index would name groups the CLI does not actually ship.
+    """
+    from tools import generate_commands as gc
+    from tools.openapi_parser import load_spec, get_tags, parse_tag
+    from tools.postman_parser import load_overrides, apply_endpoint_overrides
+
+    from tools.spec_sync import PREFERRED_ORDER
+
+    specs_dir = specs_dir or _TRACKED_SPECS
+    overrides = load_overrides(Path(__file__).resolve().parent / "field_overrides.yaml")
+    by_path: dict[str, str] = {}
+    by_tail: dict[str, list[tuple[list[str], str, str]]] = {}
+    scoping: set[str] = set()
+
+    # Same order spec_sync generates in, so that where two specs declare one
+    # path the index names the same group the CLI actually ships it under.
+    found = [p for p in specs_dir.glob("webex-*.json")
+             if not p.name.endswith(".overlay.json")]
+    ordered = [p for n in PREFERRED_ORDER for p in found if p.name == n]
+    ordered += sorted(p for p in found if p.name not in PREFERRED_ORDER)
+
+    for spec_path in ordered:
+        name = spec_path.name
+        spec = load_spec(spec_path)
+        for path in spec.get("paths", {}):
+            segs = path.strip("/").split("/")
+            for i, seg in enumerate(segs[:-1]):
+                if not seg.startswith("{") and segs[i + 1].startswith("{"):
+                    scoping.add(seg)
+        merge = gc.resolve_tag_merge(overrides.get("tag_merge"), name)
+        if merge:
+            gc.merge_tags(spec, merge)
+        cli_ovr = gc.resolve_cli_name_overrides(overrides.get("cli_name_overrides"), name)
+        excludes = gc.resolve_tag_op_excludes(overrides.get("tag_op_excludes"), name)
+        skip = gc.resolve_skip_patterns(overrides.get("skip_tags"), name)
+        for tag in get_tags(spec):
+            if gc.should_skip_tag(tag, skip):
+                continue
+            endpoints, _ = parse_tag(
+                tag, spec,
+                omit_query_params=list(overrides.get("omit_query_params", [])),
+                auto_inject_params=set(overrides.get("auto_inject_from_config", ["orgId"])),
+                seen_operation_ids=set(), exclude_paths=excludes.get(tag),
+            )
+            # `_tag_ovr:*` keys are synthesized by generate_commands.main() at
+            # runtime and are absent from the raw YAML this function loads, so
+            # relying on them alone silently skipped every entry under
+            # `tag_overrides:` — including all 26 command renames. The index
+            # then pointed argument help at PRE-rename names (212 arguments
+            # cited `location-settings list-1`, a name that no longer exists as
+            # a visible command). Resolve the per-spec block the same way
+            # main() does, and keep the other two forms as fallbacks.
+            raw_tag_ovr = overrides.get("tag_overrides") or {}
+            merged_tag_ovr = dict((raw_tag_ovr.get("_global") or {}).get(tag, {}))
+            merged_tag_ovr.update((raw_tag_ovr.get(name) or {}).get(tag, {}))
+            tag_ovr = (merged_tag_ovr
+                       or overrides.get(f"_tag_ovr:{tag}")
+                       or overrides.get(tag) or {})
+            group = cli_ovr.get(tag) or folder_name_to_module(tag)[1]
+            for ep in endpoints:
+                apply_endpoint_overrides(ep, tag_ovr)
+                if ep.command_type != "list":
+                    continue
+                by_path.setdefault(ep.url_path, f"{group} {ep.command_name}")
+                literals = _path_literals(ep.url_path)
+                if literals and ep.command_name.startswith("list"):
+                    by_tail.setdefault(literals[-1], []).append(
+                        (literals, ep.url_path, f"{group} {ep.command_name}"))
+    for entries in by_tail.values():
+        entries.sort(key=lambda e: (len(e[0]), len(e[1]), e[1]))
+    return {"by_path": by_path, "by_tail": by_tail, "scoping": scoping}
+
+
+def _subsequence_remainder(candidate: list[str], target: list[str]) -> list[str] | None:
+    """Segments of `target` skipped over when matching `candidate` as an
+    ordered subsequence ending on target's last segment, or None if it is not
+    one. `[telephony, config, huntGroups]` inside
+    `[telephony, config, locations, huntGroups]` skips `[locations]` — the
+    same resource, one scoping level up. The skipped list is what the caller
+    inspects to decide whether the skip was a namespace or a real resource.
+    """
+    if not candidate or not target or candidate[-1] != target[-1]:
+        return None
+    skipped: list[str] = []
+    i = 0
+    for seg in target:
+        if i < len(candidate) and seg == candidate[i]:
+            i += 1
+        else:
+            skipped.append(seg)
+    return skipped if i == len(candidate) else None
+
+
+def _producer_for(url_path: str, var: str, group: str) -> str | None:
+    """`wxcli <group> <command>` that yields a value for `{var}`, or None."""
+    global _producer_index
+    if _producer_index is None:
+        _producer_index = build_producer_index()
+    segs = url_path.split("/")
+    token = "{" + var + "}"
+    if token not in segs:
+        return None
+    prefix = "/".join(segs[:segs.index(token)])
+    if not prefix:
+        return None
+    hit = _producer_index["by_path"].get(prefix)
+    if hit:
+        return f"wxcli {hit}"
+    literals = _path_literals(prefix)
+    if not literals:
+        return None
+    for cand_literals, cand_path, cand in _producer_index["by_tail"].get(literals[-1], ()):
+        if cand_path == prefix or len(cand_literals) > len(literals):
+            continue
+        dropped = _subsequence_remainder(cand_literals, literals)
+        if dropped is None:
+            continue
+        if cand.split(" ", 1)[0] != group and any(
+                d in _producer_index["scoping"] for d in dropped):
+            continue
+        return f"wxcli {cand}"
+    return None
+
+
+def _argument_help(ep: Endpoint, var: str, group: str | None = None) -> str:
+    """Help text for one positional argument."""
+    group = group if group is not None else _active_cli_name
+    shape, _ = _value_shape((ep.path_var_meta or {}).get(var))
+    producer = _producer_for(ep.url_path, var, group)
+    parts = [p for p in (shape, f"from: {producer}" if producer else None) if p]
+    # Nothing derivable: keep the spec's own name rather than an empty column.
+    return _escape_help(", ".join(parts) if parts else var)
+
+
+def _render_path_arguments(ep: Endpoint) -> list[str]:
+    """The `typer.Argument(...)` lines for an endpoint's path variables.
+
+    One helper for all six render paths, which carried six byte-identical
+    copies of this loop before the help text became worth building.
+    """
+    lines = []
+    for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
+        param = _path_var_to_param(var)
+        lines.append(
+            f'    {param}: str = typer.Argument(help="{_argument_help(ep, var)}"),')
+    return lines
+
+
+def _flag_value(field: EndpointField) -> str:
+    """The value token to show after a required flag in the example."""
+    if field.enum_values:
+        return _dedup_enum_values([str(v) for v in field.enum_values])[0]
+    return _safe_param_name(field.python_name).upper()
+
+
+def _render_example(ep: Endpoint) -> str | None:
+    """One copy-pasteable invocation, or None when Usage already shows it.
+
+    Emitted only for commands that take a positional or a required option.
+    For anything else the example would read `wxcli people list` against a
+    Usage line of `wxcli people list [OPTIONS]` — the same string, costing
+    tokens on exactly the screens that already scored well.
+
+    Opaque ids appear as their metavar rather than the spec's example value: a
+    real base64 Spark id is ~90 characters, would not exist in the reader's org
+    anyway, and the argument's own help now says which command produces one.
+    Enum and word-ish values ARE pasted literally, because those are correct
+    as-is.
+    """
+    tokens: list[str] = []
+    for var in ep.path_vars:
+        if _skip_injected_path_var(var, ep):
+            continue
+        _, literal = _value_shape((ep.path_var_meta or {}).get(var))
+        tokens.append(literal or _path_var_to_param(var).upper())
+    for qp in ep.query_params:
+        if not qp.required:
+            continue
+        if ep.command_type == "list" and qp.name in _SUPPRESS_SPEC_PAGING_NAMES:
+            continue
+        tokens.append(f"--{qp.python_name} {_flag_value(qp)}")
+    used_names = _used_param_names(ep)
+    for bf in ep.body_fields:
+        if not bf.required or bf.field_type in ("object", "array"):
+            continue
+        if _safe_param_name(bf.python_name) in used_names:
+            continue
+        if bf.field_type == "bool":
+            tokens.append(f"--{bf.python_name}")
+        else:
+            tokens.append(f"--{bf.python_name} {_flag_value(bf)}")
+    if not tokens:
+        return None
+    head = " ".join(p for p in ("wxcli", _active_cli_name, ep.command_name) if p)
+    return _escape_help(" ".join([head, *tokens]))
 
 
 def _render_query_params(ep: Endpoint) -> tuple[list[str], list[str]]:
@@ -606,11 +994,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     folder_overrides = folder_overrides or {}
     params = []
 
-    for var in ep.path_vars:
-        if _skip_injected_path_var(var, ep):
-            continue
-        param = _path_var_to_param(var)
-        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.extend(_render_path_arguments(ep))
 
     # Render only non-paging query params as CLI options. Spec-declared paging
     # names (max, start, offset, limit) are suppressed here — the unified
@@ -704,7 +1088,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
 
     if ep.paginates:
         lines = [
-            f'@app.command("{ep.command_name}")',
+            _command_decorator(ep),
             f"def {func_name}(",
             *params,
             "):",
@@ -720,7 +1104,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         ]
     else:
         lines = [
-            f'@app.command("{ep.command_name}")',
+            _command_decorator(ep),
             f"def {func_name}(",
             *params,
             "):",
@@ -743,11 +1127,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
-    for var in ep.path_vars:
-        if _skip_injected_path_var(var, ep):
-            continue
-        param = _path_var_to_param(var)
-        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.extend(_render_path_arguments(ep))
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
     params.extend(_render_output_options("json"))
@@ -768,7 +1148,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     if has_params:
         param_init = qp_build if qp_build else ["    params = {}"]
         lines = [
-            f'@app.command("{ep.command_name}")',
+            _command_decorator(ep),
             f"def {func_name}(",
             *params,
             "):",
@@ -785,7 +1165,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
         ]
     else:
         lines = [
-            f'@app.command("{ep.command_name}")',
+            _command_decorator(ep),
             f"def {func_name}(",
             *params,
             "):",
@@ -850,11 +1230,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
     func_name = _safe_func_name(ep.command_name)
     folder_overrides = folder_overrides or {}
     params = []
-    for var in ep.path_vars:
-        if _skip_injected_path_var(var, ep):
-            continue
-        param = _path_var_to_param(var)
-        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.extend(_render_path_arguments(ep))
 
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
@@ -929,7 +1305,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         body_default_lines.append(f'    body.setdefault({key!r}, {default_val!r})')
 
     lines = [
-        f'@app.command("{ep.command_name}")',
+        _command_decorator(ep),
         f"def {func_name}(",
         *params,
         "):",
@@ -955,11 +1331,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     func_name = _safe_func_name(ep.command_name)
     is_json_patch = ep.content_type == "application/json-patch+json"
     params = []
-    for var in ep.path_vars:
-        if _skip_injected_path_var(var, ep):
-            continue
-        param = _path_var_to_param(var)
-        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.extend(_render_path_arguments(ep))
 
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
@@ -1039,7 +1411,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     method_call = f"result = api.session.{rest_method}(url, json=body{ct_kwarg})" if not has_params else f"result = api.session.{rest_method}(url, json=body, params=params{ct_kwarg})"
 
     lines = [
-        f'@app.command("{ep.command_name}")',
+        _command_decorator(ep),
         f"def {func_name}(",
         *params,
         "):",
@@ -1068,11 +1440,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
-    for var in ep.path_vars:
-        if _skip_injected_path_var(var, ep):
-            continue
-        param = _path_var_to_param(var)
-        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.extend(_render_path_arguments(ep))
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
 
@@ -1168,7 +1536,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         delete_call = "result = api.session.rest_delete(url)" if not has_params else "result = api.session.rest_delete(url, params=params)"
 
     lines = [
-        f'@app.command("{ep.command_name}")',
+        _command_decorator(ep),
         f"def {func_name}(",
         *params,
         "):",
@@ -1199,11 +1567,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
-    for var in ep.path_vars:
-        if _skip_injected_path_var(var, ep):
-            continue
-        param = _path_var_to_param(var)
-        params.append(f'    {param}: str = typer.Argument(help="{var}"),')
+    params.extend(_render_path_arguments(ep))
 
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
@@ -1246,7 +1610,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     post_call = "result = api.session.rest_post(url, json=body)" if not has_params else "result = api.session.rest_post(url, json=body, params=params)"
 
     lines = [
-        f'@app.command("{ep.command_name}")',
+        _command_decorator(ep),
         f"def {func_name}(",
         *params,
         "):",
@@ -1317,8 +1681,9 @@ def render_command_file(
         for ep in endpoints
     )
     needs_org_id = needs_org_id_query or needs_org_id_path
-    global _active_base_url_override
+    global _active_base_url_override, _active_cli_name
     _active_base_url_override = base_url_override
+    _active_cli_name = cli_name
     needs_cc_url = base_url_override == BASE_URL_CC
     needs_fs_url = base_url_override == BASE_URL_FS
     needs_fs_project_id = needs_fs_url and any(

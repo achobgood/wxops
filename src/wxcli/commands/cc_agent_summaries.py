@@ -11,7 +11,7 @@ from wxcli.config import get_cc_base_url
 app = typer.Typer(help="Manage Webex Contact Center cc-agent-summaries.")
 
 
-@app.command("create")
+@app.command("create", short_help="List summaries.")
 def create(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),

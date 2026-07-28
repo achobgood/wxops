@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling client-settings.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get an Organization's MS Teams Settings.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -45,7 +45,7 @@ def cmd_list(
 
 _BODY_SKELETON_UPDATE = '{"settingName":"HIDE_WEBEX_APP","value":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update an Organization's MS Teams Setting.")
 def update(
     setting_name: str = typer.Option(None, "--setting-name", help="Choices: HIDE_WEBEX_APP, PRESENCE_SYNC"),
     value: bool = typer.Option(None, "--value/--no-value", help="The boolean value, either `true` or `false`, for the respective `settingName` to be updated."),
@@ -55,7 +55,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Organization's MS Teams Setting\n\nExample --json-body:\n  '{"settingName":"HIDE_WEBEX_APP","value":true}'."""
+    """Update an Organization's MS Teams Setting.\n\n\b\nExample: wxcli client-settings update --setting-name HIDE_WEBEX_APP --value\n\n\b\nExample --json-body: '{"settingName":"HIDE_WEBEX_APP","value":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

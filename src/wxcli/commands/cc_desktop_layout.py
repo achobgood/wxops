@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-desktop-layout.")
 
 _BODY_SKELETON_CREATE = '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Desktop Layout.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -39,7 +39,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Desktop Layout\n\nExample --json-body:\n  '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'."""
+    """Create a new Desktop Layout.\n\n\b\nExample: wxcli cc-desktop-layout create --name NAME --edited-by EDITED_BY --json-file-name JSON_FILE_NAME --json-file-content JSON_FILE_CONTENT --global --status --default-json-modified --validated\n\n\b\nExample --json-body: '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -111,7 +111,7 @@ def create(
 
 _BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Desktop Layout(s).")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -119,7 +119,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Desktop Layout(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Desktop Layout(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -149,8 +149,9 @@ def create_bulk(
 
 
 
-@app.command("create-purge-inactive-entities")
-def create_purge_inactive_entities(
+@app.command("create-purge-inactive-entities", hidden=True)
+@app.command("delete-purge-inactive-entities", short_help="Purge inactive Desktop Layout(s).")
+def delete_purge_inactive_entities(
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch with be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -182,14 +183,14 @@ def create_purge_inactive_entities(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Desktop Layout by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Desktop Layout by ID."""
+    """Get specific Desktop Layout by ID.\n\n\b\nExample: wxcli cc-desktop-layout show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -206,9 +207,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Desktop Layout by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -233,7 +234,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Desktop Layout by ID\n\nExample --json-body:\n  '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'."""
+    """Update specific Desktop Layout by ID.\n\n\b\nExample: wxcli cc-desktop-layout update ID --name NAME --edited-by EDITED_BY --json-file-name JSON_FILE_NAME --json-file-content JSON_FILE_CONTENT --global --status --default-json-modified --validated\n\n\b\nExample --json-body: '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -296,15 +297,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Desktop Layout by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Desktop Layout by ID."""
+    """Delete specific Desktop Layout by ID.\n\n\b\nExample: wxcli cc-desktop-layout delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -326,9 +327,9 @@ def delete(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List references for a specific Desktop Layout.")
 def cmd_list(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -338,7 +339,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Desktop Layout."""
+    """List references for a specific Desktop Layout.\n\n\b\nExample: wxcli cc-desktop-layout list ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -367,7 +368,7 @@ def cmd_list(
 
 
 
-@app.command("list-desktop-layout")
+@app.command("list-desktop-layout", short_help="List Desktop Layout(s).")
 def list_desktop_layout(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, validatedTime, defaultJsonModifiedTime, modifiedTime, teamIds, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),

@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling groups.")
 
 
-@app.command("list")
+@app.command("list", short_help="List and Search Groups.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Searches the group by `displayName` with an operator and a value. The available operators are `eq` (equal) and `sw` (starts with). Only `displayName` can be used to filter results."),
     attributes: str = typer.Option(None, "--attributes", help="The attributes to return."),
@@ -66,7 +66,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Group.")
 def create(
     display_name: str = typer.Option(None, "--display-name", help="(required) A human-readable name for the Group."),
     external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisioning client."),
@@ -76,7 +76,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Group\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'."""
+    """Create a Group.\n\n\b\nExample: wxcli groups create --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -112,15 +112,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Group Details.")
 def show(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="Webex SCIM_GROUP id, from: wxcli groups list"),
     include_members: str = typer.Option(None, "--include-members", help="Include the members as part of the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Group Details."""
+    """Get Group Details.\n\n\b\nExample: wxcli groups show GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/groups/{group_id}"
     params = {}
@@ -138,16 +138,16 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Group.")
 def update(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="Webex SCIM_GROUP id, from: wxcli groups list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Group\n\nExample --json-body:\n  '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'."""
+    """Update a Group.\n\n\b\nExample: wxcli groups update GROUP_ID\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -172,15 +172,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Group.")
 def delete(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli groups list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Group."""
+    """Delete a Group.\n\n\b\nExample: wxcli groups delete GROUP_ID"""
     if not force:
         typer.confirm(f"Delete {group_id}?", abort=True)
     api = get_api(debug=debug)
@@ -200,9 +200,9 @@ def delete(
 
 
 
-@app.command("list-members")
+@app.command("list-members", short_help="Get Group Members.")
 def list_members(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="Webex SCIM_GROUP id, from: wxcli groups list"),
     start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
     count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of search results per page. Maximum value for the count is 500."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -211,7 +211,7 @@ def list_members(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Group Members."""
+    """Get Group Members.\n\n\b\nExample: wxcli groups list-members GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/groups/{group_id}/members"
     params = {}

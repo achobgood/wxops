@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling scim-groups.")
 
 
-@app.command("list")
+@app.command("list", short_help="Search groups.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="The url encoded filter. The example content is 'displayName Eq \"group1@example.com\" or displayName Eq \"group2@example.com\"'. For more filter patterns, see https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2. If the value is empty, the API returns all groups under the organization."),
     attributes: str = typer.Option(None, "--attributes", help="The attributes to return."),
@@ -70,7 +70,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'
 
-@app.command("create")
+@app.command("create", short_help="Create a group.")
 def create(
     display_name: str = typer.Option(None, "--display-name", help="(required) A human-readable name for the Group."),
     external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisioning client."),
@@ -80,7 +80,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a group\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'."""
+    """Create a group.\n\n\b\nExample: wxcli scim-groups create --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -117,15 +117,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a group.")
 def show(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="UUID, from: wxcli scim-groups list"),
     excluded_attributes: str = typer.Option(None, "--excluded-attributes", help="Attributes to be excluded from the return."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a group."""
+    """Get a group.\n\n\b\nExample: wxcli scim-groups show GROUP_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
@@ -144,9 +144,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'
 
-@app.command("update")
+@app.command("update", short_help="Update a group with PUT.")
 def update(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="UUID, from: wxcli scim-groups list"),
     display_name: str = typer.Option(None, "--display-name", help="A human-readable name for the group."),
     external_id: str = typer.Option(None, "--external-id", help="An identifier for the resource as defined by the provisioning client."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -155,7 +155,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a group with PUT\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'."""
+    """Update a group with PUT.\n\n\b\nExample: wxcli scim-groups update GROUP_ID --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -187,16 +187,16 @@ def update(
 
 _BODY_SKELETON_UPDATE_GROUPS = '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'
 
-@app.command("update-groups")
+@app.command("update-groups", short_help="Update a group with PATCH.")
 def update_groups(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="UUID, from: wxcli scim-groups list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a group with PATCH\n\nExample --json-body:\n  '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'."""
+    """Update a group with PATCH.\n\n\b\nExample: wxcli scim-groups update-groups GROUP_ID\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_GROUPS), indent=2))
         raise typer.Exit(0)
@@ -222,15 +222,15 @@ def update_groups(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a group.")
 def delete(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="UUID, from: wxcli scim-groups list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a group."""
+    """Delete a group.\n\n\b\nExample: wxcli scim-groups delete GROUP_ID"""
     if not force:
         typer.confirm(f"Delete {group_id}?", abort=True)
     api = get_api(debug=debug)
@@ -251,9 +251,9 @@ def delete(
 
 
 
-@app.command("list-members")
+@app.command("list-members", short_help="Get Group Members.")
 def list_members(
-    group_id: str = typer.Argument(help="groupId"),
+    group_id: str = typer.Argument(help="UUID, from: wxcli scim-groups list"),
     start_index: str = typer.Option(None, "--start-index", help="The index to start for group pagination."),
     count: str = typer.Option(None, "--count", help="Non-negative integer that specifies the desired number of search results per page. The maximum value for the count is 500."),
     member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `machine`, `group`."),
@@ -263,7 +263,7 @@ def list_members(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Group Members."""
+    """Get Group Members.\n\n\b\nExample: wxcli scim-groups list-members GROUP_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}/Members"

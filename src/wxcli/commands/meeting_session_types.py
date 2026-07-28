@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-session-types.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Site Session Types.")
 def cmd_list(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. If siteUrl is not specified, the query will use the default site for the admin's authorization token used to make the call."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -42,7 +42,7 @@ def cmd_list(
 
 
 
-@app.command("list-session-types")
+@app.command("list-session-types", short_help="List User Session Type.")
 def list_session_types(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query."),
     person_id: str = typer.Option(None, "--person-id", help="A unique identifier for the user."),
@@ -79,7 +79,7 @@ def list_session_types(
 
 _BODY_SKELETON_UPDATE = '{"siteUrl":"...","sessionTypeIds":["..."],"personId":"...","email":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update User Session Types.")
 def update(
     site_url: str = typer.Option(None, "--site-url", help="Site URL for the session type."),
     person_id: str = typer.Option(None, "--person-id", help="A unique identifier for the user."),
@@ -90,7 +90,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User Session Types\n\nExample --json-body:\n  '{"siteUrl":"...","sessionTypeIds":["..."],"personId":"...","email":"..."}'."""
+    """Update User Session Types.\n\n\b\nExample: wxcli meeting-session-types update --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"...","sessionTypeIds":["..."],"personId":"...","email":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-users.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Users.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
@@ -59,7 +59,7 @@ def cmd_list(
 
 _BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Bulk partial update Users.")
 def update(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -67,7 +67,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Users\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk partial update Users.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -96,16 +96,17 @@ def update(
 
 _BODY_SKELETON_UPDATE_DYNAMIC_SKILL = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("update-dynamic-skill")
+@app.command("update-update-dynamic-skill", hidden=True)
+@app.command("update-dynamic-skill", short_help="Bulk partial update Users with dynamic skills.")
 def update_dynamic_skill(
-    skill_id: str = typer.Argument(help="skillId"),
+    skill_id: str = typer.Argument(help="UUID"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Users with dynamic skills\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk partial update Users with dynamic skills.\n\n\b\nExample: wxcli cc-users update-dynamic-skill SKILL_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DYNAMIC_SKILL), indent=2))
         raise typer.Exit(0)
@@ -132,16 +133,16 @@ def update_dynamic_skill(
 
 
 
-@app.command("show")
+@app.command("show", short_help="List users by call monitoring id.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List users by call monitoring id."""
+    """List users by call monitoring id.\n\n\b\nExample: wxcli cc-users show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -161,16 +162,16 @@ def show(
 
 
 
-@app.command("show-by-ci-user-id-organization")
+@app.command("show-by-ci-user-id-organization", short_help="Get specific User by CI User ID.")
 def show_by_ci_user_id_organization(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     include_user_profile: str = typer.Option(None, "--include-user-profile", help="Specifiy whether to include user profile data"),
     include_skill_details: str = typer.Option(None, "--include-skill-details", help="If set to true, the response includes skill information for each dynamic skill assignment."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific User by CI User ID."""
+    """Get specific User by CI User ID.\n\n\b\nExample: wxcli cc-users show-by-ci-user-id-organization ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -190,9 +191,9 @@ def show_by_ci_user_id_organization(
 
 
 
-@app.command("show-by-dynamic-skill-id")
+@app.command("show-by-dynamic-skill-id", short_help="Get users by dynamic skill ID.")
 def show_by_dynamic_skill_id(
-    skill_id: str = typer.Argument(help="skillId"),
+    skill_id: str = typer.Argument(help="UUID"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email, value) The examples below show some search queries - \"Cisco\""),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -200,7 +201,7 @@ def show_by_dynamic_skill_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get users by dynamic skill ID."""
+    """Get users by dynamic skill ID.\n\n\b\nExample: wxcli cc-users show-by-dynamic-skill-id SKILL_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -224,7 +225,7 @@ def show_by_dynamic_skill_id(
 
 _BODY_SKELETON_CREATE = '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":"...","skillName":"...","skillType":"..."}]}'
 
-@app.command("create")
+@app.command("create", short_help="Get the agents matching skill requirements criteria.")
 def create(
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"lastName\");value==\"Cisco\""),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
@@ -235,7 +236,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the agents matching skill requirements criteria\n\nExample --json-body:\n  '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":"...","skillName":"...","skillType":"..."}]}'."""
+    """Get the agents matching skill requirements criteria.\n\n\b\nExample --json-body: '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":"...","skillName":"...","skillType":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -274,7 +275,7 @@ def create(
 
 _BODY_SKELETON_CREATE_FETCH_USER_DETAILS_BY_IDS = '{"userIds":[{}],"search":"...","queueId":"..."}'
 
-@app.command("create-fetch-user-details-by-ids")
+@app.command("create-fetch-user-details-by-ids", short_help="List Users with details.")
 def create_fetch_user_details_by_ids(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -286,7 +287,7 @@ def create_fetch_user_details_by_ids(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Users with details\n\nExample --json-body:\n  '{"userIds":[{}],"search":"...","queueId":"..."}'."""
+    """List Users with details.\n\n\b\nExample --json-body: '{"userIds":[{}],"search":"...","queueId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FETCH_USER_DETAILS_BY_IDS), indent=2))
         raise typer.Exit(0)
@@ -325,7 +326,7 @@ def create_fetch_user_details_by_ids(
 
 
 
-@app.command("list-with-user-profile")
+@app.command("list-with-user-profile", short_help="List Users along with profile.")
 def list_with_user_profile(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -356,14 +357,14 @@ def list_with_user_profile(
 
 
 
-@app.command("show-with-user-profile")
+@app.command("show-with-user-profile", short_help="Get specific User along with profile by ID.")
 def show_with_user_profile(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-users list-with-user-profile"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific User along with profile by ID."""
+    """Get specific User along with profile by ID.\n\n\b\nExample: wxcli cc-users show-with-user-profile ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -378,9 +379,9 @@ def show_with_user_profile(
 
 
 
-@app.command("show-user")
+@app.command("show-user", short_help="Get specific User by ID.")
 def show_user(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-users list"),
     include_count: str = typer.Option(None, "--include-count", help="If set to true, the API response will include the count of each type of Contact Service Queue to which the user is assigned."),
     include_user_profile_type: str = typer.Option(None, "--include-user-profile-type", help="If set to true, the API response includes the User Profile."),
     include_skill_profile_audit: str = typer.Option(None, "--include-skill-profile-audit", help="If set to true gives skill profile modification info."),
@@ -392,7 +393,7 @@ def show_user(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific User by ID."""
+    """Get specific User by ID.\n\n\b\nExample: wxcli cc-users show-user ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -424,9 +425,9 @@ def show_user(
 
 _BODY_SKELETON_UPDATE_USER = '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"..."}'
 
-@app.command("update-user")
+@app.command("update-user", short_help="Update specific User by ID.")
 def update_user(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-users list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -465,7 +466,7 @@ def update_user(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific User by ID\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"..."}'."""
+    """Update specific User by ID.\n\n\b\nExample: wxcli cc-users update-user ID --first-name FIRST_NAME --last-name LAST_NAME --email EMAIL --ci-user-id CI_USER_ID --user-profile-id USER_PROFILE_ID --contact-center-enabled --active\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_USER), indent=2))
         raise typer.Exit(0)
@@ -556,9 +557,9 @@ def update_user(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific User.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-users list"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -568,7 +569,7 @@ def list_incoming_references(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific User."""
+    """List references for a specific User.\n\n\b\nExample: wxcli cc-users list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -599,9 +600,9 @@ def list_incoming_references(
 
 _BODY_SKELETON_UPDATE_RESKILL = '{"organizationId":"...","id":"...","version":0,"skillProfileId":"...","dynamicSkills":{"add":["..."],"remove":["..."]},"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update-reskill")
+@app.command("update-reskill", short_help="Reskill Agents.")
 def update_reskill(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-users list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -614,7 +615,7 @@ def update_reskill(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reskill Agents\n\nExample --json-body:\n  '{"organizationId":"...","id":"...","version":0,"skillProfileId":"...","dynamicSkills":{"add":["..."],"remove":["..."]},"createdTime":0,"lastUpdatedTime":0}'."""
+    """Reskill Agents.\n\n\b\nExample: wxcli cc-users update-reskill ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"skillProfileId":"...","dynamicSkills":{"add":["..."],"remove":["..."]},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_RESKILL), indent=2))
         raise typer.Exit(0)
@@ -653,7 +654,7 @@ def update_reskill(
 
 
 
-@app.command("list-user")
+@app.command("list-user", short_help="List Users.")
 def list_user(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, xspVersion, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
@@ -720,9 +721,9 @@ def list_user(
 
 
 
-@app.command("show-by-ci-user-id-v2")
+@app.command("show-by-ci-user-id-v2", short_help="Get specific User by CI User ID.")
 def show_by_ci_user_id_v2(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     include_user_profile: str = typer.Option(None, "--include-user-profile", help="Specifiy whether to include user profile data"),
     include_names: str = typer.Option(None, "--include-names", help="Specifiy whether to include resource collection names"),
     include_skill_details: str = typer.Option(None, "--include-skill-details", help="If set to true, the response includes skill information for each dynamic skill assignment."),
@@ -730,7 +731,7 @@ def show_by_ci_user_id_v2(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific User by CI User ID."""
+    """Get specific User by CI User ID.\n\n\b\nExample: wxcli cc-users show-by-ci-user-id-v2 ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)

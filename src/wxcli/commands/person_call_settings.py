@@ -11,16 +11,16 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling person-call-settings.")
 
 
-@app.command("list")
+@app.command("list", short_help="Retrieve a Person's Monitoring Settings.")
 def cmd_list(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a Person's Monitoring Settings."""
+    """Retrieve a Person's Monitoring Settings.\n\n\b\nExample: wxcli person-call-settings list PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/monitoring"
     params = {}
@@ -46,9 +46,9 @@ def cmd_list(
 
 _BODY_SKELETON_UPDATE = '{"enableCallParkNotification":true,"monitoredElements":["..."]}'
 
-@app.command("update")
+@app.command("update", short_help="Modify Monitoring Settings for a Person.")
 def update(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enable_call_park_notification: bool = typer.Option(None, "--enable-call-park-notification/--no-enable-call-park-notification", help="Call park notification is enabled or disabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -56,7 +56,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Monitoring Settings for a Person\n\nExample --json-body:\n  '{"enableCallParkNotification":true,"monitoredElements":["..."]}'."""
+    """Modify Monitoring Settings for a Person.\n\n\b\nExample: wxcli person-call-settings update PERSON_ID\n\n\b\nExample --json-body: '{"enableCallParkNotification":true,"monitoredElements":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

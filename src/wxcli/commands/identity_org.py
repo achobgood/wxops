@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling identity-org.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get an organization.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -33,7 +33,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"schemas":["..."],"displayName":"...","preferredLanguage":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update an organization.")
 def update(
     display_name: str = typer.Option(None, "--display-name", help="New full name of the organization."),
     preferred_language: str = typer.Option(None, "--preferred-language", help="It is the default preferredLanguage for user creation in this org. It is set in ISO639 format."),
@@ -43,7 +43,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an organization\n\nExample --json-body:\n  '{"schemas":["..."],"displayName":"...","preferredLanguage":"..."}'."""
+    """Update an organization.\n\n\b\nExample: wxcli identity-org update --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","preferredLanguage":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -75,7 +75,7 @@ def update(
 
 _BODY_SKELETON_UPDATE_AUTHENTICATION_CONFIG = '{"schemas":["..."],"RememberMyLoginId":true,"RememberMyLoginIdDuration":0,"mfaEnabled":true}'
 
-@app.command("update-authentication-config")
+@app.command("update-authentication-config", short_help="Update Organization Authentication Configuration Settings.")
 def update_authentication_config(
     remember_my_login_id: bool = typer.Option(None, "--remember-my-login-id/--no-remember-my-login-id", help="Login Id set to true if it should be remembered."),
     remember_my_login_id_duration: str = typer.Option(None, "--remember-my-login-id-duration", help="Specifies the number of days the user's login ID is remembered. Must be between 1 and 120 (inclusive)."),
@@ -86,7 +86,7 @@ def update_authentication_config(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Organization Authentication Configuration Settings\n\nExample --json-body:\n  '{"schemas":["..."],"RememberMyLoginId":true,"RememberMyLoginIdDuration":0,"mfaEnabled":true}'."""
+    """Update Organization Authentication Configuration Settings.\n\n\b\nExample --json-body: '{"schemas":["..."],"RememberMyLoginId":true,"RememberMyLoginIdDuration":0,"mfaEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUTHENTICATION_CONFIG), indent=2))
         raise typer.Exit(0)
@@ -120,7 +120,7 @@ def update_authentication_config(
 
 _BODY_SKELETON_UPDATE_PASSWORD_POLICY = '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"..."}'
 
-@app.command("update-password-policy")
+@app.command("update-password-policy", short_help="Update Organization Password Policy.")
 def update_password_policy(
     minimum_numeric: str = typer.Option(None, "--minimum-numeric", help="Minimum number of numeric characters in password"),
     minimum_cap_alpha: str = typer.Option(None, "--minimum-cap-alpha", help="Minimum number of uppercase alphabetic character letters in password"),
@@ -136,7 +136,7 @@ def update_password_policy(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Organization Password Policy\n\nExample --json-body:\n  '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"..."}'."""
+    """Update Organization Password Policy.\n\n\b\nExample: wxcli identity-org update-password-policy --minimum-numeric MINIMUM_NUMERIC --minimum-cap-alpha MINIMUM_CAP_ALPHA --minimum-low-alpha MINIMUM_LOW_ALPHA --minimum-special MINIMUM_SPECIAL --minimum-length MINIMUM_LENGTH --history-count HISTORY_COUNT --max-password-age MAX_PASSWORD_AGE\n\n\b\nExample --json-body: '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PASSWORD_POLICY), indent=2))
         raise typer.Exit(0)
@@ -178,15 +178,15 @@ def update_password_policy(
 
 
 
-@app.command("generate-otp")
+@app.command("generate-otp", short_help="Generate OTP.")
 def generate_otp(
-    user_id: str = typer.Argument(help="userId"),
+    user_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Generate OTP."""
+    """Generate OTP.\n\n\b\nExample: wxcli identity-org generate-otp USER_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/users/{user_id}/actions/generateOtp"

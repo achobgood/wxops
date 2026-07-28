@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-preferences.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Meeting Preference Details.")
 def cmd_list(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the required [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -45,7 +45,7 @@ def cmd_list(
 
 
 
-@app.command("list-personal-meeting-room")
+@app.command("list-personal-meeting-room", short_help="Get Personal Meeting Room Options.")
 def list_personal_meeting_room(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -82,7 +82,7 @@ def list_personal_meeting_room(
 
 _BODY_SKELETON_UPDATE = '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update Personal Meeting Room Options.")
 def update(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update Personal..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -101,7 +101,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Personal Meeting Room Options\n\nExample --json-body:\n  '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true}'."""
+    """Update Personal Meeting Room Options.\n\n\b\nExample: wxcli meeting-preferences update --topic TOPIC --host-pin HOST_PIN --enabled-auto-lock --auto-lock-minutes AUTO_LOCK_MINUTES --enabled-notify-host --support-co-host\n\n\b\nExample --json-body: '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -149,7 +149,7 @@ def update(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Audio Options.")
 def show(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -177,7 +177,7 @@ def show(
 
 _BODY_SKELETON_UPDATE_AUDIO = '{"defaultAudioType":"webexAudio","otherTeleconferenceDescription":"...","enabledGlobalCallIn":true,"enabledTollFree":true,"enabledAutoConnection":true,"officeNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"mobileNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"audioPin":"..."}'
 
-@app.command("update-audio")
+@app.command("update-audio", short_help="Update Audio Options.")
 def update_audio(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update audio..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -193,7 +193,7 @@ def update_audio(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Audio Options\n\nExample --json-body:\n  '{"defaultAudioType":"webexAudio","otherTeleconferenceDescription":"...","enabledGlobalCallIn":true,"enabledTollFree":true,"enabledAutoConnection":true,"officeNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"mobileNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"audioPin":"..."}'."""
+    """Update Audio Options.\n\n\b\nExample: wxcli meeting-preferences update-audio --default-audio-type webexAudio --other-teleconference-description OTHER_TELECONFERENCE_DESCRIPTION --enabled-global-call-in --enabled-toll-free --enabled-auto-connection\n\n\b\nExample --json-body: '{"defaultAudioType":"webexAudio","otherTeleconferenceDescription":"...","enabledGlobalCallIn":true,"enabledTollFree":true,"enabledAutoConnection":true,"officeNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"mobileNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"audioPin":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUDIO), indent=2))
         raise typer.Exit(0)
@@ -235,7 +235,7 @@ def update_audio(
 
 
 
-@app.command("list-video")
+@app.command("list-video", short_help="Get Video Options.")
 def list_video(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -272,7 +272,7 @@ def list_video(
 
 _BODY_SKELETON_UPDATE_VIDEO = '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":"..."}]}'
 
-@app.command("update-video")
+@app.command("update-video", short_help="Update Video Options.")
 def update_video(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update video..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -282,7 +282,7 @@ def update_video(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Video Options\n\nExample --json-body:\n  '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":"..."}]}'."""
+    """Update Video Options.\n\n\b\nExample --json-body: '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VIDEO), indent=2))
         raise typer.Exit(0)
@@ -312,7 +312,7 @@ def update_video(
 
 
 
-@app.command("list-scheduling-options")
+@app.command("list-scheduling-options", short_help="Get Scheduling Options.")
 def list_scheduling_options(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will return details..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -349,7 +349,7 @@ def list_scheduling_options(
 
 _BODY_SKELETON_UPDATE_SCHEDULING_OPTIONS = '{"enabledJoinBeforeHost":true,"joinBeforeHostMinutes":0,"enabledAutoShareRecording":true,"enabledWebexAssistantByDefault":true,"delegateEmails":["..."]}'
 
-@app.command("update-scheduling-options")
+@app.command("update-scheduling-options", short_help="Update Scheduling Options.")
 def update_scheduling_options(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -363,7 +363,7 @@ def update_scheduling_options(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Scheduling Options\n\nExample --json-body:\n  '{"enabledJoinBeforeHost":true,"joinBeforeHostMinutes":0,"enabledAutoShareRecording":true,"enabledWebexAssistantByDefault":true,"delegateEmails":["..."]}'."""
+    """Update Scheduling Options.\n\n\b\nExample: wxcli meeting-preferences update-scheduling-options --enabled-join-before-host --join-before-host-minutes JOIN_BEFORE_HOST_MINUTES --enabled-auto-share-recording\n\n\b\nExample --json-body: '{"enabledJoinBeforeHost":true,"joinBeforeHostMinutes":0,"enabledAutoShareRecording":true,"enabledWebexAssistantByDefault":true,"delegateEmails":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SCHEDULING_OPTIONS), indent=2))
         raise typer.Exit(0)
@@ -403,7 +403,7 @@ def update_scheduling_options(
 
 _BODY_SKELETON_CREATE = '{"emails":["..."]}'
 
-@app.command("create")
+@app.command("create", short_help="Insert Delegate Emails.")
 def create(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
@@ -413,7 +413,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Insert Delegate Emails\n\nExample --json-body:\n  '{"emails":["..."]}'."""
+    """Insert Delegate Emails.\n\n\b\nExample --json-body: '{"emails":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -446,10 +446,11 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_DELETE = '{"emails":["..."]}'
+_BODY_SKELETON_DELETE_DELEGATE_EMAILS = '{"emails":["..."]}'
 
-@app.command("create-delete")
-def create_delete(
+@app.command("create-delete", hidden=True)
+@app.command("delete-delegate-emails", short_help="Delete Delegate Emails.")
+def delete_delegate_emails(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -458,9 +459,9 @@ def create_delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Delegate Emails\n\nExample --json-body:\n  '{"emails":["..."]}'."""
+    """Delete Delegate Emails.\n\n\b\nExample --json-body: '{"emails":["..."]}'"""
     if generate_json_body:
-        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DELETE), indent=2))
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_DELEGATE_EMAILS), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingPreferences/schedulingOptions/delegateEmails/delete"
@@ -486,7 +487,7 @@ def create_delete(
 
 
 
-@app.command("list-sites")
+@app.command("list-sites", short_help="Get Site List.")
 def list_sites(
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user and the API will return the list of Webex sites for..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. If `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call."),
@@ -523,7 +524,7 @@ def list_sites(
 
 _BODY_SKELETON_UPDATE_SITES = '{"siteUrl":"..."}'
 
-@app.command("update-sites")
+@app.command("update-sites", short_help="Update Default Site.")
 def update_sites(
     default_site: str = typer.Option(..., "--default-site", help="Whether or not to change user's default site. ***Note***: `defaultSite` should be set to true for the user's single default site"),
     user_email: str = typer.Option(None, "--user-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the [admin-level scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will update default..."),
@@ -534,7 +535,7 @@ def update_sites(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Default Site\n\nExample --json-body:\n  '{"siteUrl":"..."}'."""
+    """Update Default Site.\n\n\b\nExample: wxcli meeting-preferences update-sites --default-site DEFAULT_SITE --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SITES), indent=2))
         raise typer.Exit(0)
@@ -568,7 +569,7 @@ def update_sites(
 
 _BODY_SKELETON_CREATE_REFRESH_ID = '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":"...","personalMeetingRoomId":"..."}]}'
 
-@app.command("create-refresh-id")
+@app.command("create-refresh-id", short_help="Batch Refresh Personal Meeting Room ID.")
 def create_refresh_id(
     site_url: str = typer.Option(None, "--site-url", help="(required) Site URL to refresh the personal room IDs."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -577,7 +578,7 @@ def create_refresh_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch Refresh Personal Meeting Room ID\n\nExample --json-body:\n  '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":"...","personalMeetingRoomId":"..."}]}'."""
+    """Batch Refresh Personal Meeting Room ID.\n\n\b\nExample: wxcli meeting-preferences create-refresh-id --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":"...","personalMeetingRoomId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REFRESH_ID), indent=2))
         raise typer.Exit(0)

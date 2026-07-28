@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling guest-management.")
 
 _BODY_SKELETON_CREATE = '{"subject":"...","displayName":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Guest.")
 def create(
     subject: str = typer.Option(None, "--subject", help="(required) The unique and external identifier of the guest."),
     display_name: str = typer.Option(None, "--display-name", help="(required) The display name shown in the Webex application."),
@@ -22,7 +22,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Guest\n\nExample --json-body:\n  '{"subject":"...","displayName":"..."}'."""
+    """Create a Guest.\n\n\b\nExample: wxcli guest-management create --subject SUBJECT --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"subject":"...","displayName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -58,7 +58,7 @@ def create(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Guest Count.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),

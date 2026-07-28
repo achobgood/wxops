@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling data-sources.")
 
 _BODY_SKELETON_CREATE = '{"audience":"...","nonce":"...","schemaId":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Register a Data Source.")
 def create(
     audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
     nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
@@ -26,7 +26,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register a Data Source\n\nExample --json-body:\n  '{"audience":"...","nonce":"...","schemaId":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'."""
+    """Register a Data Source.\n\n\b\nExample --json-body: '{"audience":"...","nonce":"...","schemaId":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -66,7 +66,7 @@ def create(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Retrieve All Data Sources.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -95,7 +95,7 @@ def cmd_list(
 
 
 
-@app.command("list-schemas")
+@app.command("list-schemas", short_help="Retrieve Data Source Schemas.")
 def list_schemas(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -124,14 +124,14 @@ def list_schemas(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Retrieve Details of a Specific Data Source Schema.")
 def show(
-    schema_id: str = typer.Argument(help="schemaId"),
+    schema_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list-schemas"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Details of a Specific Data Source Schema."""
+    """Retrieve Details of a Specific Data Source Schema.\n\n\b\nExample: wxcli data-sources show SCHEMA_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/dataSources/schemas/{schema_id}"
     try:
@@ -144,14 +144,14 @@ def show(
 
 
 
-@app.command("show-data-sources")
+@app.command("show-data-sources", short_help="Retrieve Data Source Details.")
 def show_data_sources(
-    data_source_id: str = typer.Argument(help="dataSourceId"),
+    data_source_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Data Source Details."""
+    """Retrieve Data Source Details.\n\n\b\nExample: wxcli data-sources show-data-sources DATA_SOURCE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/dataSources/{data_source_id}"
     try:
@@ -166,9 +166,9 @@ def show_data_sources(
 
 _BODY_SKELETON_UPDATE = '{"audience":"...","errorMessage":"...","nonce":"...","schemaId":"...","status":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Data Source.")
 def update(
-    data_source_id: str = typer.Argument(help="dataSourceId"),
+    data_source_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list"),
     audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
     error_message: str = typer.Option(None, "--error-message", help="Error Message shown in Control Hub when status is set to `disabled`."),
     nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
@@ -183,7 +183,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Data Source\n\nExample --json-body:\n  '{"audience":"...","errorMessage":"...","nonce":"...","schemaId":"...","status":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'."""
+    """Update a Data Source.\n\n\b\nExample: wxcli data-sources update DATA_SOURCE_ID\n\n\b\nExample --json-body: '{"audience":"...","errorMessage":"...","nonce":"...","schemaId":"...","status":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -224,15 +224,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Data Source.")
 def delete(
-    data_source_id: str = typer.Argument(help="dataSourceId"),
+    data_source_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Data Source."""
+    """Delete a Data Source.\n\n\b\nExample: wxcli data-sources delete DATA_SOURCE_ID"""
     if not force:
         typer.confirm(f"Delete {data_source_id}?", abort=True)
     api = get_api(debug=debug)

@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-transcripts.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Meeting Transcripts.")
 def cmd_list(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-@app.command("list-meeting-transcripts")
+@app.command("list-meeting-transcripts", short_help="List Meeting Transcripts For Compliance Officer.")
 def list_meeting_transcripts(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List transcripts to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
@@ -65,7 +65,7 @@ def list_meeting_transcripts(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Transcripts For Compliance Officer."""
+    """List Meeting Transcripts For Compliance Officer.\n\n\b\nExample: wxcli meeting-transcripts list-meeting-transcripts --site-url SITE_URL"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meetingTranscripts"
     params = {}
@@ -92,9 +92,9 @@ def list_meeting_transcripts(
 
 
 
-@app.command("list-download")
+@app.command("list-download", short_help="Download a Meeting Transcript.")
 def list_download(
-    transcript_id: str = typer.Argument(help="transcriptId"),
+    transcript_id: str = typer.Argument(help="from: wxcli meeting-transcripts list"),
     format_param: str = typer.Option(None, "--format", help="Choices: vtt, txt"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the `admin-level` scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -103,7 +103,7 @@ def list_download(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Download a Meeting Transcript."""
+    """Download a Meeting Transcript.\n\n\b\nExample: wxcli meeting-transcripts list-download TRANSCRIPT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingTranscripts/{transcript_id}/download"
     params = {}
@@ -128,16 +128,16 @@ def list_download(
 
 
 
-@app.command("list-snippets")
+@app.command("list-snippets", short_help="List Snippets of a Meeting Transcript.")
 def list_snippets(
-    transcript_id: str = typer.Argument(help="transcriptId"),
+    transcript_id: str = typer.Argument(help="from: wxcli meeting-transcripts list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Snippets of a Meeting Transcript."""
+    """List Snippets of a Meeting Transcript.\n\n\b\nExample: wxcli meeting-transcripts list-snippets TRANSCRIPT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingTranscripts/{transcript_id}/snippets"
     params = {}
@@ -158,15 +158,15 @@ def list_snippets(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Transcript Snippet.")
 def show(
-    transcript_id: str = typer.Argument(help="transcriptId"),
-    snippet_id: str = typer.Argument(help="snippetId"),
+    transcript_id: str = typer.Argument(help="from: wxcli meeting-transcripts list"),
+    snippet_id: str = typer.Argument(help="from: wxcli meeting-transcripts list-snippets"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Transcript Snippet."""
+    """Get a Transcript Snippet.\n\n\b\nExample: wxcli meeting-transcripts show TRANSCRIPT_ID SNIPPET_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingTranscripts/{transcript_id}/snippets/{snippet_id}"
     try:
@@ -181,10 +181,10 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"text":"...","reason":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Transcript Snippet.")
 def update(
-    transcript_id: str = typer.Argument(help="transcriptId"),
-    snippet_id: str = typer.Argument(help="snippetId"),
+    transcript_id: str = typer.Argument(help="from: wxcli meeting-transcripts list"),
+    snippet_id: str = typer.Argument(help="from: wxcli meeting-transcripts list-snippets"),
     reason: str = typer.Option(None, "--reason", help="Reason for snippet update; only required for Compliance Officers."),
     text: str = typer.Option(None, "--text", help="Text for the snippet."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -193,7 +193,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Transcript Snippet\n\nExample --json-body:\n  '{"text":"...","reason":"..."}'."""
+    """Update a Transcript Snippet.\n\n\b\nExample: wxcli meeting-transcripts update TRANSCRIPT_ID SNIPPET_ID --text TEXT\n\n\b\nExample --json-body: '{"text":"...","reason":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -224,9 +224,9 @@ def update(
 
 _BODY_SKELETON_DELETE = '{"reason":"...","comment":"..."}'
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Transcript.")
 def delete(
-    transcript_id: str = typer.Argument(help="transcriptId"),
+    transcript_id: str = typer.Argument(help="from: wxcli meeting-transcripts list"),
     reason: str = typer.Option(None, "--reason", help="Reason for deleting a transcript. Only required when a Compliance Officer is operating on another user's transcript."),
     comment: str = typer.Option(None, "--comment", help="Explanation for deleting a transcript. The comment can be a maximum of 255 characters long."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -236,7 +236,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Transcript\n\nExample --json-body:\n  '{"reason":"...","comment":"..."}'."""
+    """Delete a Transcript.\n\n\b\nExample: wxcli meeting-transcripts delete TRANSCRIPT_ID\n\n\b\nExample --json-body: '{"reason":"...","comment":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE), indent=2))
         raise typer.Exit(0)

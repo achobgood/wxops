@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-agent-wellbeing.")
 
 _BODY_SKELETON_CREATE = '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Subscribe for realtime burnout events.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Client-defined string naming the subscription."),
     description: str = typer.Option(None, "--description", help="Client-defined string describing the subscription."),
@@ -26,7 +26,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Subscribe for realtime burnout events\n\nExample --json-body:\n  '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'."""
+    """Subscribe for realtime burnout events.\n\n\b\nExample: wxcli cc-agent-wellbeing create --name NAME --destination-url DESTINATION_URL\n\n\b\nExample --json-body: '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -71,7 +71,7 @@ def create(
 
 _BODY_SKELETON_CREATE_ACTION = '{"interactionId":"...","agentId":"...","clientId":"...","actionType":"...","actionDateType":{}}'
 
-@app.command("create-action")
+@app.command("create-action", short_help="Record the realtime burnout events.")
 def create_action(
     interaction_id: str = typer.Option(None, "--interaction-id", help="A unique identifier for each interaction or contact within the contact center."),
     agent_id: str = typer.Option(None, "--agent-id", help="The identifier for the agent whose burnout index has been calculated."),
@@ -83,7 +83,7 @@ def create_action(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Record the realtime burnout events\n\nExample --json-body:\n  '{"interactionId":"...","agentId":"...","clientId":"...","actionType":"...","actionDateType":{}}'."""
+    """Record the realtime burnout events.\n\n\b\nExample --json-body: '{"interactionId":"...","agentId":"...","clientId":"...","actionType":"...","actionDateType":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ACTION), indent=2))
         raise typer.Exit(0)
@@ -120,14 +120,14 @@ def create_action(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Agent Burnout resource by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Agent Burnout resource by ID."""
+    """Get specific Agent Burnout resource by ID.\n\n\b\nExample: wxcli cc-agent-wellbeing show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -144,9 +144,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"enabled":true,"agentInclusionType":"ALL","organizationId":"...","id":"...","version":0,"wellnessBreakReminders":"DISABLED","createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Agent Burnout resource by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -161,7 +161,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Agent Burnout resource by ID\n\nExample --json-body:\n  '{"enabled":true,"agentInclusionType":"ALL","organizationId":"...","id":"...","version":0,"wellnessBreakReminders":"DISABLED","createdTime":0,"lastUpdatedTime":0}'."""
+    """Update specific Agent Burnout resource by ID.\n\n\b\nExample: wxcli cc-agent-wellbeing update ID --enabled --agent-inclusion-type ALL\n\n\b\nExample --json-body: '{"enabled":true,"agentInclusionType":"ALL","organizationId":"...","id":"...","version":0,"wellnessBreakReminders":"DISABLED","createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -204,7 +204,7 @@ def update(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List Agent Burnout resource(s).")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),

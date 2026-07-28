@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-skill.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Skill(s).")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (enumSkillValues)"),
@@ -57,7 +57,7 @@ def cmd_list(
 
 
 
-@app.command("create")
+@app.command("create", short_help="Create a new Skill.")
 def create(
     payload_dto: str = typer.Option(..., "--payload-dto", help="Skill configuration data"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -65,7 +65,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Skill."""
+    """Create a new Skill.\n\n\b\nExample: wxcli cc-skill create --payload-dto PAYLOAD_DTO"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -97,7 +97,7 @@ def create(
 
 _BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Skill(s).")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -105,7 +105,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Skill(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Skill(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -135,7 +135,7 @@ def create_bulk(
 
 
 
-@app.command("create-populate-json-attr")
+@app.command("create-populate-json-attr", short_help="Populate json-attributes field for a given skill-id of an organization.")
 def create_populate_json_attr(
     id: str = typer.Argument(help="id"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -143,7 +143,7 @@ def create_populate_json_attr(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Populate json-attributes field for a given skill-id of an organization."""
+    """Populate json-attributes field for a given skill-id of an organization.\n\n\b\nExample: wxcli cc-skill create-populate-json-attr ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -170,8 +170,9 @@ def create_populate_json_attr(
 
 
 
-@app.command("create-purge-inactive-entities")
-def create_purge_inactive_entities(
+@app.command("create-purge-inactive-entities", hidden=True)
+@app.command("delete-purge-inactive-entities", short_help="Purge inactive Skill(s).")
+def delete_purge_inactive_entities(
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch with be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -203,14 +204,14 @@ def create_purge_inactive_entities(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Skill by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-skill list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Skill by ID."""
+    """Get specific Skill by ID.\n\n\b\nExample: wxcli cc-skill show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -225,16 +226,16 @@ def show(
 
 
 
-@app.command("update")
+@app.command("update", short_help="Update specific Skill by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-skill list"),
     payload_dto: str = typer.Option(..., "--payload-dto", help="Skill configuration data for update"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Skill by ID."""
+    """Update specific Skill by ID.\n\n\b\nExample: wxcli cc-skill update ID --payload-dto PAYLOAD_DTO"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -261,15 +262,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Skill by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-skill list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Skill by ID."""
+    """Delete specific Skill by ID.\n\n\b\nExample: wxcli cc-skill delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -291,9 +292,9 @@ def delete(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific Skill.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-skill list"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -303,7 +304,7 @@ def list_incoming_references(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Skill."""
+    """List references for a specific Skill.\n\n\b\nExample: wxcli cc-skill list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -332,7 +333,7 @@ def list_incoming_references(
 
 
 
-@app.command("list-skill")
+@app.command("list-skill", short_help="List Skill(s).")
 def list_skill(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, enumSkillValues, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (enumSkillValues)"),

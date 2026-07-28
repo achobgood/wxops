@@ -10,15 +10,15 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-messages.")
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Meeting Message.")
 def delete(
-    meeting_message_id: str = typer.Argument(help="meetingMessageId"),
+    meeting_message_id: str = typer.Argument(help="Webex MEETING_MESSAGE id, from: wxcli messages list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Meeting Message."""
+    """Delete a Meeting Message.\n\n\b\nExample: wxcli meeting-messages delete MEETING_MESSAGE_ID"""
     if not force:
         typer.confirm(f"Delete {meeting_message_id}?", abort=True)
     api = get_api(debug=debug)

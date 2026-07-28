@@ -13,16 +13,16 @@ app = typer.Typer(help="Manage Webex Calling location-call-handling.")
 
 _BODY_SKELETON_GENERATE_EXAMPLE_PASSWORD = '{"generate":["sip"]}'
 
-@app.command("generate-example-password")
+@app.command("generate-example-password", short_help="Generate example password for Location.")
 def generate_example_password(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Generate example password for Location\n\nExample --json-body:\n  '{"generate":["sip"]}'."""
+    """Generate example password for Location.\n\n\b\nExample: wxcli location-call-handling generate-example-password LOCATION_ID\n\n\b\nExample --json-body: '{"generate":["sip"]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_GENERATE_EXAMPLE_PASSWORD), indent=2))
         raise typer.Exit(0)
@@ -46,14 +46,14 @@ def generate_example_password(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Read the Internal Dialing configuration for a location.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the Internal Dialing configuration for a location."""
+    """Read the Internal Dialing configuration for a location.\n\n\b\nExample: wxcli location-call-handling show LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/internalDialing"
     params = {}
@@ -72,9 +72,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":"ROUTE_GROUP"}}'
 
-@app.command("update")
+@app.command("update", short_help="Modify the Internal Dialing configuration for a location.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     enable_unknown_extension_route_policy: bool = typer.Option(None, "--enable-unknown-extension-route-policy/--no-enable-unknown-extension-route-policy", help="When enabled, calls made by users at the location to an unknown extension (between 2-6 digits) are routed to the selected route group/trunk as premises calls."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -82,7 +82,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify the Internal Dialing configuration for a location\n\nExample --json-body:\n  '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":"ROUTE_GROUP"}}'."""
+    """Modify the Internal Dialing configuration for a location.\n\n\b\nExample: wxcli location-call-handling update LOCATION_ID\n\n\b\nExample --json-body: '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":"ROUTE_GROUP"}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -113,14 +113,14 @@ def update(
 
 
 
-@app.command("show-intercept")
+@app.command("show-intercept", short_help="Get Location Intercept.")
 def show_intercept(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Location Intercept."""
+    """Get Location Intercept.\n\n\b\nExample: wxcli location-call-handling show-intercept LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/intercept"
     params = {}
@@ -139,9 +139,9 @@ def show_intercept(
 
 _BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","fileName":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
 
-@app.command("update-intercept")
+@app.command("update-intercept", short_help="Put Location Intercept.")
 def update_intercept(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/disable location intercept. Enable this feature to override any location's Call Intercept settings that a person configures."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -149,7 +149,7 @@ def update_intercept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Put Location Intercept\n\nExample --json-body:\n  '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","fileName":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'."""
+    """Put Location Intercept.\n\n\b\nExample: wxcli location-call-handling update-intercept LOCATION_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","fileName":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INTERCEPT), indent=2))
         raise typer.Exit(0)
@@ -180,16 +180,16 @@ def update_intercept(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Location Outgoing Permission.")
 def cmd_list(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Location Outgoing Permission."""
+    """Get Location Outgoing Permission.\n\n\b\nExample: wxcli location-call-handling list LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission"
     params = {}
@@ -209,22 +209,22 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("callingPermissions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Call Type', 'callType'), ('Action', 'action'), ('Transfer', 'transferEnabled')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Call Type', 'callType'), ('Action', 'action'), ('Transfer Enabled', 'transferEnabled'), ('Is Call Type Restriction Enabled', 'isCallTypeRestrictionEnabled')], limit=limit)
 
 
 
 _BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"callingPermissions":[{"callType":"...","action":"...","transferEnabled":"..."}]}'
 
-@app.command("update-outgoing-permission")
+@app.command("update-outgoing-permission", short_help="Update Location Outgoing Permission.")
 def update_outgoing_permission(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Location Outgoing Permission\n\nExample --json-body:\n  '{"callingPermissions":[{"callType":"...","action":"...","transferEnabled":"..."}]}'."""
+    """Update Location Outgoing Permission.\n\n\b\nExample: wxcli location-call-handling update-outgoing-permission LOCATION_ID\n\n\b\nExample --json-body: '{"callingPermissions":[{"callType":"...","action":"...","transferEnabled":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -253,14 +253,14 @@ def update_outgoing_permission(
 
 
 
-@app.command("show-auto-transfer-numbers")
+@app.command("show-auto-transfer-numbers", short_help="Get Outgoing Permission Auto Transfer Number.")
 def show_auto_transfer_numbers(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Outgoing Permission Auto Transfer Number."""
+    """Get Outgoing Permission Auto Transfer Number.\n\n\b\nExample: wxcli location-call-handling show-auto-transfer-numbers LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/autoTransferNumbers"
     params = {}
@@ -279,9 +279,9 @@ def show_auto_transfer_numbers(
 
 _BODY_SKELETON_UPDATE_AUTO_TRANSFER_NUMBERS = '{"autoTransferNumber1":"...","autoTransferNumber2":"...","autoTransferNumber3":"..."}'
 
-@app.command("update-auto-transfer-numbers")
+@app.command("update-auto-transfer-numbers", short_help="Put Outgoing Permission Auto Transfer Number.")
 def update_auto_transfer_numbers(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="Calls placed meeting the criteria in an outbound rule whose `action` is `TRANSFER_NUMBER_1` will be transferred to this number."),
     auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="Calls placed meeting the criteria in an outbound rule whose `action` is `TRANSFER_NUMBER_2` will be transferred to this number."),
     auto_transfer_number3: str = typer.Option(None, "--auto-transfer-number3", help="Calls placed meeting the criteria in an outbound rule whose `action` is `TRANSFER_NUMBER_3` will be transferred to this number."),
@@ -291,7 +291,7 @@ def update_auto_transfer_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Put Outgoing Permission Auto Transfer Number\n\nExample --json-body:\n  '{"autoTransferNumber1":"...","autoTransferNumber2":"...","autoTransferNumber3":"..."}'."""
+    """Put Outgoing Permission Auto Transfer Number.\n\n\b\nExample: wxcli location-call-handling update-auto-transfer-numbers LOCATION_ID\n\n\b\nExample --json-body: '{"autoTransferNumber1":"...","autoTransferNumber2":"...","autoTransferNumber3":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUTO_TRANSFER_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -326,14 +326,14 @@ def update_auto_transfer_numbers(
 
 
 
-@app.command("show-access-codes")
+@app.command("show-access-codes", short_help="Get Outgoing Permission Location Access Code.")
 def show_access_codes(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Outgoing Permission Location Access Code."""
+    """Get Outgoing Permission Location Access Code.\n\n\b\nExample: wxcli location-call-handling show-access-codes LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/accessCodes"
     params = {}
@@ -352,16 +352,16 @@ def show_access_codes(
 
 _BODY_SKELETON_CREATE = '{"accessCodes":{"code":"...","description":"..."}}'
 
-@app.command("create")
+@app.command("create", short_help="Create Outgoing Permission a new access code for a customer location.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Outgoing Permission a new access code for a customer location\n\nExample --json-body:\n  '{"accessCodes":{"code":"...","description":"..."}}'."""
+    """Create Outgoing Permission a new access code for a customer location.\n\n\b\nExample: wxcli location-call-handling create LOCATION_ID\n\n\b\nExample --json-body: '{"accessCodes":{"code":"...","description":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -395,16 +395,16 @@ def create(
 
 _BODY_SKELETON_UPDATE_ACCESS_CODES = '{"deleteCodes":["..."]}'
 
-@app.command("update-access-codes")
+@app.command("update-access-codes", short_help="Delete Outgoing Permission Access Code Location.")
 def update_access_codes(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Outgoing Permission Access Code Location\n\nExample --json-body:\n  '{"deleteCodes":["..."]}'."""
+    """Delete Outgoing Permission Access Code Location.\n\n\b\nExample: wxcli location-call-handling update-access-codes LOCATION_ID\n\n\b\nExample --json-body: '{"deleteCodes":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ACCESS_CODES), indent=2))
         raise typer.Exit(0)
@@ -433,15 +433,16 @@ def update_access_codes(
 
 
 
-@app.command("delete")
-def delete(
-    location_id: str = typer.Argument(help="locationId"),
+@app.command("delete", hidden=True)
+@app.command("delete-access-codes-all", short_help="Delete all Outgoing Permission Access Code for a Location.")
+def delete_access_codes_all(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete all Outgoing Permission Access Code for a Location."""
+    """Delete all Outgoing Permission Access Code for a Location.\n\n\b\nExample: wxcli location-call-handling delete-access-codes-all LOCATION_ID"""
     if not force:
         typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
@@ -465,16 +466,16 @@ def delete(
 
 
 
-@app.command("list-digit-patterns")
+@app.command("list-digit-patterns", short_help="Get Outgoing Permission Digit Pattern for a Location.")
 def list_digit_patterns(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Outgoing Permission Digit Pattern for a Location."""
+    """Get Outgoing Permission Digit Pattern for a Location.\n\n\b\nExample: wxcli location-call-handling list-digit-patterns LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/digitPatterns"
     params = {}
@@ -494,15 +495,15 @@ def list_digit_patterns(
         handle_network_error(e)
     result = result or []
     items = result.get("digitPatterns", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Pattern', 'pattern'), ('Action', 'action')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Pattern', 'pattern'), ('Action', 'action'), ('Transfer Enabled', 'transferEnabled')], limit=limit)
 
 
 
 _BODY_SKELETON_CREATE_DIGIT_PATTERNS = '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'
 
-@app.command("create-digit-patterns")
+@app.command("create-digit-patterns", short_help="Create Outgoing Permission a new Digit Pattern for a location.")
 def create_digit_patterns(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) A unique name for the digit pattern."),
     pattern: str = typer.Option(None, "--pattern", help="(required) The digit pattern to be matched with the input number."),
     action: str = typer.Option(None, "--action", help="(required) Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
@@ -513,7 +514,7 @@ def create_digit_patterns(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Outgoing Permission a new Digit Pattern for a location\n\nExample --json-body:\n  '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'."""
+    """Create Outgoing Permission a new Digit Pattern for a location.\n\n\b\nExample: wxcli location-call-handling create-digit-patterns LOCATION_ID --name NAME --pattern PATTERN --action ALLOW --transfer-enabled\n\n\b\nExample --json-body: '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DIGIT_PATTERNS), indent=2))
         raise typer.Exit(0)
@@ -557,15 +558,15 @@ def create_digit_patterns(
 
 
 
-@app.command("delete-digit-patterns-outgoing-permission")
+@app.command("delete-digit-patterns-outgoing-permission", short_help="Delete all Outgoing Permission Digit Patterns for a Location.")
 def delete_digit_patterns_outgoing_permission(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete all Outgoing Permission Digit Patterns for a Location."""
+    """Delete all Outgoing Permission Digit Patterns for a Location.\n\n\b\nExample: wxcli location-call-handling delete-digit-patterns-outgoing-permission LOCATION_ID"""
     if not force:
         typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
@@ -589,15 +590,15 @@ def delete_digit_patterns_outgoing_permission(
 
 
 
-@app.command("show-digit-patterns")
+@app.command("show-digit-patterns", short_help="Get Details for a Outgoing Permission Digit Pattern for a Location.")
 def show_digit_patterns(
-    location_id: str = typer.Argument(help="locationId"),
-    digit_pattern_id: str = typer.Argument(help="digitPatternId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    digit_pattern_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-call-handling list-digit-patterns"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Outgoing Permission Digit Pattern for a Location."""
+    """Get Details for a Outgoing Permission Digit Pattern for a Location.\n\n\b\nExample: wxcli location-call-handling show-digit-patterns LOCATION_ID DIGIT_PATTERN_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/digitPatterns/{digit_pattern_id}"
     params = {}
@@ -616,10 +617,10 @@ def show_digit_patterns(
 
 _BODY_SKELETON_UPDATE_DIGIT_PATTERNS = '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'
 
-@app.command("update-digit-patterns")
+@app.command("update-digit-patterns", short_help="Update a Outgoing Permission Digit Pattern for a Location.")
 def update_digit_patterns(
-    location_id: str = typer.Argument(help="locationId"),
-    digit_pattern_id: str = typer.Argument(help="digitPatternId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    digit_pattern_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-call-handling list-digit-patterns"),
     name: str = typer.Option(None, "--name", help="A unique name for the digit pattern."),
     pattern: str = typer.Option(None, "--pattern", help="The digit pattern to be matched with the input number."),
     action: str = typer.Option(None, "--action", help="Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
@@ -630,7 +631,7 @@ def update_digit_patterns(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Outgoing Permission Digit Pattern for a Location\n\nExample --json-body:\n  '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'."""
+    """Update a Outgoing Permission Digit Pattern for a Location.\n\n\b\nExample: wxcli location-call-handling update-digit-patterns LOCATION_ID DIGIT_PATTERN_ID\n\n\b\nExample --json-body: '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DIGIT_PATTERNS), indent=2))
         raise typer.Exit(0)
@@ -667,16 +668,16 @@ def update_digit_patterns(
 
 
 
-@app.command("delete-digit-patterns-outgoing-permission-1")
+@app.command("delete-digit-patterns-outgoing-permission-1", short_help="Delete a Outgoing Permission Digit Pattern for a Location.")
 def delete_digit_patterns_outgoing_permission_1(
-    location_id: str = typer.Argument(help="locationId"),
-    digit_pattern_id: str = typer.Argument(help="digitPatternId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    digit_pattern_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-call-handling list-digit-patterns"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Outgoing Permission Digit Pattern for a Location."""
+    """Delete a Outgoing Permission Digit Pattern for a Location.\n\n\b\nExample: wxcli location-call-handling delete-digit-patterns-outgoing-permission-1 LOCATION_ID DIGIT_PATTERN_ID"""
     if not force:
         typer.confirm(f"Delete {digit_pattern_id}?", abort=True)
     api = get_api(debug=debug)

@@ -11,9 +11,9 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-flow.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Flows or Subflows.")
 def cmd_list(
-    project_id: str = typer.Argument(help="projectId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     ids: str = typer.Option(None, "--ids", help="Filters results based on a comma-separated list of flow IDs. If provided, only flows with those IDs will be fetched in the response."),
     page: str = typer.Option(None, "--page", help="Defines the number of the displayed page. The page number starts from 0."),
@@ -28,7 +28,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Flows or Subflows."""
+    """List Flows or Subflows.\n\n\b\nExample: wxcli cc-flow list PROJECT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -67,9 +67,9 @@ def cmd_list(
 
 
 
-@app.command("list-search")
+@app.command("list-search", short_help="Search Flows.")
 def list_search(
-    project_id: str = typer.Argument(help="projectId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     query: str = typer.Option(..., "--query", help="Searches for flows with the given query. The search is case-sensitive."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW' or 'ALL'. Default value is 'ALL'."),
     page: str = typer.Option(None, "--page", help="Defines the number of the displayed page. The page number starts from 0."),
@@ -81,7 +81,7 @@ def list_search(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search Flows."""
+    """Search Flows.\n\n\b\nExample: wxcli cc-flow list-search PROJECT_ID --query QUERY"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -114,10 +114,10 @@ def list_search(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Flow or Subflow.")
 def delete(
-    project_id: str = typer.Argument(help="projectId"),
-    flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id, from: wxcli cc-flow list"),
     force: str = typer.Option(None, "--force", help="If 'yes', the flow is deleted even if it is still referenced by other entities. Defaults to 'no'."),
     skip_rs_ep_check: str = typer.Option(None, "--skip-rs-ep-check", help="If true, skips the check for routing strategy and entry point associations before deleting the flow."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
@@ -125,7 +125,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Flow or Subflow."""
+    """Delete a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow delete PROJECT_ID FLOW_ID"""
     if not force:
         typer.confirm(f"Delete {flow_id}?", abort=True)
     api = get_api(debug=debug)
@@ -156,10 +156,11 @@ def delete(
 
 _BODY_SKELETON_PUBLISH = '{"comment":"...","tagIds":["..."]}'
 
-@app.command("publish")
+@app.command("create", hidden=True)
+@app.command("publish", short_help="Publish a Flow or Subflow.")
 def publish(
-    flow_id: str = typer.Argument(help="flowId"),
-    project_id: str = typer.Argument(help="projectId"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     skip_validation: str = typer.Option(None, "--skip-validation", help="If true, the flow's pre-publish validation is skipped. Use with care."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     comment: str = typer.Option(None, "--comment", help="A comment to provide context on publishing the flow."),
@@ -169,7 +170,7 @@ def publish(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Publish a Flow or Subflow\n\nExample --json-body:\n  '{"comment":"...","tagIds":["..."]}'."""
+    """Publish a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow publish FLOW_ID PROJECT_ID\n\n\b\nExample --json-body: '{"comment":"...","tagIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_PUBLISH), indent=2))
         raise typer.Exit(0)
@@ -206,17 +207,17 @@ def publish(
 
 
 
-@app.command("create-lock")
+@app.command("create-lock", short_help="Lock a Flow or Subflow.")
 def create_lock(
-    flow_id: str = typer.Argument(help="flowId"),
-    project_id: str = typer.Argument(help="projectId"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Lock a Flow or Subflow."""
+    """Lock a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow create-lock FLOW_ID PROJECT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -246,17 +247,17 @@ def create_lock(
 
 
 
-@app.command("create-unlock")
+@app.command("create-unlock", short_help="Unlock a Flow or Subflow.")
 def create_unlock(
-    flow_id: str = typer.Argument(help="flowId"),
-    project_id: str = typer.Argument(help="projectId"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unlock a Flow or Subflow."""
+    """Unlock a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow create-unlock FLOW_ID PROJECT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -288,9 +289,9 @@ def create_unlock(
 
 _BODY_SKELETON_CREATE_VALIDATE = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
 
-@app.command("create-validate")
+@app.command("create-validate", short_help="Validate a Flow.")
 def create_validate(
-    project_id: str = typer.Argument(help="projectId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     flow_name: str = typer.Option(None, "--flow-name", help="Name of the flow."),
     flow_type: str = typer.Option(None, "--flow-type", help="Choices: FLOW, SUBFLOW"),
     contact_type: str = typer.Option(None, "--contact-type", help="Channel type the flow is intended for (for example, `telephony`, `customMessaging`, `workItem`, `genericAction`)."),
@@ -303,7 +304,7 @@ def create_validate(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate a Flow\n\nExample --json-body:\n  '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'."""
+    """Validate a Flow.\n\n\b\nExample: wxcli cc-flow create-validate PROJECT_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE), indent=2))
         raise typer.Exit(0)
@@ -347,9 +348,9 @@ def create_validate(
 
 _BODY_SKELETON_CREATE_IMPORT = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
 
-@app.command("create-import")
+@app.command("create-import", short_help="Import a Flow.")
 def create_import(
-    project_id: str = typer.Argument(help="projectId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     overwrite: str = typer.Option(None, "--overwrite", help="If true, replaces an existing flow with the same name. Defaults to false."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     flow_name: str = typer.Option(None, "--flow-name", help="Name of the flow."),
@@ -363,7 +364,7 @@ def create_import(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Import a Flow\n\nExample --json-body:\n  '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'."""
+    """Import a Flow.\n\n\b\nExample: wxcli cc-flow create-import PROJECT_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_IMPORT), indent=2))
         raise typer.Exit(0)
@@ -408,16 +409,16 @@ def create_import(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Flow.")
 def show(
-    project_id: str = typer.Argument(help="projectId"),
-    flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id, from: wxcli cc-flow list"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Flow."""
+    """Get a Flow.\n\n\b\nExample: wxcli cc-flow show PROJECT_ID FLOW_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -437,10 +438,10 @@ def show(
 
 _BODY_SKELETON_CREATE_FLOWS = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
 
-@app.command("create-flows")
+@app.command("create-flows", short_help="Save a Flow Draft.")
 def create_flows(
-    project_id: str = typer.Argument(help="projectId"),
-    flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id, from: wxcli cc-flow list"),
     expected_version: str = typer.Option(None, "--expected-version", help="Expected current draft version for optimistic locking. The request fails with 409 Conflict if the server-side version does not match. Omit to skip the check."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     flow_name: str = typer.Option(None, "--flow-name", help="Name of the flow."),
@@ -454,7 +455,7 @@ def create_flows(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Save a Flow Draft\n\nExample --json-body:\n  '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'."""
+    """Save a Flow Draft.\n\n\b\nExample: wxcli cc-flow create-flows PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FLOWS), indent=2))
         raise typer.Exit(0)
@@ -501,10 +502,10 @@ def create_flows(
 
 _BODY_SKELETON_UPDATE = '{"upsert_nodes":[{}],"upsert_edges":[{}],"remove_node_names":["..."],"remove_edge_keys":["..."]}'
 
-@app.command("update")
+@app.command("update", short_help="Patch a Flow Draft.")
 def update(
-    project_id: str = typer.Argument(help="projectId"),
-    flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id, from: wxcli cc-flow list"),
     expected_version: str = typer.Option(None, "--expected-version", help="Expected current draft version for optimistic locking. The request fails with 409 Conflict if the server-side version does not match. Omit to skip the check."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -513,7 +514,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Patch a Flow Draft\n\nExample --json-body:\n  '{"upsert_nodes":[{}],"upsert_edges":[{}],"remove_node_names":["..."],"remove_edge_keys":["..."]}'."""
+    """Patch a Flow Draft.\n\n\b\nExample: wxcli cc-flow update PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '{"upsert_nodes":[{}],"upsert_edges":[{}],"remove_node_names":["..."],"remove_edge_keys":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -545,10 +546,10 @@ def update(
 
 
 
-@app.command("list-validate")
+@app.command("list-validate", short_help="Validate an Existing Flow Draft.")
 def list_validate(
-    project_id: str = typer.Argument(help="projectId"),
-    flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
     version_id: str = typer.Option(None, "--version-id", help="Version to validate. Use 'draft' for the current draft, or a specific version ObjectId."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -557,7 +558,7 @@ def list_validate(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate an Existing Flow Draft."""
+    """Validate an Existing Flow Draft.\n\n\b\nExample: wxcli cc-flow list-validate PROJECT_ID FLOW_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -584,10 +585,11 @@ def list_validate(
 
 
 
-@app.command("export")
+@app.command("list-export", hidden=True)
+@app.command("export", short_help="Export a Flow.")
 def export(
-    project_id: str = typer.Argument(help="projectId"),
-    flow_id: str = typer.Argument(help="flowId"),
+    project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
     version: str = typer.Option(None, "--version", help="Version to export. Use 'latest' for the most recent published version, 'draft' for the working copy, or a specific version ObjectId."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -596,7 +598,7 @@ def export(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Export a Flow."""
+    """Export a Flow.\n\n\b\nExample: wxcli cc-flow export PROJECT_ID FLOW_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)

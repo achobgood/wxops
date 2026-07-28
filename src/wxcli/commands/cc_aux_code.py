@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-aux-code.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Auxiliary Code(s).")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
@@ -56,7 +56,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Auxiliary Code.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -78,7 +78,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Auxiliary Code\n\nExample --json-body:\n  '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'."""
+    """Create a new Auxiliary Code.\n\n\b\nExample: wxcli cc-aux-code create --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -142,7 +142,7 @@ def create(
 
 _BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Auxiliary Code(s).")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -150,7 +150,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Auxiliary Code(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Auxiliary Code(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -182,7 +182,7 @@ def create_bulk(
 
 _BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Bulk partial update Auxiliary Code(s).")
 def update(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -190,7 +190,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Auxiliary Code(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk partial update Auxiliary Code(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -217,7 +217,7 @@ def update(
 
 
 
-@app.command("list-bulk-export")
+@app.command("list-bulk-export", short_help="Bulk export Auxiliary Code(s).")
 def list_bulk_export(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -254,8 +254,9 @@ def list_bulk_export(
 
 
 
-@app.command("create-purge-inactive-entities")
-def create_purge_inactive_entities(
+@app.command("create-purge-inactive-entities", hidden=True)
+@app.command("delete-purge-inactive-entities", short_help="Purge inactive Auxiliary Code(s).")
+def delete_purge_inactive_entities(
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch with be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -287,14 +288,14 @@ def create_purge_inactive_entities(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Auxiliary Code by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-aux-code list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Auxiliary Code by ID."""
+    """Get specific Auxiliary Code by ID.\n\n\b\nExample: wxcli cc-aux-code show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -311,9 +312,9 @@ def show(
 
 _BODY_SKELETON_UPDATE_AUXILIARY_CODE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'
 
-@app.command("update-auxiliary-code")
+@app.command("update-auxiliary-code", short_help="Update specific Auxiliary Code by ID.")
 def update_auxiliary_code(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-aux-code list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -334,7 +335,7 @@ def update_auxiliary_code(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Auxiliary Code by ID\n\nExample --json-body:\n  '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'."""
+    """Update specific Auxiliary Code by ID.\n\n\b\nExample: wxcli cc-aux-code update-auxiliary-code ID --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUXILIARY_CODE), indent=2))
         raise typer.Exit(0)
@@ -389,15 +390,15 @@ def update_auxiliary_code(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Auxiliary Code by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-aux-code list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Auxiliary Code by ID."""
+    """Delete specific Auxiliary Code by ID.\n\n\b\nExample: wxcli cc-aux-code delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -419,9 +420,9 @@ def delete(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific Auxiliary Code.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-aux-code list"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -431,7 +432,7 @@ def list_incoming_references(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Auxiliary Code."""
+    """List references for a specific Auxiliary Code.\n\n\b\nExample: wxcli cc-aux-code list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -460,7 +461,7 @@ def list_incoming_references(
 
 
 
-@app.command("list-auxiliary-code")
+@app.command("list-auxiliary-code", short_help="List Auxiliary Code(s).")
 def list_auxiliary_code(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime, validBurnoutForWrapUpCode, validBurnoutForIdleCode The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),

@@ -11,7 +11,7 @@ from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-queue-stats.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Queue Statistics.")
 def cmd_list(
     from_param: str = typer.Option(..., "--from", help="Start time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:05 will be rounded down to 12:00."),
     to: str = typer.Option(..., "--to", help="End time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:55 will be rounded down to 12:45. The difference between to and from time must be less than 24 hours (86400000..."),
@@ -23,7 +23,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Queue Statistics."""
+    """Get Queue Statistics.\n\n\b\nExample: wxcli cc-queue-stats list --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/queues/statistics"

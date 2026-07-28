@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling partner-admins.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get all customers managed by a partner admin.")
 def cmd_list(
     managed_by: str = typer.Option(..., "--managed-by", help="List customer orgs associated with this person ID."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -20,7 +20,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get all customers managed by a partner admin."""
+    """Get all customers managed by a partner admin.\n\n\b\nExample: wxcli partner-admins list --managed-by MANAGED_BY"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/partner/organizations"
     params = {}
@@ -43,7 +43,7 @@ def cmd_list(
 
 
 
-@app.command("list-partner-admins")
+@app.command("list-partner-admins", short_help="Get all partner admins assigned to a customer.")
 def list_partner_admins(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -73,7 +73,7 @@ def list_partner_admins(
 
 
 
-@app.command("create")
+@app.command("create", short_help="Assign partner admin to a customer.")
 def create(
     person_id: str = typer.Argument(help="personId"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -81,7 +81,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign partner admin to a customer."""
+    """Assign partner admin to a customer.\n\n\b\nExample: wxcli partner-admins create PERSON_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/organizations/{org_id}/partnerAdmin/{person_id}/assign"
@@ -107,7 +107,7 @@ def create(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Unassign partner admin from a customer.")
 def delete(
     person_id: str = typer.Argument(help="personId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -115,7 +115,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unassign partner admin from a customer."""
+    """Unassign partner admin from a customer.\n\n\b\nExample: wxcli partner-admins delete PERSON_ID"""
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
@@ -136,7 +136,7 @@ def delete(
 
 
 
-@app.command("delete-partner-admin")
+@app.command("delete-partner-admin", short_help="Revoke all partner admin roles for a given person ID.")
 def delete_partner_admin(
     person_id: str = typer.Argument(help="personId"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -144,7 +144,7 @@ def delete_partner_admin(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Revoke all partner admin roles for a given person ID."""
+    """Revoke all partner admin roles for a given person ID.\n\n\b\nExample: wxcli partner-admins delete-partner-admin PERSON_ID"""
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)

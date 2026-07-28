@@ -11,9 +11,9 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling single-number-reach.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Single Number Reach Primary Available Phone Numbers.")
 def cmd_list(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -21,7 +21,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Single Number Reach Primary Available Phone Numbers."""
+    """Get Single Number Reach Primary Available Phone Numbers.\n\n\b\nExample: wxcli single-number-reach list LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/singleNumberReach/availableNumbers"
     params = {}
@@ -49,9 +49,9 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"phoneNumber":"...","enabled":true,"name":"...","doNotForwardCallsEnabled":true,"answerConfirmationEnabled":true}'
 
-@app.command("create")
+@app.command("create", short_help="Create Single Number Reach For a Person.")
 def create(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PERSON id, from: wxcli people list"),
     phone_number: str = typer.Option(None, "--phone-number", help="(required) Personal phone number used as single Number Reach."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="(required) A flag to enable or disable single Number Reach."),
     name: str = typer.Option(None, "--name", help="(required) Name of the single number reach phone number entry."),
@@ -63,7 +63,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Single Number Reach For a Person\n\nExample --json-body:\n  '{"phoneNumber":"...","enabled":true,"name":"...","doNotForwardCallsEnabled":true,"answerConfirmationEnabled":true}'."""
+    """Create Single Number Reach For a Person.\n\n\b\nExample: wxcli single-number-reach create PERSON_ID --phone-number PHONE_NUMBER --enabled --name NAME\n\n\b\nExample --json-body: '{"phoneNumber":"...","enabled":true,"name":"...","doNotForwardCallsEnabled":true,"answerConfirmationEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -105,16 +105,16 @@ def create(
 
 
 
-@app.command("list-single-number-reach")
+@app.command("list-single-number-reach", short_help="Get Single Number Reach Settings For A Person.")
 def list_single_number_reach(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PERSON id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Single Number Reach Settings For A Person."""
+    """Get Single Number Reach Settings For A Person.\n\n\b\nExample: wxcli single-number-reach list-single-number-reach PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/singleNumberReach"
     params = {}
@@ -137,9 +137,9 @@ def list_single_number_reach(
 
 _BODY_SKELETON_UPDATE = '{"alertAllNumbersForClickToDialCallsEnabled":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update Single Number Reach Settings For A Person.")
 def update(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PERSON id, from: wxcli people list"),
     alert_all_numbers_for_click_to_dial_calls_enabled: bool = typer.Option(None, "--alert-all-numbers-for-click-to-dial-calls-enabled/--no-alert-all-numbers-for-click-to-dial-calls-enabled", help="Flag to enable alerting single number reach numbers for click to dial calls."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -147,7 +147,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Single Number Reach Settings For A Person\n\nExample --json-body:\n  '{"alertAllNumbersForClickToDialCallsEnabled":true}'."""
+    """Update Single Number Reach Settings For A Person.\n\n\b\nExample: wxcli single-number-reach update PERSON_ID\n\n\b\nExample --json-body: '{"alertAllNumbersForClickToDialCallsEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -176,10 +176,10 @@ def update(
 
 _BODY_SKELETON_UPDATE_NUMBERS = '{"phoneNumber":"...","enabled":true,"name":"...","doNotForwardCallsEnabled":true,"answerConfirmationEnabled":true}'
 
-@app.command("update-numbers")
+@app.command("update-numbers", short_help="Update Single Number Reach Settings For A Number.")
 def update_numbers(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PERSON id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex SINGLE_NUMBER_REACH id"),
     phone_number: str = typer.Option(None, "--phone-number", help="Personal phone number used as single Number Reach."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="A flag to enable or disable single Number Reach phone number."),
     name: str = typer.Option(None, "--name", help="Name of the single number reach phone number entry."),
@@ -191,7 +191,7 @@ def update_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Single Number Reach Settings For A Number\n\nExample --json-body:\n  '{"phoneNumber":"...","enabled":true,"name":"...","doNotForwardCallsEnabled":true,"answerConfirmationEnabled":true}'."""
+    """Update Single Number Reach Settings For A Number.\n\n\b\nExample: wxcli single-number-reach update-numbers PERSON_ID ID --phone-number PHONE_NUMBER --enabled --name NAME\n\n\b\nExample --json-body: '{"phoneNumber":"...","enabled":true,"name":"...","doNotForwardCallsEnabled":true,"answerConfirmationEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -226,16 +226,16 @@ def update_numbers(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete A Single Number Reach Number.")
 def delete(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PERSON id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex SINGLE_NUMBER_REACH id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete A Single Number Reach Number."""
+    """Delete A Single Number Reach Number.\n\n\b\nExample: wxcli single-number-reach delete PERSON_ID ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)

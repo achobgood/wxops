@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling organizations.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Organizations.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -40,7 +40,7 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Organization Details.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -60,7 +60,7 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete Organization.")
 def delete(
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),

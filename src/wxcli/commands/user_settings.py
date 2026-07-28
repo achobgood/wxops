@@ -11,14 +11,14 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling user-settings.")
 
 
-@app.command("show")
+@app.command("show", short_help="Retrieve a person's Application Services Settings New.")
 def show(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a person's Application Services Settings New."""
+    """Retrieve a person's Application Services Settings New.\n\n\b\nExample: wxcli user-settings show PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/applications"
     params = {}
@@ -37,9 +37,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"ringDevicesForClickToDialCallsEnabled":true,"ringDevicesForGroupPageEnabled":true,"ringDevicesForCallParkEnabled":true,"browserClientEnabled":true,"desktopClientEnabled":true,"tabletClientEnabled":true,"mobileClientEnabled":true}'
 
-@app.command("update")
+@app.command("update", short_help="Modify a person's Application Services Settings.")
 def update(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     ring_devices_for_click_to_dial_calls_enabled: bool = typer.Option(None, "--ring-devices-for-click-to-dial-calls-enabled/--no-ring-devices-for-click-to-dial-calls-enabled", help="When `true`, indicates to ring devices for outbound Click to Dial calls."),
     ring_devices_for_group_page_enabled: bool = typer.Option(None, "--ring-devices-for-group-page-enabled/--no-ring-devices-for-group-page-enabled", help="When `true`, indicates to ring devices for inbound Group Pages."),
     ring_devices_for_call_park_enabled: bool = typer.Option(None, "--ring-devices-for-call-park-enabled/--no-ring-devices-for-call-park-enabled", help="When `true`, indicates to ring devices for Call Park recalled."),
@@ -53,7 +53,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a person's Application Services Settings\n\nExample --json-body:\n  '{"ringDevicesForClickToDialCallsEnabled":true,"ringDevicesForGroupPageEnabled":true,"ringDevicesForCallParkEnabled":true,"browserClientEnabled":true,"desktopClientEnabled":true,"tabletClientEnabled":true,"mobileClientEnabled":true}'."""
+    """Modify a person's Application Services Settings.\n\n\b\nExample: wxcli user-settings update PERSON_ID\n\n\b\nExample --json-body: '{"ringDevicesForClickToDialCallsEnabled":true,"ringDevicesForGroupPageEnabled":true,"ringDevicesForCallParkEnabled":true,"browserClientEnabled":true,"desktopClientEnabled":true,"tabletClientEnabled":true,"mobileClientEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -96,14 +96,14 @@ def update(
 
 
 
-@app.command("show-barge-in")
+@app.command("show-barge-in", short_help="Read Barge In Settings for a Person.")
 def show_barge_in(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Barge In Settings for a Person."""
+    """Read Barge In Settings for a Person.\n\n\b\nExample: wxcli user-settings show-barge-in PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/bargeIn"
     params = {}
@@ -122,9 +122,9 @@ def show_barge_in(
 
 _BODY_SKELETON_UPDATE_BARGE_IN = '{"enabled":true,"toneEnabled":true}'
 
-@app.command("update-barge-in")
+@app.command("update-barge-in", short_help="Configure Barge In Settings for a Person.")
 def update_barge_in(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to enable or disable the Barge In feature."),
     tone_enabled: bool = typer.Option(None, "--tone-enabled/--no-tone-enabled", help="Set to enable or disable a stutter dial tone being played when a virtual line is barging in on the active call."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -133,7 +133,7 @@ def update_barge_in(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Barge In Settings for a Person\n\nExample --json-body:\n  '{"enabled":true,"toneEnabled":true}'."""
+    """Configure Barge In Settings for a Person.\n\n\b\nExample: wxcli user-settings update-barge-in PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"toneEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_BARGE_IN), indent=2))
         raise typer.Exit(0)
@@ -166,14 +166,14 @@ def update_barge_in(
 
 
 
-@app.command("show-call-forwarding")
+@app.command("show-call-forwarding", short_help="Read Forwarding Settings for a Person.")
 def show_call_forwarding(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Forwarding Settings for a Person."""
+    """Read Forwarding Settings for a Person.\n\n\b\nExample: wxcli user-settings show-call-forwarding PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/callForwarding"
     params = {}
@@ -192,16 +192,16 @@ def show_call_forwarding(
 
 _BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
 
-@app.command("update-call-forwarding")
+@app.command("update-call-forwarding", short_help="Configure Call Forwarding Settings for a Person.")
 def update_call_forwarding(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Forwarding Settings for a Person\n\nExample --json-body:\n  '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'."""
+    """Configure Call Forwarding Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-forwarding PERSON_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
         raise typer.Exit(0)
@@ -230,14 +230,14 @@ def update_call_forwarding(
 
 
 
-@app.command("show-intercept")
+@app.command("show-intercept", short_help="Read Call Intercept Settings for a Person.")
 def show_intercept(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Call Intercept Settings for a Person."""
+    """Read Call Intercept Settings for a Person.\n\n\b\nExample: wxcli user-settings show-intercept PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/intercept"
     params = {}
@@ -256,9 +256,9 @@ def show_intercept(
 
 _BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
 
-@app.command("update-intercept")
+@app.command("update-intercept", short_help="Configure Call Intercept Settings for a Person.")
 def update_intercept(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the intercept feature is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -266,7 +266,7 @@ def update_intercept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Intercept Settings for a Person\n\nExample --json-body:\n  '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'."""
+    """Configure Call Intercept Settings for a Person.\n\n\b\nExample: wxcli user-settings update-intercept PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INTERCEPT), indent=2))
         raise typer.Exit(0)
@@ -297,15 +297,15 @@ def update_intercept(
 
 
 
-@app.command("configure-call-intercept")
+@app.command("configure-call-intercept", short_help="Configure Call Intercept Greeting for a Person.")
 def configure_call_intercept(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Intercept Greeting for a Person."""
+    """Configure Call Intercept Greeting for a Person.\n\n\b\nExample: wxcli user-settings configure-call-intercept PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/intercept/actions/announcementUpload/invoke"
     params = {}
@@ -326,14 +326,14 @@ def configure_call_intercept(
 
 
 
-@app.command("show-call-recording")
+@app.command("show-call-recording", short_help="Read Call Recording Settings for a Person.")
 def show_call_recording(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Call Recording Settings for a Person."""
+    """Read Call Recording Settings for a Person.\n\n\b\nExample: wxcli user-settings show-call-recording PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/callRecording"
     params = {}
@@ -352,9 +352,9 @@ def show_call_recording(
 
 _BODY_SKELETON_UPDATE_CALL_RECORDING = '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'
 
-@app.command("update-call-recording")
+@app.command("update-call-recording", short_help="Configure Call Recording Settings for a Person.")
 def update_call_recording(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if call recording is enabled."),
     record: str = typer.Option(None, "--record", help="Choices: Always, Never, Always with Pause/Resume, On Demand with User Initiated Start"),
     record_voicemail_enabled: bool = typer.Option(None, "--record-voicemail-enabled/--no-record-voicemail-enabled", help="When `true`, voicemail messages are also recorded."),
@@ -364,7 +364,7 @@ def update_call_recording(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Recording Settings for a Person\n\nExample --json-body:\n  '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'."""
+    """Configure Call Recording Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-recording PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_RECORDING), indent=2))
         raise typer.Exit(0)
@@ -399,14 +399,14 @@ def update_call_recording(
 
 
 
-@app.command("show-call-waiting")
+@app.command("show-call-waiting", short_help="Read Call Waiting Settings for a Person.")
 def show_call_waiting(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Call Waiting Settings for a Person."""
+    """Read Call Waiting Settings for a Person.\n\n\b\nExample: wxcli user-settings show-call-waiting PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/callWaiting"
     params = {}
@@ -425,9 +425,9 @@ def show_call_waiting(
 
 _BODY_SKELETON_UPDATE_CALL_WAITING = '{"enabled":true}'
 
-@app.command("update-call-waiting")
+@app.command("update-call-waiting", short_help="Configure Call Waiting Settings for a Person.")
 def update_call_waiting(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the Call Waiting feature is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -435,7 +435,7 @@ def update_call_waiting(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Waiting Settings for a Person\n\nExample --json-body:\n  '{"enabled":true}'."""
+    """Configure Call Waiting Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-waiting PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_WAITING), indent=2))
         raise typer.Exit(0)
@@ -466,16 +466,16 @@ def update_call_waiting(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Read Caller ID Settings for a Person.")
 def cmd_list(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Caller ID Settings for a Person."""
+    """Read Caller ID Settings for a Person.\n\n\b\nExample: wxcli user-settings list PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/callerId"
     params = {}
@@ -501,9 +501,9 @@ def cmd_list(
 
 _BODY_SKELETON_UPDATE_CALLER_ID_FEATURES = '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true}'
 
-@app.command("update-caller-id-features")
+@app.command("update-caller-id-features", short_help="Configure Caller ID Settings for a Person.")
 def update_caller_id_features(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
     custom_number: str = typer.Option(None, "--custom-number", help="Custom number which will be shown if CUSTOM is selected. This value must be a number from the virtual line's location or from another location with the same country, PSTN provider, and zone (only applicable for India locations) as the virtual line's location."),
     first_name: str = typer.Option(None, "--first-name", help="Virtual line's Caller ID first name. The characters `%`, `+`, ``, `\"` and Unicode characters are not allowed. This field has been deprecated. Please use `directLineCallerIdName` and `dialByFirstName` instead."),
@@ -522,7 +522,7 @@ def update_caller_id_features(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Caller ID Settings for a Person\n\nExample --json-body:\n  '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true}'."""
+    """Configure Caller ID Settings for a Person.\n\n\b\nExample: wxcli user-settings update-caller-id-features PERSON_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALLER_ID_FEATURES), indent=2))
         raise typer.Exit(0)
@@ -575,14 +575,14 @@ def update_caller_id_features(
 
 
 
-@app.command("show-calling-behavior")
+@app.command("show-calling-behavior", short_help="Read Person's Calling Behavior.")
 def show_calling_behavior(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Person's Calling Behavior."""
+    """Read Person's Calling Behavior.\n\n\b\nExample: wxcli user-settings show-calling-behavior PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/callingBehavior"
     params = {}
@@ -601,9 +601,9 @@ def show_calling_behavior(
 
 _BODY_SKELETON_UPDATE_CALLING_BEHAVIOR = '{"behaviorType":"NATIVE_WEBEX_TEAMS_CALLING","profileId":"..."}'
 
-@app.command("update-calling-behavior")
+@app.command("update-calling-behavior", short_help="Configure a person's Calling Behavior.")
 def update_calling_behavior(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     behavior_type: str = typer.Option(None, "--behavior-type", help="Choices: NATIVE_WEBEX_TEAMS_CALLING, CALL_WITH_APP_REGISTERED_FOR_CISCOTEL, CALL_WITH_APP_REGISTERED_FOR_TEL, CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL, NATIVE_SIP_CALL_TO_UCM"),
     profile_id: str = typer.Option(None, "--profile-id", help="The UC Manager Profile ID. Specifying null results in the organizational default being applied. In addition, when `behaviorType` is set to `CALL_WITH_APP_REGISTERED_FOR_CISCOTEL`, then the profile ID value will be cleared irrespective of any value being passed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -612,7 +612,7 @@ def update_calling_behavior(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure a person's Calling Behavior\n\nExample --json-body:\n  '{"behaviorType":"NATIVE_WEBEX_TEAMS_CALLING","profileId":"..."}'."""
+    """Configure a person's Calling Behavior.\n\n\b\nExample: wxcli user-settings update-calling-behavior PERSON_ID\n\n\b\nExample --json-body: '{"behaviorType":"NATIVE_WEBEX_TEAMS_CALLING","profileId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALLING_BEHAVIOR), indent=2))
         raise typer.Exit(0)
@@ -645,14 +645,14 @@ def update_calling_behavior(
 
 
 
-@app.command("show-do-not-disturb")
+@app.command("show-do-not-disturb", short_help="Read Do Not Disturb Settings for a Person.")
 def show_do_not_disturb(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Do Not Disturb Settings for a Person."""
+    """Read Do Not Disturb Settings for a Person.\n\n\b\nExample: wxcli user-settings show-do-not-disturb PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/doNotDisturb"
     params = {}
@@ -671,9 +671,9 @@ def show_do_not_disturb(
 
 _BODY_SKELETON_UPDATE_DO_NOT_DISTURB = '{"webexGoOverrideEnabled":true,"enabled":true,"ringSplashEnabled":true}'
 
-@app.command("update-do-not-disturb")
+@app.command("update-do-not-disturb", short_help="Configure Do Not Disturb Settings for a Person.")
 def update_do_not_disturb(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the Do Not Disturb feature is enabled."),
     ring_splash_enabled: bool = typer.Option(None, "--ring-splash-enabled/--no-ring-splash-enabled", help="Enables a Ring Reminder to play a brief tone on your desktop phone when you receive incoming calls."),
     webex_go_override_enabled: bool = typer.Option(None, "--webex-go-override-enabled/--no-webex-go-override-enabled", help="`true` if a mobile device will still ring even if Do Not Disturb is enabled."),
@@ -683,7 +683,7 @@ def update_do_not_disturb(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Do Not Disturb Settings for a Person\n\nExample --json-body:\n  '{"webexGoOverrideEnabled":true,"enabled":true,"ringSplashEnabled":true}'."""
+    """Configure Do Not Disturb Settings for a Person.\n\n\b\nExample: wxcli user-settings update-do-not-disturb PERSON_ID --webex-go-override-enabled\n\n\b\nExample --json-body: '{"webexGoOverrideEnabled":true,"enabled":true,"ringSplashEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DO_NOT_DISTURB), indent=2))
         raise typer.Exit(0)
@@ -718,14 +718,14 @@ def update_do_not_disturb(
 
 
 
-@app.command("show-executive-assistant")
+@app.command("show-executive-assistant", short_help="Retrieve Executive Assistant Settings for a Person.")
 def show_executive_assistant(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Executive Assistant Settings for a Person."""
+    """Retrieve Executive Assistant Settings for a Person.\n\n\b\nExample: wxcli user-settings show-executive-assistant PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/executiveAssistant"
     params = {}
@@ -744,9 +744,9 @@ def show_executive_assistant(
 
 _BODY_SKELETON_UPDATE_EXECUTIVE_ASSISTANT = '{"type":"UNASSIGNED"}'
 
-@app.command("update-executive-assistant")
+@app.command("update-executive-assistant", short_help="Modify Executive Assistant Settings for a Person.")
 def update_executive_assistant(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     type_param: str = typer.Option(None, "--type", help="Choices: UNASSIGNED, EXECUTIVE, EXECUTIVE_ASSISTANT"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -754,7 +754,7 @@ def update_executive_assistant(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Executive Assistant Settings for a Person\n\nExample --json-body:\n  '{"type":"UNASSIGNED"}'."""
+    """Modify Executive Assistant Settings for a Person.\n\n\b\nExample: wxcli user-settings update-executive-assistant PERSON_ID\n\n\b\nExample --json-body: '{"type":"UNASSIGNED"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EXECUTIVE_ASSISTANT), indent=2))
         raise typer.Exit(0)
@@ -785,14 +785,14 @@ def update_executive_assistant(
 
 
 
-@app.command("show-hoteling")
+@app.command("show-hoteling", short_help="Read Hoteling Settings for a Person.")
 def show_hoteling(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Hoteling Settings for a Person."""
+    """Read Hoteling Settings for a Person.\n\n\b\nExample: wxcli user-settings show-hoteling PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/hoteling"
     params = {}
@@ -811,9 +811,9 @@ def show_hoteling(
 
 _BODY_SKELETON_UPDATE_HOTELING = '{"enabled":true}'
 
-@app.command("update-hoteling")
+@app.command("update-hoteling", short_help="Configure Hoteling Settings for a Person.")
 def update_hoteling(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="When `true`, allow this person to connect to a Hoteling host device."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -821,7 +821,7 @@ def update_hoteling(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Hoteling Settings for a Person\n\nExample --json-body:\n  '{"enabled":true}'."""
+    """Configure Hoteling Settings for a Person.\n\n\b\nExample: wxcli user-settings update-hoteling PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_HOTELING), indent=2))
         raise typer.Exit(0)
@@ -852,9 +852,9 @@ def update_hoteling(
 
 
 
-@app.command("list-available-members-speed-dials")
+@app.command("list-available-members-speed-dials", short_help="Get Available Speed Dials for Person Monitoring.")
 def list_available_members_speed_dials(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     location_id: str = typer.Option(None, "--location-id", help="Search for the available speed dials in the location ID."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
@@ -865,7 +865,7 @@ def list_available_members_speed_dials(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Available Speed Dials for Person Monitoring."""
+    """Get Available Speed Dials for Person Monitoring.\n\n\b\nExample: wxcli user-settings list-available-members-speed-dials PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/monitoring/speedDials/availableMembers"
     params = {}
@@ -897,9 +897,9 @@ def list_available_members_speed_dials(
 
 
 
-@app.command("list-available-members-monitoring")
+@app.command("list-available-members-monitoring", short_help="Get Available Members for Person Monitoring.")
 def list_available_members_monitoring(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     location_id: str = typer.Option(None, "--location-id", help="Search for the available members in the location ID."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by number or extension."),
@@ -910,7 +910,7 @@ def list_available_members_monitoring(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Available Members for Person Monitoring."""
+    """Get Available Members for Person Monitoring.\n\n\b\nExample: wxcli user-settings list-available-members-monitoring PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/monitoring/availableMembers"
     params = {}
@@ -942,14 +942,14 @@ def list_available_members_monitoring(
 
 
 
-@app.command("show-incoming-permission")
+@app.command("show-incoming-permission", short_help="Read Incoming Permission Settings for a Person.")
 def show_incoming_permission(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Incoming Permission Settings for a Person."""
+    """Read Incoming Permission Settings for a Person.\n\n\b\nExample: wxcli user-settings show-incoming-permission PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/incomingPermission"
     params = {}
@@ -968,9 +968,9 @@ def show_incoming_permission(
 
 _BODY_SKELETON_UPDATE_INCOMING_PERMISSION = '{"useCustomEnabled":true,"externalTransfer":"ALLOW_ALL_EXTERNAL","internalCallsEnabled":true,"collectCallsEnabled":true}'
 
-@app.command("update-incoming-permission")
+@app.command("update-incoming-permission", short_help="Configure Incoming Permission Settings for a Person.")
 def update_incoming_permission(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this virtual line uses the specified calling permissions for receiving inbound calls rather than the organizational defaults."),
     external_transfer: str = typer.Option(None, "--external-transfer", help="Choices: ALLOW_ALL_EXTERNAL, ALLOW_ONLY_TRANSFERRED_EXTERNAL, BLOCK_ALL_EXTERNAL"),
     internal_calls_enabled: bool = typer.Option(None, "--internal-calls-enabled/--no-internal-calls-enabled", help="Internal calls are allowed to be received."),
@@ -981,7 +981,7 @@ def update_incoming_permission(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Incoming Permission Settings for a Person\n\nExample --json-body:\n  '{"useCustomEnabled":true,"externalTransfer":"ALLOW_ALL_EXTERNAL","internalCallsEnabled":true,"collectCallsEnabled":true}'."""
+    """Configure Incoming Permission Settings for a Person.\n\n\b\nExample: wxcli user-settings update-incoming-permission PERSON_ID --use-custom-enabled --external-transfer ALLOW_ALL_EXTERNAL --internal-calls-enabled --collect-calls-enabled\n\n\b\nExample --json-body: '{"useCustomEnabled":true,"externalTransfer":"ALLOW_ALL_EXTERNAL","internalCallsEnabled":true,"collectCallsEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INCOMING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -1018,16 +1018,16 @@ def update_incoming_permission(
 
 
 
-@app.command("list-outgoing-permission")
+@app.command("list-outgoing-permission", short_help="Retrieve a person's Outgoing Calling Permissions Settings.")
 def list_outgoing_permission(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a person's Outgoing Calling Permissions Settings."""
+    """Retrieve a person's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli user-settings list-outgoing-permission PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/outgoingPermission"
     params = {}
@@ -1053,9 +1053,9 @@ def list_outgoing_permission(
 
 _BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"callingPermissions":[{"transferEnabled":"...","callType":"...","action":"..."}],"useCustomEnabled":true,"useCustomPermissions":true}'
 
-@app.command("update-outgoing-permission")
+@app.command("update-outgoing-permission", short_help="Modify a person's Outgoing Calling Permissions Settings.")
 def update_outgoing_permission(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this user uses the shared control that applies to all outgoing call settings categories when placing outbound calls."),
     use_custom_permissions: bool = typer.Option(None, "--use-custom-permissions/--no-use-custom-permissions", help="When true, indicates that this user uses the specified outgoing calling permissions when placing outbound calls."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -1064,7 +1064,7 @@ def update_outgoing_permission(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a person's Outgoing Calling Permissions Settings\n\nExample --json-body:\n  '{"callingPermissions":[{"transferEnabled":"...","callType":"...","action":"..."}],"useCustomEnabled":true,"useCustomPermissions":true}'."""
+    """Modify a person's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli user-settings update-outgoing-permission PERSON_ID\n\n\b\nExample --json-body: '{"callingPermissions":[{"transferEnabled":"...","callType":"...","action":"..."}],"useCustomEnabled":true,"useCustomPermissions":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -1097,9 +1097,9 @@ def update_outgoing_permission(
 
 
 
-@app.command("list-numbers")
+@app.command("list-numbers", short_help="Get a List of Phone Numbers for a Person.")
 def list_numbers(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     prefer_e164_format: str = typer.Option(None, "--prefer-e164-format", help="Return phone numbers in E.164 format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -1107,7 +1107,7 @@ def list_numbers(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a List of Phone Numbers for a Person."""
+    """Get a List of Phone Numbers for a Person.\n\n\b\nExample: wxcli user-settings list-numbers PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/numbers"
     params = {}
@@ -1133,16 +1133,16 @@ def list_numbers(
 
 
 
-@app.command("list-privacy")
+@app.command("list-privacy", short_help="Get a person's Privacy Settings.")
 def list_privacy(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a person's Privacy Settings."""
+    """Get a person's Privacy Settings.\n\n\b\nExample: wxcli user-settings list-privacy PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/privacy"
     params = {}
@@ -1168,9 +1168,9 @@ def list_privacy(
 
 _BODY_SKELETON_UPDATE_PRIVACY = '{"aaExtensionDialingEnabled":true,"aaNamingDialingEnabled":true,"enablePhoneStatusDirectoryPrivacy":true,"enablePhoneStatusPickupBargeInPrivacy":true,"monitoringAgents":["..."]}'
 
-@app.command("update-privacy")
+@app.command("update-privacy", short_help="Configure a person's Privacy Settings.")
 def update_privacy(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     aa_extension_dialing_enabled: bool = typer.Option(None, "--aa-extension-dialing-enabled/--no-aa-extension-dialing-enabled", help="When `true` auto attendant extension dialing is enabled."),
     aa_naming_dialing_enabled: bool = typer.Option(None, "--aa-naming-dialing-enabled/--no-aa-naming-dialing-enabled", help="When `true` auto attendant dailing by first or last name is enabled."),
     enable_phone_status_directory_privacy: bool = typer.Option(None, "--enable-phone-status-directory-privacy/--no-enable-phone-status-directory-privacy", help="When `true` phone status directory privacy is enabled."),
@@ -1181,7 +1181,7 @@ def update_privacy(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure a person's Privacy Settings\n\nExample --json-body:\n  '{"aaExtensionDialingEnabled":true,"aaNamingDialingEnabled":true,"enablePhoneStatusDirectoryPrivacy":true,"enablePhoneStatusPickupBargeInPrivacy":true,"monitoringAgents":["..."]}'."""
+    """Configure a person's Privacy Settings.\n\n\b\nExample: wxcli user-settings update-privacy PERSON_ID\n\n\b\nExample --json-body: '{"aaExtensionDialingEnabled":true,"aaNamingDialingEnabled":true,"enablePhoneStatusDirectoryPrivacy":true,"enablePhoneStatusPickupBargeInPrivacy":true,"monitoringAgents":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PRIVACY), indent=2))
         raise typer.Exit(0)
@@ -1218,16 +1218,16 @@ def update_privacy(
 
 
 
-@app.command("list-push-to-talk")
+@app.command("list-push-to-talk", short_help="Read Push-to-Talk Settings for a Person.")
 def list_push_to_talk(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Push-to-Talk Settings for a Person."""
+    """Read Push-to-Talk Settings for a Person.\n\n\b\nExample: wxcli user-settings list-push-to-talk PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/pushToTalk"
     params = {}
@@ -1253,9 +1253,9 @@ def list_push_to_talk(
 
 _BODY_SKELETON_UPDATE_PUSH_TO_TALK = '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'
 
-@app.command("update-push-to-talk")
+@app.command("update-push-to-talk", short_help="Configure Push-to-Talk Settings for a Person.")
 def update_push_to_talk(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     allow_auto_answer: bool = typer.Option(None, "--allow-auto-answer/--no-allow-auto-answer", help="`true` if Push-to-Talk feature is enabled."),
     connection_type: str = typer.Option(None, "--connection-type", help="Choices: ONE_WAY, TWO_WAY"),
     access_type: str = typer.Option(None, "--access-type", help="Choices: ALLOW_MEMBERS, BLOCK_MEMBERS"),
@@ -1265,7 +1265,7 @@ def update_push_to_talk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Push-to-Talk Settings for a Person\n\nExample --json-body:\n  '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'."""
+    """Configure Push-to-Talk Settings for a Person.\n\n\b\nExample: wxcli user-settings update-push-to-talk PERSON_ID\n\n\b\nExample --json-body: '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PUSH_TO_TALK), indent=2))
         raise typer.Exit(0)
@@ -1300,16 +1300,16 @@ def update_push_to_talk(
 
 
 
-@app.command("list-reception")
+@app.command("list-reception", short_help="Read Receptionist Client Settings for a Person.")
 def list_reception(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Receptionist Client Settings for a Person."""
+    """Read Receptionist Client Settings for a Person.\n\n\b\nExample: wxcli user-settings list-reception PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/reception"
     params = {}
@@ -1335,9 +1335,9 @@ def list_reception(
 
 _BODY_SKELETON_UPDATE_RECEPTION = '{"receptionEnabled":true,"monitoredMembers":["..."]}'
 
-@app.command("update-reception")
+@app.command("update-reception", short_help="Configure Receptionist Client Settings for a Person.")
 def update_reception(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     reception_enabled: bool = typer.Option(None, "--reception-enabled/--no-reception-enabled", help="`true` if the Receptionist Client feature is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1345,7 +1345,7 @@ def update_reception(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Receptionist Client Settings for a Person\n\nExample --json-body:\n  '{"receptionEnabled":true,"monitoredMembers":["..."]}'."""
+    """Configure Receptionist Client Settings for a Person.\n\n\b\nExample: wxcli user-settings update-reception PERSON_ID --reception-enabled\n\n\b\nExample --json-body: '{"receptionEnabled":true,"monitoredMembers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_RECEPTION), indent=2))
         raise typer.Exit(0)
@@ -1376,9 +1376,9 @@ def update_reception(
 
 
 
-@app.command("list-schedules")
+@app.command("list-schedules", short_help="List of Schedules for a Person.")
 def list_schedules(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     name: str = typer.Option(None, "--name", help="Specifies the case insensitive substring to be matched against the schedule names. The maximum length is 40."),
     type_param: str = typer.Option(None, "--type", help="Specifies the schedule event type to be matched on the given type."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1387,7 +1387,7 @@ def list_schedules(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List of Schedules for a Person."""
+    """List of Schedules for a Person.\n\n\b\nExample: wxcli user-settings list-schedules PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/schedules"
     params = {}
@@ -1419,9 +1419,9 @@ def list_schedules(
 
 _BODY_SKELETON_CREATE = '{"name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'
 
-@app.command("create")
+@app.command("create", short_help="Create Schedule for a Person.")
 def create(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     name: str = typer.Option(None, "--name", help="(required) Name for the schedule."),
     type_param: str = typer.Option(None, "--type", help="(required) Choices: businessHours, holidays"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -1430,7 +1430,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Schedule for a Person\n\nExample --json-body:\n  '{"name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'."""
+    """Create Schedule for a Person.\n\n\b\nExample: wxcli user-settings create PERSON_ID --name NAME --type businessHours\n\n\b\nExample --json-body: '{"name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -1470,16 +1470,16 @@ def create(
 
 
 
-@app.command("show-schedules")
+@app.command("show-schedules", short_help="Get a Schedule Details.")
 def show_schedules(
-    person_id: str = typer.Argument(help="personId"),
-    schedule_type: str = typer.Argument(help="scheduleType"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    schedule_type: str = typer.Argument(help="from: wxcli user-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli user-settings list-schedules"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Schedule Details."""
+    """Get a Schedule Details.\n\n\b\nExample: wxcli user-settings show-schedules PERSON_ID SCHEDULE_TYPE SCHEDULE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/schedules/{schedule_type}/{schedule_id}"
     params = {}
@@ -1498,11 +1498,11 @@ def show_schedules(
 
 _BODY_SKELETON_UPDATE_SCHEDULES = '{"newName":"...","name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'
 
-@app.command("update-schedules")
+@app.command("update-schedules", short_help="Update a Schedule.")
 def update_schedules(
-    person_id: str = typer.Argument(help="personId"),
-    schedule_type: str = typer.Argument(help="scheduleType"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    schedule_type: str = typer.Argument(help="from: wxcli user-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli user-settings list-schedules"),
     new_name: str = typer.Option(None, "--new-name", help="New name for the schedule."),
     name: str = typer.Option(None, "--name", help="Name for the schedule."),
     type_param: str = typer.Option(None, "--type", help="Choices: businessHours, holidays"),
@@ -1512,7 +1512,7 @@ def update_schedules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Schedule\n\nExample --json-body:\n  '{"newName":"...","name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'."""
+    """Update a Schedule.\n\n\b\nExample: wxcli user-settings update-schedules PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --new-name NEW_NAME --name NAME --type businessHours\n\n\b\nExample --json-body: '{"newName":"...","name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SCHEDULES), indent=2))
         raise typer.Exit(0)
@@ -1547,17 +1547,17 @@ def update_schedules(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Schedule.")
 def delete(
-    person_id: str = typer.Argument(help="personId"),
-    schedule_type: str = typer.Argument(help="scheduleType"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    schedule_type: str = typer.Argument(help="from: wxcli user-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli user-settings list-schedules"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Schedule."""
+    """Delete a Schedule.\n\n\b\nExample: wxcli user-settings delete PERSON_ID SCHEDULE_TYPE SCHEDULE_ID"""
     if not force:
         typer.confirm(f"Delete {schedule_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1581,17 +1581,17 @@ def delete(
 
 
 
-@app.command("show-events")
+@app.command("show-events", short_help="Fetch Event for a person's Schedule.")
 def show_events(
-    person_id: str = typer.Argument(help="personId"),
-    schedule_type: str = typer.Argument(help="scheduleType"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
-    event_id: str = typer.Argument(help="eventId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    schedule_type: str = typer.Argument(help="from: wxcli user-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli user-settings list-schedules"),
+    event_id: str = typer.Argument(help="Webex USER_SCHEDULE_EVENT id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch Event for a person's Schedule."""
+    """Fetch Event for a person's Schedule.\n\n\b\nExample: wxcli user-settings show-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/schedules/{schedule_type}/{schedule_id}/events/{event_id}"
     params = {}
@@ -1610,12 +1610,12 @@ def show_events(
 
 _BODY_SKELETON_UPDATE_EVENTS = '{"newName":"...","name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"recurInterval":"...","sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'
 
-@app.command("update-events")
+@app.command("update-events", short_help="Update an Event for a person's Schedule.")
 def update_events(
-    person_id: str = typer.Argument(help="personId"),
-    schedule_type: str = typer.Argument(help="scheduleType"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
-    event_id: str = typer.Argument(help="eventId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    schedule_type: str = typer.Argument(help="from: wxcli user-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli user-settings list-schedules"),
+    event_id: str = typer.Argument(help="Webex USER_SCHEDULE_EVENT id"),
     new_name: str = typer.Option(None, "--new-name", help="New name for the event."),
     name: str = typer.Option(None, "--name", help="Name for the event."),
     start_date: str = typer.Option(None, "--start-date", help="Start date of the event, or first occurrence if repeating, in the format of YYYY-MM-DD. This field is required if the `allDayEnabled` field is present."),
@@ -1629,7 +1629,7 @@ def update_events(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Event for a person's Schedule\n\nExample --json-body:\n  '{"newName":"...","name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"recurInterval":"...","sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'."""
+    """Update an Event for a person's Schedule.\n\n\b\nExample: wxcli user-settings update-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID --new-name NEW_NAME --name NAME --start-date START_DATE --end-date END_DATE --start-time START_TIME --end-time END_TIME\n\n\b\nExample --json-body: '{"newName":"...","name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"recurInterval":"...","sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EVENTS), indent=2))
         raise typer.Exit(0)
@@ -1672,18 +1672,18 @@ def update_events(
 
 
 
-@app.command("delete-events")
+@app.command("delete-events", short_help="Delete an Event for a person's Schedule.")
 def delete_events(
-    person_id: str = typer.Argument(help="personId"),
-    schedule_type: str = typer.Argument(help="scheduleType"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
-    event_id: str = typer.Argument(help="eventId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    schedule_type: str = typer.Argument(help="from: wxcli user-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli user-settings list-schedules"),
+    event_id: str = typer.Argument(help="Webex USER_SCHEDULE_EVENT id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete an Event for a person's Schedule."""
+    """Delete an Event for a person's Schedule.\n\n\b\nExample: wxcli user-settings delete-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID"""
     if not force:
         typer.confirm(f"Delete {event_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1709,11 +1709,11 @@ def delete_events(
 
 _BODY_SKELETON_CREATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"recurInterval":"...","sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'
 
-@app.command("create-events")
+@app.command("create-events", short_help="Add a New Event for Person's Schedule.")
 def create_events(
-    person_id: str = typer.Argument(help="personId"),
-    schedule_type: str = typer.Argument(help="scheduleType"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    schedule_type: str = typer.Argument(help="from: wxcli user-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli user-settings list-schedules"),
     name: str = typer.Option(None, "--name", help="(required) Name for the event."),
     start_date: str = typer.Option(None, "--start-date", help="(required) Start date of the event, or first occurrence if repeating, in the format of `YYYY-MM-DD`. This field is required if the `allDayEnabled` field is present."),
     end_date: str = typer.Option(None, "--end-date", help="(required) End date of the event, or first occurrence if repeating, in the format of `YYYY-MM-DD`. This field is required if the `allDayEnabled` field is present."),
@@ -1726,7 +1726,7 @@ def create_events(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add a New Event for Person's Schedule\n\nExample --json-body:\n  '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"recurInterval":"...","sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'."""
+    """Add a New Event for Person's Schedule.\n\n\b\nExample: wxcli user-settings create-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --name NAME --start-date START_DATE --end-date END_DATE --start-time START_TIME --end-time END_TIME\n\n\b\nExample --json-body: '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"recurInterval":"...","sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EVENTS), indent=2))
         raise typer.Exit(0)
@@ -1774,14 +1774,14 @@ def create_events(
 
 
 
-@app.command("show-voicemail")
+@app.command("show-voicemail", short_help="Read Voicemail Settings for a Person.")
 def show_voicemail(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Voicemail Settings for a Person."""
+    """Read Voicemail Settings for a Person.\n\n\b\nExample: wxcli user-settings show-voicemail PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/voicemail"
     params = {}
@@ -1800,9 +1800,9 @@ def show_voicemail(
 
 _BODY_SKELETON_UPDATE_VOICEMAIL = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'
 
-@app.command("update-voicemail")
+@app.command("update-voicemail", short_help="Configure Voicemail Settings for a Person.")
 def update_voicemail(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Voicemail is enabled or disabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1810,7 +1810,7 @@ def update_voicemail(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Voicemail Settings for a Person\n\nExample --json-body:\n  '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'."""
+    """Configure Voicemail Settings for a Person.\n\n\b\nExample: wxcli user-settings update-voicemail PERSON_ID\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICEMAIL), indent=2))
         raise typer.Exit(0)
@@ -1841,15 +1841,15 @@ def update_voicemail(
 
 
 
-@app.command("configure-busy-voicemail")
+@app.command("configure-busy-voicemail", short_help="Configure Busy Voicemail Greeting for a Person.")
 def configure_busy_voicemail(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Busy Voicemail Greeting for a Person."""
+    """Configure Busy Voicemail Greeting for a Person.\n\n\b\nExample: wxcli user-settings configure-busy-voicemail PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/voicemail/actions/uploadBusyGreeting/invoke"
     params = {}
@@ -1870,15 +1870,15 @@ def configure_busy_voicemail(
 
 
 
-@app.command("configure-no-answer")
+@app.command("configure-no-answer", short_help="Configure No Answer Voicemail Greeting for a Person.")
 def configure_no_answer(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure No Answer Voicemail Greeting for a Person."""
+    """Configure No Answer Voicemail Greeting for a Person.\n\n\b\nExample: wxcli user-settings configure-no-answer PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/voicemail/actions/uploadNoAnswerGreeting/invoke"
     params = {}
@@ -1899,15 +1899,15 @@ def configure_no_answer(
 
 
 
-@app.command("reset-voicemail-pin")
+@app.command("reset-voicemail-pin", short_help="Reset Voicemail PIN.")
 def reset_voicemail_pin(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reset Voicemail PIN."""
+    """Reset Voicemail PIN.\n\n\b\nExample: wxcli user-settings reset-voicemail-pin PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}/features/voicemail/actions/resetPin/invoke"
     params = {}
@@ -1928,7 +1928,7 @@ def reset_voicemail_pin(
 
 
 
-@app.command("list-move-location")
+@app.command("list-move-location", short_help="List Move Users Jobs.")
 def list_move_location(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -1962,7 +1962,7 @@ def list_move_location(
 
 _BODY_SKELETON_CREATE_MOVE_LOCATION = '{"usersList":[{"locationId":"...","validate":"...","users":"..."}]}'
 
-@app.command("create-move-location")
+@app.command("create-move-location", short_help="Validate or Initiate Move Users Job.")
 def create_move_location(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1970,7 +1970,7 @@ def create_move_location(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate or Initiate Move Users Job\n\nExample --json-body:\n  '{"usersList":[{"locationId":"...","validate":"...","users":"..."}]}'."""
+    """Validate or Initiate Move Users Job.\n\n\b\nExample --json-body: '{"usersList":[{"locationId":"...","validate":"...","users":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MOVE_LOCATION), indent=2))
         raise typer.Exit(0)
@@ -2004,14 +2004,14 @@ def create_move_location(
 
 
 
-@app.command("show-move-location")
+@app.command("show-move-location", short_help="Get Move Users Job Status.")
 def show_move_location(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli user-settings list-move-location"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Move Users Job Status."""
+    """Get Move Users Job Status.\n\n\b\nExample: wxcli user-settings show-move-location JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/person/moveLocation/{job_id}"
     params = {}
@@ -2028,15 +2028,15 @@ def show_move_location(
 
 
 
-@app.command("pause-the-move")
+@app.command("pause-the-move", short_help="Pause the Move Users Job.")
 def pause_the_move(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli user-settings list-move-location"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Pause the Move Users Job."""
+    """Pause the Move Users Job.\n\n\b\nExample: wxcli user-settings pause-the-move JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/person/moveLocation/{job_id}/actions/pause/invoke"
     params = {}
@@ -2057,15 +2057,15 @@ def pause_the_move(
 
 
 
-@app.command("resume-the-move")
+@app.command("resume-the-move", short_help="Resume the Move Users Job.")
 def resume_the_move(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli user-settings list-move-location"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Resume the Move Users Job."""
+    """Resume the Move Users Job.\n\n\b\nExample: wxcli user-settings resume-the-move JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/person/moveLocation/{job_id}/actions/resume/invoke"
     params = {}
@@ -2086,16 +2086,16 @@ def resume_the_move(
 
 
 
-@app.command("list-errors")
+@app.command("list-errors", short_help="List Move Users Job errors.")
 def list_errors(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli user-settings list-move-location"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Move Users Job errors."""
+    """List Move Users Job errors.\n\n\b\nExample: wxcli user-settings list-errors JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/person/moveLocation/{job_id}/errors"
     params = {}
@@ -2119,14 +2119,14 @@ def list_errors(
 
 
 
-@app.command("show-music-on-hold")
+@app.command("show-music-on-hold", short_help="Retrieve Music On Hold Settings for a Person.")
 def show_music_on_hold(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Music On Hold Settings for a Person."""
+    """Retrieve Music On Hold Settings for a Person.\n\n\b\nExample: wxcli user-settings show-music-on-hold PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/musicOnHold"
     params = {}
@@ -2145,9 +2145,9 @@ def show_music_on_hold(
 
 _BODY_SKELETON_UPDATE_MUSIC_ON_HOLD = '{"mohEnabled":true,"greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}'
 
-@app.command("update-music-on-hold")
+@app.command("update-music-on-hold", short_help="Configure Music On Hold Settings for a Person.")
 def update_music_on_hold(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     moh_enabled: bool = typer.Option(None, "--moh-enabled/--no-moh-enabled", help="Music on hold is enabled or disabled for the workspace."),
     greeting: str = typer.Option(None, "--greeting", help="Choices: DEFAULT, CUSTOM"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -2156,7 +2156,7 @@ def update_music_on_hold(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Music On Hold Settings for a Person\n\nExample --json-body:\n  '{"mohEnabled":true,"greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}'."""
+    """Configure Music On Hold Settings for a Person.\n\n\b\nExample: wxcli user-settings update-music-on-hold PERSON_ID\n\n\b\nExample --json-body: '{"mohEnabled":true,"greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MUSIC_ON_HOLD), indent=2))
         raise typer.Exit(0)
@@ -2189,16 +2189,16 @@ def update_music_on_hold(
 
 
 
-@app.command("list-access-codes")
+@app.command("list-access-codes", short_help="Retrieve Access Codes for a Person.")
 def list_access_codes(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Access Codes for a Person."""
+    """Retrieve Access Codes for a Person.\n\n\b\nExample: wxcli user-settings list-access-codes PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/outgoingPermission/accessCodes"
     params = {}
@@ -2224,9 +2224,9 @@ def list_access_codes(
 
 _BODY_SKELETON_CREATE_ACCESS_CODES = '{"code":"...","description":"..."}'
 
-@app.command("create-access-codes")
+@app.command("create-access-codes", short_help="Create Access Codes for a Person.")
 def create_access_codes(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     code: str = typer.Option(None, "--code", help="(required) An Access code."),
     description: str = typer.Option(None, "--description", help="(required) The description of the access code."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -2235,7 +2235,7 @@ def create_access_codes(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Access Codes for a Person\n\nExample --json-body:\n  '{"code":"...","description":"..."}'."""
+    """Create Access Codes for a Person.\n\n\b\nExample: wxcli user-settings create-access-codes PERSON_ID --code CODE --description DESCRIPTION\n\n\b\nExample --json-body: '{"code":"...","description":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ACCESS_CODES), indent=2))
         raise typer.Exit(0)
@@ -2277,16 +2277,16 @@ def create_access_codes(
 
 _BODY_SKELETON_UPDATE_ACCESS_CODES = '{"deleteCodes":["..."]}'
 
-@app.command("update-access-codes")
+@app.command("update-access-codes", short_help="Modify Access Codes for a Person.")
 def update_access_codes(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Access Codes for a Person\n\nDESTRUCTIVE: this PUT only deletes despite the summary above. It cannot add or modify.\n\nExample --json-body:\n  '{"deleteCodes":["..."]}'."""
+    """Modify Access Codes for a Person.\n\nDESTRUCTIVE: this PUT only deletes despite the summary above. It cannot add or modify.\n\n\b\nExample: wxcli user-settings update-access-codes PERSON_ID\n\n\b\nExample --json-body: '{"deleteCodes":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ACCESS_CODES), indent=2))
         raise typer.Exit(0)
@@ -2315,15 +2315,15 @@ def update_access_codes(
 
 
 
-@app.command("delete-access-codes")
+@app.command("delete-access-codes", short_help="Delete Access Codes for a Person.")
 def delete_access_codes(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Access Codes for a Person."""
+    """Delete Access Codes for a Person.\n\n\b\nExample: wxcli user-settings delete-access-codes PERSON_ID"""
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
@@ -2347,14 +2347,14 @@ def delete_access_codes(
 
 
 
-@app.command("show-auto-transfer-numbers")
+@app.command("show-auto-transfer-numbers", short_help="Retrieve Transfer Numbers for a Person.")
 def show_auto_transfer_numbers(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Transfer Numbers for a Person."""
+    """Retrieve Transfer Numbers for a Person.\n\n\b\nExample: wxcli user-settings show-auto-transfer-numbers PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/outgoingPermission/autoTransferNumbers"
     params = {}
@@ -2373,9 +2373,9 @@ def show_auto_transfer_numbers(
 
 _BODY_SKELETON_UPDATE_AUTO_TRANSFER_NUMBERS = '{"useCustomTransferNumbers":true,"autoTransferNumber1":"...","autoTransferNumber2":"...","autoTransferNumber3":"..."}'
 
-@app.command("update-auto-transfer-numbers")
+@app.command("update-auto-transfer-numbers", short_help="Modify Transfer Numbers for a Person.")
 def update_auto_transfer_numbers(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     use_custom_transfer_numbers: bool = typer.Option(None, "--use-custom-transfer-numbers/--no-use-custom-transfer-numbers", help="When `true`, use custom settings for the transfer numbers category of outbound permissions."),
     auto_transfer_number1: str = typer.Option(None, "--auto-transfer-number1", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
     auto_transfer_number2: str = typer.Option(None, "--auto-transfer-number2", help="When calling a specific call type, this workspace will be automatically transferred to another number."),
@@ -2386,7 +2386,7 @@ def update_auto_transfer_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Transfer Numbers for a Person\n\nExample --json-body:\n  '{"useCustomTransferNumbers":true,"autoTransferNumber1":"...","autoTransferNumber2":"...","autoTransferNumber3":"..."}'."""
+    """Modify Transfer Numbers for a Person.\n\n\b\nExample: wxcli user-settings update-auto-transfer-numbers PERSON_ID --use-custom-transfer-numbers\n\n\b\nExample --json-body: '{"useCustomTransferNumbers":true,"autoTransferNumber1":"...","autoTransferNumber2":"...","autoTransferNumber3":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUTO_TRANSFER_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -2423,16 +2423,16 @@ def update_auto_transfer_numbers(
 
 
 
-@app.command("list-digit-patterns")
+@app.command("list-digit-patterns", short_help="Retrieve Digit Patterns for a Person.")
 def list_digit_patterns(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Digit Patterns for a Person."""
+    """Retrieve Digit Patterns for a Person.\n\n\b\nExample: wxcli user-settings list-digit-patterns PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/outgoingPermission/digitPatterns"
     params = {}
@@ -2458,9 +2458,9 @@ def list_digit_patterns(
 
 _BODY_SKELETON_CREATE_DIGIT_PATTERNS = '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'
 
-@app.command("create-digit-patterns")
+@app.command("create-digit-patterns", short_help="Create Digit Patterns for a Person.")
 def create_digit_patterns(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli people list"),
     name: str = typer.Option(None, "--name", help="(required) A unique name for the digit pattern."),
     pattern: str = typer.Option(None, "--pattern", help="(required) The digit pattern to be matched with the input number."),
     action: str = typer.Option(None, "--action", help="(required) Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
@@ -2471,7 +2471,7 @@ def create_digit_patterns(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Digit Patterns for a Person\n\nExample --json-body:\n  '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'."""
+    """Create Digit Patterns for a Person.\n\n\b\nExample: wxcli user-settings create-digit-patterns PERSON_ID --name NAME --pattern PATTERN --action ALLOW --transfer-enabled\n\n\b\nExample --json-body: '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DIGIT_PATTERNS), indent=2))
         raise typer.Exit(0)
@@ -2517,9 +2517,9 @@ def create_digit_patterns(
 
 _BODY_SKELETON_UPDATE_DIGIT_PATTERNS_OUTGOING_PERMISSION = '{"useCustomDigitPatterns":true}'
 
-@app.command("update-digit-patterns-outgoing-permission")
+@app.command("update-digit-patterns-outgoing-permission", short_help="Modify the Digit Pattern Category Control Settings for a Person.")
 def update_digit_patterns_outgoing_permission(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli people list"),
     use_custom_digit_patterns: bool = typer.Option(None, "--use-custom-digit-patterns/--no-use-custom-digit-patterns", help="When `true`, use custom settings for the digit patterns category of outgoing call permissions."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2527,7 +2527,7 @@ def update_digit_patterns_outgoing_permission(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify the Digit Pattern Category Control Settings for a Person\n\nExample --json-body:\n  '{"useCustomDigitPatterns":true}'."""
+    """Modify the Digit Pattern Category Control Settings for a Person.\n\n\b\nExample: wxcli user-settings update-digit-patterns-outgoing-permission PERSON_ID\n\n\b\nExample --json-body: '{"useCustomDigitPatterns":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DIGIT_PATTERNS_OUTGOING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -2558,15 +2558,15 @@ def update_digit_patterns_outgoing_permission(
 
 
 
-@app.command("delete-digit-patterns-outgoing-permission")
+@app.command("delete-digit-patterns-outgoing-permission", short_help="Delete all Digit Patterns for a Person.")
 def delete_digit_patterns_outgoing_permission(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli people list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete all Digit Patterns for a Person."""
+    """Delete all Digit Patterns for a Person.\n\n\b\nExample: wxcli user-settings delete-digit-patterns-outgoing-permission PERSON_ID"""
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
@@ -2590,15 +2590,15 @@ def delete_digit_patterns_outgoing_permission(
 
 
 
-@app.command("show-digit-patterns")
+@app.command("show-digit-patterns", short_help="Retrieve Digit Pattern Details for a Person.")
 def show_digit_patterns(
-    person_id: str = typer.Argument(help="personId"),
-    digit_pattern_id: str = typer.Argument(help="digitPatternId"),
+    person_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli people list"),
+    digit_pattern_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli user-settings list-digit-patterns"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Digit Pattern Details for a Person."""
+    """Retrieve Digit Pattern Details for a Person.\n\n\b\nExample: wxcli user-settings show-digit-patterns PERSON_ID DIGIT_PATTERN_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/outgoingPermission/digitPatterns/{digit_pattern_id}"
     params = {}
@@ -2617,10 +2617,10 @@ def show_digit_patterns(
 
 _BODY_SKELETON_UPDATE_DIGIT_PATTERNS_OUTGOING_PERMISSION_1 = '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'
 
-@app.command("update-digit-patterns-outgoing-permission-1")
+@app.command("update-digit-patterns-outgoing-permission-1", short_help="Modify a Digit Pattern for a Person.")
 def update_digit_patterns_outgoing_permission_1(
-    person_id: str = typer.Argument(help="personId"),
-    digit_pattern_id: str = typer.Argument(help="digitPatternId"),
+    person_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli people list"),
+    digit_pattern_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli user-settings list-digit-patterns"),
     name: str = typer.Option(None, "--name", help="A unique name for the digit pattern."),
     pattern: str = typer.Option(None, "--pattern", help="The digit pattern to be matched with the input number."),
     action: str = typer.Option(None, "--action", help="Choices: ALLOW, BLOCK, AUTH_CODE, TRANSFER_NUMBER_1, TRANSFER_NUMBER_2, TRANSFER_NUMBER_3"),
@@ -2631,7 +2631,7 @@ def update_digit_patterns_outgoing_permission_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Digit Pattern for a Person\n\nExample --json-body:\n  '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'."""
+    """Modify a Digit Pattern for a Person.\n\n\b\nExample: wxcli user-settings update-digit-patterns-outgoing-permission-1 PERSON_ID DIGIT_PATTERN_ID\n\n\b\nExample --json-body: '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DIGIT_PATTERNS_OUTGOING_PERMISSION_1), indent=2))
         raise typer.Exit(0)
@@ -2668,16 +2668,16 @@ def update_digit_patterns_outgoing_permission_1(
 
 
 
-@app.command("delete-digit-patterns-outgoing-permission-1")
+@app.command("delete-digit-patterns-outgoing-permission-1", short_help="Delete a Digit Pattern for a Person.")
 def delete_digit_patterns_outgoing_permission_1(
-    person_id: str = typer.Argument(help="personId"),
-    digit_pattern_id: str = typer.Argument(help="digitPatternId"),
+    person_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli people list"),
+    digit_pattern_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli user-settings list-digit-patterns"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Digit Pattern for a Person."""
+    """Delete a Digit Pattern for a Person.\n\n\b\nExample: wxcli user-settings delete-digit-patterns-outgoing-permission-1 PERSON_ID DIGIT_PATTERN_ID"""
     if not force:
         typer.confirm(f"Delete {digit_pattern_id}?", abort=True)
     api = get_api(debug=debug)
@@ -2703,9 +2703,9 @@ def delete_digit_patterns_outgoing_permission_1(
 
 _BODY_SKELETON_UPDATE_NUMBERS = '{"phoneNumbers":[{"primary":"...","action":"...","directNumber":"...","extension":"...","ringPattern":"..."}],"distinctiveRingEnabled":true}'
 
-@app.command("update-numbers")
+@app.command("update-numbers", short_help="Assign or Unassign numbers to a person.")
 def update_numbers(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="from: wxcli people list"),
     distinctive_ring_enabled: bool = typer.Option(None, "--distinctive-ring-enabled/--no-distinctive-ring-enabled", help="Enables a distinctive ring pattern for the person."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2713,7 +2713,7 @@ def update_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign numbers to a person\n\nExample --json-body:\n  '{"phoneNumbers":[{"primary":"...","action":"...","directNumber":"...","extension":"...","ringPattern":"..."}],"distinctiveRingEnabled":true}'."""
+    """Assign or Unassign numbers to a person.\n\n\b\nExample: wxcli user-settings update-numbers PERSON_ID\n\n\b\nExample --json-body: '{"phoneNumbers":[{"primary":"...","action":"...","directNumber":"...","extension":"...","ringPattern":"..."}],"distinctiveRingEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -2744,16 +2744,16 @@ def update_numbers(
 
 
 
-@app.command("list-preferred-answer-endpoint")
+@app.command("list-preferred-answer-endpoint", short_help="Get Preferred Answer Endpoint.")
 def list_preferred_answer_endpoint(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Preferred Answer Endpoint."""
+    """Get Preferred Answer Endpoint.\n\n\b\nExample: wxcli user-settings list-preferred-answer-endpoint PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/preferredAnswerEndpoint"
     params = {}
@@ -2779,9 +2779,9 @@ def list_preferred_answer_endpoint(
 
 _BODY_SKELETON_UPDATE_PREFERRED_ANSWER_ENDPOINT = '{"preferredAnswerEndpointId":"..."}'
 
-@app.command("update-preferred-answer-endpoint")
+@app.command("update-preferred-answer-endpoint", short_help="Modify Preferred Answer Endpoint.")
 def update_preferred_answer_endpoint(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="from: wxcli people list"),
     preferred_answer_endpoint_id: str = typer.Option(None, "--preferred-answer-endpoint-id", help="Person’s preferred answer endpoint."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2789,7 +2789,7 @@ def update_preferred_answer_endpoint(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Preferred Answer Endpoint\n\nExample --json-body:\n  '{"preferredAnswerEndpointId":"..."}'."""
+    """Modify Preferred Answer Endpoint.\n\n\b\nExample: wxcli user-settings update-preferred-answer-endpoint PERSON_ID --preferred-answer-endpoint-id PREFERRED_ANSWER_ENDPOINT_ID\n\n\b\nExample --json-body: '{"preferredAnswerEndpointId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PREFERRED_ANSWER_ENDPOINT), indent=2))
         raise typer.Exit(0)
@@ -2820,9 +2820,9 @@ def update_preferred_answer_endpoint(
 
 
 
-@app.command("list-available-members-applications")
+@app.command("list-available-members-applications", short_help="Search Shared-Line Appearance Members.")
 def list_available_members_applications(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     application_id: str = typer.Argument(help="applicationId"),
     location: str = typer.Option(None, "--location", help="Location ID for the user."),
     name: str = typer.Option(None, "--name", help="Search for users whose names match the query."),
@@ -2835,7 +2835,7 @@ def list_available_members_applications(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search Shared-Line Appearance Members."""
+    """Search Shared-Line Appearance Members.\n\n\b\nExample: wxcli user-settings list-available-members-applications PERSON_ID APPLICATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/applications/{application_id}/availableMembers"
     params = {}
@@ -2866,9 +2866,9 @@ def list_available_members_applications(
 
 
 
-@app.command("list-members-applications")
+@app.command("list-members-applications", short_help="Get Shared-Line Appearance Members.")
 def list_members_applications(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     application_id: str = typer.Argument(help="applicationId"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -2876,7 +2876,7 @@ def list_members_applications(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Shared-Line Appearance Members."""
+    """Get Shared-Line Appearance Members.\n\n\b\nExample: wxcli user-settings list-members-applications PERSON_ID APPLICATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/applications/{application_id}/members"
     params = {}
@@ -2899,9 +2899,9 @@ def list_members_applications(
 
 _BODY_SKELETON_UPDATE_MEMBERS_APPLICATIONS = '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","hotlineEnabled":"...","hotlineDestination":"...","allowCallDeclineEnabled":"..."}]}'
 
-@app.command("update-members-applications")
+@app.command("update-members-applications", short_help="Put Shared-Line Appearance Members.")
 def update_members_applications(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     application_id: str = typer.Argument(help="applicationId"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2909,7 +2909,7 @@ def update_members_applications(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Put Shared-Line Appearance Members\n\nExample --json-body:\n  '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","hotlineEnabled":"...","hotlineDestination":"...","allowCallDeclineEnabled":"..."}]}'."""
+    """Put Shared-Line Appearance Members.\n\n\b\nExample: wxcli user-settings update-members-applications PERSON_ID APPLICATION_ID\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","hotlineEnabled":"...","hotlineDestination":"...","allowCallDeclineEnabled":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MEMBERS_APPLICATIONS), indent=2))
         raise typer.Exit(0)
@@ -2936,9 +2936,9 @@ def update_members_applications(
 
 _BODY_SKELETON_UPDATE_PASSCODE = '{"passcode":"..."}'
 
-@app.command("update-passcode")
+@app.command("update-passcode", short_help="Modify a person's voicemail passcode.")
 def update_passcode(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcode is 6 and the maximum length is 30."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2946,7 +2946,7 @@ def update_passcode(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a person's voicemail passcode\n\nExample --json-body:\n  '{"passcode":"..."}'."""
+    """Modify a person's voicemail passcode.\n\n\b\nExample: wxcli user-settings update-passcode PERSON_ID --passcode PASSCODE\n\n\b\nExample --json-body: '{"passcode":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PASSCODE), indent=2))
         raise typer.Exit(0)
@@ -2977,7 +2977,7 @@ def update_passcode(
 
 
 
-@app.command("show-summary")
+@app.command("show-summary", short_help="Get Message Summary.")
 def show_summary(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -2996,7 +2996,7 @@ def show_summary(
 
 
 
-@app.command("list-voice-messages")
+@app.command("list-voice-messages", short_help="List Messages.")
 def list_voice_messages(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -3028,15 +3028,15 @@ def list_voice_messages(
 
 
 
-@app.command("delete-voice-messages")
+@app.command("delete-voice-messages", short_help="Delete Message.")
 def delete_voice_messages(
-    message_id: str = typer.Argument(help="messageId"),
+    message_id: str = typer.Argument(help="from: wxcli user-settings list-voice-messages"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Message."""
+    """Delete Message.\n\n\b\nExample: wxcli user-settings delete-voice-messages MESSAGE_ID"""
     if not force:
         typer.confirm(f"Delete {message_id}?", abort=True)
     api = get_api(debug=debug)
@@ -3058,7 +3058,7 @@ def delete_voice_messages(
 
 _BODY_SKELETON_CREATE_MARK_AS_READ = '{"messageId":"...","lineOwnerId":"..."}'
 
-@app.command("create-mark-as-read")
+@app.command("create-mark-as-read", short_help="Mark As Read.")
 def create_mark_as_read(
     message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as read. If the `messageId` is not provided, then all voicemail messages for the user are marked as read."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
@@ -3068,7 +3068,7 @@ def create_mark_as_read(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Mark As Read\n\nExample --json-body:\n  '{"messageId":"...","lineOwnerId":"..."}'."""
+    """Mark As Read.\n\n\b\nExample --json-body: '{"messageId":"...","lineOwnerId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MARK_AS_READ), indent=2))
         raise typer.Exit(0)
@@ -3102,7 +3102,7 @@ def create_mark_as_read(
 
 _BODY_SKELETON_CREATE_MARK_AS_UNREAD = '{"messageId":"...","lineOwnerId":"..."}'
 
-@app.command("create-mark-as-unread")
+@app.command("create-mark-as-unread", short_help="Mark As Unread.")
 def create_mark_as_unread(
     message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as unread. If the `messageId` is not provided, then all voicemail messages for the user are marked as unread."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
@@ -3112,7 +3112,7 @@ def create_mark_as_unread(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Mark As Unread\n\nExample --json-body:\n  '{"messageId":"...","lineOwnerId":"..."}'."""
+    """Mark As Unread.\n\n\b\nExample --json-body: '{"messageId":"...","lineOwnerId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MARK_AS_UNREAD), indent=2))
         raise typer.Exit(0)
@@ -3144,16 +3144,16 @@ def create_mark_as_unread(
 
 
 
-@app.command("list-available-caller-ids")
+@app.command("list-available-caller-ids", short_help="Retrieve Agent's List of Available Caller IDs.")
 def list_available_caller_ids(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Agent's List of Available Caller IDs."""
+    """Retrieve Agent's List of Available Caller IDs.\n\n\b\nExample: wxcli user-settings list-available-caller-ids PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/agent/availableCallerIds"
     params = {}
@@ -3177,14 +3177,14 @@ def list_available_caller_ids(
 
 
 
-@app.command("show-caller-id")
+@app.command("show-caller-id", short_help="Retrieve Agent's Caller ID Information.")
 def show_caller_id(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Agent's Caller ID Information."""
+    """Retrieve Agent's Caller ID Information.\n\n\b\nExample: wxcli user-settings show-caller-id PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/agent/callerId"
     try:
@@ -3199,9 +3199,9 @@ def show_caller_id(
 
 _BODY_SKELETON_UPDATE_CALLER_ID_AGENT = '{"selectedCallerId":"..."}'
 
-@app.command("update-caller-id-agent")
+@app.command("update-caller-id-agent", short_help="Modify Agent's Caller ID Information.")
 def update_caller_id_agent(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     selected_caller_id: str = typer.Option(None, "--selected-caller-id", help="The unique identifier of the call queue or hunt group to use for the agent's caller ID. Set to null to use the agent's own caller ID."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -3209,7 +3209,7 @@ def update_caller_id_agent(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Agent's Caller ID Information\n\nExample --json-body:\n  '{"selectedCallerId":"..."}'."""
+    """Modify Agent's Caller ID Information.\n\n\b\nExample: wxcli user-settings update-caller-id-agent PERSON_ID --selected-caller-id SELECTED_CALLER_ID\n\n\b\nExample --json-body: '{"selectedCallerId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALLER_ID_AGENT), indent=2))
         raise typer.Exit(0)
@@ -3236,14 +3236,14 @@ def update_caller_id_agent(
 
 
 
-@app.command("show-call-bridge")
+@app.command("show-call-bridge", short_help="Read Call Bridge Settings for a Person.")
 def show_call_bridge(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Call Bridge Settings for a Person."""
+    """Read Call Bridge Settings for a Person.\n\n\b\nExample: wxcli user-settings show-call-bridge PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/features/callBridge"
     params = {}
@@ -3262,9 +3262,9 @@ def show_call_bridge(
 
 _BODY_SKELETON_UPDATE_CALL_BRIDGE = '{"warningToneEnabled":true}'
 
-@app.command("update-call-bridge")
+@app.command("update-call-bridge", short_help="Configure Call Bridge Settings for a Person.")
 def update_call_bridge(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     warning_tone_enabled: bool = typer.Option(None, "--warning-tone-enabled/--no-warning-tone-enabled", help="Set to enable or disable a stutter dial tone being played to all the participants when a virtual line is bridged on the active shared line call."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -3272,7 +3272,7 @@ def update_call_bridge(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Bridge Settings for a Person\n\nExample --json-body:\n  '{"warningToneEnabled":true}'."""
+    """Configure Call Bridge Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-bridge PERSON_ID\n\n\b\nExample --json-body: '{"warningToneEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_BRIDGE), indent=2))
         raise typer.Exit(0)
@@ -3303,9 +3303,9 @@ def update_call_bridge(
 
 
 
-@app.command("list-available-numbers-secondary")
+@app.command("list-available-numbers-secondary", short_help="Get Person Secondary Available Phone Numbers.")
 def list_available_numbers_secondary(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -3313,7 +3313,7 @@ def list_available_numbers_secondary(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Secondary Available Phone Numbers."""
+    """Get Person Secondary Available Phone Numbers.\n\n\b\nExample: wxcli user-settings list-available-numbers-secondary PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/secondary/availableNumbers"
     params = {}
@@ -3339,9 +3339,9 @@ def list_available_numbers_secondary(
 
 
 
-@app.command("list-available-numbers-fax-message")
+@app.command("list-available-numbers-fax-message", short_help="Get Person Fax Message Available Phone Numbers.")
 def list_available_numbers_fax_message(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -3349,7 +3349,7 @@ def list_available_numbers_fax_message(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Fax Message Available Phone Numbers."""
+    """Get Person Fax Message Available Phone Numbers.\n\n\b\nExample: wxcli user-settings list-available-numbers-fax-message PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/faxMessage/availableNumbers"
     params = {}
@@ -3375,9 +3375,9 @@ def list_available_numbers_fax_message(
 
 
 
-@app.command("list-available-numbers-call-forwarding")
+@app.command("list-available-numbers-call-forwarding", short_help="Get Person Call Forward Available Phone Numbers.")
 def list_available_numbers_call_forwarding(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
@@ -3387,7 +3387,7 @@ def list_available_numbers_call_forwarding(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Call Forward Available Phone Numbers."""
+    """Get Person Call Forward Available Phone Numbers.\n\n\b\nExample: wxcli user-settings list-available-numbers-call-forwarding PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/callForwarding/availableNumbers"
     params = {}
@@ -3417,7 +3417,7 @@ def list_available_numbers_call_forwarding(
 
 
 
-@app.command("list-available-numbers-primary")
+@app.command("list-available-numbers-primary", short_help="Get Person Primary Available Phone Numbers.")
 def list_available_numbers_primary(
     location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within the given organization. The maximum length is 36."),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
@@ -3458,9 +3458,9 @@ def list_available_numbers_primary(
 
 
 
-@app.command("list-available-numbers-emergency-callback-number")
+@app.command("list-available-numbers-emergency-callback-number", short_help="Get Person ECBN Available Phone Numbers.")
 def list_available_numbers_emergency_callback_number(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -3469,7 +3469,7 @@ def list_available_numbers_emergency_callback_number(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person ECBN Available Phone Numbers."""
+    """Get Person ECBN Available Phone Numbers.\n\n\b\nExample: wxcli user-settings list-available-numbers-emergency-callback-number PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/emergencyCallbackNumber/availableNumbers"
     params = {}
@@ -3497,9 +3497,9 @@ def list_available_numbers_emergency_callback_number(
 
 
 
-@app.command("list-available-numbers-call-intercept")
+@app.command("list-available-numbers-call-intercept", short_help="Get Person Call Intercept Available Phone Numbers.")
 def list_available_numbers_call_intercept(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
@@ -3509,7 +3509,7 @@ def list_available_numbers_call_intercept(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Call Intercept Available Phone Numbers."""
+    """Get Person Call Intercept Available Phone Numbers.\n\n\b\nExample: wxcli user-settings list-available-numbers-call-intercept PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/callIntercept/availableNumbers"
     params = {}
@@ -3539,16 +3539,16 @@ def list_available_numbers_call_intercept(
 
 
 
-@app.command("list-ms-teams")
+@app.command("list-ms-teams", short_help="Retrieve a Person's MS Teams Settings.")
 def list_ms_teams(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a Person's MS Teams Settings."""
+    """Retrieve a Person's MS Teams Settings.\n\n\b\nExample: wxcli user-settings list-ms-teams PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/settings/msTeams"
     params = {}
@@ -3574,9 +3574,9 @@ def list_ms_teams(
 
 _BODY_SKELETON_UPDATE_MS_TEAMS = '{"settingName":"HIDE_WEBEX_APP","value":true}'
 
-@app.command("update-ms-teams")
+@app.command("update-ms-teams", short_help="Configure a Person's MS Teams Setting.")
 def update_ms_teams(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     setting_name: str = typer.Option(None, "--setting-name", help="Choices: HIDE_WEBEX_APP"),
     value: bool = typer.Option(None, "--value/--no-value", help="The boolean value to update the `HIDE_WEBEX_APP` setting, either `true` or `false`. Set to `null` to delete the `HIDE_WEBEX_APP` setting."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -3585,7 +3585,7 @@ def update_ms_teams(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure a Person's MS Teams Setting\n\nExample --json-body:\n  '{"settingName":"HIDE_WEBEX_APP","value":true}'."""
+    """Configure a Person's MS Teams Setting.\n\n\b\nExample: wxcli user-settings update-ms-teams PERSON_ID --setting-name HIDE_WEBEX_APP --value\n\n\b\nExample --json-body: '{"settingName":"HIDE_WEBEX_APP","value":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MS_TEAMS), indent=2))
         raise typer.Exit(0)
@@ -3618,14 +3618,14 @@ def update_ms_teams(
 
 
 
-@app.command("show-personal-assistant")
+@app.command("show-personal-assistant", short_help="Get Personal Assistant.")
 def show_personal_assistant(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Personal Assistant."""
+    """Get Personal Assistant.\n\n\b\nExample: wxcli user-settings show-personal-assistant PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/features/personalAssistant"
     params = {}
@@ -3644,9 +3644,9 @@ def show_personal_assistant(
 
 _BODY_SKELETON_UPDATE_PERSONAL_ASSISTANT = '{"enabled":true,"presence":"NONE","untilDateTime":"...","transferEnabled":true,"transferNumber":"...","alerting":"ALERT_ME_FIRST","alertMeFirstNumberOfRings":0}'
 
-@app.command("update-personal-assistant")
+@app.command("update-personal-assistant", short_help="Update Personal Assistant.")
 def update_personal_assistant(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Toggles feature."),
     presence: str = typer.Option(None, "--presence", help="Choices: NONE, BUSINESS_TRIP, GONE_FOR_THE_DAY, LUNCH, MEETING, OUT_OF_OFFICE, TEMPORARILY_OUT, TRAINING, UNAVAILABLE, VACATION"),
     until_date_time: str = typer.Option(None, "--until-date-time", help="The date until which the personal assistant is active."),
@@ -3660,7 +3660,7 @@ def update_personal_assistant(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Personal Assistant\n\nExample --json-body:\n  '{"enabled":true,"presence":"NONE","untilDateTime":"...","transferEnabled":true,"transferNumber":"...","alerting":"ALERT_ME_FIRST","alertMeFirstNumberOfRings":0}'."""
+    """Update Personal Assistant.\n\n\b\nExample: wxcli user-settings update-personal-assistant PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"presence":"NONE","untilDateTime":"...","transferEnabled":true,"transferNumber":"...","alerting":"ALERT_ME_FIRST","alertMeFirstNumberOfRings":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PERSONAL_ASSISTANT), indent=2))
         raise typer.Exit(0)
@@ -3703,9 +3703,9 @@ def update_personal_assistant(
 
 
 
-@app.command("list-available-features")
+@app.command("list-available-features", short_help="Retrieve the List of Available Features.")
 def list_available_features(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     name: str = typer.Option(None, "--name", help="List features whose `name` contains this string."),
     phone_number: str = typer.Option(None, "--phone-number", help="List features whose phoneNumber contains this matching string."),
     extension: str = typer.Option(None, "--extension", help="List features whose `extension` contains this matching string."),
@@ -3716,7 +3716,7 @@ def list_available_features(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve the List of Available Features."""
+    """Retrieve the List of Available Features.\n\n\b\nExample: wxcli user-settings list-available-features PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/modeManagement/availableFeatures"
     params = {}
@@ -3748,16 +3748,16 @@ def list_available_features(
 
 
 
-@app.command("list-mode-management")
+@app.command("list-mode-management", short_help="Retrieve the List of Features Assigned to a User for Mode Management.")
 def list_mode_management(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve the List of Features Assigned to a User for Mode Management."""
+    """Retrieve the List of Features Assigned to a User for Mode Management.\n\n\b\nExample: wxcli user-settings list-mode-management PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/modeManagement/features"
     params = {}
@@ -3783,16 +3783,16 @@ def list_mode_management(
 
 _BODY_SKELETON_UPDATE_MODE_MANAGEMENT = '{"featureIds":["..."]}'
 
-@app.command("update-mode-management")
+@app.command("update-mode-management", short_help="Assign a List of Features to a User for Mode Management.")
 def update_mode_management(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign a List of Features to a User for Mode Management\n\nExample --json-body:\n  '{"featureIds":["..."]}'."""
+    """Assign a List of Features to a User for Mode Management.\n\n\b\nExample: wxcli user-settings update-mode-management PERSON_ID\n\n\b\nExample --json-body: '{"featureIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MODE_MANAGEMENT), indent=2))
         raise typer.Exit(0)
@@ -3821,16 +3821,16 @@ def update_mode_management(
 
 
 
-@app.command("list-selective-accept")
+@app.command("list-selective-accept", short_help="Get the User’s Selective Call Accept Criteria List.")
 def list_selective_accept(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the User’s Selective Call Accept Criteria List."""
+    """Get the User’s Selective Call Accept Criteria List.\n\n\b\nExample: wxcli user-settings list-selective-accept PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/selectiveAccept"
     params = {}
@@ -3856,9 +3856,9 @@ def list_selective_accept(
 
 _BODY_SKELETON_UPDATE_SELECTIVE_ACCEPT = '{"enabled":true}'
 
-@app.command("update-selective-accept")
+@app.command("update-selective-accept", short_help="Update User’s Selective Call Accept Criteria.")
 def update_selective_accept(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="indicates whether selective accept is enabled or not."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -3866,7 +3866,7 @@ def update_selective_accept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User’s Selective Call Accept Criteria\n\nExample --json-body:\n  '{"enabled":true}'."""
+    """Update User’s Selective Call Accept Criteria.\n\n\b\nExample: wxcli user-settings update-selective-accept PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_ACCEPT), indent=2))
         raise typer.Exit(0)
@@ -3899,9 +3899,9 @@ def update_selective_accept(
 
 _BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT = '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
-@app.command("create-criteria-selective-accept")
+@app.command("create-criteria-selective-accept", short_help="Create a Criteria to the User’s Selective Call Accept Service.")
 def create_criteria_selective_accept(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
@@ -3915,7 +3915,7 @@ def create_criteria_selective_accept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Criteria to the User’s Selective Call Accept Service\n\nExample --json-body:\n  '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'."""
+    """Create a Criteria to the User’s Selective Call Accept Service.\n\n\b\nExample: wxcli user-settings create-criteria-selective-accept PERSON_ID --calls-from ANY_PHONE_NUMBER --accept-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT), indent=2))
         raise typer.Exit(0)
@@ -3965,15 +3965,15 @@ def create_criteria_selective_accept(
 
 
 
-@app.command("show-criteria-selective-accept")
+@app.command("show-criteria-selective-accept", short_help="Get a Criteria for the User’s Selective Call Accept Service.")
 def show_criteria_selective_accept(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Criteria for the User’s Selective Call Accept Service."""
+    """Get a Criteria for the User’s Selective Call Accept Service.\n\n\b\nExample: wxcli user-settings show-criteria-selective-accept PERSON_ID ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/selectiveAccept/criteria/{id}"
     params = {}
@@ -3992,10 +3992,10 @@ def show_criteria_selective_accept(
 
 _BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT = '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
-@app.command("update-criteria-selective-accept")
+@app.command("update-criteria-selective-accept", short_help="Modify a Criteria From the User’s Selective Call Accept Service.")
 def update_criteria_selective_accept(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
@@ -4009,7 +4009,7 @@ def update_criteria_selective_accept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Criteria From the User’s Selective Call Accept Service\n\nExample --json-body:\n  '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'."""
+    """Modify a Criteria From the User’s Selective Call Accept Service.\n\n\b\nExample: wxcli user-settings update-criteria-selective-accept PERSON_ID ID --calls-from ANY_PHONE_NUMBER --accept-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT), indent=2))
         raise typer.Exit(0)
@@ -4052,16 +4052,16 @@ def update_criteria_selective_accept(
 
 
 
-@app.command("delete-criteria-selective-accept")
+@app.command("delete-criteria-selective-accept", short_help="Delete a Criteria From the User’s Selective Call Accept service.")
 def delete_criteria_selective_accept(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Criteria From the User’s Selective Call Accept service."""
+    """Delete a Criteria From the User’s Selective Call Accept service.\n\n\b\nExample: wxcli user-settings delete-criteria-selective-accept PERSON_ID ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -4085,16 +4085,16 @@ def delete_criteria_selective_accept(
 
 
 
-@app.command("list-selective-reject")
+@app.command("list-selective-reject", short_help="Get the User’s Selective Call Rejection Criteria Listing.")
 def list_selective_reject(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the User’s Selective Call Rejection Criteria Listing."""
+    """Get the User’s Selective Call Rejection Criteria Listing.\n\n\b\nExample: wxcli user-settings list-selective-reject PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/selectiveReject"
     params = {}
@@ -4120,9 +4120,9 @@ def list_selective_reject(
 
 _BODY_SKELETON_UPDATE_SELECTIVE_REJECT = '{"enabled":true}'
 
-@app.command("update-selective-reject")
+@app.command("update-selective-reject", short_help="Update User’s Selective Call Rejection Criteria List.")
 def update_selective_reject(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="if `true`, selective reject is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -4130,7 +4130,7 @@ def update_selective_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User’s Selective Call Rejection Criteria List\n\nExample --json-body:\n  '{"enabled":true}'."""
+    """Update User’s Selective Call Rejection Criteria List.\n\n\b\nExample: wxcli user-settings update-selective-reject PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -4163,9 +4163,9 @@ def update_selective_reject(
 
 _BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT = '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
-@app.command("create-criteria-selective-reject")
+@app.command("create-criteria-selective-reject", short_help="Create a Criteria to the User’s Selective Call Rejection Service.")
 def create_criteria_selective_reject(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
@@ -4179,7 +4179,7 @@ def create_criteria_selective_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Criteria to the User’s Selective Call Rejection Service\n\nExample --json-body:\n  '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'."""
+    """Create a Criteria to the User’s Selective Call Rejection Service.\n\n\b\nExample: wxcli user-settings create-criteria-selective-reject PERSON_ID --calls-from ANY_PHONE_NUMBER --reject-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -4229,15 +4229,15 @@ def create_criteria_selective_reject(
 
 
 
-@app.command("show-criteria-selective-reject")
+@app.command("show-criteria-selective-reject", short_help="Get a Criteria for the User’s Selective Call Rejection Service.")
 def show_criteria_selective_reject(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Criteria for the User’s Selective Call Rejection Service."""
+    """Get a Criteria for the User’s Selective Call Rejection Service.\n\n\b\nExample: wxcli user-settings show-criteria-selective-reject PERSON_ID ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/selectiveReject/criteria/{id}"
     params = {}
@@ -4256,10 +4256,10 @@ def show_criteria_selective_reject(
 
 _BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT = '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
-@app.command("update-criteria-selective-reject")
+@app.command("update-criteria-selective-reject", short_help="Modify a Criteria for the User’s Selective Call Rejection Service.")
 def update_criteria_selective_reject(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
@@ -4273,7 +4273,7 @@ def update_criteria_selective_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Criteria for the User’s Selective Call Rejection Service\n\nExample --json-body:\n  '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'."""
+    """Modify a Criteria for the User’s Selective Call Rejection Service.\n\n\b\nExample: wxcli user-settings update-criteria-selective-reject PERSON_ID ID --calls-from ANY_PHONE_NUMBER --reject-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -4316,16 +4316,16 @@ def update_criteria_selective_reject(
 
 
 
-@app.command("delete-criteria-selective-reject")
+@app.command("delete-criteria-selective-reject", short_help="Delete a Criteria From the User’s Selective Call Rejection Service.")
 def delete_criteria_selective_reject(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Criteria From the User’s Selective Call Rejection Service."""
+    """Delete a Criteria From the User’s Selective Call Rejection Service.\n\n\b\nExample: wxcli user-settings delete-criteria-selective-reject PERSON_ID ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -4349,16 +4349,16 @@ def delete_criteria_selective_reject(
 
 
 
-@app.command("list-selective-forward")
+@app.command("list-selective-forward", short_help="Get the User’s Selective Call Forwarding.")
 def list_selective_forward(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the User’s Selective Call Forwarding."""
+    """Get the User’s Selective Call Forwarding.\n\n\b\nExample: wxcli user-settings list-selective-forward PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/selectiveForward"
     params = {}
@@ -4384,9 +4384,9 @@ def list_selective_forward(
 
 _BODY_SKELETON_UPDATE_SELECTIVE_FORWARD = '{"enabled":true,"defaultPhoneNumberToForward":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true}'
 
-@app.command("update-selective-forward")
+@app.command("update-selective-forward", short_help="Update User’s Selective Call Forwarding Criteria List.")
 def update_selective_forward(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if the Selective Forward feature is enabled."),
     default_phone_number_to_forward: str = typer.Option(None, "--default-phone-number-to-forward", help="Enter the phone number to forward calls to during this schedule."),
     ring_reminder_enabled: bool = typer.Option(None, "--ring-reminder-enabled/--no-ring-reminder-enabled", help="When `true`, enables a ring reminder for such calls."),
@@ -4397,7 +4397,7 @@ def update_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User’s Selective Call Forwarding Criteria List\n\nExample --json-body:\n  '{"enabled":true,"defaultPhoneNumberToForward":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true}'."""
+    """Update User’s Selective Call Forwarding Criteria List.\n\n\b\nExample: wxcli user-settings update-selective-forward PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"defaultPhoneNumberToForward":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -4436,9 +4436,9 @@ def update_selective_forward(
 
 _BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD = '{"forwardToPhoneNumber":"...","sendToVoicemailEnabled":true,"callsFrom":"ANY_PHONE_NUMBER","scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'
 
-@app.command("create-criteria-selective-forward")
+@app.command("create-criteria-selective-forward", short_help="Create a Criteria to the User’s Selective Call Forwarding Service.")
 def create_criteria_selective_forward(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="(required) Number to which calls needs to be forwarded."),
     send_to_voicemail_enabled: bool = typer.Option(None, "--send-to-voicemail-enabled/--no-send-to-voicemail-enabled", help="(required) Boolean flag to enable/disable sending calls to voicemail."),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
@@ -4454,7 +4454,7 @@ def create_criteria_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Criteria to the User’s Selective Call Forwarding Service\n\nExample --json-body:\n  '{"forwardToPhoneNumber":"...","sendToVoicemailEnabled":true,"callsFrom":"ANY_PHONE_NUMBER","scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'."""
+    """Create a Criteria to the User’s Selective Call Forwarding Service.\n\n\b\nExample: wxcli user-settings create-criteria-selective-forward PERSON_ID --forward-to-phone-number FORWARD_TO_PHONE_NUMBER --send-to-voicemail-enabled --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"forwardToPhoneNumber":"...","sendToVoicemailEnabled":true,"callsFrom":"ANY_PHONE_NUMBER","scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -4508,15 +4508,15 @@ def create_criteria_selective_forward(
 
 
 
-@app.command("show-criteria-selective-forward")
+@app.command("show-criteria-selective-forward", short_help="Get a Criteria for the User’s Selective Call Forwarding Service.")
 def show_criteria_selective_forward(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Criteria for the User’s Selective Call Forwarding Service."""
+    """Get a Criteria for the User’s Selective Call Forwarding Service.\n\n\b\nExample: wxcli user-settings show-criteria-selective-forward PERSON_ID ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/selectiveForward/criteria/{id}"
     params = {}
@@ -4535,10 +4535,10 @@ def show_criteria_selective_forward(
 
 _BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD = '{"forwardToPhoneNumber":"...","sendToVoicemailEnabled":true,"callsFrom":"ANY_PHONE_NUMBER","scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'
 
-@app.command("update-criteria-selective-forward")
+@app.command("update-criteria-selective-forward", short_help="Modify a Criteria for the User’s Selective Call Forwarding Service.")
 def update_criteria_selective_forward(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Number to which calls needs to be forwarded."),
     send_to_voicemail_enabled: bool = typer.Option(None, "--send-to-voicemail-enabled/--no-send-to-voicemail-enabled", help="Boolean flag to enable/disable sending calls to voicemail."),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
@@ -4554,7 +4554,7 @@ def update_criteria_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Criteria for the User’s Selective Call Forwarding Service\n\nExample --json-body:\n  '{"forwardToPhoneNumber":"...","sendToVoicemailEnabled":true,"callsFrom":"ANY_PHONE_NUMBER","scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'."""
+    """Modify a Criteria for the User’s Selective Call Forwarding Service.\n\n\b\nExample: wxcli user-settings update-criteria-selective-forward PERSON_ID ID --forward-to-phone-number FORWARD_TO_PHONE_NUMBER --send-to-voicemail-enabled --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"forwardToPhoneNumber":"...","sendToVoicemailEnabled":true,"callsFrom":"ANY_PHONE_NUMBER","scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -4601,16 +4601,16 @@ def update_criteria_selective_forward(
 
 
 
-@app.command("delete-criteria-selective-forward")
+@app.command("delete-criteria-selective-forward", short_help="Delete a Criteria From the User’s Selective Call Forwarding Service.")
 def delete_criteria_selective_forward(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Criteria From the User’s Selective Call Forwarding Service."""
+    """Delete a Criteria From the User’s Selective Call Forwarding Service.\n\n\b\nExample: wxcli user-settings delete-criteria-selective-forward PERSON_ID ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -4634,9 +4634,9 @@ def delete_criteria_selective_forward(
 
 
 
-@app.command("list-available-members-applications-1")
+@app.command("list-available-members-applications-1", short_help="Search Shared-Line Appearance Members New.")
 def list_available_members_applications_1(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     order: str = typer.Option(None, "--order", help="Order the Route Lists according to number, ascending or descending."),
     location: str = typer.Option(None, "--location", help="Location ID for the user."),
     name: str = typer.Option(None, "--name", help="Search for users with names that match the query."),
@@ -4648,7 +4648,7 @@ def list_available_members_applications_1(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search Shared-Line Appearance Members New."""
+    """Search Shared-Line Appearance Members New.\n\n\b\nExample: wxcli user-settings list-available-members-applications-1 PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/applications/availableMembers"
     params = {}
@@ -4679,9 +4679,9 @@ def list_available_members_applications_1(
 
 
 
-@app.command("show-count")
+@app.command("show-count", short_help="Get Count of Shared-Line Appearance Members.")
 def show_count(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     location_id: str = typer.Option(None, "--location-id", help="Location ID for the person."),
     member_name: str = typer.Option(None, "--member-name", help="Search for people with names that match the query."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for people with numbers that match the query."),
@@ -4690,7 +4690,7 @@ def show_count(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Count of Shared-Line Appearance Members."""
+    """Get Count of Shared-Line Appearance Members.\n\n\b\nExample: wxcli user-settings show-count PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/applications/availableMembers/count"
     params = {}
@@ -4715,16 +4715,16 @@ def show_count(
 
 
 
-@app.command("list-members-applications-1")
+@app.command("list-members-applications-1", short_help="Get Shared-Line Appearance Members New.")
 def list_members_applications_1(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Shared-Line Appearance Members New."""
+    """Get Shared-Line Appearance Members New.\n\n\b\nExample: wxcli user-settings list-members-applications-1 PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/applications/members"
     params = {}
@@ -4747,16 +4747,16 @@ def list_members_applications_1(
 
 _BODY_SKELETON_UPDATE_MEMBERS_APPLICATIONS_1 = '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","allowCallDeclineEnabled":"...","lineLabel":"..."}]}'
 
-@app.command("update-members-applications-1")
+@app.command("update-members-applications-1", short_help="Put Shared-Line Appearance Members New.")
 def update_members_applications_1(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Put Shared-Line Appearance Members New\n\nExample --json-body:\n  '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","allowCallDeclineEnabled":"...","lineLabel":"..."}]}'."""
+    """Put Shared-Line Appearance Members New.\n\n\b\nExample: wxcli user-settings update-members-applications-1 PERSON_ID\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","allowCallDeclineEnabled":"...","lineLabel":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MEMBERS_APPLICATIONS_1), indent=2))
         raise typer.Exit(0)
@@ -4781,14 +4781,14 @@ def update_members_applications_1(
 
 
 
-@app.command("show-call-captions")
+@app.command("show-call-captions", short_help="Get the user call captions settings.")
 def show_call_captions(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the user call captions settings."""
+    """Get the user call captions settings.\n\n\b\nExample: wxcli user-settings show-call-captions PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/callCaptions"
     params = {}
@@ -4807,9 +4807,9 @@ def show_call_captions(
 
 _BODY_SKELETON_UPDATE_CALL_CAPTIONS = '{"userClosedCaptionsEnabled":true,"userTranscriptsEnabled":true,"useLocationSettingsEnabled":true}'
 
-@app.command("update-call-captions")
+@app.command("update-call-captions", short_help="Update the user call captions settings.")
 def update_call_captions(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     user_closed_captions_enabled: bool = typer.Option(None, "--user-closed-captions-enabled/--no-user-closed-captions-enabled", help="Enable or disable user-level closed captions."),
     user_transcripts_enabled: bool = typer.Option(None, "--user-transcripts-enabled/--no-user-transcripts-enabled", help="Enable or disable user-level transcripts."),
     use_location_settings_enabled: bool = typer.Option(None, "--use-location-settings-enabled/--no-use-location-settings-enabled", help="If `useLocationSettingsEnabled` is `true`, location settings will control the user's closed captions and transcripts. Otherwise, user-level settings are used."),
@@ -4819,7 +4819,7 @@ def update_call_captions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the user call captions settings\n\nExample --json-body:\n  '{"userClosedCaptionsEnabled":true,"userTranscriptsEnabled":true,"useLocationSettingsEnabled":true}'."""
+    """Update the user call captions settings.\n\n\b\nExample: wxcli user-settings update-call-captions PERSON_ID\n\n\b\nExample --json-body: '{"userClosedCaptionsEnabled":true,"userTranscriptsEnabled":true,"useLocationSettingsEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_CAPTIONS), indent=2))
         raise typer.Exit(0)
@@ -4854,16 +4854,16 @@ def update_call_captions(
 
 
 
-@app.command("list-call-filtering")
+@app.command("list-call-filtering", short_help="Get Person Executive Call Filtering Settings.")
 def list_call_filtering(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Executive Call Filtering Settings."""
+    """Get Person Executive Call Filtering Settings.\n\n\b\nExample: wxcli user-settings list-call-filtering PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/executive/callFiltering"
     params = {}
@@ -4889,9 +4889,9 @@ def list_call_filtering(
 
 _BODY_SKELETON_UPDATE_CALL_FILTERING = '{"enabled":true,"filterType":"CUSTOM_CALL_FILTERS","criteriaActivation":[{"id":"...","activationEnabled":"..."}]}'
 
-@app.command("update-call-filtering")
+@app.command("update-call-filtering", short_help="Modify Person Executive Call Filtering Settings.")
 def update_call_filtering(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to `true` to enable executive call filtering or `false` to disable it."),
     filter_type: str = typer.Option(None, "--filter-type", help="Choices: CUSTOM_CALL_FILTERS, ALL_CALLS, ALL_INTERNAL_CALLS, ALL_EXTERNAL_CALLS"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -4900,7 +4900,7 @@ def update_call_filtering(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Person Executive Call Filtering Settings\n\nExample --json-body:\n  '{"enabled":true,"filterType":"CUSTOM_CALL_FILTERS","criteriaActivation":[{"id":"...","activationEnabled":"..."}]}'."""
+    """Modify Person Executive Call Filtering Settings.\n\n\b\nExample: wxcli user-settings update-call-filtering PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"filterType":"CUSTOM_CALL_FILTERS","criteriaActivation":[{"id":"...","activationEnabled":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FILTERING), indent=2))
         raise typer.Exit(0)
@@ -4933,15 +4933,15 @@ def update_call_filtering(
 
 
 
-@app.command("show-criteria-call-filtering")
+@app.command("show-criteria-call-filtering", short_help="Get Person Executive Call Filtering Criteria Settings.")
 def show_criteria_call_filtering(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Executive Call Filtering Criteria Settings."""
+    """Get Person Executive Call Filtering Criteria Settings.\n\n\b\nExample: wxcli user-settings show-criteria-call-filtering PERSON_ID ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/executive/callFiltering/criteria/{id}"
     params = {}
@@ -4960,10 +4960,10 @@ def show_criteria_call_filtering(
 
 _BODY_SKELETON_UPDATE_CRITERIA_CALL_FILTERING = '{"scheduleName":"...","scheduleType":"holidays","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"filterEnabled":true}'
 
-@app.command("update-criteria-call-filtering")
+@app.command("update-criteria-call-filtering", short_help="Modify Person Executive Call Filtering Criteria Settings.")
 def update_criteria_call_filtering(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule associated with this criteria."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
@@ -4977,7 +4977,7 @@ def update_criteria_call_filtering(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Person Executive Call Filtering Criteria Settings\n\nExample --json-body:\n  '{"scheduleName":"...","scheduleType":"holidays","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"filterEnabled":true}'."""
+    """Modify Person Executive Call Filtering Criteria Settings.\n\n\b\nExample: wxcli user-settings update-criteria-call-filtering PERSON_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"holidays","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"filterEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_CALL_FILTERING), indent=2))
         raise typer.Exit(0)
@@ -5020,16 +5020,16 @@ def update_criteria_call_filtering(
 
 
 
-@app.command("delete-criteria-call-filtering")
+@app.command("delete-criteria-call-filtering", short_help="Delete Person Executive Call Filtering Criteria.")
 def delete_criteria_call_filtering(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Person Executive Call Filtering Criteria."""
+    """Delete Person Executive Call Filtering Criteria.\n\n\b\nExample: wxcli user-settings delete-criteria-call-filtering PERSON_ID ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -5055,9 +5055,9 @@ def delete_criteria_call_filtering(
 
 _BODY_SKELETON_CREATE_CRITERIA_CALL_FILTERING = '{"filterName":"...","callsFrom":"ANY_PHONE_NUMBER","filterEnabled":true,"scheduleName":"...","scheduleType":"holidays","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'
 
-@app.command("create-criteria-call-filtering")
+@app.command("create-criteria-call-filtering", short_help="Add Person Executive Call Filtering Criteria.")
 def create_criteria_call_filtering(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     filter_name: str = typer.Option(None, "--filter-name", help="(required) Name of the criteria."),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule associated with this criteria."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
@@ -5072,7 +5072,7 @@ def create_criteria_call_filtering(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Person Executive Call Filtering Criteria\n\nExample --json-body:\n  '{"filterName":"...","callsFrom":"ANY_PHONE_NUMBER","filterEnabled":true,"scheduleName":"...","scheduleType":"holidays","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'."""
+    """Add Person Executive Call Filtering Criteria.\n\n\b\nExample: wxcli user-settings create-criteria-call-filtering PERSON_ID --filter-name FILTER_NAME --calls-from ANY_PHONE_NUMBER --filter-enabled\n\n\b\nExample --json-body: '{"filterName":"...","callsFrom":"ANY_PHONE_NUMBER","filterEnabled":true,"scheduleName":"...","scheduleType":"holidays","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_CALL_FILTERING), indent=2))
         raise typer.Exit(0)
@@ -5124,14 +5124,14 @@ def create_criteria_call_filtering(
 
 
 
-@app.command("show-alert")
+@app.command("show-alert", short_help="Get Person Executive Alert Settings.")
 def show_alert(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Executive Alert Settings."""
+    """Get Person Executive Alert Settings.\n\n\b\nExample: wxcli user-settings show-alert PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/executive/alert"
     params = {}
@@ -5150,9 +5150,9 @@ def show_alert(
 
 _BODY_SKELETON_UPDATE_ALERT = '{"alertingMode":"SEQUENTIAL","nextAssistantNumberOfRings":0,"rolloverEnabled":true,"rolloverAction":"VOICE_MESSAGING","rolloverForwardToPhoneNumber":"...","rolloverWaitTimeInSecs":0,"clidNameMode":"EXECUTIVE_ORIGINATOR","customCLIDName":"..."}'
 
-@app.command("update-alert")
+@app.command("update-alert", short_help="Modify Person Executive Alert Settings.")
 def update_alert(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     alerting_mode: str = typer.Option(None, "--alerting-mode", help="Choices: SEQUENTIAL, SIMULTANEOUS"),
     next_assistant_number_of_rings: str = typer.Option(None, "--next-assistant-number-of-rings", help="Number of rings before alerting the next assistant when `alertingMode` is `SEQUENTIAL`."),
     rollover_enabled: bool = typer.Option(None, "--rollover-enabled/--no-rollover-enabled", help="Controls whether the rollover timer (`rolloverWaitTimeInSecs`) is enabled. When set to `true`, rollover will trigger after the timer expires, even if assistants are still available. When `false`, rollover only occurs when no assistants remain."),
@@ -5170,7 +5170,7 @@ def update_alert(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Person Executive Alert Settings\n\nExample --json-body:\n  '{"alertingMode":"SEQUENTIAL","nextAssistantNumberOfRings":0,"rolloverEnabled":true,"rolloverAction":"VOICE_MESSAGING","rolloverForwardToPhoneNumber":"...","rolloverWaitTimeInSecs":0,"clidNameMode":"EXECUTIVE_ORIGINATOR","customCLIDName":"..."}'."""
+    """Modify Person Executive Alert Settings.\n\n\b\nExample: wxcli user-settings update-alert PERSON_ID\n\n\b\nExample --json-body: '{"alertingMode":"SEQUENTIAL","nextAssistantNumberOfRings":0,"rolloverEnabled":true,"rolloverAction":"VOICE_MESSAGING","rolloverForwardToPhoneNumber":"...","rolloverWaitTimeInSecs":0,"clidNameMode":"EXECUTIVE_ORIGINATOR","customCLIDName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ALERT), indent=2))
         raise typer.Exit(0)
@@ -5221,16 +5221,16 @@ def update_alert(
 
 
 
-@app.command("list-assigned-assistants")
+@app.command("list-assigned-assistants", short_help="Get Person Executive Assigned Assistants.")
 def list_assigned_assistants(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Executive Assigned Assistants."""
+    """Get Person Executive Assigned Assistants.\n\n\b\nExample: wxcli user-settings list-assigned-assistants PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/executive/assignedAssistants"
     params = {}
@@ -5256,16 +5256,16 @@ def list_assigned_assistants(
 
 _BODY_SKELETON_UPDATE_ASSIGNED_ASSISTANTS = '{"assistantIds":["..."]}'
 
-@app.command("update-assigned-assistants")
+@app.command("update-assigned-assistants", short_help="Modify Person Executive Assigned Assistants.")
 def update_assigned_assistants(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Person Executive Assigned Assistants\n\nExample --json-body:\n  '{"assistantIds":["..."]}'."""
+    """Modify Person Executive Assigned Assistants.\n\n\b\nExample: wxcli user-settings update-assigned-assistants PERSON_ID\n\n\b\nExample --json-body: '{"assistantIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ASSIGNED_ASSISTANTS), indent=2))
         raise typer.Exit(0)
@@ -5294,9 +5294,9 @@ def update_assigned_assistants(
 
 
 
-@app.command("list-available-assistants")
+@app.command("list-available-assistants", short_help="Get Person Executive Available Assistants.")
 def list_available_assistants(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     name: str = typer.Option(None, "--name", help="Only return people with the matching name (person's first and last name combination)."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return people with the matching phone number or extension."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -5305,7 +5305,7 @@ def list_available_assistants(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Executive Available Assistants."""
+    """Get Person Executive Available Assistants.\n\n\b\nExample: wxcli user-settings list-available-assistants PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/executive/availableAssistants"
     params = {}
@@ -5333,16 +5333,16 @@ def list_available_assistants(
 
 
 
-@app.command("list-assistant")
+@app.command("list-assistant", short_help="Get Person Executive Assistant Settings.")
 def list_assistant(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Executive Assistant Settings."""
+    """Get Person Executive Assistant Settings.\n\n\b\nExample: wxcli user-settings list-assistant PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/executive/assistant"
     params = {}
@@ -5368,9 +5368,9 @@ def list_assistant(
 
 _BODY_SKELETON_UPDATE_ASSISTANT = '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":"..."}]}'
 
-@app.command("update-assistant")
+@app.command("update-assistant", short_help="Modify Person Executive Assistant Settings.")
 def update_assistant(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     forward_filtered_calls_enabled: bool = typer.Option(None, "--forward-filtered-calls-enabled/--no-forward-filtered-calls-enabled", help="If `true`, filtered calls to assistant are forwarded to the `forwardToPhoneNumber`."),
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward the filtered calls to. Mandatory if `forwardFilteredCallsEnabled` is set to true."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -5379,7 +5379,7 @@ def update_assistant(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Person Executive Assistant Settings\n\nExample --json-body:\n  '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":"..."}]}'."""
+    """Modify Person Executive Assistant Settings.\n\n\b\nExample: wxcli user-settings update-assistant PERSON_ID\n\n\b\nExample --json-body: '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ASSISTANT), indent=2))
         raise typer.Exit(0)
@@ -5412,14 +5412,14 @@ def update_assistant(
 
 
 
-@app.command("show-screening")
+@app.command("show-screening", short_help="Get Person Executive Screening Settings.")
 def show_screening(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Executive Screening Settings."""
+    """Get Person Executive Screening Settings.\n\n\b\nExample: wxcli user-settings show-screening PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/executive/screening"
     params = {}
@@ -5438,9 +5438,9 @@ def show_screening(
 
 _BODY_SKELETON_UPDATE_SCREENING = '{"enabled":true,"alertType":"SILENT","alertAnywhereLocationEnabled":true,"alertMobilityLocationEnabled":true,"alertSharedCallAppearanceLocationEnabled":true}'
 
-@app.command("update-screening")
+@app.command("update-screening", short_help="Modify Person Executive Screening Settings.")
 def update_screening(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to enable or disable executive screening."),
     alert_type: str = typer.Option(None, "--alert-type", help="Choices: SILENT, RING_SPLASH"),
     alert_anywhere_location_enabled: bool = typer.Option(None, "--alert-anywhere-location-enabled/--no-alert-anywhere-location-enabled", help="Indicates if alerts are enabled for Single Number Reach locations."),
@@ -5452,7 +5452,7 @@ def update_screening(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Person Executive Screening Settings\n\nExample --json-body:\n  '{"enabled":true,"alertType":"SILENT","alertAnywhereLocationEnabled":true,"alertMobilityLocationEnabled":true,"alertSharedCallAppearanceLocationEnabled":true}'."""
+    """Modify Person Executive Screening Settings.\n\n\b\nExample: wxcli user-settings update-screening PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"alertType":"SILENT","alertAnywhereLocationEnabled":true,"alertMobilityLocationEnabled":true,"alertSharedCallAppearanceLocationEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SCREENING), indent=2))
         raise typer.Exit(0)
@@ -5491,14 +5491,14 @@ def update_screening(
 
 
 
-@app.command("show-people")
+@app.command("show-people", short_help="Get Timezone and Announcement Language Settings of a Person.")
 def show_people(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Timezone and Announcement Language Settings of a Person."""
+    """Get Timezone and Announcement Language Settings of a Person.\n\n\b\nExample: wxcli user-settings show-people PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}"
     params = {}
@@ -5517,9 +5517,9 @@ def show_people(
 
 _BODY_SKELETON_UPDATE_PEOPLE = '{"announcementLanguage":"...","timeZone":"..."}'
 
-@app.command("update-people")
+@app.command("update-people", short_help="Update Timezone and Announcement Language Settings of a Person.")
 def update_people(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     announcement_language: str = typer.Option(None, "--announcement-language", help="Person's phone announcement language."),
     time_zone: str = typer.Option(None, "--time-zone", help="Timezone associated with the person for calling configuration. Refer to the Get Country Configuration API to retrieve the list of available timezones for a specific country."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -5528,7 +5528,7 @@ def update_people(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Timezone and Announcement Language Settings of a Person\n\nExample --json-body:\n  '{"announcementLanguage":"...","timeZone":"..."}'."""
+    """Update Timezone and Announcement Language Settings of a Person.\n\n\b\nExample: wxcli user-settings update-people PERSON_ID\n\n\b\nExample --json-body: '{"announcementLanguage":"...","timeZone":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PEOPLE), indent=2))
         raise typer.Exit(0)
@@ -5561,14 +5561,14 @@ def update_people(
 
 
 
-@app.command("show-countries")
+@app.command("show-countries", short_help="Get Country Calling Configuration.")
 def show_countries(
     country_code: str = typer.Argument(help="countryCode"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Country Calling Configuration."""
+    """Get Country Calling Configuration.\n\n\b\nExample: wxcli user-settings show-countries COUNTRY_CODE"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/countries/{country_code}"
     params = {}
@@ -5585,14 +5585,14 @@ def show_countries(
 
 
 
-@app.command("show-anonymous-call-reject")
+@app.command("show-anonymous-call-reject", short_help="Get Anonymous Call Rejection Settings for a Person.")
 def show_anonymous_call_reject(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Anonymous Call Rejection Settings for a Person."""
+    """Get Anonymous Call Rejection Settings for a Person.\n\n\b\nExample: wxcli user-settings show-anonymous-call-reject PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/anonymousCallReject"
     params = {}
@@ -5611,9 +5611,9 @@ def show_anonymous_call_reject(
 
 _BODY_SKELETON_UPDATE_ANONYMOUS_CALL_REJECT = '{"enabled":true}'
 
-@app.command("update-anonymous-call-reject")
+@app.command("update-anonymous-call-reject", short_help="Update Anonymous Call Rejection Settings for a Person.")
 def update_anonymous_call_reject(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable or disable Anonymous Call Rejection. When set to true, incoming calls from callers who have blocked their caller ID will be automatically rejected."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -5621,7 +5621,7 @@ def update_anonymous_call_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Anonymous Call Rejection Settings for a Person\n\nExample --json-body:\n  '{"enabled":true}'."""
+    """Update Anonymous Call Rejection Settings for a Person.\n\n\b\nExample: wxcli user-settings update-anonymous-call-reject PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANONYMOUS_CALL_REJECT), indent=2))
         raise typer.Exit(0)
@@ -5652,16 +5652,16 @@ def update_anonymous_call_reject(
 
 
 
-@app.command("list-services")
+@app.command("list-services", short_help="List Enabled Calling Services for a Person.")
 def list_services(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Enabled Calling Services for a Person."""
+    """List Enabled Calling Services for a Person.\n\n\b\nExample: wxcli user-settings list-services PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/services"
     params = {}
@@ -5685,16 +5685,16 @@ def list_services(
 
 
 
-@app.command("list-simultaneous-ring")
+@app.command("list-simultaneous-ring", short_help="Retrieve Simultaneous Ring Settings for a Person.")
 def list_simultaneous_ring(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Simultaneous Ring Settings for a Person."""
+    """Retrieve Simultaneous Ring Settings for a Person.\n\n\b\nExample: wxcli user-settings list-simultaneous-ring PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/simultaneousRing"
     params = {}
@@ -5720,9 +5720,9 @@ def list_simultaneous_ring(
 
 _BODY_SKELETON_UPDATE_SIMULTANEOUS_RING = '{"enabled":true,"doNotRingIfOnCallEnabled":true,"criteriasEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":"..."}]}'
 
-@app.command("update-simultaneous-ring")
+@app.command("update-simultaneous-ring", short_help="Modify Simultaneous Ring Settings for a Person.")
 def update_simultaneous_ring(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="When set to `true`, simultaneous ring is enabled for this person."),
     do_not_ring_if_on_call_enabled: bool = typer.Option(None, "--do-not-ring-if-on-call-enabled/--no-do-not-ring-if-on-call-enabled", help="When set to `true`, the configured phone numbers won't ring when you are on a call."),
     criterias_enabled: bool = typer.Option(None, "--criterias-enabled/--no-criterias-enabled", help="When `true`, enables the selected schedule for simultaneous ring."),
@@ -5732,7 +5732,7 @@ def update_simultaneous_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Simultaneous Ring Settings for a Person\n\nExample --json-body:\n  '{"enabled":true,"doNotRingIfOnCallEnabled":true,"criteriasEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":"..."}]}'."""
+    """Modify Simultaneous Ring Settings for a Person.\n\n\b\nExample: wxcli user-settings update-simultaneous-ring PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"doNotRingIfOnCallEnabled":true,"criteriasEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)
@@ -5769,9 +5769,9 @@ def update_simultaneous_ring(
 
 _BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING = '{"callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"LOCATION","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
-@app.command("create-criteria-simultaneous-ring")
+@app.command("create-criteria-simultaneous-ring", short_help="Create Simultaneous Ring Criteria for a Person.")
 def create_criteria_simultaneous_ring(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: LOCATION, PEOPLE"),
@@ -5785,7 +5785,7 @@ def create_criteria_simultaneous_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Simultaneous Ring Criteria for a Person\n\nExample --json-body:\n  '{"callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"LOCATION","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'."""
+    """Create Simultaneous Ring Criteria for a Person.\n\n\b\nExample: wxcli user-settings create-criteria-simultaneous-ring PERSON_ID --calls-from ANY_PHONE_NUMBER --ring-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"LOCATION","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)
@@ -5835,15 +5835,15 @@ def create_criteria_simultaneous_ring(
 
 
 
-@app.command("show-criteria-simultaneous-ring")
+@app.command("show-criteria-simultaneous-ring", short_help="Retrieve Simultaneous Ring Criteria for a Person.")
 def show_criteria_simultaneous_ring(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Simultaneous Ring Criteria for a Person."""
+    """Retrieve Simultaneous Ring Criteria for a Person.\n\n\b\nExample: wxcli user-settings show-criteria-simultaneous-ring PERSON_ID ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/simultaneousRing/criteria/{id}"
     params = {}
@@ -5862,10 +5862,10 @@ def show_criteria_simultaneous_ring(
 
 _BODY_SKELETON_UPDATE_CRITERIA_SIMULTANEOUS_RING = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"LOCATION","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'
 
-@app.command("update-criteria-simultaneous-ring")
+@app.command("update-criteria-simultaneous-ring", short_help="Modify Simultaneous Ring Criteria for a Person.")
 def update_criteria_simultaneous_ring(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
     schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: LOCATION, PEOPLE"),
@@ -5879,7 +5879,7 @@ def update_criteria_simultaneous_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Simultaneous Ring Criteria for a Person\n\nExample --json-body:\n  '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"LOCATION","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'."""
+    """Modify Simultaneous Ring Criteria for a Person.\n\n\b\nExample: wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"LOCATION","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)
@@ -5922,16 +5922,16 @@ def update_criteria_simultaneous_ring(
 
 
 
-@app.command("delete-criteria-simultaneous-ring")
+@app.command("delete-criteria-simultaneous-ring", short_help="Delete Simultaneous Ring Criteria for a Person.")
 def delete_criteria_simultaneous_ring(
-    person_id: str = typer.Argument(help="personId"),
-    id: str = typer.Argument(help="id"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    id: str = typer.Argument(help="Webex CRITERIA id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Simultaneous Ring Criteria for a Person."""
+    """Delete Simultaneous Ring Criteria for a Person.\n\n\b\nExample: wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -5955,9 +5955,9 @@ def delete_criteria_simultaneous_ring(
 
 
 
-@app.command("list-available-members-hot-desking")
+@app.command("list-available-members-hot-desking", short_help="Search Available Hot Desking Members.")
 def list_available_members_hot_desking(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     location_id: str = typer.Option(None, "--location-id", help="Return only available members in this location."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by phone number."),
@@ -5969,7 +5969,7 @@ def list_available_members_hot_desking(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search Available Hot Desking Members."""
+    """Search Available Hot Desking Members.\n\n\b\nExample: wxcli user-settings list-available-members-hot-desking PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/features/hotDesking/availableMembers"
     params = {}
@@ -6005,16 +6005,16 @@ def list_available_members_hot_desking(
 
 
 
-@app.command("list-members-hot-desking")
+@app.command("list-members-hot-desking", short_help="Get Hot Desking Members.")
 def list_members_hot_desking(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Hot Desking Members."""
+    """Get Hot Desking Members.\n\n\b\nExample: wxcli user-settings list-members-hot-desking PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/features/hotDesking/members"
     params = {}
@@ -6040,16 +6040,16 @@ def list_members_hot_desking(
 
 _BODY_SKELETON_UPDATE_MEMBERS_HOT_DESKING = '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'
 
-@app.command("update-members-hot-desking")
+@app.command("update-members-hot-desking", short_help="Update Hot Desking Members.")
 def update_members_hot_desking(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Hot Desking Members\n\nExample --json-body:\n  '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'."""
+    """Update Hot Desking Members.\n\n\b\nExample: wxcli user-settings update-members-hot-desking PERSON_ID\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MEMBERS_HOT_DESKING), indent=2))
         raise typer.Exit(0)
@@ -6078,16 +6078,16 @@ def update_members_hot_desking(
 
 
 
-@app.command("list-outbound-billing-plan")
+@app.command("list-outbound-billing-plan", short_help="Retrieve a Person's Outbound Billing Plan.")
 def list_outbound_billing_plan(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a Person's Outbound Billing Plan."""
+    """Retrieve a Person's Outbound Billing Plan.\n\n\b\nExample: wxcli user-settings list-outbound-billing-plan PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/outboundBillingPlan"
     params = {}
@@ -6111,15 +6111,15 @@ def list_outbound_billing_plan(
 
 
 
-@app.command("update-outbound-billing-plan")
+@app.command("update-outbound-billing-plan", short_help="Modify a Person's Outbound Billing Plan.")
 def update_outbound_billing_plan(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Person's Outbound Billing Plan."""
+    """Modify a Person's Outbound Billing Plan.\n\n\b\nExample: wxcli user-settings update-outbound-billing-plan PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/outboundBillingPlan"
     params = {}

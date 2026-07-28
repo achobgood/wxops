@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling rooms.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Rooms.")
 def cmd_list(
     team_id: str = typer.Option(None, "--team-id", help="List rooms associated with a team, by ID. Cannot be set in combination with `orgPublicSpaces`."),
     type_param: str = typer.Option(None, "--type", help="Choices: direct, group"),
@@ -61,7 +61,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"title":"...","teamId":"...","classificationId":"...","isLocked":true,"isPublic":true,"description":"...","isAnnouncementOnly":true}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Room.")
 def create(
     title: str = typer.Option(None, "--title", help="(required) A user-friendly name for the room."),
     team_id: str = typer.Option(None, "--team-id", help="The ID for the team with which this room is associated."),
@@ -76,7 +76,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Room\n\nExample --json-body:\n  '{"title":"...","teamId":"...","classificationId":"...","isLocked":true,"isPublic":true,"description":"...","isAnnouncementOnly":true}'."""
+    """Create a Room.\n\n\b\nExample: wxcli rooms create --title TITLE\n\n\b\nExample --json-body: '{"title":"...","teamId":"...","classificationId":"...","isLocked":true,"isPublic":true,"description":"...","isAnnouncementOnly":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -122,14 +122,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Room Details.")
 def show(
-    room_id: str = typer.Argument(help="roomId"),
+    room_id: str = typer.Argument(help="Webex ROOM id, from: wxcli rooms list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Room Details."""
+    """Get Room Details.\n\n\b\nExample: wxcli rooms show ROOM_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/rooms/{room_id}"
     try:
@@ -144,9 +144,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"title":"...","classificationId":"...","teamId":"...","isLocked":true,"isPublic":true,"description":"...","isAnnouncementOnly":true,"isReadOnly":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Room.")
 def update(
-    room_id: str = typer.Argument(help="roomId"),
+    room_id: str = typer.Argument(help="Webex ROOM id, from: wxcli rooms list"),
     title: str = typer.Option(None, "--title", help="A user-friendly name for the room."),
     classification_id: str = typer.Option(None, "--classification-id", help="The classificationId for the room."),
     team_id: str = typer.Option(None, "--team-id", help="The teamId to which this space should be assigned. Only unowned spaces can be assigned to a team. Assignment between teams is unsupported."),
@@ -161,7 +161,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Room\n\nExample --json-body:\n  '{"title":"...","classificationId":"...","teamId":"...","isLocked":true,"isPublic":true,"description":"...","isAnnouncementOnly":true,"isReadOnly":true}'."""
+    """Update a Room.\n\n\b\nExample: wxcli rooms update ROOM_ID --title TITLE\n\n\b\nExample --json-body: '{"title":"...","classificationId":"...","teamId":"...","isLocked":true,"isPublic":true,"description":"...","isAnnouncementOnly":true,"isReadOnly":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -202,15 +202,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Room.")
 def delete(
-    room_id: str = typer.Argument(help="roomId"),
+    room_id: str = typer.Argument(help="Webex ROOM id, from: wxcli rooms list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Room."""
+    """Delete a Room.\n\n\b\nExample: wxcli rooms delete ROOM_ID"""
     if not force:
         typer.confirm(f"Delete {room_id}?", abort=True)
     api = get_api(debug=debug)
@@ -230,14 +230,14 @@ def delete(
 
 
 
-@app.command("show-meeting-info")
+@app.command("show-meeting-info", short_help="Get Room Meeting Details.")
 def show_meeting_info(
-    room_id: str = typer.Argument(help="roomId"),
+    room_id: str = typer.Argument(help="Webex ROOM id, from: wxcli rooms list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Room Meeting Details."""
+    """Get Room Meeting Details.\n\n\b\nExample: wxcli rooms show-meeting-info ROOM_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/rooms/{room_id}/meetingInfo"
     try:
