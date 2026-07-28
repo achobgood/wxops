@@ -76,7 +76,7 @@ def check(tmp_path, monkeypatch):
     unchanged, so no repo file is read.
     """
     def run(columns, *, properties, item_key="items", extra_specs=None,
-            components=None):
+            components=None, authority=None, want_unpinned=False):
         module = sorted(set(drift_check.parse_registrations().values())
                         & drift_check.module_state()["countable"])[0]
         (tmp_path / f"{module}.py").write_text(_probe_module(columns, item_key))
@@ -89,7 +89,14 @@ def check(tmp_path, monkeypatch):
             (tmp_path / name).write_text(json.dumps(body))
             paths.add(str(tmp_path / name))
         monkeypatch.setattr(drift_check, "tracked_specs", lambda: paths)
-        return drift_check.check_table_columns(commands_dir=tmp_path)
+        findings, wrapper_only, unpinned = drift_check.check_table_columns(
+            commands_dir=tmp_path, authority=authority)
+        if want_unpinned:
+            return findings, wrapper_only, unpinned
+        # Every probe below declares one item schema per op, so a spec conflict
+        # here would mean the fixture drifted, not that the check found one.
+        assert unpinned == [], f"probe produced unpinned spec conflicts: {unpinned}"
+        return findings, wrapper_only
 
     return run
 
@@ -116,16 +123,59 @@ def test_ignores_dotted_accessors(check):
     assert findings == []
 
 
-def test_unions_specs_that_both_declare_the_operation(check):
-    """151 operations live in two specs with different item schemas, and the
+def test_a_declared_union_still_passes(check):
+    """60 operations declare an item schema in more than one spec, and the
     generator rendered from exactly one. Flagging a field the other spec
     declares would fail a correct command — it did, on device-settings
     list-errors, whose `item` exists in webex-cloud-calling.json and not in
-    webex-device.json."""
-    findings, _ = check("[('Item', 'item')]",
-                        properties={"itemNumber": {"type": "number"}},
-                        extra_specs={"other.json": _probe_spec({"item": STRING}, "items")})
+    webex-device.json. Unioning stays available, but only when declared."""
+    findings, _ = check(
+        "[('Item', 'item')]",
+        properties={"itemNumber": {"type": "number"}},
+        extra_specs={"other.json": _probe_spec({"item": STRING}, "items")},
+        authority={f"GET {drift_check.normalize_path(PROBE_PATH)}":
+                   {"spec": "union", "basis": "unverified"}})
     assert findings == []
+
+
+def test_an_undeclared_spec_conflict_fails_instead_of_unioning(check):
+    """The ratchet. Unioning by default is what hid `locations list`: a column
+    only the wrong spec declared always looked valid. With no spec_authority
+    entry the gate now refuses to answer rather than guessing."""
+    findings, _, unpinned = check(
+        "[('Item', 'item')]",
+        properties={"itemNumber": {"type": "number"}},
+        extra_specs={"other.json": _probe_spec({"item": STRING}, "items")},
+        want_unpinned=True)
+    assert findings == []
+    assert [u["command"] for u in unpinned] == ["list"]
+    assert "no spec_authority entry" in unpinned[0]["reason"]
+
+
+def test_pinning_one_spec_flags_a_field_only_the_other_declares(check):
+    """`locations list` in miniature: webex-device.json claims displayName and
+    the live endpoint returns none of it, so resolving through the spec that
+    tells the truth must flag the column the other one invented."""
+    findings, _ = check(
+        "[('Display Name', 'displayName')]",
+        properties={"name": STRING},
+        extra_specs={"other.json": _probe_spec({"displayName": STRING}, "items")},
+        authority={f"GET {drift_check.normalize_path(PROBE_PATH)}":
+                   {"spec": "probe.json", "basis": "live"}})
+    assert [f["missing"] for f in findings] == [["displayName"]]
+
+
+def test_pinning_a_spec_that_declares_nothing_is_itself_a_failure(check):
+    """A stale pin must not silently fall back to permissive behavior."""
+    findings, _, unpinned = check(
+        "[('Item', 'item')]",
+        properties={"itemNumber": {"type": "number"}},
+        extra_specs={"other.json": _probe_spec({"item": STRING}, "items")},
+        authority={f"GET {drift_check.normalize_path(PROBE_PATH)}":
+                   {"spec": "not-a-real-spec.json", "basis": "live"}},
+        want_unpinned=True)
+    assert findings == []
+    assert "declares no item schema" in unpinned[0]["reason"]
 
 
 def test_excludes_wrapper_shaped_responses_instead_of_flagging_them(check):
@@ -146,6 +196,11 @@ def test_resolves_refs_and_allof(check):
         "[('Name', 'name'), ('State', 'state')]",
         properties={"name": STRING},
         item_key="items",
+        # Two probe specs split the fields between them; this test is about
+        # $ref/allOf resolution, so declare the union and keep the subject one
+        # thing at a time.
+        authority={f"GET {drift_check.normalize_path(PROBE_PATH)}":
+                   {"spec": "union", "basis": "unverified"}},
         components={"Extra": {"type": "object", "properties": {"state": STRING}}},
         extra_specs={"reffed.json": {
             "paths": {PROBE_PATH: {"get": {"responses": {"200": {"content": {
@@ -170,5 +225,9 @@ def test_says_nothing_about_an_endpoint_with_no_declared_item_schema(check):
 def test_the_live_tree_has_no_column_drift():
     """The gate's real assertion, run against the shipped tree so it cannot
     regress at the next spec refresh."""
-    findings, _ = drift_check.check_table_columns()
+    authority = drift_check.load_overrides()["spec_authority"]
+    findings, _, unpinned = drift_check.check_table_columns(authority=authority)
     assert findings == [], f"{len(findings)} list commands render blank columns"
+    assert unpinned == [], (
+        f"{len(unpinned)} operations have specs that disagree about the item "
+        f"schema with no spec_authority entry to settle it: {unpinned}")
