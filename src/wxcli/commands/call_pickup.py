@@ -11,9 +11,9 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling call-pickup.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Call Pickups.")
 def cmd_list(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     order: str = typer.Option(None, "--order", help="Sort the list of call pickups by name, either ASC or DSC. Default is ASC."),
     name: str = typer.Option(None, "--name", help="Return the list of call pickups that contains the given name. The maximum length is 80."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -22,7 +22,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Call Pickups."""
+    """Read the List of Call Pickups.\n\n\b\nExample: wxcli call-pickup list LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups"
     params = {}
@@ -52,9 +52,9 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","notificationType":"NONE","notificationDelayTimerSeconds":0,"agents":["..."]}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Call Pickup.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call pickup. The maximum length is 80."),
     notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
     notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayTimerSeconds` has elapsed, notify every member of the call pickup group when an incoming call goes unanswered. The `notificationType` field specifies the notification method. Default: 6."),
@@ -64,7 +64,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Pickup\n\nExample --json-body:\n  '{"name":"...","notificationType":"NONE","notificationDelayTimerSeconds":0,"agents":["..."]}'."""
+    """Create a Call Pickup.\n\n\b\nExample: wxcli call-pickup create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","notificationType":"NONE","notificationDelayTimerSeconds":0,"agents":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -106,15 +106,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Details for a Call Pickup.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
-    call_pickup_id: str = typer.Argument(help="callPickupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    call_pickup_id: str = typer.Argument(help="Webex CALL_PICKUP id, from: wxcli call-pickup list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Pickup."""
+    """Get Details for a Call Pickup.\n\n\b\nExample: wxcli call-pickup show LOCATION_ID CALL_PICKUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups/{call_pickup_id}"
     params = {}
@@ -133,10 +133,10 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","notificationType":"NONE","notificationDelayTimerSeconds":0,"agents":["..."]}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Call Pickup.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
-    call_pickup_id: str = typer.Argument(help="callPickupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    call_pickup_id: str = typer.Argument(help="Webex CALL_PICKUP id, from: wxcli call-pickup list"),
     name: str = typer.Option(None, "--name", help="Unique name for the call pickup. The maximum length is 80."),
     notification_type: str = typer.Option(None, "--notification-type", help="Choices: NONE, AUDIO_ONLY, VISUAL_ONLY, AUDIO_AND_VISUAL"),
     notification_delay_timer_seconds: str = typer.Option(None, "--notification-delay-timer-seconds", help="After the number of seconds given by the `notificationDelayTimerSeconds` has elapsed, notify every member of the call pickup group when an incoming call goes unanswered. The `notificationType` field specifies the notification method. Default: 6."),
@@ -146,7 +146,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Pickup\n\nExample --json-body:\n  '{"name":"...","notificationType":"NONE","notificationDelayTimerSeconds":0,"agents":["..."]}'."""
+    """Update a Call Pickup.\n\n\b\nExample: wxcli call-pickup update LOCATION_ID CALL_PICKUP_ID\n\n\b\nExample --json-body: '{"name":"...","notificationType":"NONE","notificationDelayTimerSeconds":0,"agents":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -181,16 +181,16 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Call Pickup.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    call_pickup_id: str = typer.Argument(help="callPickupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    call_pickup_id: str = typer.Argument(help="Webex CALL_PICKUP id, from: wxcli call-pickup list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Call Pickup."""
+    """Delete a Call Pickup.\n\n\b\nExample: wxcli call-pickup delete LOCATION_ID CALL_PICKUP_ID"""
     if not force:
         typer.confirm(f"Delete {call_pickup_id}?", abort=True)
     api = get_api(debug=debug)
@@ -214,9 +214,9 @@ def delete(
 
 
 
-@app.command("list-available-users")
+@app.command("list-available-users", short_help="Get available agents from Call Pickups.")
 def list_available_users(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     call_pickup_name: str = typer.Option(None, "--call-pickup-name", help="Only return available agents from call pickups with the matching name."),
     name: str = typer.Option(None, "--name", help="Only return available agents with the matching name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return available agents with the matching primary number."),
@@ -227,7 +227,7 @@ def list_available_users(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get available agents from Call Pickups."""
+    """Get available agents from Call Pickups.\n\n\b\nExample: wxcli call-pickup list-available-users LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups/availableUsers"
     params = {}

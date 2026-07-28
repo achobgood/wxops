@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling broadworks-workspaces.")
 
 _BODY_SKELETON_CREATE = '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","displayName":"...","primaryPhoneNumber":"...","extension":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Provision a BroadWorks Workspace.")
 def create(
     provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) Provisioning ID that defines how this workspace is to be provisioned for Cisco Webex Services. Each Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."),
     user_id: str = typer.Option(None, "--user-id", help="(required) The user ID of the workspace on BroadWorks."),
@@ -26,7 +26,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Provision a BroadWorks Workspace\n\nExample --json-body:\n  '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","displayName":"...","primaryPhoneNumber":"...","extension":"..."}'."""
+    """Provision a BroadWorks Workspace.\n\n\b\nExample: wxcli broadworks-workspaces create --provisioning-id PROVISIONING_ID --user-id USER_ID --sp-enterprise-id SP_ENTERPRISE_ID --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","displayName":"...","primaryPhoneNumber":"...","extension":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -72,9 +72,9 @@ def create(
 
 _BODY_SKELETON_UPDATE = '{"userId":"...","primaryPhoneNumber":"...","extension":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Broadworks Workspace.")
 def update(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     user_id: str = typer.Option(None, "--user-id", help="The user ID of the workspace on BroadWorks."),
     primary_phone_number: str = typer.Option(None, "--primary-phone-number", help="The primary phone number configured against the workspace on BroadWorks."),
     extension: str = typer.Option(None, "--extension", help="The extension number configured against the workspace on BroadWorks."),
@@ -84,7 +84,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Broadworks Workspace\n\nExample --json-body:\n  '{"userId":"...","primaryPhoneNumber":"...","extension":"..."}'."""
+    """Update a Broadworks Workspace.\n\n\b\nExample: wxcli broadworks-workspaces update WORKSPACE_ID\n\n\b\nExample --json-body: '{"userId":"...","primaryPhoneNumber":"...","extension":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -115,15 +115,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Remove a BroadWorks Workspace.")
 def delete(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove a BroadWorks Workspace."""
+    """Remove a BroadWorks Workspace.\n\n\b\nExample: wxcli broadworks-workspaces delete WORKSPACE_ID"""
     if not force:
         typer.confirm(f"Delete {workspace_id}?", abort=True)
     api = get_api(debug=debug)

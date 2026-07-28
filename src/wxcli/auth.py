@@ -1,14 +1,24 @@
+from __future__ import annotations
+
 import os
 import random
 import time
 import logging
 from pathlib import Path
 
-import httpx
 import typer
 
 from wxcli.config import DEFAULT_CONFIG_PATH, get_token
 from wxcli.errors import WebexError
+
+# httpx itself (not just this module) is imported lazily, inside the methods
+# that actually make a request — `import wxcli.auth` is on main.py's eager
+# import path (whoami/switch-org reference get_api/resolve_token/WebexApi/
+# WebexSession as module globals so tests can `mock.patch("wxcli.main.X")`),
+# so keeping httpx off THIS module's own top level is what keeps it off
+# `wxcli --version`/`--help`. `from __future__ import annotations` defers
+# the httpx.Response type hints below to strings so they don't need the
+# real import at class-definition time either.
 
 logger = logging.getLogger("wxcli")
 
@@ -53,6 +63,8 @@ def _env_float(name: str, default: float) -> float:
 class WebexSession:
     def __init__(self, token: str, connect_timeout: float | None = None,
                  read_timeout: float | None = None):
+        import httpx  # deferred — see module docstring note above the imports
+
         self._token = token
         connect = connect_timeout if connect_timeout is not None else _env_float(
             "WXCLI_CONNECT_TIMEOUT", DEFAULT_CONNECT_TIMEOUT)
@@ -71,6 +83,8 @@ class WebexSession:
         """Single HTTP path for all verbs: bounded retry on RETRY_STATUSES
         (Retry-After honored on 429, exponential backoff otherwise) + one
         connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
+        import httpx  # deferred — see module docstring note above the imports
+
         enabled = _retry_enabled()
         attempts_left = _max_attempts() if enabled else 1
         connect_retries = 1 if enabled else 0

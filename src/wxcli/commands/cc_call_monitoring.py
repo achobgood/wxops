@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-call-monitoring.")
 
 _BODY_SKELETON_CREATE = '{"id":"...","monitorType":"...","taskId":"...","queueIds":["..."],"teams":["..."],"sites":["..."],"agents":["..."],"trackingId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create Monitoring Request.")
 def create(
     id_param: str = typer.Option(None, "--id", help="(required) The id represents the unique request id with which the Monitoring Request will be created, maximum length 36 characters."),
     monitor_type: str = typer.Option(None, "--monitor-type", help="(required) It represents the type of the monitoring request. It can to be ```midcall```, ```adhoc``` and ```continuous```"),
@@ -26,7 +26,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Monitoring Request\n\nExample --json-body:\n  '{"id":"...","monitorType":"...","taskId":"...","queueIds":["..."],"teams":["..."],"sites":["..."],"agents":["..."],"trackingId":"..."}'."""
+    """Create Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create --id ID_PARAM --monitor-type MONITOR_TYPE\n\n\b\nExample --json-body: '{"id":"...","monitorType":"...","taskId":"...","queueIds":["..."],"teams":["..."],"sites":["..."],"agents":["..."],"trackingId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -69,15 +69,15 @@ def create(
 
 
 
-@app.command("create-barge-in")
+@app.command("create-barge-in", short_help="BargeIn Request.")
 def create_barge_in(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """BargeIn Request."""
+    """BargeIn Request.\n\n\b\nExample: wxcli cc-call-monitoring create-barge-in TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/monitor/{task_id}/bargeIn"
@@ -103,15 +103,15 @@ def create_barge_in(
 
 
 
-@app.command("create-end")
+@app.command("create-end", short_help="End Monitoring Request.")
 def create_end(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """End Monitoring Request."""
+    """End Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create-end TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/monitor/{task_id}/end"
@@ -137,15 +137,15 @@ def create_end(
 
 
 
-@app.command("create-hold")
+@app.command("create-hold", short_help="Hold Monitoring Request.")
 def create_hold(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Hold Monitoring Request."""
+    """Hold Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create-hold TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/monitor/{task_id}/hold"
@@ -171,15 +171,15 @@ def create_hold(
 
 
 
-@app.command("create-unhold")
+@app.command("create-unhold", short_help="Unhold Monitoring Request.")
 def create_unhold(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unhold Monitoring Request."""
+    """Unhold Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create-unhold TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/monitor/{task_id}/unhold"
@@ -205,7 +205,7 @@ def create_unhold(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Fetch Monitoring Sessions.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -235,15 +235,15 @@ def cmd_list(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete Monitoring Request.")
 def delete(
-    request_id: str = typer.Argument(help="requestId"),
+    request_id: str = typer.Argument(help="UUID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Monitoring Request."""
+    """Delete Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring delete REQUEST_ID"""
     if not force:
         typer.confirm(f"Delete {request_id}?", abort=True)
     api = get_api(debug=debug)

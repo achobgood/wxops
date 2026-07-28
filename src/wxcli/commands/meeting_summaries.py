@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-summaries.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Summary by Meeting ID.")
 def cmd_list(
     meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) to which the summary belongs. Please note that currently the meeting ID of a meeting series, a scheduled meeting, an in-progress meeting instance, or a scheduled personal room..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -42,7 +42,7 @@ def cmd_list(
 
 
 
-@app.command("list-meeting-summaries")
+@app.command("list-meeting-summaries", short_help="Get Summary For Compliance Officer.")
 def list_meeting_summaries(
     meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) to which the summary belongs. Please note that currently the meeting ID of a meeting series, a scheduled meeting, an in-progress meeting instance, or a scheduled personal room..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -74,15 +74,15 @@ def list_meeting_summaries(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Summary.")
 def delete(
-    summary_id: str = typer.Argument(help="summaryId"),
+    summary_id: str = typer.Argument(help="UUID, from: wxcli meeting-summaries list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Summary."""
+    """Delete a Summary.\n\n\b\nExample: wxcli meeting-summaries delete SUMMARY_ID"""
     if not force:
         typer.confirm(f"Delete {summary_id}?", abort=True)
     api = get_api(debug=debug)

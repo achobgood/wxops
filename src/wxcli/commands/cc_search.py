@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-search.")
 
 _BODY_SKELETON_CREATE = '{"variables":{},"query":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Search tasks.")
 def create(
     query: str = typer.Option(None, "--query", help="A graphQL query specifying the task attributes needed in the response for the specified time window. from: Start time for the query (in epoch milliseconds) and it cannot be older than 36 months from the current time. to: End time for the query (in epoch milliseconds) and it cannot be greater than..."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -22,7 +22,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search tasks\n\nExample --json-body:\n  '{"variables":{},"query":"..."}'."""
+    """Search tasks.\n\n\b\nExample --json-body: '{"variables":{},"query":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling announcements.")
 
 
-@app.command("list")
+@app.command("list", short_help="Fetch list of announcement greetings on location and organization level.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Choices: all, locations, Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx"),
     order: str = typer.Option(None, "--order", help="Sort the list according to fileName or fileSize. The default sort will be in Ascending order."),
@@ -65,7 +65,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'
 
-@app.command("create")
+@app.command("create", short_help="Upload a binary announcement greeting at organization level.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="(required) URI of the announcement file."),
@@ -77,7 +77,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Upload a binary announcement greeting at organization level\n\nExample --json-body:\n  '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'."""
+    """Upload a binary announcement greeting at organization level.\n\n\b\nExample: wxcli announcements create --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -121,7 +121,7 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Fetch repository usage for announcements for an organization.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -144,14 +144,14 @@ def show(
 
 
 
-@app.command("show-announcements-config")
+@app.command("show-announcements-config", short_help="Fetch details of a binary announcement greeting at the organization level.")
 def show_announcements_config(
-    announcement_id: str = typer.Argument(help="announcementId"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch details of a binary announcement greeting at the organization level."""
+    """Fetch details of a binary announcement greeting at the organization level.\n\n\b\nExample: wxcli announcements show-announcements-config ANNOUNCEMENT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcements/{announcement_id}"
     params = {}
@@ -170,9 +170,9 @@ def show_announcements_config(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'
 
-@app.command("update")
+@app.command("update", short_help="Modify a binary announcement greeting at organization level.")
 def update(
-    announcement_id: str = typer.Argument(help="announcementId"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     name: str = typer.Option(None, "--name", help="Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="URI of the announcement file."),
     file_name: str = typer.Option(None, "--file-name", help="File name of the announcement."),
@@ -183,7 +183,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a binary announcement greeting at organization level\n\nExample --json-body:\n  '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'."""
+    """Modify a binary announcement greeting at organization level.\n\n\b\nExample: wxcli announcements update ANNOUNCEMENT_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -220,15 +220,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete an announcement greeting of the organization.")
 def delete(
-    announcement_id: str = typer.Argument(help="announcementId"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete an announcement greeting of the organization."""
+    """Delete an announcement greeting of the organization.\n\n\b\nExample: wxcli announcements delete ANNOUNCEMENT_ID"""
     if not force:
         typer.confirm(f"Delete {announcement_id}?", abort=True)
     api = get_api(debug=debug)
@@ -252,14 +252,14 @@ def delete(
 
 
 
-@app.command("show-file-uri-announcements")
+@app.command("show-file-uri-announcements", short_help="Get Announcement File URI.")
 def show_file_uri_announcements(
-    announcement_id: str = typer.Argument(help="announcementId"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Announcement File URI."""
+    """Get Announcement File URI.\n\n\b\nExample: wxcli announcements show-file-uri-announcements ANNOUNCEMENT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcements/{announcement_id}/fileUri"
     params = {}
@@ -276,7 +276,7 @@ def show_file_uri_announcements(
 
 
 
-@app.command("generate-upload-url")
+@app.command("generate-upload-url", short_help="Generate Upload URL.")
 def generate_upload_url(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -306,9 +306,9 @@ def generate_upload_url(
 
 _BODY_SKELETON_CREATE_ANNOUNCEMENTS = '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'
 
-@app.command("create-announcements")
+@app.command("create-announcements", short_help="Upload a binary announcement greeting at the location level.")
 def create_announcements(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="(required) URI of the announcement file."),
     file_name: str = typer.Option(None, "--file-name", help="(required) File name of the announcement."),
@@ -319,7 +319,7 @@ def create_announcements(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Upload a binary announcement greeting at the location level\n\nExample --json-body:\n  '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'."""
+    """Upload a binary announcement greeting at the location level.\n\n\b\nExample: wxcli announcements create-announcements LOCATION_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ANNOUNCEMENTS), indent=2))
         raise typer.Exit(0)
@@ -363,14 +363,14 @@ def create_announcements(
 
 
 
-@app.command("show-usage-announcements")
+@app.command("show-usage-announcements", short_help="Fetch repository usage for announcements in a location.")
 def show_usage_announcements(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch repository usage for announcements in a location."""
+    """Fetch repository usage for announcements in a location.\n\n\b\nExample: wxcli announcements show-usage-announcements LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/usage"
     params = {}
@@ -387,15 +387,15 @@ def show_usage_announcements(
 
 
 
-@app.command("show-announcements-locations")
+@app.command("show-announcements-locations", short_help="Fetch details of a binary announcement greeting at location level.")
 def show_announcements_locations(
-    location_id: str = typer.Argument(help="locationId"),
-    announcement_id: str = typer.Argument(help="announcementId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch details of a binary announcement greeting at location level."""
+    """Fetch details of a binary announcement greeting at location level.\n\n\b\nExample: wxcli announcements show-announcements-locations LOCATION_ID ANNOUNCEMENT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/{announcement_id}"
     params = {}
@@ -414,10 +414,10 @@ def show_announcements_locations(
 
 _BODY_SKELETON_UPDATE_ANNOUNCEMENTS = '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'
 
-@app.command("update-announcements")
+@app.command("update-announcements", short_help="Modify a binary announcement greeting at location level.")
 def update_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    announcement_id: str = typer.Argument(help="announcementId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     name: str = typer.Option(None, "--name", help="Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="URI of the announcement file."),
     file_name: str = typer.Option(None, "--file-name", help="File name of the announcement."),
@@ -428,7 +428,7 @@ def update_announcements(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a binary announcement greeting at location level\n\nExample --json-body:\n  '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'."""
+    """Modify a binary announcement greeting at location level.\n\n\b\nExample: wxcli announcements update-announcements LOCATION_ID ANNOUNCEMENT_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANNOUNCEMENTS), indent=2))
         raise typer.Exit(0)
@@ -465,16 +465,16 @@ def update_announcements(
 
 
 
-@app.command("delete-announcements")
+@app.command("delete-announcements", short_help="Delete an announcement greeting in a location.")
 def delete_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    announcement_id: str = typer.Argument(help="announcementId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete an announcement greeting in a location."""
+    """Delete an announcement greeting in a location.\n\n\b\nExample: wxcli announcements delete-announcements LOCATION_ID ANNOUNCEMENT_ID"""
     if not force:
         typer.confirm(f"Delete {announcement_id}?", abort=True)
     api = get_api(debug=debug)
@@ -498,15 +498,15 @@ def delete_announcements(
 
 
 
-@app.command("show-file-uri-announcements-1")
+@app.command("show-file-uri-announcements-1", short_help="Get Location Announcement File URI.")
 def show_file_uri_announcements_1(
-    location_id: str = typer.Argument(help="locationId"),
-    announcement_id: str = typer.Argument(help="announcementId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    announcement_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcements list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Location Announcement File URI."""
+    """Get Location Announcement File URI.\n\n\b\nExample: wxcli announcements show-file-uri-announcements-1 LOCATION_ID ANNOUNCEMENT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/{announcement_id}/fileUri"
     params = {}
@@ -523,14 +523,14 @@ def show_file_uri_announcements_1(
 
 
 
-@app.command("show-urls")
+@app.command("show-urls", short_help="Get Media Download URL.")
 def show_urls(
     s3_path: str = typer.Argument(help="s3Path"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Media Download URL."""
+    """Get Media Download URL.\n\n\b\nExample: wxcli announcements show-urls S3_PATH"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/media/urls/{s3_path}"
     params = {}
@@ -549,7 +549,8 @@ def show_urls(
 
 _BODY_SKELETON_TTS_GENERATE = '{"voice":"...","text":"...","languageCode":"..."}'
 
-@app.command("tts-generate")
+@app.command("generate-a-text", hidden=True)
+@app.command("tts-generate", short_help="Generate a Text-to-Speech Prompt.")
 def tts_generate(
     voice: str = typer.Option(None, "--voice", help="The voice ID used to generate the audio prompt. Use the List Text-to-Speech Voices API to retrieve available voices."),
     text: str = typer.Option(None, "--text", help="The text to convert to speech."),
@@ -560,7 +561,7 @@ def tts_generate(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Generate a Text-to-Speech Prompt\n\nExample --json-body:\n  '{"voice":"...","text":"...","languageCode":"..."}'."""
+    """Generate a Text-to-Speech Prompt.\n\n\b\nExample: wxcli announcements tts-generate --voice VOICE --text TEXT --language-code LANGUAGE_CODE\n\n\b\nExample --json-body: '{"voice":"...","text":"...","languageCode":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_TTS_GENERATE), indent=2))
         raise typer.Exit(0)
@@ -590,7 +591,8 @@ def tts_generate(
 
 
 
-@app.command("tts-usage")
+@app.command("show-usage-text-to-speech", hidden=True)
+@app.command("tts-usage", short_help="Get Text-to-Speech Usage.")
 def tts_usage(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -613,14 +615,15 @@ def tts_usage(
 
 
 
-@app.command("tts-status")
+@app.command("show-text-to-speech", hidden=True)
+@app.command("tts-status", short_help="Get Text-to-Speech Generation Status.")
 def tts_status(
-    tts_id: str = typer.Argument(help="ttsId"),
+    tts_id: str = typer.Argument(help="Webex TEXT_TO_SPEECH id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Text-to-Speech Generation Status."""
+    """Get Text-to-Speech Generation Status.\n\n\b\nExample: wxcli announcements tts-status TTS_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/textToSpeech/{tts_id}"
     params = {}
@@ -637,7 +640,8 @@ def tts_status(
 
 
 
-@app.command("tts-voices")
+@app.command("list-voices", hidden=True)
+@app.command("tts-voices", short_help="List Text-to-Speech Voices.")
 def tts_voices(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),

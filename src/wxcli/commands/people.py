@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling people.")
 
 
-@app.command("list")
+@app.command("list", short_help="List People.")
 def cmd_list(
     email: str = typer.Option(None, "--email", help="List people with this email address. For non-admin requests, either this or `displayName` are required. With the exception of partner admins and a managed org relationship, people lookup by email is only available for users in the same org."),
     display_name: str = typer.Option(None, "--display-name", help="List people whose name starts with this string. For non-admin requests, either this or email are required."),
@@ -68,7 +68,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Person.")
 def create(
     calling_data: str = typer.Option(None, "--calling-data", help="Include Webex Calling user details in the response."),
     min_response: str = typer.Option(None, "--min-response", help="Set to `true` to improve performance by omitting person details and returning only the ID in the response when successful. If unsuccessful the response will have optional error details."),
@@ -89,7 +89,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Person\n\nExample --json-body:\n  '{"emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"..."}'."""
+    """Create a Person.\n\n\b\nExample --json-body: '{"emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -144,15 +144,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Person Details.")
 def show(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     calling_data: str = typer.Option(None, "--calling-data", help="Include Webex Calling user details in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Person Details."""
+    """Get Person Details.\n\n\b\nExample: wxcli people show PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/people/{person_id}"
     params = {}
@@ -170,9 +170,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Person.")
 def update(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     calling_data: str = typer.Option(None, "--calling-data", help="Include Webex Calling user details in the response."),
     show_all_types: str = typer.Option(None, "--show-all-types", help="Include additional user data like `#attendee` role."),
     min_response: str = typer.Option(None, "--min-response", help="Set to `true` to improve performance by omitting person details in the response. If unsuccessful the response will have optional error details."),
@@ -195,7 +195,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Person\n\nExample --json-body:\n  '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"..."}'."""
+    """Update a Person.\n\n\b\nExample: wxcli people update PERSON_ID --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -253,15 +253,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Person.")
 def delete(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Person."""
+    """Delete a Person.\n\n\b\nExample: wxcli people delete PERSON_ID"""
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
@@ -281,7 +281,7 @@ def delete(
 
 
 
-@app.command("show-me")
+@app.command("show-me", short_help="Get My Own Details.")
 def show_me(
     calling_data: str = typer.Option(None, "--calling-data", help="Include Webex Calling user details in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),

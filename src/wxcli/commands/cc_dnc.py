@@ -13,9 +13,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-dnc.")
 
 _BODY_SKELETON_CREATE = '{"phoneNumber":"...","source":"...","reason":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Add Phone Number to DNC List.")
 def create(
-    dnc_list_name: str = typer.Argument(help="dncListName"),
+    dnc_list_name: str = typer.Argument(help="e.g. corporate-dnc-list"),
     phone_number: str = typer.Option(None, "--phone-number", help="(required) The phone number to add to the DNC list. Must be in E.164 format (e.g., +1234567890)."),
     source: str = typer.Option(None, "--source", help="(required) The source or origin of the DNC entry. This helps track where the request originated from."),
     reason: str = typer.Option(None, "--reason", help="Optional reason for adding the phone number to the DNC list. This can help with compliance documentation."),
@@ -25,7 +25,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Phone Number to DNC List\n\nExample --json-body:\n  '{"phoneNumber":"...","source":"...","reason":"..."}'."""
+    """Add Phone Number to DNC List.\n\n\b\nExample: wxcli cc-dnc create corporate-dnc-list --phone-number PHONE_NUMBER --source SOURCE\n\n\b\nExample --json-body: '{"phoneNumber":"...","source":"...","reason":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -64,15 +64,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Phone Number from DNC List.")
 def show(
-    dnc_list_name: str = typer.Argument(help="dncListName"),
+    dnc_list_name: str = typer.Argument(help="e.g. corporate-dnc-list"),
     phone_number: str = typer.Argument(help="phoneNumber"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Phone Number from DNC List."""
+    """Get Phone Number from DNC List.\n\n\b\nExample: wxcli cc-dnc show corporate-dnc-list PHONE_NUMBER"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}"
@@ -86,16 +86,16 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Remove Phone Number from DNC List.")
 def delete(
-    dnc_list_name: str = typer.Argument(help="dncListName"),
+    dnc_list_name: str = typer.Argument(help="e.g. corporate-dnc-list"),
     phone_number: str = typer.Argument(help="phoneNumber"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove Phone Number from DNC List."""
+    """Remove Phone Number from DNC List.\n\n\b\nExample: wxcli cc-dnc delete corporate-dnc-list PHONE_NUMBER"""
     if not force:
         typer.confirm(f"Delete {phone_number}?", abort=True)
     api = get_api(debug=debug)

@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling events.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Events.")
 def cmd_list(
     resource: str = typer.Option(None, "--resource", help="List events with a specific resource type. (use --help for choices)"),
     type_param: str = typer.Option(None, "--type", help="Choices: created, updated, deleted, ended"),
@@ -59,14 +59,14 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Event Details.")
 def show(
-    event_id: str = typer.Argument(help="eventId"),
+    event_id: str = typer.Argument(help="Webex EVENT id, from: wxcli events list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Event Details."""
+    """Get Event Details.\n\n\b\nExample: wxcli events show EVENT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/events/{event_id}"
     try:

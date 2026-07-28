@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling calling-service.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Announcement Languages.")
 def cmd_list(
     tts_language: str = typer.Option(None, "--tts-language", help="Filter languages by TTS support."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -43,7 +43,7 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Voicemail Settings.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -68,7 +68,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update Voicemail Settings.")
 def update(
     message_expiry_enabled: bool = typer.Option(None, "--message-expiry-enabled/--no-message-expiry-enabled", help="Set to `true` to enable voicemail deletion and set the deletion conditions for expired messages."),
     number_of_days_for_message_expiry: str = typer.Option(None, "--number-of-days-for-message-expiry", help="Number of days after which messages expire."),
@@ -80,7 +80,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Voicemail Settings\n\nExample --json-body:\n  '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true}'."""
+    """Update Voicemail Settings.\n\n\b\nExample: wxcli calling-service update --message-expiry-enabled --number-of-days-for-message-expiry NUMBER_OF_DAYS_FOR_MESSAGE_EXPIRY\n\n\b\nExample --json-body: '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -117,7 +117,7 @@ def update(
 
 
 
-@app.command("show-rules")
+@app.command("show-rules", short_help="Get Voicemail Rules.")
 def show_rules(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -142,7 +142,7 @@ def show_rules(
 
 _BODY_SKELETON_UPDATE_RULES = '{"defaultVoicemailPinEnabled":true,"defaultVoicemailPin":"...","expirePasscode":{"enabled":true,"numberOfDays":0},"changePasscode":{"enabled":true,"numberOfDays":0},"blockPreviousPasscodes":{"enabled":true,"numberOfPasscodes":0}}'
 
-@app.command("update-rules")
+@app.command("update-rules", short_help="Update Voicemail Rules.")
 def update_rules(
     default_voicemail_pin_enabled: bool = typer.Option(None, "--default-voicemail-pin-enabled/--no-default-voicemail-pin-enabled", help="Set to `true` to enable the default voicemail passcode."),
     default_voicemail_pin: str = typer.Option(None, "--default-voicemail-pin", help="Default voicemail passcode."),
@@ -152,7 +152,7 @@ def update_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Voicemail Rules\n\nExample --json-body:\n  '{"defaultVoicemailPinEnabled":true,"defaultVoicemailPin":"...","expirePasscode":{"enabled":true,"numberOfDays":0},"changePasscode":{"enabled":true,"numberOfDays":0},"blockPreviousPasscodes":{"enabled":true,"numberOfPasscodes":0}}'."""
+    """Update Voicemail Rules.\n\n\b\nExample --json-body: '{"defaultVoicemailPinEnabled":true,"defaultVoicemailPin":"...","expirePasscode":{"enabled":true,"numberOfDays":0},"changePasscode":{"enabled":true,"numberOfDays":0},"blockPreviousPasscodes":{"enabled":true,"numberOfPasscodes":0}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_RULES), indent=2))
         raise typer.Exit(0)
@@ -185,7 +185,7 @@ def update_rules(
 
 
 
-@app.command("show-settings")
+@app.command("show-settings", short_help="Get the organization Music on Hold configuration.")
 def show_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -210,7 +210,7 @@ def show_settings(
 
 _BODY_SKELETON_UPDATE_SETTINGS = '{"defaultOrgMoh":"..."}'
 
-@app.command("update-settings")
+@app.command("update-settings", short_help="Update the organization Music on Hold configuration.")
 def update_settings(
     default_org_moh: str = typer.Option(None, "--default-org-moh", help="Default org level Music on Hold option, can be one of two options: Choose between Opus Number 1 (Music On Hold used in other Cisco products like UCM) and existing legacy Music On Hold."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -219,7 +219,7 @@ def update_settings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the organization Music on Hold configuration\n\nExample --json-body:\n  '{"defaultOrgMoh":"..."}'."""
+    """Update the organization Music on Hold configuration.\n\n\b\nExample --json-body: '{"defaultOrgMoh":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS), indent=2))
         raise typer.Exit(0)
@@ -250,7 +250,7 @@ def update_settings(
 
 
 
-@app.command("show-large-org-status")
+@app.command("show-large-org-status", short_help="Get Large Organization Status.")
 def show_large_org_status(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -273,7 +273,7 @@ def show_large_org_status(
 
 
 
-@app.command("show-call-captions")
+@app.command("show-call-captions", short_help="Get the organization call captions settings.")
 def show_call_captions(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -298,7 +298,7 @@ def show_call_captions(
 
 _BODY_SKELETON_UPDATE_CALL_CAPTIONS = '{"orgClosedCaptionsEnabled":true,"orgTranscriptsEnabled":true}'
 
-@app.command("update-call-captions")
+@app.command("update-call-captions", short_help="Update the organization call captions settings.")
 def update_call_captions(
     org_closed_captions_enabled: bool = typer.Option(None, "--org-closed-captions-enabled/--no-org-closed-captions-enabled", help="Enable or disable organization-level closed captions."),
     org_transcripts_enabled: bool = typer.Option(None, "--org-transcripts-enabled/--no-org-transcripts-enabled", help="Enable or disable organization-level transcripts."),
@@ -308,7 +308,7 @@ def update_call_captions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the organization call captions settings\n\nExample --json-body:\n  '{"orgClosedCaptionsEnabled":true,"orgTranscriptsEnabled":true}'."""
+    """Update the organization call captions settings.\n\n\b\nExample --json-body: '{"orgClosedCaptionsEnabled":true,"orgTranscriptsEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_CAPTIONS), indent=2))
         raise typer.Exit(0)

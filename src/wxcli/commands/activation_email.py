@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling activation-email.")
 
 
-@app.command("create")
+@app.command("create", short_help="Initiate Bulk Activation Email Resend Job.")
 def create(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -44,16 +44,16 @@ def create(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Bulk Activation Email Resend Job Status.")
 def cmd_list(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Bulk Activation Email Resend Job Status."""
+    """Get Bulk Activation Email Resend Job Status.\n\n\b\nExample: wxcli activation-email list JOB_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails/{job_id}/status"
@@ -75,16 +75,16 @@ def cmd_list(
 
 
 
-@app.command("list-errors")
+@app.command("list-errors", short_help="Get Bulk Activation Email Resend Job Errors.")
 def list_errors(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Bulk Activation Email Resend Job Errors."""
+    """Get Bulk Activation Email Resend Job Errors.\n\n\b\nExample: wxcli activation-email list-errors JOB_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails/{job_id}/errors"

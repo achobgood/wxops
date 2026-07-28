@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling security-audit.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Security Audit Events.")
 def cmd_list(
     start_time: str = typer.Option(..., "--start-time", help="List events which occurred after a specific date and time."),
     end_time: str = typer.Option(..., "--end-time", help="List events which occurred before a specific date and time."),
@@ -23,7 +23,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Security Audit Events."""
+    """List Security Audit Events.\n\n\b\nExample: wxcli security-audit list --start-time START_TIME --end-time END_TIME"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/securityAudit/events"
     params = {}

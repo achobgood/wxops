@@ -11,9 +11,9 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling hot-desking-members.")
 
 
-@app.command("list")
+@app.command("list", short_help="Search Available Hot Desking Members.")
 def cmd_list(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     location_id: str = typer.Option(None, "--location-id", help="Return only available members in this location."),
     member_name: str = typer.Option(None, "--member-name", help="Search for available members by name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for available members by phone number."),
@@ -25,7 +25,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search Available Hot Desking Members."""
+    """Search Available Hot Desking Members.\n\n\b\nExample: wxcli hot-desking-members list PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/features/hotDesking/availableMembers"
     params = {}
@@ -61,16 +61,16 @@ def cmd_list(
 
 
 
-@app.command("list-members")
+@app.command("list-members", short_help="Get Hot Desking Members.")
 def list_members(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Hot Desking Members."""
+    """Get Hot Desking Members.\n\n\b\nExample: wxcli hot-desking-members list-members PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/features/hotDesking/members"
     params = {}
@@ -96,16 +96,16 @@ def list_members(
 
 _BODY_SKELETON_UPDATE = '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Update Hot Desking Members.")
 def update(
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Hot Desking Members\n\nExample --json-body:\n  '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'."""
+    """Update Hot Desking Members.\n\n\b\nExample: wxcli hot-desking-members update PERSON_ID\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

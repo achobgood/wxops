@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-global-vars.")
 
 _BODY_SKELETON_CREATE = '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Global Variable.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -37,7 +37,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Global Variable\n\nExample --json-body:\n  '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'."""
+    """Create a new Global Variable.\n\n\b\nExample: wxcli cc-global-vars create --name NAME --active --agent-editable --variable-type String --default-value DEFAULT_VALUE --reportable --agent-viewable\n\n\b\nExample --json-body: '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -105,7 +105,7 @@ def create(
 
 _BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Global Variable(s).")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -113,7 +113,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Global Variable(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Global Variable(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -143,7 +143,7 @@ def create_bulk(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Bulk export Global Variable(s).")
 def cmd_list(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -180,8 +180,9 @@ def cmd_list(
 
 
 
-@app.command("create-purge-inactive-entities")
-def create_purge_inactive_entities(
+@app.command("create-purge-inactive-entities", hidden=True)
+@app.command("delete-purge-inactive-entities", short_help="Purge inactive Global Variable(s).")
+def delete_purge_inactive_entities(
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch with be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -213,7 +214,7 @@ def create_purge_inactive_entities(
 
 
 
-@app.command("list-reportable-count")
+@app.command("list-reportable-count", short_help="Get reportable count for Global Variable(s).")
 def list_reportable_count(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -244,14 +245,14 @@ def list_reportable_count(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Global Variable by ID.")
 def show(
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Global Variable by ID."""
+    """Get specific Global Variable by ID.\n\n\b\nExample: wxcli cc-global-vars show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -268,7 +269,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Global Variable by ID.")
 def update(
     id: str = typer.Argument(help="id"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
@@ -293,7 +294,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Global Variable by ID\n\nExample --json-body:\n  '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'."""
+    """Update specific Global Variable by ID.\n\n\b\nExample: wxcli cc-global-vars update ID --name NAME --active --agent-editable --variable-type String --default-value DEFAULT_VALUE --reportable --agent-viewable\n\n\b\nExample --json-body: '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -352,7 +353,7 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Global Variable by ID.")
 def delete(
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -360,7 +361,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Global Variable by ID."""
+    """Delete specific Global Variable by ID.\n\n\b\nExample: wxcli cc-global-vars delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -382,9 +383,9 @@ def delete(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific Global Variable.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -394,7 +395,7 @@ def list_incoming_references(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Global Variable."""
+    """List references for a specific Global Variable.\n\n\b\nExample: wxcli cc-global-vars list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -423,7 +424,7 @@ def list_incoming_references(
 
 
 
-@app.command("list-cad-variable")
+@app.command("list-cad-variable", short_help="List Global Variable(s).")
 def list_cad_variable(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),

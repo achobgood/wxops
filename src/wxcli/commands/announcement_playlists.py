@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling announcement-playlists.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Announcement Playlists.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -45,7 +45,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","announcementIds":["..."]}'
 
-@app.command("create")
+@app.command("create", short_help="Create Announcement Playlist.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Unique name for the announcement playlist."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -54,7 +54,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Announcement Playlist\n\nExample --json-body:\n  '{"name":"...","announcementIds":["..."]}'."""
+    """Create Announcement Playlist.\n\n\b\nExample: wxcli announcement-playlists create --name NAME\n\n\b\nExample --json-body: '{"name":"...","announcementIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -92,14 +92,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Announcement Playlist.")
 def show(
-    playlist_id: str = typer.Argument(help="playlistId"),
+    playlist_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcement-playlists list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Announcement Playlist."""
+    """Get Announcement Playlist.\n\n\b\nExample: wxcli announcement-playlists show PLAYLIST_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcements/playlists/{playlist_id}"
     params = {}
@@ -118,9 +118,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","announcementIds":["..."]}'
 
-@app.command("update")
+@app.command("update", short_help="Update Announcement Playlist.")
 def update(
-    playlist_id: str = typer.Argument(help="playlistId"),
+    playlist_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcement-playlists list"),
     name: str = typer.Option(None, "--name", help="Unique name for the announcement playlist."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -128,7 +128,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Announcement Playlist\n\nExample --json-body:\n  '{"name":"...","announcementIds":["..."]}'."""
+    """Update Announcement Playlist.\n\n\b\nExample: wxcli announcement-playlists update PLAYLIST_ID\n\n\b\nExample --json-body: '{"name":"...","announcementIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -159,15 +159,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete Announcement Playlist.")
 def delete(
-    playlist_id: str = typer.Argument(help="playlistId"),
+    playlist_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcement-playlists list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Announcement Playlist."""
+    """Delete Announcement Playlist.\n\n\b\nExample: wxcli announcement-playlists delete PLAYLIST_ID"""
     if not force:
         typer.confirm(f"Delete {playlist_id}?", abort=True)
     api = get_api(debug=debug)
@@ -191,16 +191,16 @@ def delete(
 
 
 
-@app.command("list-playlists")
+@app.command("list-playlists", short_help="List Playlist Locations.")
 def list_playlists(
-    playlist_id: str = typer.Argument(help="playlistId"),
+    playlist_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcement-playlists list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Playlist Locations."""
+    """List Playlist Locations.\n\n\b\nExample: wxcli announcement-playlists list-playlists PLAYLIST_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcements/playlists/{playlist_id}/locations"
     params = {}
@@ -226,16 +226,16 @@ def list_playlists(
 
 _BODY_SKELETON_UPDATE_PLAYLISTS = '{"locationIds":["..."]}'
 
-@app.command("update-playlists")
+@app.command("update-playlists", short_help="Update Playlist Locations.")
 def update_playlists(
-    playlist_id: str = typer.Argument(help="playlistId"),
+    playlist_id: str = typer.Argument(help="Webex ANNOUNCEMENT id, from: wxcli announcement-playlists list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Playlist Locations\n\nExample --json-body:\n  '{"locationIds":["..."]}'."""
+    """Update Playlist Locations.\n\n\b\nExample: wxcli announcement-playlists update-playlists PLAYLIST_ID\n\n\b\nExample --json-body: '{"locationIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PLAYLISTS), indent=2))
         raise typer.Exit(0)

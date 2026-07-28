@@ -87,7 +87,7 @@ def print_table(data: list, columns: list[tuple[str, str]], limit: int = 50) -> 
         row = []
         for _, accessor in columns:
             val = _resolve_accessor(item, accessor)
-            row.append(str(val) if val is not None else "")
+            row.append(_render_cell(val))
         table.add_row(*row)
         rows.append(row)
 
@@ -140,10 +140,36 @@ def _resolve_accessor(obj: Any, accessor: str) -> Any:
             current = getattr(current, part)
         else:
             return None
-    # Handle list types (e.g., emails) — return first element
-    if isinstance(current, list) and len(current) > 0:
-        return current[0]
+    # Resolution stops here — the raw value (scalar, list, or dict) is
+    # returned as-is. Deciding how a list/dict renders in a table cell is a
+    # presentation concern, handled by _render_cell in print_table.
     return current
+
+
+def _render_cell(val: Any) -> str:
+    """Render one table cell value, never a Python repr and never a silent drop.
+
+    - list: empty -> "", single element -> that element, multiple -> the
+      first element plus a "(+N more)" count so a 3-email list is visibly
+      distinct from a 1-email list instead of silently showing only the first.
+    - dict: rendered as "key: value" pairs instead of Python repr, e.g. a
+      location's address dict becomes "city: San Jose, state: CA" rather than
+      "{'city': 'San Jose', 'state': 'CA'}". Values recurse through this same
+      function, so a nested dict/list inside a dict is readable too.
+    """
+    if val is None:
+        return ""
+    if isinstance(val, list):
+        if not val:
+            return ""
+        if len(val) == 1:
+            return _render_cell(val[0])
+        return f"{_render_cell(val[0])} (+{len(val) - 1} more)"
+    if isinstance(val, dict):
+        if not val:
+            return ""
+        return ", ".join(f"{k}: {_render_cell(v)}" for k, v in val.items())
+    return str(val)
 
 
 def _text_cell(val: Any) -> str:

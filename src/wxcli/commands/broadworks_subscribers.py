@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling broadworks-subscribers.")
 
 
-@app.command("list")
+@app.command("list", short_help="List BroadWorks Subscribers.")
 def cmd_list(
     user_id: str = typer.Option(None, "--user-id", help="The user ID of the subscriber on BroadWorks."),
     person_id: str = typer.Option(None, "--person-id", help="The Person ID of the Webex subscriber."),
@@ -68,7 +68,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Provision a BroadWorks Subscriber.")
 def create(
     provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) This Provisioning ID defines how this subscriber is to be provisioned for Webex Services. Each Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Webex Partner Hub."),
     user_id: str = typer.Option(None, "--user-id", help="(required) The user ID of the subscriber on BroadWorks."),
@@ -88,7 +88,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Provision a BroadWorks Subscriber\n\nExample --json-body:\n  '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"..."}'."""
+    """Provision a BroadWorks Subscriber.\n\n\b\nExample: wxcli broadworks-subscribers create --provisioning-id PROVISIONING_ID --user-id USER_ID --sp-enterprise-id SP_ENTERPRISE_ID --first-name FIRST_NAME --last-name LAST_NAME --package softphone\n\n\b\nExample --json-body: '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -144,14 +144,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a BroadWorks Subscriber.")
 def show(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id, from: wxcli broadworks-subscribers list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a BroadWorks Subscriber."""
+    """Get a BroadWorks Subscriber.\n\n\b\nExample: wxcli broadworks-subscribers show SUBSCRIBER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/broadworks/subscribers/{subscriber_id}"
     try:
@@ -166,9 +166,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"userId":"...","firstName":"...","lastName":"...","primaryPhoneNumber":"...","mobilePhoneNumber":"...","extension":"...","timezone":"...","package":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a BroadWorks Subscriber.")
 def update(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id, from: wxcli broadworks-subscribers list"),
     user_id: str = typer.Option(None, "--user-id", help="The user ID of the subscriber on BroadWorks."),
     first_name: str = typer.Option(None, "--first-name", help="The first name of the subscriber."),
     last_name: str = typer.Option(None, "--last-name", help="The last name of the subscriber."),
@@ -183,7 +183,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a BroadWorks Subscriber\n\nExample --json-body:\n  '{"userId":"...","firstName":"...","lastName":"...","primaryPhoneNumber":"...","mobilePhoneNumber":"...","extension":"...","timezone":"...","package":"..."}'."""
+    """Update a BroadWorks Subscriber.\n\n\b\nExample: wxcli broadworks-subscribers update SUBSCRIBER_ID\n\n\b\nExample --json-body: '{"userId":"...","firstName":"...","lastName":"...","primaryPhoneNumber":"...","mobilePhoneNumber":"...","extension":"...","timezone":"...","package":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -224,15 +224,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Remove a BroadWorks Subscriber.")
 def delete(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id, from: wxcli broadworks-subscribers list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove a BroadWorks Subscriber."""
+    """Remove a BroadWorks Subscriber.\n\n\b\nExample: wxcli broadworks-subscribers delete SUBSCRIBER_ID"""
     if not force:
         typer.confirm(f"Delete {subscriber_id}?", abort=True)
     api = get_api(debug=debug)
@@ -254,7 +254,7 @@ def delete(
 
 _BODY_SKELETON_CREATE_VALIDATE = '{"email":"...","provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"..."}'
 
-@app.command("create-validate")
+@app.command("create-validate", short_help="Precheck a Broadworks Subscriber Provisioning.")
 def create_validate(
     provisioning_id: str = typer.Option(None, "--provisioning-id", help="Provisioning ID that defines how this subscriber is to be provisioned for Cisco Webex Services. Each Customer Template has its unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."),
     user_id: str = typer.Option(None, "--user-id", help="The user ID of the Broadworks subscriber."),
@@ -274,7 +274,7 @@ def create_validate(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Precheck a Broadworks Subscriber Provisioning\n\nExample --json-body:\n  '{"email":"...","provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"..."}'."""
+    """Precheck a Broadworks Subscriber Provisioning.\n\n\b\nExample: wxcli broadworks-subscribers create-validate --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE), indent=2))
         raise typer.Exit(0)
@@ -330,15 +330,15 @@ def create_validate(
 
 
 
-@app.command("create-consent-move")
+@app.command("create-consent-move", short_help="Send Consent User Move Email to Pending Broadworks Subscribers.")
 def create_consent_move(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Send Consent User Move Email to Pending Broadworks Subscribers."""
+    """Send Consent User Move Email to Pending Broadworks Subscribers.\n\n\b\nExample: wxcli broadworks-subscribers create-consent-move SUBSCRIBER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/subscribers/{subscriber_id}/emails/consentMove"
     if json_body:

@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling video-mesh.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Clusters Availability.")
 def cmd_list(
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -21,7 +21,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Clusters Availability."""
+    """List Clusters Availability.\n\n\b\nExample: wxcli video-mesh list --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/clusters/availability"
     params = {}
@@ -49,16 +49,16 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Cluster Availability.")
 def show(
-    cluster_id: str = typer.Argument(help="clusterId"),
+    cluster_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id, from: wxcli video-mesh list"),
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Cluster Availability."""
+    """Get Cluster Availability.\n\n\b\nExample: wxcli video-mesh show CLUSTER_ID --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/clusters/availability/{cluster_id}"
     params = {}
@@ -76,7 +76,7 @@ def show(
 
 
 
-@app.command("list-availability")
+@app.command("list-availability", short_help="List Node Availability.")
 def list_availability(
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -87,7 +87,7 @@ def list_availability(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Node Availability."""
+    """List Node Availability.\n\n\b\nExample: wxcli video-mesh list-availability --from FROM_PARAM --to TO --cluster-id CLUSTER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/nodes/availability"
     params = {}
@@ -114,16 +114,16 @@ def list_availability(
 
 
 
-@app.command("show-availability")
+@app.command("show-availability", short_help="Get Node Availability.")
 def show_availability(
-    node_id: str = typer.Argument(help="nodeId"),
+    node_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id, from: wxcli video-mesh list-availability"),
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Node Availability."""
+    """Get Node Availability.\n\n\b\nExample: wxcli video-mesh show-availability NODE_ID --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/nodes/availability/{node_id}"
     params = {}
@@ -141,7 +141,7 @@ def show_availability(
 
 
 
-@app.command("list-media-health-monitor-test")
+@app.command("list-media-health-monitor-test", short_help="List Media Health Monitoring Tool Test results V2.")
 def list_media_health_monitor_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
@@ -152,7 +152,7 @@ def list_media_health_monitor_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Media Health Monitoring Tool Test results V2."""
+    """List Media Health Monitoring Tool Test results V2.\n\n\b\nExample: wxcli video-mesh list-media-health-monitor-test --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/mediaHealthMonitorTest"
     params = {}
@@ -182,7 +182,7 @@ def list_media_health_monitor_test(
 
 
 
-@app.command("list-clusters-media-health-monitor-test")
+@app.command("list-clusters-media-health-monitor-test", short_help="Get Media Health Monitoring Tool Test results for clusters V2.")
 def list_clusters_media_health_monitor_test(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
@@ -194,7 +194,7 @@ def list_clusters_media_health_monitor_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Media Health Monitoring Tool Test results for clusters V2."""
+    """Get Media Health Monitoring Tool Test results for clusters V2.\n\n\b\nExample: wxcli video-mesh list-clusters-media-health-monitor-test --cluster-id CLUSTER_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/mediaHealthMonitorTest/clusters"
     params = {}
@@ -223,7 +223,7 @@ def list_clusters_media_health_monitor_test(
 
 
 
-@app.command("list-nodes-media-health-monitor-test")
+@app.command("list-nodes-media-health-monitor-test", short_help="Get Media Health Monitoring Tool Test results for node V2.")
 def list_nodes_media_health_monitor_test(
     node_id: str = typer.Option(..., "--node-id", help="Unique ID of the Video Mesh node."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
@@ -235,7 +235,7 @@ def list_nodes_media_health_monitor_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Media Health Monitoring Tool Test results for node V2."""
+    """Get Media Health Monitoring Tool Test results for node V2.\n\n\b\nExample: wxcli video-mesh list-nodes-media-health-monitor-test --node-id NODE_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/mediaHealthMonitorTest/nodes"
     params = {}
@@ -264,7 +264,7 @@ def list_nodes_media_health_monitor_test(
 
 
 
-@app.command("list-cloud-overflow")
+@app.command("list-cloud-overflow", short_help="List Overflow to Cloud details.")
 def list_cloud_overflow(
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -274,7 +274,7 @@ def list_cloud_overflow(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Overflow to Cloud details."""
+    """List Overflow to Cloud details.\n\n\b\nExample: wxcli video-mesh list-cloud-overflow --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/cloudOverflow"
     params = {}
@@ -302,7 +302,7 @@ def list_cloud_overflow(
 
 
 
-@app.command("list-call-redirects-video-mesh")
+@app.command("list-call-redirects-video-mesh", short_help="List Cluster Redirect details.")
 def list_call_redirects_video_mesh(
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -312,7 +312,7 @@ def list_call_redirects_video_mesh(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Cluster Redirect details."""
+    """List Cluster Redirect details.\n\n\b\nExample: wxcli video-mesh list-call-redirects-video-mesh --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/callRedirects"
     params = {}
@@ -340,7 +340,7 @@ def list_call_redirects_video_mesh(
 
 
 
-@app.command("list-call-redirects-clusters")
+@app.command("list-call-redirects-clusters", short_help="Get Cluster Redirect details.")
 def list_call_redirects_clusters(
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -351,7 +351,7 @@ def list_call_redirects_clusters(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Cluster Redirect details."""
+    """Get Cluster Redirect details.\n\n\b\nExample: wxcli video-mesh list-call-redirects-clusters --from FROM_PARAM --to TO --cluster-id CLUSTER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/clusters/callRedirects"
     params = {}
@@ -378,7 +378,7 @@ def list_call_redirects_clusters(
 
 
 
-@app.command("list-utilization-video-mesh")
+@app.command("list-utilization-video-mesh", short_help="List Clusters Utilization.")
 def list_utilization_video_mesh(
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -388,7 +388,7 @@ def list_utilization_video_mesh(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Clusters Utilization."""
+    """List Clusters Utilization.\n\n\b\nExample: wxcli video-mesh list-utilization-video-mesh --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/utilization"
     params = {}
@@ -416,7 +416,7 @@ def list_utilization_video_mesh(
 
 
 
-@app.command("list-utilization-clusters")
+@app.command("list-utilization-clusters", short_help="Get Cluster Utilization details.")
 def list_utilization_clusters(
     from_param: str = typer.Option(..., "--from", help="The starting date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(..., "--to", help="The ending date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -427,7 +427,7 @@ def list_utilization_clusters(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Cluster Utilization details."""
+    """Get Cluster Utilization details.\n\n\b\nExample: wxcli video-mesh list-utilization-clusters --from FROM_PARAM --to TO --cluster-id CLUSTER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/clusters/utilization"
     params = {}
@@ -454,7 +454,7 @@ def list_utilization_clusters(
 
 
 
-@app.command("list-reachability-test")
+@app.command("list-reachability-test", short_help="List Reachability Test results V2.")
 def list_reachability_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
@@ -465,7 +465,7 @@ def list_reachability_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Reachability Test results V2."""
+    """List Reachability Test results V2.\n\n\b\nExample: wxcli video-mesh list-reachability-test --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/reachabilityTest"
     params = {}
@@ -495,7 +495,7 @@ def list_reachability_test(
 
 
 
-@app.command("list-clusters-reachability-test")
+@app.command("list-clusters-reachability-test", short_help="Get Reachability Test results for cluster V2.")
 def list_clusters_reachability_test(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
@@ -507,7 +507,7 @@ def list_clusters_reachability_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Reachability Test results for cluster V2."""
+    """Get Reachability Test results for cluster V2.\n\n\b\nExample: wxcli video-mesh list-clusters-reachability-test --cluster-id CLUSTER_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/reachabilityTest/clusters"
     params = {}
@@ -536,7 +536,7 @@ def list_clusters_reachability_test(
 
 
 
-@app.command("list-nodes-reachability-test")
+@app.command("list-nodes-reachability-test", short_help="Get Reachability Test results for node V2.")
 def list_nodes_reachability_test(
     node_id: str = typer.Option(..., "--node-id", help="Unique ID of the Video Mesh node."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
@@ -548,7 +548,7 @@ def list_nodes_reachability_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Reachability Test results for node V2."""
+    """Get Reachability Test results for node V2.\n\n\b\nExample: wxcli video-mesh list-nodes-reachability-test --node-id NODE_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/reachabilityTest/nodes"
     params = {}
@@ -577,7 +577,7 @@ def list_nodes_reachability_test(
 
 
 
-@app.command("list-clusters-video-mesh")
+@app.command("list-clusters-video-mesh", short_help="List Cluster Details.")
 def list_clusters_video_mesh(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -609,14 +609,14 @@ def list_clusters_video_mesh(
 
 
 
-@app.command("show-clusters")
+@app.command("show-clusters", short_help="Get Cluster Details.")
 def show_clusters(
-    cluster_id: str = typer.Argument(help="clusterId"),
+    cluster_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id, from: wxcli video-mesh list-clusters-video-mesh"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Cluster Details."""
+    """Get Cluster Details.\n\n\b\nExample: wxcli video-mesh show-clusters CLUSTER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/clusters/{cluster_id}"
     try:
@@ -631,9 +631,9 @@ def show_clusters(
 
 _BODY_SKELETON_CREATE = '{"type":"ReachabilityTest","nodes":["..."]}'
 
-@app.command("create")
+@app.command("create", short_help="Trigger on-demand test for cluster.")
 def create(
-    cluster_id: str = typer.Argument(help="clusterId"),
+    cluster_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id, from: wxcli video-mesh list-clusters-video-mesh"),
     type_param: str = typer.Option(None, "--type", help="Choices: ReachabilityTest, NetworkTest, MediaHealthMonitorTest"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -641,7 +641,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Trigger on-demand test for cluster\n\nExample --json-body:\n  '{"type":"ReachabilityTest","nodes":["..."]}'."""
+    """Trigger on-demand test for cluster.\n\n\b\nExample: wxcli video-mesh create CLUSTER_ID\n\n\b\nExample --json-body: '{"type":"ReachabilityTest","nodes":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -673,9 +673,9 @@ def create(
 
 _BODY_SKELETON_CREATE_NODES = '{"type":"ReachabilityTest"}'
 
-@app.command("create-nodes")
+@app.command("create-nodes", short_help="Trigger on-demand test for node.")
 def create_nodes(
-    node_id: str = typer.Argument(help="nodeId"),
+    node_id: str = typer.Argument(help="Webex HYBRID_CONNECTOR id"),
     type_param: str = typer.Option(None, "--type", help="Choices: ReachabilityTest, NetworkTest, MediaHealthMonitorTest"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -683,7 +683,7 @@ def create_nodes(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Trigger on-demand test for node\n\nExample --json-body:\n  '{"type":"ReachabilityTest"}'."""
+    """Trigger on-demand test for node.\n\n\b\nExample: wxcli video-mesh create-nodes NODE_ID\n\n\b\nExample --json-body: '{"type":"ReachabilityTest"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_NODES), indent=2))
         raise typer.Exit(0)
@@ -713,7 +713,7 @@ def create_nodes(
 
 
 
-@app.command("list-test-status")
+@app.command("list-test-status", short_help="Get Triggered test status.")
 def list_test_status(
     command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -722,7 +722,7 @@ def list_test_status(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Triggered test status."""
+    """Get Triggered test status.\n\n\b\nExample: wxcli video-mesh list-test-status --command-id COMMAND_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testStatus"
     params = {}
@@ -745,7 +745,7 @@ def list_test_status(
 
 
 
-@app.command("list-test-results")
+@app.command("list-test-results", short_help="Get Triggered test results.")
 def list_test_results(
     command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -754,7 +754,7 @@ def list_test_results(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Triggered test results."""
+    """Get Triggered test results.\n\n\b\nExample: wxcli video-mesh list-test-results --command-id COMMAND_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults"
     params = {}
@@ -777,7 +777,7 @@ def list_test_results(
 
 
 
-@app.command("list-network-test")
+@app.command("list-network-test", short_help="List Network Test results.")
 def list_network_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
@@ -788,7 +788,7 @@ def list_network_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Network Test results."""
+    """List Network Test results.\n\n\b\nExample: wxcli video-mesh list-network-test --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/networkTest"
     params = {}
@@ -818,7 +818,7 @@ def list_network_test(
 
 
 
-@app.command("list-clusters-network-test")
+@app.command("list-clusters-network-test", short_help="Get Network Test results for cluster.")
 def list_clusters_network_test(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
@@ -830,7 +830,7 @@ def list_clusters_network_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Network Test results for cluster."""
+    """Get Network Test results for cluster.\n\n\b\nExample: wxcli video-mesh list-clusters-network-test --cluster-id CLUSTER_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/networkTest/clusters"
     params = {}
@@ -859,7 +859,7 @@ def list_clusters_network_test(
 
 
 
-@app.command("list-nodes-network-test")
+@app.command("list-nodes-network-test", short_help="Get Network Test results for node.")
 def list_nodes_network_test(
     node_id: str = typer.Option(..., "--node-id", help="Unique ID of the Video Mesh node."),
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
@@ -871,7 +871,7 @@ def list_nodes_network_test(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Network Test results for node."""
+    """Get Network Test results for node.\n\n\b\nExample: wxcli video-mesh list-nodes-network-test --node-id NODE_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/testResults/networkTest/nodes"
     params = {}
@@ -900,7 +900,7 @@ def list_nodes_network_test(
 
 
 
-@app.command("list-client-type-distribution")
+@app.command("list-client-type-distribution", short_help="List Cluster Client Type Distribution details.")
 def list_client_type_distribution(
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
@@ -911,7 +911,7 @@ def list_client_type_distribution(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Cluster Client Type Distribution details."""
+    """List Cluster Client Type Distribution details.\n\n\b\nExample: wxcli video-mesh list-client-type-distribution --from FROM_PARAM --to TO --device-type DEVICE_TYPE"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/clientTypeDistribution"
     params = {}
@@ -941,7 +941,7 @@ def list_client_type_distribution(
 
 
 
-@app.command("list-clusters-client-type-distribution")
+@app.command("list-clusters-client-type-distribution", short_help="Get Cluster Client Type Distribution details.")
 def list_clusters_client_type_distribution(
     cluster_id: str = typer.Option(..., "--cluster-id", help="Unique ID of the Video Mesh cluster."),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
@@ -953,7 +953,7 @@ def list_clusters_client_type_distribution(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Cluster Client Type Distribution details."""
+    """Get Cluster Client Type Distribution details.\n\n\b\nExample: wxcli video-mesh list-clusters-client-type-distribution --cluster-id CLUSTER_ID --from FROM_PARAM --to TO --device-type DEVICE_TYPE"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/clientTypeDistribution/clusters"
     params = {}
@@ -982,7 +982,7 @@ def list_clusters_client_type_distribution(
 
 
 
-@app.command("list-event-thresholds")
+@app.command("list-event-thresholds", short_help="List Event Threshold Configuration.")
 def list_event_thresholds(
     event_name: str = typer.Option(None, "--event-name", help="Choices: clusterCallsRedirected, orgCallsOverflowed"),
     cluster_id: str = typer.Option(None, "--cluster-id", help="Unique ID of the Video Mesh Cluster."),
@@ -1025,7 +1025,7 @@ def list_event_thresholds(
 
 _BODY_SKELETON_UPDATE = '{"eventThresholds":[{"eventThresholdId":"...","thresholdConfig":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Update Event Threshold Configuration.")
 def update(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1033,7 +1033,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Event Threshold Configuration\n\nExample --json-body:\n  '{"eventThresholds":[{"eventThresholdId":"...","thresholdConfig":"..."}]}'."""
+    """Update Event Threshold Configuration.\n\n\b\nExample --json-body: '{"eventThresholds":[{"eventThresholdId":"...","thresholdConfig":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -1058,14 +1058,14 @@ def update(
 
 
 
-@app.command("show-event-thresholds")
+@app.command("show-event-thresholds", short_help="Get Event Threshold Configuration.")
 def show_event_thresholds(
-    event_threshold_id: str = typer.Argument(help="eventThresholdId"),
+    event_threshold_id: str = typer.Argument(help="Webex EVENT id, from: wxcli video-mesh list-event-thresholds"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Event Threshold Configuration."""
+    """Get Event Threshold Configuration.\n\n\b\nExample: wxcli video-mesh show-event-thresholds EVENT_THRESHOLD_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/videoMesh/eventThresholds/{event_threshold_id}"
     try:
@@ -1080,7 +1080,7 @@ def show_event_thresholds(
 
 _BODY_SKELETON_CREATE_RESET = '{"eventThresholdIds":["..."]}'
 
-@app.command("create-reset")
+@app.command("create-reset", short_help="Reset Event Threshold Configuration.")
 def create_reset(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1088,7 +1088,7 @@ def create_reset(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reset Event Threshold Configuration\n\nExample --json-body:\n  '{"eventThresholdIds":["..."]}'."""
+    """Reset Event Threshold Configuration.\n\n\b\nExample --json-body: '{"eventThresholdIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESET), indent=2))
         raise typer.Exit(0)

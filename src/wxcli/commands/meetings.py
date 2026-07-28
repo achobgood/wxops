@@ -10,15 +10,15 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meetings.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Meeting By an Admin.")
 def show(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="UUID, from: wxcli meetings list"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Meeting By an Admin."""
+    """Get a Meeting By an Admin.\n\n\b\nExample: wxcli meetings show MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meetings/{meeting_id}"
     params = {}
@@ -34,7 +34,7 @@ def show(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List Meetings By an Admin.")
 def cmd_list(
     meeting_number: str = typer.Option(None, "--meeting-number", help="Meeting number for the meeting objects being requested. `meetingNumber` and `webLink` are mutually exclusive. If it's an exceptional meeting from a meeting series, the exceptional meeting instead of the primary meeting series is returned."),
     web_link: str = typer.Option(None, "--web-link", help="URL encoded link to information page for the meeting objects being requested. `meetingNumber` and `webLink` are mutually exclusive."),
@@ -76,7 +76,7 @@ def cmd_list(
 
 
 
-@app.command("list-meetings")
+@app.command("list-meetings", short_help="List Meetings.")
 def list_meetings(
     meeting_number: str = typer.Option(None, "--meeting-number", help="Meeting number for the meeting objects being requested. `meetingNumber`, `webLink` and `roomId` are mutually exclusive. If it's an exceptional meeting from a meeting series, the exceptional meeting instead of the primary meeting series is returned."),
     web_link: str = typer.Option(None, "--web-link", help="URL encoded link to information page for the meeting objects being requested. `meetingNumber`, `webLink` and `roomId` are mutually exclusive."),
@@ -175,7 +175,7 @@ def list_meetings(
 
 _BODY_SKELETON_CREATE = '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Meeting.")
 def create(
     adhoc: bool = typer.Option(None, "--adhoc/--no-adhoc", help="Whether or not to create an ad-hoc meeting for the room specified by `roomId`. When `true`, `roomId` is required."),
     room_id: str = typer.Option(None, "--room-id", help="Unique identifier for the Webex space which the meeting is to be associated with. It can be retrieved by [List Rooms](/docs/api/v1/rooms/list-rooms). `roomId` is required when `adhoc` is `true`. When `roomId` is specified, the parameter `hostEmail` will be ignored."),
@@ -220,7 +220,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Meeting\n\nExample --json-body:\n  '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"..."}'."""
+    """Create a Meeting.\n\n\b\nExample: wxcli meetings create --title TITLE --start START --end END\n\n\b\nExample --json-body: '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -326,16 +326,16 @@ def create(
 
 
 
-@app.command("show-meetings")
+@app.command("show-meetings", short_help="Get a Meeting.")
 def show_meetings(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="UUID, from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Meeting."""
+    """Get a Meeting.\n\n\b\nExample: wxcli meetings show-meetings MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}"
     params = {}
@@ -355,9 +355,9 @@ def show_meetings(
 
 _BODY_SKELETON_UPDATE = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Meeting.")
 def update(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     title: str = typer.Option(None, "--title", help="Meeting title. The title can be a maximum of 128 characters long."),
     agenda: str = typer.Option(None, "--agenda", help="Meeting agenda. The agenda can be a maximum of 1300 characters long."),
     password: str = typer.Option(None, "--password", help="Meeting password. Must conform to the site's password complexity settings. Read [password management](https://help.webex.com/en-us/zrupm6/Manage-Security-Options-for-Your-Site-in-Webex-Site-Administration) for details."),
@@ -396,7 +396,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Meeting\n\nExample --json-body:\n  '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'."""
+    """Update a Meeting.\n\n\b\nExample: wxcli meetings update MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -487,9 +487,9 @@ def update(
 
 _BODY_SKELETON_UPDATE_MEETINGS = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'
 
-@app.command("update-meetings")
+@app.command("update-meetings", short_help="Patch a Meeting.")
 def update_meetings(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     title: str = typer.Option(None, "--title", help="Meeting title. The title can be a maximum of 128 characters long."),
     agenda: str = typer.Option(None, "--agenda", help="Meeting agenda. The agenda can be a maximum of 1300 characters long. It can be specified `null` so that it becomes null and hidden from the response after the patch."),
     password: str = typer.Option(None, "--password", help="Meeting password. Must conform to the site's password complexity settings. Read [password management](https://help.webex.com/en-us/zrupm6/Manage-Security-Options-for-Your-Site-in-Webex-Site-Administration) for details."),
@@ -529,7 +529,7 @@ def update_meetings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Patch a Meeting\n\nExample --json-body:\n  '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'."""
+    """Patch a Meeting.\n\n\b\nExample: wxcli meetings update-meetings MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MEETINGS), indent=2))
         raise typer.Exit(0)
@@ -624,9 +624,9 @@ def update_meetings(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Meeting.")
 def delete(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will delete a meeting that is hosted by that user."),
     send_email: str = typer.Option(None, "--send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -634,7 +634,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Meeting."""
+    """Delete a Meeting.\n\n\b\nExample: wxcli meetings delete MEETING_ID"""
     if not force:
         typer.confirm(f"Delete {meeting_id}?", abort=True)
     api = get_api(debug=debug)
@@ -661,7 +661,7 @@ def delete(
 
 _BODY_SKELETON_CREATE_JOIN = '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0}'
 
-@app.command("create-join")
+@app.command("create-join", short_help="Join a Meeting.")
 def create_join(
     meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier for the meeting. This parameter applies to meeting series and scheduled meetings. It doesn't apply to ended or in-progress meeting instances. Please note that currently meeting ID of a scheduled [personal..."),
     meeting_number: str = typer.Option(None, "--meeting-number", help="Meeting number. Applies to meeting series, scheduled meeting, and meeting instances, but not to meeting instances which have ended."),
@@ -681,7 +681,7 @@ def create_join(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Join a Meeting\n\nExample --json-body:\n  '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0}'."""
+    """Join a Meeting.\n\n\b\nExample --json-body: '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_JOIN), indent=2))
         raise typer.Exit(0)
@@ -733,7 +733,7 @@ def create_join(
 
 
 
-@app.command("list-templates")
+@app.command("list-templates", short_help="List Meeting Templates.")
 def list_templates(
     template_type: str = typer.Option(None, "--template-type", help="Choices: meeting, webinar"),
     locale: str = typer.Option(None, "--locale", help="Locale for the meeting template objects being requested. If not specified, return meeting templates of the default `en_US` locale. Refer to [Meeting Template Locales](/docs/meetings#meeting-template-locales) for all the locales supported by Webex."),
@@ -780,15 +780,15 @@ def list_templates(
 
 
 
-@app.command("show-templates")
+@app.command("show-templates", short_help="Get a Meeting Template.")
 def show_templates(
-    template_id: str = typer.Argument(help="templateId"),
+    template_id: str = typer.Argument(help="from: wxcli meetings list-templates"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return the meeting template that is available for that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Meeting Template."""
+    """Get a Meeting Template.\n\n\b\nExample: wxcli meetings show-templates TEMPLATE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/templates/{template_id}"
     params = {}
@@ -804,14 +804,14 @@ def show_templates(
 
 
 
-@app.command("show-controls")
+@app.command("show-controls", short_help="Get Meeting Control Status.")
 def show_controls(
     meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the meeting. Does not support meeting IDs for a scheduled [personal room](https://help.webex.com/en-us/article/nul0wut/Webex-Personal-Rooms-in-Webex-Meetings) meeting."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Meeting Control Status."""
+    """Get Meeting Control Status.\n\n\b\nExample: wxcli meetings show-controls --meeting-id MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/controls"
     params = {}
@@ -829,7 +829,7 @@ def show_controls(
 
 _BODY_SKELETON_UPDATE_CONTROLS = '{"recordingStarted":true,"recordingPaused":true,"locked":true}'
 
-@app.command("update-controls")
+@app.command("update-controls", short_help="Update Meeting Control Status.")
 def update_controls(
     meeting_id: str = typer.Option(..., "--meeting-id", help="Unique identifier for the meeting. Does not support meeting IDs for a scheduled [personal room](https://help.webex.com/en-us/article/nul0wut/Webex-Personal-Rooms-in-Webex-Meetings) meeting."),
     recording_started: bool = typer.Option(None, "--recording-started/--no-recording-started", help="The value can be true or false. true means to start the recording, false to end the recording."),
@@ -841,7 +841,7 @@ def update_controls(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Control Status\n\nExample --json-body:\n  '{"recordingStarted":true,"recordingPaused":true,"locked":true}'."""
+    """Update Meeting Control Status.\n\n\b\nExample: wxcli meetings update-controls --meeting-id MEETING_ID\n\n\b\nExample --json-body: '{"recordingStarted":true,"recordingPaused":true,"locked":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CONTROLS), indent=2))
         raise typer.Exit(0)
@@ -875,7 +875,7 @@ def update_controls(
 
 
 
-@app.command("list-session-types")
+@app.command("list-session-types", short_help="List Meeting Session Types.")
 def list_session_types(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will list all the meeting session types enabled for the user."),
     site_url: str = typer.Option(None, "--site-url", help="Webex site URL to query. If `siteUrl` is not specified, the users' preferred site will be used. If the authorization token has the admin-level scopes, the admin can set the Webex site URL on behalf of the user specified in the `hostEmail` parameter."),
@@ -910,16 +910,16 @@ def list_session_types(
 
 
 
-@app.command("show-session-types")
+@app.command("show-session-types", short_help="Get a Meeting Session Type.")
 def show_session_types(
-    session_type_id: str = typer.Argument(help="sessionTypeId"),
+    session_type_id: str = typer.Argument(help="from: wxcli meetings list-session-types"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the user. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will get a meeting session type with the specified session type ID enabled for the user."),
     site_url: str = typer.Option(None, "--site-url", help="Webex site URL to query. If `siteUrl` is not specified, the users' preferred site will be used. If the authorization token has the admin-level scopes, the admin can set the Webex site URL on behalf of the user specified in the `hostEmail` parameter."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Meeting Session Type."""
+    """Get a Meeting Session Type.\n\n\b\nExample: wxcli meetings show-session-types SESSION_TYPE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/sessionTypes/{session_type_id}"
     params = {}
@@ -937,9 +937,9 @@ def show_session_types(
 
 
 
-@app.command("list-registration")
+@app.command("list-registration", short_help="Get registration form for a meeting.")
 def list_registration(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -948,7 +948,7 @@ def list_registration(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get registration form for a meeting."""
+    """Get registration form for a meeting.\n\n\b\nExample: wxcli meetings list-registration MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registration"
     params = {}
@@ -975,9 +975,9 @@ def list_registration(
 
 _BODY_SKELETON_UPDATE_REGISTRATION = '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true}'
 
-@app.command("update-registration")
+@app.command("update-registration", short_help="Update Meeting Registration Form.")
 def update_registration(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     host_email: str = typer.Option(None, "--host-email", help="- Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return an update for a meeting that is hosted by that user."),
     auto_accept_request: bool = typer.Option(None, "--auto-accept-request/--no-auto-accept-request", help="Whether or not meeting registration requests are accepted automatically."),
     require_first_name: bool = typer.Option(None, "--require-first-name/--no-require-first-name", help="Whether or not a registrant's first name is required for meeting registration. This option must always be `true`."),
@@ -1000,7 +1000,7 @@ def update_registration(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Registration Form\n\nExample --json-body:\n  '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true}'."""
+    """Update Meeting Registration Form.\n\n\b\nExample: wxcli meetings update-registration MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_REGISTRATION), indent=2))
         raise typer.Exit(0)
@@ -1057,15 +1057,15 @@ def update_registration(
 
 
 
-@app.command("delete-registration")
+@app.command("delete-registration", short_help="Delete Meeting Registration Form.")
 def delete_registration(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Meeting Registration Form."""
+    """Delete Meeting Registration Form.\n\n\b\nExample: wxcli meetings delete-registration MEETING_ID"""
     if not force:
         typer.confirm(f"Delete {meeting_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1085,9 +1085,9 @@ def delete_registration(
 
 
 
-@app.command("list-registrants")
+@app.command("list-registrants", short_help="List Meeting Registrants.")
 def list_registrants(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     email: str = typer.Option(None, "--email", help="Registrant's email to filter registrants."),
@@ -1099,7 +1099,7 @@ def list_registrants(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Registrants."""
+    """List Meeting Registrants.\n\n\b\nExample: wxcli meetings list-registrants MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants"
     params = {}
@@ -1132,9 +1132,9 @@ def list_registrants(
 
 _BODY_SKELETON_CREATE_REGISTRANTS = '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"..."}'
 
-@app.command("create-registrants")
+@app.command("create-registrants", short_help="Register a Meeting Registrant.")
 def create_registrants(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     first_name: str = typer.Option(None, "--first-name", help="(required) The registrant's first name."),
@@ -1157,7 +1157,7 @@ def create_registrants(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register a Meeting Registrant\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"..."}'."""
+    """Register a Meeting Registrant.\n\n\b\nExample: wxcli meetings create-registrants MEETING_ID --first-name FIRST_NAME --last-name LAST_NAME --email EMAIL\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REGISTRANTS), indent=2))
         raise typer.Exit(0)
@@ -1224,9 +1224,9 @@ def create_registrants(
 
 _BODY_SKELETON_CREATE_BULK_INSERT = '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":"...","jobTitle":"...","companyName":"...","address1":"...","address2":"..."}]}'
 
-@app.command("create-bulk-insert")
+@app.command("create-bulk-insert", short_help="Batch register Meeting Registrants.")
 def create_bulk_insert(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -1235,7 +1235,7 @@ def create_bulk_insert(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch register Meeting Registrants\n\nExample --json-body:\n  '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":"...","jobTitle":"...","companyName":"...","address1":"...","address2":"..."}]}'."""
+    """Batch register Meeting Registrants.\n\n\b\nExample: wxcli meetings create-bulk-insert MEETING_ID\n\n\b\nExample --json-body: '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":"...","jobTitle":"...","companyName":"...","address1":"...","address2":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_INSERT), indent=2))
         raise typer.Exit(0)
@@ -1268,17 +1268,17 @@ def create_bulk_insert(
 
 
 
-@app.command("show-registrants")
+@app.command("show-registrants", short_help="Get Detailed Information for a Meeting Registrant.")
 def show_registrants(
-    meeting_id: str = typer.Argument(help="meetingId"),
-    registrant_id: str = typer.Argument(help="registrantId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
+    registrant_id: str = typer.Argument(help="UUID, from: wxcli meetings list-registrants"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Detailed Information for a Meeting Registrant."""
+    """Get Detailed Information for a Meeting Registrant.\n\n\b\nExample: wxcli meetings show-registrants MEETING_ID REGISTRANT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/{registrant_id}"
     params = {}
@@ -1296,10 +1296,10 @@ def show_registrants(
 
 
 
-@app.command("delete-registrants")
+@app.command("delete-registrants", short_help="Delete a Meeting Registrant.")
 def delete_registrants(
-    meeting_id: str = typer.Argument(help="meetingId"),
-    registrant_id: str = typer.Argument(help="registrantId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
+    registrant_id: str = typer.Argument(help="UUID, from: wxcli meetings list-registrants"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -1307,7 +1307,7 @@ def delete_registrants(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Meeting Registrant."""
+    """Delete a Meeting Registrant.\n\n\b\nExample: wxcli meetings delete-registrants MEETING_ID REGISTRANT_ID"""
     if not force:
         typer.confirm(f"Delete {registrant_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1334,9 +1334,9 @@ def delete_registrants(
 
 _BODY_SKELETON_CREATE_QUERY = '{"emails":["..."],"status":"approved","orderType":"DESC","orderBy":"firstName"}'
 
-@app.command("create-query")
+@app.command("create-query", short_help="Query Meeting Registrants.")
 def create_query(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     max: str = typer.Option(None, "--max", help="Limit the maximum number of registrants in the response, up to 100. The default is 10."),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
@@ -1349,7 +1349,7 @@ def create_query(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Meeting Registrants\n\nExample --json-body:\n  '{"emails":["..."],"status":"approved","orderType":"DESC","orderBy":"firstName"}'."""
+    """Query Meeting Registrants.\n\n\b\nExample: wxcli meetings create-query MEETING_ID\n\n\b\nExample --json-body: '{"emails":["..."],"status":"approved","orderType":"DESC","orderBy":"firstName"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_QUERY), indent=2))
         raise typer.Exit(0)
@@ -1392,9 +1392,9 @@ def create_query(
 
 _BODY_SKELETON_CREATE_APPROVE = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
-@app.command("create-approve")
+@app.command("create-approve", short_help="Batch Approve Meeting Registrants.")
 def create_approve(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
@@ -1404,7 +1404,7 @@ def create_approve(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch Approve Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    """Batch Approve Meeting Registrants.\n\n\b\nExample: wxcli meetings create-approve MEETING_ID\n\n\b\nExample --json-body: '{"sendEmail":true,"registrants":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_APPROVE), indent=2))
         raise typer.Exit(0)
@@ -1441,9 +1441,9 @@ def create_approve(
 
 _BODY_SKELETON_CREATE_REJECT = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
-@app.command("create-reject")
+@app.command("create-reject", short_help="Batch Reject Meeting Registrants.")
 def create_reject(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
@@ -1453,7 +1453,7 @@ def create_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch Reject Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    """Batch Reject Meeting Registrants.\n\n\b\nExample: wxcli meetings create-reject MEETING_ID\n\n\b\nExample --json-body: '{"sendEmail":true,"registrants":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -1490,9 +1490,9 @@ def create_reject(
 
 _BODY_SKELETON_CREATE_CANCEL = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
-@app.command("create-cancel")
+@app.command("create-cancel", short_help="Batch Cancel Meeting Registrants.")
 def create_cancel(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
@@ -1502,7 +1502,7 @@ def create_cancel(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch Cancel Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    """Batch Cancel Meeting Registrants.\n\n\b\nExample: wxcli meetings create-cancel MEETING_ID\n\n\b\nExample --json-body: '{"sendEmail":true,"registrants":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CANCEL), indent=2))
         raise typer.Exit(0)
@@ -1539,9 +1539,9 @@ def create_cancel(
 
 _BODY_SKELETON_CREATE_BULK_DELETE = '{"sendEmail":true,"registrants":[{"id":"..."}]}'
 
-@app.command("create-bulk-delete")
+@app.command("create-bulk-delete", short_help="Batch Delete Meeting Registrants.")
 def create_bulk_delete(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="If `true` send email to registrants. Default: `true`."),
@@ -1551,7 +1551,7 @@ def create_bulk_delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch Delete Meeting Registrants\n\nExample --json-body:\n  '{"sendEmail":true,"registrants":[{"id":"..."}]}'."""
+    """Batch Delete Meeting Registrants.\n\n\b\nExample: wxcli meetings create-bulk-delete MEETING_ID\n\n\b\nExample --json-body: '{"sendEmail":true,"registrants":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_DELETE), indent=2))
         raise typer.Exit(0)
@@ -1588,9 +1588,9 @@ def create_bulk_delete(
 
 _BODY_SKELETON_UPDATE_SIMULTANEOUS_INTERPRETATION = '{"enabled":true,"interpreters":[{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"..."}]}'
 
-@app.command("update-simultaneous-interpretation")
+@app.command("update-simultaneous-interpretation", short_help="Update Meeting Simultaneous interpretation.")
 def update_simultaneous_interpretation(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not simultaneous interpretation is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1598,7 +1598,7 @@ def update_simultaneous_interpretation(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Simultaneous interpretation\n\nExample --json-body:\n  '{"enabled":true,"interpreters":[{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"..."}]}'."""
+    """Update Meeting Simultaneous interpretation.\n\n\b\nExample: wxcli meetings update-simultaneous-interpretation MEETING_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true,"interpreters":[{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SIMULTANEOUS_INTERPRETATION), indent=2))
         raise typer.Exit(0)
@@ -1625,9 +1625,9 @@ def update_simultaneous_interpretation(
 
 
 
-@app.command("list-interpreters")
+@app.command("list-interpreters", short_help="List Meeting Interpreters.")
 def list_interpreters(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return interpreters of the meeting that is hosted by that user."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -1635,7 +1635,7 @@ def list_interpreters(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Interpreters."""
+    """List Meeting Interpreters.\n\n\b\nExample: wxcli meetings list-interpreters MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/interpreters"
     params = {}
@@ -1660,9 +1660,9 @@ def list_interpreters(
 
 _BODY_SKELETON_CREATE_INTERPRETERS = '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'
 
-@app.command("create-interpreters")
+@app.command("create-interpreters", short_help="Create a Meeting Interpreter.")
 def create_interpreters(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     language_code1: str = typer.Option(None, "--language-code1", help="(required) The pair of `languageCode1` and `languageCode2` form a bi-directional simultaneous interpretation language channel. The language codes conform with [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)."),
     language_code2: str = typer.Option(None, "--language-code2", help="(required) The pair of `languageCode1` and `languageCode2` form a bi-directional simultaneous interpretation language channel. The language codes conform with [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)."),
     email: str = typer.Option(None, "--email", help="Email address of meeting interpreter. If not specified, an empty interpreter will be created for this bi-directional language channel, and a specific email can be assigned to this empty interpreter by `Update a Meeting Interpreter` API later. Please note that multiple interpreters with different..."),
@@ -1675,7 +1675,7 @@ def create_interpreters(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Meeting Interpreter\n\nExample --json-body:\n  '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'."""
+    """Create a Meeting Interpreter.\n\n\b\nExample: wxcli meetings create-interpreters MEETING_ID --language-code1 LANGUAGE_CODE1 --language-code2 LANGUAGE_CODE2\n\n\b\nExample --json-body: '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_INTERPRETERS), indent=2))
         raise typer.Exit(0)
@@ -1719,16 +1719,16 @@ def create_interpreters(
 
 
 
-@app.command("show-interpreters")
+@app.command("show-interpreters", short_help="Get a Meeting Interpreter.")
 def show_interpreters(
-    meeting_id: str = typer.Argument(help="meetingId"),
-    interpreter_id: str = typer.Argument(help="interpreterId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
+    interpreter_id: str = typer.Argument(help="from: wxcli meetings list-interpreters"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for an interpreter of the meeting that is hosted by..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Meeting Interpreter."""
+    """Get a Meeting Interpreter.\n\n\b\nExample: wxcli meetings show-interpreters MEETING_ID INTERPRETER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/interpreters/{interpreter_id}"
     params = {}
@@ -1746,10 +1746,10 @@ def show_interpreters(
 
 _BODY_SKELETON_UPDATE_INTERPRETERS = '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'
 
-@app.command("update-interpreters")
+@app.command("update-interpreters", short_help="Update a Meeting Interpreter.")
 def update_interpreters(
-    meeting_id: str = typer.Argument(help="meetingId"),
-    interpreter_id: str = typer.Argument(help="interpreterId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
+    interpreter_id: str = typer.Argument(help="from: wxcli meetings list-interpreters"),
     language_code1: str = typer.Option(None, "--language-code1", help="The pair of `languageCode1` and `languageCode2` form a bi-directional simultaneous interpretation language channel. The language codes conform with [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)."),
     language_code2: str = typer.Option(None, "--language-code2", help="The pair of `languageCode1` and `languageCode2` form a bi-directional simultaneous interpretation language channel. The language codes conform with [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)."),
     email: str = typer.Option(None, "--email", help="Email address of meeting interpreter. If not specified, it'll be an empty interpreter for the bi-directional language channel. Please note that multiple interpreters with different emails can be assigned to the same bi-directional language channel, but the same email cannot be assigned to more than..."),
@@ -1762,7 +1762,7 @@ def update_interpreters(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Meeting Interpreter\n\nExample --json-body:\n  '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'."""
+    """Update a Meeting Interpreter.\n\n\b\nExample: wxcli meetings update-interpreters MEETING_ID INTERPRETER_ID --language-code1 LANGUAGE_CODE1 --language-code2 LANGUAGE_CODE2\n\n\b\nExample --json-body: '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INTERPRETERS), indent=2))
         raise typer.Exit(0)
@@ -1799,10 +1799,10 @@ def update_interpreters(
 
 
 
-@app.command("delete-interpreters")
+@app.command("delete-interpreters", short_help="Delete a Meeting Interpreter.")
 def delete_interpreters(
-    meeting_id: str = typer.Argument(help="meetingId"),
-    interpreter_id: str = typer.Argument(help="interpreterId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
+    interpreter_id: str = typer.Argument(help="from: wxcli meetings list-interpreters"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will delete an interpreter of the meeting that is hosted by that user."),
     send_email: str = typer.Option(None, "--send-email", help="If `true`, send email to the interpreter."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -1810,7 +1810,7 @@ def delete_interpreters(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Meeting Interpreter."""
+    """Delete a Meeting Interpreter.\n\n\b\nExample: wxcli meetings delete-interpreters MEETING_ID INTERPRETER_ID"""
     if not force:
         typer.confirm(f"Delete {interpreter_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1835,16 +1835,16 @@ def delete_interpreters(
 
 
 
-@app.command("list-breakout-sessions")
+@app.command("list-breakout-sessions", short_help="List Meeting Breakout Sessions.")
 def list_breakout_sessions(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Breakout Sessions."""
+    """List Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings list-breakout-sessions MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/breakoutSessions"
     params = {}
@@ -1867,9 +1867,9 @@ def list_breakout_sessions(
 
 _BODY_SKELETON_UPDATE_BREAKOUT_SESSIONS = '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":"..."}]}'
 
-@app.command("update-breakout-sessions")
+@app.command("update-breakout-sessions", short_help="Update Meeting Breakout Sessions.")
 def update_breakout_sessions(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -1878,7 +1878,7 @@ def update_breakout_sessions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Breakout Sessions\n\nExample --json-body:\n  '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":"..."}]}'."""
+    """Update Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings update-breakout-sessions MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_BREAKOUT_SESSIONS), indent=2))
         raise typer.Exit(0)
@@ -1907,16 +1907,16 @@ def update_breakout_sessions(
 
 
 
-@app.command("delete-breakout-sessions")
+@app.command("delete-breakout-sessions", short_help="Delete Meeting Breakout Sessions.")
 def delete_breakout_sessions(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     send_email: str = typer.Option(None, "--send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Meeting Breakout Sessions."""
+    """Delete Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings delete-breakout-sessions MEETING_ID"""
     if not force:
         typer.confirm(f"Delete {meeting_id}?", abort=True)
     api = get_api(debug=debug)
@@ -1939,16 +1939,16 @@ def delete_breakout_sessions(
 
 
 
-@app.command("list-survey")
+@app.command("list-survey", short_help="Get a Meeting Survey.")
 def list_survey(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Meeting Survey."""
+    """Get a Meeting Survey.\n\n\b\nExample: wxcli meetings list-survey MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/survey"
     params = {}
@@ -1969,9 +1969,9 @@ def list_survey(
 
 
 
-@app.command("list-survey-results")
+@app.command("list-survey-results", short_help="List Meeting Survey Results.")
 def list_survey_results(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Start date and time (inclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested. `meetingStartTimeFrom` cannot be after `meetingStartTimeTo`. This parameter will be ignored if `meetingId` is the unique identifier for the specific..."),
     meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="End date and time (exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested. `meetingStartTimeTo` cannot be prior to `meetingStartTimeFrom`. This parameter will be ignored if `meetingId` is the unique identifier for the specific..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -1980,7 +1980,7 @@ def list_survey_results(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Survey Results."""
+    """List Meeting Survey Results.\n\n\b\nExample: wxcli meetings list-survey-results MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/surveyResults"
     params = {}
@@ -2007,9 +2007,9 @@ def list_survey_results(
 
 _BODY_SKELETON_CREATE_SURVEY_LINKS = '{"hostEmail":"...","meetingStartTimeFrom":"...","meetingStartTimeTo":"...","emails":["..."]}'
 
-@app.command("create-survey-links")
+@app.command("create-survey-links", short_help="Get Meeting Survey Links.")
 def create_survey_links(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. An admin can specify the email of the meeting host who is in a site he manages and the API returns post survey links on behalf of the meeting host."),
     meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Start date and time (inclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested and conforms with the `timezone` in the request header if specified. `meetingStartTimeFrom` cannot be after `meetingStartTimeTo`. Only applies when..."),
     meeting_start_time_to: str = typer.Option(None, "--meeting-start-time-to", help="End date and time (exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format for the meeting objects being requested and conforms with the `timezone` in the request header if specified. `meetingStartTimeTo` cannot be prior to `meetingStartTimeFrom`. Only applies when..."),
@@ -2019,7 +2019,7 @@ def create_survey_links(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Meeting Survey Links\n\nExample --json-body:\n  '{"hostEmail":"...","meetingStartTimeFrom":"...","meetingStartTimeTo":"...","emails":["..."]}'."""
+    """Get Meeting Survey Links.\n\n\b\nExample: wxcli meetings create-survey-links MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","meetingStartTimeFrom":"...","meetingStartTimeTo":"...","emails":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SURVEY_LINKS), indent=2))
         raise typer.Exit(0)
@@ -2053,16 +2053,16 @@ def create_survey_links(
 
 
 
-@app.command("list-invitation-sources")
+@app.command("list-invitation-sources", short_help="List Invitation Sources.")
 def list_invitation_sources(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Invitation Sources."""
+    """List Invitation Sources.\n\n\b\nExample: wxcli meetings list-invitation-sources MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/invitationSources"
     params = {}
@@ -2085,9 +2085,9 @@ def list_invitation_sources(
 
 _BODY_SKELETON_CREATE_INVITATION_SOURCES = '{"hostEmail":"...","personId":"...","items":[{"sourceId":"...","sourceEmail":"..."}]}'
 
-@app.command("create-invitation-sources")
+@app.command("create-invitation-sources", short_help="Create Invitation Sources.")
 def create_invitation_sources(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if a user or application calling the API has the admin-level scopes. The admin may specify the email of a user on a site they manage and the API will return meeting participants of the meetings that are hosted by that user."),
     person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the meeting host. Should only be set if the user or application calling the API has the admin-level scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -2096,7 +2096,7 @@ def create_invitation_sources(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Invitation Sources\n\nExample --json-body:\n  '{"hostEmail":"...","personId":"...","items":[{"sourceId":"...","sourceEmail":"..."}]}'."""
+    """Create Invitation Sources.\n\n\b\nExample: wxcli meetings create-invitation-sources MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","personId":"...","items":[{"sourceId":"...","sourceEmail":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_INVITATION_SOURCES), indent=2))
         raise typer.Exit(0)
@@ -2128,7 +2128,7 @@ def create_invitation_sources(
 
 
 
-@app.command("list-tracking-codes")
+@app.command("list-tracking-codes", short_help="List Meeting Tracking Codes.")
 def list_tracking_codes(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking code from. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     service: str = typer.Option(..., "--service", help="Service for schedule or sign-up pages."),
@@ -2139,7 +2139,7 @@ def list_tracking_codes(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Tracking Codes."""
+    """List Meeting Tracking Codes.\n\n\b\nExample: wxcli meetings list-tracking-codes --service SERVICE"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/trackingCodes"
     params = {}
@@ -2168,7 +2168,7 @@ def list_tracking_codes(
 
 _BODY_SKELETON_CREATE_REASSIGN_HOST = '{"hostEmail":"...","meetingIds":["..."]}'
 
-@app.command("create-reassign-host")
+@app.command("create-reassign-host", short_help="Reassign Meetings to a New Host.")
 def create_reassign_host(
     host_email: str = typer.Option(None, "--host-email", help="(required) Email address of the new meeting host."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -2177,7 +2177,7 @@ def create_reassign_host(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reassign Meetings to a New Host\n\nExample --json-body:\n  '{"hostEmail":"...","meetingIds":["..."]}'."""
+    """Reassign Meetings to a New Host.\n\n\b\nExample: wxcli meetings create-reassign-host --host-email HOST_EMAIL\n\n\b\nExample --json-body: '{"hostEmail":"...","meetingIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REASSIGN_HOST), indent=2))
         raise typer.Exit(0)
@@ -2213,9 +2213,9 @@ def create_reassign_host(
 
 _BODY_SKELETON_CREATE_END = '{"reason":"..."}'
 
-@app.command("create-end")
+@app.command("create-end", short_help="End a Meeting.")
 def create_end(
-    meeting_id: str = typer.Argument(help="meetingId"),
+    meeting_id: str = typer.Argument(help="from: wxcli meetings list-meetings"),
     reason: str = typer.Option(None, "--reason", help="The reason for ending the meeting. This field is optional."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2223,7 +2223,7 @@ def create_end(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """End a Meeting\n\nExample --json-body:\n  '{"reason":"..."}'."""
+    """End a Meeting.\n\n\b\nExample: wxcli meetings create-end MEETING_ID\n\n\b\nExample --json-body: '{"reason":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_END), indent=2))
         raise typer.Exit(0)

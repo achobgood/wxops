@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling scim-schemas.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get Group Schema.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -29,7 +29,7 @@ def show(
 
 
 
-@app.command("show-user")
+@app.command("show-user", short_help="Get User Schema.")
 def show_user(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -48,14 +48,14 @@ def show_user(
 
 
 
-@app.command("show-scim2")
+@app.command("show-scim2", short_help="Get Schema using Group Schema ID.")
 def show_scim2(
     schema_id: str = typer.Argument(help="schemaId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Schema using Group Schema ID."""
+    """Get Schema using Group Schema ID.\n\n\b\nExample: wxcli scim-schemas show-scim2 SCHEMA_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/Schemas/SCIM2/{schema_id}"
     try:

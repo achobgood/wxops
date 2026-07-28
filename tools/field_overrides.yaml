@@ -11,6 +11,7 @@
 #   verb_semantics_ack  — acked verb-vs-semantics mismatches (issue #20)
 #   cli_name_overrides  — human-friendly CLI group names (tag → CLI name)
 #   omit_query_params   — query params stripped from all commands
+#   spec_authority      — which spec wins when two describe one op differently
 #
 # Per-tag keys (alongside table_columns etc.):
 #   param_name_overrides — rename a spec param's CLI flag; wire name unchanged.
@@ -587,6 +588,23 @@ _monitored_element_cols: &monitored_element_cols
       - ["Display Name", "displayName"]
       - ["Type", "type"]
 
+# `locations list` is the most-run command in the tool — it produces the IDs
+# almost every other command needs — and it rendered 3 of 5 columns blank while
+# dumping the address as a raw Python dict. The auto-derived columns came from
+# webex-device.json, which claims this endpoint returns displayName/locationId/
+# countryCode; a live capture (2026-07-27, org ahobgood-lab) shows it returns
+# none of them. Real payload: id, name, orgId, address{}, timeZone,
+# preferredLanguage. Address is an object, so the useful scalars are reached
+# through dotted accessors, which output.py:_resolve_accessor already walks.
+"Locations":
+  table_columns:
+    list:
+      - ["ID", "id"]
+      - ["Name", "name"]
+      - ["City", "address.city"]
+      - ["State", "address.state"]
+      - ["Time Zone", "timeZone"]
+
 "Workspace Locations":
   table_columns:
     list:
@@ -890,6 +908,67 @@ verb_semantics_ack:
     "POST /organization/{orgid}/agent-personal-greeting/delete-reference": delete
     "PATCH /admin/v1/api/person/remove-identities/workspace-id/{workspaceId}/person-id/{personId}": remove
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Spec authority — which spec tells the truth when two disagree (drift check 9)
+# ═══════════════════════════════════════════════════════════════════════════════
+# 60 operations have a list-item schema in more than one tracked spec. For 53 the
+# specs agree and there is nothing to decide. For the 7 below they DISAGREE, and
+# check 9 used to union their fields — so a column only one spec declared always
+# looked valid. That union hid a live-broken `locations list` for months.
+#
+# An entry names the spec check 9 resolves the item schema through, and the basis
+# for believing it. `spec: union` keeps the old permissive behavior where nothing
+# has been verified — it is deliberately weaker, and saying so is the point.
+#
+# A conflicting operation with NO entry here hard-fails check 9. That is the
+# ratchet: a spec refresh that introduces a new disagreement cannot land silently.
+#
+#   basis: live       — a real response was captured and the fields counted
+#   basis: unverified — no live sample; union retained, still under-reporting
+#
+# `live_fields` covers the other half of the problem: a spec can be wrong by
+# OMISSION as well as by invention. Cisco's calling spec declares only id and
+# name for /locations, but the live response also carries orgId, address,
+# timeZone and preferredLanguage. Those cannot go in specs/overlays/ — overlays
+# are additive at the PATH level and must never shadow a path upstream already
+# publishes (tools/spec_overlay.py rule 1, enforced by check 5). So they are
+# declared here, typed, with the capture that proves them. Format:
+#   live_fields: name:type, name:type
+spec_authority:
+  # Live capture 2026-07-27, org ahobgood-lab: items carry exactly
+  # id, name, orgId, address{}, timeZone, preferredLanguage. The device spec's
+  # displayName / locationId / countryCode / cityName / latitude / longitude /
+  # notes are NOT returned by this endpoint — that spec is simply wrong here,
+  # and it is the one that generated locations.py (it runs after cloud-calling
+  # in spec_sync's PREFERRED_ORDER, so it wins the file).
+  "GET /locations":
+    spec: webex-cloud-calling.json
+    basis: live
+    live_fields: orgId:string, address:object, timeZone:string, preferredLanguage:string
+  # No live sample: reaching these needs a real device job that has already
+  # failed. Union retained knowingly rather than guessing between the two.
+  "GET /telephony/config/jobs/devices/callDeviceSettings":
+    spec: union
+    basis: unverified
+  "GET /telephony/config/jobs/devices/callDeviceSettings/{}/errors":
+    spec: union
+    basis: unverified
+  "GET /telephony/config/jobs/devices/dynamicDeviceSettings/{}/errors":
+    spec: union
+    basis: unverified
+  "GET /telephony/config/jobs/devices/rebuildPhones/{}/errors":
+    spec: union
+    basis: unverified
+  # Device spec carries 35 fields vs cloud-calling's 9 and is the spec that
+  # generated the module; no live capture yet to confirm which is right.
+  "GET /telephony/config/supportedDevices":
+    spec: union
+    basis: unverified
+  # Partner-scoped; not reachable with this org's token.
+  "GET /partner/reports/templates":
+    spec: union
+    basis: unverified
+
 # Merge split tags into a single CLI group
 tag_merge:
   _global:
@@ -1133,6 +1212,40 @@ keep_endpoints:
 # Non-colliding top-level tag blocks still work via backwards compat.
 tag_overrides:
   webex-cloud-calling.json:
+    "Converged Recordings":
+      command_name_overrides:
+      # Wave 3 renames (2026-07-27): 26 CRITICAL commands whose name gave an
+      # agent no hint what they do. Each keeps its OLD name as a HIDDEN alias
+      # (renderer emits it from original_command_name), so nothing scripted
+      # breaks. Scope and rejected alternatives: tools/CLAUDE.md.
+        "create-purge": "delete-recordings-recycle"
+    "DECT Devices Settings":
+      command_name_overrides:
+        "delete-base-stations-dect-networks": "delete-base-stations-dect-networks-bulk"
+        "delete-base-stations-dect-networks-1": "delete-location-base-stations-dect-networks"
+        "delete-handsets-dect-networks": "delete-location-handsets-dect-networks"
+        "delete-handsets-dect-networks-1": "delete-handsets-dect-networks-bulk"
+    # Found 2026-07-27 while wiring argument help, not by the d3 detector.
+    # In `location-settings` the BARE `list` returns dial patterns
+    # (/premisePstn/dialPlans/{id}/dialPatterns) while `list-1` returns the
+    # locations (/telephony/config/locations). An agent typing the obvious name
+    # gets a different resource and a confident wrong answer — the same shape as
+    # the 26 CRITICAL renames. It also became load-bearing: `list-1` is now the
+    # single most-cited producer command in argument help (212 of 1,051
+    # pointers), so leaving a dedup-artifact name there teaches every agent to
+    # type it. Both keep their old names as hidden aliases.
+    "Location Call Settings":
+      command_name_overrides:
+        "list": "list-dial-patterns"
+        "list-1": "list-calling-details"
+
+    "Location Call Settings: Call Handling":
+      command_name_overrides:
+        "delete": "delete-access-codes-all"
+    # Merged tag name — "Workspace Call Settings (1/2)" is folded into this.
+    "Workspace Call Settings":
+      command_name_overrides:
+        "delete": "delete-access-codes-all"
     # 2026-06 spec added org-wide queue-settings ops that claim the bare
     # show/update names, demoting the per-queue commands to
     # show-queues/update-queues. Six skills and operator muscle memory rely
@@ -1146,6 +1259,52 @@ tag_overrides:
         "show-queues": "show"
         "update-queues": "update"
   webex-contact-center.json:
+    "Agent Personal Greeting Files":
+      command_name_overrides:
+        "create": "delete-references-agent"
+    "Auxiliary Code":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Contact Service Queue":
+      command_name_overrides:
+        "create-delete-reference": "delete-reference"
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Desktop Layout":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Desktop Profile":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Entry Point":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Global Variables":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    # Keyed on the MERGED tag: tag_merge folds the 7 "Journey - *" tags into
+    # "CC Journey" before overrides resolve, so a pre-merge key is inert.
+    "CC Journey":
+      command_name_overrides:
+        "delete": "delete-person-id"
+        "update-person-id-workspace-id-1": "delete-person-id-workspace-id"
+    "Multimedia Profile":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Site":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Skill":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Tasks":
+      command_name_overrides:
+        "create-remove": "delete-preview-task"
+    "Team":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    "Work Types":
+      command_name_overrides:
+        "create-purge-inactive-entities": "delete-purge-inactive-entities"
     "Flows":   # tag renamed upstream from "Flow"
       command_name_overrides:
         "list-export": "export"
@@ -1153,6 +1312,31 @@ tag_overrides:
     "Users":
       command_name_overrides:
         "update-update-dynamic-skill": "update-dynamic-skill"
+
+  webex-admin.json:
+    "Recordings":
+      command_name_overrides:
+      # Wave 3 renames (2026-07-27): 26 CRITICAL commands whose name gave an
+      # agent no hint what they do. Each keeps its OLD name as a HIDDEN alias
+      # (renderer emits it from original_command_name), so nothing scripted
+      # breaks. Scope and rejected alternatives: tools/CLAUDE.md.
+        "create-purge": "delete-recordings-recycle"
+  webex-meetings.json:
+    "Preferences":
+      command_name_overrides:
+      # Wave 3 renames (2026-07-27): 26 CRITICAL commands whose name gave an
+      # agent no hint what they do. Each keeps its OLD name as a HIDDEN alias
+      # (renderer emits it from original_command_name), so nothing scripted
+      # breaks. Scope and rejected alternatives: tools/CLAUDE.md.
+        "create-delete": "delete-delegate-emails"
+  webex-wholesale.json:
+    "Wholesale Provisioning":
+      command_name_overrides:
+      # Wave 3 renames (2026-07-27): 26 CRITICAL commands whose name gave an
+      # agent no hint what they do. Each keeps its OLD name as a HIDDEN alias
+      # (renderer emits it from original_command_name), so nothing scripted
+      # breaks. Scope and rejected alternatives: tools/CLAUDE.md.
+        "delete": "delete-customers"
 
 # Tag-level override for Operating Modes
 "Features: Operating Modes":

@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling wholesale-provisioning.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Wholesale Customers.")
 def cmd_list(
     external_id: str = typer.Option(None, "--external-id", help="Customer external ID."),
     status: str = typer.Option(None, "--status", help="Customer API status."),
@@ -54,7 +54,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Provision a Wholesale Customer.")
 def create(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     provisioning_id: str = typer.Option(None, "--provisioning-id", help="(required) This Provisioning ID defines how this customer is to be provisioned for Webex Services. Each Customer Template will have their own unique Provisioning ID. This ID will be displayed under the chosen Customer Template on [Webex Control Hub](https://admin.webex.com)."),
@@ -67,7 +67,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Provision a Wholesale Customer\n\nExample --json-body:\n  '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'."""
+    """Provision a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning create --provisioning-id PROVISIONING_ID --external-id EXTERNAL_ID\n\n\b\nExample --json-body: '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -110,16 +110,16 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Wholesale Customer.")
 def show(
-    customer_id: str = typer.Argument(help="customerId"),
+    customer_id: str = typer.Argument(help="Webex ENTERPRISE id, from: wxcli wholesale-provisioning list"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     include_package_license_info: str = typer.Option(None, "--include-package-license-info", help="If specified as true, a list of licenseIds will be returned for all provisioned packages"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Wholesale Customer."""
+    """Get a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning show CUSTOMER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/customers/{customer_id}"
     params = {}
@@ -139,9 +139,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Wholesale Customer.")
 def update(
-    customer_id: str = typer.Argument(help="customerId"),
+    customer_id: str = typer.Argument(help="Webex ENTERPRISE id, from: wxcli wholesale-provisioning list"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     external_id: str = typer.Option(None, "--external-id", help="External ID of the Wholesale customer."),
     sub_partner_admin_email: str = typer.Option(None, "--sub-partner-admin-email", help="The email of the sub partner organization admin."),
@@ -151,7 +151,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Wholesale Customer\n\nExample --json-body:\n  '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'."""
+    """Update a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning update CUSTOMER_ID\n\n\b\nExample --json-body: '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -183,16 +183,17 @@ def update(
 
 
 
-@app.command("delete")
-def delete(
-    customer_id: str = typer.Argument(help="customerId"),
+@app.command("delete", hidden=True)
+@app.command("delete-customers", short_help="Remove a Wholesale Customer.")
+def delete_customers(
+    customer_id: str = typer.Argument(help="Webex ENTERPRISE id, from: wxcli wholesale-provisioning list"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove a Wholesale Customer."""
+    """Remove a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning delete-customers CUSTOMER_ID"""
     if not force:
         typer.confirm(f"Delete {customer_id}?", abort=True)
     api = get_api(debug=debug)
@@ -217,7 +218,7 @@ def delete(
 
 _BODY_SKELETON_CREATE_VALIDATE_CUSTOMERS = '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'
 
-@app.command("create-validate-customers")
+@app.command("create-validate-customers", short_help="Precheck a Wholesale Customer Provisioning.")
 def create_validate_customers(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale customer is to be provisioned for Cisco Webex Services. Each Customer Template will have its unique Provisioning ID. This ID will be displayed under the chosen Customer Template on Cisco Webex Control Hub."),
@@ -229,7 +230,7 @@ def create_validate_customers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Precheck a Wholesale Customer Provisioning\n\nExample --json-body:\n  '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'."""
+    """Precheck a Wholesale Customer Provisioning.\n\n\b\nExample --json-body: '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE_CUSTOMERS), indent=2))
         raise typer.Exit(0)
@@ -266,7 +267,7 @@ def create_validate_customers(
 
 
 
-@app.command("list-sub-partners")
+@app.command("list-sub-partners", short_help="List Wholesale Sub-partners.")
 def list_sub_partners(
     provisioning_state: str = typer.Option(None, "--provisioning-state", help="Status to filter sub-partners based on provisioning state."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -298,7 +299,7 @@ def list_sub_partners(
 
 
 
-@app.command("list-subscribers")
+@app.command("list-subscribers", short_help="List Wholesale Subscribers.")
 def list_subscribers(
     customer_id: str = typer.Option(None, "--customer-id", help="Wholesale customer ID."),
     person_id: str = typer.Option(None, "--person-id", help="The person ID of the subscriber used in the [/v1/people API](/docs/api/v1/people)."),
@@ -359,7 +360,7 @@ def list_subscribers(
 
 _BODY_SKELETON_CREATE_SUBSCRIBERS = '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'
 
-@app.command("create-subscribers")
+@app.command("create-subscribers", short_help="Provision a Wholesale Subscriber.")
 def create_subscribers(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     customer_id: str = typer.Option(None, "--customer-id", help="(required) ID of the Provisioned Customer for Webex Wholesale."),
@@ -371,7 +372,7 @@ def create_subscribers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Provision a Wholesale Subscriber\n\nExample --json-body:\n  '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'."""
+    """Provision a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning create-subscribers --customer-id CUSTOMER_ID --email EMAIL\n\n\b\nExample --json-body: '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUBSCRIBERS), indent=2))
         raise typer.Exit(0)
@@ -412,15 +413,15 @@ def create_subscribers(
 
 
 
-@app.command("show-subscribers")
+@app.command("show-subscribers", short_help="Get a Wholesale Subscriber.")
 def show_subscribers(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id, from: wxcli wholesale-provisioning list-subscribers"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Wholesale Subscriber."""
+    """Get a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning show-subscribers SUBSCRIBER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/subscribers/{subscriber_id}"
     params = {}
@@ -438,9 +439,9 @@ def show_subscribers(
 
 _BODY_SKELETON_UPDATE_SUBSCRIBERS = '{"package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'
 
-@app.command("update-subscribers")
+@app.command("update-subscribers", short_help="Update a Wholesale Subscriber.")
 def update_subscribers(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id, from: wxcli wholesale-provisioning list-subscribers"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     package: str = typer.Option(None, "--package", help="Choices: webex_calling, webex_meetings, webex_suite, webex_voice, cx_essentials, webex_calling_standard, attendant_console, cx_premium_agent, cx_standard_agent"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -449,7 +450,7 @@ def update_subscribers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Wholesale Subscriber\n\nExample --json-body:\n  '{"package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'."""
+    """Update a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning update-subscribers SUBSCRIBER_ID\n\n\b\nExample --json-body: '{"package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SUBSCRIBERS), indent=2))
         raise typer.Exit(0)
@@ -479,16 +480,16 @@ def update_subscribers(
 
 
 
-@app.command("delete-subscribers")
+@app.command("delete-subscribers", short_help="Remove a Wholesale Subscriber.")
 def delete_subscribers(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id, from: wxcli wholesale-provisioning list-subscribers"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove a Wholesale Subscriber."""
+    """Remove a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning delete-subscribers SUBSCRIBER_ID"""
     if not force:
         typer.confirm(f"Delete {subscriber_id}?", abort=True)
     api = get_api(debug=debug)
@@ -513,7 +514,7 @@ def delete_subscribers(
 
 _BODY_SKELETON_CREATE_VALIDATE_SUBSCRIBERS = '{"email":"...","provisioningId":"...","customerId":"...","package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"customerInfo":{"primaryEmail":"..."}}'
 
-@app.command("create-validate-subscribers")
+@app.command("create-validate-subscribers", short_help="Precheck a Wholesale Subscriber Provisioning.")
 def create_validate_subscribers(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     provisioning_id: str = typer.Option(None, "--provisioning-id", help="Defines how this wholesale subscriber is to be provisioned for Cisco Webex Services. Each Customer template has its unique provisioning ID. This ID is displayed under the chosen customer template on Cisco Webex Control Hub."),
@@ -526,7 +527,7 @@ def create_validate_subscribers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Precheck a Wholesale Subscriber Provisioning\n\nExample --json-body:\n  '{"email":"...","provisioningId":"...","customerId":"...","package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"customerInfo":{"primaryEmail":"..."}}'."""
+    """Precheck a Wholesale Subscriber Provisioning.\n\n\b\nExample: wxcli wholesale-provisioning create-validate-subscribers --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","provisioningId":"...","customerId":"...","package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"customerInfo":{"primaryEmail":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE_SUBSCRIBERS), indent=2))
         raise typer.Exit(0)
@@ -569,16 +570,16 @@ def create_validate_subscribers(
 
 
 
-@app.command("create-consent-move")
+@app.command("create-consent-move", short_help="Send Consent User Move Email to Pending Wholesale Subscribers.")
 def create_consent_move(
-    subscriber_id: str = typer.Argument(help="subscriberId"),
+    subscriber_id: str = typer.Argument(help="Webex SUBSCRIBER id"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Send Consent User Move Email to Pending Wholesale Subscribers."""
+    """Send Consent User Move Email to Pending Wholesale Subscribers.\n\n\b\nExample: wxcli wholesale-provisioning create-consent-move SUBSCRIBER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/subscribers/{subscriber_id}/emails/consentMove"
     params = {}

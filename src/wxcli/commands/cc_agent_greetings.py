@@ -11,19 +11,20 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-agent-greetings.")
 
 
-_BODY_SKELETON_CREATE = '{"references":{}}'
+_BODY_SKELETON_DELETE_REFERENCES_AGENT = '{"references":{}}'
 
-@app.command("create")
-def create(
+@app.command("create", hidden=True)
+@app.command("delete-references-agent", short_help="Delete references of an agent from greeting files.")
+def delete_references_agent(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete references of an agent from greeting files\n\nExample --json-body:\n  '{"references":{}}'."""
+    """Delete references of an agent from greeting files.\n\n\b\nExample --json-body: '{"references":{}}'"""
     if generate_json_body:
-        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_REFERENCES_AGENT), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
@@ -46,15 +47,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Greeting File by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file should be included in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Greeting File by ID."""
+    """Get specific Greeting File by ID.\n\n\b\nExample: wxcli cc-agent-greetings show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -72,15 +73,15 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Greeting File by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Greeting File by ID."""
+    """Delete specific Greeting File by ID.\n\n\b\nExample: wxcli cc-agent-greetings delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -102,7 +103,7 @@ def delete(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List Greeting Files.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported fields are: firstName, lastName, email, ciUserId, and attributeTag. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email, attributeTag) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"email\");value==\"Cisco\""),
@@ -151,15 +152,15 @@ def cmd_list(
 
 
 
-@app.command("show-agent-personal-greeting")
+@app.command("show-agent-personal-greeting", short_help="Get specific Greeting File by ID.")
 def show_agent_personal_greeting(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-agent-greetings list"),
     include_url: str = typer.Option(None, "--include-url", help="Indicates whether the URL for downloading the greeting file should be included in the response."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Greeting File by ID."""
+    """Get specific Greeting File by ID.\n\n\b\nExample: wxcli cc-agent-greetings show-agent-personal-greeting ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -177,15 +178,15 @@ def show_agent_personal_greeting(
 
 
 
-@app.command("delete-agent-personal-greeting")
+@app.command("delete-agent-personal-greeting", short_help="Delete specific Greeting File by ID.")
 def delete_agent_personal_greeting(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-agent-greetings list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Greeting File by ID."""
+    """Delete specific Greeting File by ID.\n\n\b\nExample: wxcli cc-agent-greetings delete-agent-personal-greeting ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -207,7 +208,7 @@ def delete_agent_personal_greeting(
 
 
 
-@app.command("list-agent-personal-greeting")
+@app.command("list-agent-personal-greeting", short_help="List Greeting Files.")
 def list_agent_personal_greeting(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported fields are: firstName, lastName, email, ciUserId, and attributeTag. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email, attributeTag) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"email\");value==\"Cisco\""),

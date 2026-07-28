@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling wholesale-billing-reports.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Wholesale Billing Reports.")
 def cmd_list(
     billing_start_date: str = typer.Option(None, "--billing-start-date", help="Only include billing reports having this billing `startDate`."),
     billing_end_date: str = typer.Option(None, "--billing-end-date", help="Only include billing reports having this billing `endDate`."),
@@ -59,7 +59,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"billingStartDate":"...","billingEndDate":"...","type":"...","subPartnerOrgId":"...","internal":true}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Wholesale Billing Report.")
 def create(
     billing_start_date: str = typer.Option(None, "--billing-start-date", help="(required) The `startDate` (`YYYY-MM-DD`) for which the partner requests the billing report."),
     billing_end_date: str = typer.Option(None, "--billing-end-date", help="(required) The `endDate` (`YYYY-MM-DD`) for which the partner requests the billing report."),
@@ -72,7 +72,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Wholesale Billing Report\n\nExample --json-body:\n  '{"billingStartDate":"...","billingEndDate":"...","type":"...","subPartnerOrgId":"...","internal":true}'."""
+    """Create a Wholesale Billing Report.\n\n\b\nExample: wxcli wholesale-billing-reports create --billing-start-date BILLING_START_DATE --billing-end-date BILLING_END_DATE\n\n\b\nExample --json-body: '{"billingStartDate":"...","billingEndDate":"...","type":"...","subPartnerOrgId":"...","internal":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -114,14 +114,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Wholesale Billing Report.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex BILLING_REPORT id, from: wxcli wholesale-billing-reports list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Wholesale Billing Report."""
+    """Get a Wholesale Billing Report.\n\n\b\nExample: wxcli wholesale-billing-reports show ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/billing/reports/{id}"
     try:
@@ -134,15 +134,15 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Wholesale Billing Report.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex BILLING_REPORT id, from: wxcli wholesale-billing-reports list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Wholesale Billing Report."""
+    """Delete a Wholesale Billing Report.\n\n\b\nExample: wxcli wholesale-billing-reports delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)

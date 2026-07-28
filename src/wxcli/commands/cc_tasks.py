@@ -11,7 +11,7 @@ from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-tasks.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Tasks.")
 def cmd_list(
     channel_types: str = typer.Option(None, "--channel-types", help="Task channel type(s) permitted in response. Separate values with commas. Use lowercase. By default, there is no channelType filtering."),
     from_param: str = typer.Option(..., "--from", help="Filters tasks created after the given epoch timestamp (in milliseconds)."),
@@ -23,7 +23,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Tasks."""
+    """Get Tasks.\n\n\b\nExample: wxcli cc-tasks list --from FROM_PARAM"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks"
@@ -58,7 +58,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"destination":"...","entryPointId":"...","mediaType":"...","attributes":{},"outboundType":"...","origin":"...","callback":{"callbackOrigin":"...","callbackType":"..."},"customAttributes":{}}'
 
-@app.command("create")
+@app.command("create", short_help="Create Task.")
 def create(
     destination: str = typer.Option(None, "--destination", help="(required) A valid customer DN, on which the response is expected, maximum length 36 characters."),
     entry_point_id: str = typer.Option(None, "--entry-point-id", help="(required) An entryPointId for respective task. For ```CALLBACK``` and ```OUTDIAL``` this should be an outboundEP. For ```EXECUTE_FLOW``` this should be an inboundEP which is mapped to a flow that will be triggered, maximum length 36 characters."),
@@ -71,7 +71,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Task\n\nExample --json-body:\n  '{"destination":"...","entryPointId":"...","mediaType":"...","attributes":{},"outboundType":"...","origin":"...","callback":{"callbackOrigin":"...","callbackType":"..."},"customAttributes":{}}'."""
+    """Create Task.\n\n\b\nExample: wxcli cc-tasks create --destination DESTINATION --entry-point-id ENTRY_POINT_ID --media-type MEDIA_TYPE\n\n\b\nExample --json-body: '{"destination":"...","entryPointId":"...","mediaType":"...","attributes":{},"outboundType":"...","origin":"...","callback":{"callbackOrigin":"...","callbackType":"..."},"customAttributes":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -116,16 +116,16 @@ def create(
 
 _BODY_SKELETON_UPDATE = '{"attributes":{}}'
 
-@app.command("update")
+@app.command("update", short_help="Update Task.")
 def update(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Task\n\nExample --json-body:\n  '{"attributes":{}}'."""
+    """Update Task.\n\n\b\nExample: wxcli cc-tasks update TASK_ID\n\n\b\nExample --json-body: '{"attributes":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -151,15 +151,15 @@ def update(
 
 
 
-@app.command("create-accept-tasks")
+@app.command("create-accept-tasks", short_help="Accept Task.")
 def create_accept_tasks(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Accept Task."""
+    """Accept Task.\n\n\b\nExample: wxcli cc-tasks create-accept-tasks TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks/{task_id}/accept"
@@ -185,15 +185,15 @@ def create_accept_tasks(
 
 
 
-@app.command("create-end-tasks")
+@app.command("create-end-tasks", short_help="End Task.")
 def create_end_tasks(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """End Task."""
+    """End Task.\n\n\b\nExample: wxcli cc-tasks create-end-tasks TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks/{task_id}/end"
@@ -221,9 +221,9 @@ def create_end_tasks(
 
 _BODY_SKELETON_CREATE_WRAPUP = '{"auxCodeId":"...","wrapUpReason":"..."}'
 
-@app.command("create-wrapup")
+@app.command("create-wrapup", short_help="Wrap Up Task.")
 def create_wrapup(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     aux_code_id: str = typer.Option(None, "--aux-code-id", help="(required) Auxiliary codes are status codes which an agent can select in Webex Contact Center Agent Desktop. They are of two types: ```Idle``` and ```Wrap-Up``` codes, and every agent profile must have one of each for the agent to use. Idle codes are used to explain an agent's unavailability to take customer..."),
     wrap_up_reason: str = typer.Option(None, "--wrap-up-reason", help="(required) Every wrap up reason will have an unique auxillary code. Use this field to specify the reason for wrapping up the call, maximum length 128 characters."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -232,7 +232,7 @@ def create_wrapup(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Wrap Up Task\n\nExample --json-body:\n  '{"auxCodeId":"...","wrapUpReason":"..."}'."""
+    """Wrap Up Task.\n\n\b\nExample: wxcli cc-tasks create-wrapup TASK_ID --aux-code-id AUX_CODE_ID --wrap-up-reason WRAP_UP_REASON\n\n\b\nExample --json-body: '{"auxCodeId":"...","wrapUpReason":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_WRAPUP), indent=2))
         raise typer.Exit(0)
@@ -271,9 +271,9 @@ def create_wrapup(
 
 _BODY_SKELETON_CREATE_HOLD = '{"mediaResourceId":"..."}'
 
-@app.command("create-hold")
+@app.command("create-hold", short_help="Hold Task.")
 def create_hold(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 characters"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -281,7 +281,7 @@ def create_hold(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Hold Task\n\nExample --json-body:\n  '{"mediaResourceId":"..."}'."""
+    """Hold Task.\n\n\b\nExample: wxcli cc-tasks create-hold TASK_ID --media-resource-id MEDIA_RESOURCE_ID\n\n\b\nExample --json-body: '{"mediaResourceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_HOLD), indent=2))
         raise typer.Exit(0)
@@ -318,9 +318,9 @@ def create_hold(
 
 _BODY_SKELETON_CREATE_UNHOLD = '{"mediaResourceId":"..."}'
 
-@app.command("create-unhold")
+@app.command("create-unhold", short_help="Resume Task.")
 def create_unhold(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 characters"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -328,7 +328,7 @@ def create_unhold(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Resume Task\n\nExample --json-body:\n  '{"mediaResourceId":"..."}'."""
+    """Resume Task.\n\n\b\nExample: wxcli cc-tasks create-unhold TASK_ID --media-resource-id MEDIA_RESOURCE_ID\n\n\b\nExample --json-body: '{"mediaResourceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_UNHOLD), indent=2))
         raise typer.Exit(0)
@@ -365,9 +365,9 @@ def create_unhold(
 
 _BODY_SKELETON_CREATE_REJECT = '{"mediaResourceId":"..."}'
 
-@app.command("create-reject")
+@app.command("create-reject", short_help="Reject Task.")
 def create_reject(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 characters"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -375,7 +375,7 @@ def create_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reject Task\n\nExample --json-body:\n  '{"mediaResourceId":"..."}'."""
+    """Reject Task.\n\n\b\nExample: wxcli cc-tasks create-reject TASK_ID --media-resource-id MEDIA_RESOURCE_ID\n\n\b\nExample --json-body: '{"mediaResourceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -410,15 +410,15 @@ def create_reject(
 
 
 
-@app.command("create-pause")
+@app.command("create-pause", short_help="Pause Recording Task.")
 def create_pause(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Pause Recording Task."""
+    """Pause Recording Task.\n\n\b\nExample: wxcli cc-tasks create-pause TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks/{task_id}/record/pause"
@@ -446,9 +446,9 @@ def create_pause(
 
 _BODY_SKELETON_CREATE_RESUME = '{"autoResumed":true}'
 
-@app.command("create-resume")
+@app.command("create-resume", short_help="Resume Recording Task.")
 def create_resume(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     auto_resumed: bool = typer.Option(None, "--auto-resumed/--no-auto-resumed", help="(required) The setting to mention if the recording has to resume automatically."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -456,7 +456,7 @@ def create_resume(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Resume Recording Task\n\nExample --json-body:\n  '{"autoResumed":true}'."""
+    """Resume Recording Task.\n\n\b\nExample: wxcli cc-tasks create-resume TASK_ID --auto-resumed\n\n\b\nExample --json-body: '{"autoResumed":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESUME), indent=2))
         raise typer.Exit(0)
@@ -493,9 +493,9 @@ def create_resume(
 
 _BODY_SKELETON_CREATE_TRANSFER_TASKS = '{"to":"...","destinationType":"..."}'
 
-@app.command("create-transfer-tasks")
+@app.command("create-transfer-tasks", short_help="Transfer Task.")
 def create_transfer_tasks(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     to: str = typer.Option(None, "--to", help="(required) The user destination ID or the entry point ID to transfer, maximum length 43 characters."),
     destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another user in the team(```agent```), queue(```queue```), dial number(```dialNumber```), entry point(```entrypointDialNumber```)."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -504,7 +504,7 @@ def create_transfer_tasks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Transfer Task\n\nExample --json-body:\n  '{"to":"...","destinationType":"..."}'."""
+    """Transfer Task.\n\n\b\nExample: wxcli cc-tasks create-transfer-tasks TASK_ID --to TO --destination-type DESTINATION_TYPE\n\n\b\nExample --json-body: '{"to":"...","destinationType":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSFER_TASKS), indent=2))
         raise typer.Exit(0)
@@ -543,9 +543,9 @@ def create_transfer_tasks(
 
 _BODY_SKELETON_CREATE_CONSULT = '{"to":"...","destinationType":"...","holdParticipants":true}'
 
-@app.command("create-consult")
+@app.command("create-consult", short_help="Consult Task.")
 def create_consult(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     to: str = typer.Option(None, "--to", help="(required) The destination ID to consult, maximum length 36 characters."),
     destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can consult to another user in the team(```agent```), queue(```queue```), entry point(```entryPoint```) or dial number(```dialNumber```). When consulting an Entry Point (EP) that is associated with multiple Directory Numbers (DNs), the consult typically goes to one of the associated DNs."),
     hold_participants: bool = typer.Option(None, "--hold-participants/--no-hold-participants", help="This allows the caller to specify their preference for whether the main call should be placed on hold or not during consult."),
@@ -555,7 +555,7 @@ def create_consult(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Consult Task\n\nExample --json-body:\n  '{"to":"...","destinationType":"...","holdParticipants":true}'."""
+    """Consult Task.\n\n\b\nExample: wxcli cc-tasks create-consult TASK_ID --to TO --destination-type DESTINATION_TYPE\n\n\b\nExample --json-body: '{"to":"...","destinationType":"...","holdParticipants":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CONSULT), indent=2))
         raise typer.Exit(0)
@@ -596,9 +596,9 @@ def create_consult(
 
 _BODY_SKELETON_CREATE_CONFERENCE = '{"to":"...","agentId":"...","destinationType":"..."}'
 
-@app.command("create-conference")
+@app.command("create-conference", short_help="Consult Conference Task.")
 def create_conference(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     agent_id: str = typer.Option(None, "--agent-id", help="The unique Id of the user logged in as an agent."),
     to: str = typer.Option(None, "--to", help="(required) The destination ID to consult, maximum length 36 characters."),
     destination_type: str = typer.Option(None, "--destination-type", help="The user can consult to another user in the team(```agent```), dial number(```dialNumber```), entry point(```entryPoint```)."),
@@ -608,7 +608,7 @@ def create_conference(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Consult Conference Task\n\nExample --json-body:\n  '{"to":"...","agentId":"...","destinationType":"..."}'."""
+    """Consult Conference Task.\n\n\b\nExample: wxcli cc-tasks create-conference TASK_ID --to TO\n\n\b\nExample --json-body: '{"to":"...","agentId":"...","destinationType":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CONFERENCE), indent=2))
         raise typer.Exit(0)
@@ -649,9 +649,9 @@ def create_conference(
 
 _BODY_SKELETON_CREATE_TRANSFER_CONSULT = '{"to":"...","destinationType":"..."}'
 
-@app.command("create-transfer-consult")
+@app.command("create-transfer-consult", short_help="Consult Transfer Task.")
 def create_transfer_consult(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     to: str = typer.Option(None, "--to", help="(required) The consulted user destination ID to transfer, maximum length 36 characters."),
     destination_type: str = typer.Option(None, "--destination-type", help="(required) The user can transfer to another consulted user in the team(```agent```), dial number(```dialNumber```), entry point(```entryPoint```)"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -660,7 +660,7 @@ def create_transfer_consult(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Consult Transfer Task\n\nExample --json-body:\n  '{"to":"...","destinationType":"..."}'."""
+    """Consult Transfer Task.\n\n\b\nExample: wxcli cc-tasks create-transfer-consult TASK_ID --to TO --destination-type DESTINATION_TYPE\n\n\b\nExample --json-body: '{"to":"...","destinationType":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSFER_CONSULT), indent=2))
         raise typer.Exit(0)
@@ -697,15 +697,15 @@ def create_transfer_consult(
 
 
 
-@app.command("create-accept-consult")
+@app.command("create-accept-consult", short_help="Consult Accept Task.")
 def create_accept_consult(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Consult Accept Task."""
+    """Consult Accept Task.\n\n\b\nExample: wxcli cc-tasks create-accept-consult TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks/{task_id}/consult/accept"
@@ -731,15 +731,15 @@ def create_accept_consult(
 
 
 
-@app.command("create-assign")
+@app.command("create-assign", short_help="Assign Task.")
 def create_assign(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign Task."""
+    """Assign Task.\n\n\b\nExample: wxcli cc-tasks create-assign TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks/{task_id}/assign"
@@ -767,9 +767,9 @@ def create_assign(
 
 _BODY_SKELETON_CREATE_END_CONSULT = '{"queueId":"..."}'
 
-@app.command("create-end-consult")
+@app.command("create-end-consult", short_help="Consult End Task.")
 def create_end_consult(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     queue_id: str = typer.Option(None, "--queue-id", help="The unique ID of a particular queue, maximum length 36 characters."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -777,7 +777,7 @@ def create_end_consult(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Consult End Task\n\nExample --json-body:\n  '{"queueId":"..."}'."""
+    """Consult End Task.\n\n\b\nExample: wxcli cc-tasks create-end-consult TASK_ID\n\n\b\nExample --json-body: '{"queueId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_END_CONSULT), indent=2))
         raise typer.Exit(0)
@@ -808,15 +808,15 @@ def create_end_consult(
 
 
 
-@app.command("create-exit")
+@app.command("create-exit", short_help="Exit Conference Task.")
 def create_exit(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Exit Conference Task."""
+    """Exit Conference Task.\n\n\b\nExample: wxcli cc-tasks create-exit TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/tasks/{task_id}/conference/exit"
@@ -842,16 +842,16 @@ def create_exit(
 
 
 
-@app.command("create-accept-preview-task")
+@app.command("create-accept-preview-task", short_help="Accept Preview Task.")
 def create_accept_preview_task(
-    task_id: str = typer.Argument(help="taskId"),
-    campaign_id: str = typer.Argument(help="campaignId"),
+    task_id: str = typer.Argument(help="UUID"),
+    campaign_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Accept Preview Task."""
+    """Accept Preview Task.\n\n\b\nExample: wxcli cc-tasks create-accept-preview-task TASK_ID CAMPAIGN_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/accept"
@@ -877,16 +877,16 @@ def create_accept_preview_task(
 
 
 
-@app.command("create-skip")
+@app.command("create-skip", short_help="Skip Preview Task.")
 def create_skip(
-    task_id: str = typer.Argument(help="taskId"),
-    campaign_id: str = typer.Argument(help="campaignId"),
+    task_id: str = typer.Argument(help="UUID"),
+    campaign_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Skip Preview Task."""
+    """Skip Preview Task.\n\n\b\nExample: wxcli cc-tasks create-skip TASK_ID CAMPAIGN_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/skip"
@@ -912,16 +912,17 @@ def create_skip(
 
 
 
-@app.command("create-remove")
-def create_remove(
-    task_id: str = typer.Argument(help="taskId"),
-    campaign_id: str = typer.Argument(help="campaignId"),
+@app.command("create-remove", hidden=True)
+@app.command("delete-preview-task", short_help="Remove Preview Task.")
+def delete_preview_task(
+    task_id: str = typer.Argument(help="UUID"),
+    campaign_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove Preview Task."""
+    """Remove Preview Task.\n\n\b\nExample: wxcli cc-tasks delete-preview-task TASK_ID CAMPAIGN_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
@@ -942,7 +943,7 @@ def create_remove(
 
 
 
-@app.command("create-tasks")
+@app.command("create-tasks", short_help="Create Task.")
 def create_tasks(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -975,15 +976,15 @@ def create_tasks(
 
 
 
-@app.command("create-messages")
+@app.command("create-messages", short_help="Append Task Message.")
 def create_messages(
-    task_id: str = typer.Argument(help="taskId"),
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Append Task Message."""
+    """Append Task Message.\n\n\b\nExample: wxcli cc-tasks create-messages TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v2/tasks/{task_id}/messages"

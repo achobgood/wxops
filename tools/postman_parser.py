@@ -59,6 +59,13 @@ class Endpoint:
     # key the generated code extracts with, so a response_list_keys override
     # applied after parse still resolves (see apply_endpoint_overrides).
     response_item_fields: dict[str, list[ResponseField]] = field(default_factory=dict)
+    # {path var name -> {"example", "enum", "format"}}. Path vars are a bare
+    # list of names, so everything the spec says about the VALUE was being
+    # discarded — the renderer could only echo the name back as the argument's
+    # own help. Kept as a side table rather than turning path_vars into objects
+    # so ordering, URL substitution, and every existing path_vars consumer are
+    # untouched. Absent for a var backfilled by _infer_missing_path_vars.
+    path_var_meta: dict[str, dict] = field(default_factory=dict)
 
 
 # Known issue #20: command_type comes from the HTTP method, but Cisco models
@@ -197,6 +204,11 @@ def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
     old_name = ep.command_name
     if old_name in name_overrides:
         ep.command_name = name_overrides[old_name]
+        # Remembered so the renderer can emit the pre-rename name as a hidden
+        # alias. A rename is user-facing: anything already scripted against the
+        # old name must keep working, which is the condition the 26 CRITICAL
+        # renames were approved under (tools/CLAUDE.md, 2026-07-27).
+        ep.original_command_name = old_name
     # URL overrides (e.g. fix incorrect paths)
     url_overrides = folder_overrides.get("url_overrides", {})
     if ep.command_name in url_overrides:

@@ -11,9 +11,9 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling pstn.")
 
 
-@app.command("list")
+@app.command("list", short_help="Retrieve PSTN Connection Options for a Location.")
 def cmd_list(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
     service_types: str = typer.Option(None, "--service-types", help="Use the `serviceTypes` parameter to fetch connections for the following services * `MOBILE_NUMBERS`"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -21,7 +21,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve PSTN Connection Options for a Location."""
+    """Retrieve PSTN Connection Options for a Location.\n\n\b\nExample: wxcli pstn list LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/connectionOptions"
     params = {}
@@ -47,14 +47,14 @@ def cmd_list(
 
 
 
-@app.command("list-connection")
+@app.command("list-connection", short_help="Retrieve PSTN Connection for a Location.")
 def list_connection(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve PSTN Connection for a Location."""
+    """Retrieve PSTN Connection for a Location.\n\n\b\nExample: wxcli pstn list-connection LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/connection"
     params = {}
@@ -73,9 +73,9 @@ def list_connection(
 
 _BODY_SKELETON_UPDATE = '{"id":"...","premiseRouteType":"...","premiseRouteId":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Setup PSTN Connection for a Location.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
     id_param: str = typer.Option(None, "--id", help="A unique identifier for the connection. This is required for non-integrated CCP."),
     premise_route_type: str = typer.Option(None, "--premise-route-type", help="Premise route type. The possible types are TRUNK and ROUTE_GROUP. This is required for the local gateway."),
     premise_route_id: str = typer.Option(None, "--premise-route-id", help="Premise route ID. This refers to either a Trunk ID or a Route Group ID and is required for the local gateway."),
@@ -85,7 +85,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Setup PSTN Connection for a Location\n\nExample --json-body:\n  '{"id":"...","premiseRouteType":"...","premiseRouteId":"..."}'."""
+    """Setup PSTN Connection for a Location.\n\n\b\nExample: wxcli pstn update LOCATION_ID\n\n\b\nExample --json-body: '{"id":"...","premiseRouteType":"...","premiseRouteId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -122,16 +122,16 @@ def update(
 
 _BODY_SKELETON_UPDATE_EMERGENCY_ADDRESS = '{"emergencyAddress":{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}}'
 
-@app.command("update-emergency-address")
+@app.command("update-emergency-address", short_help="Update the Emergency Address for a Phone Number.")
 def update_emergency_address(
-    phone_number: str = typer.Argument(help="phoneNumber"),
+    phone_number: str = typer.Argument(help="Webex PHONE_NUMBER id"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the Emergency Address for a Phone Number\n\nExample --json-body:\n  '{"emergencyAddress":{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}}'."""
+    """Update the Emergency Address for a Phone Number.\n\n\b\nExample: wxcli pstn update-emergency-address PHONE_NUMBER\n\n\b\nExample --json-body: '{"emergencyAddress":{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_ADDRESS), indent=2))
         raise typer.Exit(0)
@@ -162,9 +162,9 @@ def update_emergency_address(
 
 _BODY_SKELETON_CREATE = '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Emergency Address Lookup to Verify if Address is Valid.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
     address1: str = typer.Option(None, "--address1", help="Primary street information for the emergency address."),
     address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the emergency address."),
     city: str = typer.Option(None, "--city", help="City for the emergency address."),
@@ -177,7 +177,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Emergency Address Lookup to Verify if Address is Valid\n\nExample --json-body:\n  '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'."""
+    """Emergency Address Lookup to Verify if Address is Valid.\n\n\b\nExample: wxcli pstn create LOCATION_ID\n\n\b\nExample --json-body: '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -223,9 +223,9 @@ def create(
 
 _BODY_SKELETON_CREATE_EMERGENCY_ADDRESS = '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'
 
-@app.command("create-emergency-address")
+@app.command("create-emergency-address", short_help="Add an Emergency Address to a Location.")
 def create_emergency_address(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
     address1: str = typer.Option(None, "--address1", help="Primary street information for the emergency address."),
     address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the emergency address."),
     city: str = typer.Option(None, "--city", help="City for the emergency address."),
@@ -238,7 +238,7 @@ def create_emergency_address(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add an Emergency Address to a Location\n\nExample --json-body:\n  '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'."""
+    """Add an Emergency Address to a Location.\n\n\b\nExample: wxcli pstn create-emergency-address LOCATION_ID\n\n\b\nExample --json-body: '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EMERGENCY_ADDRESS), indent=2))
         raise typer.Exit(0)
@@ -284,10 +284,10 @@ def create_emergency_address(
 
 _BODY_SKELETON_UPDATE_EMERGENCY_ADDRESSES = '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'
 
-@app.command("update-emergency-addresses")
+@app.command("update-emergency-addresses", short_help="Update the Emergency Address of a Location.")
 def update_emergency_addresses(
-    location_id: str = typer.Argument(help="locationId"),
-    address_id: str = typer.Argument(help="addressId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
+    address_id: str = typer.Argument(help="Webex EMERGENCY_ADDRESS id"),
     address1: str = typer.Option(None, "--address1", help="Primary street information for the emergency address."),
     address2: str = typer.Option(None, "--address2", help="Apartment number or any other secondary information for the emergency address."),
     city: str = typer.Option(None, "--city", help="City for the emergency address."),
@@ -300,7 +300,7 @@ def update_emergency_addresses(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the Emergency Address of a Location\n\nExample --json-body:\n  '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'."""
+    """Update the Emergency Address of a Location.\n\n\b\nExample: wxcli pstn update-emergency-addresses LOCATION_ID ADDRESS_ID\n\n\b\nExample --json-body: '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_ADDRESSES), indent=2))
         raise typer.Exit(0)

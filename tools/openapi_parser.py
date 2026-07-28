@@ -91,10 +91,16 @@ def get_tags(spec: dict) -> list[str]:
 def parse_parameters(
     params: list[dict], spec: dict, omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
-) -> tuple[list[str], list[EndpointField], list[str], list[str]]:
-    """Parse OpenAPI parameters into (path_vars, query_params, auto_inject_names, auto_inject_path_names).
+) -> tuple[list[str], list[EndpointField], list[str], list[str], dict[str, dict]]:
+    """Parse OpenAPI parameters into (path_vars, query_params, auto_inject_names,
+    auto_inject_path_names, path_var_meta).
 
-    Path params become path_vars list of variable names.
+    Path params become path_vars list of variable names, plus a path_var_meta
+    side table carrying what the spec says about each one's VALUE (example,
+    enum, format) so the renderer can describe the argument instead of echoing
+    its name back. 1961 of 2120 path params across the tracked specs declare an
+    example; the Webex ones are real base64 Spark IDs that decode to
+    ``ciscospark://us/<KIND>/<uuid>``, which is what identifies the ID's kind.
     Query params become EndpointField list with type, description, required, enum.
     Params in omit_query_params are skipped entirely.
     Params in auto_inject_params are separated into auto_inject_names and not
@@ -108,6 +114,7 @@ def parse_parameters(
     auto_inject_path_names: list[str] = []
     path_vars: list[str] = []
     query_params: list[EndpointField] = []
+    path_var_meta: dict[str, dict] = {}
 
     for param in params:
         # Resolve param-level $ref
@@ -120,6 +127,11 @@ def parse_parameters(
 
         if location == "path":
             path_vars.append(name)
+            path_var_meta[name] = {
+                "example": param.get("example", schema.get("example")),
+                "enum": schema.get("enum"),
+                "format": schema.get("format"),
+            }
             if name in auto_inject:
                 auto_inject_path_names.append(name)
         elif location == "query":
@@ -143,7 +155,8 @@ def parse_parameters(
                 )
             )
 
-    return path_vars, query_params, auto_inject_names, auto_inject_path_names
+    return (path_vars, query_params, auto_inject_names, auto_inject_path_names,
+            path_var_meta)
 
 
 def _openapi_type_to_field_type(schema: dict) -> str:
@@ -531,7 +544,8 @@ def parse_operation(
 ) -> Endpoint:
     """Convert one OpenAPI operation to an Endpoint dataclass."""
     params = op.get("parameters", [])
-    path_vars, query_params, auto_inject_names, auto_inject_path_names = parse_parameters(
+    (path_vars, query_params, auto_inject_names, auto_inject_path_names,
+     path_var_meta) = parse_parameters(
         params, spec, omit_query_params, auto_inject_params
     )
     body_fields = parse_request_body(op, spec)
@@ -589,6 +603,7 @@ def parse_operation(
         paginates=paginates,
         real_semantics=classify_real_semantics(name, body_fields),
         response_item_fields=response_item_fields,
+        path_var_meta=path_var_meta,
     )
 
 

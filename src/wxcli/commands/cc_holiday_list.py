@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-holiday-list.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Holiday Lists.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except holidays"),
@@ -59,7 +59,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Holiday List.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -75,7 +75,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Holiday List\n\nExample --json-body:\n  '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'."""
+    """Create a new Holiday List.\n\n\b\nExample: wxcli cc-holiday-list create --name NAME\n\n\b\nExample --json-body: '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -127,7 +127,7 @@ def create(
 
 _BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Holiday Lists.")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -135,7 +135,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Holiday Lists\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Holiday Lists.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -165,14 +165,14 @@ def create_bulk(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Holiday List by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-holiday-list list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Holiday List by ID."""
+    """Get specific Holiday List by ID.\n\n\b\nExample: wxcli cc-holiday-list show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -189,9 +189,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Holiday List by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-holiday-list list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -206,7 +206,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Holiday List by ID\n\nExample --json-body:\n  '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'."""
+    """Update specific Holiday List by ID.\n\n\b\nExample: wxcli cc-holiday-list update ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -249,15 +249,15 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Holiday List by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-holiday-list list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Holiday List by ID."""
+    """Delete specific Holiday List by ID.\n\n\b\nExample: wxcli cc-holiday-list delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -279,9 +279,9 @@ def delete(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific Holiday List.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-holiday-list list"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -291,7 +291,7 @@ def list_incoming_references(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Holiday List."""
+    """List references for a specific Holiday List.\n\n\b\nExample: wxcli cc-holiday-list list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -320,7 +320,7 @@ def list_incoming_references(
 
 
 
-@app.command("list-holiday-list")
+@app.command("list-holiday-list", short_help="List Holiday Lists.")
 def list_holiday_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, holidays, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except holidays"),

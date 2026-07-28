@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling partner-reports.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Reports.")
 def cmd_list(
     service: str = typer.Option(None, "--service", help="List reports which use this service."),
     template_id: str = typer.Option(None, "--template-id", help="List reports with this report template ID."),
@@ -59,7 +59,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"templateId":0,"startDate":"...","endDate":"...","regionId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Report.")
 def create(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     template_id: str = typer.Option(None, "--template-id", help="(required) Unique ID representing valid report templates."),
@@ -72,7 +72,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Report\n\nExample --json-body:\n  '{"templateId":0,"startDate":"...","endDate":"...","regionId":"..."}'."""
+    """Create a Report.\n\n\b\nExample: wxcli partner-reports create --template-id TEMPLATE_ID --start-date START_DATE --end-date END_DATE\n\n\b\nExample --json-body: '{"templateId":0,"startDate":"...","endDate":"...","regionId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -115,15 +115,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Report Details.")
 def show(
-    report_id: str = typer.Argument(help="reportId"),
+    report_id: str = typer.Argument(help="Webex REPORT id, from: wxcli partner-reports list"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Report Details."""
+    """Get Report Details.\n\n\b\nExample: wxcli partner-reports show REPORT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/partner/reports/{report_id}"
     params = {}
@@ -139,16 +139,16 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Report.")
 def delete(
-    report_id: str = typer.Argument(help="reportId"),
+    report_id: str = typer.Argument(help="Webex REPORT id, from: wxcli partner-reports list"),
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Report."""
+    """Delete a Report.\n\n\b\nExample: wxcli partner-reports delete REPORT_ID"""
     if not force:
         typer.confirm(f"Delete {report_id}?", abort=True)
     api = get_api(debug=debug)
@@ -171,7 +171,7 @@ def delete(
 
 
 
-@app.command("list-templates")
+@app.command("list-templates", short_help="List Report Templates.")
 def list_templates(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),

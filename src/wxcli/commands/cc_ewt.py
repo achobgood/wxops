@@ -11,7 +11,7 @@ from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-ewt.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get Estimated Wait Time.")
 def show(
     queue_id: str = typer.Option(..., "--queue-id", help="Id of the queue for which the EWT is to be returned"),
     lookback_minutes: str = typer.Option(..., "--lookback-minutes", help="Integer between 5 and 240 (4 hours) signifying how long back to look at the data points to determine EWT for this queue"),
@@ -21,7 +21,7 @@ def show(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Estimated Wait Time."""
+    """Get Estimated Wait Time.\n\n\b\nExample: wxcli cc-ewt show --queue-id QUEUE_ID --lookback-minutes LOOKBACK_MINUTES"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/ewt"

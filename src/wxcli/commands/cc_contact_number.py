@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-contact-number.")
 
 _BODY_SKELETON_CREATE = '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Contact Number.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -27,7 +27,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Contact Number\n\nExample --json-body:\n  '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Create a new Contact Number.\n\n\b\nExample: wxcli cc-contact-number create --number NUMBER\n\n\b\nExample --json-body: '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -73,7 +73,7 @@ def create(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List all contact numbers(property - number).")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -106,7 +106,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Contact Number(s).")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -114,7 +114,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Contact Number(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Contact Number(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -144,7 +144,7 @@ def create_bulk(
 
 
 
-@app.command("list-bulk-export")
+@app.command("list-bulk-export", short_help="Bulk export Contact Number(s).")
 def list_bulk_export(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -181,14 +181,14 @@ def list_bulk_export(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Contact Number by ID.")
 def show(
     id: str = typer.Argument(help="id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Contact Number by ID."""
+    """Get specific Contact Number by ID.\n\n\b\nExample: wxcli cc-contact-number show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -205,7 +205,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Contact Number by ID.")
 def update(
     id: str = typer.Argument(help="id"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
@@ -220,7 +220,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Contact Number by ID\n\nExample --json-body:\n  '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Update specific Contact Number by ID.\n\n\b\nExample: wxcli cc-contact-number update ID --number NUMBER\n\n\b\nExample --json-body: '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -259,7 +259,7 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Contact Number by ID.")
 def delete(
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -267,7 +267,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Contact Number by ID."""
+    """Delete specific Contact Number by ID.\n\n\b\nExample: wxcli cc-contact-number delete ID"""
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
@@ -289,7 +289,7 @@ def delete(
 
 
 
-@app.command("list-contact-number")
+@app.command("list-contact-number", short_help="List Contact Number(s).")
 def list_contact_number(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),

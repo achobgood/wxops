@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling hybrid-connectors.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Hybrid Connectors.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -43,14 +43,14 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Hybrid Connector Details.")
 def show(
-    connector_id: str = typer.Argument(help="connectorId"),
+    connector_id: str = typer.Argument(help="e.g. Y2lZY76123, from: wxcli hybrid-connectors list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Hybrid Connector Details."""
+    """Get Hybrid Connector Details.\n\n\b\nExample: wxcli hybrid-connectors show Y2lZY76123"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hybrid/connectors/{connector_id}"
     try:
