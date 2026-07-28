@@ -196,7 +196,7 @@ class InformationalExtractor(BaseExtractor):
         """
         note = f"{operation} unsupported on AXL {self.conn.version} — skipped"
         logger.info("[%s] %s", self.name, note)
-        result.errors.append(note)
+        result.record_unsupported(note)
 
     def _fetch_common_phone_config_details(
         self, items: list[dict[str, Any]], result: ExtractionResult,

@@ -179,6 +179,10 @@ class AXLConnection:
         self.host = host
         self.port = port
         self.version = version
+        # AXL method name -> returnedTags this schema rejected and _call_list
+        # dropped. Accumulates for the life of the connection; discovery
+        # snapshots it around each extractor to attribute drops to one of them.
+        self.dropped_tags: dict[str, list[str]] = {}
 
         session = Session()
         session.auth = HTTPBasicAuth(username, password)
@@ -301,6 +305,12 @@ class AXLConnection:
                     raise
                 bad = match.group(1)
                 del returned_tags[bad]
+                # The warning is transient; the accumulator is what survives
+                # into raw_data.json, so a partial result cannot later be
+                # mistaken for a complete one.
+                recorded = self.dropped_tags.setdefault(method_name, [])
+                if bad not in recorded:
+                    recorded.append(bad)
                 logger.warning(
                     "%s: AXL schema has no returnedTag %r — dropped, retrying",
                     method_name,
@@ -308,6 +318,26 @@ class AXLConnection:
                 )
                 if not returned_tags:
                     raise
+
+    def dropped_tags_snapshot(self) -> dict[str, list[str]]:
+        """Point-in-time copy of the dropped-tag accumulator."""
+        return {method: list(tags) for method, tags in self.dropped_tags.items()}
+
+    def dropped_tags_since(
+        self, snapshot: dict[str, list[str]],
+    ) -> dict[str, list[str]]:
+        """Tags dropped after ``snapshot`` was taken.
+
+        One connection is shared by every extractor, so attribution is by
+        delta rather than by asking the connection who is running.
+        """
+        delta: dict[str, list[str]] = {}
+        for method, tags in self.dropped_tags.items():
+            already = set(snapshot.get(method, ()))
+            new = [t for t in tags if t not in already]
+            if new:
+                delta[method] = new
+        return delta
 
     def get_detail(
         self, method_name: str, **kwargs: Any

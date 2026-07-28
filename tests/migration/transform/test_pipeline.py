@@ -170,3 +170,34 @@ class TestNormalizeDiscovery:
         raw_data = {"locations": {}}  # No device_pools key
         summary = normalize_discovery(raw_data, store)
         assert summary["pass1"].get("locations/device_pools", 0) == 0
+
+    def test_ignores_collection_status_key(self, store):
+        """discover writes _collection_status alongside the extractor sections.
+
+        It is metadata about the run, not extractor data — normalization must
+        pass over it and produce exactly the same result as without it.
+        """
+        baseline = normalize_discovery(_make_raw_data(), store)
+
+        raw_data = _make_raw_data()
+        raw_data["_collection_status"] = {
+            "run_type": "discovery",
+            "cucm_version": "14.0.1.11900(132)",
+            "total_objects": 1141,
+            "total_failed": 0,
+            "extractors": {
+                "moh": {
+                    "name": "moh",
+                    "total": 0,
+                    "failed": 0,
+                    "status": "failed",
+                    "errors": ["listMohAudioSource failed"],
+                    "unsupported": [],
+                    "dropped_tags": {},
+                },
+            },
+        }
+        summary = normalize_discovery(raw_data, store)
+
+        assert summary["pass1"] == baseline["pass1"]
+        assert "_collection_status" not in " ".join(summary["pass1"])

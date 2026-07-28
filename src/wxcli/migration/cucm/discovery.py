@@ -40,6 +40,11 @@ from wxcli.migration.store import MigrationStore
 logger = logging.getLogger(__name__)
 console = Console()
 
+# Top-level raw_data key holding per-extractor collection status. Underscored
+# so it can never collide with an extractor name — every other top-level key
+# in raw_data is one of EXTRACTOR_ORDER.
+COLLECTION_STATUS_KEY = "_collection_status"
+
 # Extraction order (from 02b §1).
 # Extractors are independent at the extraction phase — order is flexible.
 # shared_lines and workspaces are post-processing steps, not AXL extractors,
@@ -87,6 +92,14 @@ class DiscoveryResult:
       ``time_periods``
     - ``raw_data["voicemail"]``: ``voicemail_profiles``, ``voicemail_pilots``,
       and optionally ``unity_user_settings`` (dict keyed by CUCM userid)
+
+    **Collection status:** ``raw_data["_collection_status"]`` is not extractor
+    data. It records how each section was arrived at — per-extractor ``total``,
+    ``failed``, ``status`` (ok/partial/failed/unsupported), ``errors``,
+    ``unsupported`` and ``dropped_tags`` — so an empty section can be told
+    apart from one that could not be collected. Consumers key into raw_data by
+    extractor name and never see it; anything that iterates top-level keys must
+    skip it.
     """
 
     def __init__(self) -> None:
@@ -118,6 +131,25 @@ class DiscoveryResult:
                 for name, r in self.extractor_results.items()
             },
         }
+
+    def to_collection_status(self) -> dict[str, Any]:
+        """Per-extractor collection status, persisted into raw_data.json.
+
+        An empty section in ``raw_data`` is ambiguous on its own: the cluster
+        may have none of that object, or every call for it may have failed.
+        This is the record that resolves it, so normalize/map/analyze and the
+        assessment report never have to infer which zero they are looking at.
+
+        Reuses ``to_summary()`` for the run envelope and replaces only the
+        ``extractors`` section — the journal keeps its narrower shape.
+        """
+        status = self.to_summary()
+        status["extractors"] = {
+            name: r.to_status() for name, r in self.extractor_results.items()
+        }
+        status["total_objects"] = self.total_objects
+        status["total_failed"] = self.total_failed
+        return status
 
 
 def run_discovery(
@@ -172,12 +204,16 @@ def run_discovery(
         extractor = extractors[name]
         logger.info("--- Running extractor: %s ---", name)
         console.print(f"  Extracting {name}...")
+        # The connection is shared, so bracket the run to attribute any
+        # returnedTag it drops to the extractor that provoked it.
+        tags_before = connection.dropped_tags_snapshot()
         try:
             ext_result = extractor.extract()
         except Exception as exc:
             logger.error("[%s] Extraction failed: %s", name, exc)
             ext_result = ExtractionResult(extractor=name)
             ext_result.errors.append(f"Unrecoverable error: {exc}")
+        ext_result.dropped_tags = connection.dropped_tags_since(tags_before)
 
         result.extractor_results[name] = ext_result
         result.raw_data[name] = extractor.results
@@ -185,6 +221,11 @@ def run_discovery(
         if ext_result.errors:
             for err in ext_result.errors:
                 console.print(f"  [yellow]{name}: {err}[/yellow]")
+        for method, tags in ext_result.dropped_tags.items():
+            console.print(
+                f"  [yellow]{name}: {method} collected without "
+                f"{', '.join(tags)} — absent from this AXL schema[/yellow]"
+            )
 
     # Extract Unity Connection per-user voicemail settings if client available
     if unity_client is not None:
@@ -197,6 +238,11 @@ def run_discovery(
         result.raw_data.setdefault("voicemail", {})["unity_user_settings"] = unity_settings
 
     result.completed_at = datetime.now(timezone.utc).isoformat()
+
+    # Persist how each zero was arrived at, alongside the data itself. The
+    # leading underscore keeps this out of the extractor-name namespace that
+    # RAW_DATA_MAPPING reads.
+    result.raw_data[COLLECTION_STATUS_KEY] = result.to_collection_status()
 
     # Write summary to journal (from 02b §1: discovery run summary)
     # Ensure the system sentinel object exists so the FK constraint is satisfied

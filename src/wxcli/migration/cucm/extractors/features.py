@@ -163,7 +163,7 @@ class FeatureExtractor(BaseExtractor):
             f"(AXL {self.conn.version}) — {detail} — skipped"
         )
         logger.info("[%s] %s", self.name, note)
-        result.errors.append(note)
+        result.record_unsupported(note)
 
     # ------------------------------------------------------------------
     # Common list+get pattern

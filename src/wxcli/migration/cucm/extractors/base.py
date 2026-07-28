@@ -30,10 +30,60 @@ class ExtractionResult:
     total: int = 0
     failed: int = 0
     errors: list[str] = field(default_factory=list)
+    #: Subset of ``errors`` meaning "this schema cannot answer that" rather
+    #: than "the query failed". Every entry is also in ``errors``, so the
+    #: human-facing consumers that predate this field are unchanged.
+    unsupported: list[str] = field(default_factory=list)
+    #: AXL method name -> returnedTags the schema rejected, which the
+    #: connection dropped so the rest of the call could succeed. A non-empty
+    #: entry means these objects were collected WITHOUT those fields.
+    dropped_tags: dict[str, list[str]] = field(default_factory=dict)
 
     @property
     def success_count(self) -> int:
         return self.total - self.failed
+
+    def record_unsupported(self, note: str) -> None:
+        """Record work this CUCM/AXL schema does not support.
+
+        Appends to ``errors`` (what humans read) and to ``unsupported`` (what
+        ``status`` classifies on). Deliberately does not touch ``failed`` —
+        work that was never possible is not a failed attempt.
+        """
+        self.errors.append(note)
+        self.unsupported.append(note)
+
+    @property
+    def status(self) -> str:
+        """``ok`` | ``partial`` | ``failed`` | ``unsupported``.
+
+        A ``total`` of 0 has four possible meanings and they are not
+        interchangeable: the cluster genuinely has none of these (``ok``), no
+        call succeeded (``failed``), or nothing was askable on this schema
+        (``unsupported``). ``partial`` means data arrived but something was
+        lost — a failed sub-query, a skipped one, or a dropped field.
+        """
+        skipped = set(self.unsupported)
+        hard_errors = [e for e in self.errors if e not in skipped]
+        if hard_errors or self.failed:
+            return "failed" if self.total == 0 else "partial"
+        if self.unsupported:
+            return "unsupported" if self.total == 0 else "partial"
+        if self.dropped_tags:
+            return "partial"
+        return "ok"
+
+    def to_status(self) -> dict[str, Any]:
+        """Machine-readable collection status, for persisting into raw_data.json."""
+        return {
+            "name": self.extractor,
+            "total": self.total,
+            "failed": self.failed,
+            "status": self.status,
+            "errors": list(self.errors),
+            "unsupported": list(self.unsupported),
+            "dropped_tags": {m: list(t) for m, t in self.dropped_tags.items()},
+        }
 
 
 class ExtractionError(Exception):
