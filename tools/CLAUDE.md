@@ -368,6 +368,33 @@ was a dict lookup for a key of that literal name and every Email cell rendered
 blank. The accessor is `emails`: a list-valued accessor already yields its
 first element (`output.py:144`). Verified before and after, not inferred.
 
+**The monitoring union was settled live, not by reading.** Three commands
+(`person-call-settings list`, `my-call-settings list-monitoring`,
+`workspace-settings list-monitoring`) were left unfixed in the first pass
+because the spec contradicted itself: `MonitoredElementItem` declares three
+*object* properties (`member`/`callparkextension`/`speedDial`), while the
+spec's own `example` shows flat records with `id`/`displayName` at the top
+level. Guessing either way risked re-creating the exact bug being fixed. A live
+configure→read→revert on a real monitored user settled it **2026-07-27: the
+schema is right and the example is wrong** — every entry is wrapped
+(`{"member": {"displayName": "Dev Patel", ...}}`). Each row populates exactly
+one of the three keys, so the override carries one column per kind and lets the
+others resolve empty on that row. Before the fix these rendered a single empty
+`Value` column (every accessor missed, so `auto_columns` fired and found no
+scalar to show). Two further facts from the same run, now in
+`docs/reference/person-call-settings-behavior.md`: the API **omits**
+`monitoredElements` entirely when nothing is monitored rather than returning
+`[]`, and `availableEntriesCount` decrements while a target is monitored.
+
+**A tag override must be keyed on the MERGED tag name.** The first attempt
+keyed the `my-call-settings` entry on the spec tag `Call Settings For Me`;
+`tag_merges` folds that tag plus three UserHub phase tags into `My Call
+Settings`, and overrides resolve by the merged name. The entry parsed, the
+YAML-validity tests passed, and the columns never applied — silently inert.
+Caught only by diffing the regenerated file for the columns that should have
+appeared. Check the `tag_merges` block before adding an override for any
+group whose commands come from more than one spec tag.
+
 **Gate check 9 makes it permanent.** `check_table_columns` re-runs the audit
 over the *generated* files on every gate run: 215 findings at `HEAD`, 0 after.
 Three exclusions, each of which was a real false positive first:

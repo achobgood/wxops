@@ -487,11 +487,41 @@
       - ["Phone Number", "phoneNumber"]
       - ["State", "state"]
 
+# monitoredElements is a UNION, verified live 2026-07-27 against a real
+# monitored user: every entry is wrapped — {"member": {...}} — never flat.
+# (The spec's own example shows flat records with id/displayName at the top
+# level; the example is wrong, the schema is right. Settled by a live GET, not
+# by reading.) Each row populates exactly ONE of member / callparkextension /
+# speedDial, so one column per kind is the only set that covers all three; the
+# other columns resolve empty on that row, which _resolve_accessor handles.
+# Nothing here can be derived from the schema — the item's own properties are
+# all objects, so the renderer's schema-derived default correctly declines and
+# these three commands need an explicit override.
+_monitored_element_cols: &monitored_element_cols
+  - ["Member", "member.displayName"]
+  - ["Email", "member.email"]
+  - ["Call Park Extension", "callparkextension.name"]
+  - ["Extension", "callparkextension.extension"]
+  - ["Speed Dial", "speedDial.displayName"]
+
+"Person Call Settings":
+  table_columns:
+    list: *monitored_element_cols
+
+# "My Call Settings", not the spec tag "Call Settings For Me": tag_merges folds
+# that tag plus the three UserHub phase tags into this one group, and overrides
+# are looked up by the MERGED name. Keying it on the source tag is silently
+# inert — the entry parses, the tests pass, and the columns never apply.
+"My Call Settings":
+  table_columns:
+    list-monitoring: *monitored_element_cols
+
 "Workspace Call Settings":
   table_columns:
     list:
       - ["Number", "directNumber"]
       - ["Extension", "extension"]
+    list-monitoring: *monitored_element_cols
 
 "Features: Customer Experience Essentials":
   table_columns:
