@@ -97,6 +97,57 @@ Mock server URLs (public, no auth required — return saved response examples):
   many. Before trusting a zero, mutate the exemption and confirm the check can
   still fail — check 9 and check 2 both reported a confident 0 while broken.
 
+## When Cisco ships new endpoints — what is automatic, what is gated, what is on you
+
+Read this before running `spec_sync.py` against a refreshed spec. It exists because the
+2026-07-28 fix wave closed 15 audit defects, and the honest question afterwards was:
+*which of these come straight back with the next batch of endpoints?*
+
+**AUTOMATIC — a new endpoint gets these for free. Do not re-solve them.**
+
+| | Where it happens |
+|---|---|
+| Argument help: value shape + which command produces the value | `command_renderer._argument_help` / `build_producer_index` |
+| A runnable example per command | `command_renderer` |
+| Full group-screen summary (bypasses Click's 45-char cap) | `_command_decorator` emits `short_help` |
+| Table columns derived from the 200 response schema | `_derive_default_columns` |
+| Confirm prompt names the resource, after its value resolves | `_command_decorator` + emit ordering |
+| Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
+| List/dict table cells render without dropping data | `output._render_cell` |
+
+**GATED — if it recurs, a check fails and tells you.** Checks 1-10 in this file's header,
+plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
+stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
+someone pins `spec_authority` with evidence.
+
+**NOT GATED — these WILL come back silently, and only a human is deciding:**
+
+1. **Numeric-suffix names.** `_dedup_command_names` resolves a name collision by appending
+   `-1`, `-2`, which carries no meaning. **42 are shipping right now.** Every new colliding
+   operation adds one. `aws connect` has 370 operations and zero numeric suffixes; Phase 1
+   called this the clearest loss to the rival.
+2. **A bare verb whose target is not the group's headline resource.** `hds list` returned
+   clusters while `show-database` returned the database; `location-settings list` returns
+   dial patterns; `cc-journey delete` deletes a person. The generator names from the HTTP
+   method, so whichever operation parses first claims `list`/`delete` regardless of what it
+   points at. This is the single most expensive defect shape in the tool — the obvious name
+   runs, exits 0, and answers a different question.
+
+**Both classes were found by `docs/superpowers/quality-loop/artifacts/detectors/d3-verbs/`,
+which was run once as a script and never promoted into `drift_check.py`.** That is the gap.
+A detector you run once is a cleanup; a detector in the gate is a ratchet. Promoting d3 —
+numeric suffixes and resource mismatches — is the highest-value remaining gate work, and the
+renaming machinery it would feed (`command_name_overrides` + automatic hidden alias) is
+already built, proven and tested.
+
+**Reviewing a regen diff — what to actually look at:**
+- **Renames, not just additions.** Known issue #18: a new operation can win a name race
+  within a tag and silently demote an operator-facing command. Diff `@app.command` names.
+- **Any new `-N` suffix.** That is a naming decision the generator could not make; make it.
+- **Any new bare `list`/`show`/`delete`/`create`.** Check what its URL actually terminates
+  in. If it is not the group's headline resource, name it for what it does.
+- **`git diff` on `_registry.py`** for groups appearing or disappearing.
+
 ## Decision Record — CLI Surface
 
 Why the generated CLI looks the way it does. Recorded because each of these was
