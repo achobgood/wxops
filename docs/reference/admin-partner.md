@@ -69,7 +69,7 @@ Manage assignment of partner administrators to customer organizations.
 wxcli switch-org Y2lzY29zcGFyazovL3VzL09SR...
 
 # List all customer orgs managed by the authenticated partner
-wxcli partner-admins list
+wxcli partner-admins list --managed-by PERSON_ID
 
 # List customer orgs managed by a specific partner admin
 wxcli partner-admins list --managed-by Y2lzY29zcGFyazovL3...
@@ -293,7 +293,7 @@ The `list` command extracts items from the `Report Attributes` key in the API re
 
 ```bash
 # Get all customer orgs (paginated, default table output)
-wxcli partner-admins list -o json
+wxcli partner-admins list --managed-by PERSON_ID -o json
 
 # Get orgs managed by a specific partner admin
 wxcli partner-admins list --managed-by PARTNER_ADMIN_PERSON_ID -o json

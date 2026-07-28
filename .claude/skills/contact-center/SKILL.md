@@ -952,7 +952,7 @@ wxcli cc-subscriptions list-event-types-v2 -o json
 **List tasks:**
 
 ```bash
-wxcli cc-tasks list -o json
+wxcli cc-tasks list --from 1784592000000 -o json
 ```
 
 **Accept a task:**

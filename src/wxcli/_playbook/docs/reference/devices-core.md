@@ -807,11 +807,11 @@ wxcli device-dynamic-settings list-settings-groups \
 
 # Get org-level (customer) dynamic settings for a device model
 wxcli device-dynamic-settings get-customer-device \
-  --json-body '{"familyOrModelDisplayName": "Cisco 8845"}'
+  --family-or-model-display-name "Cisco 8845"
 
 # Get location-level dynamic settings
 wxcli device-dynamic-settings get-location-device LOCATION_ID \
-  --json-body '{"familyOrModelDisplayName": "Cisco 8845"}'
+  --family-or-model-display-name "Cisco 8845"
 
 # Get dynamic settings for a specific device
 wxcli device-dynamic-settings get-device-dynamic DEVICE_ID

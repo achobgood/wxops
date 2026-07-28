@@ -687,7 +687,7 @@ Next steps:
 
 5. **Bulk operations can partially fail** -- A `scim-bulk create` request can succeed for some operations and fail for others. The `--fail-on-errors` parameter controls the abort threshold. Always check the response body for per-operation `status` codes (e.g., `201` for created, `409` for duplicate).
 
-6. **`/me` endpoint requires user-level token, not admin** -- `scim-users show-me` and `people list-me` return the identity of the authenticated user. These fail with admin service-app tokens because service apps do not represent a person. Use a user-level OAuth token.
+6. **`/me` endpoint requires user-level token, not admin** -- `scim-users show-me` and `people show-me` return the identity of the authenticated user. These fail with admin service-app tokens because service apps do not represent a person. Use a user-level OAuth token.
 
 7. **Domain verification requires DNS TXT record -- this skill cannot verify DNS** -- After providing the verification token, instruct the user to add the TXT record and wait for propagation (typically 15-60 minutes, up to 48 hours). Do not call `verify-domain` until the user confirms the TXT record is in place.
 

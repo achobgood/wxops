@@ -45,7 +45,8 @@ def _run(monkeypatch, paths: dict[str, str], allow: set[str],
 
     monkeypatch.setattr(dc, "tracked_files", fake_tracked_files)
     monkeypatch.setattr(dc, "load_allowlist", lambda: allow)
-    dead, _group_refs = dc.check_references(surface or {}, top_level or set())
+    dead, _group_refs, _prefixless = dc.check_references(
+        surface or {}, top_level or set())
     by_abs = {v: k for k, v in paths.items()}
     return [{**d, "file": by_abs[d["file"]]} for d in dead]
 
@@ -124,7 +125,7 @@ def test_the_live_tree_has_no_dead_references():
     which is where that behaviour belongs.
     """
     surface, top_level = dc.build_cli_surface()
-    dead, _ = dc.check_references(surface, top_level)
+    dead, _, _ = dc.check_references(surface, top_level)
     assert dead == [], (
         f"{len(dead)} dead wxcli reference(s): "
         + ", ".join(f"{d['file']}:{d['line']} {d['ref']}" for d in dead[:10])

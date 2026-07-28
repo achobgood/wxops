@@ -303,7 +303,7 @@ CloudEvents 1.0 specification and are ingested asynchronously.
 
 ```bash
 # Publish a custom journey event
-wxcli cc-journey create-event --json-body '{
+wxcli cc-journey create-event --workspace-id WORKSPACE_ID --json-body '{
   "id": "unique-event-id",
   "specversion": "1.0",
   "type": "custom:store_verified",

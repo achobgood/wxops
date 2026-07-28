@@ -115,30 +115,48 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-10 in this file's header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-12 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
 
-**NOT GATED — these WILL come back silently, and only a human is deciding:**
+**GATED SINCE 2026-07-28 — d3 is promoted.** Both classes below used to be listed here as
+"WILL come back silently". `tools/verb_naming.py` now classifies them and `drift_check.py`
+check 12 gates them, so a regen cannot land new naming debt unnoticed.
 
 1. **Numeric-suffix names.** `_dedup_command_names` resolves a name collision by appending
-   `-1`, `-2`, which carries no meaning. **42 are shipping right now.** Every new colliding
-   operation adds one. `aws connect` has 370 operations and zero numeric suffixes; Phase 1
-   called this the clearest loss to the rival.
+   `-1`, `-2`, which carries no meaning. **42 visible are shipping right now** (48 decorators
+   on disk − 2 in gitignored dev-only `fs_*` modules − 4 hidden rename aliases; count
+   git-tracked, not local). Every new colliding operation adds one. `aws connect` has 370
+   operations and zero numeric suffixes; Phase 1 called this the clearest loss to the rival.
 2. **A bare verb whose target is not the group's headline resource.** `hds list` returned
    clusters while `show-database` returned the database; `location-settings list` returns
    dial patterns; `cc-journey delete` deletes a person. The generator names from the HTTP
    method, so whichever operation parses first claims `list`/`delete` regardless of what it
    points at. This is the single most expensive defect shape in the tool — the obvious name
-   runs, exits 0, and answers a different question.
+   runs, exits 0, and answers a different question. **156 findings: 129 HIGH, 27 MEDIUM,
+   0 CRITICAL.**
 
-**Both classes were found by `docs/superpowers/quality-loop/artifacts/detectors/d3-verbs/`,
-which was run once as a script and never promoted into `drift_check.py`.** That is the gap.
-A detector you run once is a cleanup; a detector in the gate is a ratchet. Promoting d3 —
-numeric suffixes and resource mismatches — is the highest-value remaining gate work, and the
-renaming machinery it would feed (`command_name_overrides` + automatic hidden alias) is
-already built, proven and tested.
+**The threshold, and why it is not CRITICAL-only.** CRITICAL+HIGH fails the build; MEDIUM is
+reported. Gating on CRITICAL alone was the tempting choice and would have been worthless: the
+only CRITICAL findings anywhere are the four `update-access-codes` commands kept by decision
+on 2026-07-14, so the gate could never fire, and it would have caught **0 of the 28 renames**
+Phase 2 landed. A check that always reports zero is the exact failure this file's Generator
+Rules section warns about. Numeric suffixes fail at any severity — a `-N` name carries no
+meaning, so it is always a decision the generator could not make.
+
+**The ack list is a debt snapshot, not an argument.** 171 entries (42 + 129) record what
+shipped on 2026-07-28 so existing debt does not block every commit while new debt does. It
+copies `verb_semantics_ack`'s contract exactly: keyed per OPERATION (`<kind> <METHOD> <path>`),
+carrying its evidence as a comment, and re-validated on every run — an ack whose command was
+renamed, whose severity changed, or whose operation disappeared is reported STALE and fails.
+Deleting a fixed command's ack is part of fixing it. Proven by mutation in all three
+directions (drop an ack → fail; rename the acked command → fail; ack a non-existent op →
+fail).
+
+The renaming machinery this feeds is already built and proven by 28 renames:
+`command_name_overrides` plus an automatic hidden alias. To fix instead of acking, rename
+there and delete the ack.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
@@ -696,6 +714,62 @@ corrupted 15 working examples to satisfy a broken check. **When a doc fix requir
 contorting the doc — brace-grouping a redirect, reordering prose around an inline
 code span — suspect the checker, not the doc.** Two such workarounds were applied
 during this session and reverted once the parser was fixed.
+
+### Checks 11a/11b/12, and the blind spot all of them shared (2026-07-28)
+
+**One regex hid three checks' worth of findings.** `TOKEN` (check 2) and `FLAG_CMD`
+(checks 6/7/10) both required a literal `wxcli`. Skill quick-reference tables routinely drop
+it — `| Get cluster details | `video-mesh show CLUSTER_ID` |` — so every citation in that
+form was invisible to every check. Measured: **639** prefixless spans head a registered
+group, **14** named a command that does not exist, and check 2 reported **0**. `command_heads`
+is now the single reader for checks 2, 10, 11a and 11b, so a citation is either visible to
+all of them or to none.
+
+Two guards make the widening safe, and both are load-bearing:
+- **Anchored at the span start.** 1232 spans match `<word> <word>`; only 639 head a group.
+- **The first token must be a REGISTERED GROUP.** Removing this guard alone takes check 2
+  from 0 to **247** findings — ordinary English prose.
+- Plus a word boundary after the command token, which is what stops
+  `emergency-services show/create/update` (slash-notation prose) reading as a 1-argument
+  invocation of `show`. That was the rule's only false positive across the whole doc set.
+
+**Check 11a — a required FLAG is missing.** Check 10 counts positionals only, so an example
+can have the right argument count and still abort: `wxcli video-mesh show CLUSTER_ID --output
+json` supplies the one positional `show` declares and dies on the missing `--from`/`--to`.
+98 commands declare at least one `typer.Option(...)`.
+
+> **Read the RENDERED command, never the spec.** `auto_inject_from_config` supplies orgId
+> from saved config, so a parameter the spec marks required is legitimately absent from
+> `--help`. Measured: a spec-driven version of this check produces **12 false positives**
+> (11 `orgId` + 1 `limitToLocationId`). Also verified: **0 of 158** required options are
+> request-body fields — all are query or path parameters — so `--json-body` never substitutes
+> for one, and neither does `--generate-json-body`, which Click never reaches until after it
+> has enforced them. `tests/test_drift_check_naming.py` pins that 0.
+
+Only FENCED examples fail. An inline single-backtick citation is a reference-table entry
+naming a variant, not an invocation — `wxcli xapi list --command` / `--status` sit in a
+decision-matrix cell contrasting the two flags, and demanding `--device-id` there would force
+a runnable command into a table that is not offering one.
+
+**Check 11b — the doc placeholder names the wrong resource.** Two tiers, deliberately not one
+number. Tier 1 (gated) needs the declared kind and the placeholder to both be explicit and
+disagree. Tier 2 (advisory, 16 today) is the bare-`UUID` case — `wxcli meetings show
+TEMPLATE_ID`, where kind-matching cannot decide and the only signal is the producer command;
+that is a heuristic about English and never fails the build.
+
+> **The check found a CLI defect, not a doc defect.** Tier 1's first run reported **240**
+> findings. They were overwhelmingly wrong, because **79 of the 1049 kind-carrying arguments
+> declare a kind their own parameter name contradicts** — `location_id` help-typed
+> "Webex PEOPLE id", `hunt_group_id` typed LOCATION, `call_queue_id` typed HUNT_GROUP. On
+> those the doc is right and the help is wrong, so 79 arguments are excluded from tier 1 and
+> reported on their own advisory line. Fixing them is generator work in the argument-help
+> producer index. With the exclusion plus a small English-synonym set (PERSON/PEOPLE/USER,
+> PLACE/PLACES/WORKSPACE), tier 1 goes 240 → 0, and a planted mismatch still fires.
+
+**Validate by mutation, not by a clean run.** Every one of these was proven by making it
+fail: check 2 finds 8 with the widening and 0 without, on identical docs; check 10 finds 10
+and 0; check 11a fires on 11 when one file is reverted; check 11b tier 1 fires on 2 planted
+placeholders. A check reporting 0 deserves more suspicion than one reporting many.
 
 ### Rich strips colour on a non-TTY but keeps box-drawing
 

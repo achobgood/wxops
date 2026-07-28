@@ -1383,3 +1383,1138 @@ tag_overrides:
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# naming_ack — command names whose obvious reading is wrong, acknowledged
+# ═══════════════════════════════════════════════════════════════════════════════
+# Read by drift_check.py check 12 (tools/verb_naming.py does the classifying).
+#
+# WHAT THIS IS. Two defect classes the generator cannot decide for itself:
+#   numeric-suffix    `_dedup_command_names` broke a name collision with -1/-2,
+#                     which tells the caller nothing.
+#   resource-mismatch a bare list/show/create/update/delete whose URL targets
+#                     something other than the group's headline resource. The
+#                     obvious name runs, exits 0, and answers a different
+#                     question.
+#
+# THE THRESHOLD (Adam, 2026-07-28). CRITICAL+HIGH fails the build. CRITICAL
+# alone would gate nothing: the only CRITICAL findings anywhere are the four
+# `update-access-codes` commands kept by decision on 2026-07-14. Numeric
+# suffixes fail at any severity. MEDIUM is reported, never gated.
+#
+# WHAT AN ENTRY MEANS. "This shipped on 2026-07-28 and we are not renaming it
+# today." It is a snapshot of existing debt so that NEW debt fails the build —
+# it is not an argument that the name is good.
+#
+# HOW IT CANNOT ROT. The key is the OPERATION (`<kind> <METHOD> <path>`), and
+# the entry records the command name and severity it was written for. Rename
+# the command, or have it reclassify, and check 12 reports the ack as STALE and
+# fails — so an exemption can never drift onto a name nobody reviewed. Deleting
+# a fixed command's ack is part of fixing it.
+#
+# TO FIX ONE INSTEAD OF ACKING IT: rename via the tag's command_name_overrides;
+# the generator keeps the old name as a hidden alias automatically.
+naming_ack:
+  # numeric suffix: the -N carries no meaning
+  #   does: Share a Recording Link.
+  "numeric-suffix POST /v1/recordings/accessList":
+    command: admin-recordings create-access-list-recordings-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Location Announcement File URI.
+  "numeric-suffix GET /v1/telephony/config/locations/{location_id}/announcements/{announcement_id}/fileUri":
+    command: announcements show-file-uri-announcements-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Delete a DNIS for a Call Queue.
+  "numeric-suffix DELETE /v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}":
+    command: call-queue delete-dnis-queues-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Delete a Supervisor.
+  "numeric-suffix DELETE /v1/telephony/config/supervisors/{supervisor_id}":
+    command: call-queue delete-supervisors-config-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Call Recording Vendor Users for a Location.
+  "numeric-suffix GET /v1/telephony/config/locations/{location_id}/callRecording/vendorUsers":
+    command: call-recording list-vendor-users-call-recording-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Location Call Recording Announcement Settings.
+  "numeric-suffix GET /v1/telephony/config/locations/{location_id}/callRecording/announcements":
+    command: call-recording show-announcements-call-recording-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get details for the Location Compliance Announcement Setting.
+  "numeric-suffix GET /v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement":
+    command: call-recording show-compliance-announcement-call-recording-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Update Location Call Recording Announcement Settings.
+  "numeric-suffix PUT /v1/telephony/config/locations/{location_id}/callRecording/announcements":
+    command: call-recording update-announcements-call-recording-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Update the Location Compliance Announcement.
+  "numeric-suffix PUT /v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement":
+    command: call-recording update-compliance-announcement-call-recording-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Set Organization Call Recording Vendor.
+  "numeric-suffix PUT /v1/telephony/config/callRecording/vendor":
+    command: call-recording update-vendor-call-recording-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Create a Translation Pattern for a Location.
+  "numeric-suffix POST /v1/telephony/config/locations/{location_id}/callRouting/translationPatterns":
+    command: call-routing create-translation-patterns-call-routing-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Delete a specific Translation Pattern for a Location.
+  "numeric-suffix DELETE /v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}":
+    command: call-routing delete-translation-patterns-call-routing-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Retrieve a specific Translation Pattern for a Location.
+  "numeric-suffix GET /v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}":
+    command: call-routing show-translation-patterns-call-routing-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Modify a specific Translation Pattern for a Location.
+  "numeric-suffix PUT /v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}":
+    command: call-routing update-translation-patterns-call-routing-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Reload.
+  "numeric-suffix POST {cc_base_url}/v2/agents/reload":
+    command: cc-agents create-reload-agents-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: State Change.
+  "numeric-suffix PUT {cc_base_url}/v2/agents/session/state":
+    command: cc-agents update-state-session-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Stream Progressive profile Views By Template Id.
+  "numeric-suffix GET {cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}":
+    command: cc-journey show-template-id-identity-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get all Journey Actions for a template.
+  "numeric-suffix GET {cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}":
+    command: cc-journey show-template-id-workspace-id-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Stream Progressive profile Views By Template Name.
+  "numeric-suffix GET {cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}":
+    command: cc-journey show-template-name-identity-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: List Outdial ANI Entries.
+  "numeric-suffix GET {cc_base_url}/organization/{orgid}/v2/outdial-ani/{out_dial_ani_id}/entry":
+    command: cc-outdial-ani list-entry-outdial-ani-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Location Device Settings.
+  "numeric-suffix GET /v1/telephony/config/locations/{location_id}/devices/settings":
+    command: device-settings show-settings-devices-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Read the device override settings for a organization.
+  "numeric-suffix GET /v1/telephony/config/devices/settings":
+    command: device-settings show-settings-devices-2
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Device Settings for a Person.
+  "numeric-suffix GET /v1/telephony/config/people/{person_id}/devices/settings":
+    command: device-settings show-settings-devices-3
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Device Settings for a Workspace.
+  "numeric-suffix GET /v1/telephony/config/workspaces/{workspace_id}/devices/settings":
+    command: device-settings show-settings-devices-4
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Update Device Settings for a Person.
+  "numeric-suffix PUT /v1/telephony/config/people/{person_id}/devices/settings":
+    command: device-settings update-settings-devices-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Update Device Settings for a Workspace.
+  "numeric-suffix PUT /v1/telephony/config/workspaces/{workspace_id}/devices/settings":
+    command: device-settings update-settings-devices-2
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Retrieve A Person's Emergency Callback Number Dependencies.
+  "numeric-suffix GET /v1/telephony/config/people/{person_id}/emergencyCallbackNumber/dependencies":
+    command: emergency-services show-dependencies-emergency-callback-number-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Retrieve Workspace Emergency Callback Number Dependencies.
+  "numeric-suffix GET /v1/telephony/config/workspaces/{workspace_id}/emergencyCallbackNumber/dependencies":
+    command: emergency-services show-dependencies-emergency-callback-number-2
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Dependencies for a Virtual Line Emergency Callback Number.
+  "numeric-suffix GET /v1/telephony/config/virtualLines/{virtual_line_id}/emergencyCallbackNumber/dependencies":
+    command: emergency-services show-dependencies-emergency-callback-number-3
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get a Location's RedSky Compliance Status.
+  "numeric-suffix GET /v1/telephony/config/locations/{location_id}/redSky/status":
+    command: emergency-services show-status-red-sky-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Update a Location's RedSky Compliance Status.
+  "numeric-suffix PUT /v1/telephony/config/locations/{location_id}/redSky/status":
+    command: emergency-services update-status-red-sky-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Delete a Outgoing Permission Digit Pattern for a Location.
+  "numeric-suffix DELETE /v1/telephony/config/locations/{location_id}/outgoingPermission/digitPatterns/{digit_pattern_id}":
+    command: location-call-handling delete-digit-patterns-outgoing-permission-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Switch Mode for Single Feature.
+  "numeric-suffix POST /v1/telephony/config/people/me/settings/modeManagement/features/{feature_id}/actions/switchMode/invoke":
+    command: mode-management switch-mode-for-invoke-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Delete a Digit Pattern for a Person.
+  "numeric-suffix DELETE /v1/telephony/config/people/{person_id}/outgoingPermission/digitPatterns/{digit_pattern_id}":
+    command: user-settings delete-digit-patterns-outgoing-permission-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Search Shared-Line Appearance Members New.
+  "numeric-suffix GET /v1/telephony/config/people/{person_id}/applications/availableMembers":
+    command: user-settings list-available-members-applications-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Get Shared-Line Appearance Members New.
+  "numeric-suffix GET /v1/telephony/config/people/{person_id}/applications/members":
+    command: user-settings list-members-applications-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Modify a Digit Pattern for a Person.
+  "numeric-suffix PUT /v1/telephony/config/people/{person_id}/outgoingPermission/digitPatterns/{digit_pattern_id}":
+    command: user-settings update-digit-patterns-outgoing-permission-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Put Shared-Line Appearance Members New.
+  "numeric-suffix PUT /v1/telephony/config/people/{person_id}/applications/members":
+    command: user-settings update-members-applications-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Delete a Digit Pattern for a Virtual Profile.
+  "numeric-suffix DELETE /v1/telephony/config/virtualLines/{virtual_line_id}/outgoingPermission/digitPatterns/{digit_pattern_id}":
+    command: virtual-line-settings delete-digit-patterns-outgoing-permission-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Modify a Digit Pattern for a Virtual Profile.
+  "numeric-suffix PUT /v1/telephony/config/virtualLines/{virtual_line_id}/outgoingPermission/digitPatterns/{digit_pattern_id}":
+    command: virtual-line-settings update-digit-patterns-outgoing-permission-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Delete a Digit Pattern for the Workspace.
+  "numeric-suffix DELETE /v1/telephony/config/workspaces/{workspace_id}/outgoingPermission/digitPatterns/{digit_pattern_id}":
+    command: workspace-settings delete-digit-patterns-outgoing-permission-1
+    severity: HIGH
+  # numeric suffix: the -N carries no meaning
+  #   does: Modify a Digit Pattern for the Workspace.
+  "numeric-suffix PUT /v1/telephony/config/workspaces/{workspace_id}/outgoingPermission/digitPatterns/{digit_pattern_id}":
+    command: workspace-settings update-digit-patterns-outgoing-permission-1
+    severity: HIGH
+  # bare 'show' in group 'analytics' targets 'daily-totals' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'analytics' itself — the headline resource
+  # is UNREACHABLE, so the wrong answer is silent
+  #   does: Historical Data related to Messaging.
+  "resource-mismatch GET /v1/analytics/messagingMetrics/dailyTotals":
+    command: analytics show
+    severity: HIGH
+  # bare 'show' in group 'announcements' targets 'usage' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Fetch repository usage for announcements for an organization.
+  "resource-mismatch GET /v1/telephony/config/announcements/usage":
+    command: announcements show
+    severity: HIGH
+  # bare 'show' in group 'authorizations' targets 'token-expiry' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Get expiration status for a token.
+  "resource-mismatch GET /v1/authorizations/tokenExpiry":
+    command: authorizations show
+    severity: HIGH
+  # bare 'create' in group 'call-controls' targets 'dial' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Dial.
+  "resource-mismatch POST /v1/telephony/calls/dial":
+    command: call-controls create
+    severity: HIGH
+  # bare 'list' in group 'call-recording' targets 'regions' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get Call Recording Regions.
+  "resource-mismatch GET /v1/telephony/config/callRecording/regions":
+    command: call-recording list
+    severity: HIGH
+  # bare 'create' in group 'call-routing' targets 'dial-plans' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Create a Dial Plan.
+  "resource-mismatch POST /v1/telephony/config/premisePstn/dialPlans":
+    command: call-routing create
+    severity: HIGH
+  # bare 'delete' in group 'call-routing' targets 'dial-plans' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Delete a Dial Plan.
+  "resource-mismatch DELETE /v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}":
+    command: call-routing delete
+    severity: HIGH
+  # bare 'list' in group 'call-routing' targets 'usage-dial-plan' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Get Local Gateway Dial Plan Usage for a Trunk.
+  "resource-mismatch GET /v1/telephony/config/premisePstn/trunks/{trunk_id}/usageDialPlan":
+    command: call-routing list
+    severity: HIGH
+  # bare 'show' in group 'call-routing' targets 'usage' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Get Local Gateway Usage Count.
+  "resource-mismatch GET /v1/telephony/config/premisePstn/trunks/{trunk_id}/usage":
+    command: call-routing show
+    severity: HIGH
+  # bare 'update' in group 'call-routing' targets 'dial-patterns' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Modify Dial Patterns.
+  "resource-mismatch PUT /v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}/dialPatterns":
+    command: call-routing update
+    severity: HIGH
+  # bare 'list' in group 'call-settings-for-me-phase-5' targets 'available-
+  # hosts' — the name gives the caller no hint that the resource differs from
+  # the group; AND no command in this group addresses 'call-settings-for-me-
+  # phase-5' itself — the headline resource is UNREACHABLE, so the wrong
+  # answer is silent
+  #   does: Get Available Hoteling Hosts.
+  "resource-mismatch GET /v1/telephony/config/people/me/settings/hoteling/availableHosts":
+    command: call-settings-for-me-phase-5 list
+    severity: HIGH
+  # bare 'show' in group 'call-settings-for-me-phase-5' targets 'personal-
+  # assistant' — the name gives the caller no hint that the resource differs
+  # from the group; AND no command in this group addresses 'call-settings-for-
+  # me-phase-5' itself — the headline resource is UNREACHABLE, so the wrong
+  # answer is silent
+  #   does: Get Personal Assistant Settings.
+  "resource-mismatch GET /v1/telephony/config/people/me/settings/personalAssistant":
+    command: call-settings-for-me-phase-5 show
+    severity: HIGH
+  # bare 'update' in group 'call-settings-for-me-phase-5' targets 'personal-
+  # assistant' — the name gives the caller no hint that the resource differs
+  # from the group; AND no command in this group addresses 'call-settings-for-
+  # me-phase-5' itself — the headline resource is UNREACHABLE, so the wrong
+  # answer is silent
+  #   does: Update Personal Assistant Settings.
+  "resource-mismatch PUT /v1/telephony/config/people/me/settings/personalAssistant":
+    command: call-settings-for-me-phase-5 update
+    severity: HIGH
+  # bare 'list' in group 'caller-reputation' targets 'providers' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Get Caller Reputation Provider Providers.
+  "resource-mismatch GET /v1/telephony/config/serviceSettings/callerReputationProvider/providers":
+    command: caller-reputation list
+    severity: HIGH
+  # bare 'list' in group 'calling-service' targets 'announcement-languages' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: Read the List of Announcement Languages.
+  "resource-mismatch GET /v1/telephony/config/announcementLanguages":
+    command: calling-service list
+    severity: HIGH
+  # bare 'show' in group 'calling-service' targets 'voicemail' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Get Voicemail Settings.
+  "resource-mismatch GET /v1/telephony/config/voicemail/settings":
+    command: calling-service show
+    severity: HIGH
+  # bare 'update' in group 'calling-service' targets 'voicemail' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Update Voicemail Settings.
+  "resource-mismatch PUT /v1/telephony/config/voicemail/settings":
+    command: calling-service update
+    severity: HIGH
+  # bare 'delete' in group 'cc-address-book' targets 'entry' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Delete specific Address Book Entry by ID.
+  "resource-mismatch DELETE {cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}":
+    command: cc-address-book delete
+    severity: HIGH
+  # bare 'show' in group 'cc-address-book' targets 'entry' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get specific Address Book Entry by ID.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}":
+    command: cc-address-book show
+    severity: HIGH
+  # bare 'update' in group 'cc-address-book' targets 'entry' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Update specific Address Book Entry by ID.
+  "resource-mismatch PUT {cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}":
+    command: cc-address-book update
+    severity: HIGH
+  # bare 'create' in group 'cc-agent-wellbeing' targets 'subscribe' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Subscribe for realtime burnout events.
+  "resource-mismatch POST {cc_base_url}/agentburnout/subscribe":
+    command: cc-agent-wellbeing create
+    severity: HIGH
+  # bare 'list' in group 'cc-agents' targets 'activities' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Get Agent Activities.
+  "resource-mismatch GET {cc_base_url}/agents/activities":
+    command: cc-agents list
+    severity: HIGH
+  # bare 'create' in group 'cc-ai-assistant' targets 'event' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-ai-assistant' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Get suggestions
+  "resource-mismatch POST {cc_base_url}/event":
+    command: cc-ai-assistant create
+    severity: HIGH
+  # bare 'create' in group 'cc-ai-feature' targets 'question' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Create a new Question mapped to AutoCSAT.
+  "resource-mismatch POST {cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question":
+    command: cc-ai-feature create
+    severity: HIGH
+  # bare 'delete' in group 'cc-ai-feature' targets 'question' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Delete specific Question mapped to AutoCSAT by ID.
+  "resource-mismatch DELETE {cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question/{id}":
+    command: cc-ai-feature delete
+    severity: HIGH
+  # bare 'show' in group 'cc-ai-feature' targets 'question' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get specific Question mapped to AutoCSAT by ID.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question/{id}":
+    command: cc-ai-feature show
+    severity: HIGH
+  # bare 'list' in group 'cc-audio-files' targets 'incoming-references' — the
+  # name gives the caller no hint that the resource differs from the group
+  #   does: List references for a specific Audio File.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/audio-file/{id}/incoming-references":
+    command: cc-audio-files list
+    severity: HIGH
+  # bare 'create' in group 'cc-auto-csat' targets 'question' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Create a new Auto CSAT mapped Question.
+  "resource-mismatch POST {cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question":
+    command: cc-auto-csat create
+    severity: HIGH
+  # bare 'delete' in group 'cc-auto-csat' targets 'question' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Delete specific Auto CSAT mapped Question by ID.
+  "resource-mismatch DELETE {cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}":
+    command: cc-auto-csat delete
+    severity: HIGH
+  # bare 'show' in group 'cc-auto-csat' targets 'question' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get specific Auto CSAT mapped Question by ID.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}":
+    command: cc-auto-csat show
+    severity: HIGH
+  # bare 'list' in group 'cc-call-monitoring' targets 'sessions' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Fetch Monitoring Sessions.
+  "resource-mismatch GET {cc_base_url}/monitor/sessions":
+    command: cc-call-monitoring list
+    severity: HIGH
+  # bare 'show' in group 'cc-data-sources' targets 'schemas' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Retrieve Details of a Specific Data Source Schema.
+  "resource-mismatch GET {cc_base_url}/dataSources/schemas/{schema_id}":
+    command: cc-data-sources show
+    severity: HIGH
+  # bare 'list' in group 'cc-desktop-layout' targets 'incoming-references' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: List references for a specific Desktop Layout.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/desktop-layout/{id}/incoming-references":
+    command: cc-desktop-layout list
+    severity: HIGH
+  # bare 'create' in group 'cc-dnc' targets 'phone-number' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-dnc' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Add Phone Number to DNC List.
+  "resource-mismatch POST {cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber":
+    command: cc-dnc create
+    severity: HIGH
+  # bare 'delete' in group 'cc-dnc' targets 'phone-number' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-dnc' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Remove Phone Number from DNC List.
+  "resource-mismatch DELETE {cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}":
+    command: cc-dnc delete
+    severity: HIGH
+  # bare 'show' in group 'cc-dnc' targets 'phone-number' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'cc-dnc' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Get Phone Number from DNC List.
+  "resource-mismatch GET {cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}":
+    command: cc-dnc show
+    severity: HIGH
+  # bare 'create' in group 'cc-journey' targets 'workspace-id' — the name
+  # gives the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-journey' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Create a Person.
+  "resource-mismatch POST {cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}":
+    command: cc-journey create
+    severity: HIGH
+  # bare 'list' in group 'cc-journey' targets 'workspace' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'cc-journey' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Get All Workspaces.
+  "resource-mismatch GET {cc_base_url}/admin/v1/api/workspace":
+    command: cc-journey list
+    severity: HIGH
+  # bare 'show' in group 'cc-journey' targets 'workspace-id' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-journey' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Get all or a specific Person Details.
+  "resource-mismatch GET {cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}":
+    command: cc-journey show
+    severity: HIGH
+  # bare 'update' in group 'cc-journey' targets 'person-id' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-journey' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Add/Remove/Replace details of a Person.
+  "resource-mismatch PATCH {cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}":
+    command: cc-journey update
+    severity: HIGH
+  # bare 'create' in group 'cc-notification' targets 'subscribe' — the name
+  # gives the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-notification' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Subscribe Notification.
+  "resource-mismatch POST {cc_base_url}/notification/subscribe":
+    command: cc-notification create
+    severity: HIGH
+  # bare 'show' in group 'cc-queue' targets 'by-skill-profile-id' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: List skill-based Contact Service Queues by skill profile ID (public).
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}":
+    command: cc-queue show
+    severity: HIGH
+  # bare 'create' in group 'cc-realtime' targets 'subscribe' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'cc-realtime' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Subscribe Realtime Notification.
+  "resource-mismatch POST {cc_base_url}/realtime/subscribe":
+    command: cc-realtime create
+    severity: HIGH
+  # bare 'list' in group 'cc-resource-collection' targets 'incoming-
+  # references' — the name gives the caller no hint that the resource differs
+  # from the group
+  #   does: List references for a specific Resource Collection.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/resource-collection/{id}/incoming-references":
+    command: cc-resource-collection list
+    severity: HIGH
+  # bare 'list' in group 'cc-user-profiles' targets 'incoming-references' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: List references for a specific User Profile.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/user-profile/{id}/incoming-references":
+    command: cc-user-profiles list
+    severity: HIGH
+  # bare 'create' in group 'cc-users' targets 'fetch-by-skill-requirements' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: Get the agents matching skill requirements criteria.
+  "resource-mismatch POST {cc_base_url}/organization/{orgid}/user/fetch-by-skill-requirements":
+    command: cc-users create
+    severity: HIGH
+  # bare 'show' in group 'cc-users' targets 'by-call-monitoring-id' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: List users by call monitoring id.
+  "resource-mismatch GET {cc_base_url}/organization/{orgid}/user/by-call-monitoring-id/{id}":
+    command: cc-users show
+    severity: HIGH
+  # bare 'list' in group 'client-settings' targets 'ms-teams' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'client-settings' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Get an Organization's MS Teams Settings.
+  "resource-mismatch GET /v1/telephony/config/settings/msTeams":
+    command: client-settings list
+    severity: HIGH
+  # bare 'update' in group 'client-settings' targets 'ms-teams' — the name
+  # gives the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'client-settings' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Update an Organization's MS Teams Setting.
+  "resource-mismatch PUT /v1/telephony/config/settings/msTeams":
+    command: client-settings update
+    severity: HIGH
+  # bare 'create' in group 'converged-recordings' targets 'reassign' — the
+  # name gives the caller no hint that the resource differs from the group
+  #   does: Reassign Recordings.
+  "resource-mismatch POST /v1/convergedRecordings/reassign":
+    command: converged-recordings create
+    severity: HIGH
+  # bare 'list' in group 'cq-playlists' targets 'usage' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'cq-playlists' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Get Playlist Usage.
+  "resource-mismatch GET /v1/telephony/config/announcements/playlists/{play_list_id}/usage":
+    command: cq-playlists list
+    severity: HIGH
+  # bare 'create' in group 'customer-assist' targets 'reasons' — the name
+  # gives the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'customer-assist' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Create Wrap Up Reason.
+  "resource-mismatch POST /v1/telephony/config/cxEssentials/wrapup/reasons":
+    command: customer-assist create
+    severity: HIGH
+  # bare 'delete' in group 'customer-assist' targets 'reasons' — the name
+  # gives the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'customer-assist' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Delete Wrap Up Reason.
+  "resource-mismatch DELETE /v1/telephony/config/cxEssentials/wrapup/reasons/{wrapup_reason_id}":
+    command: customer-assist delete
+    severity: HIGH
+  # bare 'list' in group 'customer-assist' targets 'reasons' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'customer-assist' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: List Wrap Up Reasons.
+  "resource-mismatch GET /v1/telephony/config/cxEssentials/wrapup/reasons":
+    command: customer-assist list
+    severity: HIGH
+  # bare 'show' in group 'customer-assist' targets 'reasons' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'customer-assist' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Read Wrap Up Reason.
+  "resource-mismatch GET /v1/telephony/config/cxEssentials/wrapup/reasons/{wrapup_reason_id}":
+    command: customer-assist show
+    severity: HIGH
+  # bare 'update' in group 'customer-assist' targets 'reasons' — the name
+  # gives the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'customer-assist' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Update Wrap Up Reason.
+  "resource-mismatch PUT /v1/telephony/config/cxEssentials/wrapup/reasons/{wrapup_reason_id}":
+    command: customer-assist update
+    severity: HIGH
+  # bare 'list' in group 'data-policies' targets 'regions' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get All the Storage Regions Available for Configuring as Data Policy Region.
+  "resource-mismatch GET /v1/telephony/config/dataPolicies/regions":
+    command: data-policies list
+    severity: HIGH
+  # bare 'show' in group 'data-sources' targets 'schemas' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Retrieve Details of a Specific Data Source Schema.
+  "resource-mismatch GET /v1/dataSources/schemas/{schema_id}":
+    command: data-sources show
+    severity: HIGH
+  # bare 'create' in group 'device-settings' targets 'line-key-templates' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: Create a Line Key Template.
+  "resource-mismatch POST /v1/telephony/config/devices/lineKeyTemplates":
+    command: device-settings create
+    severity: HIGH
+  # bare 'delete' in group 'device-settings' targets 'line-key-templates' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: Delete a Line Key Template.
+  "resource-mismatch DELETE /v1/telephony/config/devices/lineKeyTemplates/{template_id}":
+    command: device-settings delete
+    severity: HIGH
+  # bare 'list' in group 'device-settings' targets 'members' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get Device Members.
+  "resource-mismatch GET /v1/telephony/config/devices/{device_id}/members":
+    command: device-settings list
+    severity: HIGH
+  # bare 'show' in group 'device-settings' targets 'available-members' — the
+  # name gives the caller no hint that the resource differs from the group
+  #   does: Get Count of Members.
+  "resource-mismatch GET /v1/telephony/config/devices/{device_id}/availableMembers/count":
+    command: device-settings show
+    severity: HIGH
+  # bare 'update' in group 'device-settings' targets 'members' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Update Members on the device.
+  "resource-mismatch PUT /v1/telephony/config/devices/{device_id}/members":
+    command: device-settings update
+    severity: HIGH
+  # bare 'create' in group 'ecm' targets 'linked-folders' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'ecm' itself — the headline resource is UNREACHABLE,
+  # so the wrong answer is silent
+  #   does: Create an ECM folder configuration.
+  "resource-mismatch POST /v1/room/linkedFolders":
+    command: ecm create
+    severity: HIGH
+  # bare 'delete' in group 'ecm' targets 'linked-folders' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'ecm' itself — the headline resource is UNREACHABLE,
+  # so the wrong answer is silent
+  #   does: Unlink an ECM linked folder.
+  "resource-mismatch DELETE /v1/room/linkedFolders/{id}":
+    command: ecm delete
+    severity: HIGH
+  # bare 'list' in group 'ecm' targets 'linked-folders' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'ecm' itself — the headline resource is UNREACHABLE,
+  # so the wrong answer is silent
+  #   does: List ECM folder.
+  "resource-mismatch GET /v1/room/linkedFolders":
+    command: ecm list
+    severity: HIGH
+  # bare 'show' in group 'ecm' targets 'linked-folders' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'ecm' itself — the headline resource is UNREACHABLE,
+  # so the wrong answer is silent
+  #   does: Get ECM Folder Details.
+  "resource-mismatch GET /v1/room/linkedFolders/{id}":
+    command: ecm show
+    severity: HIGH
+  # bare 'update' in group 'ecm' targets 'linked-folders' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'ecm' itself — the headline resource is UNREACHABLE,
+  # so the wrong answer is silent
+  #   does: Update an ECM Linked Folder.
+  "resource-mismatch PUT /v1/room/linkedFolders/{id}":
+    command: ecm update
+    severity: HIGH
+  # bare 'create' in group 'emergency-services' targets 'red-sky' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Create an Account and Admin in RedSky.
+  "resource-mismatch POST /v1/telephony/config/redSky":
+    command: emergency-services create
+    severity: HIGH
+  # bare 'show' in group 'emergency-services' targets 'red-sky' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Retrieve RedSky Account Details for an Organization.
+  "resource-mismatch GET /v1/telephony/config/redSky":
+    command: emergency-services show
+    severity: HIGH
+  # bare 'update' in group 'emergency-services' targets 'red-sky' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Update RedSky Service Settings.
+  "resource-mismatch PUT /v1/telephony/config/redSky/serviceSettings":
+    command: emergency-services update
+    severity: HIGH
+  # bare 'create' in group 'external-voicemail' targets 'mwi' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'external-voicemail' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Set or Clear Message Waiting Indicator (MWI) Status.
+  "resource-mismatch POST /v1/telephony/externalVoicemail/mwi":
+    command: external-voicemail create
+    severity: HIGH
+  # bare 'create' in group 'guest-management' targets 'token' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Create a Guest.
+  "resource-mismatch POST /v1/guests/token":
+    command: guest-management create
+    severity: HIGH
+  # bare 'delete' in group 'hot-desk' targets 'sessions' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'hot-desk' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Delete Session.
+  "resource-mismatch DELETE /v1/hotdesk/sessions/{session_id}":
+    command: hot-desk delete
+    severity: HIGH
+  # bare 'list' in group 'hot-desk' targets 'sessions' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'hot-desk' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: List Sessions.
+  "resource-mismatch GET /v1/hotdesk/sessions":
+    command: hot-desk list
+    severity: HIGH
+  # bare 'update' in group 'licenses' targets 'users' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Assign Licenses to Users.
+  "resource-mismatch PATCH /v1/licenses/users":
+    command: licenses update
+    severity: HIGH
+  # bare 'create' in group 'location-call-handling' targets 'access-codes' —
+  # the name gives the caller no hint that the resource differs from the
+  # group; AND no command in this group addresses 'location-call-handling'
+  # itself — the headline resource is UNREACHABLE, so the wrong answer is
+  # silent
+  #   does: Create Outgoing Permission a new access code for a customer location.
+  "resource-mismatch POST /v1/telephony/config/locations/{location_id}/outgoingPermission/accessCodes":
+    command: location-call-handling create
+    severity: HIGH
+  # bare 'list' in group 'location-call-handling' targets 'outgoing-
+  # permission' — the name gives the caller no hint that the resource differs
+  # from the group; AND no command in this group addresses 'location-call-
+  # handling' itself — the headline resource is UNREACHABLE, so the wrong
+  # answer is silent
+  #   does: Get Location Outgoing Permission.
+  "resource-mismatch GET /v1/telephony/config/locations/{location_id}/outgoingPermission":
+    command: location-call-handling list
+    severity: HIGH
+  # bare 'show' in group 'location-call-handling' targets 'internal-dialing' —
+  # the name gives the caller no hint that the resource differs from the
+  # group; AND no command in this group addresses 'location-call-handling'
+  # itself — the headline resource is UNREACHABLE, so the wrong answer is
+  # silent
+  #   does: Read the Internal Dialing configuration for a location.
+  "resource-mismatch GET /v1/telephony/config/locations/{location_id}/internalDialing":
+    command: location-call-handling show
+    severity: HIGH
+  # bare 'update' in group 'location-call-handling' targets 'internal-dialing'
+  # — the name gives the caller no hint that the resource differs from the
+  # group; AND no command in this group addresses 'location-call-handling'
+  # itself — the headline resource is UNREACHABLE, so the wrong answer is
+  # silent
+  #   does: Modify the Internal Dialing configuration for a location.
+  "resource-mismatch PUT /v1/telephony/config/locations/{location_id}/internalDialing":
+    command: location-call-handling update
+    severity: HIGH
+  # bare 'delete' in group 'location-settings' targets 'directories' — the
+  # name gives the caller no hint that the resource differs from the group
+  #   does: Delete a Receptionist Contact Directory.
+  "resource-mismatch DELETE /v1/telephony/config/locations/{location_id}/receptionistContacts/directories/{directory_id}":
+    command: location-settings delete
+    severity: HIGH
+  # bare 'create' in group 'meeting-preferences' targets 'insert' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Insert Delegate Emails.
+  "resource-mismatch POST /v1/meetingPreferences/schedulingOptions/delegateEmails/insert":
+    command: meeting-preferences create
+    severity: HIGH
+  # bare 'show' in group 'meeting-preferences' targets 'audio' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Get Audio Options.
+  "resource-mismatch GET /v1/meetingPreferences/audio":
+    command: meeting-preferences show
+    severity: HIGH
+  # bare 'list' in group 'meeting-qa' targets 'q-and-a' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'meeting-qa' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: List Meeting Q and A.
+  "resource-mismatch GET /v1/meetings/q_and_a":
+    command: meeting-qa list
+    severity: HIGH
+  # bare 'list' in group 'meeting-reports' targets 'usage' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'meeting-reports' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: List Meeting Usage Reports.
+  "resource-mismatch GET /v1/meetingReports/usage":
+    command: meeting-reports list
+    severity: HIGH
+  # bare 'list' in group 'meeting-slido' targets 'events' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'meeting-slido' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: List Compliance Events.
+  "resource-mismatch GET /v1/slido/compliance/events":
+    command: meeting-slido list
+    severity: HIGH
+  # bare 'show' in group 'meeting-transcripts' targets 'snippets' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Get a Transcript Snippet.
+  "resource-mismatch GET /v1/meetingTranscripts/{transcript_id}/snippets/{snippet_id}":
+    command: meeting-transcripts show
+    severity: HIGH
+  # bare 'update' in group 'meeting-transcripts' targets 'snippets' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Update a Transcript Snippet.
+  "resource-mismatch PUT /v1/meetingTranscripts/{transcript_id}/snippets/{snippet_id}":
+    command: meeting-transcripts update
+    severity: HIGH
+  # bare 'list' in group 'mode-management' targets 'features' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get Mode Management Features.
+  "resource-mismatch GET /v1/telephony/config/people/me/settings/modeManagement/features":
+    command: mode-management list
+    severity: HIGH
+  # bare 'show' in group 'mode-management' targets 'features' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get Mode Management Feature.
+  "resource-mismatch GET /v1/telephony/config/people/me/settings/modeManagement/features/{feature_id}":
+    command: mode-management show
+    severity: HIGH
+  # bare 'create' in group 'my-call-settings' targets 'numbers' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Add phone number as User's Single Number Reach.
+  "resource-mismatch POST /v1/telephony/config/people/me/settings/singleNumberReach/numbers":
+    command: my-call-settings create
+    severity: HIGH
+  # bare 'delete' in group 'my-call-settings' targets 'numbers' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Delete User's Single Number Reach Contact Settings.
+  "resource-mismatch DELETE /v1/telephony/config/people/me/settings/singleNumberReach/numbers/{phone_number_id}":
+    command: my-call-settings delete
+    severity: HIGH
+  # bare 'list' in group 'my-call-settings' targets 'available-preferred-
+  # answer-endpoints' — the name gives the caller no hint that the resource
+  # differs from the group
+  #   does: Get List Available Preferred Answer Endpoints.
+  "resource-mismatch GET /v1/telephony/config/people/me/settings/availablePreferredAnswerEndpoints":
+    command: my-call-settings list
+    severity: HIGH
+  # bare 'show' in group 'my-call-settings' targets 'preferred-answer-
+  # endpoint' — the name gives the caller no hint that the resource differs
+  # from the group
+  #   does: Get Preferred Answer Endpoint.
+  "resource-mismatch GET /v1/telephony/config/people/me/settings/preferredAnswerEndpoint":
+    command: my-call-settings show
+    severity: HIGH
+  # bare 'update' in group 'my-call-settings' targets 'preferred-answer-
+  # endpoint' — the name gives the caller no hint that the resource differs
+  # from the group
+  #   does: Modify Preferred Answer Endpoint.
+  "resource-mismatch PUT /v1/telephony/config/people/me/settings/preferredAnswerEndpoint":
+    command: my-call-settings update
+    severity: HIGH
+  # bare 'create' in group 'partner-admins' targets 'assign' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Assign partner admin to a customer.
+  "resource-mismatch POST /v1/partner/organizations/{org_id}/partnerAdmin/{person_id}/assign":
+    command: partner-admins create
+    severity: HIGH
+  # bare 'delete' in group 'partner-admins' targets 'unassign' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Unassign partner admin from a customer.
+  "resource-mismatch DELETE /v1/partner/organizations/{org_id}/partnerAdmin/{person_id}/unassign":
+    command: partner-admins delete
+    severity: HIGH
+  # bare 'list' in group 'person-call-settings' targets 'monitoring' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'person-call-settings' itself — the
+  # headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Retrieve a Person's Monitoring Settings.
+  "resource-mismatch GET /v1/people/{person_id}/features/monitoring":
+    command: person-call-settings list
+    severity: HIGH
+  # bare 'update' in group 'person-call-settings' targets 'monitoring' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'person-call-settings' itself — the
+  # headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Modify Monitoring Settings for a Person.
+  "resource-mismatch PUT /v1/people/{person_id}/features/monitoring":
+    command: person-call-settings update
+    severity: HIGH
+  # bare 'create' in group 'pstn' targets 'lookup' — the name gives the caller
+  # no hint that the resource differs from the group; AND no command in this
+  # group addresses 'pstn' itself — the headline resource is UNREACHABLE, so
+  # the wrong answer is silent
+  #   does: Emergency Address Lookup to Verify if Address is Valid.
+  "resource-mismatch POST /v1/telephony/pstn/locations/{location_id}/emergencyAddress/lookup":
+    command: pstn create
+    severity: HIGH
+  # bare 'list' in group 'pstn' targets 'connection-options' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'pstn' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Retrieve PSTN Connection Options for a Location.
+  "resource-mismatch GET /v1/telephony/pstn/locations/{location_id}/connectionOptions":
+    command: pstn list
+    severity: HIGH
+  # bare 'update' in group 'pstn' targets 'connection' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'pstn' itself — the headline resource is UNREACHABLE,
+  # so the wrong answer is silent
+  #   does: Setup PSTN Connection for a Location.
+  "resource-mismatch PUT /v1/telephony/pstn/locations/{location_id}/connection":
+    command: pstn update
+    severity: HIGH
+  # bare 'list' in group 'recording-report' targets 'access-summary' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'recording-report' itself — the
+  # headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: List of Recording Audit Report Summaries.
+  "resource-mismatch GET /v1/recordingReport/accessSummary":
+    command: recording-report list
+    severity: HIGH
+  # bare 'show' in group 'recording-report' targets 'meeting-archives' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'recording-report' itself — the
+  # headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Get Meeting Archive Details.
+  "resource-mismatch GET /v1/recordingReport/meetingArchives/{archive_id}":
+    command: recording-report show
+    severity: HIGH
+  # bare 'show' in group 'scim-schemas' targets 'group' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Get Group Schema.
+  "resource-mismatch GET /Schemas/SCIM2/Group":
+    command: scim-schemas show
+    severity: HIGH
+  # bare 'list' in group 'security-audit' targets 'events' — the name gives
+  # the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'security-audit' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: List Security Audit Events.
+  "resource-mismatch GET /v1/admin/securityAudit/events":
+    command: security-audit list
+    severity: HIGH
+  # bare 'create' in group 'service-apps' targets 'token' — the name gives the
+  # caller no hint that the resource differs from the group; AND no command in
+  # this group addresses 'service-apps' itself — the headline resource is
+  # UNREACHABLE, so the wrong answer is silent
+  #   does: Create Service App Access Token.
+  "resource-mismatch POST /v1/applications/{application_id}/token":
+    command: service-apps create
+    severity: HIGH
+  # bare 'create' in group 'user-settings' targets 'schedules' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Create Schedule for a Person.
+  "resource-mismatch POST /v1/people/{person_id}/features/schedules":
+    command: user-settings create
+    severity: HIGH
+  # bare 'delete' in group 'user-settings' targets 'schedules' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Delete a Schedule.
+  "resource-mismatch DELETE /v1/people/{person_id}/features/schedules/{schedule_type}/{schedule_id}":
+    command: user-settings delete
+    severity: HIGH
+  # bare 'list' in group 'user-settings' targets 'caller-id' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Read Caller ID Settings for a Person.
+  "resource-mismatch GET /v1/people/{person_id}/features/callerId":
+    command: user-settings list
+    severity: HIGH
+  # bare 'show' in group 'user-settings' targets 'applications' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Retrieve a person's Application Services Settings New.
+  "resource-mismatch GET /v1/people/{person_id}/features/applications":
+    command: user-settings show
+    severity: HIGH
+  # bare 'update' in group 'user-settings' targets 'applications' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Modify a person's Application Services Settings.
+  "resource-mismatch PUT /v1/people/{person_id}/features/applications":
+    command: user-settings update
+    severity: HIGH
+  # bare 'create' in group 'video-mesh' targets 'clusters' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Trigger on-demand test for cluster.
+  "resource-mismatch POST /v1/videoMesh/triggerTest/clusters/{cluster_id}":
+    command: video-mesh create
+    severity: HIGH
+  # bare 'list' in group 'video-mesh' targets 'availability' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: List Clusters Availability.
+  "resource-mismatch GET /v1/videoMesh/clusters/availability":
+    command: video-mesh list
+    severity: HIGH
+  # bare 'show' in group 'video-mesh' targets 'availability' — the name gives
+  # the caller no hint that the resource differs from the group
+  #   does: Get Cluster Availability.
+  "resource-mismatch GET /v1/videoMesh/clusters/availability/{cluster_id}":
+    command: video-mesh show
+    severity: HIGH
+  # bare 'update' in group 'video-mesh' targets 'event-thresholds' — the name
+  # gives the caller no hint that the resource differs from the group
+  #   does: Update Event Threshold Configuration.
+  "resource-mismatch PATCH /v1/videoMesh/eventThresholds":
+    command: video-mesh update
+    severity: HIGH
+  # bare 'show' in group 'virtual-line-settings' targets 'call-recording' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: Read Call Recording Settings for a Virtual Line.
+  "resource-mismatch GET /v1/telephony/config/virtualLines/{virtual_line_id}/callRecording":
+    command: virtual-line-settings show
+    severity: HIGH
+  # bare 'update' in group 'virtual-line-settings' targets 'call-recording' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: Configure Call Recording Settings for a Virtual Line.
+  "resource-mismatch PUT /v1/telephony/config/virtualLines/{virtual_line_id}/callRecording":
+    command: virtual-line-settings update
+    severity: HIGH
+  # bare 'create' in group 'wholesale-provisioning' targets 'customers' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'wholesale-provisioning' itself —
+  # the headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Provision a Wholesale Customer.
+  "resource-mismatch POST /v1/wholesale/customers":
+    command: wholesale-provisioning create
+    severity: HIGH
+  # bare 'list' in group 'wholesale-provisioning' targets 'customers' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'wholesale-provisioning' itself —
+  # the headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: List Wholesale Customers.
+  "resource-mismatch GET /v1/wholesale/customers":
+    command: wholesale-provisioning list
+    severity: HIGH
+  # bare 'show' in group 'wholesale-provisioning' targets 'customers' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'wholesale-provisioning' itself —
+  # the headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Get a Wholesale Customer.
+  "resource-mismatch GET /v1/wholesale/customers/{customer_id}":
+    command: wholesale-provisioning show
+    severity: HIGH
+  # bare 'update' in group 'wholesale-provisioning' targets 'customers' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'wholesale-provisioning' itself —
+  # the headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Update a Wholesale Customer.
+  "resource-mismatch PUT /v1/wholesale/customers/{customer_id}":
+    command: wholesale-provisioning update
+    severity: HIGH
+  # bare 'create' in group 'workspace-personalization' targets 'personalize' —
+  # the name gives the caller no hint that the resource differs from the group
+  #   does: Personalize a Workspace.
+  "resource-mismatch POST /v1/workspaces/{workspace_id}/personalize":
+    command: workspace-personalization create
+    severity: HIGH
+  # bare 'create' in group 'workspace-settings' targets 'access-codes' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'workspace-settings' itself — the
+  # headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Create Access Codes for a Workspace.
+  "resource-mismatch POST /v1/workspaces/{workspace_id}/features/outgoingPermission/accessCodes":
+    command: workspace-settings create
+    severity: HIGH
+  # bare 'list' in group 'workspace-settings' targets 'caller-id' — the name
+  # gives the caller no hint that the resource differs from the group; AND no
+  # command in this group addresses 'workspace-settings' itself — the headline
+  # resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Read Caller ID Settings for a Workspace.
+  "resource-mismatch GET /v1/workspaces/{workspace_id}/features/callerId":
+    command: workspace-settings list
+    severity: HIGH
+  # bare 'show' in group 'workspace-settings' targets 'call-forwarding' — the
+  # name gives the caller no hint that the resource differs from the group;
+  # AND no command in this group addresses 'workspace-settings' itself — the
+  # headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Retrieve Call Forwarding Settings for a Workspace.
+  "resource-mismatch GET /v1/workspaces/{workspace_id}/features/callForwarding":
+    command: workspace-settings show
+    severity: HIGH
+  # bare 'update' in group 'workspace-settings' targets 'call-forwarding' —
+  # the name gives the caller no hint that the resource differs from the
+  # group; AND no command in this group addresses 'workspace-settings' itself
+  # — the headline resource is UNREACHABLE, so the wrong answer is silent
+  #   does: Modify Call Forwarding Settings for a Workspace.
+  "resource-mismatch PUT /v1/workspaces/{workspace_id}/features/callForwarding":
+    command: workspace-settings update
+    severity: HIGH
+  # bare 'create' in group 'xapi' targets 'command' — the name gives the
+  # caller no hint that the resource differs from the group
+  #   does: Execute Command.
+  "resource-mismatch POST /v1/xapi/command/{command_name}":
+    command: xapi create
+    severity: HIGH
+  # bare 'list' in group 'xapi' targets 'schema' — the name gives the caller
+  # no hint that the resource differs from the group
+  #   does: Query Schema.
+  "resource-mismatch GET /v1/xapi/schema":
+    command: xapi list
+    severity: HIGH
