@@ -140,9 +140,9 @@ Analyze this CUCM-to-Webex migration and produce an architectural reasoning narr
 
 Project path: <project>
 Pipeline output:
-  - Run `wxcli cucm decisions -o json -p <project>` for all decisions
-  - Run `wxcli cucm decisions --type advisory -o json -p <project>` for advisories
-  - Run `wxcli cucm inventory -o json -p <project>` for canonical model summary
+  - For all decisions, run `wxcli cucm decisions -o json -p <project>`.
+  - For advisories, run `wxcli cucm decisions --type advisory -o json -p <project>`.
+  - For the canonical model summary, run `wxcli cucm inventory -o json -p <project>`.
 
 Write the narrative to: <project>/exports/migration-narrative.md
 """)

@@ -1236,7 +1236,7 @@ wxcli call-queue show-selective-rules <location_id> <queue_id> <rule_id>
 wxcli call-queue delete-selective-rules <location_id> <queue_id> <rule_id>
 
 # Get available phone numbers for call forwarding
-wxcli call-queue list-available-numbers-call-forwarding <location_id> <queue_id>
+wxcli call-queue list-available-numbers-call-forwarding <location_id>
 
 # Switch operating mode back to normal operations
 wxcli call-queue switch-mode-for <location_id> <queue_id>

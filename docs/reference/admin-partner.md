@@ -45,14 +45,29 @@ Manage assignment of partner administrators to customer organizations.
 | Command | Description | Key Arguments |
 |---------|-------------|---------------|
 | `list` | Get all customers managed by a partner admin | `--managed-by PERSON_ID` |
-| `list-partner-admins` | Get all partner admins assigned to a customer | `ORG_ID` (required) |
-| `create` | Assign partner admin to a customer | `ORG_ID PERSON_ID` (both required) |
-| `delete` | Unassign partner admin from a customer | `ORG_ID PERSON_ID` (both required), `--force` |
+| `list-partner-admins` | Get all partner admins assigned to a customer | (none -- customer org comes from config) |
+| `create` | Assign partner admin to a customer | `PERSON_ID` (required); customer org comes from config |
+| `delete` | Unassign partner admin from a customer | `PERSON_ID` (required), `--force`; customer org comes from config |
 | `delete-partner-admin` | Revoke all partner admin roles for a person | `PERSON_ID` (required), `--force` |
+
+> **There is no customer-org argument on these commands.** The `{orgId}` in the endpoint paths
+> above is filled from `resolve_org_id()` -- the org saved by `wxcli switch-org`, falling back to
+> the token's own org from `GET /v1/people/me`. Passing an org ID as the first positional makes
+> `list-partner-admins` fail with "unexpected extra argument", and makes `create`/`delete` treat
+> your org ID as the **person** ID.
+>
+> **This matters most for partners.** These commands act on whichever tenant `switch-org` last
+> saved, not on the one you name in the command. Before running any of them, confirm the target
+> with `wxcli whoami` (it prints a `Target:` line) and set it explicitly with
+> `wxcli switch-org <customerOrgId>`. In automation always pass the ID -- bare `switch-org`
+> prompts interactively and will hang.
 
 ### CLI Examples
 
 ```bash
+# Point at the customer org first -- every command below acts on this org
+wxcli switch-org Y2lzY29zcGFyazovL3VzL09SR...
+
 # List all customer orgs managed by the authenticated partner
 wxcli partner-admins list
 
@@ -60,13 +75,13 @@ wxcli partner-admins list
 wxcli partner-admins list --managed-by Y2lzY29zcGFyazovL3...
 
 # List all partner admins assigned to a customer org
-wxcli partner-admins list-partner-admins Y2lzY29zcGFyazovL3VzL09SR...
+wxcli partner-admins list-partner-admins
 
 # Assign a partner admin to a customer org
-wxcli partner-admins create Y2lzY29zcGFyazovL3VzL09SR... Y2lzY29zcGFyazovL3VzL1BF...
+wxcli partner-admins create Y2lzY29zcGFyazovL3VzL1BF...
 
 # Unassign a partner admin from a customer (skip confirmation)
-wxcli partner-admins delete Y2lzY29zcGFyazovL3VzL09SR... Y2lzY29zcGFyazovL3VzL1BF... --force
+wxcli partner-admins delete Y2lzY29zcGFyazovL3VzL1BF... --force
 
 # Revoke ALL partner admin roles for a person across all customer orgs
 wxcli partner-admins delete-partner-admin Y2lzY29zcGFyazovL3VzL1BF... --force
@@ -290,11 +305,15 @@ wxcli partner-admins list --managed-by PARTNER_ADMIN_PERSON_ID -o json
 # 1. Get the partner admin's person ID (from partner org's people list)
 wxcli people list --display-name "Jane Partner" -o json
 
-# 2. Assign them to the customer org
-wxcli partner-admins create CUSTOMER_ORG_ID PARTNER_ADMIN_PERSON_ID
+# 2. Point at the customer org -- steps 3 and 4 have no org argument
+wxcli switch-org CUSTOMER_ORG_ID
+wxcli whoami          # confirm the "Target:" line names the customer org
 
-# 3. Verify the assignment
-wxcli partner-admins list-partner-admins CUSTOMER_ORG_ID
+# 3. Assign them to the customer org
+wxcli partner-admins create PARTNER_ADMIN_PERSON_ID
+
+# 4. Verify the assignment
+wxcli partner-admins list-partner-admins
 ```
 
 ### Tag customers by region and tier

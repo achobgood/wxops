@@ -207,7 +207,7 @@ Prerequisites verified:
 
 Commands to execute:
   wxcli [group] [command] ...
-  wxcli device-settings apply-changes-for DEVICE_ID (if settings changed)
+  wxcli device-settings apply-changes-for DEVICE_ID  # if settings changed
 
 Proceed? (yes/no)
 ```
@@ -869,7 +869,7 @@ These are the **exact group names** registered in `wxcli`. Do not use any other 
 | `wxcli hot-desk` | `hot_desk.py` | list, delete |
 | `wxcli hot-desking-portal` | `hot_desking_portal.py` | show, update, show-guest, update-guest |
 
-**NOT registered:** `user-call-settings` (file exists but not wired into CLI). Use `wxcli device-settings update-hoteling` for person-level hoteling.
+**NOT registered:** `user-call-settings` — not a registered CLI group, and its source file does not exist (orphan source file was deleted at the 2026-07-01 spec sync). The registered group is `user-settings`. Use `wxcli device-settings update-hoteling` for person-level hoteling.
 
 ---
 

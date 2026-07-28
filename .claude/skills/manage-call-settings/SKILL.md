@@ -35,7 +35,7 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 ### Recording setup (3-level prerequisite chain)
 ```bash
 wxcli call-recording show -o json                          # 1. Org-level recording vendor
-wxcli call-recording list-vendors -o json                  # 2. Per-location vendor assignment
+wxcli call-recording list-vendors LOCATION_ID -o json       # 2. Per-location vendor assignment
 wxcli user-settings show-call-recording PERSON_ID -o json  # 3. Person recording
 wxcli user-settings update-call-recording PERSON_ID --json-body '{"enabled": true, "record": "Always"}'
 ```
@@ -752,7 +752,7 @@ wxcli user-settings create PERSON_ID --json-body '{
 }'
 
 # Add an event to a schedule
-wxcli user-settings create-events PERSON_ID SCHEDULE_ID --json-body '{
+wxcli user-settings create-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --json-body '{
   "name": "Weekdays",
   "startDate": "2026-01-01",
   "endDate": "2026-12-31",
@@ -762,10 +762,10 @@ wxcli user-settings create-events PERSON_ID SCHEDULE_ID --json-body '{
 }'
 
 # Show schedule detail
-wxcli user-settings show-schedules PERSON_ID SCHEDULE_ID --output json
+wxcli user-settings show-schedules PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --output json
 
 # Delete a schedule event (requires 4 positional args)
-wxcli user-settings delete PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID
+wxcli user-settings delete-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID
 ```
 
 #### Pattern: Reset voicemail PIN
@@ -809,7 +809,7 @@ import sys, json
 for u in json.load(sys.stdin).get('items', []):
     if u.get('locationId'): print(u['id'])
 "); do
-    wxcli user-settings update-call-waiting "$USER_ID" --enabled false
+    wxcli user-settings update-call-waiting "$USER_ID" --no-enabled
     sleep 1
     ])
 ```

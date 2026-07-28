@@ -143,10 +143,10 @@ Always inline resource IDs directly as arguments. Never use multi-line shell var
 ```bash
 # WRONG — multi-line breaks permission prefix matching
 HQ="Y2lz..."
-wxcli dect-devices show "$HQ"
+wxcli dect-devices show "$HQ" "Y2xz..."
 
 # RIGHT — inline the ID
-wxcli dect-devices show "Y2lz..."
+wxcli dect-devices show "Y2lz..." "Y2xz..."
 ```
 
 **Why:** Permission rules use prefix matching. A variable assignment line before `wxcli` means the command string doesn't start with `wxcli`, so it won't match `Bash(wxcli:*)` permission patterns, triggering unnecessary prompts.

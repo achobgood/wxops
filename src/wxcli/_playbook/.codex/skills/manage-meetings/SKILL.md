@@ -145,10 +145,10 @@ The meeting must have ended and have the relevant content available:
 wxcli meeting-transcripts list --meeting-id MEETING_ID --output json
 
 # List captions
-wxcli meeting-captions list MEETING_ID --output json
+wxcli meeting-captions list --meeting-id MEETING_ID --output json
 
 # Get AI summary
-wxcli meeting-summaries list-meeting-summaries MEETING_ID --output json
+wxcli meeting-summaries list-meeting-summaries --meeting-id MEETING_ID --output json
 ```
 
 ### 4e. Preferences and site settings
@@ -232,7 +232,7 @@ wxcli meetings delete MEETING_ID
 wxcli meetings create-end MEETING_ID
 
 # Join a meeting
-wxcli meetings create-join MEETING_ID
+wxcli meetings create-join --meeting-id MEETING_ID
 
 # Reassign meetings to a new host
 wxcli meetings create-reassign-host --json-body '{"meetingIds": ["ID1"], "hostEmail": "new@example.com"}'
@@ -250,7 +250,7 @@ wxcli meetings list-registration MEETING_ID --output json
 wxcli meetings update-registration MEETING_ID --json-body '{"requireFirstName": true, "requireLastName": true}'
 
 # Register a single registrant
-wxcli meetings create MEETING_ID --json-body '{"firstName": "Jane", "lastName": "Doe", "email": "jane@example.com"}'
+wxcli meetings create-registrants MEETING_ID --json-body '{"firstName": "Jane", "lastName": "Doe", "email": "jane@example.com"}'
 
 # Batch register
 wxcli meetings create-bulk-insert MEETING_ID --json-body '{"items": [{"firstName": "Jane", "email": "jane@example.com"}]}'
@@ -376,16 +376,16 @@ wxcli meeting-transcripts update TRANSCRIPT_ID SNIPPET_ID --json-body '{"text": 
 wxcli meeting-transcripts delete TRANSCRIPT_ID
 
 # List captions
-wxcli meeting-captions list MEETING_ID --output json
+wxcli meeting-captions list --meeting-id MEETING_ID --output json
 
 # List caption snippets
-wxcli meeting-captions list CAPTION_ID --output json
+wxcli meeting-captions list-snippets CAPTION_ID --meeting-id MEETING_ID --output json
 
 # Download caption snippets
 wxcli meeting-captions list-download CAPTION_ID --output json
 
 # Get AI summary for a meeting
-wxcli meeting-summaries list-meeting-summaries MEETING_ID --output json
+wxcli meeting-summaries list-meeting-summaries --meeting-id MEETING_ID --output json
 
 # Get summary for compliance
 wxcli meeting-summaries list --output json
@@ -397,7 +397,7 @@ wxcli meeting-summaries delete SUMMARY_ID
 wxcli meeting-chats list --meeting-id MEETING_ID --output json
 
 # Delete meeting chats
-wxcli meeting-chats delete MEETING_ID
+wxcli meeting-chats delete --meeting-id MEETING_ID
 
 # Delete a meeting message
 wxcli meeting-messages delete MESSAGE_ID
@@ -466,7 +466,7 @@ wxcli meeting-tracking-codes create --json-body '{"name": "Department", "inputMo
 wxcli meeting-tracking-codes show TRACKING_CODE_ID --output json
 
 # Update a tracking code
-wxcli meeting-tracking-codes update-tracking-codes TRACKING_CODE_ID --json-body '{"name": "Updated Name"}'
+wxcli meeting-tracking-codes update TRACKING_CODE_ID --json-body '{"name": "Updated Name"}'
 
 # Delete a tracking code
 wxcli meeting-tracking-codes delete TRACKING_CODE_ID
@@ -475,7 +475,7 @@ wxcli meeting-tracking-codes delete TRACKING_CODE_ID
 wxcli meeting-tracking-codes list-tracking-codes --output json
 
 # Update user tracking codes
-wxcli meeting-tracking-codes update --json-body '{"values": [{"name": "Department", "value": "Engineering"}]}'
+wxcli meeting-tracking-codes update-tracking-codes --json-body '{"email": "user@example.com", "trackingCodes": [{"name": "Department", "value": "Engineering"}]}'
 
 # List site session types
 wxcli meeting-session-types list --output json
@@ -502,10 +502,10 @@ wxcli meeting-site update --json-body '{"defaultScheduledType": "meeting"}'
 wxcli meeting-polls list --meeting-id MEETING_ID --output json
 
 # Get poll results
-wxcli meeting-polls list MEETING_ID POLL_ID --output json
+wxcli meeting-polls list-poll-results --meeting-id MEETING_ID --output json
 
 # List respondents for a poll question
-wxcli meeting-polls list-respondents MEETING_ID POLL_ID QUESTION_ID --output json
+wxcli meeting-polls list-respondents POLL_ID QUESTION_ID --meeting-id MEETING_ID --output json
 
 # List Q&A for a meeting
 wxcli meeting-qa list --meeting-id MEETING_ID --output json

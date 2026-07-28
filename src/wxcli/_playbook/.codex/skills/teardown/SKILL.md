@@ -86,10 +86,10 @@ wxcli paging-group list --location-id $LOC -o json 2>&1
 # Call parks and pickups REQUIRE location as positional arg — org-wide list returns EMPTY
 wxcli call-park list $LOC -o json 2>&1
 wxcli call-pickup list $LOC -o json 2>&1
-wxcli location-voicemail list $LOC -o json 2>&1
+wxcli location-voicemail list --location-id $LOC -o json 2>&1
 
 # Layer 2: Routing (org-wide — filter by location in output)
-wxcli call-routing list -o json 2>&1               # dial plans
+wxcli call-routing list-dial-plans -o json 2>&1    # dial plans
 wxcli call-routing list-route-lists -o json 2>&1   # route lists
 wxcli call-routing list-route-groups -o json 2>&1  # check which reference trunks in this location
 wxcli call-routing list-trunks -o json 2>&1        # filter by location in output

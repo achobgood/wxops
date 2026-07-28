@@ -544,7 +544,7 @@ and wrap up tasks. The API also handles preview dialer tasks and recording contr
 | `create-tasks` | POST `/v2/tasks` | Create task (v2) |
 | `create-messages` | POST `/v2/tasks/{taskId}/messages` | Update task (v2 messages) |
 | `create-accept-preview-task` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/accept` | Accept preview task |
-| `create-remove` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/remove` | Remove preview task |
+| `delete-preview-task` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/remove` | Remove preview task (args: `TASK_ID CAMPAIGN_ID`) |
 | `create-skip` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/skip` | Skip preview task |
 
 ### Key Parameters
@@ -599,10 +599,10 @@ wxcli cc-tasks create-wrapup task-789 --json-body '{
 wxcli cc-tasks create-pause task-789
 wxcli cc-tasks create-resume task-789
 
-# Preview dialer: accept/skip/remove
-wxcli cc-tasks create-accept-preview-task campaign-001 task-789
-wxcli cc-tasks create-skip campaign-001 task-789
-wxcli cc-tasks create-remove campaign-001 task-789
+# Preview dialer: accept/skip/remove (TASK_ID first, then CAMPAIGN_ID)
+wxcli cc-tasks create-accept-preview-task task-789 campaign-001
+wxcli cc-tasks create-skip task-789 campaign-001
+wxcli cc-tasks delete-preview-task task-789 campaign-001
 ```
 
 ### Raw HTTP
