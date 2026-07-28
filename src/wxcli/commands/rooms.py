@@ -211,9 +211,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Room.\n\n\b\nExample: wxcli rooms delete ROOM_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {room_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/rooms/{room_id}"
     try:
         result = api.session.rest_delete(url)

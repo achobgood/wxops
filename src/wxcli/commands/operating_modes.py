@@ -131,9 +131,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete an Operating Mode.\n\n\b\nExample: wxcli operating-modes delete MODE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {mode_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
     params = {}
     org_id = get_org_id()
@@ -306,9 +306,9 @@ def delete_holidays(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete an Operating Mode Holiday.\n\n\b\nExample: wxcli operating-modes delete-holidays MODE_ID HOLIDAY_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {holiday_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
     params = {}
     org_id = get_org_id()

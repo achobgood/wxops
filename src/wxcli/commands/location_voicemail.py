@@ -337,9 +337,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Voicemail Group for a Location.\n\n\b\nExample: wxcli location-voicemail delete LOCATION_ID VOICEMAIL_GROUP_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {voicemail_group_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemailGroups/{voicemail_group_id}"
     params = {}
     org_id = get_org_id()

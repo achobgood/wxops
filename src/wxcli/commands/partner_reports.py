@@ -149,9 +149,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Report.\n\n\b\nExample: wxcli partner-reports delete REPORT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {report_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/partner/reports/{report_id}"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:

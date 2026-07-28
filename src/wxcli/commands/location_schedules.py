@@ -187,9 +187,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Schedule.\n\n\b\nExample: wxcli location-schedules delete LOCATION_ID businessHours SCHEDULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {schedule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{type}/{schedule_id}"
     params = {}
     org_id = get_org_id()
@@ -310,9 +310,9 @@ def delete_events(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Schedule Event.\n\n\b\nExample: wxcli location-schedules delete-events LOCATION_ID businessHours SCHEDULE_ID EVENT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {event_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{type}/{schedule_id}/events/{event_id}"
     params = {}
     org_id = get_org_id()

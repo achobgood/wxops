@@ -143,9 +143,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Wholesale Billing Report.\n\n\b\nExample: wxcli wholesale-billing-reports delete ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/billing/reports/{id}"
     try:
         result = api.session.rest_delete(url)

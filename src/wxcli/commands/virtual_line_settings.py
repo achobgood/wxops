@@ -321,9 +321,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings delete VIRTUAL_LINE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {virtual_line_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}"
     params = {}
     org_id = get_org_id()
@@ -1007,9 +1007,9 @@ def delete_access_codes(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Access Codes for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings delete-access-codes VIRTUAL_LINE_ID"""
-    if not force:
-        typer.confirm(f"Delete {virtual_line_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Access Codes for {virtual_line_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/outgoingPermission/accessCodes"
     params = {}
     org_id = get_org_id()
@@ -1250,9 +1250,9 @@ def delete_digit_patterns_outgoing_permission(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete all Digit Patterns for a Virtual Profile.\n\n\b\nExample: wxcli virtual-line-settings delete-digit-patterns-outgoing-permission VIRTUAL_LINE_ID"""
-    if not force:
-        typer.confirm(f"Delete {virtual_line_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Digit Patterns for {virtual_line_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/outgoingPermission/digitPatterns"
     params = {}
     org_id = get_org_id()
@@ -1361,9 +1361,9 @@ def delete_digit_patterns_outgoing_permission_1(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Digit Pattern for a Virtual Profile.\n\n\b\nExample: wxcli virtual-line-settings delete-digit-patterns-outgoing-permission-1 VIRTUAL_LINE_ID DIGIT_PATTERN_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {digit_pattern_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/outgoingPermission/digitPatterns/{digit_pattern_id}"
     params = {}
     org_id = get_org_id()

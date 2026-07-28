@@ -183,10 +183,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Contact.\n\n\b\nExample: wxcli org-contacts delete CONTACT_ID"""
-    if not force:
-        typer.confirm(f"Delete {contact_id}?", abort=True)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {contact_id}?", abort=True)
     url = f"https://webexapis.com/v1/contacts/organizations/{org_id}/contacts/{contact_id}"
     try:
         result = api.session.rest_delete(url)

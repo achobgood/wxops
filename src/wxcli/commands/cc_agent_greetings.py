@@ -82,11 +82,11 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Greeting File by ID.\n\n\b\nExample: wxcli cc-agent-greetings delete ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/agent-personal-greeting/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -187,11 +187,11 @@ def delete_agent_personal_greeting(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Greeting File by ID.\n\n\b\nExample: wxcli cc-agent-greetings delete-agent-personal-greeting ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/v2/agent-personal-greeting/{id}"
     try:
         result = api.session.rest_delete(url)

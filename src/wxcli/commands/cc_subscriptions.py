@@ -188,10 +188,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Subscription.\n\n\b\nExample: wxcli cc-subscriptions delete ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/subscriptions/{id}"
     params = {}
     org_id = get_org_id()
@@ -428,10 +428,10 @@ def delete_subscriptions(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Subscription.\n\n\b\nExample: wxcli cc-subscriptions delete-subscriptions ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/v2/subscriptions/{id}"
     params = {}
     org_id = get_org_id()

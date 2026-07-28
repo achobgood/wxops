@@ -55,9 +55,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete authorization of org and client ID.\n\n\b\nExample: wxcli authorizations delete --client-id CLIENT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/authorizations"
     params = {}
     if client_id is not None:
@@ -89,9 +89,9 @@ def delete_authorizations(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete authorization.\n\n\b\nExample: wxcli authorizations delete-authorizations AUTHORIZATION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {authorization_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/authorizations/{authorization_id}"
     try:
         result = api.session.rest_delete(url)

@@ -447,9 +447,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Dial Plan.\n\n\b\nExample: wxcli call-routing delete DIAL_PLAN_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {dial_plan_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}"
     params = {}
     org_id = get_org_id()
@@ -724,9 +724,9 @@ def delete_trunks(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Trunk.\n\n\b\nExample: wxcli call-routing delete-trunks TRUNK_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {trunk_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/{trunk_id}"
     params = {}
     org_id = get_org_id()
@@ -942,9 +942,9 @@ def delete_route_groups(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove a Route Group from an Organization.\n\n\b\nExample: wxcli call-routing delete-route-groups ROUTE_GROUP_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {route_group_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeGroups/{route_group_id}"
     params = {}
     org_id = get_org_id()
@@ -1320,9 +1320,9 @@ def delete_route_lists(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Route List.\n\n\b\nExample: wxcli call-routing delete-route-lists ROUTE_LIST_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {route_list_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/premisePstn/routeLists/{route_list_id}"
     params = {}
     org_id = get_org_id()
@@ -1648,9 +1648,9 @@ def delete_translation_patterns_call_routing(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a specific Translation Pattern.\n\n\b\nExample: wxcli call-routing delete-translation-patterns-call-routing TRANSLATION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {translation_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRouting/translationPatterns/{translation_id}"
     params = {}
     org_id = get_org_id()
@@ -1812,9 +1812,9 @@ def delete_translation_patterns_call_routing_1(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a specific Translation Pattern for a Location.\n\n\b\nExample: wxcli call-routing delete-translation-patterns-call-routing-1 LOCATION_ID TRANSLATION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {translation_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRouting/translationPatterns/{translation_id}"
     params = {}
     org_id = get_org_id()

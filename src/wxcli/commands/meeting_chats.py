@@ -51,9 +51,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Meeting Chats.\n\n\b\nExample: wxcli meeting-chats delete --meeting-id MEETING_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/postMeetingChats"
     params = {}
     if meeting_id is not None:

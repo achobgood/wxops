@@ -92,9 +92,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Release Conference."""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/conference"
     params = {}
     if line_owner_id is not None:

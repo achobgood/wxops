@@ -358,9 +358,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Queue.\n\n\b\nExample: wxcli call-queue delete LOCATION_ID QUEUE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {queue_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
     params = {}
     org_id = get_org_id()
@@ -426,9 +426,9 @@ def delete_announcements(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Queue Announcement File.\n\n\b\nExample: wxcli call-queue delete-announcements LOCATION_ID QUEUE_ID FILE_NAME"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {file_name}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/announcements/{file_name}"
     params = {}
     org_id = get_org_id()
@@ -666,9 +666,9 @@ def delete_selective_rules(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue delete-selective-rules LOCATION_ID QUEUE_ID RULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {rule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
     org_id = get_org_id()
@@ -1335,9 +1335,9 @@ def delete_supervisors_config(
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_SUPERVISORS_CONFIG), indent=2))
         raise typer.Exit(0)
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
     org_id = get_org_id()
@@ -1464,9 +1464,9 @@ def delete_supervisors_config_1(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Supervisor.\n\n\b\nExample: wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {supervisor_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
     org_id = get_org_id()
@@ -1847,9 +1847,9 @@ def delete_dnis_queues(
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_DNIS_QUEUES), indent=2))
         raise typer.Exit(0)
-    if not force:
-        typer.confirm(f"Delete {queue_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Dnis for {queue_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis"
     params = {}
     org_id = get_org_id()
@@ -1972,9 +1972,9 @@ def delete_dnis_queues_1(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue delete-dnis-queues-1 LOCATION_ID QUEUE_ID DNIS_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {dnis_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}"
     params = {}
     org_id = get_org_id()

@@ -246,9 +246,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Device.\n\n\b\nExample: wxcli devices delete DEVICE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {device_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/devices/{device_id}"
     params = {}
     org_id = get_org_id()

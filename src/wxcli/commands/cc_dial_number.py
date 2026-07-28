@@ -154,11 +154,11 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete all Dialed Number Mapping(s)."""
-    if not force:
-        typer.confirm(f"Delete {orgid}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete Dial Number for {orgid}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/dial-number"
     try:
         result = api.session.rest_delete(url)
@@ -400,11 +400,11 @@ def delete_dial_number(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Dialed Number Mapping by ID.\n\n\b\nExample: wxcli cc-dial-number delete-dial-number ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/dial-number/{id}"
     try:
         result = api.session.rest_delete(url)

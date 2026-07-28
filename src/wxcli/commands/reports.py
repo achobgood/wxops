@@ -140,9 +140,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Report.\n\n\b\nExample: wxcli reports delete REPORT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {report_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/reports/{report_id}"
     try:
         result = api.session.rest_delete(url)

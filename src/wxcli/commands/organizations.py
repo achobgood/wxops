@@ -68,10 +68,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Organization."""
-    if not force:
-        typer.confirm(f"Delete {org_id}?", abort=True)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {org_id}?", abort=True)
     url = f"https://webexapis.com/v1/organizations/{org_id}"
     try:
         result = api.session.rest_delete(url)

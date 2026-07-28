@@ -168,9 +168,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Announcement Playlist.\n\n\b\nExample: wxcli announcement-playlists delete PLAYLIST_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {playlist_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcements/playlists/{playlist_id}"
     params = {}
     org_id = get_org_id()

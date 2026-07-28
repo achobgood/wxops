@@ -1337,6 +1337,18 @@ tag_overrides:
       # (renderer emits it from original_command_name), so nothing scripted
       # breaks. Scope and rejected alternatives: tools/CLAUDE.md.
         "delete": "delete-customers"
+  webex-messaging.json:
+    # Audit finding #8 (2026-07-28): the BARE `list` under `hds` returns
+    # CLUSTERS (GET /hds/organizations/{id}/clusters), sitting right next to
+    # `show-database` (the actual database-details endpoint) and next to six
+    # other name-qualified siblings (list-nodes, list-tenants, list-alarms,
+    # list-network-test, list-resource-usage, list-availability). An agent
+    # asking for "database details" reads `list` as the obvious match and
+    # gets clusters instead -- same shape as the "Location Call Settings"
+    # list/list-1 collision above. Old name kept as a hidden alias.
+    "Hybrid Data Security":
+      command_name_overrides:
+        "list": "list-clusters"
 
 # Tag-level override for Operating Modes
 "Features: Operating Modes":

@@ -58,9 +58,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Session.\n\n\b\nExample: wxcli hot-desk delete SESSION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {session_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hotdesk/sessions/{session_id}"
     try:
         result = api.session.rest_delete(url)

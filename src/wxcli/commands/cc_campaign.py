@@ -227,10 +227,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Stop Campaign Request.\n\n\b\nExample: wxcli cc-campaign delete Campaign1"""
-    if not force:
-        typer.confirm(f"Delete {campaign_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {campaign_id}?", abort=True)
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
     try:
         result = api.session.rest_delete(url)

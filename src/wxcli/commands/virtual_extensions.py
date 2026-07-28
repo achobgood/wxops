@@ -216,9 +216,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Virtual Extension.\n\n\b\nExample: wxcli virtual-extensions delete EXTENSION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {extension_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualExtensions/{extension_id}"
     params = {}
     org_id = get_org_id()
@@ -522,9 +522,9 @@ def delete_virtual_extension_ranges(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Virtual Extension Range.\n\n\b\nExample: wxcli virtual-extensions delete-virtual-extension-ranges EXTENSION_RANGE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {extension_range_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualExtensionRanges/{extension_range_id}"
     params = {}
     org_id = get_org_id()

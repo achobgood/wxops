@@ -116,10 +116,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Unassign partner admin from a customer.\n\n\b\nExample: wxcli partner-admins delete PERSON_ID"""
-    if not force:
-        typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
+    if not force:
+        typer.confirm(f"Unassign {person_id}?", abort=True)
     url = f"https://webexapis.com/v1/partner/organizations/{org_id}/partnerAdmin/{person_id}/unassign"
     try:
         result = api.session.rest_delete(url)
@@ -145,9 +145,9 @@ def delete_partner_admin(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Revoke all partner admin roles for a given person ID.\n\n\b\nExample: wxcli partner-admins delete-partner-admin PERSON_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {person_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/partner/organizations/partnerAdmin/{person_id}"
     try:
         result = api.session.rest_delete(url)

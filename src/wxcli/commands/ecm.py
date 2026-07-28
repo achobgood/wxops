@@ -189,9 +189,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Unlink an ECM linked folder.\n\n\b\nExample: wxcli ecm delete ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
     try:
         result = api.session.rest_delete(url)

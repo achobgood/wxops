@@ -170,9 +170,9 @@ def delete(
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE), indent=2))
         raise typer.Exit(0)
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {recording_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/convergedRecordings/{recording_id}"
     if json_body:
         body = load_json_body(json_body)
