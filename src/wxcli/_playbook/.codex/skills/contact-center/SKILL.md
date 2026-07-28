@@ -258,7 +258,7 @@ wxcli cc-site create --json-body '{
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Desktop layout exists | `wxcli cc-desktop-layout list -o json` | Create or use default layout (note: `list` is the correct list-all for desktop layouts) |
+| Desktop layout exists | `wxcli cc-desktop-layout list-desktop-layout -o json` | Create or use default layout (note: `list` takes an ID and lists references for a specific layout — `list-desktop-layout` is the list-all) |
 
 #### Event Subscriptions
 
@@ -466,8 +466,7 @@ wxcli cc-users show-by-dynamic-skill-id DYNAMIC_SKILL_ID -o json
 **Reassign skill profiles to a user (reskill):**
 
 ```bash
-wxcli cc-users update-reskill --json-body '{
-  "userId": "USER_ID",
+wxcli cc-users update-reskill USER_ID --json-body '{
   "skillProfileId": "NEW_SKILL_PROFILE_ID"
 }'
 ```
@@ -612,7 +611,7 @@ wxcli cc-desktop-layout create --json-body '{
 **List desktop layouts:**
 
 ```bash
-wxcli cc-desktop-layout list -o json
+wxcli cc-desktop-layout list-desktop-layout -o json
 ```
 
 **Create a desktop profile:**
@@ -868,13 +867,13 @@ The `[?(@.type=='alternate1')]` filter expression is supported in WxCC Flow Desi
 **Show Auto CSAT configuration:**
 
 ```bash
-wxcli cc-auto-csat show-auto-csat -o json
+wxcli cc-auto-csat show-auto-csat AUTO_CSAT_ID -o json
 ```
 
 **Update Auto CSAT settings:**
 
 ```bash
-wxcli cc-auto-csat update --json-body '{...}'
+wxcli cc-auto-csat update AUTO_CSAT_ID --json-body '{...}'
 ```
 
 **List Auto CSAT entries:**
@@ -886,7 +885,7 @@ wxcli cc-auto-csat list -o json
 **List Auto CSAT questions:**
 
 ```bash
-wxcli cc-auto-csat list-question -o json
+wxcli cc-auto-csat list-question AUTO_CSAT_ID -o json
 ```
 
 ---
@@ -905,9 +904,7 @@ wxcli cc-call-monitoring create --json-body '{
 **Barge into a call:**
 
 ```bash
-wxcli cc-call-monitoring create-barge-in --json-body '{
-  "taskId": "TASK_ID"
-}'
+wxcli cc-call-monitoring create-barge-in TASK_ID
 ```
 
 **List active monitoring sessions:**
@@ -919,9 +916,7 @@ wxcli cc-call-monitoring list -o json
 **End a monitoring session:**
 
 ```bash
-wxcli cc-call-monitoring create-end --json-body '{
-  "taskId": "TASK_ID"
-}'
+wxcli cc-call-monitoring create-end TASK_ID
 ```
 
 ---
@@ -963,34 +958,26 @@ wxcli cc-tasks list -o json
 **Accept a task:**
 
 ```bash
-wxcli cc-tasks create-accept-tasks --json-body '{
-  "taskId": "TASK_ID"
-}'
+wxcli cc-tasks create-accept-tasks TASK_ID
 ```
 
 **Transfer a task:**
 
 ```bash
-wxcli cc-tasks create-transfer-tasks --json-body '{
-  "taskId": "TASK_ID",
-  "destinationId": "QUEUE_OR_AGENT_ID"
-}'
+wxcli cc-tasks create-transfer-tasks TASK_ID --to QUEUE_OR_AGENT_ID --destination-type queue
 ```
 
 **Wrap up a task:**
 
 ```bash
-wxcli cc-tasks create-wrapup --json-body '{
-  "taskId": "TASK_ID",
-  "auxCodeId": "AUX_CODE_ID"
-}'
+wxcli cc-tasks create-wrapup TASK_ID --aux-code-id AUX_CODE_ID --wrap-up-reason "Resolved"
 ```
 
 **Hold/unhold a task:**
 
 ```bash
-wxcli cc-tasks create-hold --json-body '{"taskId": "TASK_ID"}'
-wxcli cc-tasks create-unhold --json-body '{"taskId": "TASK_ID"}'
+wxcli cc-tasks create-hold TASK_ID --media-resource-id MEDIA_RESOURCE_ID
+wxcli cc-tasks create-unhold TASK_ID --media-resource-id MEDIA_RESOURCE_ID
 ```
 
 ---
@@ -1092,7 +1079,7 @@ wxcli cc-subscriptions show SUBSCRIPTION_ID -o json
 wxcli cc-users show USER_ID -o json
 
 # Auto CSAT
-wxcli cc-auto-csat show-auto-csat -o json
+wxcli cc-auto-csat show-auto-csat AUTO_CSAT_ID -o json
 ```
 
 ## Step 8: Report results

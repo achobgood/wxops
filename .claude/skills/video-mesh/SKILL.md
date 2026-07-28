@@ -141,22 +141,22 @@ wxcli video-mesh show CLUSTER_ID --output json
 wxcli video-mesh show CLUSTER_ID --output json
 
 # 3. Utilization
-wxcli video-mesh list-utilization-clusters CLUSTER_ID --output json
+wxcli video-mesh list-utilization-clusters --cluster-id CLUSTER_ID --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # 4. Reachability
-wxcli video-mesh list-clusters-reachability-test CLUSTER_ID --output json
+wxcli video-mesh list-clusters-reachability-test --cluster-id CLUSTER_ID --trigger-type All --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # 5. Media health
-wxcli video-mesh list-clusters-media-health-monitor-test CLUSTER_ID --output json
+wxcli video-mesh list-clusters-media-health-monitor-test --cluster-id CLUSTER_ID --trigger-type All --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # 6. Network test results
-wxcli video-mesh list-clusters-network-test CLUSTER_ID --output json
+wxcli video-mesh list-clusters-network-test --cluster-id CLUSTER_ID --trigger-type All --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # 7. Call redirects (overflow)
-wxcli video-mesh list-call-redirects-clusters CLUSTER_ID --output json
+wxcli video-mesh list-call-redirects-clusters --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --cluster-id CLUSTER_ID --output json
 
 # 8. Client type distribution
-wxcli video-mesh list-clusters-client-type-distribution CLUSTER_ID --output json
+wxcli video-mesh list-clusters-client-type-distribution --cluster-id CLUSTER_ID --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --device-type webexDevices --output json
 ```
 
 ---
@@ -170,13 +170,13 @@ For a single node:
 wxcli video-mesh show-availability NODE_ID --output json
 
 # Node reachability
-wxcli video-mesh list-nodes-reachability-test NODE_ID --output json
+wxcli video-mesh list-nodes-reachability-test --node-id NODE_ID --trigger-type All --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # Node media health
-wxcli video-mesh list-nodes-media-health-monitor-test NODE_ID --output json
+wxcli video-mesh list-nodes-media-health-monitor-test --node-id NODE_ID --trigger-type All --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # Node network test
-wxcli video-mesh list-nodes-network-test NODE_ID --output json
+wxcli video-mesh list-nodes-network-test --node-id NODE_ID --trigger-type All --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 ```
 
 ---
@@ -216,7 +216,7 @@ wxcli video-mesh list-event-thresholds --output json
 wxcli video-mesh show-event-thresholds THRESHOLD_ID --output json
 
 # Update a threshold
-wxcli video-mesh update THRESHOLD_ID --json-body '{"value": 80}'
+wxcli video-mesh update --json-body '{"eventThresholds": [{"eventThresholdId": "THRESHOLD_ID", "thresholdConfig": "80"}]}'
 
 # Reset all thresholds to defaults
 wxcli video-mesh create-reset
@@ -234,7 +234,7 @@ wxcli video-mesh list-cloud-overflow --output json
 wxcli video-mesh list-call-redirects-video-mesh --output json
 
 # Get redirect details for a specific cluster
-wxcli video-mesh list-call-redirects-clusters CLUSTER_ID --output json
+wxcli video-mesh list-call-redirects-clusters --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --cluster-id CLUSTER_ID --output json
 ```
 
 ---
@@ -256,7 +256,7 @@ Changes:
   [What will be changed]
 
 Commands to execute:
-  1. wxcli video-mesh update THRESHOLD_ID --json-body '{"value": 80}'
+  1. wxcli video-mesh update --json-body '{"eventThresholds": [{"eventThresholdId": "THRESHOLD_ID", "thresholdConfig": "80"}]}'
 
 Proceed? (yes/no)
 ```

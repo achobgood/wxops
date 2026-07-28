@@ -243,7 +243,7 @@ grep -io '"[A-Za-z][A-Za-z0-9._[]]*Background[A-Za-z0-9._[]]*"' /tmp/${TAG}_*.js
 |---------|-----|---------|---------|
 | Command (do a thing) | xAPI | `wxcli xapi list --command`, `xapi create` | `Camera.PositionReset` |
 | Status (read a live value) | xAPI | `wxcli xapi list --status`, `xapi show` | `SystemUnit.ProductPlatform` |
-| Configuration (persistent setting) | Device Configurations | `wxcli device-configurations show/update` (6a) | `Video.Input.CameraConfigMode` |
+| Configuration (persistent setting) | Device Configurations | `wxcli device-configurations show` / `wxcli device-configurations update` (6a) | `Video.Input.CameraConfigMode` |
 
 `xapi list` **cannot see configurations** — `/xapi/schema` accepts only `--status` and `--command`. If you search only xAPI for a setting, you will wrongly conclude it does not exist. Search all three dumps.
 

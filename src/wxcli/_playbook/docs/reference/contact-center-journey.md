@@ -55,7 +55,7 @@ more WXCC subscriptions that feed contact events into the journey stream automat
 | `create-workspace` | POST `/admin/v1/api/workspace` | Create workspace |
 | `show-workspace-id-api` | GET `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Get workspace |
 | `update-workspace-id` | PUT `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Update workspace |
-| `delete` | DELETE `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Delete workspace |
+| `delete-workspace-id-api` | DELETE `/admin/v1/api/workspace/workspace-id/{workspaceId}` | Delete workspace |
 
 ```bash
 # List all JDS workspaces
@@ -97,9 +97,9 @@ lookup and merge matching.
 | `show` | GET `.../person/workspace-id/{workspaceId}` | List all persons (or one via `--person-id`) |
 | `create` | POST `.../person/workspace-id/{workspaceId}` | Create a person |
 | `update` | PATCH `.../person/workspace-id/{wId}/person-id/{pId}` | Update person |
-| `delete` | DELETE `.../person/workspace-id/{wId}/person-id/{pId}` | Delete person |
+| `delete-person-id` | DELETE `.../person/workspace-id/{wId}/person-id/{pId}` | Delete person |
 | `update-person-id-workspace-id` | PATCH `.../person/add-identities/workspace-id/{wId}/person-id/{pId}` | Add identities |
-| `update-person-id-workspace-id-1` | PATCH `.../person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities |
+| `delete-person-id-workspace-id` | PATCH `.../person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities |
 | `show-aliases` | GET `.../person/workspace-id/{wId}/aliases/{aliases}` | Search by alias |
 | `create-workspace-id-merge-identities` | POST `.../person/merge-identities/workspace-id/{wId}` | Merge aliases |
 | `create-primary-person-id` | POST `.../person/merge/workspace-id/{wId}/primary-person-id/{pId}` | Merge to primary |
@@ -120,7 +120,7 @@ wxcli cc-journey create ws-abc-123 --json-body '{
 }'
 
 # Delete a person by ID
-wxcli cc-journey delete ws-abc-123 person-id-here
+wxcli cc-journey delete-person-id ws-abc-123 person-id-here
 
 # Merge identities to a primary person
 wxcli cc-journey create-primary-person-id ws-abc-123 person-001
@@ -193,18 +193,19 @@ Historic and streaming profile view endpoints plus journey event retrieval.
 
 | CLI Command | HTTP | Description |
 |-------------|------|-------------|
-| `show` | GET `/admin/v1/api/progressive-profile-view/.../template-name/{name}` | Historic view by person + template name |
-| `show-template-name-person-id` | GET `/v1/api/progressive-profile-view/.../person-id/{pId}/template-name/{name}` | Historic view (runtime) |
-| `show-template-id-identity` | GET `/v1/api/progressive-profile-view/stream/.../identity/{id}/template-id/{tId}` | Stream views by template ID |
-| `show-workspace-id-events` | GET `/v1/api/events/workspace-id/{wId}` | Historic journey events |
+| `show-template-name-person-id` | GET `/api/progressive-profile-view/workspace-id/{wId}/person-id/{pId}/template-name/{name}` | Historic view by person + template name |
+| `show-template-id-identity` | GET `/api/progressive-profile-view/stream/workspace-id/{wId}/identity/{id}/template-id/{tId}` | Stream views by template ID |
+| `show-workspace-id-events` | GET `/api/events/workspace-id/{wId}` | Historic journey events |
+| `show` | GET `/admin/v1/api/person/workspace-id/{wId}` | Get all (or one) Person Details -- **not** a profile view |
 
 Additional profile view endpoints provide access by identity + template ID, identity + template name,
 person + template ID, and streaming by template name. All follow the pattern:
-`/v1/api/progressive-profile-view/[stream/]workspace-id/{wId}/{lookup-type}/{value}/template-{id|name}/{template}`
+`/api/progressive-profile-view/[stream/]workspace-id/{wId}/{lookup-type}/{value}/template-{id|name}/{template}`
+(no `/v1` segment, and no `/admin` prefix -- those belong to the person/template admin endpoints).
 
 ```bash
 # Get historic profile view by person and template name
-wxcli cc-journey show ws-abc-123 person-001 "Customer 360"
+wxcli cc-journey show-template-name-person-id ws-abc-123 person-001 "Customer 360"
 
 # Stream progressive profile views (SSE — long-lived connection)
 wxcli cc-journey show-template-id-identity ws-abc-123 "+15551234567" tmpl-001

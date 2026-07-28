@@ -486,7 +486,7 @@ wxcli single-number-reach create Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
   --answer-confirmation-enabled
 
 # Update an SNR number entry
-wxcli single-number-reach update-numbers Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
+wxcli single-number-reach update-numbers Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 MTIyMjMzMzQ0NDQ= \
   --json-body '{"enabled": false}'
 
 # Delete an SNR number entry
