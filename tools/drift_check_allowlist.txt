@@ -2,6 +2,14 @@
 # One entry per line: "<group>" ignores the group everywhere,
 # "<group> <command>" ignores that exact pair. Do NOT add real commands
 # here to silence the gate — fix the skill instead.
+#
+# File-scoped forms: "ref <file> <group>" / "ref <file> <group> <command>"
+# ignore only within that one file. Use these — not the bare forms — for a
+# name that is a deliberate negative example in ONE doc but would otherwise
+# be a real, unrelated dead reference elsewhere. A bare group entry silences
+# every file at once; that hid 6 real dead refs in person-call-settings-
+# behavior.md behind a `user-call-settings` exemption written for
+# manage-devices/SKILL.md alone (found live, 2026-07-27).
 
 # "wxcli commands" — English prose inside code spans, not a group
 commands
@@ -16,9 +24,13 @@ locations-api
 # wxc-calling-builder.md:772 — deliberate negative example ("users
 # assign-license doesn't exist — use licenses instead")
 users assign-license
-# manage-devices/SKILL.md:31,640 — deliberate negative examples ("Do NOT
-# use user-call-settings — that group does not exist; use user-settings")
-user-call-settings
+# manage-devices/SKILL.md:31,653 — deliberate negative examples ("Do NOT
+# use user-call-settings — that group does not exist; use user-settings").
+# File-scoped, not bare: the same name is a REAL dead reference in
+# docs/reference/person-call-settings-behavior.md (6 citations, wrong group
+# name AND in two cases the wrong verb too — see Wave 4 notes) and a bare
+# entry here silently exempted those too.
+ref .claude/skills/manage-devices/SKILL.md user-call-settings
 # provision-calling/SKILL.md gotcha #6 — deliberate stale-guidance warning
 # ("the older update-location-calling guidance is stale — do not promise it")
 location-settings update-location-calling
