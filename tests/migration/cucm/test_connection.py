@@ -461,6 +461,91 @@ class TestPaginatedListDropsUnknownTags:
 
 
 # ------------------------------------------------------------------
+# 5c. dropped returnedTags are recorded, not just logged
+# ------------------------------------------------------------------
+
+class TestDroppedTagAccumulator:
+    """A partial result must not be readable as a complete one."""
+
+    def test_starts_empty(self):
+        assert _make_conn().dropped_tags == {}
+
+    def test_records_the_dropped_tag_under_its_method(self):
+        conn = _make_conn()
+        conn.service.listAarGroup.side_effect = (
+            TestPaginatedListDropsUnknownTags._reject("description")
+        )
+        conn.paginated_list(
+            method_name="listAarGroup",
+            search_criteria={"name": "%"},
+            returned_tags={"name": "", "description": ""},
+        )
+        assert conn.dropped_tags == {"listAarGroup": ["description"]}
+
+    def test_records_every_dropped_tag(self):
+        conn = _make_conn()
+        conn.service.listAarGroup.side_effect = (
+            TestPaginatedListDropsUnknownTags._reject("description", "clause")
+        )
+        conn.paginated_list(
+            method_name="listAarGroup",
+            search_criteria={"name": "%"},
+            returned_tags={"name": "", "description": "", "clause": ""},
+        )
+        assert conn.dropped_tags["listAarGroup"] == ["description", "clause"]
+
+    def test_a_clean_call_records_nothing(self):
+        conn = _make_conn()
+        conn.service.listAarGroup.return_value = {
+            "return": {"aarGroup": [{"name": "AAR-HQ"}]}
+        }
+        conn.paginated_list(
+            method_name="listAarGroup",
+            search_criteria={"name": "%"},
+            returned_tags={"name": ""},
+        )
+        assert conn.dropped_tags == {}
+
+    def test_repeated_calls_do_not_duplicate_the_entry(self):
+        """paginated_list re-copies the tags, so the same drop recurs."""
+        conn = _make_conn()
+        for _ in range(3):
+            conn.service.listAarGroup.side_effect = (
+                TestPaginatedListDropsUnknownTags._reject("description")
+            )
+            conn.paginated_list(
+                method_name="listAarGroup",
+                search_criteria={"name": "%"},
+                returned_tags={"name": "", "description": ""},
+            )
+        assert conn.dropped_tags == {"listAarGroup": ["description"]}
+
+    def test_snapshot_is_a_copy_not_a_live_view(self):
+        conn = _make_conn()
+        conn.dropped_tags = {"listAarGroup": ["description"]}
+        snap = conn.dropped_tags_snapshot()
+        conn.dropped_tags["listAarGroup"].append("clause")
+        assert snap == {"listAarGroup": ["description"]}
+
+    def test_since_reports_only_what_is_new(self):
+        conn = _make_conn()
+        conn.dropped_tags = {"listAarGroup": ["description"]}
+        snap = conn.dropped_tags_snapshot()
+        conn.dropped_tags["listAarGroup"].append("clause")
+        conn.dropped_tags["listMohAudioSource"] = ["sourceFileName"]
+        assert conn.dropped_tags_since(snap) == {
+            "listAarGroup": ["clause"],
+            "listMohAudioSource": ["sourceFileName"],
+        }
+
+    def test_since_is_empty_when_nothing_was_dropped(self):
+        conn = _make_conn()
+        conn.dropped_tags = {"listAarGroup": ["description"]}
+        snap = conn.dropped_tags_snapshot()
+        assert conn.dropped_tags_since(snap) == {}
+
+
+# ------------------------------------------------------------------
 # 6. test_get_detail_success
 # ------------------------------------------------------------------
 
