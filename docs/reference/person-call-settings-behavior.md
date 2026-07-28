@@ -1006,6 +1006,26 @@ BASE = "https://webexapis.com/v1"
 url = f"{BASE}/people/{person_id}/features/monitoring"
 result = api.session.rest_get(url)
 # Returns: {"enableCallParkNotification": true, "monitoredElements": [...]}
+#
+# Each monitoredElements entry is WRAPPED in exactly one of member /
+# callparkextension / speedDial — it is NOT a flat object. Verified live
+# 2026-07-27; the OpenAPI spec's own example shows flat records with
+# id/displayName at the top level and is wrong. Read a monitored person's
+# name as element["member"]["displayName"], never element["displayName"]:
+#
+#   {"member": {"id": "...", "firstName": "Dev", "lastName": "Patel",
+#               "displayName": "Dev Patel", "type": "PEOPLE",
+#               "email": "dev.patel@example.com",
+#               "numbers": [{"extension": "2403", "esn": "2403",
+#                            "primary": true}],
+#               "location": "Site1", "locationId": "..."}}
+#
+# The other two shapes: callparkextension has name/extension/routingPrefix/
+# esn/location, speedDial has displayName/phoneNumber/type.
+#
+# When nothing is monitored the API OMITS the monitoredElements key entirely
+# rather than returning []. Use result.get("monitoredElements", []) — indexing
+# it directly raises KeyError on an unconfigured user, which is the common case.
 
 # Update monitoring settings
 url = f"{BASE}/people/{person_id}/features/monitoring"
