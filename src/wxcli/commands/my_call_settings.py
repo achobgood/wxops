@@ -1144,9 +1144,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete User's Single Number Reach Contact Settings.\n\n\b\nExample: wxcli my-call-settings delete PHONE_NUMBER_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {phone_number_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/singleNumberReach/numbers/{phone_number_id}"
     try:
         result = api.session.rest_delete(url)
@@ -1610,9 +1610,9 @@ def delete_numbers(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete User Call Block Number.\n\n\b\nExample: wxcli my-call-settings delete-numbers PHONE_NUMBER_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {phone_number_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/callBlock/numbers/{phone_number_id}"
     try:
         result = api.session.rest_delete(url)
@@ -2025,9 +2025,9 @@ def delete_criteria_priority_alert(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Priority Alert Criteria.\n\n\b\nExample: wxcli my-call-settings delete-criteria-priority-alert ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/priorityAlert/criteria/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -2192,9 +2192,9 @@ def delete_schedules(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a User Schedule.\n\n\b\nExample: wxcli my-call-settings delete-schedules businessHours SCHEDULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {schedule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/schedules/{schedule_type}/{schedule_id}"
     try:
         result = api.session.rest_delete(url)
@@ -2365,9 +2365,9 @@ def delete_events(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete User a Schedule Event.\n\n\b\nExample: wxcli my-call-settings delete-events businessHours SCHEDULE_ID EVENT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {event_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/schedules/{schedule_type}/{schedule_id}/events/{event_id}"
     try:
         result = api.session.rest_delete(url)
@@ -2620,9 +2620,9 @@ def delete_criteria_call_notify(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Notify Criteria.\n\n\b\nExample: wxcli my-call-settings delete-criteria-call-notify ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/callNotify/criteria/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -2855,9 +2855,9 @@ def delete_criteria_selective_accept(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Selective Call Accept Criteria.\n\n\b\nExample: wxcli my-call-settings delete-criteria-selective-accept ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/selectiveAccept/criteria/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -3072,9 +3072,9 @@ def delete_criteria_selective_forward(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Selective Call Forwarding Criteria.\n\n\b\nExample: wxcli my-call-settings delete-criteria-selective-forward ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/selectiveForward/criteria/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -3440,9 +3440,9 @@ def delete_criteria_selective_reject(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Selective Call Reject Criteria.\n\n\b\nExample: wxcli my-call-settings delete-criteria-selective-reject ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/selectiveReject/criteria/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -3744,9 +3744,9 @@ def delete_criteria_sequential_ring(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Sequential Ring Criteria.\n\n\b\nExample: wxcli my-call-settings delete-criteria-sequential-ring ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/sequentialRing/criteria/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -3922,9 +3922,9 @@ def delete_criteria_simultaneous_ring(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete My Simultaneous Ring Criteria.\n\n\b\nExample: wxcli my-call-settings delete-criteria-simultaneous-ring ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/simultaneousRing/criteria/{id}"
     try:
         result = api.session.rest_delete(url)

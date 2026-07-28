@@ -124,9 +124,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove a BroadWorks Workspace.\n\n\b\nExample: wxcli broadworks-workspaces delete WORKSPACE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {workspace_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/broadworks/workspaces/{workspace_id}"
     try:
         result = api.session.rest_delete(url)

@@ -228,9 +228,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Paging Group.\n\n\b\nExample: wxcli paging-group delete LOCATION_ID PAGING_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {paging_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/paging/{paging_id}"
     params = {}
     org_id = get_org_id()

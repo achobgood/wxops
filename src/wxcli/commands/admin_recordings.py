@@ -280,9 +280,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Recording By an Admin.\n\n\b\nExample: wxcli admin-recordings delete RECORDING_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {recording_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/recordings/{recording_id}"
     try:
         result = api.session.rest_delete(url)
@@ -342,9 +342,9 @@ def delete_recordings(
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_RECORDINGS), indent=2))
         raise typer.Exit(0)
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {recording_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/{recording_id}"
     params = {}
     if host_email is not None:

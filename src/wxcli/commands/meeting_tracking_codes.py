@@ -178,9 +178,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes delete TRACKING_CODE_ID --site-url SITE_URL"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {tracking_code_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
     params = {}
     if site_url is not None:

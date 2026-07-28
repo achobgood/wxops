@@ -19,9 +19,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting Message.\n\n\b\nExample: wxcli meeting-messages delete MEETING_MESSAGE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {meeting_message_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meeting/messages/{meeting_message_id}"
     try:
         result = api.session.rest_delete(url)

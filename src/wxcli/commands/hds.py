@@ -30,8 +30,9 @@ def show(
 
 
 
-@app.command("list", short_help="List clusters for an Hybrid Data Security organization.")
-def cmd_list(
+@app.command("list", hidden=True)
+@app.command("list-clusters", short_help="List clusters for an Hybrid Data Security organization.")
+def list_clusters(
     organization_id: str = typer.Argument(help="Webex ORGANIZATION id, from: wxcli organizations list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -39,7 +40,7 @@ def cmd_list(
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List clusters for an Hybrid Data Security organization.\n\n\b\nExample: wxcli hds list ORGANIZATION_ID"""
+    """List clusters for an Hybrid Data Security organization.\n\n\b\nExample: wxcli hds list-clusters ORGANIZATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}/clusters"
     params = {}

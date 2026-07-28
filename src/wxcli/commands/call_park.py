@@ -185,9 +185,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Park.\n\n\b\nExample: wxcli call-park delete LOCATION_ID CALL_PARK_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {call_park_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callParks/{call_park_id}"
     params = {}
     org_id = get_org_id()
@@ -487,9 +487,9 @@ def delete_call_park_extensions(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Park Extension.\n\n\b\nExample: wxcli call-park delete-call-park-extensions LOCATION_ID CALL_PARK_EXTENSION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {call_park_extension_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callParkExtensions/{call_park_extension_id}"
     params = {}
     org_id = get_org_id()

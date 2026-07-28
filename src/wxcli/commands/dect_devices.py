@@ -201,9 +201,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete DECT Network.\n\n\b\nExample: wxcli dect-devices delete LOCATION_ID DECT_NETWORK_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {dect_network_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}"
     params = {}
     org_id = get_org_id()
@@ -315,9 +315,9 @@ def delete_base_stations_dect_networks_bulk(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete bulk DECT Network Base Stations.\n\n\b\nExample: wxcli dect-devices delete-base-stations-dect-networks-bulk LOCATION_ID DECT_NETWORK_ID"""
-    if not force:
-        typer.confirm(f"Delete {dect_network_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Base Stations for {dect_network_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}/baseStations"
     params = {}
     org_id = get_org_id()
@@ -376,9 +376,9 @@ def delete_location_base_stations_dect_networks(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a specific DECT Network Base Station.\n\n\b\nExample: wxcli dect-devices delete-location-base-stations-dect-networks LOCATION_ID DECT_NETWORK_ID BASE_STATION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {base_station_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}/baseStations/{base_station_id}"
     params = {}
     org_id = get_org_id()
@@ -585,9 +585,9 @@ def delete_location_handsets_dect_networks(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific DECT Network Handset Details.\n\n\b\nExample: wxcli dect-devices delete-location-handsets-dect-networks LOCATION_ID DECT_NETWORK_ID HANDSET_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {handset_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}/handsets/{handset_id}"
     params = {}
     org_id = get_org_id()
@@ -627,9 +627,9 @@ def delete_handsets_dect_networks_bulk(
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_HANDSETS_DECT_NETWORKS_BULK), indent=2))
         raise typer.Exit(0)
-    if not force:
-        typer.confirm(f"Delete {dect_network_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Handsets for {dect_network_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}/handsets/"
     params = {}
     org_id = get_org_id()

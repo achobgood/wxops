@@ -250,9 +250,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting Invitee.\n\n\b\nExample: wxcli meeting-invitees delete MEETING_INVITEE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {meeting_invitee_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingInvitees/{meeting_invitee_id}"
     params = {}
     if host_email is not None:

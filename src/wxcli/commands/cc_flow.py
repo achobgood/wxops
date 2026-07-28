@@ -126,11 +126,11 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow delete PROJECT_ID FLOW_ID"""
-    if not force:
-        typer.confirm(f"Delete {flow_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {flow_id}?", abort=True)
     url = f"{cc_base_url}/{org_id}/project/{project_id}/flows/{flow_id}"
     params = {}
     if force is not None:

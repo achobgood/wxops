@@ -732,9 +732,9 @@ def delete_access_codes_all(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete all Access Codes for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-access-codes-all WORKSPACE_ID"""
-    if not force:
-        typer.confirm(f"Delete {workspace_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Access Codes for {workspace_id}?", abort=True)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/outgoingPermission/accessCodes"
     params = {}
     org_id = get_org_id()
@@ -978,9 +978,9 @@ def delete_access_codes(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Specific Access Code for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-access-codes WORKSPACE_ID ACCESS_CODE"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {access_code}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/features/accessCodes/{access_code}"
     params = {}
     org_id = get_org_id()
@@ -1145,9 +1145,9 @@ def delete_digit_patterns_outgoing_permission(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete all Digit Patterns for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-digit-patterns-outgoing-permission WORKSPACE_ID"""
-    if not force:
-        typer.confirm(f"Delete {workspace_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Digit Patterns for {workspace_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/outgoingPermission/digitPatterns"
     params = {}
     org_id = get_org_id()
@@ -1256,9 +1256,9 @@ def delete_digit_patterns_outgoing_permission_1(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Digit Pattern for the Workspace.\n\n\b\nExample: wxcli workspace-settings delete-digit-patterns-outgoing-permission-1 WORKSPACE_ID DIGIT_PATTERN_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {digit_pattern_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/outgoingPermission/digitPatterns/{digit_pattern_id}"
     params = {}
     org_id = get_org_id()
@@ -2190,9 +2190,9 @@ def delete_criteria_sequential_ring(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Sequential Ring Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-criteria-sequential-ring WORKSPACE_ID ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/sequentialRing/criteria/{id}"
     params = {}
     org_id = get_org_id()
@@ -2673,9 +2673,9 @@ def delete_criteria_simultaneous_ring(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Simultaneous Ring Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-criteria-simultaneous-ring WORKSPACE_ID ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/simultaneousRing/criteria/{id}"
     params = {}
     org_id = get_org_id()
@@ -2937,9 +2937,9 @@ def delete_criteria_selective_reject(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Selective Reject Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-criteria-selective-reject WORKSPACE_ID ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/selectiveReject/criteria/{id}"
     params = {}
     org_id = get_org_id()
@@ -3244,9 +3244,9 @@ def delete_criteria_selective_accept(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Selective Accept Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-criteria-selective-accept WORKSPACE_ID ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/selectiveAccept/criteria/{id}"
     params = {}
     org_id = get_org_id()
@@ -3508,9 +3508,9 @@ def delete_criteria_priority_alert(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Priority Alert Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-criteria-priority-alert WORKSPACE_ID ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/priorityAlert/criteria/{id}"
     params = {}
     org_id = get_org_id()
@@ -3787,9 +3787,9 @@ def delete_criteria_selective_forward(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings delete-criteria-selective-forward WORKSPACE_ID ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/selectiveForward/criteria/{id}"
     params = {}
     org_id = get_org_id()

@@ -187,9 +187,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Webhook.\n\n\b\nExample: wxcli webhooks delete WEBHOOK_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {webhook_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/webhooks/{webhook_id}"
     try:
         result = api.session.rest_delete(url)

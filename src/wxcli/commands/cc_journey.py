@@ -61,10 +61,10 @@ def delete_person_id(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Person by id.\n\n\b\nExample: wxcli cc-journey delete-person-id WORKSPACE_ID PERSON_ID"""
-    if not force:
-        typer.confirm(f"Delete {person_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {person_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
     try:
         result = api.session.rest_delete(url)
@@ -524,10 +524,10 @@ def delete_template_id(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Template by template Id.\n\n\b\nExample: wxcli cc-journey delete-template-id WORKSPACE_ID TEMPLATE_ID"""
-    if not force:
-        typer.confirm(f"Delete {template_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {template_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         result = api.session.rest_delete(url)
@@ -924,10 +924,10 @@ def delete_workspace_id_wxcc_subscription(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete WXCC Subscription.\n\n\b\nExample: wxcli cc-journey delete-workspace-id-wxcc-subscription WORKSPACE_ID"""
-    if not force:
-        typer.confirm(f"Delete {workspace_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {workspace_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_delete(url)
@@ -1159,10 +1159,10 @@ def delete_action_id(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Journey Action configuration By ActionId.\n\n\b\nExample: wxcli cc-journey delete-action-id WORKSPACE_ID TEMPLATE_ID ACTION_ID"""
-    if not force:
-        typer.confirm(f"Delete {action_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {action_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
     try:
         result = api.session.rest_delete(url)
@@ -1252,10 +1252,10 @@ def delete_workspace_id_api(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Workspace.\n\n\b\nExample: wxcli cc-journey delete-workspace-id-api WORKSPACE_ID"""
-    if not force:
-        typer.confirm(f"Delete {workspace_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {workspace_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_delete(url)

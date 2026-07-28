@@ -224,9 +224,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Message.\n\n\b\nExample: wxcli messages delete MESSAGE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {message_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/messages/{message_id}"
     try:
         result = api.session.rest_delete(url)

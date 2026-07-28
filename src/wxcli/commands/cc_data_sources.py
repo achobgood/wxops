@@ -240,10 +240,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Data Source.\n\n\b\nExample: wxcli cc-data-sources delete DATA_SOURCE_ID"""
-    if not force:
-        typer.confirm(f"Delete {data_source_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {data_source_id}?", abort=True)
     url = f"{cc_base_url}/dataSources/{data_source_id}"
     try:
         result = api.session.rest_delete(url)

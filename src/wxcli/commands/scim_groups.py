@@ -231,10 +231,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a group.\n\n\b\nExample: wxcli scim-groups delete GROUP_ID"""
-    if not force:
-        typer.confirm(f"Delete {group_id}?", abort=True)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {group_id}?", abort=True)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Groups/{group_id}"
     try:
         result = api.session.rest_delete(url)

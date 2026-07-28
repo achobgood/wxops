@@ -233,9 +233,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove a BroadWorks Subscriber.\n\n\b\nExample: wxcli broadworks-subscribers delete SUBSCRIBER_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {subscriber_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/broadworks/subscribers/{subscriber_id}"
     try:
         result = api.session.rest_delete(url)

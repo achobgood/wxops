@@ -1436,6 +1436,53 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     return "\n".join(lines)
 
 
+def _url_terminal_segment(url_path: str) -> str:
+    """The last non-empty segment of a spec path template, e.g.
+    'workspaces/{workspaceId}/features/outgoingPermission/accessCodes' -> 'accessCodes'."""
+    return url_path.rstrip("/").split("/")[-1]
+
+
+def _humanize_path_segment(segment: str) -> str:
+    """'accessCodes' / 'dial-number' -> 'Access Codes' / 'Dial Number'.
+
+    Best-effort label for a literal URL segment so a confirm prompt can name
+    the sub-resource actually being deleted, when that resource is not
+    identified by any single path variable.
+    """
+    spaced = segment.replace("-", " ").replace("_", " ")
+    spaced = re.sub(r"(?<!^)(?=[A-Z])", " ", spaced)
+    words = [w for w in spaced.split() if w]
+    return " ".join(w[:1].upper() + w[1:] for w in words) if words else segment
+
+
+def _delete_confirm_subject(ep: Endpoint, id_var: str) -> str:
+    """The f-string body for a delete command's confirmation prompt.
+
+    Known issue #7: the prompt used to always name the last path variable
+    (`Delete {id}?`), which is only true when that id IS the resource being
+    deleted. Many deletes are scoped BY an id but delete a named sub-resource
+    UNDER it (e.g. a workspace's access codes) — naming the id there asks the
+    operator to confirm deleting the wrong thing. Only claim the id itself is
+    the target when the URL's terminal segment actually is that path
+    variable; otherwise name the real terminal resource, honestly, from the
+    URL. Where no resource noun can be derived (empty/odd segment), fall back
+    to a generic prompt rather than a specific but unjustified one.
+    """
+    last_declared = ep.path_vars[-1]
+    terminal = _url_terminal_segment(ep.url_path)
+    if terminal == "{" + last_declared + "}":
+        return f"Delete {{{id_var}}}?"
+    if terminal.lower() in DESTRUCTIVE_SEMANTICS:
+        # The terminal segment is itself an action verb (e.g. .../unassign),
+        # not a resource noun -- "Delete Unassign ...?" would misdescribe it.
+        verb = terminal[:1].upper() + terminal[1:]
+        return f"{verb} {{{id_var}}}?"
+    label = _humanize_path_segment(terminal)
+    if not label:
+        return f"Delete this resource (scoped by {{{id_var}}})?"
+    return f"Delete {label} for {{{id_var}}}?"
+
+
 def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
@@ -1484,7 +1531,8 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
 
     if ep.path_vars:
         id_var = _path_var_to_param(ep.path_vars[-1])
-        confirm_line = f'        typer.confirm(f"Delete {{{id_var}}}?", abort=True)'
+        subject = _delete_confirm_subject(ep, id_var)
+        confirm_line = f'        typer.confirm(f"{subject}", abort=True)'
         echo_line = f'        typer.echo(f"Deleted: {{{id_var}}}")'
     else:
         confirm_line = '        typer.confirm("Delete this resource?", abort=True)'
@@ -1542,10 +1590,10 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         *generate_json_body_check,
-        "    if not force:",
-        confirm_line,
         "    api = get_api(debug=debug)",
         *_render_path_inject(ep),
+        "    if not force:",
+        confirm_line,
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,

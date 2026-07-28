@@ -233,9 +233,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Data Source.\n\n\b\nExample: wxcli data-sources delete DATA_SOURCE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {data_source_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/dataSources/{data_source_id}"
     try:
         result = api.session.rest_delete(url)

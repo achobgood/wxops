@@ -96,10 +96,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove Phone Number from DNC List.\n\n\b\nExample: wxcli cc-dnc delete corporate-dnc-list PHONE_NUMBER"""
-    if not force:
-        typer.confirm(f"Delete {phone_number}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {phone_number}?", abort=True)
     url = f"{cc_base_url}/v3/campaign-management/dncList/{dnc_list_name}/phoneNumber/{phone_number}"
     try:
         result = api.session.rest_delete(url)

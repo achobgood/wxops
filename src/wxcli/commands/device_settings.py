@@ -752,9 +752,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Line Key Template.\n\n\b\nExample: wxcli device-settings delete TEMPLATE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {template_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/lineKeyTemplates/{template_id}"
     params = {}
     org_id = get_org_id()
@@ -1597,9 +1597,9 @@ def delete_background_images(
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_BACKGROUND_IMAGES), indent=2))
         raise typer.Exit(0)
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/backgroundImages"
     params = {}
     org_id = get_org_id()

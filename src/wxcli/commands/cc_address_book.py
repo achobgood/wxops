@@ -362,11 +362,11 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Address Book Entry by ID.\n\n\b\nExample: wxcli cc-address-book delete ADDRESS_BOOK_ID ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -479,11 +479,11 @@ def delete_address_book_organization(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book delete-address-book-organization ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -847,11 +847,11 @@ def delete_address_book_v3(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book delete-address-book-v3 ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book/{id}"
     try:
         result = api.session.rest_delete(url)

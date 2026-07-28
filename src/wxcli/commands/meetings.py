@@ -635,9 +635,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting.\n\n\b\nExample: wxcli meetings delete MEETING_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {meeting_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}"
     params = {}
     if host_email is not None:
@@ -1066,9 +1066,9 @@ def delete_registration(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Meeting Registration Form.\n\n\b\nExample: wxcli meetings delete-registration MEETING_ID"""
-    if not force:
-        typer.confirm(f"Delete {meeting_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Registration for {meeting_id}?", abort=True)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registration"
     try:
         result = api.session.rest_delete(url)
@@ -1308,9 +1308,9 @@ def delete_registrants(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting Registrant.\n\n\b\nExample: wxcli meetings delete-registrants MEETING_ID REGISTRANT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {registrant_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registrants/{registrant_id}"
     params = {}
     if current is not None:
@@ -1811,9 +1811,9 @@ def delete_interpreters(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Meeting Interpreter.\n\n\b\nExample: wxcli meetings delete-interpreters MEETING_ID INTERPRETER_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {interpreter_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/interpreters/{interpreter_id}"
     params = {}
     if host_email is not None:
@@ -1917,9 +1917,9 @@ def delete_breakout_sessions(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings delete-breakout-sessions MEETING_ID"""
-    if not force:
-        typer.confirm(f"Delete {meeting_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Breakout Sessions for {meeting_id}?", abort=True)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/breakoutSessions"
     params = {}
     if send_email is not None:

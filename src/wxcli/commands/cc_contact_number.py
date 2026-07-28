@@ -268,11 +268,11 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Contact Number by ID.\n\n\b\nExample: wxcli cc-contact-number delete ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/contact-number/{id}"
     try:
         result = api.session.rest_delete(url)

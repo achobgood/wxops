@@ -151,11 +151,11 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Auto CSAT mapped Question by ID.\n\n\b\nExample: wxcli cc-auto-csat delete AUTO_CSAT_ID ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
     try:
         result = api.session.rest_delete(url)

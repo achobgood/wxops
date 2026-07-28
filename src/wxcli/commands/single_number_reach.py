@@ -236,9 +236,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete A Single Number Reach Number.\n\n\b\nExample: wxcli single-number-reach delete PERSON_ID ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/singleNumberReach/numbers/{id}"
     params = {}
     org_id = get_org_id()

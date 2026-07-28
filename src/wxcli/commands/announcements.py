@@ -229,9 +229,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete an announcement greeting of the organization.\n\n\b\nExample: wxcli announcements delete ANNOUNCEMENT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {announcement_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/announcements/{announcement_id}"
     params = {}
     org_id = get_org_id()
@@ -475,9 +475,9 @@ def delete_announcements(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete an announcement greeting in a location.\n\n\b\nExample: wxcli announcements delete-announcements LOCATION_ID ANNOUNCEMENT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {announcement_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/announcements/{announcement_id}"
     params = {}
     org_id = get_org_id()

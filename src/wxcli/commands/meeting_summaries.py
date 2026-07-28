@@ -83,9 +83,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Summary.\n\n\b\nExample: wxcli meeting-summaries delete SUMMARY_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {summary_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingSummaries/{summary_id}"
     try:
         result = api.session.rest_delete(url)

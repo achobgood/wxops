@@ -164,9 +164,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Team.\n\n\b\nExample: wxcli teams delete TEAM_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {team_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/teams/{team_id}"
     try:
         result = api.session.rest_delete(url)

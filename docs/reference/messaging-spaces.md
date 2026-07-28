@@ -526,7 +526,7 @@ HDS manages encryption keys on-premises for compliance-sensitive organizations. 
 | Cluster details | `wxcli hds show-clusters CLUSTER_ID` | HDS cluster configuration and health |
 | Node details | `wxcli hds show-nodes NODE_ID` | Individual node status |
 | Database details | `wxcli hds show-database ORG_ID` | HDS database configuration |
-| Cluster list | `wxcli hds list ORG_ID` | All HDS clusters for the org (**not** database details) |
+| Cluster list | `wxcli hds list-clusters ORG_ID` (hidden alias: `list`) | All HDS clusters for the org (**not** database details) |
 | Multi-tenant info | `wxcli hds list-tenants ORG_ID` | Multi-tenant HDS org details |
 | Network tests | `wxcli hds list-network-test NODE_ID` | Network test results for a node |
 | Availability | `wxcli hds list-availability CLUSTER_ID` | Cluster availability metrics over time |
@@ -563,10 +563,10 @@ cluster = api.session.rest_get(f"{BASE}/clusters/{cluster_id}")
 node = api.session.rest_get(f"{BASE}/nodes/{node_id}")
 
 # Get database details
-db = api.session.rest_get(f"{BASE}/organizations/{org_id}/database/details")
+db = api.session.rest_get(f"{BASE}/organizations/{org_id}/database")
 
 # Get multi-tenant details
-mt = api.session.rest_get(f"{BASE}/organizations/{org_id}/multiTenant")
+mt = api.session.rest_get(f"{BASE}/organizations/{org_id}/tenants")
 
 # Get node network test results
 tests = api.session.rest_get(f"{BASE}/testResults/nodes/{node_id}/networkTest",
@@ -582,6 +582,7 @@ avail = api.session.rest_get(f"{BASE}/clusters/{cluster_id}/availability",
 - **All HDS commands are read-only.** There are no create, update, or delete operations in the `hds` CLI group.
 - **Requires admin token.** HDS monitoring is not available via user or bot tokens.
 - **IDs are required positional arguments** for all `hds` commands (e.g., `hds show ORG_ID`, `hds show-clusters CLUSTER_ID`). The org ID is available from `wxcli organizations list`.
+- **`list` renamed to `list-clusters` (2026-07-28).** The bare `list` gave no hint what it lists, sitting beside six name-qualified siblings (`list-nodes`, `list-tenants`, `list-alarms`, `list-network-test`, `list-resource-usage`, `list-availability`) and next to `show-database` — the endpoint that actually returns database details. An agent asking for "database details" could read `list` as the match and get clusters instead, with no error. `list` still works as a hidden alias.
 
 HDS endpoints work with a standard full admin token -- no special admin role (e.g., Compliance Officer) is required. The `/hybrid/clusters` endpoint returns 200 with a full admin token.
 

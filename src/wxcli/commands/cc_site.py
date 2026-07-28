@@ -332,11 +332,11 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete specific Site by ID.\n\n\b\nExample: wxcli cc-site delete ID"""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/site/{id}"
     try:
         result = api.session.rest_delete(url)

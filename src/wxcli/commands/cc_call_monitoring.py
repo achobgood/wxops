@@ -244,10 +244,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring delete REQUEST_ID"""
-    if not force:
-        typer.confirm(f"Delete {request_id}?", abort=True)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {request_id}?", abort=True)
     url = f"{cc_base_url}/monitor/{request_id}"
     try:
         result = api.session.rest_delete(url)

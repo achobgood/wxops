@@ -194,9 +194,9 @@ def delete_customers(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning delete-customers CUSTOMER_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {customer_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/customers/{customer_id}"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:
@@ -490,9 +490,9 @@ def delete_subscribers(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Remove a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning delete-subscribers SUBSCRIBER_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {subscriber_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/subscribers/{subscriber_id}"
     params = {}
     if on_behalf_of_sub_partner_org_id is not None:

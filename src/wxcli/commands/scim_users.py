@@ -284,10 +284,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a user.\n\n\b\nExample: wxcli scim-users delete USER_ID"""
-    if not force:
-        typer.confirm(f"Delete {user_id}?", abort=True)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {user_id}?", abort=True)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     try:
         result = api.session.rest_delete(url)

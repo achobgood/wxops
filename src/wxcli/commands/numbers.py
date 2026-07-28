@@ -128,9 +128,9 @@ def delete(
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE), indent=2))
         raise typer.Exit(0)
-    if not force:
-        typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Numbers for {location_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/numbers"
     params = {}
     org_id = get_org_id()

@@ -191,9 +191,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Call Pickup.\n\n\b\nExample: wxcli call-pickup delete LOCATION_ID CALL_PICKUP_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {call_pickup_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callPickups/{call_pickup_id}"
     params = {}
     org_id = get_org_id()

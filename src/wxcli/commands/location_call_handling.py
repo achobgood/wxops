@@ -443,9 +443,9 @@ def delete_access_codes_all(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete all Outgoing Permission Access Code for a Location.\n\n\b\nExample: wxcli location-call-handling delete-access-codes-all LOCATION_ID"""
-    if not force:
-        typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Access Codes for {location_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/accessCodes"
     params = {}
     org_id = get_org_id()
@@ -567,9 +567,9 @@ def delete_digit_patterns_outgoing_permission(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete all Outgoing Permission Digit Patterns for a Location.\n\n\b\nExample: wxcli location-call-handling delete-digit-patterns-outgoing-permission LOCATION_ID"""
-    if not force:
-        typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Digit Patterns for {location_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/digitPatterns"
     params = {}
     org_id = get_org_id()
@@ -678,9 +678,9 @@ def delete_digit_patterns_outgoing_permission_1(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Outgoing Permission Digit Pattern for a Location.\n\n\b\nExample: wxcli location-call-handling delete-digit-patterns-outgoing-permission-1 LOCATION_ID DIGIT_PATTERN_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {digit_pattern_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/outgoingPermission/digitPatterns/{digit_pattern_id}"
     params = {}
     org_id = get_org_id()

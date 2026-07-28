@@ -243,9 +243,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Hunt Group.\n\n\b\nExample: wxcli hunt-group delete LOCATION_ID HUNT_GROUP_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {hunt_group_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}"
     params = {}
     org_id = get_org_id()
@@ -483,9 +483,9 @@ def delete_selective_rules(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group delete-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {rule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
     org_id = get_org_id()
