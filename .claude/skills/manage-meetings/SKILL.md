@@ -268,7 +268,7 @@ wxcli meetings create-reject MEETING_ID --json-body '{"registrants": [{"registra
 wxcli meetings create-cancel MEETING_ID --json-body '{"registrants": [{"registrantId": "REG_ID"}]}'
 
 # Delete registration form
-wxcli meetings delete MEETING_ID
+wxcli meetings delete-registration MEETING_ID
 ```
 
 ---
@@ -541,7 +541,7 @@ wxcli meetings create-survey-links MEETING_ID --output json
 wxcli meetings list-templates --output json
 
 # Get a meeting template
-wxcli meetings show TEMPLATE_ID --output json
+wxcli meetings show-templates TEMPLATE_ID --output json
 
 # List invitation sources
 wxcli meetings list-invitation-sources MEETING_ID --output json
