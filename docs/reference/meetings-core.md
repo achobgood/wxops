@@ -342,7 +342,7 @@ Templates define default meeting settings (audio options, attendee privileges, m
 | `--is-standard` | Filter to standard (system) templates only |
 | `--host-email EMAIL` | Admin: list templates available to another user |
 
-#### `meetings show TEMPLATE_ID`
+#### `meetings show-templates TEMPLATE_ID`
 
 | Option | Description |
 |--------|-------------|

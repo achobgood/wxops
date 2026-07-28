@@ -27,9 +27,39 @@ deny() {
   exit 0
 }
 
+deny_import() {
+  jq -nc '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:"Importing wxcli from Python bypasses this gate, the read-only verb policy, and the confirm prompt — those live above the Python layer. Functions in src/wxcli/commands/ make REAL HTTP calls to the live org, and a Typer default is an OptionInfo (truthy), so force=False does not mean what it reads like. REQUIRED ACTION: read the code instead of running it. The confirm string, URL, method and docstring are all literals in the file — use Read/Grep, or parse it with ast (reading a file is fine, importing it is not). If a layer genuinely must be exercised, monkeypatch the HTTP layer first, or ask Adam. `wxcli <cmd> --help` is safe."}}'
+  exit 0
+}
+
 input=$(cat)
 agent=$(printf '%s' "$input" | jq -r '.agent_type // ""')
 cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // ""')
+
+# The side door.  Everything below only inspects commands whose first token is
+# `wxcli`, so Python that imports the CLI walks straight past it.  2026-07-28: a
+# subagent imported four generated delete functions to see whether they crash;
+# the OptionInfo-is-truthy trap skipped the confirm prompt and four unconfirmed
+# DELETEs reached the live org, one of them DELETE /v1/organizations/{id}.  Only
+# Cisco refusing them saved it.
+#
+# Matched on an IMPORT of wxcli, not on the string `wxcli/commands`: reading
+# those files — Read, grep, ast.parse on the source — is the sanctioned way to
+# answer questions about them and must stay unblocked.  Checked before the agent
+# exemption below: the builder is trusted to run wxcli, not to bypass it.
+# Limit, stated: a hook sees only the command string, so a .py file on disk that
+# imports wxcli is invisible here.  That is why `python tools/drift_check.py`
+# and pytest keep working, and why this is a guard rail, not a proof.
+case "$cmd" in
+  *python*|*PYTHONPATH*)
+    case "$cmd" in
+      *"import wxcli"*|*"from wxcli"*|*"import src.wxcli"*|*"from src.wxcli"*)
+        deny_import ;;
+      *import_module*wxcli*)
+        deny_import ;;
+    esac
+    ;;
+esac
 
 # Agents that carry the playbook rules run unrestricted.
 case "$agent" in
