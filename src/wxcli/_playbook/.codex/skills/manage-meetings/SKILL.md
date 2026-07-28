@@ -310,7 +310,7 @@ wxcli meetings delete-breakout-sessions MEETING_ID
 wxcli meeting-participants list --meeting-id MEETING_ID --output json
 
 # Query participants by email
-wxcli meeting-participants create --json-body '{"meetingId": "MEETING_ID", "emails": ["user@example.com"]}'
+wxcli meeting-participants create --meeting-id MEETING_ID --json-body '{"emails": ["user@example.com"]}'
 
 # Get participant details
 wxcli meeting-participants show PARTICIPANT_ID --output json
@@ -382,7 +382,7 @@ wxcli meeting-captions list --meeting-id MEETING_ID --output json
 wxcli meeting-captions list-snippets CAPTION_ID --meeting-id MEETING_ID --output json
 
 # Download caption snippets
-wxcli meeting-captions list-download CAPTION_ID --output json
+wxcli meeting-captions list-download CAPTION_ID --meeting-id MEETING_ID --output json
 
 # Get AI summary for a meeting
 wxcli meeting-summaries list-meeting-summaries --meeting-id MEETING_ID --output json
@@ -442,7 +442,7 @@ wxcli meeting-preferences create-refresh-id --json-body '{"items": [{"email": "u
 wxcli meeting-preferences list-sites --output json
 
 # Update default site
-wxcli meeting-preferences update-sites --json-body '{"defaultSite": true, "siteUrl": "site.webex.com"}'
+wxcli meeting-preferences update-sites --default-site true --site-url site.webex.com
 
 # Insert delegate emails
 wxcli meeting-preferences create --json-body '{"emails": ["delegate@example.com"]}'
@@ -469,7 +469,7 @@ wxcli meeting-tracking-codes show TRACKING_CODE_ID --output json
 wxcli meeting-tracking-codes update TRACKING_CODE_ID --json-body '{"name": "Updated Name"}'
 
 # Delete a tracking code
-wxcli meeting-tracking-codes delete TRACKING_CODE_ID
+wxcli meeting-tracking-codes delete TRACKING_CODE_ID --site-url SITE_URL
 
 # Get user tracking codes
 wxcli meeting-tracking-codes list-tracking-codes --output json
@@ -511,16 +511,16 @@ wxcli meeting-polls list-respondents POLL_ID QUESTION_ID --meeting-id MEETING_ID
 wxcli meeting-qa list --meeting-id MEETING_ID --output json
 
 # List answers for a question
-wxcli meeting-qa list-answers QUESTION_ID --output json
+wxcli meeting-qa list-answers QUESTION_ID --meeting-id MEETING_ID --output json
 
 # List meeting usage reports
-wxcli meeting-reports list --output json
+wxcli meeting-reports list --site-url SITE_URL --output json
 
 # List attendee reports
-wxcli meeting-reports list-attendees --meeting-id MEETING_ID --output json
+wxcli meeting-reports list-attendees --site-url SITE_URL --meeting-id MEETING_ID --output json
 
 # List Slido compliance events
-wxcli meeting-slido list --output json
+wxcli meeting-slido list --session-org-id SESSION_ORG_ID --session-id SESSION_ID --output json
 ```
 
 ---
@@ -687,7 +687,7 @@ Next steps:
 6. **Registration must be enabled before managing registrants.** Use `meetings update-registration` to set up the registration form before adding registrants.
 7. **Breakout sessions are replaced on update, not merged.** The `update-breakout-sessions` command replaces all breakout sessions — include all sessions in the payload, not just the one you want to change.
 8. **Multi-site orgs must specify `--site-url`.** If the org has multiple Webex sites, meeting creation may fail without `--site-url`. Check available sites with `wxcli meeting-preferences list-sites`.
-9. **Delegate operations use non-obvious command names.** Insert delegates = `meeting-preferences create-insert`. Delete delegates = `meeting-preferences create`. The `create` command on `meeting-preferences` actually deletes delegate emails (API design quirk).
+9. **Delegate operations use non-obvious command names.** Insert delegates = `meeting-preferences create` (POST `.../schedulingOptions/delegateEmails/insert`). Delete delegates = `meeting-preferences delete-delegate-emails` (POST `.../delegateEmails/delete`). The bare `create` here does not create a preference object — it inserts delegate emails, and it is the only thing on this group that does.
 10. **Complex meeting options require `--json-body`.** Meeting options (file transfer, chat, video, polling), attendee privileges, tracking codes, and recurrence patterns are nested objects that must be passed via `--json-body`.
 11. **Cross-skill handoffs:**
     - Video Mesh monitoring → `video-mesh` skill

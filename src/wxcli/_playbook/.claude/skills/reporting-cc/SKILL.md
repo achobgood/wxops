@@ -60,13 +60,13 @@ Available regions: us1, eu1, eu2, anz1, ca1, jp1, sg1.
 ### Queue Statistics
 
 ```bash
-wxcli cc-queue-stats list -o json
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json
 ```
 
 #### Recipe CC-1 — Queue volume ranking
 Question: "Which queue gets the most calls?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -80,7 +80,7 @@ for q in sorted(items, key=lambda x: x.get('totalCalls', x.get('callsOffered', 0
 #### Recipe CC-2 — Queue abandonment rate
 Question: "What's our abandonment rate per queue?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -96,7 +96,7 @@ for q in items:
 #### Recipe CC-3 — Average wait time per queue
 Question: "How long are callers waiting?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -110,7 +110,7 @@ for q in sorted(items, key=lambda x: x.get('avgWaitTime', x.get('averageWaitTime
 #### Recipe CC-4 — Service level by queue
 Question: "Are we meeting our SLA?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -124,13 +124,13 @@ for q in items:
 ### Agent Statistics
 
 ```bash
-wxcli cc-agents list-statistics -o json
+wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json
 ```
 
 #### Recipe CC-5 — Agent handle time ranking
 Question: "Which agents are fastest/slowest?"
 ```bash
-wxcli cc-agents list-statistics -o json | python3.11 -c "
+wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -144,7 +144,7 @@ for a in sorted(items, key=lambda x: x.get('avgHandleTime', x.get('averageHandle
 #### Recipe CC-6 — Agent utilization
 Question: "How busy is each agent?"
 ```bash
-wxcli cc-agents list-statistics -o json | python3.11 -c "
+wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -160,7 +160,7 @@ for a in sorted(items, key=lambda x: x.get('callsHandled', x.get('totalCalls', 0
 #### Recipe CC-7 — Current wait time check
 Question: "What's the current wait for queue X?"
 ```bash
-wxcli cc-ewt show -o json | python3.11 -c "
+wxcli cc-ewt show --queue-id QUEUE_ID --lookback-minutes 30 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 if isinstance(data, dict):
@@ -198,7 +198,7 @@ else:
 #### Recipe CC-10 — Agent availability status
 Question: "Who's available right now?"
 ```bash
-wxcli cc-agents list -o json | python3.11 -c "
+wxcli cc-agents list --from 1784592000000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -220,7 +220,7 @@ wxcli cc-search create --json-body '{"from": "2026-04-09T00:00:00Z", "to": "2026
 #### Recipe CC-12 — Longest wait today
 Question: "What was the worst wait time today?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])

@@ -560,7 +560,7 @@ and wrap up tasks. The API also handles preview dialer tasks and recording contr
 
 ```bash
 # List active tasks
-wxcli cc-tasks list --channel-types telephony
+wxcli cc-tasks list --from 1784592000000 --channel-types telephony
 
 # Create a task
 wxcli cc-tasks create --json-body '{

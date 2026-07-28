@@ -424,7 +424,7 @@ For small batches, use a shell loop. For large batches (50+ users), use the migr
 | **Call Recording** | `user-settings show-call-recording PERSON_ID` | `workspace-settings show-call-recordings WS_ID` | — | `call-recording show` (vendor config) | — |
 | **Music on Hold** | SDK only (telephony_config) | SDK only | `location-settings` (must enable first) | — | — |
 | **Call Intercept** | `user-settings show-intercept PERSON_ID` | `workspace-settings show-intercept WS_ID` | Location defaults apply | — | — |
-| **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show-call-forwarding WS_ID` | — | — | — |
+| **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show WS_ID` (bare `show` **is** call forwarding) | — | — | — |
 | **Hoteling Guest** | `user-settings show-hoteling PERSON_ID` | — | — | — | `call-settings-for-me-phase-5 show-guest` |
 | **Hoteling Hosts** | — | — | — | — | `call-settings-for-me-phase-5 list` |
 

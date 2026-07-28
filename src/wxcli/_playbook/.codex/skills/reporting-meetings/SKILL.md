@@ -107,7 +107,7 @@ else:
 #### Recipe M-3 — Meeting usage summary
 Question: "How many meetings are we having?"
 ```bash
-wxcli meeting-reports list -o json | python3.11 -c "
+wxcli meeting-reports list --site-url SITE_URL -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -120,7 +120,7 @@ for r in items[:10]:
 #### Recipe M-4 — Meeting attendance
 Question: "How many invitees actually joined?"
 ```bash
-wxcli meeting-reports list-attendees --meeting-id MEETING_ID -o json | python3.11 -c "
+wxcli meeting-reports list-attendees --site-url SITE_URL --meeting-id MEETING_ID -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -158,7 +158,7 @@ for d in items[:14]:
 #### Recipe M-7 — Meetings aggregate comparison
 Question: "How do this month's meetings compare?"
 ```bash
-wxcli analytics show-aggregates -o json | python3.11 -c "
+wxcli analytics show-aggregates --site-url SITE_URL -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 if isinstance(data, dict):
@@ -174,7 +174,7 @@ else:
 #### Recipe M-8 — Workspace occupancy
 Question: "Which rooms are used the most?"
 ```bash
-wxcli workspace-metrics list -o json | python3.11 -c "
+wxcli workspace-metrics list --workspace-id WORKSPACE_ID --metric-name soundLevel -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -188,7 +188,7 @@ for w in sorted(items, key=lambda x: x.get('utilizationPercentage', x.get('occup
 #### Recipe M-9 — Workspace duration analysis
 Question: "How long are rooms occupied on average?"
 ```bash
-wxcli workspace-metrics list-workspace-duration-metrics -o json | python3.11 -c "
+wxcli workspace-metrics list-workspace-duration-metrics --workspace-id WORKSPACE_ID -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -243,7 +243,7 @@ for name, count in sorted(issues.items(), key=lambda x: x[1], reverse=True):
 #### Recipe M-12 — Attendee report for compliance
 Question: "Who attended this meeting?"
 ```bash
-wxcli meeting-reports list-attendees --meeting-id MEETING_ID -o json | python3.11 -c "
+wxcli meeting-reports list-attendees --site-url SITE_URL --meeting-id MEETING_ID -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -259,7 +259,7 @@ for a in items:
 #### Recipe M-13 — Top meeting hosts
 Question: "Who schedules the most meetings?"
 ```bash
-wxcli meeting-reports list -o json | python3.11 -c "
+wxcli meeting-reports list --site-url SITE_URL -o json | python3.11 -c "
 import json, sys
 from collections import Counter
 data = json.load(sys.stdin)

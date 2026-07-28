@@ -664,7 +664,7 @@ wxcli cc-entry-point create --json-body '{
 wxcli cc-entry-point show "ep-uuid"
 
 # Bulk export all entry points
-wxcli cc-entry-point list-bulk-export
+wxcli cc-entry-point list-bulk-export --type INBOUND
 
 # Delete an entry point
 wxcli cc-entry-point delete "ep-uuid"

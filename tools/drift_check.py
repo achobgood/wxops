@@ -59,6 +59,34 @@ Checks (docs/arch/target-architecture.md §A6):
       cited outside a fenced block, is a reference-table mention rather than
       a runnable example and is reported separately, never failed.
 
+  11a. Required flags: a documented example supplies every option the command
+      declares `typer.Option(...)`. Check 10 counts positionals only, so an
+      example can have the right argument count and still abort. Read off the
+      RENDERED command, never the spec — auto_inject_from_config makes 12
+      spec-required parameters legitimately absent from --help. Fenced
+      examples fail; inline mentions are counted separately.
+
+  11b. Argument kinds: a doc placeholder (CLUSTER_ID, TEMPLATE_ID) names the
+      resource the positional actually takes. Two tiers — a specific declared
+      kind that disagrees is mechanical and gated; a bare `UUID` argument can
+      only be judged by its producer command, which is a heuristic and is
+      reported, never failed. Arguments whose declared kind contradicts their
+      own parameter name (79 of 1049) are excluded and reported separately:
+      there the CLI's help is wrong, not the doc.
+
+  12. Command naming: no shipping command name whose obvious reading is wrong
+      is unacknowledged — a `-N` suffix the generator minted for a collision,
+      or a bare verb whose URL targets something other than the group's
+      headline resource. CRITICAL+HIGH fails, MEDIUM is reported. Existing
+      debt is acknowledged per operation in field_overrides.yaml's
+      `naming_ack`, which is re-validated every run so it cannot rot.
+      Classification lives in tools/verb_naming.py.
+
+Note: checks 2, 10, 11a and 11b share `command_heads`, which reads BOTH
+`wxcli <group> <command>` and the prefixless `<group> <command>` form that
+skill quick-reference tables use. Keying only on the literal `wxcli` hid 14
+dead references and 10 broken examples while every check reported 0.
+
 Fresh-clone semantics: only git-tracked specs count
 (specs/webex-flow-store.json is untracked). Command modules count unless a
 gitignore rule excludes them (dev-only fs_*), so a newly generated module is
@@ -76,8 +104,10 @@ from pathlib import Path
 
 try:  # runnable as `python tools/drift_check.py` and as an imported module
     from tools.spec_overlay import load_overlay, merge_overlay, superseded_paths
+    from tools import verb_naming
 except ImportError:  # pragma: no cover
     from spec_overlay import load_overlay, merge_overlay, superseded_paths
+    import verb_naming
 
 REPO = Path(__file__).resolve().parent.parent
 SPECS_DIR = REPO / "specs"
@@ -185,7 +215,8 @@ def load_overrides() -> dict:
     skip_reasons: dict[tuple[str, str], str] = {}   # (spec, pattern) -> comment
     keep_endpoints: list[str] = []
     spec_authority: dict[str, dict[str, str]] = {}
-    section = None      # "skip_tags" | "keep_endpoints" | "spec_authority" | None
+    naming_ack: dict[str, dict[str, str]] = {}
+    section = None      # skip_tags|keep_endpoints|spec_authority|naming_ack|None
     subkey = None
     for raw in OVERRIDES.read_text().splitlines():
         comment = raw.split("#", 1)[1].strip() if "#" in raw else ""
@@ -216,8 +247,18 @@ def load_overrides() -> dict:
             elif indent >= 4 and ":" in stripped and subkey:
                 k, _, v = stripped.partition(":")
                 spec_authority[subkey][k.strip()] = v.strip().strip('"').strip("'")
+        elif section == "naming_ack":
+            # same two-level shape as spec_authority: a quoted
+            # "<kind> <METHOD> <path>" key, then command/severity beneath it.
+            if stripped.endswith(":") and indent == 2:
+                subkey = stripped.rstrip(":").strip().strip('"').strip("'")
+                naming_ack.setdefault(subkey, {})
+            elif indent >= 4 and ":" in stripped and subkey:
+                k, _, v = stripped.partition(":")
+                naming_ack[subkey][k.strip()] = v.strip().strip('"').strip("'")
     return {"skip_tags": skip_tags, "skip_reasons": skip_reasons,
-            "keep_endpoints": keep_endpoints, "spec_authority": spec_authority}
+            "keep_endpoints": keep_endpoints, "spec_authority": spec_authority,
+            "naming_ack": naming_ack}
 
 
 def tag_is_skipped(tag: str, spec_name: str, skip_tags: dict) -> bool:
@@ -474,6 +515,42 @@ SCAN_PATTERNS = (".claude/skills/**", ".claude/agents/**", ".claude/rules/**",
 TOKEN = re.compile(r"wxcli\s+([a-z0-9][a-z0-9_-]*)(?:\s+([a-z0-9][a-z0-9_-]*))?")
 PLACEHOLDER = re.compile(r"[<>\[\]{}$|]")
 
+# A citation that omits the literal `wxcli`. Skill quick-reference tables drop
+# the prefix routinely (`| Get cluster details | `video-mesh show CLUSTER_ID` |`),
+# and every check keyed on TOKEN/FLAG_CMD was blind to all of them: measured on
+# this repo, 639 such spans head a registered group, 14 named a command that
+# does not exist, and check 2 reported 0.
+#
+# Two restrictions keep this out of English prose, and both are load-bearing:
+#   * anchored at the START of the span — `people list` mid-sentence is not a
+#     citation, and 1232 spans match the shape while only 639 head a group;
+#   * the second token must end on a word boundary, so the slash-notation
+#     `emergency-services show/create/update` is prose, not a 1-argument
+#     invocation of `show` (that exact span was this rule's only false
+#     positive across the whole doc set).
+# The caller adds the third: the first token must be a REGISTERED GROUP.
+PREFIXLESS_HEAD = re.compile(
+    r"^([a-z0-9][a-z0-9_-]*)[ \t]+([a-z0-9][a-z0-9_-]*)(?=[ \t]|$)")
+
+
+def command_heads(span: str):
+    """Yield (group, command|None, rest_text, prefixless) for each command head.
+
+    One reader for every check that parses a documented invocation, so a
+    citation is either visible to all of them or to none. Callers get the
+    remaining argument text directly rather than an offset, because the
+    prefixless match runs against a left-stripped copy and the two offset
+    spaces would not line up.
+    """
+    for m in TOKEN.finditer(span):
+        yield m.group(1), m.group(2), span[m.end():], False
+    s = span.lstrip()
+    if s.startswith("wxcli"):
+        return  # already yielded above, in its canonical form
+    m = PREFIXLESS_HEAD.match(s)
+    if m:
+        yield m.group(1), m.group(2), s[m.end():], True
+
 
 def _quote_open(s: str) -> str | None:
     """Scan `s` from a clean start and return the quote char still open at the
@@ -544,6 +621,15 @@ def code_spans(text: str, join_continuations: bool = False,
                 pending, pending_line = line.rstrip(), lineno
             else:
                 pending += " " + line.strip()
+            # `cmd --flag x \    # what this does` is a real continuation whose
+            # `\` is not the last character. Recognising only a literal trailing
+            # `\` ends the span here and hides every flag on the wrapped lines:
+            # measured, README.md's `wxcli cucm report --brand ... \  # comment`
+            # supplies --prepared-by on the NEXT line, and check 11a reported it
+            # as missing. Only a comment introduced AFTER whitespace following
+            # the backslash is stripped, so a `#` inside a quoted value is
+            # untouched.
+            pending = re.sub(r"\\[ \t]+#.*$", "\\\\", pending)
             if pending.endswith("\\"):
                 pending = pending[:-1]
                 continue
@@ -573,9 +659,17 @@ def load_allowlist() -> set[str]:
             if line.strip() and not line.startswith("#")}
 
 
-def check_references(surface: dict, top_level: set[str]) -> tuple[list, dict]:
-    """Validate wxcli tokens in code spans; also collect group reference counts."""
+def check_references(surface: dict, top_level: set[str]) -> tuple[list, dict, int]:
+    """Validate wxcli tokens in code spans; also collect group reference counts.
+
+    Returns (dead, group_refs, prefixless_subtotal). A dead command name is dead
+    whether or not the doc wrote `wxcli` in front of it, so prefixless hits join
+    the same failing list — but they are counted separately and printed on the
+    check-2 line, so the widening stays visible instead of silently changing
+    what a passing gate means.
+    """
     dead, group_refs = [], {g: 0 for g in surface}
+    prefixless = 0
     allow = load_allowlist()
     for rel in sorted(f for pat in SCAN_PATTERNS for f in tracked_files(pat)
                       if f.endswith(".md")):
@@ -587,13 +681,18 @@ def check_references(surface: dict, top_level: set[str]) -> tuple[list, dict]:
                 if f"`{g}`" in text or f"wxcli {g}" in text:
                     group_refs[g] += 1
         for lineno, span in code_spans(text):
-            for m in TOKEN.finditer(span):
-                group, command = m.group(1), m.group(2)
-                if PLACEHOLDER.search(m.group(0)):
+            for group, command, _rest, no_prefix in command_heads(span):
+                entry = f"{group} {command}" if command else group
+                if no_prefix:
+                    # the anti-prose guard: only a REGISTERED group may head a
+                    # prefixless citation. Without it, 639 candidate spans
+                    # become 1232 and ordinary English joins the findings.
+                    if group not in surface:
+                        continue
+                elif PLACEHOLDER.search(f"wxcli {entry}"):
                     continue
                 if group[-1] in "-_" or (command and command[-1] in "-_"):
                     continue  # truncated placeholder like `wxcli cc-<group>`
-                entry = f"{group} {command}" if command else group
                 # Bare "<group>"/"<group> <command>" exempt everywhere (a real
                 # English-prose false positive, e.g. "wxcli commands", reads
                 # the same way in any file). "ref <file> <group|entry>" scopes
@@ -611,12 +710,22 @@ def check_references(surface: dict, top_level: set[str]) -> tuple[list, dict]:
                 if group in top_level:
                     continue
                 if group not in surface:
-                    dead.append({"file": rel, "line": lineno,
-                                 "ref": f"wxcli {group}", "kind": "group"})
+                    kind = "group"
                 elif command and command not in surface[group]:
-                    dead.append({"file": rel, "line": lineno,
-                                 "ref": f"wxcli {group} {command}", "kind": "command"})
-    return dead, group_refs
+                    kind = "command"
+                else:
+                    continue
+                # A dead GROUP is reported as the group alone — the command name
+                # is noise when the group it lives in does not exist. `ref`
+                # otherwise shows the citation AS WRITTEN: printing a `wxcli`
+                # the doc never had sends the reader grepping for a string that
+                # is not there.
+                cited = group if kind == "group" else entry
+                dead.append({"file": rel, "line": lineno, "kind": kind,
+                             "prefixless": no_prefix,
+                             "ref": cited if no_prefix else f"wxcli {cited}"})
+                prefixless += no_prefix
+    return dead, group_refs, prefixless
 
 
 # ------------------------------------------------------------------ check 3
@@ -1220,6 +1329,164 @@ def split_doc_positionals(tokens: list[str], flags: dict[str, bool],
     return positionals, ellipsis, unbalanced
 
 
+# ---------------------------------------------------------------- check 11a
+
+def parse_module_required_options(
+        module: str, commands_dir: Path = COMMANDS_DIR) -> dict[str, list[set]]:
+    """command -> [{every spelling of a REQUIRED option}].
+
+    Required means `typer.Option(...)` — Ellipsis as the default. Click enforces
+    these at PARSE time, so an example omitting one aborts before the command
+    runs, exactly like a missing positional.
+
+    Read the RENDERED command, never the spec. `auto_inject_from_config`
+    (tools/field_overrides.yaml) supplies orgId from saved config, so a
+    parameter the spec marks required is legitimately absent from --help; a
+    spec-driven version of this check would report every one of those as a
+    missing flag. Measured on this tree: 0 of 158 required options are
+    request-body fields — all are query or path parameters — so `--json-body`
+    never substitutes for one, and neither does `--generate-json-body`, which
+    Click never reaches until after it has enforced them.
+    """
+    path = commands_dir / f"{module}.py"
+    if not path.exists():
+        return {}
+    out: dict[str, list[set]] = {}
+    for node in ast.walk(ast.parse(path.read_text())):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        name = _command_name(node)
+        if name is None:
+            continue
+        params = node.args.args + node.args.kwonlyargs
+        defaults = ([None] * (len(node.args.args) - len(node.args.defaults))
+                    + list(node.args.defaults) + list(node.args.kw_defaults))
+        required: list[set] = []
+        for param, default in zip(params, defaults):
+            call = _typer_call(default, "Option")
+            if call is None:
+                continue
+            if not (call.args and isinstance(call.args[0], ast.Constant)
+                    and call.args[0].value is ...):
+                continue
+            names = {p for a in call.args[1:]
+                     if isinstance(a, ast.Constant) and isinstance(a.value, str)
+                     for p in a.value.split("/") if p.startswith("-")}
+            required.append(names or {"--" + param.arg.replace("_", "-")})
+        out.setdefault(name, required)
+    return out
+
+
+def build_required_surface() -> dict[str, dict[str, list[set]]]:
+    """{group: {command: [{option spellings}]}} — mirrors build_positional_surface."""
+    countable = module_state()["countable"]
+    surface = {}
+    for group, module in parse_registrations().items():
+        if module not in countable:
+            continue
+        surface[group] = parse_module_required_options(module)
+    if "converged-recordings" in surface:
+        surface["converged-recordings"].update(
+            parse_module_required_options("converged_recordings_export"))
+    return surface
+
+
+def check_required_flags(surface: dict, positional_surface: dict,
+                         required_surface: dict) -> tuple[list, int]:
+    """Documented examples that omit an option the command declares REQUIRED.
+
+    Check 10 counts positionals only, so an example can have the right argument
+    count and still abort: `wxcli video-mesh show CLUSTER_ID --output json`
+    supplies the one positional `show` declares and still dies on the missing
+    `--from`/`--to`. The generated docstring's own Example line already gets
+    this right, which makes the CLI its own oracle here.
+
+    Only a FENCED example fails. An inline single-backtick citation is a
+    reference-table entry naming a variant rather than an invocation — measured
+    here, `wxcli xapi list --command` and `wxcli xapi list --status` sit in a
+    decision-matrix cell whose whole job is to contrast the two flags, and
+    demanding `--device-id` there would force a runnable command into a table
+    that is not offering one. Flags mentioned in prose are check 7's territory,
+    not this one. Inline hits are counted and printed, never failed.
+    """
+    findings: list[dict] = []
+    bare_count = 0
+    allow = load_allowlist()
+    for inv in doc_invocations(surface, positional_surface):
+        rel, group, command = inv["file"], inv["group"], inv["command"]
+        required = required_surface.get(group, {}).get(command)
+        if not required:
+            continue
+        if (group in allow or f"{group} {command}" in allow
+                or f"required-flag {rel} {group} {command}" in allow):
+            continue
+        tokens = inv["tokens"]
+        if "--help" in tokens:
+            continue  # eager: Click prints help before enforcing anything
+        if any(t in ("...", "…") for t in tokens):
+            continue  # explicitly elided
+        cited = {t.split("=", 1)[0] for t in tokens if t.startswith("-")}
+        missing = [sorted(names)[0] for names in required if not (names & cited)]
+        if not missing:
+            continue
+        if not inv["in_code"]:
+            bare_count += 1
+            continue
+        findings.append({
+            "file": rel, "line": inv["line"], "cmd": f"{group} {command}",
+            "missing": missing, "prefixless": inv["prefixless"],
+        })
+    return findings, bare_count
+
+
+def doc_invocations(surface: dict, positional_surface: dict):
+    """Yield every documented invocation that resolves to a real leaf command.
+
+    Each item: {file, line, group, command, tokens, in_code, prefixless, sig}.
+    Checks 10 and 11 both consume this so a citation is parsed exactly once and
+    the same way. The token-level corrections below each cost a debugging
+    session to find (see tools/CLAUDE.md § "Check 10"); duplicating the walk per
+    check is how they come back on one check and not the other.
+
+    Unresolved names are check 2's job and are skipped, exactly as check 6 skips
+    them; a name mounted as a sub-typer (cucm's nested `config`) rather than a
+    leaf command is skipped the same way (sig is None).
+    """
+    for rel in sorted(f for pat in SCAN_PATTERNS for f in tracked_files(pat)
+                      if f.endswith(".md")):
+        text = (REPO / rel).read_text()
+        for lineno, span, in_code in code_spans(text, join_continuations=True,
+                                                join_quotes=True, with_kind=True):
+            for group, command, head_rest, no_prefix in command_heads(span):
+                if command is None:
+                    continue  # `wxcli <group>` alone — nothing to check
+                if group not in surface or command not in surface[group]:
+                    continue
+                sig = positional_surface.get(group, {}).get(command)
+                if sig is None:
+                    continue
+                rest = arg_region(head_rest, strip_comment=True)
+                nxt = rest.find("wxcli")
+                if nxt != -1:
+                    rest = rest[:nxt]
+                # A `\` immediately before an inline `# comment` is a real shell
+                # line-continuation, but code_spans only recognizes one when it
+                # is the line's literal last character — with prose trailing it,
+                # the line is never joined and strip_comment's cut leaves a bare
+                # `\` dangling. Left in, posix shlex reads it as an escaped
+                # space and manufactures a phantom "" token.
+                rest = rest.rstrip()
+                if rest.endswith("\\"):
+                    rest = rest[:-1].rstrip()
+                try:
+                    tokens = shlex.split(rest, posix=True)
+                except ValueError:
+                    continue  # unbalanced quote — not a tokenizable example
+                yield {"file": rel, "line": lineno, "group": group,
+                       "command": command, "tokens": tokens, "in_code": in_code,
+                       "prefixless": no_prefix, "sig": sig}
+
+
 def check_positionals(surface: dict, positional_surface: dict) -> tuple[list, int]:
     """Documented `wxcli <group> <command> ...` examples whose POSITIONAL
     argument count does not match what the command declares — too many, too
@@ -1244,62 +1511,308 @@ def check_positionals(surface: dict, positional_surface: dict) -> tuple[list, in
     bare_count = 0
     allow = load_allowlist()
     global_bools = global_bool_flags(positional_surface)
-    for rel in sorted(f for pat in SCAN_PATTERNS for f in tracked_files(pat)
-                      if f.endswith(".md")):
-        text = (REPO / rel).read_text()
-        for lineno, span, in_code in code_spans(text, join_continuations=True,
-                                                join_quotes=True, with_kind=True):
-            for m in FLAG_CMD.finditer(span):
-                group, command = m.group(1), m.group(2)
-                if group in allow or f"{group} {command}" in allow:
-                    continue
-                if group not in surface or command not in surface[group]:
-                    continue  # check 2 owns names that don't resolve
-                sig = positional_surface.get(group, {}).get(command)
-                if sig is None:
-                    continue  # mounted sub-typer, not a leaf command
-                rest = arg_region(span[m.end():], strip_comment=True)
-                nxt = rest.find("wxcli")
-                if nxt != -1:
-                    rest = rest[:nxt]
-                # A `\` immediately before an inline `# comment` is a real
-                # shell line-continuation, but code_spans only recognizes one
-                # when it is the line's literal last character — with prose
-                # trailing it, the line is never joined and strip_comment's
-                # cut leaves a bare `\` dangling. Left in, posix shlex reads
-                # it as an escaped space and manufactures a phantom "" token
-                # that counts as a positional on an otherwise zero-arg command.
-                rest = rest.rstrip()
-                if rest.endswith("\\"):
-                    rest = rest[:-1].rstrip()
-                try:
-                    tokens = shlex.split(rest, posix=True)
-                except ValueError:
-                    continue  # unbalanced quote — not a tokenizable example
-                positionals, ellipsis, unbalanced = split_doc_positionals(
-                    tokens, sig["flags"], global_bools)
-                if unbalanced:
-                    continue  # truncated usage-synopsis notation, not an example
-                declared = sig["args"]
-                need = sum(1 for _, req in declared if req)
-                total = len(declared)
-                n = len(positionals)
-                if n > total:
-                    kind = "positional_on_zero_arg" if total == 0 else "too_many"
-                elif n < need:
-                    if ellipsis or "--help" in tokens:
-                        continue  # explicitly elided, or --help short-circuits
-                    if n == 0 and not in_code:
-                        bare_count += 1
-                        continue
-                    kind = "too_few"
-                else:
-                    continue
-                findings.append({
-                    "file": rel, "line": lineno, "cmd": f"{group} {command}",
-                    "supplied": n, "need": need, "total": total, "kind": kind,
-                })
+    for inv in doc_invocations(surface, positional_surface):
+        rel, lineno = inv["file"], inv["line"]
+        group, command = inv["group"], inv["command"]
+        sig, tokens, in_code, no_prefix = (inv["sig"], inv["tokens"],
+                                           inv["in_code"], inv["prefixless"])
+        # "positional <file> <group> <command>" — file-scoped, and a DIFFERENT
+        # claim from check 2's "ref": it says this doc shows a deliberately
+        # WRONG argument list (a "not like this" example), whereas "ref" says
+        # the name is not a real citation. Sharing one key would let either
+        # claim silence the other check.
+        if (group in allow or f"{group} {command}" in allow
+                or f"positional {rel} {group} {command}" in allow):
+            continue
+        positionals, ellipsis, unbalanced = split_doc_positionals(
+            tokens, sig["flags"], global_bools)
+        if unbalanced:
+            continue  # truncated usage-synopsis notation, not an example
+        declared = sig["args"]
+        need = sum(1 for _, req in declared if req)
+        total = len(declared)
+        n = len(positionals)
+        if n > total:
+            kind = "positional_on_zero_arg" if total == 0 else "too_many"
+        elif n < need:
+            if ellipsis or "--help" in tokens:
+                continue  # explicitly elided, or --help short-circuits
+            if n == 0 and not in_code:
+                bare_count += 1
+                continue
+            kind = "too_few"
+        else:
+            continue
+        findings.append({
+            "file": rel, "line": lineno, "cmd": f"{group} {command}",
+            "supplied": n, "need": need, "total": total, "kind": kind,
+            "prefixless": no_prefix,
+        })
     return findings, bare_count
+
+
+# ---------------------------------------------------------------- check 11b
+
+ARG_KIND = re.compile(r"Webex ([A-Z][A-Z0-9_]*) id")
+ARG_PRODUCER = re.compile(r"from: wxcli ([a-z0-9-]+) ([a-z0-9-]+)")
+DOC_PLACEHOLDER = re.compile(r"^[A-Z][A-Z0-9_]*$")
+
+
+def parse_module_arg_kinds(
+        module: str, commands_dir: Path = COMMANDS_DIR) -> dict[str, list[dict]]:
+    """command -> ordered [{kind, producer}] for each positional argument.
+
+    Last session's argument-help work writes the ID *kind* and its producing
+    command into the help string ("Webex HYBRID_CLUSTER id, from: wxcli
+    video-mesh list") on 69.5% of the 1510 positional arguments; a further
+    12.5% say only "UUID". That is what makes this checkable at all — a doc
+    placeholder can finally be compared against a declared kind.
+    """
+    path = commands_dir / f"{module}.py"
+    if not path.exists():
+        return {}
+    out: dict[str, list[dict]] = {}
+    for node in ast.walk(ast.parse(path.read_text())):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        name = _command_name(node)
+        if name is None:
+            continue
+        params = node.args.args + node.args.kwonlyargs
+        defaults = ([None] * (len(node.args.args) - len(node.args.defaults))
+                    + list(node.args.defaults) + list(node.args.kw_defaults))
+        args = []
+        for param, default in zip(params, defaults):
+            call = _typer_call(default, "Argument")
+            if call is None:
+                continue
+            help_text = ""
+            for kw in call.keywords:
+                if kw.arg == "help" and isinstance(kw.value, ast.Constant):
+                    help_text = kw.value.value or ""
+            km = ARG_KIND.match(help_text)
+            pm = ARG_PRODUCER.search(help_text)
+            args.append({
+                "param": param.arg,
+                "kind": km.group(1) if km else None,
+                "uuid": help_text.startswith("UUID"),
+                "producer": f"{pm.group(1)} {pm.group(2)}" if pm else None,
+            })
+        out.setdefault(name, args)
+    return out
+
+
+def build_arg_kind_surface() -> dict[str, dict[str, list[dict]]]:
+    countable = module_state()["countable"]
+    surface = {}
+    for group, module in parse_registrations().items():
+        if module not in countable:
+            continue
+        surface[group] = parse_module_arg_kinds(module)
+    if "converged-recordings" in surface:
+        surface["converged-recordings"].update(
+            parse_module_arg_kinds("converged_recordings_export"))
+    return surface
+
+
+# Words the CLI and its docs use for the SAME resource. English synonyms only —
+# never a claim that two Webex resources are interchangeable. Without these,
+# `PERSON_ID` against `Webex PEOPLE id` and `WORKSPACE_ID` against
+# `Webex PLACE id` read as mismatches, and those two alone accounted for most
+# of the first run's 240 findings.
+KIND_SYNONYMS = (
+    {"PEOPLE", "PERSON", "USER"},
+    {"PLACE", "PLACES", "WORKSPACE"},
+    {"HYBRID", "CLUSTER"},
+)
+
+
+def _tokens(text: str) -> set[str]:
+    """Comparable word set, with English synonyms folded together. `WS_ID` still
+    shares nothing with `PLACE`, so the caller treats "no overlap" as UNDECIDED
+    unless the placeholder positively names a different known kind."""
+    out = {t for t in text.upper().split("_") if t and t != "ID"}
+    for group in KIND_SYNONYMS:
+        if out & group:
+            out |= group
+    return out
+
+
+def check_arg_kinds(surface: dict, positional_surface: dict,
+                    kind_surface: dict) -> tuple[list, list]:
+    """Doc placeholders that name a different resource than the argument takes.
+
+    Returns (mismatches, advisories) — two tiers, deliberately not one number.
+
+    TIER 1 (mismatches, GATED). The argument declares a specific kind and the
+    placeholder positively names a DIFFERENT kind that exists elsewhere in this
+    CLI. Both sides are then explicit and disagree, which is mechanical.
+    Anything the placeholder does not map to a known kind is UNDECIDED and
+    dropped — `WS_ID` against `Webex PLACE id` is a naming-convention gap, not
+    a defect, and gating on it would fail the build on correct docs.
+
+    TIER 2 (advisories, NEVER GATED). The argument declares only a bare `UUID`,
+    so kind-matching cannot decide it — this is the `wxcli meetings show
+    TEMPLATE_ID` shape, where the positional is a meeting and the placeholder
+    says template. The only available signal is that the placeholder names a
+    resource some OTHER command in the same group is named for, while the
+    declared producer command is not. That is a heuristic about English, not a
+    fact about the CLI, so it is reported and never failed.
+    """
+    known_kinds = {k["kind"] for cmds in kind_surface.values()
+                   for args in cmds.values() for k in args if k["kind"]}
+    kind_tokens = {k: _tokens(k) for k in known_kinds}
+    # The CLI's own label is only usable where the CLI agrees with itself. 79 of
+    # the 1049 kind-carrying arguments declare a kind their parameter NAME
+    # contradicts — `location_id` help-typed "Webex PEOPLE id", `hunt_group_id`
+    # typed LOCATION, `call_queue_id` typed HUNT_GROUP. On those, the doc is
+    # usually right and the help is wrong, so comparing a placeholder against
+    # the label reports correct docs as defects. They are excluded here and
+    # reported on their own line as a CLI-side defect.
+    suspect = {(g, c, a["param"])
+               for g, cmds in kind_surface.items()
+               for c, args in cmds.items() for a in args
+               if a["kind"] and not (_tokens(a["param"]) & kind_tokens[a["kind"]])
+               and any(_tokens(a["param"]) & kt for kt in kind_tokens.values())}
+    mismatches: list[dict] = []
+    advisories: list[dict] = []
+    allow = load_allowlist()
+    global_bools = global_bool_flags(positional_surface)
+    for inv in doc_invocations(surface, positional_surface):
+        rel, group, command = inv["file"], inv["group"], inv["command"]
+        declared = kind_surface.get(group, {}).get(command)
+        if not declared:
+            continue
+        if (group in allow or f"{group} {command}" in allow
+                or f"arg-kind {rel} {group} {command}" in allow):
+            continue
+        supplied, _ellipsis, unbalanced = split_doc_positionals(
+            inv["tokens"], inv["sig"]["flags"], global_bools)
+        if unbalanced or len(supplied) != len(declared):
+            continue  # count mismatch is check 10's finding, not this one
+        for token, decl in zip(supplied, declared):
+            if not DOC_PLACEHOLDER.match(token):
+                continue  # a real value, not a placeholder — nothing to compare
+            toks = _tokens(token)
+            if not toks:
+                continue
+            if decl["kind"]:
+                if (group, command, decl["param"]) in suspect:
+                    continue  # the label itself is wrong — see `suspect` above
+                if toks & kind_tokens[decl["kind"]]:
+                    continue  # placeholder and kind agree
+                named = sorted(k for k, kt in kind_tokens.items() if toks & kt)
+                if not named:
+                    continue  # UNDECIDED — placeholder names no known kind
+                mismatches.append({
+                    "file": rel, "line": inv["line"],
+                    "cmd": f"{group} {command}", "arg": decl["param"],
+                    "placeholder": token, "declared": decl["kind"],
+                    "reads_as": named[0], "prefixless": inv["prefixless"],
+                })
+            elif decl["uuid"] and decl["producer"]:
+                prod_cmd = decl["producer"].split(" ", 1)[1]
+                if toks & _tokens(prod_cmd.replace("-", "_")):
+                    continue  # placeholder matches the producer's own name
+                sibling = sorted(
+                    c for c in surface.get(group, {})
+                    if c != command and toks & _tokens(c.replace("-", "_")))
+                if not sibling:
+                    continue
+                advisories.append({
+                    "file": rel, "line": inv["line"],
+                    "cmd": f"{group} {command}", "arg": decl["param"],
+                    "placeholder": token, "producer": decl["producer"],
+                    "sibling": sibling[0], "prefixless": inv["prefixless"],
+                })
+    mislabelled = []
+    for g, c, p in sorted(suspect):
+        declared = next(a["kind"] for a in kind_surface[g][c] if a["param"] == p)
+        reads = sorted(k for k, kt in kind_tokens.items() if _tokens(p) & kt)
+        mislabelled.append({"group": g, "command": c, "arg": p,
+                            "declared": declared, "reads_as": reads[0]})
+    return mismatches, advisories, mislabelled
+
+
+# ----------------------------------------------------------------- check 12
+
+GATED_SEVERITIES = ("CRITICAL", "HIGH")
+
+
+def build_naming_findings() -> list[dict]:
+    """d3's List B + List C over the shipped CLI surface.
+
+    Modules are deduplicated by MODULE, not by group: `users`, `cx-essentials`
+    and `licenses-api` mount an existing module under a second name, and
+    counting them twice inflated List C from 156 to 164 on the first run. With
+    the dedupe, this reproduces the standalone detector's numbers exactly
+    (42 / 156 / 129 HIGH / 27 MEDIUM), which is the cross-check that the port
+    is faithful.
+    """
+    countable = module_state()["countable"]
+    by_module: dict[str, list[str]] = {}
+    for group, module in parse_registrations().items():
+        if module in countable:
+            by_module.setdefault(module, []).append(group)
+    cmds = []
+    for module, groups in by_module.items():
+        cmds += verb_naming.parse_module(module, sorted(groups)[0])
+    return (verb_naming.numeric_suffix_findings(cmds)
+            + verb_naming.resource_mismatch_findings(cmds))
+
+
+def check_naming(findings: list[dict], acked: dict) -> tuple[list, list, list]:
+    """Returns (unacked, stale, advisory).
+
+    `unacked` fails the build: a name whose obvious reading points somewhere
+    else, which nobody has signed off on. `stale` also fails — an ack that no
+    longer describes reality is the failure mode every exemption in this repo
+    has hit at least once. `advisory` is the MEDIUM tier, reported only.
+
+    THRESHOLD (Adam, 2026-07-28): CRITICAL+HIGH fails. CRITICAL alone would
+    gate nothing — the only CRITICAL rows anywhere are the four
+    `update-access-codes` commands he decided on 2026-07-14 to keep — and a
+    gate that cannot fail is the confident-zero failure this repo has hit six
+    times. Numeric suffixes fail regardless of severity: a `-N` name carries no
+    meaning, so it is always a decision the generator could not make.
+
+    The ack is keyed by OPERATION (`METHOD /path`) and carries the command name
+    and severity it was written for, copying verb_semantics_ack exactly. That
+    is what makes it un-rottable: rename the command, or have it reclassify,
+    and the recorded values stop matching, so the entry must be revisited
+    rather than silently covering a name nobody reviewed.
+    """
+    unacked, stale, advisory = [], [], []
+    live: dict[str, dict] = {}
+    for f in findings:
+        key = f"{f['kind']} {f['op']}"
+        live[key] = f
+        if f["severity"] not in GATED_SEVERITIES:
+            advisory.append(f)
+            continue
+        ack = acked.get(key)
+        if ack is None:
+            unacked.append(f)
+            continue
+        # "<group> <command>": the same command NAME exists in many groups, so
+        # the group is part of what was acked.
+        cited = f"{f['group']} {f['command']}"
+        if ack.get("command") != cited:
+            stale.append({**f, "reason": f"acked for command "
+                          f"{ack.get('command')!r}, now {cited!r} — "
+                          f"renamed; re-review and update or drop the ack"})
+        elif ack.get("severity") != f["severity"]:
+            stale.append({**f, "reason": f"acked at {ack.get('severity')!r}, "
+                          f"now classifies {f['severity']!r}"})
+    for key, ack in acked.items():
+        if key not in live:
+            kind, _, op = key.partition(" ")
+            stale.append({"group": ack.get("command", "?").split(" ")[0],
+                          "command": ack.get("command", "?"), "op": op,
+                          "severity": ack.get("severity", "?"), "kind": kind,
+                          "reason": "no longer flagged — the name was fixed or "
+                                    "the operation is gone; delete this ack"})
+    return unacked, stale, advisory
 
 
 # ---------------------------------------------------------- deliberate gaps
@@ -1371,7 +1884,7 @@ def main() -> int:
         write_gaps_doc(skipped_ops, overrides)
 
     parity = check_parity(surface, spec_ops, skipped_ops, overrides["keep_endpoints"])
-    dead_refs, group_refs = check_references(surface, top_level)
+    dead_refs, group_refs, prefixless_refs = check_references(surface, top_level)
     count_mismatches = check_counts(surface)
     unreferenced = check_unreferenced(group_refs)
     stale_overlays = check_overlays()
@@ -1387,6 +1900,14 @@ def main() -> int:
         authority=overrides.get("spec_authority") or {})
     positional_surface = build_positional_surface()
     bad_positionals, bare_citations = check_positionals(surface, positional_surface)
+    required_surface = build_required_surface()
+    missing_flags, bare_flag_citations = check_required_flags(
+        surface, positional_surface, required_surface)
+    kind_surface = build_arg_kind_surface()
+    kind_mismatches, kind_advisories, mislabelled_args = check_arg_kinds(
+        surface, positional_surface, kind_surface)
+    naming_unacked, naming_stale, naming_advisory = check_naming(
+        build_naming_findings(), overrides.get("naming_ack") or {})
 
     results = {
         "1_spec_cli_parity": parity,
@@ -1402,12 +1923,23 @@ def main() -> int:
         "9_unpinned_spec_conflicts": unpinned_specs,
         "10_positional_mismatches": bad_positionals,
         "10_bare_name_citations": bare_citations,
+        "11a_missing_required_flags": missing_flags,
+        "11a_bare_name_citations": bare_flag_citations,
+        "11b_arg_kind_mismatches": kind_mismatches,
+        "11b_arg_kind_advisories": kind_advisories,
+        "11b_mislabelled_arguments": mislabelled_args,
+        "12_naming_unacked": naming_unacked,
+        "12_naming_stale_acks": naming_stale,
+        "12_naming_advisory": naming_advisory,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
                   or stale_overlays or dead_flags or prose_flags
                   or untracked_mods or bad_columns or unpinned_specs
-                  or bad_positionals)
+                  or bad_positionals or missing_flags or kind_mismatches
+                  or naming_unacked or naming_stale)
+    # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
+    # about English, and a gate that fails on one gets switched off.
 
     if args.json:
         print(json.dumps(results, indent=2))
@@ -1427,7 +1959,8 @@ def main() -> int:
             print(f"      AHEAD   {op['method']:6} {op['path']}  ({', '.join(op['commands'])})")
         if len(parity["cli_ahead_of_spec"]) > 15:
             print(f"      ... and {len(parity['cli_ahead_of_spec']) - 15} more (--json for all)")
-        print(f"[2] dead wxcli references: {len(dead_refs)}")
+        print(f"[2] dead wxcli references: {len(dead_refs)}"
+              f"   ({prefixless_refs} cited without the `wxcli` prefix)")
         for ref in dead_refs[:20]:
             print(f"      {ref['file']}:{ref['line']}  {ref['ref']}  (dead {ref['kind']})")
         if len(dead_refs) > 20:
@@ -1472,14 +2005,65 @@ def main() -> int:
                       f"  — {u['reason']}")
         print(f"[10] documented examples with a positional-argument mismatch: "
               f"{len(bad_positionals)}"
-              f"   ({bare_citations} bare command-name citations excluded — "
-              f"incomplete, not broken)")
+              f"   ({sum(p['prefixless'] for p in bad_positionals)} cited "
+              f"without the `wxcli` prefix; {bare_citations} bare command-name "
+              f"citations excluded — incomplete, not broken)")
         for p in bad_positionals[:20]:
-            print(f"      {p['file']}:{p['line']}  wxcli {p['cmd']}  "
+            cite = p['cmd'] if p['prefixless'] else f"wxcli {p['cmd']}"
+            print(f"      {p['file']}:{p['line']}  {cite}  "
                   f"supplied={p['supplied']} declared={p['need']}-{p['total']}"
                   f"  ({p['kind']})")
         if len(bad_positionals) > 20:
             print(f"      ... and {len(bad_positionals) - 20} more (--json for all)")
+        print(f"[11a] documented examples missing a REQUIRED flag: "
+              f"{len(missing_flags)}"
+              f"   ({sum(f['prefixless'] for f in missing_flags)} cited without "
+              f"the `wxcli` prefix; {bare_flag_citations} bare command-name "
+              f"citations excluded — incomplete, not broken)")
+        for f in missing_flags[:20]:
+            cite = f['cmd'] if f['prefixless'] else f"wxcli {f['cmd']}"
+            print(f"      {f['file']}:{f['line']}  {cite}  "
+                  f"missing {' '.join(f['missing'])}")
+        if len(missing_flags) > 20:
+            print(f"      ... and {len(missing_flags) - 20} more (--json for all)")
+        print(f"[11b] doc placeholders naming the wrong resource: "
+              f"{len(kind_mismatches)}")
+        for k in kind_mismatches[:20]:
+            print(f"      {k['file']}:{k['line']}  wxcli {k['cmd']}  "
+                  f"{k['arg']} is a {k['declared']}, cited as {k['placeholder']}"
+                  f" (reads as {k['reads_as']})")
+        if len(kind_mismatches) > 20:
+            print(f"      ... and {len(kind_mismatches) - 20} more (--json for all)")
+        print(f"[11b] ADVISORY — bare-UUID arguments whose placeholder names a "
+              f"sibling command's resource: {len(kind_advisories)}"
+              f"   (heuristic, never fails the build)")
+        for k in kind_advisories[:20]:
+            print(f"      {k['file']}:{k['line']}  wxcli {k['cmd']}  "
+                  f"{k['arg']} comes from `{k['producer']}` but is cited as "
+                  f"{k['placeholder']} — see `{k['cmd'].split()[0]} {k['sibling']}`")
+        if len(kind_advisories) > 20:
+            print(f"      ... and {len(kind_advisories) - 20} more (--json for all)")
+        print(f"[11b] ADVISORY — arguments whose declared kind contradicts their "
+              f"own name: {len(mislabelled_args)}"
+              f"   (CLI-side; excluded from the gated count above)")
+        for k in mislabelled_args[:10]:
+            print(f"      wxcli {k['group']} {k['command']}  {k['arg']} is "
+                  f"help-typed {k['declared']}, reads as {k['reads_as']}")
+        if len(mislabelled_args) > 10:
+            print(f"      ... and {len(mislabelled_args) - 10} more (--json for all)")
+        print(f"[12] command names whose obvious reading is wrong, unacked: "
+              f"{len(naming_unacked)}   (stale acks: {len(naming_stale)}; "
+              f"{len(naming_advisory)} MEDIUM reported, not gated)")
+        for n in naming_unacked[:20]:
+            print(f"      wxcli {n['group']} {n['command']}  [{n['severity']}]"
+                  f"  {n['url']}")
+            print(f"        {n.get('why', 'numeric suffix carries no meaning')}")
+            print(f"        rename via command_name_overrides (proposed: "
+                  f"{n['proposed']}), or ack it in tools/field_overrides.yaml")
+        if len(naming_unacked) > 20:
+            print(f"      ... and {len(naming_unacked) - 20} more (--json for all)")
+        for n in naming_stale[:20]:
+            print(f"      STALE ACK  {n['kind']} {n['op']}  — {n['reason']}")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

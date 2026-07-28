@@ -13,8 +13,8 @@ argument-hint: [mesh-operation]
 # Video Mesh Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. What is the command to list all Video Mesh clusters? (Answer: `wxcli video-mesh list-clusters-video-mesh` — not `wxcli video-mesh list`, which shows client type distribution.)
-2. How do you trigger an on-demand test for a single node? (Answer: `wxcli video-mesh create NODE_ID` — not `create-clusters`, which targets a cluster.)
+1. What is the command to list all Video Mesh clusters? (Answer: `wxcli video-mesh list-clusters-video-mesh` — not `wxcli video-mesh list`, which returns cluster *availability* and requires `--from`/`--to`.)
+2. How do you trigger an on-demand test for a single node? (Answer: `wxcli video-mesh create-nodes NODE_ID` — not `create`, which targets a cluster.)
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
 
@@ -51,20 +51,20 @@ Ask the user what they want to accomplish. Present this decision matrix if they 
 | User Wants To | Operation | CLI Commands |
 |--------------|-----------|-------------|
 | List all clusters | Cluster inventory | `video-mesh list-clusters-video-mesh` |
-| Get cluster details | Cluster inspection | `video-mesh show CLUSTER_ID` |
-| Check cluster health/availability | Availability monitoring | `video-mesh list-availability-clusters`, `video-mesh show-availability-clusters CLUSTER_ID` |
-| Check node health/availability | Node monitoring | `video-mesh list-availability-nodes`, `video-mesh show-availability-nodes NODE_ID` |
-| View cluster utilization stats | Utilization analysis | `video-mesh list-utilization-video-mesh`, `video-mesh list-utilization-clusters CLUSTER_ID` |
-| Run reachability tests | Connectivity verification | `video-mesh list-reachability-test`, `video-mesh list-clusters-reachability-test CLUSTER_ID`, `video-mesh list-nodes-reachability-test NODE_ID` |
-| View media health results | Media quality monitoring | `video-mesh list-media-health-monitor-test`, `video-mesh list-clusters-media-health-monitor-test CLUSTER_ID`, `video-mesh list-nodes-media-health-monitor-test NODE_ID` |
-| Run network tests | Network diagnostics | `video-mesh list-network-test`, `video-mesh list-clusters-network-test CLUSTER_ID`, `video-mesh list-nodes-network-test NODE_ID` |
-| Trigger on-demand test (node) | Manual testing | `video-mesh create NODE_ID` |
-| Trigger on-demand test (cluster) | Manual testing | `video-mesh create-clusters CLUSTER_ID` |
-| Check triggered test status/results | Test follow-up | `video-mesh list-test-status`, `video-mesh list-test-results` |
-| View cloud overflow stats | Overflow analysis | `video-mesh list-cloud-overflow` |
-| View call redirect details | Redirect analysis | `video-mesh list-call-redirects-video-mesh`, `video-mesh list-call-redirects-clusters CLUSTER_ID` |
-| View client type distribution | Client analytics | `video-mesh list`, `video-mesh list-clusters-client-type-distribution CLUSTER_ID` |
-| View/update event thresholds | Threshold configuration | `video-mesh list-event-thresholds`, `video-mesh show-event-thresholds THRESHOLD_ID`, `video-mesh update THRESHOLD_ID` |
+| Get cluster details | Cluster inspection | `video-mesh show-clusters CLUSTER_ID` |
+| Check cluster health/availability | Availability monitoring | `video-mesh list --from FROM --to TO`, `video-mesh show CLUSTER_ID --from FROM --to TO` |
+| Check node health/availability | Node monitoring | `video-mesh list-availability --cluster-id CLUSTER_ID --from FROM --to TO`, `video-mesh show-availability NODE_ID --from FROM --to TO` |
+| View cluster utilization stats | Utilization analysis | `video-mesh list-utilization-video-mesh --from FROM --to TO`, `video-mesh list-utilization-clusters --cluster-id CLUSTER_ID --from FROM --to TO` |
+| Run reachability tests | Connectivity verification | `video-mesh list-reachability-test --trigger-type All --from FROM --to TO`, `video-mesh list-clusters-reachability-test --cluster-id CLUSTER_ID --trigger-type All --from FROM --to TO`, `video-mesh list-nodes-reachability-test --node-id NODE_ID --trigger-type All --from FROM --to TO` |
+| View media health results | Media quality monitoring | `video-mesh list-media-health-monitor-test --trigger-type All --from FROM --to TO`, `video-mesh list-clusters-media-health-monitor-test --cluster-id CLUSTER_ID --trigger-type All --from FROM --to TO`, `video-mesh list-nodes-media-health-monitor-test --node-id NODE_ID --trigger-type All --from FROM --to TO` |
+| Run network tests | Network diagnostics | `video-mesh list-network-test --trigger-type All --from FROM --to TO`, `video-mesh list-clusters-network-test --cluster-id CLUSTER_ID --trigger-type All --from FROM --to TO`, `video-mesh list-nodes-network-test --node-id NODE_ID --trigger-type All --from FROM --to TO` |
+| Trigger on-demand test (node) | Manual testing | `video-mesh create-nodes NODE_ID` |
+| Trigger on-demand test (cluster) | Manual testing | `video-mesh create CLUSTER_ID` |
+| Check triggered test status/results | Test follow-up | `video-mesh list-test-status --command-id COMMAND_ID`, `video-mesh list-test-results --command-id COMMAND_ID` |
+| View cloud overflow stats | Overflow analysis | `video-mesh list-cloud-overflow --from FROM --to TO` |
+| View call redirect details | Redirect analysis | `video-mesh list-call-redirects-video-mesh --from FROM --to TO`, `video-mesh list-call-redirects-clusters --cluster-id CLUSTER_ID --from FROM --to TO` |
+| View client type distribution | Client analytics | `video-mesh list-client-type-distribution --from FROM --to TO --device-type DEVICE_TYPE`, `video-mesh list-clusters-client-type-distribution --cluster-id CLUSTER_ID --from FROM --to TO --device-type DEVICE_TYPE` |
+| View/update event thresholds | Threshold configuration | `video-mesh list-event-thresholds`, `video-mesh show-event-thresholds THRESHOLD_ID`, `video-mesh update --json-body '{...}'` |
 | Reset event thresholds to defaults | Threshold reset | `video-mesh create-reset` |
 | Not Video Mesh? | For meetings → `manage-meetings` skill. For call features → `configure-features` skill. | — |
 
@@ -99,8 +99,11 @@ For most operations, you need a cluster ID or node ID. Get them from the cluster
 wxcli video-mesh list-clusters-video-mesh --output json
 
 # Get cluster details (includes node IDs)
-wxcli video-mesh show CLUSTER_ID --output json
+wxcli video-mesh show-clusters CLUSTER_ID --output json
 ```
+
+`show-clusters` is the cluster *record*. `show` is a different command — it returns
+cluster **availability** over a time window and requires `--from`/`--to`.
 
 ---
 
@@ -122,7 +125,7 @@ Scope: [all clusters / specific cluster / specific node]
 Time Range: [if applicable]
 
 Commands to execute:
-  1. wxcli video-mesh list-availability --from ... --to ... --output json
+  1. wxcli video-mesh list --from ... --to ... --output json
 
 Proceed? (yes/no)
 ```
@@ -135,10 +138,10 @@ For a comprehensive health check of a cluster:
 
 ```bash
 # 1. Cluster details
-wxcli video-mesh show CLUSTER_ID --output json
+wxcli video-mesh show-clusters CLUSTER_ID --output json
 
 # 2. Availability
-wxcli video-mesh show CLUSTER_ID --output json
+wxcli video-mesh show CLUSTER_ID --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # 3. Utilization
 wxcli video-mesh list-utilization-clusters --cluster-id CLUSTER_ID --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
@@ -167,7 +170,7 @@ For a single node:
 
 ```bash
 # Node availability
-wxcli video-mesh show-availability NODE_ID --output json
+wxcli video-mesh show-availability NODE_ID --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # Node reachability
 wxcli video-mesh list-nodes-reachability-test --node-id NODE_ID --trigger-type All --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
@@ -185,16 +188,16 @@ wxcli video-mesh list-nodes-network-test --node-id NODE_ID --trigger-type All --
 
 ```bash
 # Trigger test for a specific node
-wxcli video-mesh create NODE_ID
+wxcli video-mesh create-nodes NODE_ID
 
 # Trigger test for all nodes in a cluster
 wxcli video-mesh create CLUSTER_ID
 
-# Check test status
-wxcli video-mesh list-test-status --output json
+# Check test status (COMMAND_ID is returned by the trigger above)
+wxcli video-mesh list-test-status --command-id COMMAND_ID --output json
 
 # Get test results
-wxcli video-mesh list-test-results --output json
+wxcli video-mesh list-test-results --command-id COMMAND_ID --output json
 ```
 
 ---
@@ -228,10 +231,10 @@ wxcli video-mesh create-reset
 
 ```bash
 # List cloud overflow details
-wxcli video-mesh list-cloud-overflow --output json
+wxcli video-mesh list-cloud-overflow --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # List call redirect details (org-wide)
-wxcli video-mesh list-call-redirects-video-mesh --output json
+wxcli video-mesh list-call-redirects-video-mesh --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --output json
 
 # Get redirect details for a specific cluster
 wxcli video-mesh list-call-redirects-clusters --from 2026-07-21T00:00:00Z --to 2026-07-28T00:00:00Z --cluster-id CLUSTER_ID --output json
@@ -286,11 +289,11 @@ After write operations, verify the change took effect:
 # Verify threshold update
 wxcli video-mesh show-event-thresholds THRESHOLD_ID --output json
 
-# Verify on-demand test was triggered
-wxcli video-mesh list-test-status --output json
+# Verify on-demand test was triggered (COMMAND_ID comes from the trigger response)
+wxcli video-mesh list-test-status --command-id COMMAND_ID --output json
 
 # Verify test completed and get results
-wxcli video-mesh list-test-results --output json
+wxcli video-mesh list-test-results --command-id COMMAND_ID --output json
 ```
 
 For read-only operations, verification is inherent — the query results are the verification.
@@ -352,12 +355,12 @@ Next steps:
 
 1. **Always verify admin token and Video Mesh scopes** before any operation. User tokens return 403 for all Video Mesh endpoints.
 2. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing write operations (threshold changes, on-demand tests).
-3. **`video-mesh list` is NOT the cluster list command.** `list` shows client type distribution. Use `list-clusters-video-mesh` to list clusters.
-4. **On-demand tests are `create` (node) and `create-clusters` (cluster).** The command names follow the generator pattern where POST endpoints become `create`.
+3. **`video-mesh list` is NOT the cluster list command.** `list` returns cluster *availability* over a time window and requires `--from`/`--to`. Use `list-clusters-video-mesh` to list clusters, and `list-client-type-distribution` for client analytics. Likewise `show` is cluster availability, not cluster details — details are `show-clusters`.
+4. **On-demand tests are `create-nodes` (node) and `create` (cluster).** The generator gave the bare `create` to the cluster endpoint, so the obvious name targets the *cluster*; a node test needs the explicit `create-nodes`.
 5. **Threshold reset (`create-reset`) resets ALL thresholds** to factory defaults. This is a destructive operation — confirm with the user before executing.
 6. **Video Mesh is read-heavy.** Most operations are monitoring queries. Only threshold configuration and on-demand test triggers are write operations.
 7. **Time-range queries default to recent data.** If availability/utilization commands return empty, the time range may need to be specified with `--from` and `--to` flags (where supported).
-8. **Node IDs come from cluster details.** You cannot list all nodes directly — get them from `wxcli video-mesh show CLUSTER_ID --output json` which includes the node list.
+8. **Node IDs come from cluster details.** You cannot list all nodes directly — get them from `wxcli video-mesh show-clusters CLUSTER_ID --output json` which includes the node list.
 9. **Read the metrics commands with `-o json` — their tables cannot show the data.**
     20 of the 22 Video Mesh list commands wrap their measurements one level deeper
     than the CLI's table renderer reaches: the body is `{items: [{orgId, from, to,
@@ -387,6 +390,6 @@ If context compacts mid-execution, recover by:
    ```
 2. Check if any on-demand tests are pending:
    ```bash
-   wxcli video-mesh list-test-status --output json
+   wxcli video-mesh list-test-status --command-id COMMAND_ID --output json
    ```
 3. Resume from the first incomplete step in the plan

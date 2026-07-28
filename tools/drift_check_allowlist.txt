@@ -46,6 +46,81 @@ location-settings update-location-calling
 trunk
 route-group
 
+# ---- prefixless citations (check 2 widened 2026-07-28) --------------------
+# Everything below denies a command rather than recommending one. Widening
+# check 2 past the literal `wxcli` made these visible for the first time; all
+# five were confirmed correct-as-written against src/wxcli/commands/ before
+# being exempted, and each is file-scoped so the same name stays checkable
+# everywhere else.
+#
+# manage-call-settings/SKILL.md:164,176,281 — the skill's central teaching
+# point is that person monitoring lives on `person-call-settings`, and it says
+# so three times ("there is no user-settings list-monitoring / update-
+# monitoring (verified: those names do not exist)"). Only
+# list-available-members-monitoring exists on user-settings, and it returns
+# candidates, not the monitoring list.
+ref .claude/skills/manage-call-settings/SKILL.md user-settings list-monitoring
+# manage-identity/SKILL.md:574 and admin-apps-data.md:156 — the same denial on
+# both the skill and reference-doc side: upstream replaced the per-user item
+# endpoint (GET .../ArchivedUser/{useruuid}) with the collection endpoint, so
+# `archive-users show` no longer exists and `list --filter` replaces it. The
+# group ships exactly one command, `list`.
+ref .claude/skills/manage-identity/SKILL.md archive-users show
+ref docs/reference/admin-apps-data.md archive-users show
+
+# ---------------------------------------------------------------- check 10
+# Format: "positional <path> <group> <command>" — file-scoped. A DIFFERENT
+# claim from "ref" above: this says the file deliberately shows a WRONG
+# argument list in order to warn against it, not that the name is unreal.
+#
+# Both entries below are the same gotcha written in two skills: location-scoped
+# deletes take LOCATION_ID FIRST, and each states it as
+# "`wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `hunt-group delete
+# --force HG_ID`". The second half is the anti-example; `hunt-group delete`
+# really does declare 2 required positionals (location_id, hunt_group_id), so
+# the doc is correct and the citation is the point.
+positional .claude/skills/configure-features/SKILL.md hunt-group delete
+positional .claude/skills/provision-calling/SKILL.md hunt-group delete
+
+# ---------------------------------------------------------------- check 11a
+# Format: "required-flag <path> <group> <command>" — file-scoped.
+#
+# audit-compliance/SKILL.md:133 — the fence is a PLAN TEMPLATE, not a shell
+# block: the line reads "API:        wxcli security-audit list" as a labelled
+# field, and the very next template line is
+# "Date range: ... (--start-time / --end-time)". The template already tells the
+# agent both required flags; putting them on the API: line would duplicate the
+# line below it and turn a form into a command.
+required-flag .claude/skills/audit-compliance/SKILL.md security-audit list
+#
+# The eight CC "DTO-as-query-parameter" operations (verified 2026-07-28 against
+# specs/webex-contact-center.json): POST+PUT on /team, /skill, /skill-profile,
+# and /agent-profile each declare their whole payload as a REQUIRED QUERY
+# parameter ($ref to TeamDTO / PayloadDTO / SkillProfileDTO / AgentProfileDTO)
+# and declare NO requestBody at all. The generator renders the spec faithfully,
+# so the CLI demands --team-dto / --payload-dto / --skill-profile-dto /
+# --agent-profile-dto; the docs show --json-body, which is what an operator
+# actually needs to send a JSON payload.
+#
+# Both cannot be right, and NEITHER is verifiable from here: exercising them
+# needs CC-scoped OAuth (known issue #11) and a live WRITE. Rewriting ten
+# examples into a --team-dto form nobody has run would be inventing API
+# behaviour, so the docs stand and the disagreement is recorded instead.
+#
+# WHAT MAKES THIS STALE: upstream moving these payloads to a requestBody (the
+# query-parameter object disappears and the generated command stops requiring
+# the flag), or a live CC write proving which form the API accepts. On either,
+# delete these entries. Re-detect with the spec query in this session's notes:
+# required query params whose schema is a $ref on an op with no requestBody.
+required-flag .claude/skills/contact-center/SKILL.md cc-team create
+required-flag .claude/skills/contact-center/SKILL.md cc-skill create
+required-flag .claude/skills/contact-center/SKILL.md cc-skill-profile create
+required-flag .claude/skills/contact-center/SKILL.md cc-desktop-profile create
+required-flag docs/reference/contact-center-core.md cc-team create
+required-flag docs/reference/contact-center-core.md cc-skill create
+required-flag docs/reference/contact-center-core.md cc-skill-profile create
+required-flag docs/reference/contact-center-core.md cc-desktop-profile create
+
 # ---------------------------------------------------------------- check 7
 # Format: "prose-flag <path> <flag>" — file-scoped, not line-scoped, so an
 # unrelated edit above the line does not rot the entry.

@@ -34,6 +34,9 @@ KNOWN_GLOBAL_KEYS = {
     # "spec_authority". test_field_overrides.py::test_all_keys_recognized is
     # what catches that, and it is why this set exists.
     "spec_authority",
+    # Consumed by tools/drift_check.py (check 12) via tools/verb_naming.py:
+    # the acknowledged numeric-suffix and resource-mismatch command names.
+    "naming_ack",
 }
 
 
