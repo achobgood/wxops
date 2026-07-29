@@ -22,6 +22,58 @@ from wxcli.errors import WebexError
 
 logger = logging.getLogger("wxcli")
 
+
+def _next_page_url(response: "httpx.Response") -> str | None:
+    """The `Link: rel="next"` target, or None. Same parse as follow_pagination."""
+    for part in response.headers.get("Link", "").split(","):
+        part = part.strip()
+        if 'rel="next"' in part:
+            return part.split(";")[0].strip().strip("<>")
+    return None
+
+
+def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
+    """Say so on stderr when a single fetch left pages on the server.
+
+    210 list commands issue one `rest_get` against an endpoint the spec says
+    paginates, and discard the `Link: rel="next"` silently — the command exits
+    0 and hands back a partial answer with nothing indicating it. The display
+    layer cannot cover this: `output.print_table`'s "... N more" row needs
+    `len(data) > limit`, and on 502 of 503 list commands `--limit` is ALSO the
+    API page size, so the row is unreachable exactly where truncation happens.
+
+    This does not change what any command returns — stdout is untouched. It
+    only makes the silent case loud, and tells us which commands truncate in
+    practice: the count of 210 is a code shape, and the one live probe on
+    record found 105 records returned whole from an endpoint whose spec
+    declares a default page of 10.
+
+    Contact Center's `page`/`pageSize` style carries no Link header and is NOT
+    covered here — that is the 96 of the 210 this cannot see.
+    """
+    if not _next_page_url(response):
+        return
+    if os.environ.get("WXCLI_NO_PAGE_WARN"):
+        return
+    try:
+        body = response.json()
+        count = len(body.get("items", body.get("data", [])))
+    except Exception:
+        count = 0
+
+    # The remedy must be `--offset`, NOT `--limit 0`. On the 210 commands this
+    # fires for, `--limit 0` is already the default and does not fetch more —
+    # naming it would print a next step that cannot work. Both render branches
+    # send `--offset` through as `start`, so it is correct for every caller.
+    try:
+        start = int((params or {}).get("start") or 0)
+    except (TypeError, ValueError):
+        start = 0
+
+    shown = f"{count} records returned" if count else "This response was partial"
+    nxt = f" Fetch the next page with --offset {start + count}." if count else ""
+    typer.echo(f"Note: {shown} and the server has more pages.{nxt}", err=True)
+
 # Bounded retry policy. WXCLI_RETRY_MODE=off (or legacy WXCLI_NO_RETRY=1) disables.
 DEFAULT_MAX_ATTEMPTS = 4
 MAX_RETRY_AFTER_SECONDS = 30
@@ -130,7 +182,10 @@ class WebexSession:
         return response.json() if response.content else {}
 
     def rest_get(self, url: str, params=None) -> dict:
-        return self._json_or_raise(self._request("GET", url, params=params))
+        response = self._request("GET", url, params=params)
+        data = self._json_or_raise(response)
+        _warn_if_more_pages(response, params)
+        return data
 
     def rest_put(self, url: str, json=None, params=None) -> dict:
         return self._json_or_raise(self._request("PUT", url, json=json, params=params))
