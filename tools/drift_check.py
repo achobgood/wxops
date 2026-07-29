@@ -12,9 +12,15 @@ Checks (docs/arch/target-architecture.md §A6):
      because CLAUDE.md's Mandatory Grounding Rule requires the agent to read
      those docs before answering — they are the most load-bearing prose here.
   3. Published counts: "N command groups" / "N OpenAPI specs" claims in
-     CLAUDE.md / README.md match measured fresh-clone values. Groups are
-     counted as distinct command sets (aliases excluded — see
-     distinct_command_sets).
+     CLAUDE.md / README.md match measured fresh-clone values, AND the two
+     files do not contradict each other. Groups are counted as distinct
+     command sets (aliases excluded — see distinct_command_sets). Three
+     phrasings are harvested, not one: `N command groups`, `N CLI command
+     groups`, and the bare `N groups` (CLI context required, see
+     harvest_count_claims). The original single pattern could see only the
+     first, so README shipped 178 and 176 at once while this check read 0.
+     The contradiction oracle is deliberately independent of the measurement:
+     two published values disagreeing is a defect whichever one is right.
   4. Unreferenced groups: every registered group is referenced by the skills
      layer or declared on CLAUDE.md's out-of-skill-scope list.
   5. Stale overlays: no specs/overlays/** path has been published upstream. An
@@ -81,6 +87,36 @@ Checks (docs/arch/target-architecture.md §A6):
       debt is acknowledged per operation in field_overrides.yaml's
       `naming_ack`, which is re-validated every run so it cannot rot.
       Classification lives in tools/verb_naming.py.
+
+  13. Runnable generated examples: the auto-generated `Example:` line in a
+      generated command's docstring — the one `--help` prints — names every
+      flag the command HAS, so when the declaring spec marks a body field or
+      query parameter REQUIRED and the generator emitted no flag for it, the
+      example looks complete and still cannot succeed. Live anchor:
+      `location-settings create` omitted `address` and 400'd with
+      {location.address.null}; 99 of 1,410 commands printing an example were
+      in that state. Check 11a cannot cover this — it scans hand-written
+      markdown against the rendered CLI, while the broken string lives in a
+      generated module's docstring 11a never reads, and its requiredness comes
+      off the rendered Typer signature, where a flagless field has no node to
+      find. Disjoint corpora, disjoint oracles. Only spec-REQUIRED fields are
+      considered, so a flagless OPTIONAL field cannot fire it.
+
+  14. Skeleton completeness: the `--generate-json-body` skeleton a generated
+      module ships never renders a nested object/array as the scalar "..."
+      and never omits a field the spec marks required. Both were live
+      truncations in openapi_parser (a depth cutoff, 147 cases; `ordered[:8]`,
+      which dropped a REQUIRED field on 5 commands) — so the documented escape
+      hatch for exactly the bodies check 13 flags was itself emitting a body
+      the API rejects. The bounds that remain there return a type-correct
+      empty container rather than dropping a property, so this check stays
+      satisfiable on a pathological schema.
+
+Note: checks 13 and 14 share one pass (check_generated_help) over the same
+join of shipped source to declaring spec, and both index specs PER FILE. They
+skip an operation whose declaring specs disagree rather than unioning them —
+unioning is how check 9's predecessor reported a confident 0 over a live-broken
+command. Both also assert the dev-only fs_* exclusion rather than assuming it.
 
 Note: checks 2, 10, 11a and 11b share `command_heads`, which reads BOTH
 `wxcli <group> <command>` and the prefixless `<group> <command>` form that
@@ -730,20 +766,87 @@ def check_references(surface: dict, top_level: set[str]) -> tuple[list, dict, in
 
 # ------------------------------------------------------------------ check 3
 
-def check_counts(surface: dict) -> list:
-    measured_groups = distinct_command_sets()
-    measured_specs = len(tracked_specs())
-    mismatches = []
+# Three claim shapes, spelled out rather than collapsed into one loose regex.
+# The original harvester was `(\d+)\s+command groups`, which can match only the
+# first of them: "176 CLI command groups" has a word between the number and
+# `command`, and "176 groups" has no `command` at all. README shipped 178 and
+# 176 simultaneously and check 3 reported a confident 0 over both.
+#
+#   "178 command groups"      GROUP_CLAIM
+#   "178 CLI command groups"  GROUP_CLAIM, one qualifier word
+#   "178 groups"              BARE_GROUP_CLAIM, CLI context required
+GROUP_CLAIM = re.compile(r"(\d+)\s+(?:[A-Za-z][A-Za-z-]*\s+)?command\s+groups\b")
+BARE_GROUP_CLAIM = re.compile(r"(\d+)\s+groups\b")
+SPEC_CLAIM = re.compile(r"(\d+)\s+OpenAPI(?:\s+3\.0)?\s+specs?\b")
+
+# The bare form is the one that can pick up ordinary prose ("3 groups of
+# users"), so it counts only on a line that already names the thing being
+# counted. Both live citations qualify: "| **CLI** (178 groups) |" and "Run
+# `wxcli --help` to see all 178 groups". The rule is LINE-scoped rather than a
+# character window on purpose — a window is a magic number nobody can
+# re-derive, a line is the unit the sentence is written in.
+#
+# The residual false positive is real and was measured, not assumed: a line
+# reading "The CLI is used by 3 groups of users" DOES fire, while the same
+# sentence without `CLI` does not. Neither published file contains such a line
+# today, and the trade is deliberate — the alternative is the blind spot that
+# let README ship two different numbers. If one is ever written, rephrase the
+# prose or say "command groups"; do not loosen this rule.
+CLI_CONTEXT = re.compile(r"\bwxcli\b|\bCLI\b")
+
+
+def harvest_count_claims() -> list[dict]:
+    """Every published count claim in CLAUDE.md + README.md, with its line.
+
+    Scoped to those two files ONLY — they are what a reader outside the repo
+    sees, and narrow scope is what makes the bare `N groups` form affordable.
+    Every claim is kept individually (not deduplicated to a set of values) so
+    both oracles in check_counts can name the file and line of each side.
+    """
+    claims = []
     for rel in ("CLAUDE.md", "README.md"):
-        text = (REPO / rel).read_text()
-        for n in {int(x) for x in re.findall(r"(\d+)\s+command groups", text)}:
-            if n != measured_groups:
-                mismatches.append({"file": rel, "claim": f"{n} command groups",
-                                   "measured": measured_groups})
-        for n in {int(x) for x in re.findall(r"(\d+)\s+OpenAPI(?:\s+3\.0)?\s+specs?", text)}:
-            if n != measured_specs:
-                mismatches.append({"file": rel, "claim": f"{n} OpenAPI specs",
-                                   "measured": measured_specs})
+        for lineno, line in enumerate((REPO / rel).read_text().splitlines(), 1):
+            found = [(m, "command groups") for m in GROUP_CLAIM.finditer(line)]
+            if CLI_CONTEXT.search(line):
+                found += [(m, "command groups")
+                          for m in BARE_GROUP_CLAIM.finditer(line)]
+            found += [(m, "OpenAPI specs") for m in SPEC_CLAIM.finditer(line)]
+            for m, kind in found:
+                claims.append({"kind": kind, "file": rel, "line": lineno,
+                               "value": int(m.group(1)), "text": m.group(0)})
+    return claims
+
+
+def check_counts(surface: dict) -> list:
+    measured = {"command groups": distinct_command_sets(),
+                "OpenAPI specs": len(tracked_specs())}
+    claims = harvest_count_claims()
+    mismatches = [
+        {"file": c["file"], "line": c["line"], "claim": c["text"],
+         "measured": measured[c["kind"]]}
+        for c in claims if c["value"] != measured[c["kind"]]
+    ]
+    # Second, INDEPENDENT oracle: the published files disagreeing with each
+    # OTHER is a defect whichever side is right. It does not consult `measured`
+    # at all, so it still fires when the measurement itself is wrong — and a
+    # self-contradiction is the shape a partially-blind harvester produces, so
+    # this is the oracle that would have caught the 178/176 split even if the
+    # widened patterns above had missed a fourth phrasing.
+    for kind in ("command groups", "OpenAPI specs"):
+        values = sorted({c["value"] for c in claims if c["kind"] == kind})
+        if len(values) > 1:
+            mismatches.append({
+                "file": "CLAUDE.md + README.md", "line": 0,
+                "claim": f"{kind} claimed as "
+                         + " and ".join(str(v) for v in values),
+                "measured": measured[kind],
+                "contradiction": "; ".join(
+                    f"{v} at " + ", ".join(f"{c['file']}:{c['line']}"
+                                           for c in claims
+                                           if c["kind"] == kind
+                                           and c["value"] == v)
+                    for v in values),
+            })
     # NOTE: bare "N commands" phrases are deliberately not checked — they are
     # ambiguous (per-group and per-spec counts use the same wording). The
     # measured total is printed in the report header instead.
@@ -1815,6 +1918,491 @@ def check_naming(findings: list[dict], acked: dict) -> tuple[list, list, list]:
     return unacked, stale, advisory
 
 
+# ----------------------------------------------------------- checks 13 & 14
+
+# The 11 dev-only modules: gitignored (.gitignore:111), absent from the shipped
+# wheel, present only on a developer's disk. A prior round let them inflate
+# three separate counts, so the exclusion below is ASSERTED on every run
+# (fs_exclusion_audit) rather than assumed — a guard that cannot be shown to
+# still bind is not a guard.
+FS_MODULES = {
+    "fs_connectors", "fs_expression_test", "fs_flow_props", "fs_flow_versions",
+    "fs_flows", "fs_flows_v2", "fs_projects", "fs_resources", "fs_templates",
+    "fs_tracing", "fs_user_prefs",
+}
+
+# tools/field_overrides.yaml: auto_inject_from_config. These query parameters
+# are supplied from saved config at runtime, so a spec marking them required is
+# satisfied with no flag — the same exception 11a's docstring records.
+AUTO_INJECT = {"orgid"}
+
+JSON_CONTENT_KEYS = ("application/json", "application/json;charset=UTF-8",
+                     "application/json-patch+json")
+
+_SEPARATE_SPECS: dict[str, dict] | None = None
+_SPEC_OP_INDEX: dict[str, dict] | None = None
+
+
+def _ref(spec: dict, schema: dict) -> dict:
+    """Resolve one `$ref` safely — {} rather than KeyError on a dangling ref."""
+    node = spec
+    for part in schema["$ref"].lstrip("#/").split("/"):
+        node = node.get(part, {}) if isinstance(node, dict) else {}
+    return node if isinstance(node, dict) else {}
+
+
+def load_specs_separately() -> dict[str, dict]:
+    """{spec filename: parsed spec, overlays merged} — kept APART, never pooled.
+
+    load_spec_ops() collapses all nine specs into one dict with `setdefault`, so
+    the first spec to declare a path wins and the rest become invisible. That is
+    correct for a parity count and fatal for a per-operation question: check 9's
+    predecessor unioned two specs describing one endpoint and reported a
+    confident 0 over a live-broken command. Checks 13/14 index per file and SKIP
+    an operation whose declaring specs disagree, rather than guessing which is
+    authoritative.
+    """
+    global _SEPARATE_SPECS
+    if _SEPARATE_SPECS is None:
+        _SEPARATE_SPECS = {}
+        for rel in sorted(tracked_specs()):
+            spec = json.loads((REPO / rel).read_text())
+            _SEPARATE_SPECS[Path(rel).name] = merge_overlay(
+                spec, load_overlay(REPO / rel))
+    return _SEPARATE_SPECS
+
+
+def spec_op_index() -> dict[str, dict[tuple[str, str], dict]]:
+    """{spec filename: {(METHOD, normalized path): operation}} — one per spec."""
+    global _SPEC_OP_INDEX
+    if _SPEC_OP_INDEX is None:
+        _SPEC_OP_INDEX = {}
+        for name, spec in load_specs_separately().items():
+            idx: dict[tuple[str, str], dict] = {}
+            for path, methods in spec.get("paths", {}).items():
+                for method, op in methods.items():
+                    if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+                        continue
+                    idx.setdefault((method.upper(), normalize_path(path)), op)
+            _SPEC_OP_INDEX[name] = idx
+    return _SPEC_OP_INDEX
+
+
+def body_schema(op: dict, spec: dict) -> dict | None:
+    """Resolved request-body schema with allOf merged.
+
+    Content-type selection copies openapi_parser.parse_request_body so this sees
+    the same body the generator saw. Unlike check 9's `_resolve_schema` this
+    keeps `required`, which is the entire oracle for checks 13 and 14.
+    """
+    content = op.get("requestBody", {}).get("content", {})
+    node = next((content[k] for k in JSON_CONTENT_KEYS if k in content), None)
+    if not node:
+        return None
+    schema = node.get("schema", {})
+    if "$ref" in schema:
+        schema = _ref(spec, schema)
+    if "allOf" in schema:
+        props, required = {}, []
+        for item in schema["allOf"]:
+            if "$ref" in item:
+                item = _ref(spec, item)
+            props.update(item.get("properties", {}))
+            required.extend(item.get("required", []))
+        schema = {"type": "object", "properties": props,
+                  "required": list(dict.fromkeys(required))}
+    return schema or None
+
+
+def required_body_fields(op: dict, spec: dict) -> list[str]:
+    schema = body_schema(op, spec)
+    if not schema:
+        return []
+    props = schema.get("properties", {})
+    # A `required` entry naming no property is a spec bug, not a CLI gap.
+    return [f for f in schema.get("required", []) if f in props]
+
+
+def required_query_params(op: dict) -> list[str]:
+    return [p["name"] for p in op.get("parameters", [])
+            if isinstance(p, dict) and p.get("in") == "query"
+            and p.get("required") is True and p.get("name")]
+
+
+def field_shape(op: dict, spec: dict, name: str) -> str:
+    """'object' | 'array' | 'scalar' for one top-level body property."""
+    prop = (body_schema(op, spec) or {}).get("properties", {}).get(name, {})
+    if "$ref" in prop:
+        prop = _ref(spec, prop)
+    t = prop.get("type")
+    if t in ("object", "array"):
+        return t
+    return "object" if (t is None and "properties" in prop) else "scalar"
+
+
+def _const_key(node) -> str | None:
+    sl = node.slice
+    return sl.value if isinstance(sl, ast.Constant) and isinstance(sl.value, str) else None
+
+
+def command_names(node: ast.FunctionDef) -> list[tuple[str, bool]]:
+    """Every `@app.command` name on one function, as (name, hidden).
+
+    38 generated functions carry two decorators: a hidden deprecated alias
+    FIRST, then the visible name. `_command_name` returns whichever it meets
+    first, which is fine for a resolvable key and wrong for a report an operator
+    reads — `announcements generate-a-text` is not in --help at all while
+    `tts-generate` is.
+    """
+    out = []
+    for deco in node.decorator_list:
+        call = deco if isinstance(deco, ast.Call) else None
+        func = call.func if call else deco
+        if not (isinstance(func, ast.Attribute) and func.attr == "command"):
+            continue
+        hidden = any(kw.arg == "hidden"
+                     and isinstance(kw.value, ast.Constant)
+                     and kw.value.value is True
+                     for kw in (call.keywords if call else []))
+        name = None
+        if call and call.args and isinstance(call.args[0], ast.Constant):
+            name = call.args[0].value
+        else:
+            for kw in (call.keywords if call else []):
+                if kw.arg == "name" and isinstance(kw.value, ast.Constant):
+                    name = kw.value.value
+        out.append((name or node.name.replace("_", "-"), hidden))
+    return out
+
+
+class CommandFacts:
+    """Everything checks 13/14 need about ONE generated command.
+
+    Read off the SHIPPED source with `ast` — never by importing wxcli (a
+    subagent once imported generated delete functions and four unconfirmed
+    DELETEs reached a live org) and never by re-modelling the generator, which
+    would go stale the moment an override changed. Reading the source is also
+    what makes this immune to `param_name_overrides`: that renames the CLI flag
+    and leaves the wire name, and the wire name is what `body[...]` writes.
+    """
+
+    def __init__(self, module: str, group: str, node: ast.FunctionDef,
+                 src_lines: list[str]):
+        self.module, self.group = module, group
+        names = command_names(node)
+        visible = [n for n, hidden in names if not hidden]
+        self.command = visible[0] if visible else names[0][0]
+        self.node = node
+        self.doc = ast.get_docstring(node, clean=False) or ""
+        self.lineno = node.lineno
+        self._read_params()
+        self._read_dict_writes()
+        self._read_url(src_lines)
+        self._read_examples()
+
+    def _read_params(self):
+        self.flags: dict[str, set[str]] = {}
+        params = self.node.args.args + self.node.args.kwonlyargs
+        defaults = ([None] * (len(self.node.args.args) - len(self.node.args.defaults))
+                    + list(self.node.args.defaults) + list(self.node.args.kw_defaults))
+        for param, default in zip(params, defaults):
+            opt = _typer_call(default, "Option")
+            if opt is not None:
+                names = {p for a in opt.args[1:]
+                         if isinstance(a, ast.Constant) and isinstance(a.value, str)
+                         for p in a.value.split("/") if p.startswith("-")}
+                self.flags[param.arg] = names or {"--" + param.arg.replace("_", "-")}
+        self.has_json_body = "json_body" in self.flags
+
+    def _read_dict_writes(self):
+        """Which wire fields the function can actually set, and from what.
+
+        A body field is REACHABLE iff the function contains `body["<wire>"] =
+        <param>` or a `setdefault`. `setdefault(k, <literal>)` hard-wires a
+        value with no flag — hunt_group does this for callPolicies/agents/
+        enabled — and the field IS satisfied, so treating it as flagless would
+        be a false positive. Any write this parse cannot resolve to a constant
+        key sets `opaque_writes`, and the command is skipped rather than judged.
+        """
+        self.body_from: dict[str, str | None] = {}
+        self.query_from: dict[str, str | None] = {}
+        self.opaque_writes = False
+        for n in ast.walk(self.node):
+            tgt = dest = None
+            if isinstance(n, ast.Assign) and len(n.targets) == 1 \
+                    and isinstance(n.targets[0], ast.Subscript) \
+                    and isinstance(n.targets[0].value, ast.Name):
+                tgt, dest, val = n.targets[0], n.targets[0].value.id, n.value
+            elif isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+                    and n.func.attr in ("setdefault", "update") \
+                    and isinstance(n.func.value, ast.Name):
+                dest = n.func.value.id
+                if dest not in ("body", "params"):
+                    continue
+                if n.func.attr == "update" or not n.args \
+                        or not isinstance(n.args[0], ast.Constant):
+                    self.opaque_writes = True
+                    continue
+                key, val = n.args[0].value, (n.args[1] if len(n.args) > 1 else None)
+                sink = self.body_from if dest == "body" else self.query_from
+                sink.setdefault(key, val.id if isinstance(val, ast.Name) else None)
+                continue
+            if dest not in ("body", "params"):
+                continue
+            key = _const_key(tgt)
+            if key is None:
+                self.opaque_writes = True
+                continue
+            sink = self.body_from if dest == "body" else self.query_from
+            sink.setdefault(key, val.id if isinstance(val, ast.Name) else None)
+
+    def _read_url(self, src_lines: list[str]):
+        """(METHOD, normalized path) pairs for this function.
+
+        Per-function rather than `parse_module_commands`, which is regex over
+        the whole module and merges same-named commands. Normalization and
+        URL_BASES stripping stay the gate's.
+        """
+        seg = "\n".join(src_lines[self.node.lineno - 1:self.node.end_lineno])
+        self.urls: list[tuple[str, str]] = []
+        current = None
+        for m in re.finditer(r'url = f?"([^"]+)"'
+                             r'|rest_(get|put|post|patch|delete)\('
+                             r'|follow_pagination\(', seg):
+            if m.group(1):
+                current = m.group(1)
+                for base in URL_BASES:
+                    if current.startswith(base):
+                        current = current[len(base):]
+                        break
+            elif current is not None:
+                self.urls.append(((m.group(2) or "get").upper(),
+                                  normalize_path(current)))
+        self.urls = list(dict.fromkeys(self.urls))
+
+    def _read_examples(self):
+        self.example = None
+        for line in self.doc.split("\n"):
+            s = line.strip()
+            if s.startswith("Example:"):
+                self.example = s
+
+    def example_tokens(self) -> list[str] | None:
+        """Tokens of the printed example, via the gate's own arg_region + shlex.
+
+        Reused rather than re-implemented: round 2 lost two agents to hand-rolled
+        versions (a redirect's `2` counted as an argument; an unterminated quote
+        silently truncated a scan).
+        """
+        if not self.example:
+            return None
+        body = self.example[len("Example:"):].strip()
+        for group, command, head_rest, _ in command_heads(body):
+            if command is None:
+                continue
+            rest = arg_region(head_rest, strip_comment=True).rstrip()
+            if rest.endswith("\\"):
+                rest = rest[:-1].rstrip()
+            try:
+                return shlex.split(rest, posix=True)
+            except ValueError:
+                return None
+        return None
+
+
+def parse_module_facts(module: str, group: str) -> list[CommandFacts]:
+    path = COMMANDS_DIR / f"{module}.py"
+    if not path.exists():
+        return []
+    text = path.read_text()
+    lines = text.splitlines()
+    return [CommandFacts(module, group, node, lines)
+            for node in ast.walk(ast.parse(text))
+            if isinstance(node, ast.FunctionDef) and command_names(node)]
+
+
+def skeleton_lies(skel, schema: dict, spec: dict, path: str = ""):
+    """Yield (json path, spec type, rendered value) where the skeleton flattens.
+
+    `_schema_to_example` used to return the literal string "..." past depth 2.
+    For a scalar leaf that is a correct placeholder; for an object or array it
+    is a lie — `licenses update` printed `"properties":"..."` where `properties`
+    is a three-field object, and an operator following the printed shape sends a
+    string. The bounds that remain (a $ref cycle, _MAX_EXAMPLE_DEPTH) return
+    `_empty_for`, i.e. `{}` or `[]`, so they degrade to a type-correct container
+    and this check stays satisfiable on a pathological schema.
+    """
+    if "$ref" in schema:
+        schema = _ref(spec, schema)
+    t = schema.get("type") or ("object" if "properties" in schema else None)
+    if t in ("object", "array") and not isinstance(skel, (dict, list)):
+        yield path or "<root>", t, skel
+        return
+    if t == "object" and isinstance(skel, dict):
+        props = schema.get("properties", {})
+        for k, v in skel.items():
+            if k in props:
+                yield from skeleton_lies(v, props[k], spec,
+                                         f"{path}.{k}" if path else k)
+    elif t == "array" and isinstance(skel, list) and skel:
+        yield from skeleton_lies(skel[0], schema.get("items", {}), spec,
+                                 f"{path}[]")
+
+
+def check_generated_help() -> tuple[list, list, dict]:
+    """Checks 13 and 14, in ONE pass: (bad_examples, bad_skeletons, fs_audit).
+
+    Both read the same join — shipped generated source against the ONE spec
+    that declares the operation — so they share the pass rather than paying for
+    two. Splitting them would double a ~1s scan to answer the same question
+    twice.
+
+    Requiredness comes from the spec; reachability comes from the shipped
+    source. Neither direction is inferred from the other, which is what lets a
+    finding mean "the printed string cannot work" rather than "these two
+    representations differ".
+    """
+    indexes = spec_op_index()
+    specs = load_specs_separately()
+    registrations = parse_registrations()
+    countable = module_state()["countable"]
+
+    # Alias groups share a module; count each command once under the canonical
+    # (first, non-alias) group name.
+    canonical: dict[str, str] = {}
+    for group, module in sorted(registrations.items()):
+        canonical.setdefault(module, group)
+    if "converged-recordings" in registrations:
+        canonical.setdefault("converged_recordings_export", "converged-recordings")
+
+    # Prove the fs_* exclusion instead of trusting it. These 11 are on a
+    # developer's disk and excluded by .gitignore, so they must reach neither
+    # `countable` nor `parse_registrations`. Reporting the audit every run is
+    # what stops the guard becoming silently vacuous.
+    fs_audit = {
+        "declared": sorted(FS_MODULES),
+        "present_on_disk": sorted(p.stem for p in COMMANDS_DIR.glob("fs_*.py")),
+        "leaked": sorted((FS_MODULES & countable)
+                         | (FS_MODULES & set(registrations.values()))),
+    }
+
+    bad_examples, bad_skeletons = [], []
+    for module, group in sorted(canonical.items()):
+        if module in FS_MODULES or module not in countable:
+            continue
+        module_src = (COMMANDS_DIR / f"{module}.py").read_text()
+
+        for cf in parse_module_facts(module, group):
+            if not cf.urls:
+                continue                      # hand-written, no rest_* call
+            write = [u for u in cf.urls if u[0] != "GET"] or cf.urls
+            method, npath = write[0]
+            declaring = [(name, idx[(method, npath)])
+                         for name, idx in indexes.items()
+                         if (method, npath) in idx]
+            if not declaring:
+                continue                      # in no tracked spec
+            per_spec = {name: (required_body_fields(op, specs[name]),
+                               required_query_params(op))
+                        for name, op in declaring}
+            if len({(tuple(sorted(b)), tuple(sorted(q)))
+                    for b, q in per_spec.values()}) > 1:
+                continue                      # specs disagree — never guess
+            spec_name, op = declaring[0]
+            spec = specs[spec_name]
+            req_body, req_query = per_spec[spec_name]
+
+            # -- check 14: the --generate-json-body skeleton -----------------
+            m = re.search(rf"_BODY_SKELETON_{re.escape(cf.node.name.upper())}"
+                          r"\s*=\s*('.*?'|\".*?\")\n", module_src)
+            schema = body_schema(op, spec) if m else None
+            if m and schema:
+                try:
+                    skel = json.loads(ast.literal_eval(m.group(1)))
+                except (ValueError, SyntaxError):
+                    skel = None
+                    # A skeleton that will not parse is a DEFECT, not a reason
+                    # to look away — `--generate-json-body` prints it verbatim
+                    # for the caller to edit and pass back, so malformed JSON
+                    # is unusable. Silently skipping it is how a check reports
+                    # a confident 0 over the very thing it exists to catch.
+                    bad_skeletons.append({
+                        "group": group, "command": cf.command,
+                        "kind": "skeleton-not-parseable",
+                        "json_path": "(whole body)",
+                        "spec_type": "n/a", "rendered": m.group(1)[:120],
+                        "spec": spec_name})
+                if skel is not None:
+                    for jpath, stype, rendered in skeleton_lies(skel, schema, spec):
+                        bad_skeletons.append({
+                            "group": group, "command": cf.command,
+                            "kind": "nested-object-as-scalar",
+                            "json_path": jpath, "spec_type": stype,
+                            "rendered": json.dumps(rendered), "spec": spec_name})
+                    if isinstance(skel, dict):
+                        for f in req_body:
+                            if f not in skel:
+                                bad_skeletons.append({
+                                    "group": group, "command": cf.command,
+                                    "kind": "required-field-omitted",
+                                    "json_path": f,
+                                    "spec_type": field_shape(op, spec, f),
+                                    "rendered": "(absent)", "spec": spec_name})
+
+            # -- check 13: the printed Example line --------------------------
+            # Only spec-REQUIRED fields are ever considered, so an optional
+            # field with no flag is structurally incapable of firing this — the
+            # negative control the reference detector used to prove the check
+            # is not merely flagging any absent flag.
+            if not cf.example or not (req_body or req_query) or cf.opaque_writes:
+                continue
+            tokens = cf.example_tokens()
+            if tokens is None:
+                continue
+            # An example that reaches for --json-body is NOT exempt: the inline
+            # payload must itself carry every required field.
+            #
+            # 2026-07-28: this used to `continue` on "--json-body" in tokens,
+            # calling it "the escape hatch". That skip made the check blind to
+            # exactly the population it was built to police — the generator fix
+            # rewrote all 99 unrunnable examples to pass --json-body, so 121
+            # examples took the exemption and the check read a confident 0 over
+            # them. Planting the live anchor's defect back (dropping the
+            # required `address` object from `location-settings create`) did not
+            # fire it. Same shape as check 9's spec union and check 3's regex:
+            # an exemption wider than the evidence justifying it.
+            inline_body = None
+            if "--json-body" in tokens:
+                jb = re.search(r"--json-body\s+'(\{.*?\})'\s*$", cf.example)
+                if not jb:
+                    continue          # not an inline literal — nothing to judge
+                try:
+                    inline_body = json.loads(jb.group(1))
+                except ValueError:
+                    inline_body = None
+                if not isinstance(inline_body, dict):
+                    continue
+            if inline_body is not None:
+                missing = [f"{f} ({field_shape(op, spec, f)})"
+                           for f in req_body if f not in inline_body]
+            else:
+                missing = [f"{f} ({field_shape(op, spec, f)})"
+                           for f in req_body if f not in cf.body_from]
+            missing += [f"{q} (query)" for q in req_query
+                        if q not in cf.query_from and q.lower() not in AUTO_INJECT]
+            if missing:
+                bad_examples.append({
+                    "group": group, "command": cf.command, "module": module,
+                    "line": cf.lineno, "example": cf.example, "missing": missing,
+                    "spec": spec_name, "operation": f"{method} {npath}",
+                    "json_body": cf.has_json_body})
+
+    bad_examples.sort(key=lambda f: (f["group"], f["command"]))
+    bad_skeletons.sort(key=lambda f: (f["kind"], f["group"], f["command"],
+                                      f["json_path"]))
+    return bad_examples, bad_skeletons, fs_audit
+
+
 # ---------------------------------------------------------- deliberate gaps
 
 GAPS_DOC = REPO / "docs" / "arch" / "deliberate-gaps.md"
@@ -1908,6 +2496,7 @@ def main() -> int:
         surface, positional_surface, kind_surface)
     naming_unacked, naming_stale, naming_advisory = check_naming(
         build_naming_findings(), overrides.get("naming_ack") or {})
+    bad_examples, bad_skeletons, fs_audit = check_generated_help()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -1931,13 +2520,17 @@ def main() -> int:
         "12_naming_unacked": naming_unacked,
         "12_naming_stale_acks": naming_stale,
         "12_naming_advisory": naming_advisory,
+        "13_unrunnable_examples": bad_examples,
+        "14_truncated_skeletons": bad_skeletons,
+        "14_fs_exclusion_audit": fs_audit,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
                   or stale_overlays or dead_flags or prose_flags
                   or untracked_mods or bad_columns or unpinned_specs
                   or bad_positionals or missing_flags or kind_mismatches
-                  or naming_unacked or naming_stale)
+                  or naming_unacked or naming_stale
+                  or bad_examples or bad_skeletons or fs_audit["leaked"])
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off.
 
@@ -1967,7 +2560,13 @@ def main() -> int:
             print(f"      ... and {len(dead_refs) - 20} more (--json for all)")
         print(f"[3] published-count mismatches: {len(count_mismatches)}")
         for cm in count_mismatches:
-            print(f"      {cm['file']}: says \"{cm['claim']}\", measured {cm['measured']}")
+            if cm.get("contradiction"):
+                print(f"      SELF-CONTRADICTION — {cm['claim']} "
+                      f"(measured {cm['measured']})")
+                print(f"        {cm['contradiction']}")
+            else:
+                print(f"      {cm['file']}:{cm['line']}: says \"{cm['claim']}\", "
+                      f"measured {cm['measured']}")
         print(f"[4] unreferenced groups not on the out-of-scope list: {len(unreferenced)}")
         if unreferenced:
             print(f"      {', '.join(unreferenced)}")
@@ -2064,6 +2663,28 @@ def main() -> int:
             print(f"      ... and {len(naming_unacked) - 20} more (--json for all)")
         for n in naming_stale[:20]:
             print(f"      STALE ACK  {n['kind']} {n['op']}  — {n['reason']}")
+        print(f"[13] generated `Example:` lines that cannot succeed: "
+              f"{len(bad_examples)}"
+              f"   (fs_* exclusion asserted: {len(fs_audit['declared'])} declared,"
+              f" {len(fs_audit['present_on_disk'])} on disk,"
+              f" {len(fs_audit['leaked'])} leaked)")
+        for f in bad_examples[:20]:
+            print(f"      wxcli {f['group']} {f['command']}  omits "
+                  f"{', '.join(f['missing'])}  ({f['spec']}: {f['operation']})")
+            print(f"        {f['example']}")
+        if len(bad_examples) > 20:
+            print(f"      ... and {len(bad_examples) - 20} more (--json for all)")
+        if fs_audit["leaked"]:
+            print(f"      LEAKED dev-only modules into the counted surface: "
+                  f"{', '.join(fs_audit['leaked'])}")
+        print(f"[14] --generate-json-body skeletons that truncate: "
+              f"{len(bad_skeletons)}")
+        for s in bad_skeletons[:20]:
+            print(f"      wxcli {s['group']} {s['command']}  {s['json_path']} "
+                  f"is {s['spec_type']} in {s['spec']}, rendered {s['rendered']}"
+                  f"  ({s['kind']})")
+        if len(bad_skeletons) > 20:
+            print(f"      ... and {len(bad_skeletons) - 20} more (--json for all)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
