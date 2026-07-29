@@ -66,30 +66,73 @@ case "$agent" in
   wxc-calling-builder|migration-advisor) allow ;;
 esac
 
-# Strip leading VAR=val prefixes so `FOO=1 wxcli ...` still resolves to wxcli.
-stripped=$(printf '%s' "$cmd" | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]+[[:space:]]+)*//')
-first=$(printf '%s' "$stripped" | awk '{print $1}')
+# Resolve wxcli by RESOLVED BASENAME, in every segment of a compound command.
+#
+# 2026-07-28: the previous version did `first=$(awk '{print $1}')` and then
+# `[ "$first" = "wxcli" ] || allow` — string equality on token 1, falling open.
+# Measured, 14 of 15 spellings walked straight past it: `/opt/homebrew/bin/wxcli
+# organizations delete`, `./wxcli`, `env wxcli`, `bash -c "wxcli ..."`,
+# `cd /tmp && wxcli ...`, `true; wxcli ...`, `xargs wxcli ...`, `"wxcli"`,
+# `\wxcli`, `command wxcli`, `nohup wxcli ...`.  Worst of all, this repo's own
+# audit prompt instructs subagents to invoke the FULL PATH, because a bare
+# `wxcli` is frequently not on a subagent's PATH — so the recommended
+# invocation was exactly the one that disabled the gate, and it had been inert
+# for every subagent that followed instructions.
+#
+# awk splits on ; && || | and newline so each segment is judged on its own —
+# `wxcli people list && wxcli locations delete X` is not a read — unquotes and
+# de-backslashes each token, takes the basename, and applies the read-only
+# policy itself.  It prints DENY for any state-changing invocation and FOUND if
+# it saw any wxcli invocation at all.
+verdict=$(printf '%s' "$cmd" | awk '
+  function clean(t) { gsub(/^\\+/,"",t); gsub(/^["'"'"']+/,"",t); gsub(/["'"'"']+$/,"",t); return t }
+  function base(t)  { sub(/^.*\//,"",t); return t }
+  { line = line $0 "\n" }
+  END {
+    gsub(/\|\|/,"\n",line); gsub(/&&/,"\n",line); gsub(/;/,"\n",line); gsub(/\|/,"\n",line)
+    # Wrappers that take another command as an argument.  Only inside one of
+    # these do we scan past the command position — otherwise `grep -rn wxcli
+    # docs/` reads as an invocation, and denying an ordinary grep is its own bug.
+    split("env command nohup nice time xargs sudo stdbuf setsid sh bash zsh", w, " ")
+    for (k in w) wrap[w[k]] = 1
+    n = split(line, segs, "\n")
+    for (i = 1; i <= n; i++) {
+      m = split(segs[i], tok, /[ \t]+/)
+      j = 1
+      # Skip blank fields (splitting on the delimiters leaves a leading empty
+      # token on every segment after the first) and VAR=val prefixes.
+      while (j <= m && (clean(tok[j]) == "" || clean(tok[j]) ~ /^[A-Za-z_][A-Za-z0-9_]*=/)) j++
+      if (j > m) continue
+      idx = 0
+      if (base(clean(tok[j])) == "wxcli") idx = j
+      else if (base(clean(tok[j])) in wrap)
+        for (k = j+1; k <= m; k++) if (base(clean(tok[k])) == "wxcli") { idx = k; break }
+      if (!idx) continue
+      found = 1
+      # --help anywhere is inert: it prints and exits before any API call, and
+      # the playbook REQUIRES agents to run it before first use of a command.
+      # The old gate denied `wxcli <group> <cmd> --help`; that never surfaced
+      # only because the full-path bypass was carrying every such call.
+      help = 0
+      for (k = idx+1; k <= m; k++) if (clean(tok[k]) == "--help" || clean(tok[k]) == "-h") help = 1
+      if (help) continue
+      g = (idx+1 <= m) ? clean(tok[idx+1]) : ""
+      s = (idx+2 <= m) ? clean(tok[idx+2]) : ""
+      if (g == "" || substr(g,1,1) == "-" || g == "whoami") continue   # wxcli / --version / whoami
+      if (s == "") { print "DENY"; continue }  # bare `wxcli configure` mutates state
+      verb = s; sub(/-.*$/,"",verb)            # show-call-forwarding -> show
+      if (verb != "list" && verb != "show") print "DENY"
+    }
+    if (found) print "FOUND"
+  }
+')
 
-# Not our binary — none of our business.
-[ "$first" = "wxcli" ] || allow
-
-group=$(printf '%s' "$stripped" | awk '{print $2}')
-sub=$(printf '%s' "$stripped" | awk '{print $3}')
-
-# `wxcli`, `wxcli --help`, `wxcli --version`
-case "$group" in
-  "" | -*) allow ;;
-  whoami)  allow ;;
-esac
-
-case "$sub" in
-  -*) allow ;;   # `wxcli <group> --help`
-  "") deny "$cmd" ;;   # bare `wxcli configure` / `switch-org` / `clear-org` mutate state
-esac
-
-# Leading verb before the first hyphen: show-call-forwarding -> show
-verb=${sub%%-*}
-case "$verb" in
-  list|show) allow ;;
-  *)         deny "$cmd" ;;
+# Matched on a resolved token, never a substring, so `cat wxcli-notes.md` and
+# `python tools/drift_check.py` stay allowed.  Residual, stated rather than
+# papered over: a token this cannot resolve statically — `$(echo wxcli) ...`,
+# or a shell alias — is still invisible here.  A hook sees only the command
+# string; this is a guard rail, not a proof.
+case "$verdict" in
+  *DENY*) deny "$cmd" ;;
+  *)      allow ;;
 esac
