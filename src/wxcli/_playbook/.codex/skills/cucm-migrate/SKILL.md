@@ -38,6 +38,8 @@ If the operator is unfamiliar with the cucm migration pipeline, point them at:
 
 These are the only operator-facing docs for this migration tool. If the operator asks "where do I learn this," send them to the operator runbook first.
 
+**Mandatory --help verification:** Before constructing or running any wxcli command in this workflow, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cucm --help` for the pipeline stages, then `wxcli cucm execute --help` for its flags). Do NOT rely on the examples in this skill, in the runbooks, or in a delegated skill — recipes are hand-written and drift as the CLI changes.
+
 ## Step 1: Load, Verify, and Assess
 
 1. **Check project exists and pipeline is complete:**

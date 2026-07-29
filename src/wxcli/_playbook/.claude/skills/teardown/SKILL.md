@@ -114,6 +114,9 @@ Delete **layer by layer, top to bottom**. Resources within the same layer have n
 
 #### Layer 1: Features
 ```bash
+# Re-bind LOC — each block runs in its own shell; the Step 1 assignment is gone
+LOC=<LOCATION_ID>
+
 wxcli hunt-group delete --force $LOC <HG_ID>
 wxcli call-queue delete --force $LOC <CQ_ID>
 wxcli auto-attendant delete --force $LOC <AA_ID>
@@ -134,6 +137,9 @@ wxcli call-routing delete-trunks --force <TRUNK_ID>
 
 #### Layer 3: Supporting resources
 ```bash
+# Re-bind LOC — each block runs in its own shell; the Step 1 assignment is gone
+LOC=<LOCATION_ID>
+
 wxcli virtual-extensions delete --force <VE_ID>
 wxcli location-schedules delete --force $LOC <TYPE> <SCHEDULE_ID>
 wxcli operating-modes delete --force <OM_ID>
@@ -152,6 +158,9 @@ wxcli workspaces delete --force <WORKSPACE_ID>
 
 #### Layer 6: Phone Numbers
 ```bash
+# Re-bind LOC — each block runs in its own shell; the Step 1 assignment is gone
+LOC=<LOCATION_ID>
+
 # Remove phone numbers BEFORE location deletion — numbers block location delete with 409
 # List numbers for the location
 wxcli numbers list --location-id $LOC -o json
@@ -162,6 +171,9 @@ wxcli numbers list --location-id $LOC -o json
 
 #### Layer 7: Locations
 ```bash
+# Re-bind LOC — each block runs in its own shell; the Step 1 assignment is gone
+LOC=<LOCATION_ID>
+
 # The API CANNOT disable Webex Calling on a location. After clearing all
 # dependencies above, the location will still 409 on delete because it
 # remains calling-enabled. Attempt the delete — it may work in rare cases:
@@ -174,9 +186,9 @@ wxcli locations delete --force $LOC
 
 If `locations delete` returns 409 "being referenced", check these in order:
 
-1. **Phone numbers still assigned** — `wxcli numbers list --location-id $LOC -o json`. Remove non-main numbers before location delete. `wxcli cleanup` handles this automatically (Layer 12).
+1. **Phone numbers still assigned** — `wxcli numbers list --location-id LOCATION_ID -o json`. Remove non-main numbers before location delete. `wxcli cleanup` handles this automatically (Layer 12).
 2. **CX Essentials queues** hidden from default `call-queue list` — need `--has-cx-essentials true`
-3. **Call parks / pickups** not found — `call-park list` and `call-pickup list` without `$LOC` as first positional arg return empty
+3. **Call parks / pickups** not found — `call-park list` and `call-pickup list` without `LOCATION_ID` as first positional arg return empty
 4. **Virtual lines** — discoverable via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
 5. **Workspaces** still assigned — workspaces API has no location filter, must filter client-side by `locationId` field
 6. **Operating modes** referencing deleted schedules

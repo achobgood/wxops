@@ -20,7 +20,7 @@ description: |
 
 Create the output directory and run each wxcli command. Save results as JSON.
 
-**Mandatory --help verification:** The collection commands below are a fixed list, but if you adapt one or a command errors on an unexpected flag, run `wxcli <group> --help` to verify the subcommand and flags (e.g. `wxcli call-routing --help`, `wxcli call-queue --help`). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+**Mandatory --help verification:** Before constructing or running any wxcli command in this skill, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli call-routing --help`, `wxcli call-queue --help`). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
 ### Setup
 
@@ -28,7 +28,10 @@ Create the output directory and run each wxcli command. Save results as JSON.
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 OUTPUT_DIR="org-health-output/${TIMESTAMP}/collected"
 mkdir -p "${OUTPUT_DIR}/call_queue_details" "${OUTPUT_DIR}/outgoing_permissions"
+echo "${TIMESTAMP}" > org-health-output/.current-run
 ```
+
+Shell state does not survive between tool calls, so every later block re-binds `TIMESTAMP` (and `OUTPUT_DIR`) from `org-health-output/.current-run` — without that, a block run in a fresh shell writes to an empty path. The collection table below assumes the same two bindings: run it in the Setup shell, or re-bind first.
 
 ### Collection Commands
 
@@ -57,6 +60,9 @@ save an empty JSON array `[]`.
 **Call queue details** — iterate queue IDs from step 2:
 
 ```bash
+TIMESTAMP=$(cat org-health-output/.current-run)
+OUTPUT_DIR="org-health-output/${TIMESTAMP}/collected"
+
 # For each queue ID from call_queues.json:
 wxcli call-queue show <QUEUE_ID> -o json > "${OUTPUT_DIR}/call_queue_details/<QUEUE_ID>.json"
 ```
@@ -64,6 +70,9 @@ wxcli call-queue show <QUEUE_ID> -o json > "${OUTPUT_DIR}/call_queue_details/<QU
 **Outgoing permissions sample** — select up to 50 user IDs from step 9:
 
 ```bash
+TIMESTAMP=$(cat org-health-output/.current-run)
+OUTPUT_DIR="org-health-output/${TIMESTAMP}/collected"
+
 # For each of the first 50 user IDs from users.json:
 wxcli user-settings list-outgoing-permission <USER_ID> -o json > "${OUTPUT_DIR}/outgoing_permissions/<USER_ID>.json"
 ```
@@ -96,6 +105,7 @@ After collection, tell the user:
 Run the analyzer:
 
 ```bash
+TIMESTAMP=$(cat org-health-output/.current-run)
 wxcli org-health analyze \
   "org-health-output/${TIMESTAMP}/collected" \
   --output "org-health-output/${TIMESTAMP}/results"
@@ -115,6 +125,7 @@ Ask the user for:
 Generate the report:
 
 ```bash
+TIMESTAMP=$(cat org-health-output/.current-run)
 wxcli org-health report \
   "org-health-output/${TIMESTAMP}/results" \
   --brand "<brand>" \

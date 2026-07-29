@@ -65,17 +65,24 @@ wxcli meeting-qualities list --meeting-id MEETING_ID -o json
 
 #### Recipe M-1 — Meeting quality for a specific meeting
 Question: "How was the quality on yesterday's all-hands?"
+
+Quality is reported per media session, not per participant: `jitter`, `latency` and
+`packetLoss` are sample arrays inside each `audioIn`/`audioOut` entry, so this takes
+the peak across a participant's audio sessions. The participant is named by
+`webexUserName`.
 ```bash
 wxcli meeting-qualities list --meeting-id MEETING_ID -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
 for p in items:
-    name = p.get('participantName', p.get('displayName', '?'))
-    jitter = p.get('audioJitter', p.get('jitter', 'N/A'))
-    latency = p.get('audioLatency', p.get('latency', 'N/A'))
-    loss = p.get('audioPacketLoss', p.get('packetLoss', 'N/A'))
-    print(f'{name}: jitter={jitter}ms latency={latency}ms loss={loss}%')
+    name = p.get('webexUserName') or p.get('webexUserEmail') or '?'
+    sessions = (p.get('audioIn') or []) + (p.get('audioOut') or [])
+    peaks = []
+    for metric in ('jitter', 'latency', 'packetLoss'):
+        vals = [v for s in sessions for v in (s.get(metric) or [])]
+        peaks.append(metric + '=' + (str(max(vals)) if vals else 'N/A'))
+    print(f'{name}: peak audio ' + ' '.join(peaks))
 "
 ```
 
@@ -88,17 +95,20 @@ data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
 issues = []
 for p in items:
-    name = p.get('participantName', p.get('displayName', '?'))
-    jitter = float(p.get('audioJitter', p.get('jitter', 0)) or 0)
-    latency = float(p.get('audioLatency', p.get('latency', 0)) or 0)
-    loss = float(p.get('audioPacketLoss', p.get('packetLoss', 0)) or 0)
-    if jitter > 30 or latency > 200 or loss > 5:
-        issues.append(f'{name}: jitter={jitter}ms latency={latency}ms loss={loss}%')
+    name = p.get('webexUserName') or p.get('webexUserEmail') or '?'
+    sessions = (p.get('audioIn') or []) + (p.get('audioOut') or [])
+    bad = []
+    for metric, limit in (('jitter', 30), ('latency', 200), ('packetLoss', 5)):
+        vals = [float(v) for s in sessions for v in (s.get(metric) or []) if v is not None]
+        if vals and max(vals) > limit:
+            bad.append(f'{metric}={max(vals)}')
+    if bad:
+        issues.append(f'{name}: ' + ' '.join(bad))
 if issues:
     print(f'{len(issues)} participants with quality issues:')
     for i in issues: print(f'  {i}')
 else:
-    print('No quality issues detected (thresholds: jitter>30ms, latency>200ms, loss>5%)')
+    print('No quality issues detected (thresholds: jitter>30ms, latency>200ms, packetLoss>5%)')
 "
 ```
 
@@ -109,23 +119,29 @@ Question: "How many meetings are we having?"
 ```bash
 wxcli meeting-reports list --site-url SITE_URL -o json | python3.11 -c "
 import json, sys
+from collections import Counter
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-print(f'Meeting usage reports: {len(items)}')
-for r in items[:10]:
-    print(f\"  {r.get('meetingDate', r.get('date', '?'))}: {r.get('totalMeetings', r.get('meetingCount', '?'))} meetings\")
+print(f'Meetings in the report window: {len(items)}')
+by_day = Counter(str(r.get('start', ''))[:10] or '?' for r in items)
+for day in sorted(by_day)[:10]:
+    print(f'  {day}: {by_day[day]} meetings')
 "
 ```
 
 #### Recipe M-4 — Meeting attendance
-Question: "How many invitees actually joined?"
+Question: "Who joined, and how many of them were on the invite list?"
+
+The attendee report only contains people who joined — there is no row for an invitee
+who never showed up, so the join *rate* is not answerable here. For the invited total,
+read `totalInvitee` from `meeting-reports list`.
 ```bash
 wxcli meeting-reports list-attendees --site-url SITE_URL --meeting-id MEETING_ID -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-attended = [a for a in items if a.get('attended', a.get('joined', False))]
-print(f'Attendees: {len(attended)} of {len(items)} ({len(attended)/len(items)*100:.1f}%)' if items else 'No data')
+invited = [a for a in items if a.get('invited')]
+print(f'Joined: {len(items)}; of those, {len(invited)} were invited' if items else 'No data')
 "
 ```
 
@@ -133,25 +149,36 @@ print(f'Attendees: {len(attended)} of {len(items)} ({len(attended)/len(items)*10
 
 #### Recipe M-5 — Messaging adoption trend
 Question: "Is messaging usage growing?"
+
+This endpoint returns one object, not a list: `startDate`, `endDate`, and a `metrics`
+object holding parallel arrays — `dates` alongside `totalMessagesSent`, `dailyActiveUsers`
+and the rest. Zip them to get a per-day series.
 ```bash
 wxcli analytics show -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-for d in items[:14]:
-    print(f\"{d.get('date', '?')}: {d.get('totalMessages', d.get('messages', '?'))} messages\")
+m = data.get('metrics') or {}
+series = [m.get(k) or [] for k in ('dates', 'totalMessagesSent')]
+print(f\"{data.get('startDate', '?')} to {data.get('endDate', '?')}\")
+for d, n in list(zip(*series))[:14]:
+    print(f'{d}: {n} messages')
 "
 ```
 
 #### Recipe M-6 — Room device utilization
 Question: "Are our room devices being used?"
+
+Same object shape as M-5: `metrics` holds `dates` alongside `totalActiveDevices`,
+`totalUsageHours`, `incallUsageDuration` and the rest.
 ```bash
 wxcli analytics show-daily-totals -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-for d in items[:14]:
-    print(f\"{d.get('date', '?')}: {d.get('activatedDevices', d.get('activeDevices', '?'))} active devices\")
+m = data.get('metrics') or {}
+series = [m.get(k) or [] for k in ('dates', 'totalActiveDevices')]
+print(f\"{data.get('startDate', '?')} to {data.get('endDate', '?')}\")
+for d, n in list(zip(*series))[:14]:
+    print(f'{d}: {n} active devices')
 "
 ```
 
@@ -186,16 +213,22 @@ for w in sorted(items, key=lambda x: x.get('utilizationPercentage', x.get('occup
 ```
 
 #### Recipe M-9 — Workspace duration analysis
-Question: "How long are rooms occupied on average?"
+Question: "How long is this room occupied on average?"
+
+`--workspace-id` is required, so one call covers one workspace and the rows carry no
+workspace name — each row is one interval: `start`, `end`, `duration`. The command
+emits only `items`, dropping the response's top-level `unit` (example: `minutes`), so
+the durations below are left in the unit the API returned them in.
 ```bash
 wxcli workspace-metrics list-workspace-duration-metrics --workspace-id WORKSPACE_ID -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-for w in sorted(items, key=lambda x: x.get('averageDuration', x.get('avgDuration', 0)), reverse=True)[:15]:
-    name = w.get('workspaceName', w.get('name', '?'))
-    dur = w.get('averageDuration', w.get('avgDuration', 0))
-    print(f'{name}: avg {dur/60:.1f} min per session')
+durations = [d for d in (i.get('duration') for i in items) if isinstance(d, (int, float))]
+if durations:
+    print(f'{len(durations)} intervals: avg {sum(durations)/len(durations):.1f}, max {max(durations):.1f}')
+else:
+    print('No duration data')
 "
 ```
 

@@ -477,7 +477,7 @@ from collections import Counter
 data = json.load(sys.stdin)
 if isinstance(data, dict):
     data = data.get('items', [data])
-categories = Counter(e.get('eventCategory', 'Unknown') for e in data)
+categories = Counter(e.get('data', {}).get('eventCategory', 'Unknown') for e in data)
 for cat, count in categories.most_common():
     print(f'{cat}: {count} events')
 "
@@ -528,7 +528,7 @@ data = json.load(sys.stdin)
 if isinstance(data, dict):
     data = data.get('items', [data])
 for auth in data:
-    print(f\"App: {auth.get('applicationName', 'Unknown')} | Client: {auth.get('clientId', 'N/A')} | Scope: {auth.get('scope', 'N/A')}\")
+    print(f\"App: {auth.get('applicationName', 'Unknown')} | Client: {auth.get('clientId', 'N/A')} | Type: {auth.get('type', 'N/A')}\")
 "
 ```
 

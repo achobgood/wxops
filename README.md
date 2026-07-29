@@ -13,7 +13,7 @@ A command-line tool and AI-assisted playbook for provisioning, managing, migrati
 
 ## What It Does
 
-- **176 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
+- **178 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
 - **AI-guided playbook** — a Claude Code agent that interviews you about what to build, generates a deployment plan, executes commands, and verifies results
 - **CUCM-to-Webex migration** — 11-phase pipeline: discover a CUCM cluster via AXL, normalize, map, analyze, generate decisions, plan, and execute the migration with an async concurrent engine
 - **Org health assessment** — 18 automated checks across security posture, routing hygiene, feature utilization, and device health with a self-contained HTML report
@@ -30,7 +30,7 @@ wxops splits the problem into three layers, each killing one way an LLM fails:
 |-------|-----------|---------------------|
 | **Reference docs** (43 active) | De-conflated, authoritative API knowledge — data models, enums, license-tier distinctions, gotchas | **Hallucination** — the agent grounds on docs, never on training data |
 | **Skills** (24) | Encoded procedures for outcomes — prerequisites, ordering, intent disambiguation, known landmines | **Wrong sequence / wrong tool** — the agent follows a checklist, not a guess |
-| **CLI** (176 groups) | Tested, self-describing commands generated from 9 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
+| **CLI** (178 groups) | Tested, self-describing commands generated from 9 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
 
 The model only does what it's reliably good at — reasoning and orchestration. Facts come from the docs, procedure from the skills, execution from the tested CLI.
 
@@ -241,7 +241,7 @@ wxcli numbers list --location-id LOC_ID  # Get number inventory
 | `cx-essentials` | Customer Assist (screen pop, wrap-up, supervisors) |
 | `cleanup` | Batch-delete resources in dependency-safe order |
 
-This table shows the most commonly used groups. Run `wxcli --help` to see all 176 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
+This table shows the most commonly used groups. Run `wxcli --help` to see all 178 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
 
 ---
 
