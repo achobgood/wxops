@@ -246,13 +246,7 @@ def run_discovery(
 
     # Write summary to journal (from 02b §1: discovery run summary)
     # Ensure the system sentinel object exists so the FK constraint is satisfied
-    store.conn.execute(
-        """INSERT OR IGNORE INTO objects
-           (canonical_id, object_type, status, data, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        ("system:discovery", "system", "discovered", "{}", result.completed_at, result.completed_at),
-    )
-    store.conn.commit()
+    store.ensure_system_object("system:discovery")
     summary = result.to_summary()
     store.add_journal_entry(
         entry_type="discovery_complete",
