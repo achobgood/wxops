@@ -1023,7 +1023,7 @@ def list_event_thresholds(
 
 
 
-_BODY_SKELETON_UPDATE = '{"eventThresholds":[{"eventThresholdId":"...","thresholdConfig":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"eventThresholds":[{"eventThresholdId":"...","thresholdConfig":{"minThreshold":0}}]}'
 
 @app.command("update", short_help="Update Event Threshold Configuration.")
 def update(
@@ -1033,7 +1033,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Event Threshold Configuration.\n\n\b\nExample --json-body: '{"eventThresholds":[{"eventThresholdId":"...","thresholdConfig":"..."}]}'"""
+    """Update Event Threshold Configuration.\n\n\b\nExample: wxcli video-mesh update --json-body '{"eventThresholds":[{"eventThresholdId":"...","thresholdConfig":{"minThreshold":0}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -1088,7 +1088,7 @@ def create_reset(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reset Event Threshold Configuration.\n\n\b\nExample --json-body: '{"eventThresholdIds":["..."]}'"""
+    """Reset Event Threshold Configuration.\n\n\b\nExample: wxcli video-mesh create-reset --json-body '{"eventThresholdIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESET), indent=2))
         raise typer.Exit(0)

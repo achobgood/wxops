@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":"...","nextAgentRings":"...","forwardEnabled":"...","numberOfRings":"...","destinationVoicemailEnabled":"...","destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"businessContinuityRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
 @app.command("create", short_help="Create a Hunt Group.")
 def create(
@@ -75,7 +75,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Hunt Group.\n\n\b\nExample: wxcli hunt-group create LOCATION_ID --name NAME --enabled\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":"...","nextAgentRings":"...","forwardEnabled":"...","numberOfRings":"...","destinationVoicemailEnabled":"...","destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"businessContinuityRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'"""
+    """Create a Hunt Group.\n\n\b\nExample: wxcli hunt-group create LOCATION_ID --json-body '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true}},"agents":[{"id":"..."}],"enabled":true}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -159,7 +159,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"..."}],"languageCode":"...","firstName":"..."}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
 @app.command("update", short_help="Update a Hunt Group.")
 def update(
@@ -182,7 +182,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Hunt Group.\n\n\b\nExample: wxcli hunt-group update LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"..."}],"languageCode":"...","firstName":"..."}'"""
+    """Update a Hunt Group.\n\n\b\nExample: wxcli hunt-group update LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -291,7 +291,7 @@ def show_call_forwarding(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'
 
 @app.command("update-call-forwarding", short_help="Update Call Forwarding Settings for a Hunt Group.")
 def update_call_forwarding(
@@ -303,7 +303,7 @@ def update_call_forwarding(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Forwarding Settings for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-call-forwarding LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'"""
+    """Update Call Forwarding Settings for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-call-forwarding LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
         raise typer.Exit(0)
@@ -332,7 +332,7 @@ def update_call_forwarding(
 
 
 
-_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
 
 @app.command("create-selective-rules", short_help="Create a Selective Call Forwarding Rule for a Hunt Group.")
 def create_selective_rules(
@@ -348,7 +348,7 @@ def create_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group create-selective-rules LOCATION_ID HUNT_GROUP_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'"""
+    """Create a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group create-selective-rules LOCATION_ID HUNT_GROUP_ID --json-body '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true}},"callsTo":{"numbers":[{"type":"PRIMARY"}]}}'\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -418,7 +418,7 @@ def show_selective_rules(
 
 
 
-_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
 @app.command("update-selective-rules", short_help="Update a Selective Call Forwarding Rule for a Hunt Group.")
 def update_selective_rules(
@@ -435,7 +435,7 @@ def update_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'"""
+    """Update a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)

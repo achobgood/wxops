@@ -80,7 +80,7 @@ def list_personal_meeting_room(
 
 
 
-_BODY_SKELETON_UPDATE = '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true}'
+_BODY_SKELETON_UPDATE = '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true}'
 
 @app.command("update", short_help="Update Personal Meeting Room Options.")
 def update(
@@ -101,7 +101,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Personal Meeting Room Options.\n\n\b\nExample: wxcli meeting-preferences update --topic TOPIC --host-pin HOST_PIN --enabled-auto-lock --auto-lock-minutes AUTO_LOCK_MINUTES --enabled-notify-host --support-co-host\n\n\b\nExample --json-body: '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true}'"""
+    """Update Personal Meeting Room Options.\n\n\b\nExample: wxcli meeting-preferences update --json-body '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}]}'\n\n\b\nExample --json-body: '{"topic":"...","hostPin":"...","enabledAutoLock":true,"autoLockMinutes":0,"enabledNotifyHost":true,"supportCoHost":true,"coHosts":[{"email":"...","displayName":"..."}],"supportAnyoneAsCoHost":true,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -193,7 +193,7 @@ def update_audio(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Audio Options.\n\n\b\nExample: wxcli meeting-preferences update-audio --default-audio-type webexAudio --other-teleconference-description OTHER_TELECONFERENCE_DESCRIPTION --enabled-global-call-in --enabled-toll-free --enabled-auto-connection\n\n\b\nExample --json-body: '{"defaultAudioType":"webexAudio","otherTeleconferenceDescription":"...","enabledGlobalCallIn":true,"enabledTollFree":true,"enabledAutoConnection":true,"officeNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"mobileNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"audioPin":"..."}'"""
+    """Update Audio Options.\n\n\b\nExample: wxcli meeting-preferences update-audio --json-body '{"defaultAudioType":"webexAudio","otherTeleconferenceDescription":"...","enabledGlobalCallIn":true,"enabledTollFree":true,"enabledAutoConnection":true,"officeNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"mobileNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true}}'\n\n\b\nExample --json-body: '{"defaultAudioType":"webexAudio","otherTeleconferenceDescription":"...","enabledGlobalCallIn":true,"enabledTollFree":true,"enabledAutoConnection":true,"officeNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"mobileNumber":{"countryCode":"...","number":"...","enabledCallInAuthentication":true,"enabledCallMe":true},"audioPin":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUDIO), indent=2))
         raise typer.Exit(0)
@@ -270,7 +270,7 @@ def list_video(
 
 
 
-_BODY_SKELETON_UPDATE_VIDEO = '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":"..."}]}'
+_BODY_SKELETON_UPDATE_VIDEO = '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":true}]}'
 
 @app.command("update-video", short_help="Update Video Options.")
 def update_video(
@@ -282,7 +282,7 @@ def update_video(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Video Options.\n\n\b\nExample --json-body: '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":"..."}]}'"""
+    """Update Video Options.\n\n\b\nExample: wxcli meeting-preferences update-video --json-body '{"videoDevices":[{"deviceName":"...","deviceAddress":"...","isDefault":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VIDEO), indent=2))
         raise typer.Exit(0)
@@ -567,7 +567,7 @@ def update_sites(
 
 
 
-_BODY_SKELETON_CREATE_REFRESH_ID = '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":"...","personalMeetingRoomId":"..."}]}'
+_BODY_SKELETON_CREATE_REFRESH_ID = '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":true,"personalMeetingRoomId":"..."}]}'
 
 @app.command("create-refresh-id", short_help="Batch Refresh Personal Meeting Room ID.")
 def create_refresh_id(
@@ -578,7 +578,7 @@ def create_refresh_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch Refresh Personal Meeting Room ID.\n\n\b\nExample: wxcli meeting-preferences create-refresh-id --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":"...","personalMeetingRoomId":"..."}]}'"""
+    """Batch Refresh Personal Meeting Room ID.\n\n\b\nExample: wxcli meeting-preferences create-refresh-id --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"...","personalMeetingRoomIds":[{"email":"...","personId":"...","systemGenerated":true,"personalMeetingRoomId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REFRESH_ID), indent=2))
         raise typer.Exit(0)

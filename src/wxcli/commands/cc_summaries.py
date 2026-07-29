@@ -33,7 +33,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"organizationId":"...","id":"...","version":0,"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"agentInclusionType":"ALL","createdTime":0}'
+_BODY_SKELETON_UPDATE = '{"organizationId":"...","id":"...","version":0,"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"agentInclusionType":"ALL","createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Generated Summaries resource by ID.")
 def update(
@@ -53,7 +53,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Generated Summaries resource by ID.\n\n\b\nExample: wxcli cc-summaries update ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"agentInclusionType":"ALL","createdTime":0}'"""
+    """Update specific Generated Summaries resource by ID.\n\n\b\nExample: wxcli cc-summaries update ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"agentInclusionType":"ALL","createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

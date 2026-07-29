@@ -56,7 +56,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"roomId":"...","parentId":"...","toPersonId":"...","toPersonEmail":"...","text":"...","markdown":"...","files":["..."],"attachments":[{"content":"..."}]}'
+_BODY_SKELETON_CREATE = '{"roomId":"...","parentId":"...","toPersonId":"...","toPersonEmail":"...","text":"...","markdown":"...","files":["..."],"attachments":[{"content":{"fileId":"...","type":"external","contentUrl":"..."}}]}'
 
 @app.command("create", short_help="Create a Message.")
 def create(
@@ -72,7 +72,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Message.\n\n\b\nExample --json-body: '{"roomId":"...","parentId":"...","toPersonId":"...","toPersonEmail":"...","text":"...","markdown":"...","files":["..."],"attachments":[{"content":"..."}]}'"""
+    """Create a Message.\n\n\b\nExample --json-body: '{"roomId":"...","parentId":"...","toPersonId":"...","toPersonEmail":"...","text":"...","markdown":"...","files":["..."],"attachments":[{"content":{"fileId":"...","type":"external","contentUrl":"..."}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

@@ -143,7 +143,7 @@ def update_org_settings(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'
 
 @app.command("create", short_help="Create a Call Queue with Customer Assist.")
 def create(
@@ -168,7 +168,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Queue with Customer Assist.\n\n\b\nExample: wxcli call-queue create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'"""
+    """Create a Call Queue with Customer Assist.\n\n\b\nExample: wxcli call-queue create LOCATION_ID --json-body '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM"}},"agents":[{"id":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -261,7 +261,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"..."}'
+_BODY_SKELETON_UPDATE = '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"...","extension":"...","alternateNumberSettings":{"distinctiveRingEnabled":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}]},"callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowCallWaitingForAgentsEnabled":true,"agents":[{"id":"...","weight":"...","skillLevel":0,"joinEnabled":true}],"allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'
 
 @app.command("update-queues", hidden=True)
 @app.command("update", short_help="Update a Call Queue.")
@@ -289,7 +289,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue.\n\n\b\nExample: wxcli call-queue update LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"..."}'"""
+    """Update a Call Queue.\n\n\b\nExample: wxcli call-queue update LOCATION_ID QUEUE_ID --json-body '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM"}}}'\n\n\b\nExample --json-body: '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"...","extension":"...","alternateNumberSettings":{"distinctiveRingEnabled":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}]},"callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowCallWaitingForAgentsEnabled":true,"agents":[{"id":"...","weight":"...","skillLevel":0,"joinEnabled":true}],"allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -474,7 +474,7 @@ def show_call_forwarding(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'
 
 @app.command("update-call-forwarding", short_help="Update Call Forwarding Settings for a Call Queue.")
 def update_call_forwarding(
@@ -486,7 +486,7 @@ def update_call_forwarding(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Forwarding Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue update-call-forwarding LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'"""
+    """Update Call Forwarding Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue update-call-forwarding LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
         raise typer.Exit(0)
@@ -515,7 +515,7 @@ def update_call_forwarding(
 
 
 
-_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
 
 @app.command("create-selective-rules", short_help="Create a Selective Call Forwarding Rule for a Call Queue.")
 def create_selective_rules(
@@ -531,7 +531,7 @@ def create_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue create-selective-rules LOCATION_ID QUEUE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'"""
+    """Create a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue create-selective-rules LOCATION_ID QUEUE_ID --json-body '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true}},"callsTo":{"numbers":[{"type":"PRIMARY"}]}}'\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -601,7 +601,7 @@ def show_selective_rules(
 
 
 
-_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
 @app.command("update-selective-rules", short_help="Update a Selective Call Forwarding Rule for a Call Queue.")
 def update_selective_rules(
@@ -618,7 +618,7 @@ def update_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue update-selective-rules LOCATION_ID QUEUE_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'"""
+    """Update a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue update-selective-rules LOCATION_ID QUEUE_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -723,7 +723,7 @@ def list_holiday_service(
 
 
 
-_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE = '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'
+_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE = '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'
 
 @app.command("update-holiday-service", short_help="Update a Call Queue Holiday Service.")
 def update_holiday_service(
@@ -742,7 +742,7 @@ def update_holiday_service(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Holiday Service.\n\n\b\nExample: wxcli call-queue update-holiday-service LOCATION_ID QUEUE_ID --holiday-service-enabled --action BUSY --holiday-schedule-level LOCATION --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'"""
+    """Update a Call Queue Holiday Service.\n\n\b\nExample: wxcli call-queue update-holiday-service LOCATION_ID QUEUE_ID --holiday-service-enabled --action BUSY --holiday-schedule-level LOCATION --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE), indent=2))
         raise typer.Exit(0)
@@ -819,7 +819,7 @@ def list_night_service(
 
 
 
-_BODY_SKELETON_UPDATE_NIGHT_SERVICE = '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"..."}'
+_BODY_SKELETON_UPDATE_NIGHT_SERVICE = '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"businessHoursName":"...","businessHoursLevel":"ORGANIZATION","manualAudioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'
 
 @app.command("update-night-service", short_help="Update a Call Queue Night Service.")
 def update_night_service(
@@ -841,7 +841,7 @@ def update_night_service(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Night Service.\n\n\b\nExample: wxcli call-queue update-night-service LOCATION_ID QUEUE_ID --night-service-enabled --play-announcement-before-enabled --announcement-mode NORMAL --audio-message-selection DEFAULT --force-night-service-enabled --manual-audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"..."}'"""
+    """Update a Call Queue Night Service.\n\n\b\nExample: wxcli call-queue update-night-service LOCATION_ID QUEUE_ID --night-service-enabled --play-announcement-before-enabled --announcement-mode NORMAL --audio-message-selection DEFAULT --force-night-service-enabled --manual-audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"businessHoursName":"...","businessHoursLevel":"ORGANIZATION","manualAudioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NIGHT_SERVICE), indent=2))
         raise typer.Exit(0)
@@ -924,7 +924,7 @@ def list_forced_forward(
 
 
 
-_BODY_SKELETON_UPDATE_FORCED_FORWARD = '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'
+_BODY_SKELETON_UPDATE_FORCED_FORWARD = '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'
 
 @app.command("update-forced-forward", short_help="Update a Call Queue Forced Forward Service.")
 def update_forced_forward(
@@ -940,7 +940,7 @@ def update_forced_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Forced Forward Service.\n\n\b\nExample: wxcli call-queue update-forced-forward LOCATION_ID QUEUE_ID --forced-forward-enabled --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'"""
+    """Update a Call Queue Forced Forward Service.\n\n\b\nExample: wxcli call-queue update-forced-forward LOCATION_ID QUEUE_ID --forced-forward-enabled --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_FORCED_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -1011,7 +1011,7 @@ def list_stranded_calls(
 
 
 
-_BODY_SKELETON_UPDATE_STRANDED_CALLS = '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'
+_BODY_SKELETON_UPDATE_STRANDED_CALLS = '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'
 
 @app.command("update-stranded-calls", short_help="Update a Call Queue Stranded Calls Service.")
 def update_stranded_calls(
@@ -1027,7 +1027,7 @@ def update_stranded_calls(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Stranded Calls Service.\n\n\b\nExample: wxcli call-queue update-stranded-calls LOCATION_ID QUEUE_ID --action NONE --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'"""
+    """Update a Call Queue Stranded Calls Service.\n\n\b\nExample: wxcli call-queue update-stranded-calls LOCATION_ID QUEUE_ID --action NONE --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STRANDED_CALLS), indent=2))
         raise typer.Exit(0)
@@ -1278,7 +1278,7 @@ def create_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue create-supervisors --id ID_PARAM\n\n\b\nExample --json-body: '{"id":"...","agents":[{"id":"..."}]}'"""
+    """Create a Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue create-supervisors --json-body '{"id":"...","agents":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUPERVISORS), indent=2))
         raise typer.Exit(0)
@@ -1331,7 +1331,7 @@ def delete_supervisors_config(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete the Call Queue or Customer Assist Supervisors.\n\n\b\nExample --json-body: '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'"""
+    """Delete the Call Queue or Customer Assist Supervisors.\n\n\b\nExample: wxcli call-queue delete-supervisors-config --json-body '{"supervisorIds":["..."]}'\n\n\b\nExample --json-body: '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_SUPERVISORS_CONFIG), indent=2))
         raise typer.Exit(0)
@@ -1412,7 +1412,7 @@ def show_supervisors(
 
 
 
-_BODY_SKELETON_UPDATE_SUPERVISORS = '{"agents":[{"id":"...","action":"..."}]}'
+_BODY_SKELETON_UPDATE_SUPERVISORS = '{"agents":[{"id":"...","action":"ADD"}]}'
 
 @app.command("update-supervisors", short_help="Assign or Unassign Agents to Supervisor with Customer Assist.")
 def update_supervisors(
@@ -1424,7 +1424,7 @@ def update_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign Agents to Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue update-supervisors SUPERVISOR_ID\n\n\b\nExample --json-body: '{"agents":[{"id":"...","action":"..."}]}'"""
+    """Assign or Unassign Agents to Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue update-supervisors SUPERVISOR_ID --json-body '{"agents":[{"id":"...","action":"ADD"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SUPERVISORS), indent=2))
         raise typer.Exit(0)
@@ -1663,7 +1663,7 @@ def show_agents(
 
 
 
-_BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'
+_BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":true}]}'
 
 @app.command("update-settings-agents", short_help="Update an Agent's Settings of One or More Call Queues with Customer Assist.")
 def update_settings_agents(
@@ -1675,7 +1675,7 @@ def update_settings_agents(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Agent's Settings of One or More Call Queues with Customer Assist.\n\n\b\nExample: wxcli call-queue update-settings-agents ID\n\n\b\nExample --json-body: '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'"""
+    """Update an Agent's Settings of One or More Call Queues with Customer Assist.\n\n\b\nExample: wxcli call-queue update-settings-agents ID --json-body '{"settings":[{"queueId":"...","joinEnabled":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS_AGENTS), indent=2))
         raise typer.Exit(0)
@@ -1843,7 +1843,7 @@ def delete_dnis_queues(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk Delete DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue delete-dnis-queues LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"items":["..."]}'"""
+    """Bulk Delete DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue delete-dnis-queues LOCATION_ID QUEUE_ID --json-body '{"items":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_DNIS_QUEUES), indent=2))
         raise typer.Exit(0)
@@ -2093,7 +2093,7 @@ def show_announcements(
 
 
 
-_BODY_SKELETON_UPDATE_ANNOUNCEMENTS = '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"mohMessage":{"normalSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."},"alternateSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]}}'
+_BODY_SKELETON_UPDATE_ANNOUNCEMENTS = '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"mohMessage":{"normalSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."},"alternateSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}}'
 
 @app.command("update-announcements", short_help="Modify DNIS Announcements for a Call Queue.")
 def update_announcements(
@@ -2107,7 +2107,7 @@ def update_announcements(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify DNIS Announcements for a Call Queue.\n\n\b\nExample: wxcli call-queue update-announcements LOCATION_ID QUEUE_ID DNIS_ID\n\n\b\nExample --json-body: '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"mohMessage":{"normalSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."},"alternateSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]}}'"""
+    """Modify DNIS Announcements for a Call Queue.\n\n\b\nExample: wxcli call-queue update-announcements LOCATION_ID QUEUE_ID DNIS_ID\n\n\b\nExample --json-body: '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"mohMessage":{"normalSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."},"alternateSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANNOUNCEMENTS), indent=2))
         raise typer.Exit(0)

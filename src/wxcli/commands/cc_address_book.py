@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'
+_BODY_SKELETON_CREATE = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Address Book.")
 def create(
@@ -73,7 +73,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'"""
+    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -228,7 +228,7 @@ def create_entry(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Address Book Entry(s).")
 def create_bulk(
@@ -239,7 +239,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Address Book Entry(s).\n\n\b\nExample: wxcli cc-address-book create-bulk ADDRESS_BOOK_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Address Book Entry(s).\n\n\b\nExample: wxcli cc-address-book create-bulk ADDRESS_BOOK_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -405,7 +405,7 @@ def show_address_book_organization(
 
 
 
-_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'
+_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update-address-book-organization", short_help="Update specific Address Book by ID.")
 def update_address_book_organization(
@@ -425,7 +425,7 @@ def update_address_book_organization(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-organization ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'"""
+    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-organization ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION), indent=2))
         raise typer.Exit(0)
@@ -680,7 +680,7 @@ def list_address_book_v3(
 
 
 
-_BODY_SKELETON_CREATE_ADDRESS_BOOK = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'
+_BODY_SKELETON_CREATE_ADDRESS_BOOK = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create-address-book", short_help="Create a new Address Book.")
 def create_address_book(
@@ -699,7 +699,7 @@ def create_address_book(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create-address-book --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'"""
+    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create-address-book --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ADDRESS_BOOK), indent=2))
         raise typer.Exit(0)
@@ -773,7 +773,7 @@ def show_address_book_v3(
 
 
 
-_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3 = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'
+_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3 = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update-address-book-v3", short_help="Update specific Address Book by ID.")
 def update_address_book_v3(
@@ -793,7 +793,7 @@ def update_address_book_v3(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-v3 ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'"""
+    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-v3 ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3), indent=2))
         raise typer.Exit(0)

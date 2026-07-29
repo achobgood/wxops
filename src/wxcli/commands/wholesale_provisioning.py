@@ -52,7 +52,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'
+_BODY_SKELETON_CREATE = '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":{"name":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"timezone":"...","language":"...","emergencyLocationIdentifier":"..."}},"meetings":{"timezone":"..."},"packages":{"limits":{"webex_calling":0,"common_area_calling":0,"webex_meetings":0,"webex_suite":0,"webex_voice":0,"cx_essentials":0,"webex_calling_standard":0,"attendant_console":0}}},"subPartnerAdminEmail":"..."}'
 
 @app.command("create", short_help="Provision a Wholesale Customer.")
 def create(
@@ -67,7 +67,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Provision a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning create --provisioning-id PROVISIONING_ID --external-id EXTERNAL_ID\n\n\b\nExample --json-body: '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'"""
+    """Provision a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning create --json-body '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"..."}}'\n\n\b\nExample --json-body: '{"provisioningId":"...","packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"orgId":"...","customerInfo":{"name":"...","primaryEmail":"...","language":"..."},"provisioningParameters":{"calling":{"location":{"name":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"timezone":"...","language":"...","emergencyLocationIdentifier":"..."}},"meetings":{"timezone":"..."},"packages":{"limits":{"webex_calling":0,"common_area_calling":0,"webex_meetings":0,"webex_suite":0,"webex_voice":0,"cx_essentials":0,"webex_calling_standard":0,"attendant_console":0}}},"subPartnerAdminEmail":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -137,7 +137,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'
+_BODY_SKELETON_UPDATE = '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":{"name":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"timezone":"...","language":"...","emergencyLocationIdentifier":"..."}},"meetings":{"timezone":"..."},"packages":{"limits":{"webex_calling":0,"common_area_calling":0,"webex_meetings":0,"webex_suite":0,"webex_voice":0,"cx_essentials":0,"webex_calling_standard":0,"attendant_console":0}}},"subPartnerAdminEmail":"..."}'
 
 @app.command("update", short_help="Update a Wholesale Customer.")
 def update(
@@ -151,7 +151,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning update CUSTOMER_ID\n\n\b\nExample --json-body: '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}},"subPartnerAdminEmail":"..."}'"""
+    """Update a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning update CUSTOMER_ID --json-body '{"packages":["common_area_calling"]}'\n\n\b\nExample --json-body: '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":{"name":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"timezone":"...","language":"...","emergencyLocationIdentifier":"..."}},"meetings":{"timezone":"..."},"packages":{"limits":{"webex_calling":0,"common_area_calling":0,"webex_meetings":0,"webex_suite":0,"webex_voice":0,"cx_essentials":0,"webex_calling_standard":0,"attendant_console":0}}},"subPartnerAdminEmail":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -216,7 +216,7 @@ def delete_customers(
 
 
 
-_BODY_SKELETON_CREATE_VALIDATE_CUSTOMERS = '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'
+_BODY_SKELETON_CREATE_VALIDATE_CUSTOMERS = '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":{"name":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"timezone":"...","language":"...","emergencyLocationIdentifier":"..."}},"meetings":{"timezone":"..."},"packages":{"limits":{"webex_calling":0,"common_area_calling":0,"webex_meetings":0,"webex_suite":0,"webex_voice":0,"cx_essentials":0,"webex_calling_standard":0,"attendant_console":0}}}}'
 
 @app.command("create-validate-customers", short_help="Precheck a Wholesale Customer Provisioning.")
 def create_validate_customers(
@@ -230,7 +230,7 @@ def create_validate_customers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Precheck a Wholesale Customer Provisioning.\n\n\b\nExample --json-body: '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":"..."},"meetings":{"timezone":"..."},"packages":{"limits":"..."}}}'"""
+    """Precheck a Wholesale Customer Provisioning.\n\n\b\nExample: wxcli wholesale-provisioning create-validate-customers --json-body '{"address":{"addressLine1":"...","city":"...","country":"..."}}'\n\n\b\nExample --json-body: '{"address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningId":"...","packages":["common_area_calling"],"orgId":"...","externalId":"...","customerInfo":{"primaryEmail":"...","name":"..."},"provisioningParameters":{"calling":{"location":{"name":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"timezone":"...","language":"...","emergencyLocationIdentifier":"..."}},"meetings":{"timezone":"..."},"packages":{"limits":{"webex_calling":0,"common_area_calling":0,"webex_meetings":0,"webex_suite":0,"webex_voice":0,"cx_essentials":0,"webex_calling_standard":0,"attendant_console":0}}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE_CUSTOMERS), indent=2))
         raise typer.Exit(0)
@@ -372,7 +372,7 @@ def create_subscribers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Provision a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning create-subscribers --customer-id CUSTOMER_ID --email EMAIL\n\n\b\nExample --json-body: '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'"""
+    """Provision a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning create-subscribers --json-body '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'\n\n\b\nExample --json-body: '{"customerId":"...","email":"...","provisioningParameters":{"firstName":"...","lastName":"...","primaryPhoneNumber":"...","extension":"...","locationId":"..."},"package":"webex_calling","packages":["webex_calling"]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUBSCRIBERS), indent=2))
         raise typer.Exit(0)

@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Multimedia Profile.")
 def create(
@@ -79,7 +79,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Multimedia Profile.\n\n\b\nExample: wxcli cc-multimedia-profile create --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"..."}'"""
+    """Create a new Multimedia Profile.\n\n\b\nExample: wxcli cc-multimedia-profile create --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -143,7 +143,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Multimedia Profile(s).")
 def create_bulk(
@@ -153,7 +153,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Multimedia Profile(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Multimedia Profile(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -276,7 +276,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"..."}'
+_BODY_SKELETON_UPDATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Multimedia Profile by ID.")
 def update(
@@ -302,7 +302,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Multimedia Profile by ID.\n\n\b\nExample: wxcli cc-multimedia-profile update ID --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"..."}'"""
+    """Update specific Multimedia Profile by ID.\n\n\b\nExample: wxcli cc-multimedia-profile update ID --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

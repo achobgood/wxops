@@ -74,7 +74,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":"...","Organizer":"...","Number":"..."}}}'
+_BODY_SKELETON_CREATE = '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":{"StartTime":"...","Duration":0},"Organizer":{"Name":"..."},"Number":"..."}}}'
 
 @app.command("create", short_help="Execute Command.")
 def create(
@@ -86,7 +86,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Execute Command.\n\n\b\nExample: wxcli xapi create COMMAND_NAME --device-id DEVICE_ID\n\n\b\nExample --json-body: '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":"...","Organizer":"...","Number":"..."}}}'"""
+    """Execute Command.\n\n\b\nExample: wxcli xapi create COMMAND_NAME --json-body '{"deviceId":"...","arguments":{"Level":0}}'\n\n\b\nExample --json-body: '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":{"StartTime":"...","Duration":0},"Organizer":{"Name":"..."},"Number":"..."}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

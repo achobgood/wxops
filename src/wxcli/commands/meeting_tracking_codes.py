@@ -42,7 +42,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'
+_BODY_SKELETON_CREATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'
 
 @app.command("create", short_help="Create a Tracking Code.")
 def create(
@@ -56,7 +56,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes create --name NAME --site-url SITE_URL --input-mode text --host-profile-code optional\n\n\b\nExample --json-body: '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'"""
+    """Create a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes create --json-body '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -120,7 +120,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'
 
 @app.command("update", short_help="Update a Tracking Code.")
 def update(
@@ -135,7 +135,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes update TRACKING_CODE_ID --name NAME --site-url SITE_URL --input-mode text --host-profile-code optional\n\n\b\nExample --json-body: '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'"""
+    """Update a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes update TRACKING_CODE_ID --json-body '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

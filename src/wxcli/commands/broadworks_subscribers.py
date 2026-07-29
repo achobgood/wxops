@@ -66,7 +66,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"..."}'
+_BODY_SKELETON_CREATE = '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"...","extension":"...","email":"...","language":"...","timezone":"..."}'
 
 @app.command("create", short_help="Provision a BroadWorks Subscriber.")
 def create(
@@ -88,7 +88,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Provision a BroadWorks Subscriber.\n\n\b\nExample: wxcli broadworks-subscribers create --provisioning-id PROVISIONING_ID --user-id USER_ID --sp-enterprise-id SP_ENTERPRISE_ID --first-name FIRST_NAME --last-name LAST_NAME --package softphone\n\n\b\nExample --json-body: '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"..."}'"""
+    """Provision a BroadWorks Subscriber.\n\n\b\nExample: wxcli broadworks-subscribers create --provisioning-id PROVISIONING_ID --user-id USER_ID --sp-enterprise-id SP_ENTERPRISE_ID --first-name FIRST_NAME --last-name LAST_NAME --package softphone\n\n\b\nExample --json-body: '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"...","extension":"...","email":"...","language":"...","timezone":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -252,7 +252,7 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE_VALIDATE = '{"email":"...","provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"..."}'
+_BODY_SKELETON_CREATE_VALIDATE = '{"email":"...","provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"...","extension":"...","language":"...","timezone":"...","customerInfo":{"primaryEmail":"..."}}'
 
 @app.command("create-validate", short_help="Precheck a Broadworks Subscriber Provisioning.")
 def create_validate(
@@ -274,7 +274,7 @@ def create_validate(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Precheck a Broadworks Subscriber Provisioning.\n\n\b\nExample: wxcli broadworks-subscribers create-validate --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"..."}'"""
+    """Precheck a Broadworks Subscriber Provisioning.\n\n\b\nExample: wxcli broadworks-subscribers create-validate --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","provisioningId":"...","userId":"...","spEnterpriseId":"...","firstName":"...","lastName":"...","package":"softphone","primaryPhoneNumber":"...","mobilePhoneNumber":"...","extension":"...","language":"...","timezone":"...","customerInfo":{"primaryEmail":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE), indent=2))
         raise typer.Exit(0)

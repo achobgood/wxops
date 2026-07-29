@@ -43,7 +43,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an organization.\n\n\b\nExample: wxcli identity-org update --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","preferredLanguage":"..."}'"""
+    """Update an organization.\n\n\b\nExample: wxcli identity-org update --json-body '{"schemas":["..."],"displayName":"..."}'\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","preferredLanguage":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -86,7 +86,7 @@ def update_authentication_config(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Organization Authentication Configuration Settings.\n\n\b\nExample --json-body: '{"schemas":["..."],"RememberMyLoginId":true,"RememberMyLoginIdDuration":0,"mfaEnabled":true}'"""
+    """Update Organization Authentication Configuration Settings.\n\n\b\nExample: wxcli identity-org update-authentication-config --json-body '{"schemas":["..."]}'\n\n\b\nExample --json-body: '{"schemas":["..."],"RememberMyLoginId":true,"RememberMyLoginIdDuration":0,"mfaEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUTHENTICATION_CONFIG), indent=2))
         raise typer.Exit(0)
@@ -118,7 +118,7 @@ def update_authentication_config(
 
 
 
-_BODY_SKELETON_UPDATE_PASSWORD_POLICY = '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"..."}'
+_BODY_SKELETON_UPDATE_PASSWORD_POLICY = '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"...","notAcceptableStrings":"..."}'
 
 @app.command("update-password-policy", short_help="Update Organization Password Policy.")
 def update_password_policy(
@@ -136,7 +136,7 @@ def update_password_policy(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Organization Password Policy.\n\n\b\nExample: wxcli identity-org update-password-policy --minimum-numeric MINIMUM_NUMERIC --minimum-cap-alpha MINIMUM_CAP_ALPHA --minimum-low-alpha MINIMUM_LOW_ALPHA --minimum-special MINIMUM_SPECIAL --minimum-length MINIMUM_LENGTH --history-count HISTORY_COUNT --max-password-age MAX_PASSWORD_AGE\n\n\b\nExample --json-body: '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"..."}'"""
+    """Update Organization Password Policy.\n\n\b\nExample: wxcli identity-org update-password-policy --json-body '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"..."}'\n\n\b\nExample --json-body: '{"schemas":["..."],"minimumNumeric":"...","minimumCapAlpha":"...","minimumLowAlpha":"...","minimumSpecial":"...","minimumLength":"...","historyCount":"...","maxPasswordAge":"...","notAcceptableStrings":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PASSWORD_POLICY), indent=2))
         raise typer.Exit(0)

@@ -264,7 +264,7 @@ def create_primary_person_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Merges Identities to a Primary Identity.\n\n\b\nExample: wxcli cc-journey create-primary-person-id WORKSPACE_ID PRIMARY_PERSON_ID\n\n\b\nExample --json-body: '{"personIdsToMerge":["..."]}'"""
+    """Merges Identities to a Primary Identity.\n\n\b\nExample: wxcli cc-journey create-primary-person-id WORKSPACE_ID PRIMARY_PERSON_ID --json-body '{"personIdsToMerge":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PRIMARY_PERSON_ID), indent=2))
         raise typer.Exit(0)
@@ -377,7 +377,7 @@ def show_aliases(
 
 
 
-_BODY_SKELETON_CREATE_EVENT = '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."}}'
+_BODY_SKELETON_CREATE_EVENT = '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."},"time":"...","previousidentity":"..."}'
 
 @app.command("create-event", short_help="Journey Event Posting.")
 def create_event(
@@ -397,7 +397,7 @@ def create_event(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Journey Event Posting.\n\n\b\nExample: wxcli cc-journey create-event --workspace-id WORKSPACE_ID --id ID_PARAM --specversion SPECVERSION --type TYPE_PARAM --source SOURCE --identity IDENTITY --identitytype IDENTITYTYPE --datacontenttype DATACONTENTTYPE\n\n\b\nExample --json-body: '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."}}'"""
+    """Journey Event Posting.\n\n\b\nExample: wxcli cc-journey create-event --workspace-id WORKSPACE_ID --json-body '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."}}'\n\n\b\nExample --json-body: '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."},"time":"...","previousidentity":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EVENT), indent=2))
         raise typer.Exit(0)
@@ -473,7 +473,7 @@ def show_template_id_workspace_id(
 
 
 
-_BODY_SKELETON_UPDATE_TEMPLATE_ID = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'
+_BODY_SKELETON_UPDATE_TEMPLATE_ID = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'
 
 @app.command("update-template-id", short_help="Update existing ProfileViewTemplate.")
 def update_template_id(
@@ -486,7 +486,7 @@ def update_template_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update existing ProfileViewTemplate.\n\n\b\nExample: wxcli cc-journey update-template-id WORKSPACE_ID TEMPLATE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'"""
+    """Update existing ProfileViewTemplate.\n\n\b\nExample: wxcli cc-journey update-template-id WORKSPACE_ID TEMPLATE_ID --json-body '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true}]}'\n\n\b\nExample --json-body: '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TEMPLATE_ID), indent=2))
         raise typer.Exit(0)
@@ -581,7 +581,7 @@ def show_workspace_id_profile_view_template(
 
 
 
-_BODY_SKELETON_CREATE_WORKSPACE_ID_PROFILE_VIEW_TEMPLATE = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'
+_BODY_SKELETON_CREATE_WORKSPACE_ID_PROFILE_VIEW_TEMPLATE = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'
 
 @app.command("create-workspace-id-profile-view-template", short_help="Create Template.")
 def create_workspace_id_profile_view_template(
@@ -593,7 +593,7 @@ def create_workspace_id_profile_view_template(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Template.\n\n\b\nExample: wxcli cc-journey create-workspace-id-profile-view-template WORKSPACE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'"""
+    """Create Template.\n\n\b\nExample: wxcli cc-journey create-workspace-id-profile-view-template WORKSPACE_ID --json-body '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true}]}'\n\n\b\nExample --json-body: '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_WORKSPACE_ID_PROFILE_VIEW_TEMPLATE), indent=2))
         raise typer.Exit(0)
@@ -1015,7 +1015,7 @@ def create_template_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Journey Action.\n\n\b\nExample: wxcli cc-journey create-template-id WORKSPACE_ID TEMPLATE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'"""
+    """Create a new Journey Action.\n\n\b\nExample: wxcli cc-journey create-template-id WORKSPACE_ID TEMPLATE_ID --json-body '{"name":"...","rules":{"logic":"...","args":["..."]}}'\n\n\b\nExample --json-body: '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TEMPLATE_ID), indent=2))
         raise typer.Exit(0)
@@ -1116,7 +1116,7 @@ def update_action_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update existing Journey Action.\n\n\b\nExample: wxcli cc-journey update-action-id WORKSPACE_ID TEMPLATE_ID ACTION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'"""
+    """Update existing Journey Action.\n\n\b\nExample: wxcli cc-journey update-action-id WORKSPACE_ID TEMPLATE_ID ACTION_ID --json-body '{"name":"...","rules":{"logic":"...","args":["..."]}}'\n\n\b\nExample --json-body: '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ACTION_ID), indent=2))
         raise typer.Exit(0)

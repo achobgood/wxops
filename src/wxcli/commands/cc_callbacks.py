@@ -60,7 +60,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"..."}'
+_BODY_SKELETON_CREATE = '{"customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"...","sourceInteraction":"...","assigneeAgent":"..."}'
 
 @app.command("create", short_help="Schedule a Callback.")
 def create(
@@ -80,7 +80,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Schedule a Callback.\n\n\b\nExample: wxcli cc-callbacks create --customer-name CUSTOMER_NAME --callback-number CALLBACK_NUMBER --timezone TIMEZONE --schedule-date SCHEDULE_DATE --start-time START_TIME --end-time END_TIME --queue-id QUEUE_ID\n\n\b\nExample --json-body: '{"customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"..."}'"""
+    """Schedule a Callback.\n\n\b\nExample: wxcli cc-callbacks create --customer-name CUSTOMER_NAME --callback-number CALLBACK_NUMBER --timezone TIMEZONE --schedule-date SCHEDULE_DATE --start-time START_TIME --end-time END_TIME --queue-id QUEUE_ID\n\n\b\nExample --json-body: '{"customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"...","sourceInteraction":"...","assigneeAgent":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -156,15 +156,32 @@ def show(
 
 
 
+_BODY_SKELETON_UPDATE = '{"id":"...","customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"...","sourceInteraction":"...","assigneeAgent":"..."}'
+
 @app.command("update", short_help="Update scheduled callback by Id.")
 def update(
     id: str = typer.Argument(help="UUID, from: wxcli cc-callbacks list"),
+    id_param: str = typer.Option(None, "--id", help="Unique identifier for the scheduled callback."),
+    customer_name: str = typer.Option(None, "--customer-name", help="Name of the Customer for which callback has to be scheduled. Max customer name length should be 250 character"),
+    callback_number: str = typer.Option(None, "--callback-number", help="Customer's phone number for the callback. Allows an optional country code followed by digits (0-9) and the special characters: space, hyphen -, parentheses ( and ), and period ., ensuring the total length is between 7 and 15 characters."),
+    timezone: str = typer.Option(None, "--timezone", help="Valid IANA timezone name"),
+    schedule_date: str = typer.Option(None, "--schedule-date", help="Scheduled date in ISO-8601 (YYYY-MM-DD) format. This must be a valid date in local time zone and within 31 days from current date"),
+    start_time: str = typer.Option(None, "--start-time", help="Scheduled start time in ISO-8601 (HH:mm:ss) format. Start time must be at least 30 minutes in the future from current time."),
+    end_time: str = typer.Option(None, "--end-time", help="Scheduled end time in ISO-8601 (HH:mm:ss) format. End time must be at least 30 minutes after the startTime and must not exceed 8 hours after startTime."),
+    queue_id: str = typer.Option(None, "--queue-id", help="Unique identifier for the queue to which the callback is associated."),
+    callback_reason: str = typer.Option(None, "--callback-reason", help="Reason for the callback request. This is optional and can be used to provide additional context."),
+    source_interaction: str = typer.Option(None, "--source-interaction", help="Source interaction ID for the callback. This is optional and can be used to link the callback to a specific interaction. This should be a valid UUID."),
+    assignee_agent: str = typer.Option(None, "--assignee-agent", help="The unique identifier of the specific agent (CI userId), who should be assigned to handle the callback. This field is optional and is primarily used for personal callbacks."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update scheduled callback by Id.\n\n\b\nExample: wxcli cc-callbacks update ID"""
+    """Update scheduled callback by Id.\n\n\b\nExample: wxcli cc-callbacks update ID --id ID_PARAM --customer-name CUSTOMER_NAME --callback-number CALLBACK_NUMBER --timezone TIMEZONE --schedule-date SCHEDULE_DATE --start-time START_TIME --end-time END_TIME --queue-id QUEUE_ID\n\n\b\nExample --json-body: '{"id":"...","customerName":"...","callbackNumber":"...","timezone":"...","scheduleDate":"...","startTime":"...","endTime":"...","queueId":"...","callbackReason":"...","sourceInteraction":"...","assigneeAgent":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -173,6 +190,28 @@ def update(
         body = load_json_body(json_body)
     else:
         body = {}
+        if id_param is not None:
+            body["id"] = id_param
+        if customer_name is not None:
+            body["customerName"] = customer_name
+        if callback_number is not None:
+            body["callbackNumber"] = callback_number
+        if timezone is not None:
+            body["timezone"] = timezone
+        if schedule_date is not None:
+            body["scheduleDate"] = schedule_date
+        if start_time is not None:
+            body["startTime"] = start_time
+        if end_time is not None:
+            body["endTime"] = end_time
+        if queue_id is not None:
+            body["queueId"] = queue_id
+        if callback_reason is not None:
+            body["callbackReason"] = callback_reason
+        if source_interaction is not None:
+            body["sourceInteraction"] = source_interaction
+        if assignee_agent is not None:
+            body["assigneeAgent"] = assignee_agent
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:

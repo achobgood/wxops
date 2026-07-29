@@ -113,7 +113,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK_INSERT = '{"meetingId":"...","hostEmail":"...","items":[{"email":"...","displayName":"...","coHost":"...","sendEmail":"...","panelist":"..."}]}'
+_BODY_SKELETON_CREATE_BULK_INSERT = '{"meetingId":"...","hostEmail":"...","items":[{"email":"...","displayName":"...","coHost":true,"sendEmail":true,"panelist":true}]}'
 
 @app.command("create-bulk-insert", short_help="Create Meeting Invitees.")
 def create_bulk_insert(
@@ -125,7 +125,7 @@ def create_bulk_insert(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Meeting Invitees.\n\n\b\nExample: wxcli meeting-invitees create-bulk-insert --meeting-id MEETING_ID\n\n\b\nExample --json-body: '{"meetingId":"...","hostEmail":"...","items":[{"email":"...","displayName":"...","coHost":"...","sendEmail":"...","panelist":"..."}]}'"""
+    """Create Meeting Invitees.\n\n\b\nExample: wxcli meeting-invitees create-bulk-insert --meeting-id MEETING_ID\n\n\b\nExample --json-body: '{"meetingId":"...","hostEmail":"...","items":[{"email":"...","displayName":"...","coHost":true,"sendEmail":true,"panelist":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_INSERT), indent=2))
         raise typer.Exit(0)

@@ -82,7 +82,7 @@ def switch_mode_for_invoke(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Switch Mode for Multiple Features.\n\n\b\nExample: wxcli mode-management switch-mode-for-invoke --operating-mode-name OPERATING_MODE_NAME\n\n\b\nExample --json-body: '{"featureIds":["..."],"operatingModeName":"..."}'"""
+    """Switch Mode for Multiple Features.\n\n\b\nExample: wxcli mode-management switch-mode-for-invoke --json-body '{"featureIds":["..."],"operatingModeName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_SWITCH_MODE_FOR_INVOKE), indent=2))
         raise typer.Exit(0)

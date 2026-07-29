@@ -57,7 +57,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Outdial ANI.")
 def create(
@@ -74,7 +74,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Outdial ANI.\n\n\b\nExample: wxcli cc-outdial-ani create --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Outdial ANI.\n\n\b\nExample: wxcli cc-outdial-ani create --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -122,7 +122,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK_OUTDIAL_ANI = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK_OUTDIAL_ANI = '{"items":[{"itemIdentifier":0,"item":{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk-outdial-ani", short_help="Bulk save Outdial ANIs.")
 def create_bulk_outdial_ani(
@@ -132,7 +132,7 @@ def create_bulk_outdial_ani(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Outdial ANIs.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Outdial ANIs.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_OUTDIAL_ANI), indent=2))
         raise typer.Exit(0)
@@ -230,7 +230,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Outdial ANI by ID.")
 def update(
@@ -248,7 +248,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Outdial ANI by ID.\n\n\b\nExample: wxcli cc-outdial-ani update ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Outdial ANI by ID.\n\n\b\nExample: wxcli cc-outdial-ani update ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -429,7 +429,7 @@ def create_entry(
 
 
 
-_BODY_SKELETON_CREATE_BULK_ENTRY = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK_ENTRY = '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk-entry", short_help="Bulk save Outdial ANI Entries.")
 def create_bulk_entry(
@@ -440,7 +440,7 @@ def create_bulk_entry(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Outdial ANI Entries.\n\n\b\nExample: wxcli cc-outdial-ani create-bulk-entry OUT_DIAL_ANI_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Outdial ANI Entries.\n\n\b\nExample: wxcli cc-outdial-ani create-bulk-entry OUT_DIAL_ANI_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_ENTRY), indent=2))
         raise typer.Exit(0)

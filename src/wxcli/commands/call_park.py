@@ -63,7 +63,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Park.\n\n\b\nExample: wxcli call-park create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY","huntGroupId":"..."},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'"""
+    """Create a Call Park.\n\n\b\nExample: wxcli call-park create LOCATION_ID --json-body '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY"}}'\n\n\b\nExample --json-body: '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY","huntGroupId":"..."},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

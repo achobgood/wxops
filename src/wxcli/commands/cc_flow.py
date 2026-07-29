@@ -287,7 +287,7 @@ def create_unlock(
 
 
 
-_BODY_SKELETON_CREATE_VALIDATE = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
+_BODY_SKELETON_CREATE_VALIDATE = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}],"variables":[{"name":"...","type":"...","value":"...","description":"...","isCAD":true,"isAgentEditable":true,"isReportable":true,"isSecure":true}],"eventFlows":[{"event":"...","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}],"preferences":[{"name":"...","type":"...","value":"..."}]}'
 
 @app.command("create-validate", short_help="Validate a Flow.")
 def create_validate(
@@ -304,7 +304,7 @@ def create_validate(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate a Flow.\n\n\b\nExample: wxcli cc-flow create-validate PROJECT_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'"""
+    """Validate a Flow.\n\n\b\nExample: wxcli cc-flow create-validate PROJECT_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}],"variables":[{"name":"...","type":"...","value":"...","description":"...","isCAD":true,"isAgentEditable":true,"isReportable":true,"isSecure":true}],"eventFlows":[{"event":"...","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}],"preferences":[{"name":"...","type":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VALIDATE), indent=2))
         raise typer.Exit(0)
@@ -346,7 +346,7 @@ def create_validate(
 
 
 
-_BODY_SKELETON_CREATE_IMPORT = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
+_BODY_SKELETON_CREATE_IMPORT = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}],"variables":[{"name":"...","type":"...","value":"...","description":"...","isCAD":true,"isAgentEditable":true,"isReportable":true,"isSecure":true}],"eventFlows":[{"event":"...","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}],"preferences":[{"name":"...","type":"...","value":"..."}]}'
 
 @app.command("create-import", short_help="Import a Flow.")
 def create_import(
@@ -364,7 +364,7 @@ def create_import(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Import a Flow.\n\n\b\nExample: wxcli cc-flow create-import PROJECT_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'"""
+    """Import a Flow.\n\n\b\nExample: wxcli cc-flow create-import PROJECT_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}],"variables":[{"name":"...","type":"...","value":"...","description":"...","isCAD":true,"isAgentEditable":true,"isReportable":true,"isSecure":true}],"eventFlows":[{"event":"...","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}],"preferences":[{"name":"...","type":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_IMPORT), indent=2))
         raise typer.Exit(0)
@@ -436,7 +436,7 @@ def show(
 
 
 
-_BODY_SKELETON_CREATE_FLOWS = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'
+_BODY_SKELETON_CREATE_FLOWS = '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}],"variables":[{"name":"...","type":"...","value":"...","description":"...","isCAD":true,"isAgentEditable":true,"isReportable":true,"isSecure":true}],"eventFlows":[{"event":"...","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}],"preferences":[{"name":"...","type":"...","value":"..."}]}'
 
 @app.command("create-flows", short_help="Save a Flow Draft.")
 def create_flows(
@@ -455,7 +455,7 @@ def create_flows(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Save a Flow Draft.\n\n\b\nExample: wxcli cc-flow create-flows PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":"...","outputs":"...","position":"..."}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}'"""
+    """Save a Flow Draft.\n\n\b\nExample: wxcli cc-flow create-flows PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '{"flowName":"...","flowType":"FLOW","contactType":"...","description":"...","version":0,"status":"Draft","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}],"variables":[{"name":"...","type":"...","value":"...","description":"...","isCAD":true,"isAgentEditable":true,"isReportable":true,"isSecure":true}],"eventFlows":[{"event":"...","nodes":[{"name":"...","activityName":"...","inputs":{},"outputs":{},"position":{"x":0,"y":0}}],"edges":[{"key":"...","from_node":"...","from_port":"...","to_node":"...","condition":"..."}]}],"preferences":[{"name":"...","type":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FLOWS), indent=2))
         raise typer.Exit(0)

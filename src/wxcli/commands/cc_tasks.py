@@ -125,7 +125,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Task.\n\n\b\nExample: wxcli cc-tasks update TASK_ID\n\n\b\nExample --json-body: '{"attributes":{}}'"""
+    """Update Task.\n\n\b\nExample: wxcli cc-tasks update TASK_ID --json-body '{"attributes":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -943,14 +943,22 @@ def delete_preview_task(
 
 
 
+_BODY_SKELETON_CREATE_TASKS = '{"origin":{"id":"...","name":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"telephony","channel":"...","channelParams":{"type":"telephony","entryPointId":"...","outboundType":"CALLBACK","callback":{"type":"immediate","origin":"web","number":"..."},"sipHeaders":{}},"flowSettings":{},"globalVariables":{}}'
+
 @app.command("create-tasks", short_help="Create Task.")
 def create_tasks(
+    channel_type: str = typer.Option(None, "--channel-type", help="(required) Choices: telephony"),
+    channel: str = typer.Option(None, "--channel", help="(required) Not applicable for telephony tasks. May be omitted or set to `null`."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Task."""
+    """Create Task.\n\n\b\nExample: wxcli cc-tasks create-tasks --json-body '{"origin":{"id":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"telephony","channel":"...","channelParams":{"type":"telephony","entryPointId":"...","outboundType":"CALLBACK"}}'\n\n\b\nExample --json-body: '{"origin":{"id":"...","name":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"telephony","channel":"...","channelParams":{"type":"telephony","entryPointId":"...","outboundType":"CALLBACK","callback":{"type":"immediate","origin":"web","number":"..."},"sipHeaders":{}},"flowSettings":{},"globalVariables":{}}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TASKS), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v2/tasks"
@@ -958,6 +966,14 @@ def create_tasks(
         body = load_json_body(json_body)
     else:
         body = {}
+        if channel_type is not None:
+            body["channelType"] = channel_type
+        if channel is not None:
+            body["channel"] = channel
+        _missing = [f for f in ['channelType', 'channel'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
@@ -976,15 +992,22 @@ def create_tasks(
 
 
 
+_BODY_SKELETON_CREATE_MESSAGES = '{"mediaType":"customMessaging","channelParams":{"type":"text","message":{"aliasId":"...","text":"...","timestamp":0,"attachments":[{"fileName":"...","mimeType":"...","fileUrl":"..."}]}}}'
+
 @app.command("create-messages", short_help="Append Task Message.")
 def create_messages(
     task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
+    media_type: str = typer.Option(None, "--media-type", help="(required) Choices: customMessaging"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Append Task Message.\n\n\b\nExample: wxcli cc-tasks create-messages TASK_ID"""
+    """Append Task Message.\n\n\b\nExample: wxcli cc-tasks create-messages TASK_ID --json-body '{"mediaType":"customMessaging","channelParams":{"type":"text","message":{"aliasId":"...","text":"...","timestamp":0,"attachments":[{"fileName":"...","mimeType":"...","fileUrl":"..."}]}}}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MESSAGES), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v2/tasks/{task_id}/messages"
@@ -992,6 +1015,12 @@ def create_messages(
         body = load_json_body(json_body)
     else:
         body = {}
+        if media_type is not None:
+            body["mediaType"] = media_type
+        _missing = [f for f in ['mediaType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:

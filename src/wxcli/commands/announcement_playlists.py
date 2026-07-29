@@ -54,7 +54,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Announcement Playlist.\n\n\b\nExample: wxcli announcement-playlists create --name NAME\n\n\b\nExample --json-body: '{"name":"...","announcementIds":["..."]}'"""
+    """Create Announcement Playlist.\n\n\b\nExample: wxcli announcement-playlists create --json-body '{"name":"...","announcementIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -235,7 +235,7 @@ def update_playlists(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Playlist Locations.\n\n\b\nExample: wxcli announcement-playlists update-playlists PLAYLIST_ID\n\n\b\nExample --json-body: '{"locationIds":["..."]}'"""
+    """Update Playlist Locations.\n\n\b\nExample: wxcli announcement-playlists update-playlists PLAYLIST_ID --json-body '{"locationIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PLAYLISTS), indent=2))
         raise typer.Exit(0)

@@ -189,7 +189,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"dialPatterns":[{"dialPattern":"...","action":"..."}],"deleteAllDialPatterns":true}'
+_BODY_SKELETON_UPDATE = '{"dialPatterns":[{"dialPattern":"...","action":"ADD"}],"deleteAllDialPatterns":true}'
 
 @app.command("update", short_help="Modify Dial Patterns.")
 def update(
@@ -201,7 +201,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Dial Patterns.\n\n\b\nExample: wxcli call-routing update DIAL_PLAN_ID\n\n\b\nExample --json-body: '{"dialPatterns":[{"dialPattern":"...","action":"..."}],"deleteAllDialPatterns":true}'"""
+    """Modify Dial Patterns.\n\n\b\nExample: wxcli call-routing update DIAL_PLAN_ID\n\n\b\nExample --json-body: '{"dialPatterns":[{"dialPattern":"...","action":"ADD"}],"deleteAllDialPatterns":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -242,7 +242,7 @@ def validate_a_dial(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate a Dial Pattern.\n\n\b\nExample --json-body: '{"dialPatterns":["..."]}'"""
+    """Validate a Dial Pattern.\n\n\b\nExample: wxcli call-routing validate-a-dial --json-body '{"dialPatterns":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_A_DIAL), indent=2))
         raise typer.Exit(0)
@@ -557,7 +557,7 @@ def list_trunks(
 
 
 
-_BODY_SKELETON_CREATE_TRUNKS = '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"..."}'
+_BODY_SKELETON_CREATE_TRUNKS = '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"pChargeInfoSupportPolicy":"DISABLED"}'
 
 @app.command("create-trunks", short_help="Create a Trunk.")
 def create_trunks(
@@ -578,7 +578,7 @@ def create_trunks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Trunk.\n\n\b\nExample: wxcli call-routing create-trunks --name NAME --location-id LOCATION_ID --password PASSWORD --trunk-type REGISTERING\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"..."}'"""
+    """Create a Trunk.\n\n\b\nExample: wxcli call-routing create-trunks --name NAME --location-id LOCATION_ID --password PASSWORD --trunk-type REGISTERING\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"pChargeInfoSupportPolicy":"DISABLED"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRUNKS), indent=2))
         raise typer.Exit(0)
@@ -817,7 +817,7 @@ def list_route_groups(
 
 
 
-_BODY_SKELETON_CREATE_ROUTE_GROUPS = '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'
+_BODY_SKELETON_CREATE_ROUTE_GROUPS = '{"name":"...","localGateways":[{"id":"...","priority":0,"name":"...","locationId":"..."}]}'
 
 @app.command("create-route-groups", short_help="Create Route Group for a Organization.")
 def create_route_groups(
@@ -828,7 +828,7 @@ def create_route_groups(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Route Group for a Organization.\n\n\b\nExample: wxcli call-routing create-route-groups --name NAME\n\n\b\nExample --json-body: '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'"""
+    """Create Route Group for a Organization.\n\n\b\nExample: wxcli call-routing create-route-groups --json-body '{"name":"...","localGateways":[{"id":"...","priority":0}]}'\n\n\b\nExample --json-body: '{"name":"...","localGateways":[{"id":"...","priority":0,"name":"...","locationId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ROUTE_GROUPS), indent=2))
         raise typer.Exit(0)
@@ -890,7 +890,7 @@ def show_route_groups(
 
 
 
-_BODY_SKELETON_UPDATE_ROUTE_GROUPS = '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'
+_BODY_SKELETON_UPDATE_ROUTE_GROUPS = '{"name":"...","localGateways":[{"id":"...","priority":0,"name":"...","locationId":"..."}]}'
 
 @app.command("update-route-groups", short_help="Modify a Route Group for a Organization.")
 def update_route_groups(
@@ -902,7 +902,7 @@ def update_route_groups(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Route Group for a Organization.\n\n\b\nExample: wxcli call-routing update-route-groups ROUTE_GROUP_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","localGateways":[{"id":"...","priority":"...","name":"...","locationId":"..."}]}'"""
+    """Modify a Route Group for a Organization.\n\n\b\nExample: wxcli call-routing update-route-groups ROUTE_GROUP_ID --json-body '{"name":"...","localGateways":[{"id":"...","priority":0}]}'\n\n\b\nExample --json-body: '{"name":"...","localGateways":[{"id":"...","priority":0,"name":"...","locationId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ROUTE_GROUPS), indent=2))
         raise typer.Exit(0)
@@ -1382,7 +1382,7 @@ def list_numbers(
 
 
 
-_BODY_SKELETON_UPDATE_NUMBERS = '{"numbers":[{"number":"...","action":"..."}],"deleteAllNumbers":true}'
+_BODY_SKELETON_UPDATE_NUMBERS = '{"numbers":[{"number":"...","action":"ADD"}],"deleteAllNumbers":true}'
 
 @app.command("update-numbers", short_help="Modify Numbers for Route List.")
 def update_numbers(
@@ -1394,7 +1394,7 @@ def update_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Numbers for Route List.\n\n\b\nExample: wxcli call-routing update-numbers ROUTE_LIST_ID\n\n\b\nExample --json-body: '{"numbers":[{"number":"...","action":"..."}],"deleteAllNumbers":true}'"""
+    """Modify Numbers for Route List.\n\n\b\nExample: wxcli call-routing update-numbers ROUTE_LIST_ID\n\n\b\nExample --json-body: '{"numbers":[{"number":"...","action":"ADD"}],"deleteAllNumbers":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NUMBERS), indent=2))
         raise typer.Exit(0)

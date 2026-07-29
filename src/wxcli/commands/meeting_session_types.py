@@ -90,7 +90,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User Session Types.\n\n\b\nExample: wxcli meeting-session-types update --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"...","sessionTypeIds":["..."],"personId":"...","email":"..."}'"""
+    """Update User Session Types.\n\n\b\nExample: wxcli meeting-session-types update --json-body '{"siteUrl":"...","sessionTypeIds":["..."]}'\n\n\b\nExample --json-body: '{"siteUrl":"...","sessionTypeIds":["..."],"personId":"...","email":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

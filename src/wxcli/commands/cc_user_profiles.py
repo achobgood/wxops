@@ -98,7 +98,7 @@ def list_user_profile(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0,"description":"...","permissions":[{"name":"...","id":"...","access":"EDIT"}],"editableFolderIds":[0],"viewableFolderIds":[0],"nonViewableFolderIds":[0],"systemDefault":true,"defaultResourceCollectionId":"...","resourceCollections":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new User Profile.")
 def create(
@@ -121,7 +121,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new User Profile.\n\n\b\nExample: wxcli cc-user-profiles create --name NAME --profile-type ADMINISTRATOR --active --permission-access-level SPECIFIC --resource-access-level SPECIFIC\n\n\b\nExample --json-body: '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'"""
+    """Create a new User Profile.\n\n\b\nExample: wxcli cc-user-profiles create --name NAME --profile-type ADMINISTRATOR --active --permission-access-level SPECIFIC --resource-access-level SPECIFIC\n\n\b\nExample --json-body: '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0,"description":"...","permissions":[{"name":"...","id":"...","access":"EDIT"}],"editableFolderIds":[0],"viewableFolderIds":[0],"nonViewableFolderIds":[0],"systemDefault":true,"defaultResourceCollectionId":"...","resourceCollections":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -181,7 +181,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0,"description":"...","permissions":[{"name":"...","id":"...","access":"EDIT"}],"editableFolderIds":[0],"viewableFolderIds":[0],"nonViewableFolderIds":[0],"systemDefault":true,"defaultResourceCollectionId":"...","resourceCollections":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save User Profiles.")
 def create_bulk(
@@ -191,7 +191,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save User Profiles.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save User Profiles.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0,"description":"...","permissions":[{"name":"...","id":"...","access":"EDIT"}],"editableFolderIds":[0],"viewableFolderIds":[0],"nonViewableFolderIds":[0],"systemDefault":true,"defaultResourceCollectionId":"...","resourceCollections":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -247,7 +247,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0,"description":"...","permissions":[{"name":"...","id":"...","access":"EDIT"}],"editableFolderIds":[0],"viewableFolderIds":[0],"nonViewableFolderIds":[0],"systemDefault":true,"defaultResourceCollectionId":"...","resourceCollections":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific User Profile by ID.")
 def update(
@@ -271,7 +271,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific User Profile by ID.\n\n\b\nExample: wxcli cc-user-profiles update ID --name NAME --profile-type ADMINISTRATOR --active --permission-access-level SPECIFIC --resource-access-level SPECIFIC\n\n\b\nExample --json-body: '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0}'"""
+    """Update specific User Profile by ID.\n\n\b\nExample: wxcli cc-user-profiles update ID --name NAME --profile-type ADMINISTRATOR --active --permission-access-level SPECIFIC --resource-access-level SPECIFIC\n\n\b\nExample --json-body: '{"name":"...","profileType":"ADMINISTRATOR","active":true,"permissionAccessLevel":"SPECIFIC","resourceAccessLevel":"SPECIFIC","organizationId":"...","id":"...","version":0,"description":"...","permissions":[{"name":"...","id":"...","access":"EDIT"}],"editableFolderIds":[0],"viewableFolderIds":[0],"nonViewableFolderIds":[0],"systemDefault":true,"defaultResourceCollectionId":"...","resourceCollections":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

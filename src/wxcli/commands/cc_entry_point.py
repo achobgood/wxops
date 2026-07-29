@@ -60,7 +60,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Entry Point.")
 def create(
@@ -99,7 +99,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Entry Point.\n\n\b\nExample: wxcli cc-entry-point create --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"..."}'"""
+    """Create a new Entry Point.\n\n\b\nExample: wxcli cc-entry-point create --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -191,7 +191,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Entry Point(s).")
 def create_bulk(
@@ -201,7 +201,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Entry Point(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Entry Point(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -331,7 +331,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"..."}'
+_BODY_SKELETON_UPDATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Entry Point by ID.")
 def update(
@@ -371,7 +371,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Entry Point by ID.\n\n\b\nExample: wxcli cc-entry-point update ID --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"..."}'"""
+    """Update specific Entry Point by ID.\n\n\b\nExample: wxcli cc-entry-point update ID --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

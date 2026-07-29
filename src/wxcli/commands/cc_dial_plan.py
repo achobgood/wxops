@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"...","strippedChars":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Dial Plan.")
 def create(
@@ -76,7 +76,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Dial Plan.\n\n\b\nExample: wxcli cc-dial-plan create --name NAME --regular-expression REGULAR_EXPRESSION --active\n\n\b\nExample --json-body: '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"..."}'"""
+    """Create a new Dial Plan.\n\n\b\nExample: wxcli cc-dial-plan create --name NAME --regular-expression REGULAR_EXPRESSION --active\n\n\b\nExample --json-body: '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"...","strippedChars":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -134,7 +134,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"...","strippedChars":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Dial Plans.")
 def create_bulk(
@@ -144,7 +144,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Dial Plans.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Dial Plans.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"...","strippedChars":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -196,7 +196,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"..."}'
+_BODY_SKELETON_UPDATE = '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"...","strippedChars":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Dial Plan by ID.")
 def update(
@@ -219,7 +219,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Dial Plan by ID.\n\n\b\nExample: wxcli cc-dial-plan update ID --name NAME --regular-expression REGULAR_EXPRESSION --active\n\n\b\nExample --json-body: '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"..."}'"""
+    """Update specific Dial Plan by ID.\n\n\b\nExample: wxcli cc-dial-plan update ID --name NAME --regular-expression REGULAR_EXPRESSION --active\n\n\b\nExample --json-body: '{"name":"...","regularExpression":"...","active":true,"organizationId":"...","id":"...","version":0,"description":"...","prefix":"...","strippedChars":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

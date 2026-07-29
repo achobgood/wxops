@@ -71,7 +71,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","hostEmail":"...","topic":"..."}'
+_BODY_SKELETON_CREATE = '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","hostEmail":"...","topic":"...","format":"MP4","serviceType":"MeetingCenter","status":"available"}'
 
 @app.command("create", short_help="Query Recordings.")
 def create(
@@ -92,7 +92,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Recordings.\n\n\b\nExample --json-body: '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","hostEmail":"...","topic":"..."}'"""
+    """Query Recordings.\n\n\b\nExample --json-body: '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","hostEmail":"...","topic":"...","format":"MP4","serviceType":"MeetingCenter","status":"available"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -200,7 +200,7 @@ def list_recordings_admin(
 
 
 
-_BODY_SKELETON_CREATE_QUERY = '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","topic":"...","format":"MP4"}'
+_BODY_SKELETON_CREATE_QUERY = '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","topic":"...","format":"MP4","serviceType":"MeetingCenter","status":"available","timezone":"..."}'
 
 @app.command("create-query", short_help="Query Recordings For an Admin or Compliance Officer.")
 def create_query(
@@ -221,7 +221,7 @@ def create_query(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Recordings For an Admin or Compliance Officer.\n\n\b\nExample --json-body: '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","topic":"...","format":"MP4"}'"""
+    """Query Recordings For an Admin or Compliance Officer.\n\n\b\nExample --json-body: '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","topic":"...","format":"MP4","serviceType":"MeetingCenter","status":"available","timezone":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_QUERY), indent=2))
         raise typer.Exit(0)
@@ -384,7 +384,7 @@ def create_soft_delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Move Recordings into the Recycle Bin.\n\n\b\nExample --json-body: '{"recordingIds":["..."],"siteUrl":"..."}'"""
+    """Move Recordings into the Recycle Bin.\n\n\b\nExample: wxcli admin-recordings create-soft-delete --json-body '{"recordingIds":["..."]}'\n\n\b\nExample --json-body: '{"recordingIds":["..."],"siteUrl":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SOFT_DELETE), indent=2))
         raise typer.Exit(0)

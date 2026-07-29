@@ -57,7 +57,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":0,"item":{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"...","id":"...","version":0,"workPhone":"...","mobile":"...","broadCloudUserId":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","siteId":"...","teamIds":[{}],"skillProfileId":"...","agentProfileId":"...","multimediaProfileId":"...","deafultDialledNumber":"...","externalIdentifier":"...","imiUserCreated":true,"preferredSupervisorTeamId":"...","userLevelBurnoutInclusion":"INCLUDED","userLevelAutoCSATInclusion":"INCLUDED","userLevelWellnessBreakReminders":"DISABLED","userLevelSummariesInclusion":"INCLUDED","supervisorCapabilitiesEnabled":true,"agentCapabilitiesEnabled":true,"dynamicSkills":[{"skillId":"...","organizationId":"...","id":"...","version":0,"skillName":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumValue":"...","enumSkillValues":"...","createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("update", short_help="Bulk partial update Users.")
 def update(
@@ -67,7 +67,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Users.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk partial update Users.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"...","id":"...","version":0,"workPhone":"...","mobile":"...","broadCloudUserId":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","siteId":"...","teamIds":[{}],"skillProfileId":"...","agentProfileId":"...","multimediaProfileId":"...","deafultDialledNumber":"...","externalIdentifier":"...","imiUserCreated":true,"preferredSupervisorTeamId":"...","userLevelBurnoutInclusion":"INCLUDED","userLevelAutoCSATInclusion":"INCLUDED","userLevelWellnessBreakReminders":"DISABLED","userLevelSummariesInclusion":"INCLUDED","supervisorCapabilitiesEnabled":true,"agentCapabilitiesEnabled":true,"dynamicSkills":[{"skillId":"...","organizationId":"...","id":"...","version":0,"skillName":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumValue":"...","enumSkillValues":"...","createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -94,7 +94,7 @@ def update(
 
 
 
-_BODY_SKELETON_UPDATE_DYNAMIC_SKILL = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_UPDATE_DYNAMIC_SKILL = '{"items":[{"itemIdentifier":0,"item":{"organizationId":"...","id":"...","version":0,"userId":"...","enumSkillValues":["..."],"textValue":"...","booleanValue":true,"proficiencyValue":0,"skillId":"...","createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("update-update-dynamic-skill", hidden=True)
 @app.command("update-dynamic-skill", short_help="Bulk partial update Users with dynamic skills.")
@@ -106,7 +106,7 @@ def update_dynamic_skill(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Users with dynamic skills.\n\n\b\nExample: wxcli cc-users update-dynamic-skill SKILL_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk partial update Users with dynamic skills.\n\n\b\nExample: wxcli cc-users update-dynamic-skill SKILL_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"organizationId":"...","id":"...","version":0,"userId":"...","enumSkillValues":["..."],"textValue":"...","booleanValue":true,"proficiencyValue":0,"skillId":"...","createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DYNAMIC_SKILL), indent=2))
         raise typer.Exit(0)
@@ -223,7 +223,7 @@ def show_by_dynamic_skill_id(
 
 
 
-_BODY_SKELETON_CREATE = '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":"...","skillName":"...","skillType":"..."}]}'
+_BODY_SKELETON_CREATE = '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}]}'
 
 @app.command("create", short_help="Get the agents matching skill requirements criteria.")
 def create(
@@ -236,7 +236,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the agents matching skill requirements criteria.\n\n\b\nExample --json-body: '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":"...","skillName":"...","skillType":"..."}]}'"""
+    """Get the agents matching skill requirements criteria.\n\n\b\nExample --json-body: '{"skillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -423,7 +423,7 @@ def show_user(
 
 
 
-_BODY_SKELETON_UPDATE_USER = '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"..."}'
+_BODY_SKELETON_UPDATE_USER = '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"...","id":"...","version":0,"workPhone":"...","mobile":"...","broadCloudUserId":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","siteId":"...","teamIds":[{}],"skillProfileId":"...","agentProfileId":"...","multimediaProfileId":"...","deafultDialledNumber":"...","externalIdentifier":"...","imiUserCreated":true,"preferredSupervisorTeamId":"...","userLevelBurnoutInclusion":"INCLUDED","userLevelAutoCSATInclusion":"INCLUDED","userLevelWellnessBreakReminders":"DISABLED","userLevelSummariesInclusion":"INCLUDED","supervisorCapabilitiesEnabled":true,"agentCapabilitiesEnabled":true,"dynamicSkills":[{"skillId":"...","organizationId":"...","id":"...","version":0,"skillName":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumValue":"...","enumSkillValues":"...","createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update-user", short_help="Update specific User by ID.")
 def update_user(
@@ -466,7 +466,7 @@ def update_user(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific User by ID.\n\n\b\nExample: wxcli cc-users update-user ID --first-name FIRST_NAME --last-name LAST_NAME --email EMAIL --ci-user-id CI_USER_ID --user-profile-id USER_PROFILE_ID --contact-center-enabled --active\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"..."}'"""
+    """Update specific User by ID.\n\n\b\nExample: wxcli cc-users update-user ID --first-name FIRST_NAME --last-name LAST_NAME --email EMAIL --ci-user-id CI_USER_ID --user-profile-id USER_PROFILE_ID --contact-center-enabled --active\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"...","id":"...","version":0,"workPhone":"...","mobile":"...","broadCloudUserId":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","siteId":"...","teamIds":[{}],"skillProfileId":"...","agentProfileId":"...","multimediaProfileId":"...","deafultDialledNumber":"...","externalIdentifier":"...","imiUserCreated":true,"preferredSupervisorTeamId":"...","userLevelBurnoutInclusion":"INCLUDED","userLevelAutoCSATInclusion":"INCLUDED","userLevelWellnessBreakReminders":"DISABLED","userLevelSummariesInclusion":"INCLUDED","supervisorCapabilitiesEnabled":true,"agentCapabilitiesEnabled":true,"dynamicSkills":[{"skillId":"...","organizationId":"...","id":"...","version":0,"skillName":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumValue":"...","enumSkillValues":"...","createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_USER), indent=2))
         raise typer.Exit(0)
@@ -598,7 +598,7 @@ def list_incoming_references(
 
 
 
-_BODY_SKELETON_UPDATE_RESKILL = '{"organizationId":"...","id":"...","version":0,"skillProfileId":"...","dynamicSkills":{"add":["..."],"remove":["..."]},"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE_RESKILL = '{"organizationId":"...","id":"...","version":0,"skillProfileId":"...","dynamicSkills":{"add":[{"organizationId":"...","id":"...","version":0,"userId":"...","enumSkillValues":["..."],"textValue":"...","booleanValue":true,"proficiencyValue":0,"skillId":"...","createdTime":0,"lastUpdatedTime":0}],"remove":["..."]},"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update-reskill", short_help="Reskill Agents.")
 def update_reskill(
@@ -615,7 +615,7 @@ def update_reskill(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reskill Agents.\n\n\b\nExample: wxcli cc-users update-reskill ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"skillProfileId":"...","dynamicSkills":{"add":["..."],"remove":["..."]},"createdTime":0,"lastUpdatedTime":0}'"""
+    """Reskill Agents.\n\n\b\nExample: wxcli cc-users update-reskill ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"skillProfileId":"...","dynamicSkills":{"add":[{"organizationId":"...","id":"...","version":0,"userId":"...","enumSkillValues":["..."],"textValue":"...","booleanValue":true,"proficiencyValue":0,"skillId":"...","createdTime":0,"lastUpdatedTime":0}],"remove":["..."]},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_RESKILL), indent=2))
         raise typer.Exit(0)
