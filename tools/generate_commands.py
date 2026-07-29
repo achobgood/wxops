@@ -417,7 +417,28 @@ def main():
             spec_tag_ovr[tag_name] = merged
     for tag_name, tag_ovr in spec_tag_ovr.items():
         overrides[f"_tag_ovr:{tag_name}"] = tag_ovr
-    # Backwards compat: top-level tag blocks that aren't in tag_overrides
+    # Backwards compat: top-level tag blocks that aren't in tag_overrides.
+    #
+    # KNOWN GAP, measured 2026-07-29 — do not "fix" this by merging without
+    # reading on. When tag_overrides also names the tag, the whole top-level
+    # block is discarded silently. Six blocks are inert that way today:
+    # table_columns on 4 tags, add_query_params on `Features:  Call Queue`, and
+    # two old-style `list:` blocks. Each was written deliberately and none has
+    # ever taken effect.
+    #
+    # Merging them was tried and REVERTED. It regenerates cleanly with zero
+    # command-name changes, and then check 9 goes 0 -> 15: `Features:  Call
+    # Queue`'s old-style folder-level `list:` block applies its four columns to
+    # every list-shaped command in the tag, so 15 call-queue commands would
+    # declare columns their responses cannot fill. That is root cause #2 in
+    # tools/CLAUDE.md's table-columns entry, and the shadowing has been
+    # accidentally shielding the tree from it.
+    #
+    # The real fix is per block, not per mechanism: migrate the two `list:`
+    # blocks to per-command `table_columns`, re-verify the other four against
+    # their live response schemas, THEN make this merge. Until then the shadowed
+    # keys stay inert — but they are now inert on the record instead of by
+    # accident. Put anything that must apply into tag_overrides directly.
     for key, val in list(overrides.items()):
         if key in KNOWN_GLOBAL_KEYS or key.startswith("_"):
             continue
