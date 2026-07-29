@@ -1256,7 +1256,7 @@ def safe_delete_check(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Safe Delete Check Before Disabling a Location for Webex Calling.\n\n\b\nExample: wxcli location-settings safe-delete-check LOCATION_ID"""
+    """Safe Delete Check Before Disabling a Location for Webex Calling.\n\nNOTE: UNBLOCKED means no dependencies block deletion. It does NOT mean the location can be deleted right now: a location still enabled for Webex Calling returns 409 'being referenced' even with every count at 0. Disable calling first with 'wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name NAME', poll the returned job via 'wxcli location-settings show-delete-calling-location JOB_ID' until latestExecutionStatus is COMPLETED, then delete the location.\n\n\b\nExample: wxcli location-settings safe-delete-check LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/actions/precheckForDeletion/invoke"
     params = {}

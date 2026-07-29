@@ -276,6 +276,11 @@
       - ["Calling", "calling.type"]
 
 "Location Call Settings":
+  # NOTE: this top-level block is SHADOWED — tag_overrides also names
+  # "Location Call Settings", and the loser is discarded whole (see the comment
+  # in generate_commands.py). These table_columns have never applied. Anything
+  # that must take effect goes in tag_overrides, which is where
+  # command_help_notes for safe-delete-check lives.
   table_columns:
     list-available-numbers-external-caller-id:
       - ["Phone Number", "phoneNumber"]
@@ -1238,6 +1243,23 @@ tag_overrides:
       command_name_overrides:
         "list": "list-dial-patterns"
         "list-1": "list-calling-details"
+      # A caveat the spec cannot express. safe-delete-check answers "can I
+      # delete this?" with UNBLOCKED whenever every dependency count is 0 —
+      # true, and still not the whole answer: a calling-enabled location with
+      # zero dependencies returns 409 "being referenced" on delete. That cost a
+      # live teardown session real time, and the remedy is a command most
+      # operators do not know exists. Keyed here rather than in the top-level
+      # "Location Call Settings" block, which is shadowed and inert.
+      command_help_notes:
+        safe-delete-check: >
+          UNBLOCKED means no dependencies block deletion. It does NOT mean the
+          location can be deleted right now: a location still enabled for Webex
+          Calling returns 409 'being referenced' even with every count at 0.
+          Disable calling first with 'wxcli location-settings
+          create-delete-calling-location --location-id LOCATION_ID
+          --location-name NAME', poll the returned job via 'wxcli
+          location-settings show-delete-calling-location JOB_ID' until
+          latestExecutionStatus is COMPLETED, then delete the location.
 
     "Location Call Settings: Call Handling":
       command_name_overrides:

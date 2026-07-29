@@ -37,6 +37,15 @@ are hand-written and drift as the CLI regenerates. When a recipe and `--help` di
 warning. Before trusting a read, confirm via `--help` that the command was actually
 capable of returning the field you are about to draw a conclusion from.
 
+**`--help` outranks docs on command names, flags and requiredness — but NOT on two
+things, both measured.** (1) **Argument ID kinds:** 79 arguments declare a kind their own
+name contradicts — `location_id` help-typed "Webex PEOPLE id", `call_queue_id` typed
+HUNT_GROUP. Where help and the doc disagree on an ID *kind*, the doc is right.
+(2) **Enum choices:** proven
+both ways — `--event all` works though the enum omits it, and `announcements
+--location-id` advertises a sample ID that exits 1. On these two, a live call settles it,
+not a re-read of `--help`.
+
 ## Discovery-First Rule
 
 Applies to ALL work — reads, queries, and builds — not just execution. When checking

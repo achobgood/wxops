@@ -426,6 +426,9 @@ def _render_docstring(ep) -> str:
             f"\\n\\nDESTRUCTIVE: this {ep.method} only {semantics}s despite the "
             f"summary above. It cannot add or modify."
         )
+    note = getattr(ep, "help_note", None)
+    if note:
+        doc += f"\\n\\nNOTE: {note}"
     example = _render_example(ep)
     if example:
         doc += f"\\n\\n\\b\\nExample: {example}"
@@ -1805,11 +1808,46 @@ def _infer_missing_path_vars(endpoints: list[Endpoint]) -> None:
                 ep.path_vars.append(name)
 
 
+class CommandHelpNoteError(Exception):
+    """A `command_help_notes` entry names a command this tag does not render.
+
+    Same contract as `verb_semantics_ack` and `param_name_overrides`: the entry
+    is re-validated on every generation, so a note cannot quietly outlive the
+    command it was written for and go on reassuring people about nothing.
+    """
+
+
+def _apply_command_help_notes(endpoints: list[Endpoint], folder_overrides: dict) -> None:
+    """Attach a hand-written caveat to a command's --help.
+
+    For the case the spec cannot express: a command whose response is
+    technically accurate but will be READ as a stronger guarantee than it is.
+    The first user is `location-settings safe-delete-check`, which answers
+    "can I delete this?" with UNBLOCKED on a location the API then refuses to
+    delete — every dependency count it can see really is 0, and the blocker
+    (the location is Webex-Calling-enabled) is not a dependency it can see.
+    """
+    notes = (folder_overrides or {}).get("command_help_notes") or {}
+    if not notes:
+        return
+    rendered = {ep.command_name for ep in endpoints}
+    unknown = sorted(set(notes) - rendered)
+    if unknown:
+        raise CommandHelpNoteError(
+            f"command_help_notes names command(s) this tag does not render: "
+            f"{', '.join(unknown)}. Rendered here: {', '.join(sorted(rendered))}"
+        )
+    for ep in endpoints:
+        if ep.command_name in notes:
+            ep.help_note = " ".join(str(notes[ep.command_name]).split())
+
+
 def render_command_file(
     folder_name: str, endpoints: list[Endpoint], folder_overrides: dict,
     base_url_override: str | None = None,
 ) -> str:
     _infer_missing_path_vars(endpoints)
+    _apply_command_help_notes(endpoints, folder_overrides)
     _, cli_name = folder_name_to_module(folder_name)
     needs_org_id_query = any(
         "orgId" in getattr(ep, "auto_inject_params", [])
