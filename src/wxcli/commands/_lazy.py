@@ -177,6 +177,28 @@ class _LazyGroupProxy:
         return getattr(self._resolve(), item)
 
 
+def _stamped(sub_app: typer.Typer) -> typer.Typer:
+    """Give a group the did-you-mean class that will not suggest a delete.
+
+    Stamped on the sub-Typer's own info rather than emitted by the generator,
+    because `typer.main.get_group_from_info` reads `solved_info.cls` on BOTH
+    paths — the lazy `_to_click_group` and the eager `mount_all` that CliRunner
+    triggers. One place here keeps test and production identical; the generator
+    alternative would be the same line in 190 regenerated modules.
+    """
+    from typer.models import DefaultPlaceholder
+
+    from wxcli.suggest import SafeSuggestGroup
+
+    # `typer.Typer()` leaves info.cls as a DefaultPlaceholder, NOT None — an
+    # `is None` guard here silently never fires and the filter never attaches.
+    # Only a real class set by a caller may win over ours.
+    current = sub_app.info.cls
+    if current is None or isinstance(current, DefaultPlaceholder):
+        sub_app.info.cls = SafeSuggestGroup
+    return sub_app
+
+
 def _to_click_group(sub_app: typer.Typer, name: str, root: typer.Typer) -> click.Command:
     """Convert an already-imported sub-Typer into a click command, exactly
     as `add_typer(sub_app, name=name)` + Typer's own tree-walk would — same
@@ -197,7 +219,7 @@ def _to_click_group(sub_app: typer.Typer, name: str, root: typer.Typer) -> click
 
 def _group_loader(module_stem: str, group_name: str, root: typer.Typer):
     def _load():
-        sub_app = import_module(f"wxcli.commands.{module_stem}").app
+        sub_app = _stamped(import_module(f"wxcli.commands.{module_stem}").app)
         if group_name == "converged-recordings":
             _ensure_converged_recordings_registered(sub_app)
         return _to_click_group(sub_app, group_name, root)
@@ -244,9 +266,9 @@ def mount_all(root: typer.Typer) -> None:
     """
     generated_apps = {}
     for module, group in HAND_WRITTEN_GROUPS:
-        root.add_typer(import_module(f"wxcli.commands.{module}").app, name=group)
+        root.add_typer(_stamped(import_module(f"wxcli.commands.{module}").app), name=group)
     for module, group in GENERATED_GROUPS:
-        sub_app = import_module(f"wxcli.commands.{module}").app
+        sub_app = _stamped(import_module(f"wxcli.commands.{module}").app)
         generated_apps[group] = sub_app
         root.add_typer(sub_app, name=group)
 
@@ -257,7 +279,7 @@ def mount_all(root: typer.Typer) -> None:
 
     try:
         for module, group in FS_DEV_GROUPS:
-            root.add_typer(import_module(f"wxcli.commands.{module}").app, name=group)
+            root.add_typer(_stamped(import_module(f"wxcli.commands.{module}").app), name=group)
     except ImportError:
         pass
 

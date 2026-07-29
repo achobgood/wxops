@@ -68,6 +68,7 @@ tests/*
 !tests/test_drift_check_columns.py
 !tests/test_drift_check_naming.py
 !tests/test_errors_actionability.py
+!tests/test_suggest_and_paging.py
 tests/migration/**/__pycache__/
 tests/org_health/**/__pycache__/
 
