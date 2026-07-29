@@ -11,16 +11,17 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling partner-tags.")
 
 
-@app.command("list")
+@app.command("list", short_help="Retrieve all customer tags.")
 def cmd_list(
     type_param: str = typer.Option(..., "--type", help="List tags associated with an organization."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve all customer tags."""
+    """Retrieve all customer tags.\n\n\b\nExample: wxcli partner-tags list --type TYPE_PARAM"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/partner/tags"
     params = {}
@@ -45,7 +46,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"tags":[{"name":"...","description":"..."}]}'
 
-@app.command("create")
+@app.command("create", short_help="Create or Replace existing customer tags with the provided ones.")
 def create(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -53,7 +54,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create or Replace existing customer tags with the provided ones\n\nExample --json-body:\n  '{"tags":[{"name":"...","description":"..."}]}'."""
+    """Create or Replace existing customer tags with the provided ones.\n\n\b\nExample --json-body: '{"tags":[{"name":"...","description":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -82,7 +83,7 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get customer organization's tags.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -102,16 +103,17 @@ def show(
 
 
 
-@app.command("list-organizations")
+@app.command("list-organizations", short_help="Fetch all customers for a given set of tags.")
 def list_organizations(
     tags: str = typer.Option(..., "--tags", help="A comma separated list of tags to filter by."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch all customers for a given set of tags."""
+    """Fetch all customers for a given set of tags.\n\n\b\nExample: wxcli partner-tags list-organizations --tags TAGS"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/partner/tags/organizations"
     params = {}
@@ -123,7 +125,10 @@ def list_organizations(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -136,16 +141,16 @@ def list_organizations(
 
 _BODY_SKELETON_CREATE_ASSIGN_TAGS = '{"tags":[{"name":"...","description":"..."}]}'
 
-@app.command("create-assign-tags")
+@app.command("create-assign-tags", short_help="Create or Replace existing subscription tags with the provided ones.")
 def create_assign_tags(
-    subscription_id: str = typer.Argument(help="subscriptionId"),
+    subscription_id: str = typer.Argument(help="e.g. subscriptionId, from: wxcli partner-tags list-subscriptions"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create or Replace existing subscription tags with the provided ones\n\nExample --json-body:\n  '{"tags":[{"name":"...","description":"..."}]}'."""
+    """Create or Replace existing subscription tags with the provided ones.\n\n\b\nExample: wxcli partner-tags create-assign-tags subscriptionId\n\n\b\nExample --json-body: '{"tags":[{"name":"...","description":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ASSIGN_TAGS), indent=2))
         raise typer.Exit(0)
@@ -174,16 +179,17 @@ def create_assign_tags(
 
 
 
-@app.command("list-subscriptions")
+@app.command("list-subscriptions", short_help="Subscription List on a given tag name or a set of tags.")
 def list_subscriptions(
     tags: str = typer.Option(..., "--tags", help="A comma separated list of tags to filter by."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Subscription List on a given tag name or a set of tags."""
+    """Subscription List on a given tag name or a set of tags.\n\n\b\nExample: wxcli partner-tags list-subscriptions --tags TAGS"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/partner/tags/subscriptions"
     params = {}
@@ -195,7 +201,10 @@ def list_subscriptions(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -206,14 +215,14 @@ def list_subscriptions(
 
 
 
-@app.command("show-subscriptions")
+@app.command("show-subscriptions", short_help="Fetch a Subscription.")
 def show_subscriptions(
-    subscription_id: str = typer.Argument(help="subscriptionId"),
+    subscription_id: str = typer.Argument(help="e.g. subscriptionId, from: wxcli partner-tags list-subscriptions"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Fetch a Subscription."""
+    """Fetch a Subscription.\n\n\b\nExample: wxcli partner-tags show-subscriptions subscriptionId"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/partner/tags/organizations/{org_id}/subscriptions/{subscription_id}"

@@ -11,16 +11,17 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling archive-users.")
 
 
-@app.command("list")
+@app.command("list", short_help="Query Archive User.")
 def cmd_list(
     filter_param: str = typer.Option(..., "--filter", help="A SCIM-style filter expression used to search archived users. Supported attributes are `username` and `id`, and only the `eq` operator is supported. Examples: - `username eq \"test_user_1@example.com\"` - `id eq \"40929cc6-2df2-4ab5-871c-ec8e38f07b93\"`"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Archive User."""
+    """Query Archive User.\n\n\b\nExample: wxcli archive-users list --filter FILTER_PARAM"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/v1/ArchivedUser"

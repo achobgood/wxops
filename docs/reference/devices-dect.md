@@ -173,16 +173,16 @@ wxcli dect-devices create-base-stations <location_id> <dect_network_id> \
   --json-body '{"baseStationMacs":["AABBCCDDEEFF","112233445566"]}'
 
 # Delete a specific base station
-wxcli dect-devices delete-base-stations-dect-networks-1 <location_id> <dect_network_id> <base_station_id>
+wxcli dect-devices delete-location-base-stations-dect-networks <location_id> <dect_network_id> <base_station_id>
 
 # Delete a specific base station (skip confirmation)
-wxcli dect-devices delete-base-stations-dect-networks-1 <location_id> <dect_network_id> <base_station_id> --force
+wxcli dect-devices delete-location-base-stations-dect-networks <location_id> <dect_network_id> <base_station_id> --force
 
 # Delete ALL base stations in a DECT network
-wxcli dect-devices delete-base-stations-dect-networks <location_id> <dect_network_id>
+wxcli dect-devices delete-base-stations-dect-networks-bulk <location_id> <dect_network_id>
 
 # Delete ALL base stations (skip confirmation)
-wxcli dect-devices delete-base-stations-dect-networks <location_id> <dect_network_id> --force
+wxcli dect-devices delete-base-stations-dect-networks-bulk <location_id> <dect_network_id> --force
 ```
 
 ---
@@ -257,16 +257,16 @@ wxcli dect-devices update-handsets <location_id> <dect_network_id> <handset_id> 
   --line2-member-id <virtual_line_id>
 
 # Delete a single handset
-wxcli dect-devices delete-handsets-dect-networks <location_id> <dect_network_id> <handset_id>
+wxcli dect-devices delete-location-handsets-dect-networks <location_id> <dect_network_id> <handset_id>
 
 # Delete a single handset (skip confirmation)
-wxcli dect-devices delete-handsets-dect-networks <location_id> <dect_network_id> <handset_id> --force
+wxcli dect-devices delete-location-handsets-dect-networks <location_id> <dect_network_id> <handset_id> --force
 
 # Delete multiple handsets (bulk)
-wxcli dect-devices delete-handsets-dect-networks-1 <location_id> <dect_network_id>
+wxcli dect-devices delete-handsets-dect-networks-bulk <location_id> <dect_network_id>
 
 # Delete multiple handsets (skip confirmation)
-wxcli dect-devices delete-handsets-dect-networks-1 <location_id> <dect_network_id> --force
+wxcli dect-devices delete-handsets-dect-networks-bulk <location_id> <dect_network_id> --force
 
 # Bulk add handsets (up to 50, requires --json-body)
 wxcli dect-devices create-bulk <location_id> <dect_network_id> \

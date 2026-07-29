@@ -136,19 +136,25 @@ Manage agent personal greeting files. Supports three API versions (v1, v2, v3) w
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| POST | `/organization/{orgid}/agent-personal-greeting` | `create-agent-personal-greeting` | Create (v1) |
-| POST | `/organization/{orgid}/agent-personal-greeting/delete-reference` | `create-delete-reference` | Delete References |
-| DELETE | `/organization/{orgid}/agent-personal-greeting/{id}` | `delete-agent-personal-greeting` | Delete (v1) |
-| GET | `/organization/{orgid}/agent-personal-greeting/{id}` | `show-agent-personal-greeting` | Get by ID (v1) |
-| PATCH | `/organization/{orgid}/agent-personal-greeting/{id}` | `update-agent-personal-greeting-organization-1` | Partial update (v1) |
-| PUT | `/organization/{orgid}/agent-personal-greeting/{id}` | `update-agent-personal-greeting-organization` | Update (v1) |
+| POST | `/organization/{orgid}/agent-personal-greeting` | _(no CLI command)_ | Create (v1) |
+| POST | `/organization/{orgid}/agent-personal-greeting/delete-reference` | `delete-references-agent` | Delete references of an agent from greeting files (hidden alias: `create`) |
+| DELETE | `/organization/{orgid}/agent-personal-greeting/{id}` | `delete` | Delete (v1) |
+| GET | `/organization/{orgid}/agent-personal-greeting/{id}` | `show` | Get by ID (v1) |
+| PATCH | `/organization/{orgid}/agent-personal-greeting/{id}` | _(no CLI command)_ | Partial update (v1) |
+| PUT | `/organization/{orgid}/agent-personal-greeting/{id}` | _(no CLI command)_ | Update (v1) |
 | GET | `/organization/{orgid}/v2/agent-personal-greeting` | `list` | List all (v2) |
-| POST | `/organization/{orgid}/v2/agent-personal-greeting` | `create` | Create (v2) |
-| DELETE | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | `delete` | Delete (v2) |
-| GET | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | `show` | Get by ID (v2) |
-| PATCH | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | `update-agent-personal-greeting-v2` | Partial update (v2) |
-| PUT | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | `update` | Update (v2) |
+| POST | `/organization/{orgid}/v2/agent-personal-greeting` | _(no CLI command)_ | Create (v2) |
+| DELETE | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | `delete-agent-personal-greeting` | Delete (v2) |
+| GET | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | `show-agent-personal-greeting` | Get by ID (v2) |
+| PATCH | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | _(no CLI command)_ | Partial update (v2) |
+| PUT | `/organization/{orgid}/v2/agent-personal-greeting/{id}` | _(no CLI command)_ | Update (v2) |
 | GET | `/organization/{orgid}/v3/agent-personal-greeting` | `list-agent-personal-greeting` | List (v3) |
+
+> **The short names are v1, not v2.** `show` and `delete` hit the **v1** greeting endpoints;
+> the v2 equivalents are `show-agent-personal-greeting` and `delete-agent-personal-greeting`.
+> There is **no create or update command** in this group at any version.
+> `create` is a hidden alias for `delete-references-agent`, which **strips an agent's greeting
+> references and prints `Deleted.`** -- it does not create anything.
 
 ### CLI Examples
 
@@ -156,18 +162,20 @@ Manage agent personal greeting files. Supports three API versions (v1, v2, v3) w
 # List all agent greetings (v2)
 wxcli cc-agent-greetings list
 
-# Get a specific greeting (v2)
+# Get a specific greeting (v1)
 wxcli cc-agent-greetings show "greeting-uuid"
 
-# Create a greeting (v2)
-wxcli cc-agent-greetings create --json-body '{
-  "name": "Welcome Greeting",
-  "type": "WELCOME",
-  "agentId": "..."
-}'
+# Get a specific greeting (v2)
+wxcli cc-agent-greetings show-agent-personal-greeting "greeting-uuid"
+
+# Delete a greeting (v1)
+wxcli cc-agent-greetings delete "greeting-uuid"
 
 # Delete a greeting (v2)
-wxcli cc-agent-greetings delete "greeting-uuid"
+wxcli cc-agent-greetings delete-agent-personal-greeting "greeting-uuid"
+
+# Strip an agent's references from greeting files (destructive -- prints "Deleted.")
+wxcli cc-agent-greetings delete-references-agent --json-body '{"references": {}}'
 
 # List greetings (v3 -- enhanced filtering)
 wxcli cc-agent-greetings list-agent-personal-greeting
@@ -193,7 +201,7 @@ curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/agent-perso
 
 > **Deprecation status unconfirmed.** Listed as deprecated April 2026 in internal tracking but this is not reflected in public documentation as of May 2026 — the feature appears active in the February 2025 Webex developer newsletter. Verify against the current API changelog before use. A consolidated `AI Feature` API (`wxcli cc-ai-feature`) exists as a potential successor.
 
-Monitor and manage agent burnout detection. Mixes config paths (`/organization/{orgid}/agent-burnout/`) with runtime paths (`/v1/agentburnout/`).
+Monitor and manage agent burnout detection. Mixes config paths (`/organization/{orgid}/agent-burnout/`) with runtime paths (`/agentburnout/`, no `/organization/{orgid}` segment).
 
 ### Endpoints
 
@@ -202,8 +210,8 @@ Monitor and manage agent burnout detection. Mixes config paths (`/organization/{
 | GET | `/organization/{orgid}/agent-burnout/{id}` | `show` | Get Agent Burnout by ID |
 | PUT | `/organization/{orgid}/agent-burnout/{id}` | `update` | Update Agent Burnout by ID |
 | GET | `/organization/{orgid}/v2/agent-burnout` | `list` | List Agent Burnout (v2) |
-| POST | `/v1/agentburnout/action` | `create-action` | Record realtime burnout events |
-| POST | `/v1/agentburnout/subscribe` | `create` | Subscribe for realtime burnout events |
+| POST | `/agentburnout/action` | `create-action` | Record realtime burnout events |
+| POST | `/agentburnout/subscribe` | `create` | Subscribe for realtime burnout events |
 
 ### CLI Examples
 
@@ -251,18 +259,19 @@ Contact Center user management. CC users are Webex users with CC-specific config
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/organization/{orgid}/user` | `list-user-organization` | List User(s) (v1) |
+| GET | `/organization/{orgid}/user` | `list` | List User(s) (v1) |
+| GET | `/organization/{orgid}/user/by-call-monitoring-id/{id}` | `show` | List users by call monitoring ID |
 | PATCH | `/organization/{orgid}/user/bulk` | `update` | Bulk partial update Users |
 | GET | `/organization/{orgid}/user/bulk-export` | _(no CLI command)_ | Bulk export User(s) |
 | GET | `/organization/{orgid}/user/by-ci-user-id/{id}` | `show-by-ci-user-id-organization` | Get User by CI User ID (v1) |
 | POST | `/organization/{orgid}/user/fetch-by-skill-requirements` | `create` | Get agents matching skill requirements |
 | POST | `/organization/{orgid}/user/fetch-user-details-by-ids` | `create-fetch-user-details-by-ids` | Get Users by provided IDs |
 | GET | `/organization/{orgid}/user/with-user-profile` | `list-with-user-profile` | List Users with profile |
-| GET | `/organization/{orgid}/user/with-user-profile/{id}` | `show` | Get User with profile by ID |
+| GET | `/organization/{orgid}/user/with-user-profile/{id}` | `show-with-user-profile` | Get User with profile by ID |
 | GET | `/organization/{orgid}/user/{id}` | `show-user` | Get User by ID |
 | PATCH | `/organization/{orgid}/user/{id}` | `update-user-organization-1` | Partially update User by ID |
 | PUT | `/organization/{orgid}/user/{id}` | `update-user-organization` | Update User by ID |
-| GET | `/organization/{orgid}/user/{id}/incoming-references` | `list` | List references for User |
+| GET | `/organization/{orgid}/user/{id}/incoming-references` | `list-incoming-references` | List references for User |
 | GET | `/organization/{orgid}/v2/user` | `list-user` | List User(s) (v2) |
 | GET | `/organization/{orgid}/v2/user/by-ci-user-id/{id}` | `show-by-ci-user-id-v2` | Get User by CI User ID (v2) |
 | PATCH | `/organization/{orgid}/user/bulk/update-dynamic-skill/{skillId}` | `update-dynamic-skill` | Bulk assign/unassign dynamic skill |
@@ -428,15 +437,15 @@ Contact Service Queues route incoming contacts to agents based on routing strate
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/organization/{orgid}/contact-service-queue` | `list-contact-service-queue-organization` | List (v1) |
-| POST | `/organization/{orgid}/contact-service-queue` | `create-contact-service-queue-organization` | Create (v1) |
+| GET | `/organization/{orgid}/contact-service-queue` | `list` | List (v1) |
+| POST | `/organization/{orgid}/contact-service-queue` | _(no CLI command)_ | Create (v1) |
 | POST | `/organization/{orgid}/contact-service-queue/bulk` | `create` | Bulk save |
 | PATCH | `/organization/{orgid}/contact-service-queue/bulk` | `update` | Bulk partial update |
-| GET | `/organization/{orgid}/contact-service-queue/bulk-export` | `list` | Bulk export |
+| GET | `/organization/{orgid}/contact-service-queue/bulk-export` | _(no CLI command)_ | Bulk export |
 | GET | `/organization/{orgid}/contact-service-queue/by-skill-profile-id/{id}` | `show` | Get by skill profile ID |
-| POST | `/organization/{orgid}/contact-service-queue/delete-reference` | `create-delete-reference` | Delete References |
+| POST | `/organization/{orgid}/contact-service-queue/delete-reference` | `delete-reference` | Delete References |
 | POST | `/organization/{orgid}/contact-service-queue/fetch-manually-assignable-queues` | `create-fetch-manually-assignable-queues` | Fetch assignable queues |
-| POST | `/organization/{orgid}/contact-service-queue/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/contact-service-queue/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | POST | `/organization/{orgid}/contact-service-queue/v2/bulk` | `create-bulk` | Bulk save (v2) |
 | GET | `/organization/{orgid}/contact-service-queue/{id}` | `show-contact-service-queue-organization` | Get by ID |
 | DELETE | `/organization/{orgid}/contact-service-queue/{id}` | `delete` | Delete |
@@ -619,11 +628,11 @@ Entry points are the initial landing points for customer contacts. Each entry po
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/organization/{orgid}/entry-point` | `list-entry-point-organization` | List |
+| GET | `/organization/{orgid}/entry-point` | `list` | List |
 | POST | `/organization/{orgid}/entry-point` | `create` | Create |
-| POST | `/organization/{orgid}/entry-point/bulk` | `create` | Bulk save |
-| GET | `/organization/{orgid}/entry-point/bulk-export` | `list` | Bulk export |
-| POST | `/organization/{orgid}/entry-point/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/entry-point/bulk` | `create-bulk` | Bulk save |
+| GET | `/organization/{orgid}/entry-point/bulk-export` | `list-bulk-export` | Bulk export |
+| POST | `/organization/{orgid}/entry-point/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/entry-point/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/entry-point/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/entry-point/{id}` | `update` | Update |
@@ -655,7 +664,7 @@ wxcli cc-entry-point create --json-body '{
 wxcli cc-entry-point show "ep-uuid"
 
 # Bulk export all entry points
-wxcli cc-entry-point list-bulk-export
+wxcli cc-entry-point list-bulk-export --type INBOUND
 
 # Delete an entry point
 wxcli cc-entry-point delete "ep-uuid"
@@ -692,7 +701,7 @@ Teams group agents for routing and reporting. A team is assigned to a site, and 
 | POST | `/organization/{orgid}/team` | `create` | Create |
 | POST | `/organization/{orgid}/team/bulk` | `create-bulk` | Bulk save |
 | GET | `/organization/{orgid}/team/bulk-export` | `list-bulk-export` | Bulk export |
-| POST | `/organization/{orgid}/team/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/team/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/team/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/team/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/team/{id}` | `update` | Update |
@@ -761,7 +770,7 @@ Skills are attributes assigned to agents for skill-based routing. Each skill has
 | POST | `/organization/{orgid}/skill` | `create` | Create |
 | POST | `/organization/{orgid}/skill/bulk` | `create-bulk` | Bulk save |
 | GET | `/organization/{orgid}/skill/bulk-export` | `list-bulk-export` | Bulk export |
-| POST | `/organization/{orgid}/skill/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/skill/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/skill/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/skill/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/skill/{id}` | `update` | Update |
@@ -840,10 +849,10 @@ Skill profiles bundle skill-value pairs and are assigned to agents. When a queue
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/organization/{orgid}/skill-profile` | `list-skill-profile-organization` | List |
+| GET | `/organization/{orgid}/skill-profile` | `list` | List |
 | POST | `/organization/{orgid}/skill-profile` | `create` | Create |
-| POST | `/organization/{orgid}/skill-profile/bulk` | `create` | Bulk save |
-| GET | `/organization/{orgid}/skill-profile/bulk-export` | `list` | Bulk export |
+| POST | `/organization/{orgid}/skill-profile/bulk` | `create-bulk` | Bulk save |
+| GET | `/organization/{orgid}/skill-profile/bulk-export` | _(no CLI command)_ | Bulk export |
 | GET | `/organization/{orgid}/skill-profile/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/skill-profile/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/skill-profile/{id}` | `update` | Update |
@@ -905,11 +914,11 @@ Multimedia profiles define channel capacity for agents: how many concurrent cont
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/organization/{orgid}/multimedia-profile` | `list-multimedia-profile-organization` | List |
+| GET | `/organization/{orgid}/multimedia-profile` | `list` | List |
 | POST | `/organization/{orgid}/multimedia-profile` | `create` | Create |
-| POST | `/organization/{orgid}/multimedia-profile/bulk` | `create` | Bulk save |
-| GET | `/organization/{orgid}/multimedia-profile/bulk-export` | `list` | Bulk export |
-| POST | `/organization/{orgid}/multimedia-profile/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/multimedia-profile/bulk` | `create-bulk` | Bulk save |
+| GET | `/organization/{orgid}/multimedia-profile/bulk-export` | `list-bulk-export` | Bulk export |
+| POST | `/organization/{orgid}/multimedia-profile/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/multimedia-profile/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/multimedia-profile/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/multimedia-profile/{id}` | `update` | Update |
@@ -985,7 +994,7 @@ Desktop layouts define the Agent Desktop UI: widget placement, header, navigatio
 | POST | `/organization/{orgid}/desktop-layout` | `create` | Create |
 | POST | `/organization/{orgid}/desktop-layout/bulk` | `create-bulk` | Bulk save |
 | GET | `/organization/{orgid}/desktop-layout/bulk-export` | _(no CLI command)_ | Bulk export |
-| POST | `/organization/{orgid}/desktop-layout/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/desktop-layout/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/desktop-layout/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/desktop-layout/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/desktop-layout/{id}` | `update` | Update |
@@ -1051,7 +1060,7 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 | POST | `/organization/{orgid}/agent-profile` | `create` | Create |
 | POST | `/organization/{orgid}/agent-profile/bulk` | `create-bulk` | Bulk save |
 | GET | `/organization/{orgid}/agent-profile/bulk-export` | _(no CLI command)_ | Bulk export |
-| POST | `/organization/{orgid}/agent-profile/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/agent-profile/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/agent-profile/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/agent-profile/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/agent-profile/{id}` | `update` | Update |
@@ -1242,16 +1251,16 @@ Auxiliary (idle/wrap-up) codes categorize agent non-available time. When an agen
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/organization/{orgid}/auxiliary-code` | `list-auxiliary-code-organization` | List |
+| GET | `/organization/{orgid}/auxiliary-code` | `list` | List |
 | POST | `/organization/{orgid}/auxiliary-code` | `create` | Create |
 | POST | `/organization/{orgid}/auxiliary-code/bulk` | `create-bulk` | Bulk save |
 | PATCH | `/organization/{orgid}/auxiliary-code/bulk` | `update` | Bulk partial update |
 | GET | `/organization/{orgid}/auxiliary-code/bulk-export` | `list-bulk-export` | Bulk export |
-| POST | `/organization/{orgid}/auxiliary-code/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/auxiliary-code/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/auxiliary-code/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/auxiliary-code/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/auxiliary-code/{id}` | `update-auxiliary-code` | Update |
-| GET | `/organization/{orgid}/auxiliary-code/{id}/incoming-references` | `list` | List references |
+| GET | `/organization/{orgid}/auxiliary-code/{id}/incoming-references` | `list-incoming-references` | List references |
 | GET | `/organization/{orgid}/v2/auxiliary-code` | `list-auxiliary-code` | List (v2) |
 
 ### Key Parameters
@@ -1321,7 +1330,7 @@ Work types categorize agent activities for reporting. They are referenced in aux
 | POST | `/organization/{orgid}/work-type` | `create` | Create |
 | POST | `/organization/{orgid}/work-type/bulk` | `create-bulk` | Bulk save |
 | GET | `/organization/{orgid}/work-type/bulk-export` | `list` | Bulk export |
-| POST | `/organization/{orgid}/work-type/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/work-type/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/work-type/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/work-type/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/work-type/{id}` | `update` | Update |
@@ -1375,7 +1384,7 @@ Sites represent physical or logical locations in the contact center. Teams are a
 | POST | `/organization/{orgid}/site` | `create` | Create |
 | POST | `/organization/{orgid}/site/bulk` | `create-bulk` | Bulk save |
 | GET | `/organization/{orgid}/site/bulk-export` | `list-bulk-export` | Bulk export |
-| POST | `/organization/{orgid}/site/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/site/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/site/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/site/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/site/{id}` | `update` | Update |
@@ -1433,7 +1442,7 @@ Global variables (CAD variables -- Customer Activity Data) store key-value data 
 | POST | `/organization/{orgid}/cad-variable` | `create` | Create |
 | POST | `/organization/{orgid}/cad-variable/bulk` | `create-bulk` | Bulk save |
 | GET | `/organization/{orgid}/cad-variable/bulk-export` | `list` | Bulk export |
-| POST | `/organization/{orgid}/cad-variable/purge-inactive-entities` | `create-purge-inactive-entities` | Purge inactive |
+| POST | `/organization/{orgid}/cad-variable/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/cad-variable/reportable-count` | `list-reportable-count` | Get reportable count |
 | GET | `/organization/{orgid}/cad-variable/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/cad-variable/{id}` | `delete` | Delete |
@@ -1504,7 +1513,7 @@ Most CC config entities follow a standard CRUD pattern with these operations:
 | **Create** | POST | `/organization/{orgid}/{resource}` | `create` or `create-{resource}` | Create single entity |
 | **Bulk save** | POST | `/organization/{orgid}/{resource}/bulk` | `create-bulk` or `create` | Create/update multiple entities |
 | **Bulk export** | GET | `/organization/{orgid}/{resource}/bulk-export` | `list` or `list-bulk-export` | Export all entities (CSV-compatible) |
-| **Purge inactive** | POST | `/organization/{orgid}/{resource}/purge-inactive-entities` | `create-purge-inactive-entities` | Permanently remove deactivated entities |
+| **Purge inactive** | POST | `/organization/{orgid}/{resource}/purge-inactive-entities` | `delete-purge-inactive-entities` | Permanently remove deactivated entities |
 | **Get by ID** | GET | `/organization/{orgid}/{resource}/{id}` | `show` | Get single entity |
 | **Update** | PUT | `/organization/{orgid}/{resource}/{id}` | `update` | Full replace |
 | **Delete** | DELETE | `/organization/{orgid}/{resource}/{id}` | `delete` | Remove entity |
@@ -1554,7 +1563,7 @@ For teardown, reverse this order.
 
 1. **Different base URL.** The CC API uses `api.wxcc-{region}.cisco.com`, not `webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`). Using the wrong base URL produces connection errors.
 
-2. **CC-specific OAuth scopes.** CC endpoints require `cjp:config_read` and `cjp:config_write` scopes, not `spark-admin:*` scopes. A standard Webex admin token without CC scopes gets 403 errors. The CLI detects this and prints a scope tip. Note: `cjp:config` (bare, no suffix) also appears in some webhook and subscription API scope requirements — it may be a distinct scope or a legacy alias. Include it when building CC webhook integrations to avoid unexpected 403s.
+2. **CC-specific OAuth scopes.** CC endpoints require `cjp:config_read` and `cjp:config_write` scopes, not `spark-admin:*` scopes. A standard Webex admin token without CC scopes gets 403 errors. The CLI *may* print a scope tip for these, but do not rely on it: the handler matches on the literal strings `wxcc` and `403` appearing in the error response **body text**, not on the HTTP status code, so the tip only appears when the body happens to spell out both. Treat any 403 from a `cc-*` command as a scope problem whether or not the tip is printed. Note: `cjp:config` (bare, no suffix) also appears in some webhook and subscription API scope requirements — it may be a distinct scope or a legacy alias. Include it when building CC webhook integrations to avoid unexpected 403s.
 
 3. **orgId is auto-injected.** The `{orgid}` path parameter is resolved from your saved config or authenticated user's org. Do not pass it as a CLI flag -- it will be injected automatically.
 

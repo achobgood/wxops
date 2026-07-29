@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-site.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get Meeting Common Settings Configuration.")
 def show(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API queries common settings of the meeting's configuration from. If not specified, the API will query from the site administrator's preferred site. All available Webex sites and the preferred site of the user can be retrieved by the [Get Site..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -33,9 +33,9 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"siteOptions":{"allowCustomPersonalRoomURL":true},"defaultSchedulerOptions":{"entryAndExitTone":"NoTone","telephonySupport":"None","joinTeleconfNotPress1":true,"tollFree":true,"VoIP":true},"scheduleMeetingOptions":{"emailReminders":true},"securityOptions":{"joinBeforeHost":true,"audioBeforeHost":true,"firstAttendeeAsPresenter":true,"unlistAllMeetings":true,"requireLoginBeforeAccess":true,"allowMobileScreenCapture":true,"requireStrongPassword":true,"passwordCriteria":{"mixedCase":"...","minLength":"...","minNumeric":"...","minAlpha":"...","minSpecial":"...","disallowDynamicWebText":"...","disallowList":"...","disallowValues":"..."}}}'
+_BODY_SKELETON_UPDATE = '{"siteOptions":{"allowCustomPersonalRoomURL":true},"defaultSchedulerOptions":{"entryAndExitTone":"NoTone","telephonySupport":"None","joinTeleconfNotPress1":true,"tollFree":true,"VoIP":true},"scheduleMeetingOptions":{"emailReminders":true},"securityOptions":{"joinBeforeHost":true,"audioBeforeHost":true,"firstAttendeeAsPresenter":true,"unlistAllMeetings":true,"requireLoginBeforeAccess":true,"allowMobileScreenCapture":true,"requireStrongPassword":true,"passwordCriteria":{"mixedCase":true,"minLength":0,"minNumeric":0,"minAlpha":0,"minSpecial":0,"disallowDynamicWebText":true,"disallowList":true,"disallowValues":["..."]}}}'
 
-@app.command("update")
+@app.command("update", short_help="Update Meeting Common Settings Configuration.")
 def update(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -43,7 +43,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Common Settings Configuration\n\nExample --json-body:\n  '{"siteOptions":{"allowCustomPersonalRoomURL":true},"defaultSchedulerOptions":{"entryAndExitTone":"NoTone","telephonySupport":"None","joinTeleconfNotPress1":true,"tollFree":true,"VoIP":true},"scheduleMeetingOptions":{"emailReminders":true},"securityOptions":{"joinBeforeHost":true,"audioBeforeHost":true,"firstAttendeeAsPresenter":true,"unlistAllMeetings":true,"requireLoginBeforeAccess":true,"allowMobileScreenCapture":true,"requireStrongPassword":true,"passwordCriteria":{"mixedCase":"...","minLength":"...","minNumeric":"...","minAlpha":"...","minSpecial":"...","disallowDynamicWebText":"...","disallowList":"...","disallowValues":"..."}}}'."""
+    """Update Meeting Common Settings Configuration.\n\n\b\nExample --json-body: '{"siteOptions":{"allowCustomPersonalRoomURL":true},"defaultSchedulerOptions":{"entryAndExitTone":"NoTone","telephonySupport":"None","joinTeleconfNotPress1":true,"tollFree":true,"VoIP":true},"scheduleMeetingOptions":{"emailReminders":true},"securityOptions":{"joinBeforeHost":true,"audioBeforeHost":true,"firstAttendeeAsPresenter":true,"unlistAllMeetings":true,"requireLoginBeforeAccess":true,"allowMobileScreenCapture":true,"requireStrongPassword":true,"passwordCriteria":{"mixedCase":true,"minLength":0,"minNumeric":0,"minAlpha":0,"minSpecial":0,"disallowDynamicWebText":true,"disallowList":true,"disallowValues":["..."]}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling workspace-metrics.")
 
 
-@app.command("list")
+@app.command("list", short_help="Workspace Metrics.")
 def cmd_list(
     workspace_id: str = typer.Option(..., "--workspace-id", help="ID of the workspace to get metrics for."),
     metric_name: str = typer.Option(..., "--metric-name", help="Choices: soundLevel, ambientNoise, temperature, humidity, tvoc, peopleCount"),
@@ -23,9 +23,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Workspace Metrics."""
+    """Workspace Metrics.\n\n\b\nExample: wxcli workspace-metrics list --workspace-id WORKSPACE_ID --metric-name soundLevel"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaceMetrics"
     params = {}
@@ -60,7 +61,7 @@ def cmd_list(
 
 
 
-@app.command("list-workspace-duration-metrics")
+@app.command("list-workspace-duration-metrics", short_help="Workspace Duration Metrics.")
 def list_workspace_duration_metrics(
     workspace_id: str = typer.Option(..., "--workspace-id", help="ID of the workspace to get metrics for."),
     aggregation: str = typer.Option(None, "--aggregation", help="Choices: hourly, daily"),
@@ -71,9 +72,10 @@ def list_workspace_duration_metrics(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Workspace Duration Metrics."""
+    """Workspace Duration Metrics.\n\n\b\nExample: wxcli workspace-metrics list-workspace-duration-metrics --workspace-id WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaceDurationMetrics"
     params = {}

@@ -65,7 +65,7 @@ Meeting preferences control audio/video settings, scheduling options, delegate a
 | Get scheduling options | `wxcli meeting-preferences list-scheduling-options` | GET /meetingPreferences/schedulingOptions | Get scheduling preferences (delegates, join-before-host) |
 | Update scheduling options | `wxcli meeting-preferences update-scheduling-options` | PUT /meetingPreferences/schedulingOptions | Update scheduling preferences |
 | Insert delegate emails | `wxcli meeting-preferences create` | POST /meetingPreferences/schedulingOptions/delegateEmails/insert | Add delegate emails for scheduling |
-| Delete delegate emails | `wxcli meeting-preferences create-delete` | POST /meetingPreferences/schedulingOptions/delegateEmails/delete | Remove delegate emails |
+| Delete delegate emails | `wxcli meeting-preferences delete-delegate-emails` | POST /meetingPreferences/schedulingOptions/delegateEmails/delete | Remove delegate emails |
 | Get site list | `wxcli meeting-preferences list-sites` | GET /meetingPreferences/sites | List available Webex sites and default site |
 | Update default site | `wxcli meeting-preferences update-sites` | PUT /meetingPreferences/sites | Change the user's default Webex site |
 | Get PMR options | `wxcli meeting-preferences list-personal-meeting-room` | GET /meetingPreferences/personalMeetingRoom | Get Personal Meeting Room settings |
@@ -115,7 +115,7 @@ Meeting preferences control audio/video settings, scheduling options, delegate a
 |--------|-------------|
 | `--json-body JSON` | Required: `{"emails": ["delegate1@example.com", "delegate2@example.com"]}` |
 
-#### `meeting-preferences create-delete` (Delete Delegate Emails)
+#### `meeting-preferences delete-delegate-emails` (Delete Delegate Emails)
 
 | Option | Description |
 |--------|-------------|
@@ -788,7 +788,7 @@ All 34 endpoints across the 8 CLI groups, for quick reference.
 | 6 | GET | /meetingPreferences/schedulingOptions | meeting-preferences | `list-scheduling-options` | Get scheduling options |
 | 7 | PUT | /meetingPreferences/schedulingOptions | meeting-preferences | `update-scheduling-options` | Update scheduling options |
 | 8 | POST | /meetingPreferences/schedulingOptions/delegateEmails/insert | meeting-preferences | `create` | Insert delegate emails |
-| 9 | POST | /meetingPreferences/schedulingOptions/delegateEmails/delete | meeting-preferences | `create-delete` | Delete delegate emails |
+| 9 | POST | /meetingPreferences/schedulingOptions/delegateEmails/delete | meeting-preferences | `delete-delegate-emails` | Delete delegate emails |
 | 10 | GET | /meetingPreferences/sites | meeting-preferences | `list-sites` | Get site list |
 | 11 | PUT | /meetingPreferences/sites | meeting-preferences | `update-sites` | Update default site |
 | 12 | GET | /meetingPreferences/personalMeetingRoom | meeting-preferences | `list-personal-meeting-room` | Get PMR options |
@@ -824,7 +824,7 @@ All 34 endpoints across the 8 CLI groups, for quick reference.
 2. **The bare `update` and `create` names in meeting-preferences do not mean what they look like — always check the table above before running one.** The generator assigns the unsuffixed name to whichever endpoint it processes first, so:
    - `wxcli meeting-preferences update` updates **Personal Meeting Room** options (`PUT /meetingPreferences/personalMeetingRoom`), *not* audio. Audio is `update-audio`.
    - `wxcli meeting-preferences list` returns **all** preferences (`GET /meetingPreferences`), *not* video. Video is `list-video`.
-   - `wxcli meeting-preferences create` **inserts** delegate emails (`.../delegateEmails/insert`). Deleting delegates is `create-delete`.
+   - `wxcli meeting-preferences create` **inserts** delegate emails (`.../delegateEmails/insert`). Deleting delegates is `delete-delegate-emails`.
 
    Running `update` expecting to change audio settings will instead overwrite the user's PMR configuration.
 

@@ -11,17 +11,17 @@ from wxcli.config import get_cc_base_url
 app = typer.Typer(help="Manage Webex Contact Center cc-journey.")
 
 
-@app.command("update")
+@app.command("update", short_help="Add/Remove/Replace details of a Person.")
 def update(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="24-char hex id"),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add/Remove/Replace details of a Person."""
+    """Add/Remove/Replace details of a Person.\n\n\b\nExample: wxcli cc-journey update WORKSPACE_ID PERSON_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
@@ -50,20 +50,21 @@ def update(
 
 
 
-@app.command("delete")
-def delete(
+@app.command("delete", hidden=True)
+@app.command("delete-person-id", short_help="Delete specific Person by id.")
+def delete_person_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="24-char hex id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Person by id."""
-    if not force:
-        typer.confirm(f"Delete {person_id}?", abort=True)
+    """Delete specific Person by id.\n\n\b\nExample: wxcli cc-journey delete-person-id WORKSPACE_ID PERSON_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {person_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
     try:
         result = api.session.rest_delete(url)
@@ -82,10 +83,10 @@ def delete(
 
 _BODY_SKELETON_UPDATE_PERSON_ID_WORKSPACE_ID = '{"phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."]}'
 
-@app.command("update-person-id-workspace-id")
+@app.command("update-person-id-workspace-id", short_help="Add one/more Identities to a person.")
 def update_person_id_workspace_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="24-char hex id"),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -93,7 +94,7 @@ def update_person_id_workspace_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add one/more Identities to a person\n\nExample --json-body:\n  '{"phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."]}'."""
+    """Add one/more Identities to a person.\n\n\b\nExample: wxcli cc-journey update-person-id-workspace-id WORKSPACE_ID PERSON_ID\n\n\b\nExample --json-body: '{"phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PERSON_ID_WORKSPACE_ID), indent=2))
         raise typer.Exit(0)
@@ -125,17 +126,18 @@ def update_person_id_workspace_id(
 
 
 
-@app.command("update-person-id-workspace-id-1")
-def update_person_id_workspace_id_1(
+@app.command("update-person-id-workspace-id-1", hidden=True)
+@app.command("delete-person-id-workspace-id", short_help="Remove one/more Identities from a person.")
+def delete_person_id_workspace_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    person_id: str = typer.Argument(help="personId"),
+    person_id: str = typer.Argument(help="24-char hex id"),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove one/more Identities from a person."""
+    """Remove one/more Identities from a person.\n\n\b\nExample: wxcli cc-journey delete-person-id-workspace-id WORKSPACE_ID PERSON_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/person/remove-identities/workspace-id/{workspace_id}/person-id/{person_id}"
@@ -164,7 +166,7 @@ def update_person_id_workspace_id_1(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get all or a specific Person Details.")
 def show(
     workspace_id: str = typer.Argument(help="workspaceId"),
     person_id: str = typer.Option(None, "--person-id", help="Person ID"),
@@ -177,7 +179,7 @@ def show(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get all or a specific Person Details."""
+    """Get all or a specific Person Details.\n\n\b\nExample: wxcli cc-journey show WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}"
@@ -206,7 +208,7 @@ def show(
 
 _BODY_SKELETON_CREATE = '{"firstName":"...","lastName":"...","phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."]}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Person.")
 def create(
     workspace_id: str = typer.Argument(help="workspaceId"),
     first_name: str = typer.Option(None, "--first-name", help="firstName"),
@@ -217,7 +219,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Person\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."]}'."""
+    """Create a Person.\n\n\b\nExample: wxcli cc-journey create WORKSPACE_ID\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -252,17 +254,17 @@ def create(
 
 _BODY_SKELETON_CREATE_PRIMARY_PERSON_ID = '{"personIdsToMerge":["..."]}'
 
-@app.command("create-primary-person-id")
+@app.command("create-primary-person-id", short_help="Merges Identities to a Primary Identity.")
 def create_primary_person_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    primary_person_id: str = typer.Argument(help="primaryPersonId"),
+    primary_person_id: str = typer.Argument(help="24-char hex id"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Merges Identities to a Primary Identity\n\nExample --json-body:\n  '{"personIdsToMerge":["..."]}'."""
+    """Merges Identities to a Primary Identity.\n\n\b\nExample: wxcli cc-journey create-primary-person-id WORKSPACE_ID PRIMARY_PERSON_ID --json-body '{"personIdsToMerge":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PRIMARY_PERSON_ID), indent=2))
         raise typer.Exit(0)
@@ -293,7 +295,7 @@ def create_primary_person_id(
 
 _BODY_SKELETON_CREATE_WORKSPACE_ID_MERGE_IDENTITIES = '{"override":true,"firstName":"...","lastName":"...","phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."],"socialId":["..."]}'
 
-@app.command("create-workspace-id-merge-identities")
+@app.command("create-workspace-id-merge-identities", short_help="Creates or merges aliases to an Individual in JDS.")
 def create_workspace_id_merge_identities(
     workspace_id: str = typer.Argument(help="workspaceId"),
     override: bool = typer.Option(None, "--override/--no-override", help="Override flag which will override the existing person with the new data if set to true. Default is false."),
@@ -305,7 +307,7 @@ def create_workspace_id_merge_identities(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Creates or merges aliases to an Individual in JDS\n\nExample --json-body:\n  '{"override":true,"firstName":"...","lastName":"...","phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."],"socialId":["..."]}'."""
+    """Creates or merges aliases to an Individual in JDS.\n\n\b\nExample: wxcli cc-journey create-workspace-id-merge-identities WORKSPACE_ID\n\n\b\nExample --json-body: '{"override":true,"firstName":"...","lastName":"...","phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."],"socialId":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_WORKSPACE_ID_MERGE_IDENTITIES), indent=2))
         raise typer.Exit(0)
@@ -340,7 +342,7 @@ def create_workspace_id_merge_identities(
 
 
 
-@app.command("show-aliases")
+@app.command("show-aliases", short_help="Search for an Identity via aliases.")
 def show_aliases(
     workspace_id: str = typer.Argument(help="workspaceId"),
     aliases: str = typer.Argument(help="aliases"),
@@ -352,7 +354,7 @@ def show_aliases(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search for an Identity via aliases."""
+    """Search for an Identity via aliases.\n\n\b\nExample: wxcli cc-journey show-aliases WORKSPACE_ID ALIASES"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/aliases/{aliases}"
@@ -375,9 +377,9 @@ def show_aliases(
 
 
 
-_BODY_SKELETON_CREATE_EVENT = '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."}}'
+_BODY_SKELETON_CREATE_EVENT = '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."},"time":"...","previousidentity":"..."}'
 
-@app.command("create-event")
+@app.command("create-event", short_help="Journey Event Posting.")
 def create_event(
     workspace_id: str = typer.Option(..., "--workspace-id", help="Workspace ID"),
     id_param: str = typer.Option(None, "--id", help="(required) Event ID"),
@@ -395,7 +397,7 @@ def create_event(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Journey Event Posting\n\nExample --json-body:\n  '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."}}'."""
+    """Journey Event Posting.\n\n\b\nExample: wxcli cc-journey create-event --workspace-id WORKSPACE_ID --json-body '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."}}'\n\n\b\nExample --json-body: '{"id":"...","specversion":"...","type":"...","source":"...","identity":"...","identitytype":"...","datacontenttype":"...","data":{"agentId":"...","destination":"...","profileType":"...","currentState":"...","idleCodeId":"...","createdTime":"..."},"time":"...","previousidentity":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EVENT), indent=2))
         raise typer.Exit(0)
@@ -449,15 +451,15 @@ def create_event(
 
 
 
-@app.command("show-template-id-workspace-id")
+@app.command("show-template-id-workspace-id", short_help="Get A specific Template searched by template id.")
 def show_template_id_workspace_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    template_id: str = typer.Argument(help="templateId"),
+    template_id: str = typer.Argument(help="24-char hex id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get A specific Template searched by template id."""
+    """Get A specific Template searched by template id.\n\n\b\nExample: wxcli cc-journey show-template-id-workspace-id WORKSPACE_ID TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
@@ -471,12 +473,12 @@ def show_template_id_workspace_id(
 
 
 
-_BODY_SKELETON_UPDATE_TEMPLATE_ID = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'
+_BODY_SKELETON_UPDATE_TEMPLATE_ID = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'
 
-@app.command("update-template-id")
+@app.command("update-template-id", short_help="Update existing ProfileViewTemplate.")
 def update_template_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    template_id: str = typer.Argument(help="templateId"),
+    template_id: str = typer.Argument(help="24-char hex id"),
     name: str = typer.Option(None, "--name", help="Template Name"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -484,7 +486,7 @@ def update_template_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update existing ProfileViewTemplate\n\nExample --json-body:\n  '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'."""
+    """Update existing ProfileViewTemplate.\n\n\b\nExample: wxcli cc-journey update-template-id WORKSPACE_ID TEMPLATE_ID --json-body '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true}]}'\n\n\b\nExample --json-body: '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TEMPLATE_ID), indent=2))
         raise typer.Exit(0)
@@ -512,20 +514,20 @@ def update_template_id(
 
 
 
-@app.command("delete-template-id")
+@app.command("delete-template-id", short_help="Delete Template by template Id.")
 def delete_template_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    template_id: str = typer.Argument(help="templateId"),
+    template_id: str = typer.Argument(help="24-char hex id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Template by template Id."""
-    if not force:
-        typer.confirm(f"Delete {template_id}?", abort=True)
+    """Delete Template by template Id.\n\n\b\nExample: wxcli cc-journey delete-template-id WORKSPACE_ID TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {template_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-id/{template_id}"
     try:
         result = api.session.rest_delete(url)
@@ -542,7 +544,7 @@ def delete_template_id(
 
 
 
-@app.command("show-workspace-id-profile-view-template")
+@app.command("show-workspace-id-profile-view-template", short_help="Get All Template Details.")
 def show_workspace_id_profile_view_template(
     workspace_id: str = typer.Argument(help="workspaceId"),
     filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
@@ -554,7 +556,7 @@ def show_workspace_id_profile_view_template(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get All Template Details."""
+    """Get All Template Details.\n\n\b\nExample: wxcli cc-journey show-workspace-id-profile-view-template WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}"
@@ -579,9 +581,9 @@ def show_workspace_id_profile_view_template(
 
 
 
-_BODY_SKELETON_CREATE_WORKSPACE_ID_PROFILE_VIEW_TEMPLATE = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'
+_BODY_SKELETON_CREATE_WORKSPACE_ID_PROFILE_VIEW_TEMPLATE = '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'
 
-@app.command("create-workspace-id-profile-view-template")
+@app.command("create-workspace-id-profile-view-template", short_help="Create Template.")
 def create_workspace_id_profile_view_template(
     workspace_id: str = typer.Argument(help="workspaceId"),
     name: str = typer.Option(None, "--name", help="(required) Template Name"),
@@ -591,7 +593,7 @@ def create_workspace_id_profile_view_template(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Template\n\nExample --json-body:\n  '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":"...","lookBackDurationType":"...","lookBackPeriod":"..."}]}'."""
+    """Create Template.\n\n\b\nExample: wxcli cc-journey create-workspace-id-profile-view-template WORKSPACE_ID --json-body '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true}]}'\n\n\b\nExample --json-body: '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_WORKSPACE_ID_PROFILE_VIEW_TEMPLATE), indent=2))
         raise typer.Exit(0)
@@ -626,15 +628,15 @@ def create_workspace_id_profile_view_template(
 
 
 
-@app.command("show-template-name-workspace-id")
+@app.command("show-template-name-workspace-id", short_help="Get A specific Template searched by template name.")
 def show_template_name_workspace_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
-    template_name: str = typer.Argument(help="templateName"),
+    template_name: str = typer.Argument(help="e.g. sample-template"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get A specific Template searched by template name."""
+    """Get A specific Template searched by template name.\n\n\b\nExample: wxcli cc-journey show-template-name-workspace-id WORKSPACE_ID sample-template"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/profile-view-template/workspace-id/{workspace_id}/template-name/{template_name}"
@@ -648,16 +650,16 @@ def show_template_name_workspace_id(
 
 
 
-@app.command("show-template-name-person-id")
+@app.command("show-template-name-person-id", short_help="Historic Progressive Profile View by Template Name.")
 def show_template_name_person_id(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     person_id: str = typer.Argument(help="personId"),
-    template_name: str = typer.Argument(help="templateName"),
+    template_name: str = typer.Argument(help="e.g. insurance-template"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Historic Progressive Profile View by Template Name."""
+    """Historic Progressive Profile View by Template Name.\n\n\b\nExample: wxcli cc-journey show-template-name-person-id WORKSPACE_ID PERSON_ID insurance-template"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
@@ -671,16 +673,16 @@ def show_template_name_person_id(
 
 
 
-@app.command("show-template-id-person-id")
+@app.command("show-template-id-person-id", short_help="Historic Progressive Profile View.")
 def show_template_id_person_id(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     person_id: str = typer.Argument(help="personId"),
     template_id: str = typer.Argument(help="templateId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Historic Progressive Profile View."""
+    """Historic Progressive Profile View.\n\n\b\nExample: wxcli cc-journey show-template-id-person-id WORKSPACE_ID PERSON_ID TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-id/{template_id}"
@@ -694,16 +696,16 @@ def show_template_id_person_id(
 
 
 
-@app.command("show-template-name-identity")
+@app.command("show-template-name-identity", short_help="Historic Progressive Profile View By Template Name.")
 def show_template_name_identity(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     identity: str = typer.Argument(help="identity"),
-    template_name: str = typer.Argument(help="templateName"),
+    template_name: str = typer.Argument(help="e.g. insurance-template"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Historic Progressive Profile View By Template Name."""
+    """Historic Progressive Profile View By Template Name.\n\n\b\nExample: wxcli cc-journey show-template-name-identity WORKSPACE_ID IDENTITY insurance-template"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
@@ -717,16 +719,16 @@ def show_template_name_identity(
 
 
 
-@app.command("show-template-id-identity")
+@app.command("show-template-id-identity", short_help="Historic Progressive Profile View By Template Id.")
 def show_template_id_identity(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     identity: str = typer.Argument(help="identity"),
     template_id: str = typer.Argument(help="templateId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Historic Progressive Profile View By Template Id."""
+    """Historic Progressive Profile View By Template Id.\n\n\b\nExample: wxcli cc-journey show-template-id-identity WORKSPACE_ID IDENTITY TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
@@ -740,16 +742,16 @@ def show_template_id_identity(
 
 
 
-@app.command("show-template-name-identity-1")
+@app.command("show-template-name-identity-1", short_help="Stream Progressive profile Views By Template Name.")
 def show_template_name_identity_1(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     identity: str = typer.Argument(help="identity"),
-    template_name: str = typer.Argument(help="templateName"),
+    template_name: str = typer.Argument(help="e.g. insurance-template"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Stream Progressive profile Views By Template Name."""
+    """Stream Progressive profile Views By Template Name.\n\n\b\nExample: wxcli cc-journey show-template-name-identity-1 WORKSPACE_ID IDENTITY insurance-template"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
@@ -763,16 +765,16 @@ def show_template_name_identity_1(
 
 
 
-@app.command("show-template-id-identity-1")
+@app.command("show-template-id-identity-1", short_help="Stream Progressive profile Views By Template Id.")
 def show_template_id_identity_1(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     identity: str = typer.Argument(help="identity"),
     template_id: str = typer.Argument(help="templateId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Stream Progressive profile Views By Template Id."""
+    """Stream Progressive profile Views By Template Id.\n\n\b\nExample: wxcli cc-journey show-template-id-identity-1 WORKSPACE_ID IDENTITY TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
@@ -786,9 +788,9 @@ def show_template_id_identity_1(
 
 
 
-@app.command("show-workspace-id-events")
+@app.command("show-workspace-id-events", short_help="Historic Journey Events.")
 def show_workspace_id_events(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     identity: str = typer.Option(None, "--identity", help="Identity to search events for. In case the identity contains non-uri-encodable characters, eg: '+', '>' etc, you can URL-encode the same and then pass it as parameter."),
     sort_by: str = typer.Option(None, "--sort-by", help="sort By Field"),
     sort: str = typer.Option(None, "--sort", help="sort direction"),
@@ -800,7 +802,7 @@ def show_workspace_id_events(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Historic Journey Events."""
+    """Historic Journey Events.\n\n\b\nExample: wxcli cc-journey show-workspace-id-events WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/events/workspace-id/{workspace_id}"
@@ -829,9 +831,9 @@ def show_workspace_id_events(
 
 
 
-@app.command("show-identity")
+@app.command("show-identity", short_help="Stream Events By Identity.")
 def show_identity(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     identity: str = typer.Argument(help="identity"),
     filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
     data: str = typer.Option(None, "--data", help="Optional filter on data filed which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
@@ -839,7 +841,7 @@ def show_identity(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Stream Events By Identity."""
+    """Stream Events By Identity.\n\n\b\nExample: wxcli cc-journey show-identity WORKSPACE_ID IDENTITY"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/api/events/stream/workspace-id/{workspace_id}/identity/{identity}"
@@ -858,14 +860,14 @@ def show_identity(
 
 
 
-@app.command("show-workspace-id-wxcc-subscription")
+@app.command("show-workspace-id-wxcc-subscription", short_help="Get WXCC Subscription.")
 def show_workspace_id_wxcc_subscription(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get WXCC Subscription."""
+    """Get WXCC Subscription.\n\n\b\nExample: wxcli cc-journey show-workspace-id-wxcc-subscription WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
@@ -879,15 +881,15 @@ def show_workspace_id_wxcc_subscription(
 
 
 
-@app.command("create-workspace-id-wxcc-subscription")
+@app.command("create-workspace-id-wxcc-subscription", short_help="Create WXCC Subscription.")
 def create_workspace_id_wxcc_subscription(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create WXCC Subscription."""
+    """Create WXCC Subscription.\n\n\b\nExample: wxcli cc-journey create-workspace-id-wxcc-subscription WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
@@ -913,19 +915,19 @@ def create_workspace_id_wxcc_subscription(
 
 
 
-@app.command("delete-workspace-id-wxcc-subscription")
+@app.command("delete-workspace-id-wxcc-subscription", short_help="Delete WXCC Subscription.")
 def delete_workspace_id_wxcc_subscription(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete WXCC Subscription."""
-    if not force:
-        typer.confirm(f"Delete {workspace_id}?", abort=True)
+    """Delete WXCC Subscription.\n\n\b\nExample: wxcli cc-journey delete-workspace-id-wxcc-subscription WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {workspace_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/wxcc-subscription/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_delete(url)
@@ -942,7 +944,7 @@ def delete_workspace_id_wxcc_subscription(
 
 
 
-@app.command("show-workspace-id-journey-actions")
+@app.command("show-workspace-id-journey-actions", short_help="Get all Journey Actions.")
 def show_workspace_id_journey_actions(
     workspace_id: str = typer.Argument(help="workspaceId"),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort By Field"),
@@ -953,7 +955,7 @@ def show_workspace_id_journey_actions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get all Journey Actions."""
+    """Get all Journey Actions.\n\n\b\nExample: wxcli cc-journey show-workspace-id-journey-actions WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}"
@@ -976,7 +978,7 @@ def show_workspace_id_journey_actions(
 
 
 
-@app.command("show-template-id-workspace-id-1")
+@app.command("show-template-id-workspace-id-1", short_help="Get all Journey Actions for a template.")
 def show_template_id_workspace_id_1(
     workspace_id: str = typer.Argument(help="workspaceId"),
     template_id: str = typer.Argument(help="templateId"),
@@ -984,7 +986,7 @@ def show_template_id_workspace_id_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get all Journey Actions for a template."""
+    """Get all Journey Actions for a template.\n\n\b\nExample: wxcli cc-journey show-template-id-workspace-id-1 WORKSPACE_ID TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}"
@@ -1000,7 +1002,7 @@ def show_template_id_workspace_id_1(
 
 _BODY_SKELETON_CREATE_TEMPLATE_ID = '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'
 
-@app.command("create-template-id")
+@app.command("create-template-id", short_help="Create a new Journey Action.")
 def create_template_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
     template_id: str = typer.Argument(help="templateId"),
@@ -1013,7 +1015,7 @@ def create_template_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new  Journey Action\n\nExample --json-body:\n  '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'."""
+    """Create a new Journey Action.\n\n\b\nExample: wxcli cc-journey create-template-id WORKSPACE_ID TEMPLATE_ID --json-body '{"name":"...","rules":{"logic":"...","args":["..."]}}'\n\n\b\nExample --json-body: '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TEMPLATE_ID), indent=2))
         raise typer.Exit(0)
@@ -1052,7 +1054,7 @@ def create_template_id(
 
 
 
-@app.command("show-action-name")
+@app.command("show-action-name", short_help="Get specific Journey Action By Name.")
 def show_action_name(
     workspace_id: str = typer.Argument(help="workspaceId"),
     template_id: str = typer.Argument(help="templateId"),
@@ -1061,7 +1063,7 @@ def show_action_name(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Journey Action By Name."""
+    """Get specific Journey Action By Name.\n\n\b\nExample: wxcli cc-journey show-action-name WORKSPACE_ID TEMPLATE_ID ACTION_NAME"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-name/{action_name}"
@@ -1075,7 +1077,7 @@ def show_action_name(
 
 
 
-@app.command("show-action-id")
+@app.command("show-action-id", short_help="Get specific Journey Action By ActionId.")
 def show_action_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
     template_id: str = typer.Argument(help="templateId"),
@@ -1084,7 +1086,7 @@ def show_action_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Journey Action By ActionId."""
+    """Get specific Journey Action By ActionId.\n\n\b\nExample: wxcli cc-journey show-action-id WORKSPACE_ID TEMPLATE_ID ACTION_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
@@ -1100,7 +1102,7 @@ def show_action_id(
 
 _BODY_SKELETON_UPDATE_ACTION_ID = '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'
 
-@app.command("update-action-id")
+@app.command("update-action-id", short_help="Update existing Journey Action.")
 def update_action_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
     template_id: str = typer.Argument(help="templateId"),
@@ -1114,7 +1116,7 @@ def update_action_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update existing Journey Action\n\nExample --json-body:\n  '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'."""
+    """Update existing Journey Action.\n\n\b\nExample: wxcli cc-journey update-action-id WORKSPACE_ID TEMPLATE_ID ACTION_ID --json-body '{"name":"...","rules":{"logic":"...","args":["..."]}}'\n\n\b\nExample --json-body: '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ACTION_ID), indent=2))
         raise typer.Exit(0)
@@ -1146,7 +1148,7 @@ def update_action_id(
 
 
 
-@app.command("delete-action-id")
+@app.command("delete-action-id", short_help="Delete Journey Action configuration By ActionId.")
 def delete_action_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
     template_id: str = typer.Argument(help="templateId"),
@@ -1156,11 +1158,11 @@ def delete_action_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Journey Action configuration By ActionId."""
-    if not force:
-        typer.confirm(f"Delete {action_id}?", abort=True)
+    """Delete Journey Action configuration By ActionId.\n\n\b\nExample: wxcli cc-journey delete-action-id WORKSPACE_ID TEMPLATE_ID ACTION_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {action_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/journey-actions/workspace-id/{workspace_id}/template-id/{template_id}/action-id/{action_id}"
     try:
         result = api.session.rest_delete(url)
@@ -1177,14 +1179,14 @@ def delete_action_id(
 
 
 
-@app.command("show-workspace-id-api")
+@app.command("show-workspace-id-api", short_help="Get Workspace.")
 def show_workspace_id_api(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Workspace."""
+    """Get Workspace.\n\n\b\nExample: wxcli cc-journey show-workspace-id-api WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
@@ -1200,9 +1202,9 @@ def show_workspace_id_api(
 
 _BODY_SKELETON_UPDATE_WORKSPACE_ID = '{"name":"...","description":"..."}'
 
-@app.command("update-workspace-id")
+@app.command("update-workspace-id", short_help="Update Workspace.")
 def update_workspace_id(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     name: str = typer.Option(None, "--name", help="Workspace Name"),
     description: str = typer.Option(None, "--description", help="Workspace Description"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -1211,7 +1213,7 @@ def update_workspace_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Workspace\n\nExample --json-body:\n  '{"name":"...","description":"..."}'."""
+    """Update Workspace.\n\n\b\nExample: wxcli cc-journey update-workspace-id WORKSPACE_ID --name NAME --description DESCRIPTION\n\n\b\nExample --json-body: '{"name":"...","description":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_WORKSPACE_ID), indent=2))
         raise typer.Exit(0)
@@ -1241,19 +1243,19 @@ def update_workspace_id(
 
 
 
-@app.command("delete-workspace-id-api")
+@app.command("delete-workspace-id-api", short_help="Delete Workspace.")
 def delete_workspace_id_api(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="24-char hex id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Workspace."""
-    if not force:
-        typer.confirm(f"Delete {workspace_id}?", abort=True)
+    """Delete Workspace.\n\n\b\nExample: wxcli cc-journey delete-workspace-id-api WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {workspace_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/workspace/workspace-id/{workspace_id}"
     try:
         result = api.session.rest_delete(url)
@@ -1270,7 +1272,7 @@ def delete_workspace_id_api(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get All Workspaces.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Optional filter which can be applied to the elements to be fetched. This parameter uses the RSQL query syntax, a URI-friendly format for expressing criteria for filtering REST entities. For more information about RSQL in general, see [this..."),
     sort_by: str = typer.Option(None, "--sort-by", help="Sort By Field"),
@@ -1281,6 +1283,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get All Workspaces."""
@@ -1304,7 +1307,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1317,7 +1323,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE_WORKSPACE = '{"name":"...","description":"..."}'
 
-@app.command("create-workspace")
+@app.command("create-workspace", short_help="Create Workspace.")
 def create_workspace(
     name: str = typer.Option(None, "--name", help="(required) Workspace Name"),
     description: str = typer.Option(None, "--description", help="(required) Workspace Description"),
@@ -1327,7 +1333,7 @@ def create_workspace(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Workspace\n\nExample --json-body:\n  '{"name":"...","description":"..."}'."""
+    """Create Workspace.\n\n\b\nExample: wxcli cc-journey create-workspace --name NAME --description DESCRIPTION\n\n\b\nExample --json-body: '{"name":"...","description":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_WORKSPACE), indent=2))
         raise typer.Exit(0)

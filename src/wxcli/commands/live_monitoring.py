@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Calling live-monitoring.")
 
 _BODY_SKELETON_CREATE = '{"siteIds":[0],"siteUrl":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Get Live Meeting metrics categorized by Country.")
 def create(
     site_url: str = typer.Option(None, "--site-url", help="A site URL."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -21,7 +21,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Live Meeting metrics categorized by Country\n\nExample --json-body:\n  '{"siteIds":[0],"siteUrl":"..."}'."""
+    """Get Live Meeting metrics categorized by Country.\n\n\b\nExample --json-body: '{"siteIds":[0],"siteUrl":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

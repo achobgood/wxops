@@ -142,9 +142,9 @@ The activation email job is an asynchronous bulk operation: you initiate it, the
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `activation-email create` | Initiate a bulk activation email resend job | `ORG_ID` (arg) |
-| `activation-email list` | Get bulk job status | `ORG_ID` (arg), `JOB_ID` (arg) |
-| `activation-email list-errors` | Get bulk job errors | `ORG_ID` (arg), `JOB_ID` (arg), `--max` |
+| `activation-email create` | Initiate a bulk activation email resend job | (no args -- org ID resolved from config), `--json-body` |
+| `activation-email list` | Get bulk job status | `JOB_ID` (arg) |
+| `activation-email list-errors` | Get bulk job errors | `JOB_ID` (arg), `--limit`, `--offset` |
 
 #### archive-users
 
@@ -168,14 +168,14 @@ The activation email job is an asynchronous bulk operation: you initiate it, the
 ### CLI Examples
 
 ```bash
-# Initiate bulk activation email resend
-wxcli activation-email create "Y2lzY29zcGFyazovL3VzL09SR..."
+# Initiate bulk activation email resend (org ID is resolved from config, not passed)
+wxcli activation-email create
 
 # Poll for job status (use the jobId from the create response)
-wxcli activation-email list "Y2lzY29zcGFyazovL3VzL09SR..." "JOB_ID_HERE"
+wxcli activation-email list "JOB_ID_HERE"
 
 # Check for errors in the job
-wxcli activation-email list-errors "Y2lzY29zcGFyazovL3VzL09SR..." "JOB_ID_HERE"
+wxcli activation-email list-errors "JOB_ID_HERE"
 
 # Look up an archived user by UUID (org ID is injected, not passed)
 wxcli archive-users list --filter 'id eq "USER_UUID_HERE"'
@@ -196,9 +196,9 @@ wxcli guest-management list
 
 The activation email workflow follows the standard Webex async job pattern:
 
-1. **Initiate:** `activation-email create ORG_ID` returns a job ID.
-2. **Poll:** `activation-email list ORG_ID JOB_ID` until status shows completion.
-3. **Check errors:** `activation-email list-errors ORG_ID JOB_ID` to see which users failed.
+1. **Initiate:** `activation-email create` returns a job ID. The org is resolved from the saved config (`wxcli switch-org`), not passed as an argument.
+2. **Poll:** `activation-email list JOB_ID` until status shows completion.
+3. **Check errors:** `activation-email list-errors JOB_ID` to see which users failed.
 
 This is the same pattern used by other bulk Webex operations (number management, user CSV import, etc.).
 
@@ -267,14 +267,16 @@ The `admin-recordings` group provides org-wide recording management for administ
 | `admin-recordings show` | Get recording details | `RECORDING_ID` (arg), `--host-email` |
 | `admin-recordings list-recordings-group` | List group recordings | `--person-id`, `--from`, `--to`, `--site-url`, `--topic`, `--format`, `--service-type` |
 | `admin-recordings show-recordings` | Get group recording details | `RECORDING_ID` (arg), `--person-id` |
+| `admin-recordings create` | Query recordings (a **search**, POST `/v1/recordings/query` -- read-only despite the name) | `--from`, `--to`, `--meeting-id`, `--host-email`, `--site-url`, `--topic`, `--format`, `--service-type`, `--status`, `--json-body` |
+| `admin-recordings create-query` | Query recordings for an admin or compliance officer (POST `/v1/admin/recordings/query`) | `--from`, `--to`, `--meeting-id`, `--site-url`, `--topic`, `--format`, `--service-type`, `--status`, `--json-body` |
 
 #### Lifecycle Management
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `admin-recordings create` | Move recordings into the recycle bin (soft-delete) | `--host-email`, `--site-url`, `--json-body` |
+| `admin-recordings create-soft-delete` | Move recordings into the recycle bin (soft-delete) | `--host-email`, `--site-url`, `--json-body` |
 | `admin-recordings create-restore` | Restore recordings from recycle bin | `--host-email`, `--restore-all/--no-restore-all`, `--site-url`, `--json-body` |
-| `admin-recordings create-purge` | Permanently purge recordings from recycle bin | `--host-email`, `--purge-all/--no-purge-all`, `--site-url`, `--json-body` |
+| `admin-recordings delete-recordings-recycle` | Permanently purge recordings from recycle bin (alias: `create-purge`) | `--host-email`, `--purge-all/--no-purge-all`, `--site-url`, `--json-body` |
 | `admin-recordings delete` | Delete a recording by admin (hard delete) | `RECORDING_ID` (arg), `--force` |
 | `admin-recordings delete-recordings` | Delete a recording (with host-email context) | `RECORDING_ID` (arg), `--host-email`, `--force` |
 
@@ -301,7 +303,7 @@ wxcli admin-recordings list --host-email user@example.com
 wxcli admin-recordings show RECORDING_ID_HERE
 
 # Soft-delete recordings to recycle bin (requires JSON body with recording IDs)
-wxcli admin-recordings create \
+wxcli admin-recordings create-soft-delete \
   --host-email user@example.com \
   --json-body '{"recordingIds": ["rec_id_1", "rec_id_2"]}'
 
@@ -311,7 +313,7 @@ wxcli admin-recordings create-restore \
   --restore-all
 
 # Permanently purge all recycle bin recordings for a host
-wxcli admin-recordings create-purge \
+wxcli admin-recordings delete-recordings-recycle \
   --host-email user@example.com \
   --purge-all
 
@@ -631,7 +633,7 @@ For calling-specific report creation and download, see [reporting-analytics.md](
 
 4. **Client secret and refresh token are shown only once.** When registering a service app on developer.webex.com, the client secret is displayed only at creation time. Similarly, when generating tokens after admin authorization, the refresh token is shown only once. Copy both immediately and store securely. If lost, you must regenerate credentials (client secret) or re-authorize and generate new tokens (refresh token).
 
-5. **`admin-recordings create` is a soft-delete, not a true create.** Despite the command name (`create` maps to POST), this moves recordings into the recycle bin. It does not create a recording. The `--json-body` must include the `recordingIds` array. Similarly, `create-restore` and `create-purge` are POST operations that restore from or permanently delete the recycle bin.
+5. **`admin-recordings create` is a search, not a create or a delete.** Despite the command name (`create` maps to POST), it is `POST /v1/recordings/query` -- a read that returns recordings matching the filters you pass. It creates nothing and deletes nothing. The soft-delete is `create-soft-delete` (`POST /v1/recordings/softDelete`), and its `--json-body` must include the `recordingIds` array. Similarly, `create-restore` and `delete-recordings-recycle` are POST operations that restore from or permanently purge the recycle bin. Running `create` when you meant `create-soft-delete` exits 0 and returns a recordings payload -- nothing is moved to the recycle bin.
 
 6. **Two delete commands for recordings.** `admin-recordings delete` (admin hard-delete by recording ID) vs `admin-recordings delete-recordings` (delete with host-email context). The former is admin-only; the latter can specify a host email for user-context deletion.
 

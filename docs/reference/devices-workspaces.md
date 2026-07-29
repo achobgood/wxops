@@ -918,7 +918,7 @@ All 96 `workspace-settings` commands:
 | **Numbers** | `list-numbers`, `update-numbers` |
 | **Incoming Permissions** | `show-incoming-permission`, `update-incoming-permission` |
 | **Outgoing Permissions** | `list-outgoing-permission`, `update-outgoing-permission` |
-| **Access Codes** | `list-access-codes`, `create`, `update-access-codes`, `delete`, `delete-access-codes` |
+| **Access Codes** | `list-access-codes`, `create`, `update-access-codes`, `delete-access-codes-all`, `delete-access-codes` |
 | **Intercept** | `show-intercept`, `update-intercept`, `upload-call-intercept` |
 | **Auto Transfer Numbers** | `show-auto-transfer-numbers`, `update-auto-transfer-numbers` |
 | **Music on Hold** | `show-music-on-hold`, `update-music-on-hold` |

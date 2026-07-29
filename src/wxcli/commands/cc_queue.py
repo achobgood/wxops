@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-queue.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Contact Service Queues.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     channel_types: str = typer.Option(None, "--channel-types", help="[DEPRECATED] Channel type(s) allowed by the system.Separate values with commas.Use uppercase. By default, there is no channel type filtering."),
@@ -23,6 +23,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Contact Service Queues."""
@@ -49,7 +50,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -60,9 +64,9 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE = '{"items":[{"itemIdentifier":0,"item":{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create")
+@app.command("create", short_help="Bulk save Contact Service Queues.")
 def create(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -70,7 +74,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Contact Service Queues\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Contact Service Queues.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -100,9 +104,9 @@ def create(
 
 
 
-_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":0,"item":{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Bulk partial update Contact Service Queues.")
 def update(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -110,7 +114,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Contact Service Queues\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk partial update Contact Service Queues.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -137,14 +141,14 @@ def update(
 
 
 
-@app.command("show")
+@app.command("show", short_help="List skill-based Contact Service Queues by skill profile ID (public).")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List skill-based Contact Service Queues by skill profile ID (public)."""
+    """List skill-based Contact Service Queues by skill profile ID (public).\n\n\b\nExample: wxcli cc-queue show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -159,19 +163,20 @@ def show(
 
 
 
-_BODY_SKELETON_CREATE_DELETE_REFERENCE = '{"references":{}}'
+_BODY_SKELETON_DELETE_REFERENCE = '{"references":{}}'
 
-@app.command("create-delete-reference")
-def create_delete_reference(
+@app.command("create-delete-reference", hidden=True)
+@app.command("delete-reference", short_help="Delete references from Contact Service Queues.")
+def delete_reference(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete references from Contact Service Queues\n\nExample --json-body:\n  '{"references":{}}'."""
+    """Delete references from Contact Service Queues.\n\n\b\nExample --json-body: '{"references":{}}'"""
     if generate_json_body:
-        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DELETE_REFERENCE), indent=2))
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_REFERENCE), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
@@ -194,9 +199,9 @@ def create_delete_reference(
 
 
 
-_BODY_SKELETON_CREATE_FETCH_BY_DYNAMIC_SKILLS_AND_SKILL_PROFILE = '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":"...","proficiencyValue":"...","enumSkillValues":"..."}],"userId":"..."}'
+_BODY_SKELETON_CREATE_FETCH_BY_DYNAMIC_SKILLS_AND_SKILL_PROFILE = '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumSkillValues":["..."]}],"userId":"..."}'
 
-@app.command("create-fetch-by-dynamic-skills-and-skill-profile")
+@app.command("create-fetch-by-dynamic-skills-and-skill-profile", short_help="List skill-based Contact Service Queues by dynamic skills and skill profile.")
 def create_fetch_by_dynamic_skills_and_skill_profile(
     skill_profile_id: str = typer.Option(None, "--skill-profile-id", help="Unique identifier of the skill profile to look up queues for."),
     user_id: str = typer.Option(None, "--user-id", help="Unique identifier of the user (agent) whose skill-based queues should be retrieved. Used by the user-and-skill-profile lookup endpoint."),
@@ -206,7 +211,7 @@ def create_fetch_by_dynamic_skills_and_skill_profile(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List skill-based Contact Service Queues by dynamic skills and skill profile\n\nExample --json-body:\n  '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":"...","proficiencyValue":"...","enumSkillValues":"..."}],"userId":"..."}'."""
+    """List skill-based Contact Service Queues by dynamic skills and skill profile.\n\n\b\nExample --json-body: '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumSkillValues":["..."]}],"userId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FETCH_BY_DYNAMIC_SKILLS_AND_SKILL_PROFILE), indent=2))
         raise typer.Exit(0)
@@ -240,9 +245,9 @@ def create_fetch_by_dynamic_skills_and_skill_profile(
 
 
 
-_BODY_SKELETON_CREATE_FETCH_BY_USER_ID_SKILL_PROFILE_ID = '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":"...","proficiencyValue":"...","enumSkillValues":"..."}],"userId":"..."}'
+_BODY_SKELETON_CREATE_FETCH_BY_USER_ID_SKILL_PROFILE_ID = '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumSkillValues":["..."]}],"userId":"..."}'
 
-@app.command("create-fetch-by-user-id-skill-profile-id")
+@app.command("create-fetch-by-user-id-skill-profile-id", short_help="List skill-based Contact Service Queues by skill profile ID and user ID.")
 def create_fetch_by_user_id_skill_profile_id(
     skill_profile_id: str = typer.Option(None, "--skill-profile-id", help="Unique identifier of the skill profile to look up queues for."),
     user_id: str = typer.Option(None, "--user-id", help="Unique identifier of the user (agent) whose skill-based queues should be retrieved. Used by the user-and-skill-profile lookup endpoint."),
@@ -252,7 +257,7 @@ def create_fetch_by_user_id_skill_profile_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List skill-based Contact Service Queues by skill profile ID and user ID\n\nExample --json-body:\n  '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":"...","proficiencyValue":"...","enumSkillValues":"..."}],"userId":"..."}'."""
+    """List skill-based Contact Service Queues by skill profile ID and user ID.\n\n\b\nExample --json-body: '{"skillProfileId":"...","dynamicSkills":[{"skillId":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumSkillValues":["..."]}],"userId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FETCH_BY_USER_ID_SKILL_PROFILE_ID), indent=2))
         raise typer.Exit(0)
@@ -288,7 +293,7 @@ def create_fetch_by_user_id_skill_profile_id(
 
 _BODY_SKELETON_CREATE_FETCH_MANUALLY_ASSIGNABLE_QUEUES = '{"agentId":"...","teamId":"..."}'
 
-@app.command("create-fetch-manually-assignable-queues")
+@app.command("create-fetch-manually-assignable-queues", short_help="List manually assignable Contact Service Queues.")
 def create_fetch_manually_assignable_queues(
     agent_id: str = typer.Option(None, "--agent-id", help="Unique identifier of the agent (CI user ID) for whom manually assignable queues should be retrieved."),
     team_id: str = typer.Option(None, "--team-id", help="Unique identifier of the team that the agent belongs to. Used to scope the queues that the agent can be manually assigned contacts from."),
@@ -298,7 +303,7 @@ def create_fetch_manually_assignable_queues(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List manually assignable Contact Service Queues\n\nExample --json-body:\n  '{"agentId":"...","teamId":"..."}'."""
+    """List manually assignable Contact Service Queues.\n\n\b\nExample --json-body: '{"agentId":"...","teamId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FETCH_MANUALLY_ASSIGNABLE_QUEUES), indent=2))
         raise typer.Exit(0)
@@ -332,8 +337,9 @@ def create_fetch_manually_assignable_queues(
 
 
 
-@app.command("create-purge-inactive-entities")
-def create_purge_inactive_entities(
+@app.command("create-purge-inactive-entities", hidden=True)
+@app.command("delete-purge-inactive-entities", short_help="Purge inactive Contact Service Queues.")
+def delete_purge_inactive_entities(
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch will be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -365,15 +371,15 @@ def create_purge_inactive_entities(
 
 
 
-@app.command("show-contact-service-queue-organization")
+@app.command("show-contact-service-queue-organization", short_help="Get specific Contact Service Queue by ID.")
 def show_contact_service_queue_organization(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-queue list"),
     agents_updated_info: str = typer.Option(None, "--agents-updated-info", help="If `true`, returns the user details who has last updated the agents list in an agent based queue."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Contact Service Queue by ID."""
+    """Get specific Contact Service Queue by ID.\n\n\b\nExample: wxcli cc-queue show-contact-service-queue-organization ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -391,20 +397,20 @@ def show_contact_service_queue_organization(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Contact Service Queue by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-queue list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Contact Service Queue by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Contact Service Queue by ID.\n\n\b\nExample: wxcli cc-queue delete ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -421,9 +427,9 @@ def delete(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific Contact Service Queue.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-queue list"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -431,9 +437,10 @@ def list_incoming_references(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Contact Service Queue."""
+    """List references for a specific Contact Service Queue.\n\n\b\nExample: wxcli cc-queue list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -451,7 +458,10 @@ def list_incoming_references(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -462,9 +472,9 @@ def list_incoming_references(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Contact Service Queues.")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -472,7 +482,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Contact Service Queues\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Contact Service Queues.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -502,7 +512,7 @@ def create_bulk(
 
 
 
-@app.command("list-contact-service-queue-v2")
+@app.command("list-contact-service-queue-v2", short_help="List Contact Service Queues.")
 def list_contact_service_queue_v2(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, queueSkillRequirements, xspVersion, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (callDistributionGroups,queueSkillRequirements,links)"),
@@ -517,6 +527,7 @@ def list_contact_service_queue_v2(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Contact Service Queues."""
@@ -549,7 +560,10 @@ def list_contact_service_queue_v2(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -560,9 +574,9 @@ def list_contact_service_queue_v2(
 
 
 
-_BODY_SKELETON_CREATE_CONTACT_SERVICE_QUEUE = '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'
+_BODY_SKELETON_CREATE_CONTACT_SERVICE_QUEUE = '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create-contact-service-queue")
+@app.command("create-contact-service-queue", short_help="Create a new Contact Service Queue.")
 def create_contact_service_queue(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -613,7 +627,7 @@ def create_contact_service_queue(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Contact Service Queue\n\nExample --json-body:\n  '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'."""
+    """Create a new Contact Service Queue.\n\n\b\nExample: wxcli cc-queue create-contact-service-queue --json-body '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}]}'\n\n\b\nExample --json-body: '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CONTACT_SERVICE_QUEUE), indent=2))
         raise typer.Exit(0)
@@ -733,7 +747,7 @@ def create_contact_service_queue(
 
 
 
-@app.command("list-agent-based-queues")
+@app.command("list-agent-based-queues", short_help="List agent-based Contact Service Queues by user ID.")
 def list_agent_based_queues(
     userid: str = typer.Argument(help="userid"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"lastName\");value==\"Cisco\""),
@@ -743,9 +757,10 @@ def list_agent_based_queues(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List agent-based Contact Service Queues by user ID."""
+    """List agent-based Contact Service Queues by user ID.\n\n\b\nExample: wxcli cc-queue list-agent-based-queues USERID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -763,7 +778,10 @@ def list_agent_based_queues(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -774,7 +792,7 @@ def list_agent_based_queues(
 
 
 
-@app.command("list-skill-based-queues")
+@app.command("list-skill-based-queues", short_help="List skill-based Contact Service Queues by user ID.")
 def list_skill_based_queues(
     userid: str = typer.Argument(help="userid"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"lastName\");value==\"Cisco\""),
@@ -784,9 +802,10 @@ def list_skill_based_queues(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List skill-based Contact Service Queues by user ID."""
+    """List skill-based Contact Service Queues by user ID.\n\n\b\nExample: wxcli cc-queue list-skill-based-queues USERID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -804,7 +823,10 @@ def list_skill_based_queues(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -815,7 +837,7 @@ def list_skill_based_queues(
 
 
 
-@app.command("list-team-based-queues")
+@app.command("list-team-based-queues", short_help="List team-based Contact Service Queues by user ID.")
 def list_team_based_queues(
     userid: str = typer.Argument(help="userid"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(firstName, lastName, email) The examples below show some search queries - \"Cisco\" - field==\"firstName\";value==\"Cisco\" - fields=in=(\"firstName\",\"lastName\");value==\"Cisco\""),
@@ -825,9 +847,10 @@ def list_team_based_queues(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List team-based Contact Service Queues by user ID."""
+    """List team-based Contact Service Queues by user ID.\n\n\b\nExample: wxcli cc-queue list-team-based-queues USERID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -845,7 +868,10 @@ def list_team_based_queues(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -858,7 +884,7 @@ def list_team_based_queues(
 
 _BODY_SKELETON_CREATE_FETCH_BY_GROUPED_ASSISTANT_SKILL = '{"assistantSkillIds":["..."]}'
 
-@app.command("create-fetch-by-grouped-assistant-skill")
+@app.command("create-fetch-by-grouped-assistant-skill", short_help="List queue mapping summary grouped by Assistant Skill.")
 def create_fetch_by_grouped_assistant_skill(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -868,7 +894,7 @@ def create_fetch_by_grouped_assistant_skill(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List queue mapping summary grouped by Assistant Skill\n\nExample --json-body:\n  '{"assistantSkillIds":["..."]}'."""
+    """List queue mapping summary grouped by Assistant Skill.\n\n\b\nExample --json-body: '{"assistantSkillIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_FETCH_BY_GROUPED_ASSISTANT_SKILL), indent=2))
         raise typer.Exit(0)
@@ -903,15 +929,15 @@ def create_fetch_by_grouped_assistant_skill(
 
 
 
-@app.command("show-contact-service-queue-v2")
+@app.command("show-contact-service-queue-v2", short_help="Get specific Contact Service Queue by ID.")
 def show_contact_service_queue_v2(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-queue list-contact-service-queue-v2"),
     agents_updated_info: str = typer.Option(None, "--agents-updated-info", help="If `true`, returns the user details who has last updated the agents list in an agent based queue."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Contact Service Queue by ID."""
+    """Get specific Contact Service Queue by ID.\n\n\b\nExample: wxcli cc-queue show-contact-service-queue-v2 ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -929,11 +955,11 @@ def show_contact_service_queue_v2(
 
 
 
-_BODY_SKELETON_UPDATE_CONTACT_SERVICE_QUEUE = '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'
+_BODY_SKELETON_UPDATE_CONTACT_SERVICE_QUEUE = '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update-contact-service-queue")
+@app.command("update-contact-service-queue", short_help="Update specific Contact Service Queue by ID.")
 def update_contact_service_queue(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-queue list-contact-service-queue-v2"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -983,7 +1009,7 @@ def update_contact_service_queue(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Contact Service Queue by ID\n\nExample --json-body:\n  '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true}'."""
+    """Update specific Contact Service Queue by ID.\n\n\b\nExample: wxcli cc-queue update-contact-service-queue ID --json-body '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}]}'\n\n\b\nExample --json-body: '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CONTACT_SERVICE_QUEUE), indent=2))
         raise typer.Exit(0)
@@ -1098,16 +1124,16 @@ def update_contact_service_queue(
 
 _BODY_SKELETON_CREATE_REASSIGN_AGENTS = '{"add":["..."],"remove":["..."]}'
 
-@app.command("create-reassign-agents")
+@app.command("create-reassign-agents", short_help="Add or remove agents/users to/from an agent based queue.")
 def create_reassign_agents(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-queue list-contact-service-queue-v2"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add or remove agents/users to/from an agent based queue\n\nExample --json-body:\n  '{"add":["..."],"remove":["..."]}'."""
+    """Add or remove agents/users to/from an agent based queue.\n\n\b\nExample: wxcli cc-queue create-reassign-agents ID\n\n\b\nExample --json-body: '{"add":["..."],"remove":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REASSIGN_AGENTS), indent=2))
         raise typer.Exit(0)
@@ -1137,7 +1163,7 @@ def create_reassign_agents(
 
 
 
-@app.command("list-contact-service-queue-v3")
+@app.command("list-contact-service-queue-v3", short_help="List Contact Service Queues.")
 def list_contact_service_queue_v3(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, queueSkillRequirements, xspVersion, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (callDistributionGroups,queueSkillRequirements,links)"),
@@ -1151,6 +1177,7 @@ def list_contact_service_queue_v3(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Contact Service Queues."""
@@ -1181,7 +1208,10 @@ def list_contact_service_queue_v3(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

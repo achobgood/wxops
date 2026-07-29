@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling hot-desk.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Sessions.")
 def cmd_list(
     person_id: str = typer.Option(None, "--person-id", help="List sessions for this person."),
     workspace_id: str = typer.Option(None, "--workspace-id", help="List sessions for this workspace."),
@@ -19,6 +19,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Sessions."""
@@ -49,18 +50,18 @@ def cmd_list(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete Session.")
 def delete(
-    session_id: str = typer.Argument(help="sessionId"),
+    session_id: str = typer.Argument(help="Webex HDSESSION id, from: wxcli hot-desk list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Session."""
+    """Delete Session.\n\n\b\nExample: wxcli hot-desk delete SESSION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {session_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hotdesk/sessions/{session_id}"
     try:
         result = api.session.rest_delete(url)

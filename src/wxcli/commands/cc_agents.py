@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-agents.")
 
 _BODY_SKELETON_CREATE = '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Login.")
 def create(
     dial_number: str = typer.Option(None, "--dial-number", help="(required) A dialNumber field contains the number to dial such as a route point or extension, maximum length 43 characters."),
     team_id: str = typer.Option(None, "--team-id", help="The unique ID representing a team of users. Leaving this field blank is valid for supervisor role but invalid for agent role, maximum length 36 characters."),
@@ -26,7 +26,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Login\n\nExample --json-body:\n  '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'."""
+    """Login.\n\n\b\nExample: wxcli cc-agents create --json-body '{"dialNumber":"...","roles":["..."]}'\n\n\b\nExample --json-body: '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -71,7 +71,7 @@ def create(
 
 _BODY_SKELETON_UPDATE = '{"logoutReason":"...","agentId":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Logout.")
 def update(
     logout_reason: str = typer.Option(None, "--logout-reason", help="The reason for performing logout operation, maximum length 128 characters."),
     agent_id: str = typer.Option(None, "--agent-id", help="Unique ID of the user who is being logged out, maximum length 36 characters."),
@@ -81,7 +81,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Logout\n\nExample --json-body:\n  '{"logoutReason":"...","agentId":"..."}'."""
+    """Logout.\n\n\b\nExample: wxcli cc-agents update --logout-reason LOGOUT_REASON\n\n\b\nExample --json-body: '{"logoutReason":"...","agentId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -113,7 +113,7 @@ def update(
 
 _BODY_SKELETON_UPDATE_STATE_SESSION = '{"state":"...","auxCodeId":"...","lastStateChangeReason":"...","agentId":"..."}'
 
-@app.command("update-state-session")
+@app.command("update-state-session", short_help="State Change.")
 def update_state_session(
     state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to ```Available``` or ```Idle```."),
     aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select in Webex Contact Center Agent Desktop. They are of two types: ```Idle``` and ```Wrap-Up``` codes, and every agent profile must have one of each for the agent to use. Idle codes are used to explain an agent's unavailability to take customer..."),
@@ -125,7 +125,7 @@ def update_state_session(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """State Change\n\nExample --json-body:\n  '{"state":"...","auxCodeId":"...","lastStateChangeReason":"...","agentId":"..."}'."""
+    """State Change.\n\n\b\nExample: wxcli cc-agents update-state-session --state STATE --aux-code-id AUX_CODE_ID\n\n\b\nExample --json-body: '{"state":"...","auxCodeId":"...","lastStateChangeReason":"...","agentId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATE_SESSION), indent=2))
         raise typer.Exit(0)
@@ -159,7 +159,7 @@ def update_state_session(
 
 
 
-@app.command("create-reload-agents")
+@app.command("create-reload-agents", short_help="Reload.")
 def create_reload_agents(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -194,7 +194,7 @@ def create_reload_agents(
 
 _BODY_SKELETON_CREATE_BUDDY_LIST = '{"agentProfileId":"...","mediaType":"...","state":"..."}'
 
-@app.command("create-buddy-list")
+@app.command("create-buddy-list", short_help="Buddy Agents List.")
 def create_buddy_list(
     agent_profile_id: str = typer.Option(None, "--agent-profile-id", help="(required) The profile ID of a particular agent. Can be obtained from [Users API](/docs/users), maximum length 36 characters."),
     media_type: str = typer.Option(None, "--media-type", help="(required) The media type for the request. The supported values are ```telephony```, ```chat```, ```social```, ```email```, ```workItem``` and ```customMessaging```."),
@@ -205,7 +205,7 @@ def create_buddy_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Buddy Agents List\n\nExample --json-body:\n  '{"agentProfileId":"...","mediaType":"...","state":"..."}'."""
+    """Buddy Agents List.\n\n\b\nExample: wxcli cc-agents create-buddy-list --agent-profile-id AGENT_PROFILE_ID --media-type MEDIA_TYPE\n\n\b\nExample --json-body: '{"agentProfileId":"...","mediaType":"...","state":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BUDDY_LIST), indent=2))
         raise typer.Exit(0)
@@ -244,7 +244,7 @@ def create_buddy_list(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Agent Activities.")
 def cmd_list(
     agent_ids: str = typer.Option(None, "--agent-ids", help="Filter agent activities by agent ids separated with commas if more than one value (max 100). By default, there is no agent filtering."),
     team_ids: str = typer.Option(None, "--team-ids", help="Filter agent activities by team ids separated with commas if more than one value (max 100). By default, there is no team filtering."),
@@ -257,9 +257,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Agent Activities."""
+    """Get Agent Activities.\n\n\b\nExample: wxcli cc-agents list --from FROM_PARAM"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/agents/activities"
@@ -287,7 +288,10 @@ def cmd_list(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -298,7 +302,7 @@ def cmd_list(
 
 
 
-@app.command("list-statistics")
+@app.command("list-statistics", short_help="Get Agent Statistics.")
 def list_statistics(
     from_param: str = typer.Option(..., "--from", help="Start time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:05 will be rounded down to 12:00."),
     to: str = typer.Option(..., "--to", help="End time for the query (in epoch milliseconds). Any epoch time can be passed in the input, from date will be rounded down to nearest 15 minute window. For example, epoch time of 12:55 will be rounded down to 12:45. The difference between to and from time must be less than 24 hours (86400000..."),
@@ -308,9 +312,10 @@ def list_statistics(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Agent Statistics."""
+    """Get Agent Statistics.\n\n\b\nExample: wxcli cc-agents list-statistics --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/agents/statistics"
@@ -345,7 +350,7 @@ def list_statistics(
 
 _BODY_SKELETON_CREATE_LOGIN = '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'
 
-@app.command("create-login")
+@app.command("create-login", short_help="Login.")
 def create_login(
     dial_number: str = typer.Option(None, "--dial-number", help="(required) A dialNumber field contains the number to dial such as a route point or extension, maximum length 43 characters."),
     team_id: str = typer.Option(None, "--team-id", help="The unique ID representing a team of users. Leaving this field blank is valid for supervisor role but invalid for agent role, maximum length 36 characters."),
@@ -358,7 +363,7 @@ def create_login(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Login\n\nExample --json-body:\n  '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'."""
+    """Login.\n\n\b\nExample: wxcli cc-agents create-login --json-body '{"dialNumber":"...","roles":["..."]}'\n\n\b\nExample --json-body: '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_LOGIN), indent=2))
         raise typer.Exit(0)
@@ -403,7 +408,7 @@ def create_login(
 
 _BODY_SKELETON_UPDATE_LOGOUT = '{"logoutReason":"...","agentId":"..."}'
 
-@app.command("update-logout")
+@app.command("update-logout", short_help="Logout.")
 def update_logout(
     logout_reason: str = typer.Option(None, "--logout-reason", help="The reason for performing logout operation, maximum length 128 characters."),
     agent_id: str = typer.Option(None, "--agent-id", help="Unique ID of the user who is being logged out, maximum length 36 characters."),
@@ -413,7 +418,7 @@ def update_logout(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Logout\n\nExample --json-body:\n  '{"logoutReason":"...","agentId":"..."}'."""
+    """Logout.\n\n\b\nExample: wxcli cc-agents update-logout --logout-reason LOGOUT_REASON\n\n\b\nExample --json-body: '{"logoutReason":"...","agentId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_LOGOUT), indent=2))
         raise typer.Exit(0)
@@ -445,7 +450,7 @@ def update_logout(
 
 _BODY_SKELETON_UPDATE_STATE_SESSION_1 = '{"channelType":["..."],"state":"...","auxCodeId":"...","reason":"...","agentId":"..."}'
 
-@app.command("update-state-session-1")
+@app.command("update-state-session-1", short_help="State Change.")
 def update_state_session_1(
     state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to ```Available``` or ```Idle``` or ```LoggedOut``` or ```Reserved``` or ```Engaged``` or or ```EngagedOther``` ."),
     aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select in Webex Contact Center Agent Desktop. They are of two types: ```Idle``` and ```Wrap-Up``` codes, and every agent profile must have one of each for the agent to use. Idle codes are used to explain an agent's unavailability to take customer..."),
@@ -457,7 +462,7 @@ def update_state_session_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """State Change\n\nExample --json-body:\n  '{"channelType":["..."],"state":"...","auxCodeId":"...","reason":"...","agentId":"..."}'."""
+    """State Change.\n\n\b\nExample: wxcli cc-agents update-state-session-1 --json-body '{"channelType":["..."],"state":"..."}'\n\n\b\nExample --json-body: '{"channelType":["..."],"state":"...","auxCodeId":"...","reason":"...","agentId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATE_SESSION_1), indent=2))
         raise typer.Exit(0)
@@ -491,7 +496,7 @@ def update_state_session_1(
 
 
 
-@app.command("create-reload-agents-1")
+@app.command("create-reload-agents-1", short_help="Reload.")
 def create_reload_agents_1(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),

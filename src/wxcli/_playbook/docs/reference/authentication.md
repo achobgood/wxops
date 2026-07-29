@@ -579,7 +579,8 @@ Every HTTP call made through `wxcli.auth` (both `wxcli` commands and raw HTTP vi
 ### Gotchas
 
 - **`httpx.ReadTimeout` is NOT retried.** It propagates immediately, unlike the status-code and connect-error cases above. Practical effect: the worst case for a single command is roughly one read timeout (60s by default), not attempts × 60s — a hung command is not silently retried 4 times.
-- **No friendly handler for transport failures.** A read timeout or connection reset currently surfaces as a raw Python traceback, because generated commands only catch `wxcli.errors.WebexError` (raised for HTTP status errors), not `httpx` transport exceptions. There is no `handle_network_error`-style wrapper in the codebase today.
+- **Transport failures get a friendly handler.** A read timeout, connect failure, or connection reset does not surface as a raw Python traceback. Every generated command wraps its API call in two `except` clauses: `wxcli.errors.WebexError` (raised for HTTP status errors) routes to `handle_rest_error`, and `httpx.HTTPError` routes to `wxcli.errors.handle_network_error`. That handler prints `Error: request failed — <ExceptionName>: <detail>`, adds a tip keyed on the exception class, and exits 1. Tips are defined for `ReadTimeout` and `WriteTimeout` (raise `WXCLI_READ_TIMEOUT`), `ConnectTimeout` (raise `WXCLI_CONNECT_TIMEOUT`), `ConnectError` (check network access and proxy settings), and `PoolTimeout` (retry, or reduce concurrency); any other transport exception falls back to a generic "Transport-level failure with no HTTP response." tip.
+- **The hand-written command seams are the exception.** `cleanup`, `converged-recordings export`, `cucm`, `configure`, and `org-health` are not generated and do not add the `httpx.HTTPError` catch, so a transport failure inside one of those still reaches the terminal as a Python traceback.
 
 ---
 

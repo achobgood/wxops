@@ -268,7 +268,7 @@ wxcli call-queue update LOCATION_ID QUEUE_ID --json-body '{"agents": [{"id": "AG
 To find available agents for a location:
 
 ```bash
-wxcli call-queue list-available-agents-queues LOCATION_ID --output json
+wxcli call-queue list-available-agents-queues --location-id LOCATION_ID --output json
 ```
 
 > **WARNING (CQ Update):** The CLI `update` command uses partial objects to avoid the `callingLineIdPolicy=CUSTOM` 400 error. Only changed fields are sent:
@@ -706,7 +706,7 @@ wxcli location-call-handling create LOCATION_ID --json-body '{"accessCodes":{"co
 wxcli location-call-handling update-access-codes LOCATION_ID --json-body '{"deleteCodes":["123456"]}'
 
 # Delete ALL access codes at the location
-wxcli location-call-handling delete LOCATION_ID --force
+wxcli location-call-handling delete-access-codes-all LOCATION_ID --force
 ```
 
 #### Digit patterns (6 commands)
@@ -936,7 +936,7 @@ Next steps:
     - Call Queues may be referenced by AAs as overflow targets.
     Run the relevant checks before executing any delete.
 
-17. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules.
+17. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules.
 17. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
 18. **Agent/member format differs by feature type.** Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets`/`originators` as plain string arrays. Using the wrong format returns 400 "Invalid field value". Always check `docs/reference/call-features-additional.md` if unsure.
 19. **Call Parks and Call Pickups require location for listing.** `wxcli call-park list` and `wxcli call-pickup list` without a location argument return empty. Must pass `LOCATION_ID` as first positional arg: `wxcli call-park list LOCATION_ID -o json`.
@@ -946,8 +946,8 @@ Next steps:
     - Routing (trunks, dial plans, PSTN) → `configure-routing` skill
     - Device provisioning → `manage-devices` skill
     - Location teardown → `provision-calling` skill (Operation D: Teardown)
-21. **`location-call-handling` verbs lie — never infer meaning from the command name.** `show`/`update` are internal dialing; `list` returns outgoing permissions (a settings object, not a list); `create` makes an access code; `update-access-codes` **deletes** codes; `delete` wipes **all** access codes. Re-read the trap table in the Location Call Handling section before running any of them.
-22. **Three commands in `location-call-handling` delete everything at a location** — `delete` (all access codes), `delete-digit-patterns-outgoing-permission` (all digit patterns), and enabling `update-intercept` (overrides all call handling). The single-item digit pattern delete is the `-1` suffixed variant. Confirm scope with the user first.
+21. **`location-call-handling` verbs lie — never infer meaning from the command name.** `show`/`update` are internal dialing; `list` returns outgoing permissions (a settings object, not a list); `create` makes an access code; `update-access-codes` **deletes** codes; `delete-access-codes-all` wipes **all** access codes. Re-read the trap table in the Location Call Handling section before running any of them.
+22. **Three commands in `location-call-handling` delete everything at a location** — `delete-access-codes-all` (all access codes), `delete-digit-patterns-outgoing-permission` (all digit patterns), and enabling `update-intercept` (overrides all call handling). The single-item digit pattern delete is the `-1` suffixed variant. Confirm scope with the user first.
 23. **`announcements show` is repository usage, not announcement details.** Use `show-announcements-config ANN_ID` (org) or `show-announcements-locations LOC_ID ANN_ID` (location).
 24. **Announcements are scoped org-level OR location-level, with different commands for each.** Location-level commands are the `*-announcements`/`*-announcements-locations` variants and take `LOCATION_ID` first. Passing a location announcement ID to an org command returns 404.
 25. **Check references before deleting an announcement or playlist.** `wxcli announcements show-announcements-config ANN_ID -o json` returns `featureReferences` and `playlists`; `wxcli cq-playlists list PLAYLIST_ID -o json` shows which queues/locations use a playlist. Deleting an in-use file silently breaks the AA/CQ that plays it.

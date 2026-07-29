@@ -10,13 +10,14 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-tracking-codes.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Tracking Codes.")
 def cmd_list(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking code from. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list)..."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Tracking Codes."""
@@ -42,9 +43,9 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'
+_BODY_SKELETON_CREATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Tracking Code.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Name for tracking code. The name cannot be empty and the maximum size is 120 characters."),
     site_url: str = typer.Option(None, "--site-url", help="(required) Site URL for the tracking code."),
@@ -56,7 +57,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Tracking Code\n\nExample --json-body:\n  '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'."""
+    """Create a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes create --json-body '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -96,15 +97,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Tracking Code.")
 def show(
-    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
+    tracking_code_id: str = typer.Argument(help="from: wxcli meeting-tracking-codes list"),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site which the API retrieves the tracking code from. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and the preferred sites of a user can be retrieved by the [Get Site..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Tracking Code."""
+    """Get a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes show TRACKING_CODE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
     params = {}
@@ -120,11 +121,11 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Tracking Code.")
 def update(
-    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
+    tracking_code_id: str = typer.Argument(help="from: wxcli meeting-tracking-codes list"),
     name: str = typer.Option(None, "--name", help="Name for tracking code. The name cannot be empty and the maximum size is 120 characters."),
     site_url: str = typer.Option(None, "--site-url", help="Site URL for the tracking code."),
     input_mode: str = typer.Option(None, "--input-mode", help="Choices: text, select, editableSelect, hostProfileSelect"),
@@ -135,7 +136,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Tracking Code\n\nExample --json-body:\n  '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":"..."}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"...","type":"..."}]}'."""
+    """Update a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes update TRACKING_CODE_ID --json-body '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -168,19 +169,19 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Tracking Code.")
 def delete(
-    tracking_code_id: str = typer.Argument(help="trackingCodeId"),
+    tracking_code_id: str = typer.Argument(help="from: wxcli meeting-tracking-codes list"),
     site_url: str = typer.Option(..., "--site-url", help="URL of the Webex site from which the API deletes the tracking code. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Tracking Code."""
+    """Delete a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes delete TRACKING_CODE_ID --site-url SITE_URL"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {tracking_code_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/config/trackingCodes/{tracking_code_id}"
     params = {}
     if site_url is not None:
@@ -200,7 +201,7 @@ def delete(
 
 
 
-@app.command("list-tracking-codes")
+@app.command("list-tracking-codes", short_help="Get User Tracking Codes.")
 def list_tracking_codes(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API retrieves the tracking code. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list)..."),
     person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user whose tracking codes are being retrieved. The admin user can specify the `personId` of a user on a site they manage and the API returns details for the user's tracking codes. At least one parameter of `personId` or `email` is required."),
@@ -208,6 +209,7 @@ def list_tracking_codes(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get User Tracking Codes."""
@@ -237,7 +239,7 @@ def list_tracking_codes(
 
 _BODY_SKELETON_UPDATE_TRACKING_CODES = '{"siteUrl":"...","personId":"...","email":"...","trackingCodes":[{"name":"...","value":"..."}]}'
 
-@app.command("update-tracking-codes")
+@app.command("update-tracking-codes", short_help="Update User Tracking Codes.")
 def update_tracking_codes(
     site_url: str = typer.Option(None, "--site-url", help="Site URL for the tracking code."),
     person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user. At least one parameter of `personId` or `email` is required. `personId` must precede `email` if both are specified."),
@@ -248,7 +250,7 @@ def update_tracking_codes(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update User Tracking Codes\n\nExample --json-body:\n  '{"siteUrl":"...","personId":"...","email":"...","trackingCodes":[{"name":"...","value":"..."}]}'."""
+    """Update User Tracking Codes.\n\n\b\nExample: wxcli meeting-tracking-codes update-tracking-codes --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"...","personId":"...","email":"...","trackingCodes":[{"name":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TRACKING_CODES), indent=2))
         raise typer.Exit(0)

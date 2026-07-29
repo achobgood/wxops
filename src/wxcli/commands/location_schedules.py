@@ -11,18 +11,19 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling location-schedules.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Schedules.")
 def cmd_list(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="Only return schedules with the matching name."),
     type_param: str = typer.Option(None, "--type", help="Choices: businessHours, holidays"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Schedules."""
+    """Read the List of Schedules.\n\n\b\nExample: wxcli location-schedules list LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules"
     params = {}
@@ -38,7 +39,7 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("schedules", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -52,11 +53,11 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'
+_BODY_SKELETON_CREATE = '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Schedule.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     type_param: str = typer.Option(None, "--type", help="(required) Choices: businessHours, holidays"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the schedule."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -65,7 +66,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Schedule\n\nExample --json-body:\n  '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'."""
+    """Create a Schedule.\n\n\b\nExample: wxcli location-schedules create LOCATION_ID --type businessHours --name NAME\n\n\b\nExample --json-body: '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -105,16 +106,16 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Details for a Schedule.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
-    type: str = typer.Argument(help="type"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Schedule."""
+    """Get Details for a Schedule.\n\n\b\nExample: wxcli location-schedules show LOCATION_ID businessHours SCHEDULE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{type}/{schedule_id}"
     params = {}
@@ -131,13 +132,13 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","events":[{"name":"...","newName":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"name":"...","events":[{"name":"...","newName":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Schedule.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
-    type: str = typer.Argument(help="type"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
     name: str = typer.Option(None, "--name", help="Unique name for the schedule."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -145,7 +146,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Schedule\n\nExample --json-body:\n  '{"name":"...","events":[{"name":"...","newName":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'."""
+    """Update a Schedule.\n\n\b\nExample: wxcli location-schedules update LOCATION_ID businessHours SCHEDULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","events":[{"name":"...","newName":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -176,20 +177,20 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Schedule.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    type: str = typer.Argument(help="type"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Schedule."""
+    """Delete a Schedule.\n\n\b\nExample: wxcli location-schedules delete LOCATION_ID businessHours SCHEDULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {schedule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{type}/{schedule_id}"
     params = {}
     org_id = get_org_id()
@@ -210,17 +211,17 @@ def delete(
 
 
 
-@app.command("show-events")
+@app.command("show-events", short_help="Get Details for a Schedule Event.")
 def show_events(
-    location_id: str = typer.Argument(help="locationId"),
-    type: str = typer.Argument(help="type"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
-    event_id: str = typer.Argument(help="eventId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
+    event_id: str = typer.Argument(help="Webex SCHEDULE_EVENT id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Schedule Event."""
+    """Get Details for a Schedule Event.\n\n\b\nExample: wxcli location-schedules show-events LOCATION_ID businessHours SCHEDULE_ID EVENT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{type}/{schedule_id}/events/{event_id}"
     params = {}
@@ -237,14 +238,14 @@ def show_events(
 
 
 
-_BODY_SKELETON_UPDATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."},"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'
+_BODY_SKELETON_UPDATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'
 
-@app.command("update-events")
+@app.command("update-events", short_help="Update a Schedule Event.")
 def update_events(
-    location_id: str = typer.Argument(help="locationId"),
-    type: str = typer.Argument(help="type"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
-    event_id: str = typer.Argument(help="eventId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    type: str = typer.Argument(help="e.g. businessHours, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
+    event_id: str = typer.Argument(help="Webex SCHEDULE_EVENT id"),
     name: str = typer.Option(None, "--name", help="Name for the event."),
     start_date: str = typer.Option(None, "--start-date", help="Start date of event."),
     end_date: str = typer.Option(None, "--end-date", help="End date of event."),
@@ -257,7 +258,7 @@ def update_events(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Schedule Event\n\nExample --json-body:\n  '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."},"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
+    """Update a Schedule Event.\n\n\b\nExample: wxcli location-schedules update-events LOCATION_ID businessHours SCHEDULE_ID EVENT_ID --name NAME --start-date START_DATE --end-date END_DATE\n\n\b\nExample --json-body: '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EVENTS), indent=2))
         raise typer.Exit(0)
@@ -298,21 +299,21 @@ def update_events(
 
 
 
-@app.command("delete-events")
+@app.command("delete-events", short_help="Delete a Schedule Event.")
 def delete_events(
-    location_id: str = typer.Argument(help="locationId"),
-    type: str = typer.Argument(help="type"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
-    event_id: str = typer.Argument(help="eventId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
+    event_id: str = typer.Argument(help="Webex SCHEDULE_EVENT id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Schedule Event."""
+    """Delete a Schedule Event.\n\n\b\nExample: wxcli location-schedules delete-events LOCATION_ID businessHours SCHEDULE_ID EVENT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {event_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{type}/{schedule_id}/events/{event_id}"
     params = {}
     org_id = get_org_id()
@@ -333,13 +334,13 @@ def delete_events(
 
 
 
-_BODY_SKELETON_CREATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."},"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'
+_BODY_SKELETON_CREATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'
 
-@app.command("create-events")
+@app.command("create-events", short_help="Create a Schedule Event.")
 def create_events(
-    location_id: str = typer.Argument(help="locationId"),
-    type: str = typer.Argument(help="type"),
-    schedule_id: str = typer.Argument(help="scheduleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
     name: str = typer.Option(None, "--name", help="(required) Name for the event."),
     start_date: str = typer.Option(None, "--start-date", help="(required) Start Date of Event."),
     end_date: str = typer.Option(None, "--end-date", help="(required) End Date of Event."),
@@ -352,7 +353,7 @@ def create_events(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Schedule Event\n\nExample --json-body:\n  '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."},"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
+    """Create a Schedule Event.\n\n\b\nExample: wxcli location-schedules create-events LOCATION_ID businessHours SCHEDULE_ID --name NAME --start-date START_DATE --end-date END_DATE\n\n\b\nExample --json-body: '{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EVENTS), indent=2))
         raise typer.Exit(0)

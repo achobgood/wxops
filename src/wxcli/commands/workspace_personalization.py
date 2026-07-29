@@ -12,9 +12,9 @@ app = typer.Typer(help="Manage Webex Calling workspace-personalization.")
 
 _BODY_SKELETON_CREATE = '{"email":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Personalize a Workspace.")
 def create(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="Webex PLACES id, from: wxcli workspaces list"),
     email: str = typer.Option(None, "--email", help="(required) The user that the device will become personalised for."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -22,7 +22,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Personalize a Workspace\n\nExample --json-body:\n  '{"email":"..."}'."""
+    """Personalize a Workspace.\n\n\b\nExample: wxcli workspace-personalization create WORKSPACE_ID --email EMAIL\n\n\b\nExample --json-body: '{"email":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -56,14 +56,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Personalization Task.")
 def show(
-    workspace_id: str = typer.Argument(help="workspaceId"),
+    workspace_id: str = typer.Argument(help="Webex PLACES id, from: wxcli workspaces list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Personalization Task."""
+    """Get Personalization Task.\n\n\b\nExample: wxcli workspace-personalization show WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/personalizationTask"
     try:

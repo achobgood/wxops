@@ -11,14 +11,14 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling org-settings.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get an Organization Setting.")
 def show(
     setting_key: str = typer.Argument(help="settingKey"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get an Organization Setting."""
+    """Get an Organization Setting.\n\n\b\nExample: wxcli org-settings show SETTING_KEY"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/v1/settings/organizations/{org_id}/settings/{setting_key}"
@@ -34,7 +34,7 @@ def show(
 
 _BODY_SKELETON_CREATE = '{"key":"...","value":true}'
 
-@app.command("create")
+@app.command("create", short_help="Create or Update an Organization Setting.")
 def create(
     key: str = typer.Option(None, "--key", help="Key of the setting."),
     value: bool = typer.Option(None, "--value/--no-value", help="Value of the setting."),
@@ -44,7 +44,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create or Update an Organization Setting\n\nExample --json-body:\n  '{"key":"...","value":true}'."""
+    """Create or Update an Organization Setting.\n\n\b\nExample --json-body: '{"key":"...","value":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

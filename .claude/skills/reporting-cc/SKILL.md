@@ -60,34 +60,34 @@ Available regions: us1, eu1, eu2, anz1, ca1, jp1, sg1.
 ### Queue Statistics
 
 ```bash
-wxcli cc-queue-stats list -o json
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json
 ```
 
 #### Recipe CC-1 — Queue volume ranking
-Question: "Which queue gets the most calls?"
+Question: "Which queue gets the most tasks offered?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-for q in sorted(items, key=lambda x: x.get('totalCalls', x.get('callsOffered', 0)), reverse=True):
+for q in sorted(items, key=lambda x: x.get('totalOfferedTasks', 0), reverse=True):
     name = q.get('queueName', q.get('name', '?'))
-    calls = q.get('totalCalls', q.get('callsOffered', 0))
-    print(f'{name}: {calls} calls')
+    offered = q.get('totalOfferedTasks', 0)
+    print(f'{name}: {offered} tasks offered')
 "
 ```
 
 #### Recipe CC-2 — Queue abandonment rate
 Question: "What's our abandonment rate per queue?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
 for q in items:
     name = q.get('queueName', q.get('name', '?'))
-    total = q.get('totalCalls', q.get('callsOffered', 0))
-    abandoned = q.get('callsAbandoned', 0)
+    total = q.get('totalOfferedTasks', 0)
+    abandoned = q.get('totalAbandonedTasks', 0)
     rate = abandoned/total*100 if total else 0
     print(f'{name}: {rate:.1f}% abandoned ({abandoned}/{total})')
 "
@@ -96,27 +96,27 @@ for q in items:
 #### Recipe CC-3 — Average wait time per queue
 Question: "How long are callers waiting?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-for q in sorted(items, key=lambda x: x.get('avgWaitTime', x.get('averageWaitTime', 0)), reverse=True):
+for q in sorted(items, key=lambda x: x.get('averageEnqueuedTime', 0), reverse=True):
     name = q.get('queueName', q.get('name', '?'))
-    wait = q.get('avgWaitTime', q.get('averageWaitTime', 0))
-    print(f'{name}: avg {wait}s wait')
+    wait = q.get('averageEnqueuedTime', 0)
+    print(f'{name}: avg {wait}ms in queue')
 "
 ```
 
 #### Recipe CC-4 — Service level by queue
 Question: "Are we meeting our SLA?"
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
 for q in items:
     name = q.get('queueName', q.get('name', '?'))
-    sl = q.get('serviceLevel', q.get('serviceLevelPercentage', 'N/A'))
+    sl = q.get('serviceLevelThresholdPercentage', 'N/A')
     print(f'{name}: {sl}% service level')
 "
 ```
@@ -124,34 +124,34 @@ for q in items:
 ### Agent Statistics
 
 ```bash
-wxcli cc-agents list-statistics -o json
+wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json
 ```
 
 #### Recipe CC-5 — Agent handle time ranking
 Question: "Which agents are fastest/slowest?"
 ```bash
-wxcli cc-agents list-statistics -o json | python3.11 -c "
+wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-for a in sorted(items, key=lambda x: x.get('avgHandleTime', x.get('averageHandleTime', 0)), reverse=True):
-    name = a.get('agentName', a.get('name', '?'))
-    aht = a.get('avgHandleTime', a.get('averageHandleTime', 0))
-    print(f'{name}: avg {aht}s handle time')
+rows = [(a.get('agentName', a.get('name', '?')), c.get('channelType', '?'), c.get('averageHandledTime', 0))
+        for a in items for c in a.get('channels', [])]
+for name, channel, aht in sorted(rows, key=lambda r: r[2], reverse=True):
+    print(f'{name} [{channel}]: avg {aht}ms handle time')
 "
 ```
 
 #### Recipe CC-6 — Agent utilization
 Question: "How busy is each agent?"
 ```bash
-wxcli cc-agents list-statistics -o json | python3.11 -c "
+wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-for a in sorted(items, key=lambda x: x.get('callsHandled', x.get('totalCalls', 0)), reverse=True):
-    name = a.get('agentName', a.get('name', '?'))
-    handled = a.get('callsHandled', a.get('totalCalls', 0))
-    print(f'{name}: {handled} calls handled')
+rows = [(a.get('agentName', a.get('name', '?')), sum(c.get('totalAcceptedTasks', 0) for c in a.get('channels', [])))
+        for a in items]
+for name, accepted in sorted(rows, key=lambda r: r[1], reverse=True):
+    print(f'{name}: {accepted} tasks accepted')
 "
 ```
 
@@ -160,7 +160,7 @@ for a in sorted(items, key=lambda x: x.get('callsHandled', x.get('totalCalls', 0
 #### Recipe CC-7 — Current wait time check
 Question: "What's the current wait for queue X?"
 ```bash
-wxcli cc-ewt show -o json | python3.11 -c "
+wxcli cc-ewt show --queue-id QUEUE_ID --lookback-minutes 30 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 if isinstance(data, dict):
@@ -198,12 +198,16 @@ else:
 #### Recipe CC-10 — Agent availability status
 Question: "Who's available right now?"
 ```bash
-wxcli cc-agents list -o json | python3.11 -c "
+wxcli cc-agents list --from 1784592000000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
 from collections import Counter
-states = Counter(a.get('state', a.get('agentState', 'Unknown')) for a in items)
+current = {}
+for a in sorted(items, key=lambda x: x.get('startTime', 0)):
+    if a.get('active'):
+        current[a.get('agentId')] = a.get('currentState', 'Unknown')
+states = Counter(current.values())
 for state, count in states.most_common():
     print(f'{state}: {count} agents')
 "
@@ -217,17 +221,20 @@ Question: "Show all contacts handled yesterday"
 wxcli cc-search create --json-body '{"from": "2026-04-09T00:00:00Z", "to": "2026-04-10T00:00:00Z"}' -o json
 ```
 
-#### Recipe CC-12 — Longest wait today
-Question: "What was the worst wait time today?"
+#### Recipe CC-12 — Worst queue by average wait
+Question: "Which queue kept callers waiting longest on average?"
+Queue statistics expose no per-task maximum wait — `averageEnqueuedTime` is the
+only wait metric in the response, so the peak wait of a single contact cannot be
+answered here.
 ```bash
-wxcli cc-queue-stats list -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
-longest = max(items, key=lambda x: x.get('maxWaitTime', x.get('longestWaitTime', 0)), default={})
-name = longest.get('queueName', longest.get('name', '?'))
-wait = longest.get('maxWaitTime', longest.get('longestWaitTime', 0))
-print(f'Longest wait: {wait}s in queue {name}')
+worst = max(items, key=lambda x: x.get('averageEnqueuedTime', 0), default={})
+name = worst.get('queueName', worst.get('name', '?'))
+wait = worst.get('averageEnqueuedTime', 0)
+print(f'Worst average wait: {wait}ms in queue {name}')
 "
 ```
 

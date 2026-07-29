@@ -959,6 +959,41 @@ def _parse_dect_inventory_csv(path: str) -> list[dict[str, str]]:
     return rows
 
 
+def _abort_if_nothing_discovered(total_objects: int, report_failure: Any) -> None:
+    """A discovery that produced zero objects is a FAILED discovery, whatever the source.
+
+    Neither discover branch may mark the stage complete or advance ProjectState on
+    an empty result: every downstream stage exits 0 on an empty store, so the run
+    would end in a customer-facing assessment report for a cluster nothing was
+    read from. Both branches route the decision through here so they cannot drift
+    apart again; ``report_failure`` is the branch-specific remedy text.
+    """
+    if total_objects == 0:
+        report_failure()
+        raise typer.Exit(1)
+
+
+def _report_failed_ingestion(file_path: Path, elapsed: float, raw_data_path: Path) -> None:
+    """Print an actionable failure report for a collector file that held no objects."""
+    console.print(f"\n[red]File ingestion FAILED[/red] — 0 objects loaded in {elapsed:.1f}s")
+    console.print(f"  Source: {file_path}")
+    console.print(
+        "\n  The file parsed and carried the required header keys, but its 'objects'\n"
+        "  map contained no recognised object types — there is nothing to migrate."
+    )
+    console.print(
+        "\n  [yellow]Most likely causes:[/yellow]\n"
+        "    - the collector ran against a cluster it could not read\n"
+        "    - the export was written before collection finished, or truncated\n"
+        "    - the object keys do not match the collector schema (endUser, phone,\n"
+        "      devicePool, css, routePartition, huntPilot, sipTrunk, ...)"
+    )
+    console.print(
+        f"\n  raw_data.json was still written for debugging: {raw_data_path}\n"
+        "  The 'discover' stage was [red]NOT[/red] marked complete — re-export and re-run."
+    )
+
+
 def _report_failed_discovery(result: Any, elapsed: float, raw_data_path: Path) -> None:
     """Print an actionable failure report for a discovery run that extracted nothing."""
     console.print(f"\n[red]Discovery FAILED[/red] — 0 objects extracted in {elapsed:.1f}s")
@@ -1078,6 +1113,9 @@ def discover(
         # Record journal entry
         store = _open_store(project_dir)
         try:
+            # journal.canonical_id is an FK into objects — the sentinel row has
+            # to exist before an entry attributed to it can be written.
+            store.ensure_system_object("system:discovery")
             store.add_journal_entry(
                 entry_type="file_ingestion",
                 canonical_id="system:discovery",
@@ -1088,16 +1126,27 @@ def discover(
         finally:
             store.close()
 
-        _mark_stage_complete(project_dir, "discover")
         elapsed = time.time() - t0
 
-        # Print summary
+        # Count before advancing: a file that carried no objects must not mark
+        # the stage complete, exactly as a live run that extracted none must not.
+        group_totals: list[tuple[str, int]] = []
         total = 0
-        console.print(f"\n[green]File ingestion complete[/green] in {elapsed:.1f}s")
-        console.print(f"  Source: {file_path.name}")
         for group, sub_data in raw_data.items():
             group_total = sum(len(v) for v in sub_data.values() if isinstance(v, list))
             total += group_total
+            group_totals.append((group, group_total))
+
+        _abort_if_nothing_discovered(
+            total, lambda: _report_failed_ingestion(file_path, elapsed, raw_data_path)
+        )
+
+        _mark_stage_complete(project_dir, "discover")
+
+        # Print summary
+        console.print(f"\n[green]File ingestion complete[/green] in {elapsed:.1f}s")
+        console.print(f"  Source: {file_path.name}")
+        for group, group_total in group_totals:
             console.print(f"    {group:<15s} {group_total:>5d} objects")
         console.print(f"  Total objects: {total}")
         return
@@ -1157,9 +1206,10 @@ def discover(
 
         # A run that extracted nothing is a FAILED run — every AXL call failed.
         # Do not mark the stage complete and do not advance ProjectState.
-        if result.total_objects == 0:
-            _report_failed_discovery(result, elapsed, raw_data_path)
-            raise typer.Exit(1)
+        _abort_if_nothing_discovered(
+            result.total_objects,
+            lambda: _report_failed_discovery(result, elapsed, raw_data_path),
+        )
 
         _mark_stage_complete(project_dir, "discover")
 
@@ -1511,6 +1561,14 @@ def preflight(
                 except InvalidTransitionError:
                     pass
 
+        # The exit code has to carry the verdict. A caller that gates on $?
+        # (the cucm-migrate skill calls preflight MANDATORY, NOT SKIPPABLE)
+        # otherwise reads success from a run that printed "Overall: FAIL".
+        if result.overall == CheckStatus.FAIL:
+            raise typer.Exit(1)
+
+    except typer.Exit:
+        raise
     except Exception as exc:
         console.print(f"[red]Preflight failed:[/red] {exc}")
         logger.exception("Preflight failed")

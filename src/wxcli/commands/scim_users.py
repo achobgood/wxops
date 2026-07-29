@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling scim-users.")
 
 
-@app.command("list")
+@app.command("list", short_help="Search users.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="The URL encoded filter. If the value is empty, the API will return all users under the organization. The examples below show some search filters: - `userName` eq \"user1@example.com\" - `userName` sw \"user1@example\" - `userName` ew \"example\" - `phoneNumbers` [ type eq \"mobile\" and value eq..."),
     attributes: str = typer.Option(None, "--attributes", help="A multi-valued list of string names for resource attributes to return in the response, like 'userName,department,emails'. It supports the SCIM id 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User,userName'. The default is empty, all attributes will be returned"),
@@ -27,6 +27,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Search users."""
@@ -60,7 +61,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_scim(url=url, params=params, item_key="Resources"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -71,9 +75,9 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'
+_BODY_SKELETON_CREATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","name":{"givenName":"...","familyName":"...","middleName":"...","honorificPrefix":"...","honorificSuffix":"..."},"phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'
 
-@app.command("create")
+@app.command("create", short_help="Create a user.")
 def create(
     user_name: str = typer.Option(None, "--user-name", help="(required) A unique identifier for the user that authenticates the user in Webex. This must be set to the user's primary email address. No other user in Webex may have the same `userName` value, so this value must be unique within Webex."),
     user_type: str = typer.Option(None, "--user-type", help="(required) Choices: user, room, external_calling, calling_service"),
@@ -92,7 +96,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a user\n\nExample --json-body:\n  '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'."""
+    """Create a user.\n\n\b\nExample: wxcli scim-users create --json-body '{"schemas":["..."],"userName":"...","userType":"user"}'\n\n\b\nExample --json-body: '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","name":{"givenName":"...","familyName":"...","middleName":"...","honorificPrefix":"...","honorificSuffix":"..."},"phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -147,14 +151,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a user.")
 def show(
-    user_id: str = typer.Argument(help="userId"),
+    user_id: str = typer.Argument(help="UUID, from: wxcli scim-users list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a user."""
+    """Get a user.\n\n\b\nExample: wxcli scim-users show USER_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
@@ -168,11 +172,11 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'
+_BODY_SKELETON_UPDATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'
 
-@app.command("update")
+@app.command("update", short_help="Update a user with PUT.")
 def update(
-    user_id: str = typer.Argument(help="userId"),
+    user_id: str = typer.Argument(help="UUID, from: wxcli scim-users list"),
     user_name: str = typer.Option(None, "--user-name", help="A unique identifier for the user and authenticates the user in Webex. This must be set to the user's primary email address. No other user in Webex may have the same `userName` value and thus this value is required to be unique within Webex."),
     user_type: str = typer.Option(None, "--user-type", help="Choices: user, room, external_calling, calling_service"),
     title: str = typer.Option(None, "--title", help="The user's business title. Examples of a title is \"Business Manager\". \"Senior Accountant\", \"Engineer\" etc."),
@@ -190,7 +194,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a user with PUT\n\nExample --json-body:\n  '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'."""
+    """Update a user with PUT.\n\n\b\nExample: wxcli scim-users update USER_ID --json-body '{"schemas":["..."],"userName":"...","userType":"user"}'\n\n\b\nExample --json-body: '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -238,18 +242,18 @@ def update(
 
 
 
-_BODY_SKELETON_UPDATE_USERS = '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'
+_BODY_SKELETON_UPDATE_USERS = '{"schemas":["..."],"Operations":[{"op":"add","path":"...","value":[{"value":"...","type":"...","display":"..."}]}]}'
 
-@app.command("update-users")
+@app.command("update-users", short_help="Update a user with PATCH.")
 def update_users(
-    user_id: str = typer.Argument(help="userId"),
+    user_id: str = typer.Argument(help="UUID, from: wxcli scim-users list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a user with PATCH\n\nExample --json-body:\n  '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'."""
+    """Update a user with PATCH.\n\n\b\nExample: wxcli scim-users update-users USER_ID --json-body '{"schemas":["..."],"Operations":[{"op":"add"}]}'\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"add","path":"...","value":[{"value":"...","type":"...","display":"..."}]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_USERS), indent=2))
         raise typer.Exit(0)
@@ -275,19 +279,19 @@ def update_users(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a user.")
 def delete(
-    user_id: str = typer.Argument(help="userId"),
+    user_id: str = typer.Argument(help="UUID, from: wxcli scim-users list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a user."""
-    if not force:
-        typer.confirm(f"Delete {user_id}?", abort=True)
+    """Delete a user.\n\n\b\nExample: wxcli scim-users delete USER_ID"""
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {user_id}?", abort=True)
     url = f"https://webexapis.com/identity/scim/{org_id}/v2/Users/{user_id}"
     try:
         result = api.session.rest_delete(url)
@@ -304,7 +308,7 @@ def delete(
 
 
 
-@app.command("show-me")
+@app.command("show-me", short_help="Get Me.")
 def show_me(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),

@@ -180,7 +180,7 @@ wxcli organizations list --output json
 wxcli hds show ORG_ID --output json
 
 # List available clusters (if org has HDS enrolled)
-wxcli hds list ORG_ID --output json
+wxcli hds list-clusters ORG_ID --output json
 ```
 
 ---
@@ -506,8 +506,11 @@ wxcli hds show-clusters CLUSTER_ID --output json
 # Get node details
 wxcli hds show-nodes NODE_ID --output json
 
+# List clusters for the org
+wxcli hds list-clusters ORG_ID --output json
+
 # Get HDS database configuration
-wxcli hds list ORG_ID --output json
+wxcli hds show-database ORG_ID --output json
 
 # Get multi-tenant HDS details
 wxcli hds list-tenants ORG_ID --output json

@@ -74,7 +74,8 @@ Video Mesh deploys on-premises media processing nodes that keep real-time media 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
 | List clusters | `wxcli video-mesh list-clusters-video-mesh` | GET /videoMesh/clusters | List all Video Mesh clusters in the org |
-| Show cluster | `wxcli video-mesh show ID` | GET /videoMesh/clusters/{clusterId} | Get details for a single cluster |
+| Show cluster | `wxcli video-mesh show-clusters ID` | GET /videoMesh/clusters/{clusterId} | Get details for a single cluster |
+| Show cluster availability | `wxcli video-mesh show ID` | GET /videoMesh/clusters/availability/{clusterId} | Availability time series for one cluster (**not** cluster details) |
 
 ### Key Parameters
 
@@ -220,7 +221,7 @@ Track call redirect patterns across clusters and analyze client type distributio
 |---------|-----|------------|-------------|
 | List call redirects | `wxcli video-mesh list-call-redirects-video-mesh` | GET /videoMesh/callRedirects | Redirect details for all clusters |
 | Cluster call redirects | `wxcli video-mesh list-call-redirects-clusters` | GET /videoMesh/clusters/callRedirects | Redirect details for a specific cluster |
-| Client type distribution | `wxcli video-mesh list` | GET /videoMesh/clientTypeDistribution | Client types across all clusters |
+| Client type distribution | `wxcli video-mesh list-client-type-distribution` | GET /videoMesh/clientTypeDistribution | Client types across all clusters |
 | Cluster client distribution | `wxcli video-mesh list-clusters-client-type-distribution` | GET /videoMesh/clientTypeDistribution/clusters | Client types for a specific cluster |
 
 ### Key Parameters (shared across these commands)

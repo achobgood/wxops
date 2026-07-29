@@ -10,14 +10,14 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling hds.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get organization details.")
 def show(
-    organization_id: str = typer.Argument(help="organizationId"),
+    organization_id: str = typer.Argument(help="Webex ORGANIZATION id, from: wxcli organizations list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get organization details."""
+    """Get organization details.\n\n\b\nExample: wxcli hds show ORGANIZATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}"
     try:
@@ -30,16 +30,18 @@ def show(
 
 
 
-@app.command("list")
-def cmd_list(
-    organization_id: str = typer.Argument(help="organizationId"),
+@app.command("list", hidden=True)
+@app.command("list-clusters", short_help="List clusters for an Hybrid Data Security organization.")
+def list_clusters(
+    organization_id: str = typer.Argument(help="Webex ORGANIZATION id, from: wxcli organizations list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List clusters for an Hybrid Data Security organization."""
+    """List clusters for an Hybrid Data Security organization.\n\n\b\nExample: wxcli hds list-clusters ORGANIZATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}/clusters"
     params = {}
@@ -60,14 +62,14 @@ def cmd_list(
 
 
 
-@app.command("show-clusters")
+@app.command("show-clusters", short_help="Get cluster details.")
 def show_clusters(
-    cluster_id: str = typer.Argument(help="clusterId"),
+    cluster_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get cluster details."""
+    """Get cluster details.\n\n\b\nExample: wxcli hds show-clusters CLUSTER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/clusters/{cluster_id}"
     try:
@@ -80,16 +82,17 @@ def show_clusters(
 
 
 
-@app.command("list-nodes")
+@app.command("list-nodes", short_help="List nodes for an Hybrid Data Security cluster.")
 def list_nodes(
-    cluster_id: str = typer.Argument(help="clusterId"),
+    cluster_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List nodes for an Hybrid Data Security cluster."""
+    """List nodes for an Hybrid Data Security cluster.\n\n\b\nExample: wxcli hds list-nodes CLUSTER_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/clusters/{cluster_id}/nodes"
     params = {}
@@ -110,14 +113,14 @@ def list_nodes(
 
 
 
-@app.command("show-nodes")
+@app.command("show-nodes", short_help="Get node details.")
 def show_nodes(
-    node_id: str = typer.Argument(help="nodeId"),
+    node_id: str = typer.Argument(help="Webex HYBRID_CONNECTOR id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get node details."""
+    """Get node details.\n\n\b\nExample: wxcli hds show-nodes NODE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/nodes/{node_id}"
     try:
@@ -130,14 +133,14 @@ def show_nodes(
 
 
 
-@app.command("show-database")
+@app.command("show-database", short_help="Get database details for the Hybrid Data Security organization.")
 def show_database(
-    organization_id: str = typer.Argument(help="organizationId"),
+    organization_id: str = typer.Argument(help="Webex ORGANIZATION id, from: wxcli organizations list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get database details for the Hybrid Data Security organization."""
+    """Get database details for the Hybrid Data Security organization.\n\n\b\nExample: wxcli hds show-database ORGANIZATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}/database"
     try:
@@ -150,16 +153,17 @@ def show_database(
 
 
 
-@app.command("list-tenants")
+@app.command("list-tenants", short_help="Get Multi-Tenant Hybrid Data Security organization details.")
 def list_tenants(
-    organization_id: str = typer.Argument(help="organizationId"),
+    organization_id: str = typer.Argument(help="Webex ORGANIZATION id, from: wxcli organizations list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Multi-Tenant Hybrid Data Security organization details."""
+    """Get Multi-Tenant Hybrid Data Security organization details.\n\n\b\nExample: wxcli hds list-tenants ORGANIZATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/organizations/{organization_id}/tenants"
     params = {}
@@ -180,18 +184,19 @@ def list_tenants(
 
 
 
-@app.command("list-alarms")
+@app.command("list-alarms", short_help="Get alarms for an Hybrid Data Security node.")
 def list_alarms(
-    node_id: str = typer.Argument(help="nodeId"),
+    node_id: str = typer.Argument(help="Webex HYBRID_CONNECTOR id"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get alarms for an Hybrid Data Security node."""
+    """Get alarms for an Hybrid Data Security node.\n\n\b\nExample: wxcli hds list-alarms NODE_ID --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/nodes/{node_id}/alarms"
     params = {}
@@ -216,17 +221,18 @@ def list_alarms(
 
 
 
-@app.command("list-network-test")
+@app.command("list-network-test", short_help="Get test results for Hybrid Data Security node.")
 def list_network_test(
-    node_id: str = typer.Argument(help="nodeId"),
+    node_id: str = typer.Argument(help="Webex HYBRID_CONNECTOR id"),
     trigger_type: str = typer.Option(None, "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get test results for Hybrid Data Security node."""
+    """Get test results for Hybrid Data Security node.\n\n\b\nExample: wxcli hds list-network-test NODE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/testResults/nodes/{node_id}/networkTest"
     params = {}
@@ -249,18 +255,19 @@ def list_network_test(
 
 
 
-@app.command("list-resource-usage")
+@app.command("list-resource-usage", short_help="Get resource usage for an Hybrid Data Security node.")
 def list_resource_usage(
-    node_id: str = typer.Argument(help="nodeId"),
+    node_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get resource usage for an Hybrid Data Security node."""
+    """Get resource usage for an Hybrid Data Security node.\n\n\b\nExample: wxcli hds list-resource-usage NODE_ID --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/nodes/{node_id}/resourceUsage"
     params = {}
@@ -285,18 +292,19 @@ def list_resource_usage(
 
 
 
-@app.command("list-availability")
+@app.command("list-availability", short_help="Get availability details for Hybrid Data Security cluster.")
 def list_availability(
-    cluster_id: str = typer.Argument(help="clusterId"),
+    cluster_id: str = typer.Argument(help="Webex HYBRID_CLUSTER id"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The 'from' value cannot be later than the 'to' value, and it cannot be more than 1 day older than the current date and time."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get availability details for Hybrid Data Security cluster."""
+    """Get availability details for Hybrid Data Security cluster.\n\n\b\nExample: wxcli hds list-availability CLUSTER_ID --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/hds/clusters/{cluster_id}/availability"
     params = {}

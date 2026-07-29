@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling authorizations.")
 
 
-@app.command("list")
+@app.command("list", short_help="List authorizations for a user.")
 def cmd_list(
     person_id: str = typer.Option(None, "--person-id", help="List authorizations for this user id."),
     person_email: str = typer.Option(None, "--person-email", help="List authorizations for this user email."),
@@ -19,6 +19,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List authorizations for a user."""
@@ -46,7 +47,7 @@ def cmd_list(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete authorization of org and client ID.")
 def delete(
     client_id: str = typer.Option(..., "--client-id", help="The unique oAuth client id."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -54,10 +55,10 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete authorization of org and client ID."""
+    """Delete authorization of org and client ID.\n\n\b\nExample: wxcli authorizations delete --client-id CLIENT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/authorizations"
     params = {}
     if client_id is not None:
@@ -80,18 +81,18 @@ def delete(
 
 
 
-@app.command("delete-authorizations")
+@app.command("delete-authorizations", short_help="Delete authorization.")
 def delete_authorizations(
-    authorization_id: str = typer.Argument(help="authorizationId"),
+    authorization_id: str = typer.Argument(help="Webex AUTHORIZATION id, from: wxcli authorizations list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete authorization."""
+    """Delete authorization.\n\n\b\nExample: wxcli authorizations delete-authorizations AUTHORIZATION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {authorization_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/authorizations/{authorization_id}"
     try:
         result = api.session.rest_delete(url)
@@ -108,7 +109,7 @@ def delete_authorizations(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get expiration status for a token.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),

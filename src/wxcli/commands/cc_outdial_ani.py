@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-outdial-ani.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Outdial ANIs.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except outdialANIEntries"),
@@ -22,6 +22,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Outdial ANIs."""
@@ -46,7 +47,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -57,9 +61,9 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Outdial ANI.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -74,7 +78,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Outdial ANI\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'."""
+    """Create a new Outdial ANI.\n\n\b\nExample: wxcli cc-outdial-ani create --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -122,9 +126,9 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK_OUTDIAL_ANI = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK_OUTDIAL_ANI = '{"items":[{"itemIdentifier":0,"item":{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create-bulk-outdial-ani")
+@app.command("create-bulk-outdial-ani", short_help="Bulk save Outdial ANIs.")
 def create_bulk_outdial_ani(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -132,7 +136,7 @@ def create_bulk_outdial_ani(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Outdial ANIs\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Outdial ANIs.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_OUTDIAL_ANI), indent=2))
         raise typer.Exit(0)
@@ -162,7 +166,7 @@ def create_bulk_outdial_ani(
 
 
 
-@app.command("list-entry-outdial-ani")
+@app.command("list-entry-outdial-ani", short_help="List Outdial ANI Entries.")
 def list_entry_outdial_ani(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
@@ -173,6 +177,7 @@ def list_entry_outdial_ani(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Outdial ANI Entries."""
@@ -197,7 +202,10 @@ def list_entry_outdial_ani(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -208,14 +216,14 @@ def list_entry_outdial_ani(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Outdial ANI by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Outdial ANI by ID."""
+    """Get specific Outdial ANI by ID.\n\n\b\nExample: wxcli cc-outdial-ani show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -230,11 +238,11 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Outdial ANI by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -248,7 +256,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Outdial ANI by ID\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","defaultANIEntry":"...","createdTime":"...","lastUpdatedTime":"..."}],"createdTime":0,"lastUpdatedTime":0}'."""
+    """Update specific Outdial ANI by ID.\n\n\b\nExample: wxcli cc-outdial-ani update ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","outdialANIEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -289,20 +297,20 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Outdial ANI by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Outdial ANI by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Outdial ANI by ID.\n\n\b\nExample: wxcli cc-outdial-ani delete ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -319,9 +327,9 @@ def delete(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific Outdial ANI.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -329,9 +337,10 @@ def list_incoming_references(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Outdial ANI."""
+    """List references for a specific Outdial ANI.\n\n\b\nExample: wxcli cc-outdial-ani list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -349,7 +358,10 @@ def list_incoming_references(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -362,9 +374,9 @@ def list_incoming_references(
 
 _BODY_SKELETON_CREATE_ENTRY = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create-entry")
+@app.command("create-entry", short_help="Create a new Outdial ANI Entry.")
 def create_entry(
-    out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
+    out_dial_ani_id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -379,7 +391,7 @@ def create_entry(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Outdial ANI Entry\n\nExample --json-body:\n  '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Create a new Outdial ANI Entry.\n\n\b\nExample: wxcli cc-outdial-ani create-entry OUT_DIAL_ANI_ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ENTRY), indent=2))
         raise typer.Exit(0)
@@ -429,18 +441,18 @@ def create_entry(
 
 
 
-_BODY_SKELETON_CREATE_BULK_ENTRY = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK_ENTRY = '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create-bulk-entry")
+@app.command("create-bulk-entry", short_help="Bulk save Outdial ANI Entries.")
 def create_bulk_entry(
-    out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
+    out_dial_ani_id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Outdial ANI Entries\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Outdial ANI Entries.\n\n\b\nExample: wxcli cc-outdial-ani create-bulk-entry OUT_DIAL_ANI_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_ENTRY), indent=2))
         raise typer.Exit(0)
@@ -470,15 +482,15 @@ def create_bulk_entry(
 
 
 
-@app.command("show-entry")
+@app.command("show-entry", short_help="Get specific Outdial ANI Entry by ID.")
 def show_entry(
-    out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
-    id: str = typer.Argument(help="id"),
+    out_dial_ani_id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list-entry-outdial-ani"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Outdial ANI Entry by ID."""
+    """Get specific Outdial ANI Entry by ID.\n\n\b\nExample: wxcli cc-outdial-ani show-entry OUT_DIAL_ANI_ID ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -495,10 +507,10 @@ def show_entry(
 
 _BODY_SKELETON_UPDATE_ENTRY = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update-entry")
+@app.command("update-entry", short_help="Update specific Outdial ANI Entry by ID.")
 def update_entry(
-    out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
-    id: str = typer.Argument(help="id"),
+    out_dial_ani_id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list-entry-outdial-ani"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -513,7 +525,7 @@ def update_entry(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Outdial ANI Entry by ID\n\nExample --json-body:\n  '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Update specific Outdial ANI Entry by ID.\n\n\b\nExample: wxcli cc-outdial-ani update-entry OUT_DIAL_ANI_ID ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"defaultANIEntry":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ENTRY), indent=2))
         raise typer.Exit(0)
@@ -556,21 +568,21 @@ def update_entry(
 
 
 
-@app.command("delete-entry")
+@app.command("delete-entry", short_help="Delete specific Outdial ANI Entry by ID.")
 def delete_entry(
-    out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
-    id: str = typer.Argument(help="id"),
+    out_dial_ani_id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list-entry-outdial-ani"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Outdial ANI Entry by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Outdial ANI Entry by ID.\n\n\b\nExample: wxcli cc-outdial-ani delete-entry OUT_DIAL_ANI_ID ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/outdial-ani/{out_dial_ani_id}/entry/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -587,7 +599,7 @@ def delete_entry(
 
 
 
-@app.command("list-outdial-ani")
+@app.command("list-outdial-ani", short_help="List Outdial ANIs.")
 def list_outdial_ani(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, outdialANIEntries, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except outdialANIEntries"),
@@ -599,6 +611,7 @@ def list_outdial_ani(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Outdial ANIs."""
@@ -625,7 +638,10 @@ def list_outdial_ani(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -636,9 +652,9 @@ def list_outdial_ani(
 
 
 
-@app.command("list-entry-outdial-ani-1")
+@app.command("list-entry-outdial-ani-1", short_help="List Outdial ANI Entries.")
 def list_entry_outdial_ani_1(
-    out_dial_ani_id: str = typer.Argument(help="outDialAniId"),
+    out_dial_ani_id: str = typer.Argument(help="UUID, from: wxcli cc-outdial-ani list-outdial-ani"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\");value==\"Cisco\""),
@@ -648,9 +664,10 @@ def list_entry_outdial_ani_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Outdial ANI Entries."""
+    """List Outdial ANI Entries.\n\n\b\nExample: wxcli cc-outdial-ani list-entry-outdial-ani-1 OUT_DIAL_ANI_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -672,7 +689,10 @@ def list_entry_outdial_ani_1(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

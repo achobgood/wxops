@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-address-book.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Address Book(s).")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
@@ -21,6 +21,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Address Book(s)."""
@@ -43,7 +44,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -54,9 +58,9 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'
+_BODY_SKELETON_CREATE = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Address Book.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -73,7 +77,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'."""
+    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -125,7 +129,7 @@ def create(
 
 
 
-@app.command("list-bulk-export")
+@app.command("list-bulk-export", short_help="Bulk export Address Book(s).")
 def list_bulk_export(
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -133,6 +137,7 @@ def list_bulk_export(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Bulk export Address Book(s)."""
@@ -151,7 +156,10 @@ def list_bulk_export(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="resources"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -164,9 +172,9 @@ def list_bulk_export(
 
 _BODY_SKELETON_CREATE_ENTRY = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create-entry")
+@app.command("create-entry", short_help="Create a new Address Book Entry.")
 def create_entry(
-    address_book_id: str = typer.Argument(help="addressBookId"),
+    address_book_id: str = typer.Argument(help="UUID, from: wxcli cc-address-book list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -180,7 +188,7 @@ def create_entry(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book Entry\n\nExample --json-body:\n  '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Create a new Address Book Entry.\n\n\b\nExample: wxcli cc-address-book create-entry ADDRESS_BOOK_ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ENTRY), indent=2))
         raise typer.Exit(0)
@@ -228,18 +236,18 @@ def create_entry(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Address Book Entry(s).")
 def create_bulk(
-    address_book_id: str = typer.Argument(help="addressBookId"),
+    address_book_id: str = typer.Argument(help="UUID, from: wxcli cc-address-book list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Address Book Entry(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Address Book Entry(s).\n\n\b\nExample: wxcli cc-address-book create-bulk ADDRESS_BOOK_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -269,15 +277,15 @@ def create_bulk(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Address Book Entry by ID.")
 def show(
-    address_book_id: str = typer.Argument(help="addressBookId"),
-    id: str = typer.Argument(help="id"),
+    address_book_id: str = typer.Argument(help="UUID, from: wxcli cc-address-book list"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Address Book Entry by ID."""
+    """Get specific Address Book Entry by ID.\n\n\b\nExample: wxcli cc-address-book show ADDRESS_BOOK_ID ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -294,10 +302,10 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Address Book Entry by ID.")
 def update(
-    address_book_id: str = typer.Argument(help="addressBookId"),
-    id: str = typer.Argument(help="id"),
+    address_book_id: str = typer.Argument(help="UUID, from: wxcli cc-address-book list"),
+    id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -311,7 +319,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book Entry by ID\n\nExample --json-body:\n  '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Update specific Address Book Entry by ID.\n\n\b\nExample: wxcli cc-address-book update ADDRESS_BOOK_ID ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -352,21 +360,21 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Address Book Entry by ID.")
 def delete(
-    address_book_id: str = typer.Argument(help="addressBookId"),
-    id: str = typer.Argument(help="id"),
+    address_book_id: str = typer.Argument(help="UUID, from: wxcli cc-address-book list"),
+    id: str = typer.Argument(help="UUID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Address Book Entry by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Address Book Entry by ID.\n\n\b\nExample: wxcli cc-address-book delete ADDRESS_BOOK_ID ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/address-book/{address_book_id}/entry/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -383,14 +391,14 @@ def delete(
 
 
 
-@app.command("show-address-book-organization")
+@app.command("show-address-book-organization", short_help="Get specific Address Book by ID.")
 def show_address_book_organization(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-address-book list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Address Book by ID."""
+    """Get specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book show-address-book-organization ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -405,11 +413,11 @@ def show_address_book_organization(
 
 
 
-_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'
+_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update-address-book-organization")
+@app.command("update-address-book-organization", short_help="Update specific Address Book by ID.")
 def update_address_book_organization(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-address-book list"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -425,7 +433,7 @@ def update_address_book_organization(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":"...","createdTime":"...","lastUpdatedTime":"..."}]}'."""
+    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-organization ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION), indent=2))
         raise typer.Exit(0)
@@ -470,20 +478,20 @@ def update_address_book_organization(
 
 
 
-@app.command("delete-address-book-organization")
+@app.command("delete-address-book-organization", short_help="Delete specific Address Book by ID.")
 def delete_address_book_organization(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-address-book list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Address Book by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book delete-address-book-organization ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/address-book/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -500,9 +508,9 @@ def delete_address_book_organization(
 
 
 
-@app.command("list-incoming-references")
+@app.command("list-incoming-references", short_help="List references for a specific Address Book.")
 def list_incoming_references(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID, from: wxcli cc-address-book list"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -510,9 +518,10 @@ def list_incoming_references(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Address Book."""
+    """List references for a specific Address Book.\n\n\b\nExample: wxcli cc-address-book list-incoming-references ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -530,7 +539,10 @@ def list_incoming_references(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -541,7 +553,7 @@ def list_incoming_references(
 
 
 
-@app.command("list-address-book-v2")
+@app.command("list-address-book-v2", short_help="List Address Book(s).")
 def list_address_book_v2(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
@@ -552,6 +564,7 @@ def list_address_book_v2(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Address Book(s)."""
@@ -576,7 +589,10 @@ def list_address_book_v2(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -587,9 +603,9 @@ def list_address_book_v2(
 
 
 
-@app.command("list-entry")
+@app.command("list-entry", short_help="List Address Book Entry(s).")
 def list_entry(
-    address_book_id: str = typer.Argument(help="addressBookId"),
+    address_book_id: str = typer.Argument(help="UUID, from: wxcli cc-address-book list-address-book-v2"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name, number) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\",\"number\");value==\"Cisco\""),
@@ -599,9 +615,10 @@ def list_entry(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Address Book Entry(s)."""
+    """List Address Book Entry(s).\n\n\b\nExample: wxcli cc-address-book list-entry ADDRESS_BOOK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -623,7 +640,10 @@ def list_entry(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -634,7 +654,7 @@ def list_entry(
 
 
 
-@app.command("list-address-book-v3")
+@app.command("list-address-book-v3", short_help="List Address Book(s).")
 def list_address_book_v3(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported"),
@@ -645,6 +665,7 @@ def list_address_book_v3(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Address Book(s)."""
@@ -669,7 +690,10 @@ def list_address_book_v3(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -680,9 +704,9 @@ def list_address_book_v3(
 
 
 
-_BODY_SKELETON_CREATE_ADDRESS_BOOK = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'
+_BODY_SKELETON_CREATE_ADDRESS_BOOK = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create-address-book")
+@app.command("create-address-book", short_help="Create a new Address Book.")
 def create_address_book(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -699,7 +723,7 @@ def create_address_book(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'."""
+    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create-address-book --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ADDRESS_BOOK), indent=2))
         raise typer.Exit(0)
@@ -751,14 +775,14 @@ def create_address_book(
 
 
 
-@app.command("show-address-book-v3")
+@app.command("show-address-book-v3", short_help="Get specific Address Book by ID.")
 def show_address_book_v3(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-address-book list-address-book-v3"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Address Book by ID."""
+    """Get specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book show-address-book-v3 ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -773,11 +797,11 @@ def show_address_book_v3(
 
 
 
-_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3 = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'
+_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3 = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update-address-book-v3")
+@app.command("update-address-book-v3", short_help="Update specific Address Book by ID.")
 def update_address_book_v3(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-address-book list-address-book-v3"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. It is required to define for the following operations - All bulk save operations"),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -793,7 +817,7 @@ def update_address_book_v3(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID\n\nExample --json-body:\n  '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0}'."""
+    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-v3 ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3), indent=2))
         raise typer.Exit(0)
@@ -838,20 +862,20 @@ def update_address_book_v3(
 
 
 
-@app.command("delete-address-book-v3")
+@app.command("delete-address-book-v3", short_help="Delete specific Address Book by ID.")
 def delete_address_book_v3(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="from: wxcli cc-address-book list-address-book-v3"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Address Book by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book delete-address-book-v3 ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/v3/address-book/{id}"
     try:
         result = api.session.rest_delete(url)

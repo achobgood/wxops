@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling call-queue.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Call Queues with Customer Assist.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Returns the list of call queues in this location."),
     name: str = typer.Option(None, "--name", help="Returns only the call queues matching the given name."),
@@ -24,6 +24,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Call Queues with Customer Assist."""
@@ -52,7 +53,7 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("queues", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -66,7 +67,7 @@ def cmd_list(
 
 
 
-@app.command("show-org-settings")
+@app.command("show-org-settings", short_help="Get Call Queue Settings.")
 def show_org_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -91,7 +92,7 @@ def show_org_settings(
 
 _BODY_SKELETON_UPDATE_ORG_SETTINGS = '{"maintainQueuePositionForSimRingEnabled":true,"forceAgentUnavailableOnBouncedEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true}'
 
-@app.command("update-org-settings")
+@app.command("update-org-settings", short_help="Update Call Queue Settings.")
 def update_org_settings(
     maintain_queue_position_for_sim_ring_enabled: bool = typer.Option(None, "--maintain-queue-position-for-sim-ring-enabled/--no-maintain-queue-position-for-sim-ring-enabled", help="Indicates whether callers keep their queue position when simultaneous ringing routes a call to multiple agents."),
     force_agent_unavailable_on_bounced_enabled: bool = typer.Option(None, "--force-agent-unavailable-on-bounced-enabled/--no-force-agent-unavailable-on-bounced-enabled", help="Indicates whether Customer Assist agents are changed to unavailable after bounced calls."),
@@ -104,7 +105,7 @@ def update_org_settings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Queue Settings\n\nExample --json-body:\n  '{"maintainQueuePositionForSimRingEnabled":true,"forceAgentUnavailableOnBouncedEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true}'."""
+    """Update Call Queue Settings.\n\n\b\nExample --json-body: '{"maintainQueuePositionForSimRingEnabled":true,"forceAgentUnavailableOnBouncedEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ORG_SETTINGS), indent=2))
         raise typer.Exit(0)
@@ -143,11 +144,11 @@ def update_org_settings(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Call Queue with Customer Assist.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist call queue, when `true`. This requires Customer Assist licensed agents."),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call queue."),
     phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the call queue. Either a `phoneNumber` or `extension` is mandatory."),
@@ -168,7 +169,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Queue with Customer Assist\n\nExample --json-body:\n  '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":"...","callBounceMaxRings":"...","agentUnavailableEnabled":"...","alertAgentEnabled":"...","alertAgentMaxSeconds":"...","callBounceOnHoldEnabled":"...","callBounceOnHoldMaxSeconds":"..."},"distinctiveRing":{"enabled":"...","ringPattern":"..."}},"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"agents":[{"id":"...","weight":"...","skillLevel":"..."}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'."""
+    """Create a Call Queue with Customer Assist.\n\n\b\nExample: wxcli call-queue create LOCATION_ID --json-body '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM"}},"agents":[{"id":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -232,16 +233,17 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show-queues", hidden=True)
+@app.command("show", short_help="Get Details for a Call Queue with Customer Assist.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true`, to view the details of a call queue with Customer Assist license. This can otherwise be ommited or set to `false`."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue with Customer Assist."""
+    """Get Details for a Call Queue with Customer Assist.\n\n\b\nExample: wxcli call-queue show LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
     params = {}
@@ -260,12 +262,13 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"..."}'
+_BODY_SKELETON_UPDATE = '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"...","extension":"...","alternateNumberSettings":{"distinctiveRingEnabled":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}]},"callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowCallWaitingForAgentsEnabled":true,"agents":[{"id":"...","weight":"...","skillLevel":0,"joinEnabled":true}],"allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'
 
-@app.command("update")
+@app.command("update-queues", hidden=True)
+@app.command("update", short_help="Update a Call Queue.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the call queue is enabled."),
     name: str = typer.Option(None, "--name", help="Unique name for the call queue."),
     language_code: str = typer.Option(None, "--language-code", help="Language code."),
@@ -287,7 +290,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue\n\nExample --json-body:\n  '{"queueSettings":{"queueSize":0,"overflow":{"action":"...","greeting":"...","sendToVoicemail":"...","transferNumber":"...","overflowAfterWaitEnabled":"...","overflowAfterWaitTime":"...","playOverflowGreetingEnabled":"...","audioAnnouncementFiles":"..."},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"...","enabled":"...","alwaysEnabled":"...","audioAnnouncementFiles":"..."},"waitMessage":{"waitMode":"...","enabled":"...","handlingTime":"...","defaultHandlingTime":"...","queuePosition":"...","highVolumeMessageEnabled":"...","estimatedWaitingTime":"...","callbackOptionEnabled":"..."},"comfortMessage":{"greeting":"...","enabled":"...","timeBetweenMessages":"...","audioAnnouncementFiles":"..."},"comfortMessageBypass":{"greeting":"...","enabled":"...","callWaitingAgeThreshold":"...","audioAnnouncementFiles":"..."}},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"..."}'."""
+    """Update a Call Queue.\n\n\b\nExample: wxcli call-queue update LOCATION_ID QUEUE_ID --json-body '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM"}}}'\n\n\b\nExample --json-body: '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"...","extension":"...","alternateNumberSettings":{"distinctiveRingEnabled":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}]},"callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowCallWaitingForAgentsEnabled":true,"agents":[{"id":"...","weight":"...","skillLevel":0,"joinEnabled":true}],"allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -346,19 +349,19 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Call Queue.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Call Queue."""
+    """Delete a Call Queue.\n\n\b\nExample: wxcli call-queue delete LOCATION_ID QUEUE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {queue_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
     params = {}
     org_id = get_org_id()
@@ -379,17 +382,18 @@ def delete(
 
 
 
-@app.command("list-announcements")
+@app.command("list-announcements", short_help="Read the List of Call Queue Announcement Files.")
 def list_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Call Queue Announcement Files."""
+    """Read the List of Call Queue Announcement Files.\n\n\b\nExample: wxcli call-queue list-announcements LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/announcements"
     params = {}
@@ -413,20 +417,20 @@ def list_announcements(
 
 
 
-@app.command("delete-announcements")
+@app.command("delete-announcements", short_help="Delete a Call Queue Announcement File.")
 def delete_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    file_name: str = typer.Argument(help="fileName"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
+    file_name: str = typer.Argument(help="from: wxcli call-queue list-announcements"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Call Queue Announcement File."""
+    """Delete a Call Queue Announcement File.\n\n\b\nExample: wxcli call-queue delete-announcements LOCATION_ID QUEUE_ID FILE_NAME"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {file_name}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/announcements/{file_name}"
     params = {}
     org_id = get_org_id()
@@ -447,15 +451,15 @@ def delete_announcements(
 
 
 
-@app.command("show-call-forwarding")
+@app.command("show-call-forwarding", short_help="Get Call Forwarding Settings for a Call Queue.")
 def show_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Forwarding Settings for a Call Queue."""
+    """Get Call Forwarding Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue show-call-forwarding LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding"
     params = {}
@@ -472,19 +476,19 @@ def show_call_forwarding(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'
 
-@app.command("update-call-forwarding")
+@app.command("update-call-forwarding", short_help="Update Call Forwarding Settings for a Call Queue.")
 def update_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Forwarding Settings for a Call Queue\n\nExample --json-body:\n  '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'."""
+    """Update Call Forwarding Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue update-call-forwarding LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
         raise typer.Exit(0)
@@ -513,12 +517,12 @@ def update_call_forwarding(
 
 
 
-_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
 
-@app.command("create-selective-rules")
+@app.command("create-selective-rules", short_help="Create a Selective Call Forwarding Rule for a Call Queue.")
 def create_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli call-queue list"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
@@ -529,7 +533,7 @@ def create_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'."""
+    """Create a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue create-selective-rules LOCATION_ID QUEUE_ID --json-body '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true}},"callsTo":{"numbers":[{"type":"PRIMARY"}]}}'\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -573,16 +577,16 @@ def create_selective_rules(
 
 
 
-@app.command("show-selective-rules")
+@app.command("show-selective-rules", short_help="Get Selective Call Forwarding Rule for a Call Queue.")
 def show_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli call-queue list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Selective Call Forwarding Rule for a Call Queue."""
+    """Get Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue show-selective-rules LOCATION_ID QUEUE_ID RULE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
@@ -599,13 +603,13 @@ def show_selective_rules(
 
 
 
-_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
-@app.command("update-selective-rules")
+@app.command("update-selective-rules", short_help="Update a Selective Call Forwarding Rule for a Call Queue.")
 def update_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli call-queue list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
@@ -616,7 +620,7 @@ def update_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Selective Call Forwarding Rule for a Call Queue\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'."""
+    """Update a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue update-selective-rules LOCATION_ID QUEUE_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -653,20 +657,20 @@ def update_selective_rules(
 
 
 
-@app.command("delete-selective-rules")
+@app.command("delete-selective-rules", short_help="Delete a Selective Call Forwarding Rule for a Call Queue.")
 def delete_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli call-queue list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Selective Call Forwarding Rule for a Call Queue."""
+    """Delete a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue delete-selective-rules LOCATION_ID QUEUE_ID RULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {rule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
     org_id = get_org_id()
@@ -687,17 +691,18 @@ def delete_selective_rules(
 
 
 
-@app.command("list-holiday-service")
+@app.command("list-holiday-service", short_help="Get Details for a Call Queue Holiday Service.")
 def list_holiday_service(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue Holiday Service."""
+    """Get Details for a Call Queue Holiday Service.\n\n\b\nExample: wxcli call-queue list-holiday-service LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/holidayService"
     params = {}
@@ -721,12 +726,12 @@ def list_holiday_service(
 
 
 
-_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE = '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'
+_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE = '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'
 
-@app.command("update-holiday-service")
+@app.command("update-holiday-service", short_help="Update a Call Queue Holiday Service.")
 def update_holiday_service(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     holiday_service_enabled: bool = typer.Option(None, "--holiday-service-enabled/--no-holiday-service-enabled", help="Enable or Disable the call queue holiday service routing policy."),
     action: str = typer.Option(None, "--action", help="Choices: BUSY, TRANSFER"),
     holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
@@ -740,7 +745,7 @@ def update_holiday_service(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Holiday Service\n\nExample --json-body:\n  '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
+    """Update a Call Queue Holiday Service.\n\n\b\nExample: wxcli call-queue update-holiday-service LOCATION_ID QUEUE_ID --holiday-service-enabled --action BUSY --holiday-schedule-level LOCATION --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_HOLIDAY_SERVICE), indent=2))
         raise typer.Exit(0)
@@ -783,17 +788,18 @@ def update_holiday_service(
 
 
 
-@app.command("list-night-service")
+@app.command("list-night-service", short_help="Get Details for a Call Queue Night Service.")
 def list_night_service(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue Night Service."""
+    """Get Details for a Call Queue Night Service.\n\n\b\nExample: wxcli call-queue list-night-service LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/nightService"
     params = {}
@@ -817,12 +823,12 @@ def list_night_service(
 
 
 
-_BODY_SKELETON_UPDATE_NIGHT_SERVICE = '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"..."}'
+_BODY_SKELETON_UPDATE_NIGHT_SERVICE = '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"businessHoursName":"...","businessHoursLevel":"ORGANIZATION","manualAudioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'
 
-@app.command("update-night-service")
+@app.command("update-night-service", short_help="Update a Call Queue Night Service.")
 def update_night_service(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     night_service_enabled: bool = typer.Option(None, "--night-service-enabled/--no-night-service-enabled", help="Enable or disable call queue night service routing policy."),
     action: str = typer.Option(None, "--action", help="Choices: BUSY, TRANSFER"),
     transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
@@ -839,7 +845,7 @@ def update_night_service(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Night Service\n\nExample --json-body:\n  '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"..."}'."""
+    """Update a Call Queue Night Service.\n\n\b\nExample: wxcli call-queue update-night-service LOCATION_ID QUEUE_ID --night-service-enabled --play-announcement-before-enabled --announcement-mode NORMAL --audio-message-selection DEFAULT --force-night-service-enabled --manual-audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"businessHoursName":"...","businessHoursLevel":"ORGANIZATION","manualAudioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NIGHT_SERVICE), indent=2))
         raise typer.Exit(0)
@@ -888,17 +894,18 @@ def update_night_service(
 
 
 
-@app.command("list-forced-forward")
+@app.command("list-forced-forward", short_help="Get Details for a Call Queue Forced Forward.")
 def list_forced_forward(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue Forced Forward."""
+    """Get Details for a Call Queue Forced Forward.\n\n\b\nExample: wxcli call-queue list-forced-forward LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/forcedForward"
     params = {}
@@ -922,12 +929,12 @@ def list_forced_forward(
 
 
 
-_BODY_SKELETON_UPDATE_FORCED_FORWARD = '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'
+_BODY_SKELETON_UPDATE_FORCED_FORWARD = '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'
 
-@app.command("update-forced-forward")
+@app.command("update-forced-forward", short_help="Update a Call Queue Forced Forward Service.")
 def update_forced_forward(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     forced_forward_enabled: bool = typer.Option(None, "--forced-forward-enabled/--no-forced-forward-enabled", help="Enable or disable call forced forward service routing policy."),
     transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
     play_announcement_before_enabled: bool = typer.Option(None, "--play-announcement-before-enabled/--no-play-announcement-before-enabled", help="Indicates whether an announcement plays to callers before the action is applied."),
@@ -938,7 +945,7 @@ def update_forced_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Forced Forward Service\n\nExample --json-body:\n  '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}]}'."""
+    """Update a Call Queue Forced Forward Service.\n\n\b\nExample: wxcli call-queue update-forced-forward LOCATION_ID QUEUE_ID --forced-forward-enabled --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_FORCED_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -975,17 +982,18 @@ def update_forced_forward(
 
 
 
-@app.command("list-stranded-calls")
+@app.command("list-stranded-calls", short_help="Get Details for a Call Queue Stranded Calls.")
 def list_stranded_calls(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue Stranded Calls."""
+    """Get Details for a Call Queue Stranded Calls.\n\n\b\nExample: wxcli call-queue list-stranded-calls LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/strandedCalls"
     params = {}
@@ -1009,12 +1017,12 @@ def list_stranded_calls(
 
 
 
-_BODY_SKELETON_UPDATE_STRANDED_CALLS = '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'
+_BODY_SKELETON_UPDATE_STRANDED_CALLS = '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'
 
-@app.command("update-stranded-calls")
+@app.command("update-stranded-calls", short_help="Update a Call Queue Stranded Calls Service.")
 def update_stranded_calls(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     action: str = typer.Option(None, "--action", help="Choices: NONE, BUSY, TRANSFER, NIGHT_SERVICE, RINGING, ANNOUNCEMENT"),
     transfer_phone_number: str = typer.Option(None, "--transfer-phone-number", help="Call gets transferred to this number when action is set to `TRANSFER`. This can also be an extension."),
     audio_message_selection: str = typer.Option(None, "--audio-message-selection", help="Choices: DEFAULT, CUSTOM"),
@@ -1025,7 +1033,7 @@ def update_stranded_calls(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Call Queue Stranded Calls Service\n\nExample --json-body:\n  '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"...","level":"..."}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'."""
+    """Update a Call Queue Stranded Calls Service.\n\n\b\nExample: wxcli call-queue update-stranded-calls LOCATION_ID QUEUE_ID --action NONE --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STRANDED_CALLS), indent=2))
         raise typer.Exit(0)
@@ -1062,17 +1070,18 @@ def update_stranded_calls(
 
 
 
-@app.command("list-available-numbers-queues")
+@app.command("list-available-numbers-queues", short_help="Get Call Queue Primary Available Phone Numbers.")
 def list_available_numbers_queues(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Queue Primary Available Phone Numbers."""
+    """Get Call Queue Primary Available Phone Numbers.\n\n\b\nExample: wxcli call-queue list-available-numbers-queues LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/availableNumbers"
     params = {}
@@ -1087,7 +1096,10 @@ def list_available_numbers_queues(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1098,17 +1110,18 @@ def list_available_numbers_queues(
 
 
 
-@app.command("list-available-numbers-alternate")
+@app.command("list-available-numbers-alternate", short_help="Get Call Queue Alternate Available Phone Numbers.")
 def list_available_numbers_alternate(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Queue Alternate Available Phone Numbers."""
+    """Get Call Queue Alternate Available Phone Numbers.\n\n\b\nExample: wxcli call-queue list-available-numbers-alternate LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/alternate/availableNumbers"
     params = {}
@@ -1123,7 +1136,10 @@ def list_available_numbers_alternate(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1134,9 +1150,9 @@ def list_available_numbers_alternate(
 
 
 
-@app.command("list-available-numbers-call-forwarding")
+@app.command("list-available-numbers-call-forwarding", short_help="Get Call Queue Call Forward Available Phone Numbers.")
 def list_available_numbers_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
@@ -1144,9 +1160,10 @@ def list_available_numbers_call_forwarding(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Queue Call Forward Available Phone Numbers."""
+    """Get Call Queue Call Forward Available Phone Numbers.\n\n\b\nExample: wxcli call-queue list-available-numbers-call-forwarding LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/callForwarding/availableNumbers"
     params = {}
@@ -1165,7 +1182,10 @@ def list_available_numbers_call_forwarding(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1176,7 +1196,7 @@ def list_available_numbers_call_forwarding(
 
 
 
-@app.command("list-available-agents-queues")
+@app.command("list-available-agents-queues", short_help="Get Call Queue Available Agents.")
 def list_available_agents_queues(
     location_id: str = typer.Option(..., "--location-id", help="The location ID of the call queue. Temporary mandatory query parameter, used for performance reasons only and not a filter."),
     name: str = typer.Option(None, "--name", help="Search based on name (user first and last name combination)."),
@@ -1186,9 +1206,10 @@ def list_available_agents_queues(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Queue Available Agents."""
+    """Get Call Queue Available Agents.\n\n\b\nExample: wxcli call-queue list-available-agents-queues --location-id LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/availableAgents"
     params = {}
@@ -1209,7 +1230,10 @@ def list_available_agents_queues(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="agents"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1220,7 +1244,7 @@ def list_available_agents_queues(
 
 
 
-@app.command("list-supervisors")
+@app.command("list-supervisors", short_help="Get List of Supervisors with Customer Assist.")
 def list_supervisors(
     name: str = typer.Option(None, "--name", help="Only return the supervisors that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
@@ -1230,6 +1254,7 @@ def list_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get List of Supervisors with Customer Assist."""
@@ -1253,7 +1278,10 @@ def list_supervisors(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="supervisors"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1266,7 +1294,7 @@ def list_supervisors(
 
 _BODY_SKELETON_CREATE_SUPERVISORS = '{"id":"...","agents":[{"id":"..."}]}'
 
-@app.command("create-supervisors")
+@app.command("create-supervisors", short_help="Create a Supervisor with Customer Assist.")
 def create_supervisors(
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist queue supervisor, when `true`. Customer Assist queue supervisors must have a Customer Assist license."),
     id_param: str = typer.Option(None, "--id", help="(required) A unique identifier for the supervisor."),
@@ -1276,7 +1304,7 @@ def create_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Supervisor with Customer Assist\n\nExample --json-body:\n  '{"id":"...","agents":[{"id":"..."}]}'."""
+    """Create a Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue create-supervisors --json-body '{"id":"...","agents":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUPERVISORS), indent=2))
         raise typer.Exit(0)
@@ -1318,7 +1346,7 @@ def create_supervisors(
 
 _BODY_SKELETON_DELETE_SUPERVISORS_CONFIG = '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'
 
-@app.command("delete-supervisors-config")
+@app.command("delete-supervisors-config", short_help="Delete the Call Queue or Customer Assist Supervisors.")
 def delete_supervisors_config(
     has_cx_essentials: bool = typer.Option(None, "--has-cx-essentials/--no-has-cx-essentials", help="Delete the Customer Assist supervisors, when `true`. Otherwise delete the Call Queue supervisors. The default value is `false`."),
     delete_all: bool = typer.Option(None, "--delete-all/--no-delete-all", help="If present the `supervisorIds` array is ignored, and all supervisors in the context are deleted. **WARNING**: This will remove all supervisors from the organization."),
@@ -1329,13 +1357,13 @@ def delete_supervisors_config(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete the Call Queue or Customer Assist Supervisors\n\nExample --json-body:\n  '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'."""
+    """Delete the Call Queue or Customer Assist Supervisors.\n\n\b\nExample: wxcli call-queue delete-supervisors-config --json-body '{"supervisorIds":["..."]}'\n\n\b\nExample --json-body: '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_SUPERVISORS_CONFIG), indent=2))
         raise typer.Exit(0)
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
     org_id = get_org_id()
@@ -1368,9 +1396,9 @@ def delete_supervisors_config(
 
 
 
-@app.command("show-supervisors")
+@app.command("show-supervisors", short_help="Get Supervisor Detail with Customer Assist.")
 def show_supervisors(
-    supervisor_id: str = typer.Argument(help="supervisorId"),
+    supervisor_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-supervisors"),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objects."),
     name: str = typer.Option(None, "--name", help="Only return the agents that match the given name."),
@@ -1381,7 +1409,7 @@ def show_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Supervisor Detail with Customer Assist."""
+    """Get Supervisor Detail with Customer Assist.\n\n\b\nExample: wxcli call-queue show-supervisors SUPERVISOR_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
@@ -1410,11 +1438,11 @@ def show_supervisors(
 
 
 
-_BODY_SKELETON_UPDATE_SUPERVISORS = '{"agents":[{"id":"...","action":"..."}]}'
+_BODY_SKELETON_UPDATE_SUPERVISORS = '{"agents":[{"id":"...","action":"ADD"}]}'
 
-@app.command("update-supervisors")
+@app.command("update-supervisors", short_help="Assign or Unassign Agents to Supervisor with Customer Assist.")
 def update_supervisors(
-    supervisor_id: str = typer.Argument(help="supervisorId"),
+    supervisor_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-supervisors"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1422,7 +1450,7 @@ def update_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign Agents to Supervisor with Customer Assist\n\nExample --json-body:\n  '{"agents":[{"id":"...","action":"..."}]}'."""
+    """Assign or Unassign Agents to Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue update-supervisors SUPERVISOR_ID --json-body '{"agents":[{"id":"...","action":"ADD"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SUPERVISORS), indent=2))
         raise typer.Exit(0)
@@ -1453,18 +1481,18 @@ def update_supervisors(
 
 
 
-@app.command("delete-supervisors-config-1")
+@app.command("delete-supervisors-config-1", short_help="Delete a Supervisor.")
 def delete_supervisors_config_1(
-    supervisor_id: str = typer.Argument(help="supervisorId"),
+    supervisor_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-supervisors"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Supervisor."""
+    """Delete a Supervisor.\n\n\b\nExample: wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {supervisor_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
     org_id = get_org_id()
@@ -1485,7 +1513,7 @@ def delete_supervisors_config_1(
 
 
 
-@app.command("list-available-supervisors")
+@app.command("list-available-supervisors", short_help="List Available Supervisors with Customer Assist.")
 def list_available_supervisors(
     name: str = typer.Option(None, "--name", help="Only return the supervisors that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
@@ -1495,6 +1523,7 @@ def list_available_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Available Supervisors with Customer Assist."""
@@ -1518,7 +1547,10 @@ def list_available_supervisors(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="supervisors"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1529,7 +1561,7 @@ def list_available_supervisors(
 
 
 
-@app.command("list-available-agents-supervisors")
+@app.command("list-available-agents-supervisors", short_help="List Available Agents with Customer Assist.")
 def list_available_agents_supervisors(
     name: str = typer.Option(None, "--name", help="Returns only the agents that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Returns only the agents that match the phone number, extension, or ESN."),
@@ -1539,6 +1571,7 @@ def list_available_agents_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Available Agents with Customer Assist."""
@@ -1562,7 +1595,10 @@ def list_available_agents_supervisors(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="agents"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1573,7 +1609,7 @@ def list_available_agents_supervisors(
 
 
 
-@app.command("list-agents")
+@app.command("list-agents", short_help="Read the List of Call Queue Agents with Customer Assist.")
 def list_agents(
     location_id: str = typer.Option(None, "--location-id", help="Return only the call queue agents in this location."),
     queue_id: str = typer.Option(None, "--queue-id", help="Only return call queue agents with the matching queue ID."),
@@ -1586,6 +1622,7 @@ def list_agents(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Call Queue Agents with Customer Assist."""
@@ -1614,7 +1651,7 @@ def list_agents(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("agents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -1628,9 +1665,9 @@ def list_agents(
 
 
 
-@app.command("show-agents")
+@app.command("show-agents", short_help="Get Details for a Call Queue Agent with Customer Assist.")
 def show_agents(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list-agents"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to view the details of an agent with Customer Assist license. This can otherwise be ommited or set to `false`."),
     max: str = typer.Option(..., "--max", help="Limit the number of objects returned to this maximum count."),
     start: str = typer.Option(..., "--start", help="Start at the zero-based offset in the list of matching objects."),
@@ -1638,7 +1675,7 @@ def show_agents(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue Agent with Customer Assist."""
+    """Get Details for a Call Queue Agent with Customer Assist.\n\n\b\nExample: wxcli call-queue show-agents ID --max MAX --start START"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}"
     params = {}
@@ -1661,11 +1698,11 @@ def show_agents(
 
 
 
-_BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'
+_BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":true}]}'
 
-@app.command("update-settings-agents")
+@app.command("update-settings-agents", short_help="Update an Agent's Settings of One or More Call Queues with Customer Assist.")
 def update_settings_agents(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-agents"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer Assist license. This can otherwise be ommited or set to `false`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -1673,7 +1710,7 @@ def update_settings_agents(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Agent's Settings of One or More Call Queues with Customer Assist\n\nExample --json-body:\n  '{"settings":[{"queueId":"...","joinEnabled":"..."}]}'."""
+    """Update an Agent's Settings of One or More Call Queues with Customer Assist.\n\n\b\nExample: wxcli call-queue update-settings-agents ID --json-body '{"settings":[{"queueId":"...","joinEnabled":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS_AGENTS), indent=2))
         raise typer.Exit(0)
@@ -1704,16 +1741,16 @@ def update_settings_agents(
 
 
 
-@app.command("switch-mode-for")
+@app.command("switch-mode-for", short_help="Switch Mode for Call Forwarding Settings for a Call Queue.")
 def switch_mode_for(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Switch Mode for Call Forwarding Settings for a Call Queue."""
+    """Switch Mode for Call Forwarding Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue switch-mode-for LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/callForwarding/actions/switchMode/invoke"
     params = {}
@@ -1734,17 +1771,18 @@ def switch_mode_for(
 
 
 
-@app.command("list-dnis")
+@app.command("list-dnis", short_help="Get List of DNIS for a Call Queue.")
 def list_dnis(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get List of DNIS for a Call Queue."""
+    """Get List of DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue list-dnis LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis"
     params = {}
@@ -1770,10 +1808,10 @@ def list_dnis(
 
 _BODY_SKELETON_CREATE_DNIS = '{"name":"...","ringPattern":"NORMAL","phoneNumber":"...","extension":"..."}'
 
-@app.command("create-dnis")
+@app.command("create-dnis", short_help="Create a DNIS for a Call Queue.")
 def create_dnis(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     name: str = typer.Option(None, "--name", help="(required) Name of the DNIS. Must be unique across the call queue."),
     phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Must be a valid phone number from the same location. Either phoneNumber or extension is required."),
     extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Either phoneNumber or extension is required."),
@@ -1784,7 +1822,7 @@ def create_dnis(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a DNIS for a Call Queue\n\nExample --json-body:\n  '{"name":"...","ringPattern":"NORMAL","phoneNumber":"...","extension":"..."}'."""
+    """Create a DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue create-dnis LOCATION_ID QUEUE_ID --name NAME --ring-pattern NORMAL\n\n\b\nExample --json-body: '{"name":"...","ringPattern":"NORMAL","phoneNumber":"...","extension":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DNIS), indent=2))
         raise typer.Exit(0)
@@ -1830,10 +1868,10 @@ def create_dnis(
 
 _BODY_SKELETON_DELETE_DNIS_QUEUES = '{"items":["..."]}'
 
-@app.command("delete-dnis-queues")
+@app.command("delete-dnis-queues", short_help="Bulk Delete DNIS for a Call Queue.")
 def delete_dnis_queues(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -1841,13 +1879,13 @@ def delete_dnis_queues(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk Delete DNIS for a Call Queue\n\nExample --json-body:\n  '{"items":["..."]}'."""
+    """Bulk Delete DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue delete-dnis-queues LOCATION_ID QUEUE_ID --json-body '{"items":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_DNIS_QUEUES), indent=2))
         raise typer.Exit(0)
-    if not force:
-        typer.confirm(f"Delete {queue_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Dnis for {queue_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis"
     params = {}
     org_id = get_org_id()
@@ -1876,16 +1914,16 @@ def delete_dnis_queues(
 
 
 
-@app.command("show-dnis")
+@app.command("show-dnis", short_help="Get a DNIS for a Call Queue.")
 def show_dnis(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    dnis_id: str = typer.Argument(help="dnisId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
+    dnis_id: str = typer.Argument(help="Webex DNIS id, from: wxcli call-queue list-dnis"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a DNIS for a Call Queue."""
+    """Get a DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue show-dnis LOCATION_ID QUEUE_ID DNIS_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}"
     params = {}
@@ -1904,11 +1942,11 @@ def show_dnis(
 
 _BODY_SKELETON_UPDATE_DNIS = '{"name":"...","phoneNumber":"...","extension":"...","ringPattern":"NORMAL","customDnisAnnouncementSettingsEnabled":true}'
 
-@app.command("update-dnis")
+@app.command("update-dnis", short_help="Modify a DNIS for a Call Queue.")
 def update_dnis(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    dnis_id: str = typer.Argument(help="dnisId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
+    dnis_id: str = typer.Argument(help="Webex DNIS id, from: wxcli call-queue list-dnis"),
     name: str = typer.Option(None, "--name", help="Name of the DNIS. Must be unique across the call queue."),
     phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the DNIS. Set to `null` to remove the phone number."),
     extension: str = typer.Option(None, "--extension", help="Extension of the DNIS. Set to `null` to remove the extension."),
@@ -1920,7 +1958,7 @@ def update_dnis(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a DNIS for a Call Queue\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","ringPattern":"NORMAL","customDnisAnnouncementSettingsEnabled":true}'."""
+    """Modify a DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue update-dnis LOCATION_ID QUEUE_ID DNIS_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","ringPattern":"NORMAL","customDnisAnnouncementSettingsEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DNIS), indent=2))
         raise typer.Exit(0)
@@ -1959,20 +1997,20 @@ def update_dnis(
 
 
 
-@app.command("delete-dnis-queues-1")
+@app.command("delete-dnis-queues-1", short_help="Delete a DNIS for a Call Queue.")
 def delete_dnis_queues_1(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    dnis_id: str = typer.Argument(help="dnisId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
+    dnis_id: str = typer.Argument(help="Webex DNIS id, from: wxcli call-queue list-dnis"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a DNIS for a Call Queue."""
+    """Delete a DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue delete-dnis-queues-1 LOCATION_ID QUEUE_ID DNIS_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {dnis_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}"
     params = {}
     org_id = get_org_id()
@@ -1993,15 +2031,15 @@ def delete_dnis_queues_1(
 
 
 
-@app.command("show-settings")
+@app.command("show-settings", short_help="Get DNIS Settings for a Call Queue.")
 def show_settings(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get DNIS Settings for a Call Queue."""
+    """Get DNIS Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue show-settings LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/settings"
     params = {}
@@ -2020,10 +2058,10 @@ def show_settings(
 
 _BODY_SKELETON_UPDATE_SETTINGS_DNIS = '{"distinctiveRingingEnabled":true,"displayDnisNameAndNumberEnabled":true}'
 
-@app.command("update-settings-dnis")
+@app.command("update-settings-dnis", short_help="Modify DNIS Settings for a Call Queue.")
 def update_settings_dnis(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
     distinctive_ringing_enabled: bool = typer.Option(None, "--distinctive-ringing-enabled/--no-distinctive-ringing-enabled", help="Whether distinctive ringing is enabled for the queue."),
     display_dnis_name_and_number_enabled: bool = typer.Option(None, "--display-dnis-name-and-number-enabled/--no-display-dnis-name-and-number-enabled", help="Whether the DNIS name and number is displayed to agents."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -2032,7 +2070,7 @@ def update_settings_dnis(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify DNIS Settings for a Call Queue\n\nExample --json-body:\n  '{"distinctiveRingingEnabled":true,"displayDnisNameAndNumberEnabled":true}'."""
+    """Modify DNIS Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue update-settings-dnis LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"distinctiveRingingEnabled":true,"displayDnisNameAndNumberEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS_DNIS), indent=2))
         raise typer.Exit(0)
@@ -2065,16 +2103,16 @@ def update_settings_dnis(
 
 
 
-@app.command("show-announcements")
+@app.command("show-announcements", short_help="Get DNIS Announcements for a Call Queue.")
 def show_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    dnis_id: str = typer.Argument(help="dnisId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
+    dnis_id: str = typer.Argument(help="Webex DNIS id, from: wxcli call-queue list-dnis"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get DNIS Announcements for a Call Queue."""
+    """Get DNIS Announcements for a Call Queue.\n\n\b\nExample: wxcli call-queue show-announcements LOCATION_ID QUEUE_ID DNIS_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}/dnis/{dnis_id}/announcements"
     params = {}
@@ -2091,13 +2129,13 @@ def show_announcements(
 
 
 
-_BODY_SKELETON_UPDATE_ANNOUNCEMENTS = '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"mohMessage":{"normalSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."},"alternateSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]}}'
+_BODY_SKELETON_UPDATE_ANNOUNCEMENTS = '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"mohMessage":{"normalSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."},"alternateSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}}'
 
-@app.command("update-announcements")
+@app.command("update-announcements", short_help="Modify DNIS Announcements for a Call Queue.")
 def update_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    queue_id: str = typer.Argument(help="queueId"),
-    dnis_id: str = typer.Argument(help="dnisId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
+    dnis_id: str = typer.Argument(help="Webex DNIS id, from: wxcli call-queue list-dnis"),
     custom_dnis_announcement_settings_enabled: bool = typer.Option(None, "--custom-dnis-announcement-settings-enabled/--no-custom-dnis-announcement-settings-enabled", help="Whether custom DNIS announcement settings are enabled for this DNIS."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2105,7 +2143,7 @@ def update_announcements(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify DNIS Announcements for a Call Queue\n\nExample --json-body:\n  '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]},"mohMessage":{"normalSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."},"alternateSource":{"enabled":"...","greeting":"...","audioAnnouncementFiles":"...","audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":["..."]}}'."""
+    """Modify DNIS Announcements for a Call Queue.\n\n\b\nExample: wxcli call-queue update-announcements LOCATION_ID QUEUE_ID DNIS_ID\n\n\b\nExample --json-body: '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"mohMessage":{"normalSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."},"alternateSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANNOUNCEMENTS), indent=2))
         raise typer.Exit(0)
@@ -2136,17 +2174,18 @@ def update_announcements(
 
 
 
-@app.command("list-available-numbers-dnis")
+@app.command("list-available-numbers-dnis", short_help="Get Available Phone Numbers for DNIS.")
 def list_available_numbers_dnis(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter by phone number."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Available Phone Numbers for DNIS."""
+    """Get Available Phone Numbers for DNIS.\n\n\b\nExample: wxcli call-queue list-available-numbers-dnis LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/dnis/availableNumbers"
     params = {}
@@ -2161,7 +2200,10 @@ def list_available_numbers_dnis(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

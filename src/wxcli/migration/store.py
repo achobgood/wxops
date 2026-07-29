@@ -727,6 +727,24 @@ class MigrationStore:
     # Journal
     # ------------------------------------------------------------------
 
+    def ensure_system_object(self, canonical_id: str = "system:discovery") -> None:
+        """Insert the sentinel object row a system-scoped journal entry needs.
+
+        ``journal.canonical_id`` is a foreign key into ``objects`` and the
+        connection runs with ``PRAGMA foreign_keys = ON``, so a journal entry
+        attributed to a pseudo-object such as ``system:discovery`` fails with
+        ``IntegrityError: FOREIGN KEY constraint failed`` unless the row exists.
+        Every writer of such an entry calls this first.
+        """
+        now = _now()
+        self.conn.execute(
+            """INSERT OR IGNORE INTO objects
+               (canonical_id, object_type, status, data, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (canonical_id, "system", "discovered", "{}", now, now),
+        )
+        self.conn.commit()
+
     def add_journal_entry(
         self,
         entry_type: str,

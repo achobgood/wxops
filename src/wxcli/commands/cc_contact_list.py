@@ -13,9 +13,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-contact-list.")
 
 _BODY_SKELETON_CREATE = '{"supportedChannels":["Voice"],"activationTimeLagMinutes":0,"activationDateTime":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create contact list.")
 def create(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. CCV_123456789"),
     activation_time_lag_minutes: str = typer.Option(None, "--activation-time-lag-minutes", help="Contact list activation time lag in minutes (0 = immediate activation, 180 = 3 hours delay). Required if activationDateTime is not provided."),
     activation_date_time: str = typer.Option(None, "--activation-date-time", help="Contact list activation DateTimeStamp (format: YYYY-MM-DDTHH:MM). Required if activationTimeLagMinutes is not provided."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -24,7 +24,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create contact list\n\nExample --json-body:\n  '{"supportedChannels":["Voice"],"activationTimeLagMinutes":0,"activationDateTime":"..."}'."""
+    """Create contact list.\n\n\b\nExample: wxcli cc-contact-list create CCV_123456789 --json-body '{"supportedChannels":["Voice"]}'\n\n\b\nExample --json-body: '{"supportedChannels":["Voice"],"activationTimeLagMinutes":0,"activationDateTime":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -59,11 +59,11 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_CONTACTS = '{"contacts":[{"contactAttributes":"..."}]}'
+_BODY_SKELETON_CREATE_CONTACTS = '{"contacts":[{"contactAttributes":[{"fieldName":"...","value":"..."}]}]}'
 
-@app.command("create-contacts")
+@app.command("create-contacts", short_help="Create contacts within a contact list.")
 def create_contacts(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. CCV_123456789"),
     contact_list_id: str = typer.Argument(help="contactListId"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -71,7 +71,7 @@ def create_contacts(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create contacts within a contact list\n\nExample --json-body:\n  '{"contacts":[{"contactAttributes":"..."}]}'."""
+    """Create contacts within a contact list.\n\n\b\nExample: wxcli cc-contact-list create-contacts CCV_123456789 CONTACT_LIST_ID\n\n\b\nExample --json-body: '{"contacts":[{"contactAttributes":[{"fieldName":"...","value":"..."}]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CONTACTS), indent=2))
         raise typer.Exit(0)
@@ -102,11 +102,11 @@ def create_contacts(
 
 _BODY_SKELETON_UPDATE = '{"contactStatus":"CLOSED"}'
 
-@app.command("update")
+@app.command("update", short_help="Update a contact's status within a contact list.")
 def update(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. CCV_123456789"),
     contact_list_id: str = typer.Argument(help="contactListId"),
-    contact_id: str = typer.Argument(help="contactId"),
+    contact_id: str = typer.Argument(help="e.g. CUST12345"),
     contact_status: str = typer.Option(None, "--contact-status", help="Choices: CLOSED"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -114,7 +114,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a contact's status within a contact list\n\nExample --json-body:\n  '{"contactStatus":"CLOSED"}'."""
+    """Update a contact's status within a contact list.\n\n\b\nExample: wxcli cc-contact-list update CCV_123456789 CONTACT_LIST_ID CUST12345\n\n\b\nExample --json-body: '{"contactStatus":"CLOSED"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -144,9 +144,9 @@ def update(
 
 _BODY_SKELETON_UPDATE_CONTACTS = '{"contactStatus":"CLOSED","searchAcrossTheCampaignChain":"yes"}'
 
-@app.command("update-contacts")
+@app.command("update-contacts", short_help="Update contact status across the campaign chain.")
 def update_contacts(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. CCV_1234567890"),
     contact_id: str = typer.Argument(help="contactId"),
     contact_list_id: str = typer.Option(None, "--contact-list-id", help="Optional. Search only the specific contact-list within the campaign specified in the request path. If `searchAcrossTheCampaignChain` is set to `yes`, then all active contact-lists in the other downstream target campaigns in the chain are also searched. When omitted, all active contact lists in that..."),
     contact_fields: str = typer.Option(None, "--contact-fields", help="Optional. Contact field names to include in the response (comma-separated names)."),
@@ -158,7 +158,7 @@ def update_contacts(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update contact status across the campaign chain\n\nExample --json-body:\n  '{"contactStatus":"CLOSED","searchAcrossTheCampaignChain":"yes"}'."""
+    """Update contact status across the campaign chain.\n\n\b\nExample: wxcli cc-contact-list update-contacts CCV_1234567890 CONTACT_ID --contact-status CLOSED\n\n\b\nExample --json-body: '{"contactStatus":"CLOSED","searchAcrossTheCampaignChain":"yes"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CONTACTS), indent=2))
         raise typer.Exit(0)
@@ -195,9 +195,9 @@ def update_contacts(
 
 _BODY_SKELETON_UPDATE_STATUS = '{"contactListStatus":"..."}'
 
-@app.command("update-status")
+@app.command("update-status", short_help="Update contact list status.")
 def update_status(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. CCV_1234567890"),
     contact_list_id: str = typer.Argument(help="contactListId"),
     contact_list_status: str = typer.Option(None, "--contact-list-status", help="Contact List Status (e.g., EXPIRED). Note: This value is not case-sensitive."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -206,7 +206,7 @@ def update_status(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update contact list status\n\nExample --json-body:\n  '{"contactListStatus":"..."}'."""
+    """Update contact list status.\n\n\b\nExample: wxcli cc-contact-list update-status CCV_1234567890 CONTACT_LIST_ID\n\n\b\nExample --json-body: '{"contactListStatus":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATUS), indent=2))
         raise typer.Exit(0)
@@ -234,18 +234,19 @@ def update_status(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Contact Lists within a Campaign.")
 def cmd_list(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. CCV_123456789"),
     status: str = typer.Option(None, "--status", help="Choices: Active, Expired, UploadFailed"),
     source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Contact Lists within a Campaign."""
+    """Get Contact Lists within a Campaign.\n\n\b\nExample: wxcli cc-contact-list list CCV_123456789"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v3/campaign-management/campaigns/{campaign_id}/contact-lists"
@@ -271,18 +272,19 @@ def cmd_list(
 
 
 
-@app.command("list-contact-lists")
+@app.command("list-contact-lists", short_help="Get Contact Lists within a Campaign.")
 def list_contact_lists(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. CCV_123456789"),
     status: str = typer.Option(None, "--status", help="Choices: Active, Expired, UploadFailed"),
     source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Contact Lists within a Campaign."""
+    """Get Contact Lists within a Campaign.\n\n\b\nExample: wxcli cc-contact-list list-contact-lists CCV_123456789"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v4/campaign-management/campaigns/{campaign_id}/contact-lists"

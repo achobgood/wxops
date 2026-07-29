@@ -10,12 +10,13 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling teams.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Teams.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Teams."""
@@ -27,7 +28,7 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -43,7 +44,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","description":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Team.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) A user-friendly name for the team."),
     description: str = typer.Option(None, "--description", help="The teams description."),
@@ -53,7 +54,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Team\n\nExample --json-body:\n  '{"name":"...","description":"..."}'."""
+    """Create a Team.\n\n\b\nExample: wxcli teams create --name NAME\n\n\b\nExample --json-body: '{"name":"...","description":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -89,15 +90,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Team Details.")
 def show(
-    team_id: str = typer.Argument(help="teamId"),
+    team_id: str = typer.Argument(help="Webex TEAM id, from: wxcli teams list"),
     description: str = typer.Option(None, "--description", help="The teams description."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Team Details."""
+    """Get Team Details.\n\n\b\nExample: wxcli teams show TEAM_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/teams/{team_id}"
     params = {}
@@ -115,9 +116,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","description":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Team.")
 def update(
-    team_id: str = typer.Argument(help="teamId"),
+    team_id: str = typer.Argument(help="Webex TEAM id, from: wxcli teams list"),
     name: str = typer.Option(None, "--name", help="A user-friendly name for the team."),
     description: str = typer.Option(None, "--description", help="The teams description."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -126,7 +127,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Team\n\nExample --json-body:\n  '{"name":"...","description":"..."}'."""
+    """Update a Team.\n\n\b\nExample: wxcli teams update TEAM_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","description":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -155,18 +156,18 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Team.")
 def delete(
-    team_id: str = typer.Argument(help="teamId"),
+    team_id: str = typer.Argument(help="Webex TEAM id, from: wxcli teams list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Team."""
+    """Delete a Team.\n\n\b\nExample: wxcli teams delete TEAM_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {team_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/teams/{team_id}"
     try:
         result = api.session.rest_delete(url)

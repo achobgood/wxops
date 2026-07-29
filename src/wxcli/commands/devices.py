@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling devices.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Devices.")
 def cmd_list(
     display_name: str = typer.Option(None, "--display-name", help="List devices with this display name."),
     person_id: str = typer.Option(None, "--person-id", help="List devices by person ID."),
@@ -35,6 +35,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Devices."""
@@ -85,7 +86,7 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -101,7 +102,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"mac":"...","model":"...","workspaceId":"...","personId":"...","password":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Device by MAC Address.")
 def create(
     mac: str = typer.Option(None, "--mac", help="(required) The MAC address of the device being created."),
     model: str = typer.Option(None, "--model", help="(required) The model of the device being created. The corresponding device model display name sometimes called the product name, can also be used to specify the model."),
@@ -114,7 +115,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Device by MAC Address\n\nExample --json-body:\n  '{"mac":"...","model":"...","workspaceId":"...","personId":"...","password":"..."}'."""
+    """Create a Device by MAC Address.\n\n\b\nExample: wxcli devices create --mac MAC --model MODEL\n\n\b\nExample --json-body: '{"mac":"...","model":"...","workspaceId":"...","personId":"...","password":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -160,14 +161,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Device Details.")
 def show(
-    device_id: str = typer.Argument(help="deviceId"),
+    device_id: str = typer.Argument(help="Webex DEVICE id, from: wxcli devices list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Device Details."""
+    """Get Device Details.\n\n\b\nExample: wxcli devices show DEVICE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/devices/{device_id}"
     params = {}
@@ -186,9 +187,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"op":"add","path":"...","value":["..."]}'
 
-@app.command("update")
+@app.command("update", short_help="Modify Device Tags.")
 def update(
-    device_id: str = typer.Argument(help="deviceId"),
+    device_id: str = typer.Argument(help="Webex DEVICE id, from: wxcli devices list"),
     op: str = typer.Option(None, "--op", help="Choices: add, remove, replace"),
     path: str = typer.Option(None, "--path", help="Only the tags path is supported to patch."),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
@@ -198,7 +199,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Device Tags\n\nExample --json-body:\n  '{"op":"add","path":"...","value":["..."]}'."""
+    """Modify Device Tags.\n\n\b\nExample: wxcli devices update DEVICE_ID\n\n\b\nExample --json-body: '{"op":"add","path":"...","value":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -237,18 +238,18 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Device.")
 def delete(
-    device_id: str = typer.Argument(help="deviceId"),
+    device_id: str = typer.Argument(help="Webex DEVICE id, from: wxcli devices list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Device."""
+    """Delete a Device.\n\n\b\nExample: wxcli devices delete DEVICE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {device_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/devices/{device_id}"
     params = {}
     org_id = get_org_id()
@@ -271,7 +272,7 @@ def delete(
 
 _BODY_SKELETON_CREATE_ACTIVATION_CODE = '{"workspaceId":"...","personId":"...","model":"..."}'
 
-@app.command("create-activation-code")
+@app.command("create-activation-code", short_help="Create a Device Activation Code.")
 def create_activation_code(
     workspace_id: str = typer.Option(None, "--workspace-id", help="The ID of the workspace where the device will be activated."),
     person_id: str = typer.Option(None, "--person-id", help="The ID of the person who will own the device once activated."),
@@ -282,7 +283,7 @@ def create_activation_code(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Device Activation Code\n\nExample --json-body:\n  '{"workspaceId":"...","personId":"...","model":"..."}'."""
+    """Create a Device Activation Code.\n\n\b\nExample --json-body: '{"workspaceId":"...","personId":"...","model":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ACTIVATION_CODE), indent=2))
         raise typer.Exit(0)

@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling device-configurations.")
 
 
-@app.command("show")
+@app.command("show", short_help="List Device Configurations for device.")
 def show(
     device_id: str = typer.Option(..., "--device-id", help="List device configurations by device ID."),
     key: str = typer.Option(None, "--key", help="This can optionally be used to filter configurations. Keys are composed of segments. It's possible to use absolute paths, wildcards or ranges. - **Absolute** gives only one configuration as a result. `Conference.MaxReceiveCallRate` for example gives the Conference `MaxReceiveCallRate`..."),
@@ -18,7 +18,7 @@ def show(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Device Configurations for device."""
+    """List Device Configurations for device.\n\n\b\nExample: wxcli device-configurations show --device-id DEVICE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/deviceConfigurations"
     params = {}
@@ -38,7 +38,7 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"op":"remove","path":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update Device Configurations.")
 def update(
     device_id: str = typer.Option(..., "--device-id", help="Update device configurations by device ID."),
     op: str = typer.Option(None, "--op", help="Choices: remove, replace"),
@@ -50,7 +50,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Device Configurations\n\nExample --json-body:\n  '{"op":"remove","path":"..."}'."""
+    """Update Device Configurations.\n\n\b\nExample: wxcli device-configurations update --device-id DEVICE_ID\n\n\b\nExample --json-body: '{"op":"remove","path":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

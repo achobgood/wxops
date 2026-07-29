@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling recording-report.")
 
 
-@app.command("list")
+@app.command("list", short_help="List of Recording Audit Report Summaries.")
 def cmd_list(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recording audit report summaries to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`. Please note that the interval between `to` and `from` cannot exceed 90 days and the interval between the..."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for recording audit report summaries to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`. Please note that the interval between `to` and `from` cannot exceed 90 days and the interval between the current..."),
@@ -20,6 +20,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List of Recording Audit Report Summaries."""
@@ -39,7 +40,7 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -53,7 +54,7 @@ def cmd_list(
 
 
 
-@app.command("list-access-detail")
+@app.command("list-access-detail", short_help="Get Recording Audit Report Details.")
 def list_access_detail(
     recording_id: str = typer.Option(..., "--recording-id", help="A unique identifier for the recording."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return recording details of that user."),
@@ -61,9 +62,10 @@ def list_access_detail(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Recording Audit Report Details."""
+    """Get Recording Audit Report Details.\n\n\b\nExample: wxcli recording-report list-access-detail --recording-id RECORDING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/accessDetail"
     params = {}
@@ -76,7 +78,7 @@ def list_access_detail(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -90,7 +92,7 @@ def list_access_detail(
 
 
 
-@app.command("list-meeting-archive-summaries")
+@app.command("list-meeting-archive-summaries", short_help="List Meeting Archive Summaries.")
 def list_meeting_archive_summaries(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for meeting archive summaries to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`. Please note that the interval between `to` and `from` cannot exceed 30 days."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for meeting archive summaries to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`. Please note that the interval between `to` and `from` cannot exceed 30 days."),
@@ -99,6 +101,7 @@ def list_meeting_archive_summaries(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meeting Archive Summaries."""
@@ -116,7 +119,7 @@ def list_meeting_archive_summaries(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -130,14 +133,14 @@ def list_meeting_archive_summaries(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Meeting Archive Details.")
 def show(
     archive_id: str = typer.Argument(help="archiveId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Meeting Archive Details."""
+    """Get Meeting Archive Details.\n\n\b\nExample: wxcli recording-report show ARCHIVE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/meetingArchives/{archive_id}"
     try:

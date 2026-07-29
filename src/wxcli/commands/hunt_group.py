@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling hunt-group.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Hunt Groups.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Only return hunt groups with matching location ID."),
     name: str = typer.Option(None, "--name", help="Only return hunt groups with the matching name."),
@@ -20,6 +20,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Hunt Groups."""
@@ -40,7 +41,7 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("huntGroups", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -54,11 +55,11 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":"...","nextAgentRings":"...","forwardEnabled":"...","numberOfRings":"...","destinationVoicemailEnabled":"...","destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"businessContinuityRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Hunt Group.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the hunt group."),
     phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the hunt group. Either phone number or extension are required."),
     extension: str = typer.Option(None, "--extension", help="Primary phone extension of the hunt group. Either phone number or extension are required."),
@@ -75,7 +76,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Hunt Group\n\nExample --json-body:\n  '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":"...","nextAgentRings":"...","forwardEnabled":"...","numberOfRings":"...","destinationVoicemailEnabled":"...","destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"businessContinuityRedirect":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"..."}'."""
+    """Create a Hunt Group.\n\n\b\nExample: wxcli hunt-group create LOCATION_ID --json-body '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true}},"agents":[{"id":"..."}],"enabled":true}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -134,15 +135,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Details for a Hunt Group.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Hunt Group."""
+    """Get Details for a Hunt Group.\n\n\b\nExample: wxcli hunt-group show LOCATION_ID HUNT_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}"
     params = {}
@@ -159,12 +160,12 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"..."}],"languageCode":"...","firstName":"..."}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Hunt Group.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the hunt group is enabled."),
     name: str = typer.Option(None, "--name", help="Unique name for the hunt group."),
     phone_number: str = typer.Option(None, "--phone-number", help="Primary phone number of the hunt group."),
@@ -182,7 +183,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Hunt Group\n\nExample --json-body:\n  '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"..."}],"languageCode":"...","firstName":"..."}'."""
+    """Update a Hunt Group.\n\n\b\nExample: wxcli hunt-group update LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -233,19 +234,19 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Hunt Group.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Hunt Group."""
+    """Delete a Hunt Group.\n\n\b\nExample: wxcli hunt-group delete LOCATION_ID HUNT_GROUP_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {hunt_group_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}"
     params = {}
     org_id = get_org_id()
@@ -266,15 +267,15 @@ def delete(
 
 
 
-@app.command("show-call-forwarding")
+@app.command("show-call-forwarding", short_help="Get Call Forwarding Settings for a Hunt Group.")
 def show_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Forwarding Settings for a Hunt Group."""
+    """Get Call Forwarding Settings for a Hunt Group.\n\n\b\nExample: wxcli hunt-group show-call-forwarding LOCATION_ID HUNT_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}/callForwarding"
     params = {}
@@ -291,19 +292,19 @@ def show_call_forwarding(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'
 
-@app.command("update-call-forwarding")
+@app.command("update-call-forwarding", short_help="Update Call Forwarding Settings for a Hunt Group.")
 def update_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Forwarding Settings for a Hunt Group\n\nExample --json-body:\n  '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'."""
+    """Update Call Forwarding Settings for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-call-forwarding LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
         raise typer.Exit(0)
@@ -332,12 +333,12 @@ def update_call_forwarding(
 
 
 
-_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
 
-@app.command("create-selective-rules")
+@app.command("create-selective-rules", short_help="Create a Selective Call Forwarding Rule for a Hunt Group.")
 def create_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
@@ -348,7 +349,7 @@ def create_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for a Hunt Group\n\nExample --json-body:\n  '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'."""
+    """Create a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group create-selective-rules LOCATION_ID HUNT_GROUP_ID --json-body '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true}},"callsTo":{"numbers":[{"type":"PRIMARY"}]}}'\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -392,16 +393,16 @@ def create_selective_rules(
 
 
 
-@app.command("show-selective-rules")
+@app.command("show-selective-rules", short_help="Get Selective Call Forwarding Rule for a Hunt Group.")
 def show_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Selective Call Forwarding Rule for a Hunt Group."""
+    """Get Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group show-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
@@ -418,13 +419,13 @@ def show_selective_rules(
 
 
 
-_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
-@app.command("update-selective-rules")
+@app.command("update-selective-rules", short_help="Update a Selective Call Forwarding Rule for a Hunt Group.")
 def update_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
@@ -435,7 +436,7 @@ def update_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Selective Call Forwarding Rule for a Hunt Group\n\nExample --json-body:\n  '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'."""
+    """Update a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -472,20 +473,20 @@ def update_selective_rules(
 
 
 
-@app.command("delete-selective-rules")
+@app.command("delete-selective-rules", short_help="Delete a Selective Call Forwarding Rule for a Hunt Group.")
 def delete_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Selective Call Forwarding Rule for a Hunt Group."""
+    """Delete a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group delete-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {rule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
     org_id = get_org_id()
@@ -506,17 +507,18 @@ def delete_selective_rules(
 
 
 
-@app.command("list-available-numbers-hunt-groups")
+@app.command("list-available-numbers-hunt-groups", short_help="Get Hunt Group Primary Available Phone Numbers.")
 def list_available_numbers_hunt_groups(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Hunt Group Primary Available Phone Numbers."""
+    """Get Hunt Group Primary Available Phone Numbers.\n\n\b\nExample: wxcli hunt-group list-available-numbers-hunt-groups LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/availableNumbers"
     params = {}
@@ -531,7 +533,10 @@ def list_available_numbers_hunt_groups(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -542,17 +547,18 @@ def list_available_numbers_hunt_groups(
 
 
 
-@app.command("list-available-numbers-alternate")
+@app.command("list-available-numbers-alternate", short_help="Get Hunt Group Alternate Available Phone Numbers.")
 def list_available_numbers_alternate(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Hunt Group Alternate Available Phone Numbers."""
+    """Get Hunt Group Alternate Available Phone Numbers.\n\n\b\nExample: wxcli hunt-group list-available-numbers-alternate LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/alternate/availableNumbers"
     params = {}
@@ -567,7 +573,10 @@ def list_available_numbers_alternate(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -578,9 +587,9 @@ def list_available_numbers_alternate(
 
 
 
-@app.command("list-available-numbers-call-forwarding")
+@app.command("list-available-numbers-call-forwarding", short_help="Get Hunt Group Call Forward Available Phone Numbers.")
 def list_available_numbers_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
@@ -588,9 +597,10 @@ def list_available_numbers_call_forwarding(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Hunt Group Call Forward Available Phone Numbers."""
+    """Get Hunt Group Call Forward Available Phone Numbers.\n\n\b\nExample: wxcli hunt-group list-available-numbers-call-forwarding LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/callForwarding/availableNumbers"
     params = {}
@@ -609,7 +619,10 @@ def list_available_numbers_call_forwarding(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -620,16 +633,16 @@ def list_available_numbers_call_forwarding(
 
 
 
-@app.command("switch-mode-for")
+@app.command("switch-mode-for", short_help="Switch Mode for Call Forwarding Settings for a Hunt Group.")
 def switch_mode_for(
-    location_id: str = typer.Argument(help="locationId"),
-    hunt_group_id: str = typer.Argument(help="huntGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Switch Mode for Call Forwarding Settings for a Hunt Group."""
+    """Switch Mode for Call Forwarding Settings for a Hunt Group.\n\n\b\nExample: wxcli hunt-group switch-mode-for LOCATION_ID HUNT_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/huntGroups/{hunt_group_id}/callForwarding/actions/switchMode/invoke"
     params = {}
