@@ -1084,6 +1084,12 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     params.extend(_render_output_options("table"))
     params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
     params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
+    # Uniform on EVERY list command, including the ones the spec calls
+    # unpaginated. An option present on most commands but not all teaches a
+    # rule that breaks unpredictably, which costs an agent a failed call plus a
+    # --help round trip each time — the same reasoning that closed the
+    # --output gap. On an unpaginated endpoint it is simply a no-op.
+    params.append('    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
@@ -1128,7 +1134,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             ]
         fetch_block = [
             "    try:",
-            f'        if limit > 0:',
+            f'        if limit > 0 and not all_pages:',
             f'            result = api.session.rest_get(url, params=params)',
             f'            result = result or {{}}',
             f'            items = result.get("{list_key}", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
@@ -1136,8 +1142,29 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             *max_inject,
             f'            items = list(api.session.follow_pagination(url=url, params=params, item_key="{list_key}"))',
         ]
+    elif ep.pagination_style in ("link", "page", "scim"):
+        # Pages, but the spec never declared a Link header, so `paginates` is
+        # False and the DEFAULT stays exactly what it was: one fetch. Only --all
+        # walks. This is the 210 — 109 link-shaped (max/start, header
+        # undeclared), 96 Contact Center page/pageSize, 5 SCIM.
+        walker = {"link": "follow_pagination",
+                  "page": "follow_page_param",
+                  "scim": "follow_scim"}[ep.pagination_style]
+        fetch_block = [
+            "    result = None",
+            "    try:",
+            "        if all_pages:",
+            # Assigns `result`, not `items`: this branch shares the non-paginating
+            # tail below, which re-derives items from result and would otherwise
+            # overwrite them. A list falls through that expression unchanged.
+            f'            result = list(api.session.{walker}(url=url, params=params, item_key="{list_key}"))',
+            "        else:",
+            "            result = api.session.rest_get(url, params=params)",
+        ]
     else:
-        # Non-paginating endpoint: single call (all results in one response)
+        # Non-paginating endpoint: single call (all results in one response).
+        # --all is accepted and inert, so the flag means the same thing on every
+        # list command rather than existing on some and not others.
         fetch_block = [
             "    result = None",
             "    try:",

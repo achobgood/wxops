@@ -626,6 +626,41 @@ def _path_to_url_path(path: str) -> str:
     return result
 
 
+# Query parameters that mark a paged collection, grouped by the walking style
+# they imply. Names come from the three shapes Webex actually ships.
+_LINK_PARAMS = {"max", "start", "offset", "cursor", "pageToken"}
+_PAGE_PARAMS = {"page", "pageSize"}
+_SCIM_PARAMS = {"startIndex", "count"}
+
+
+def _pagination_style(op: dict) -> str:
+    """'link' | 'page' | 'scim' | 'none' for a GET operation.
+
+    Order matters: Contact Center declares `page`/`pageSize` and no Link header,
+    SCIM declares `startIndex`/`count`, and Webex core uses `max`/`start` with
+    `Link: rel="next"`. Checked most-specific-first so a core endpoint that also
+    happens to carry `count` is not misread as SCIM.
+    """
+    names = {
+        pr.get("name")
+        for pr in (op.get("parameters") or [])
+        if isinstance(pr, dict) and pr.get("in") == "query"
+    }
+    has_link = any(
+        h.lower() == "link"
+        for code, resp in (op.get("responses") or {}).items()
+        if isinstance(resp, dict) and str(code).startswith("2")
+        for h in (resp.get("headers") or {})
+    )
+    if names & _PAGE_PARAMS:
+        return "page"
+    if names & _SCIM_PARAMS:
+        return "scim"
+    if has_link or (names & _LINK_PARAMS):
+        return "link"
+    return "none"
+
+
 def parse_operation(
     method: str,
     path: str,
@@ -668,11 +703,14 @@ def parse_operation(
         json_body_minimal_example = generate_body_example(
             op, spec, required_only=True)
 
-    # Detect pagination: 200 response with Link header means RFC 5988 pagination
-    paginates = False
+    # `paginates` keeps its ORIGINAL rule — a 200 that declares a Link header —
+    # because it alone decides whether a command walks every page BY DEFAULT.
+    # Widening it would silently change what 109 commands return, which is the
+    # one thing this work is not allowed to do. `pagination_style` is the new,
+    # broader signal and is used only to pick which walker `--all` calls.
     resp_200 = op.get("responses", {}).get("200", {})
-    if "Link" in resp_200.get("headers", {}):
-        paginates = True
+    paginates = "Link" in resp_200.get("headers", {})
+    pagination_style = _pagination_style(op)
 
     # Detect non-standard content types (e.g., application/json-patch+json)
     content_type = None
@@ -700,6 +738,7 @@ def parse_operation(
         auto_inject_path_params=auto_inject_path_names,
         content_type=content_type,
         paginates=paginates,
+        pagination_style=pagination_style,
         real_semantics=classify_real_semantics(name, body_fields),
         response_item_fields=response_item_fields,
         path_var_meta=path_var_meta,

@@ -23,6 +23,23 @@ from wxcli.errors import WebexError
 logger = logging.getLogger("wxcli")
 
 
+def _items_of(data, item_key: str) -> list:
+    """The record list out of a paged response, whatever wrapper it arrived in.
+
+    Mirrors the extraction the generated commands already do: the declared key,
+    then CC's `data`, then a bare top-level array.
+    """
+    if isinstance(data, list):
+        return data
+    if not isinstance(data, dict):
+        return []
+    for key in (item_key, "data", "items", "Resources"):
+        value = data.get(key)
+        if isinstance(value, list):
+            return value
+    return []
+
+
 def _next_page_url(response: "httpx.Response") -> str | None:
     """The `Link: rel="next"` target, or None. Same parse as follow_pagination."""
     for part in response.headers.get("Link", "").split(","):
@@ -221,6 +238,54 @@ class WebexSession:
                     url = part.split(";")[0].strip().strip("<>")
                     break
             params = None
+
+    def follow_page_param(self, url: str, params=None, item_key: str = "data",
+                          page_param: str = "page", size_param: str = "pageSize",
+                          page_size: int = 200, first_page: int = 0):
+        """Walk a `page`/`pageSize` collection — Contact Center's shape.
+
+        CC sends no Link header, so follow_pagination cannot see these at all;
+        that is 96 of the 210 single-fetch list commands. Termination is on a
+        SHORT page rather than a declared total, because the CC wrappers vary
+        (`meta`, `totalResources`/`pageNumber`, plain `data`) and a short page is
+        the one signal all of them agree on. An exactly-full final page costs one
+        extra request that returns empty — correct, just not free.
+        """
+        params = dict(params or {})
+        params[size_param] = params.get(size_param) or page_size
+        size = int(params[size_param])
+        page = int(params.get(page_param) or first_page)
+        while True:
+            params[page_param] = page
+            data = self._json_or_raise(self._request("GET", url, params=params))
+            items = _items_of(data, item_key)
+            yield from items
+            if len(items) < size:
+                return
+            page += 1
+
+    def follow_scim(self, url: str, params=None, item_key: str = "Resources",
+                    count: int = 100):
+        """Walk a SCIM `startIndex`/`count` collection. startIndex is 1-based.
+
+        Terminates on `totalResults` when the server sends it and on a short page
+        otherwise, so a server that omits the total still ends.
+        """
+        params = dict(params or {})
+        params["count"] = params.get("count") or count
+        size = int(params["count"])
+        index = int(params.get("startIndex") or 1)
+        while True:
+            params["startIndex"] = index
+            data = self._json_or_raise(self._request("GET", url, params=params))
+            items = _items_of(data, item_key)
+            yield from items
+            if len(items) < size:
+                return
+            index += len(items)
+            total = data.get("totalResults") if isinstance(data, dict) else None
+            if isinstance(total, int) and index > total:
+                return
 
 
 class WebexApi:
