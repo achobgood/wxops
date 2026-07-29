@@ -62,6 +62,10 @@ class Endpoint:
     auto_inject_path_params: list[str] = field(default_factory=list)
     content_type: str | None = None
     paginates: bool = False
+    # 'link' | 'page' | 'scim' | 'none'. `paginates` stays as the link-style
+    # boolean it always was, so nothing reading it changes meaning; this carries
+    # the two styles it could never express.
+    pagination_style: str = "none"
     real_semantics: str | None = None
     # {extraction key -> item-schema fields}, list endpoints only. Keyed by the
     # key the generated code extracts with, so a response_list_keys override
