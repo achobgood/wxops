@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling operating-modes.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Operating Modes.")
 def cmd_list(
     name: str = typer.Option(None, "--name", help="List `operating modes` whose name contains this string."),
     limit_to_location_id: str = typer.Option(None, "--limit-to-location-id", help="Location query parameter to filter the `operating modes` from that location only."),
@@ -21,6 +21,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Operating Modes."""
@@ -44,7 +45,10 @@ def cmd_list(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="operatingModes"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -55,14 +59,14 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Details for an Operating Mode.")
 def show(
-    mode_id: str = typer.Argument(help="modeId"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for an Operating Mode."""
+    """Get Details for an Operating Mode.\n\n\b\nExample: wxcli operating-modes show MODE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
     params = {}
@@ -79,11 +83,11 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
+_BODY_SKELETON_UPDATE = '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
 
-@app.command("update")
+@app.command("update", short_help="Modify an Operating Mode.")
 def update(
-    mode_id: str = typer.Argument(help="modeId"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
     name: str = typer.Option(None, "--name", help="New unique name for the `operating mode`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -91,7 +95,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify an Operating Mode\n\nExample --json-body:\n  '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'."""
+    """Modify an Operating Mode.\n\n\b\nExample: wxcli operating-modes update MODE_ID\n\n\b\nExample --json-body: '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}],"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -122,18 +126,18 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete an Operating Mode.")
 def delete(
-    mode_id: str = typer.Argument(help="modeId"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete an Operating Mode."""
+    """Delete an Operating Mode.\n\n\b\nExample: wxcli operating-modes delete MODE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {mode_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}"
     params = {}
     org_id = get_org_id()
@@ -154,9 +158,9 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}]}'
+_BODY_SKELETON_CREATE = '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'
 
-@app.command("create")
+@app.command("create", short_help="Create an Operating Mode.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Unique name for the `operating mode`."),
     type_param: str = typer.Option(None, "--type", help="(required) Choices: SAME_HOURS_DAILY, DIFFERENT_HOURS_DAILY, HOLIDAY, NONE"),
@@ -168,7 +172,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Operating Mode\n\nExample --json-body:\n  '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"monday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"tuesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"wednesday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"thursday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"friday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."},"saturday":{"enabled":"...","allDayEnabled":"...","startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":"..."}]}'."""
+    """Create an Operating Mode.\n\n\b\nExample: wxcli operating-modes create --json-body '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'\n\n\b\nExample --json-body: '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -212,15 +216,15 @@ def create(
 
 
 
-@app.command("show-holidays")
+@app.command("show-holidays", short_help="Get details for an Operating Mode Holiday.")
 def show_holidays(
-    mode_id: str = typer.Argument(help="modeId"),
-    holiday_id: str = typer.Argument(help="holidayId"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
+    holiday_id: str = typer.Argument(help="Webex SCHEDULE_EVENT id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get details for an Operating Mode Holiday."""
+    """Get details for an Operating Mode Holiday.\n\n\b\nExample: wxcli operating-modes show-holidays MODE_ID HOLIDAY_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
     params = {}
@@ -237,12 +241,12 @@ def show_holidays(
 
 
 
-_BODY_SKELETON_UPDATE_HOLIDAYS = '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'
+_BODY_SKELETON_UPDATE_HOLIDAYS = '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'
 
-@app.command("update-holidays")
+@app.command("update-holidays", short_help="Modify an Operating Mode Holiday.")
 def update_holidays(
-    mode_id: str = typer.Argument(help="modeId"),
-    holiday_id: str = typer.Argument(help="holidayId"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
+    holiday_id: str = typer.Argument(help="Webex SCHEDULE_EVENT id"),
     name: str = typer.Option(None, "--name", help="Name of the holiday."),
     all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="Specifies if the `operating mode holiday` schedule event is enabled for the entire day. If `startTime`, and `endTime` are provided, this field is ignored."),
     start_date: str = typer.Option(None, "--start-date", help="Start date of the `operating mode holiday`."),
@@ -255,7 +259,7 @@ def update_holidays(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
+    """Modify an Operating Mode Holiday.\n\n\b\nExample: wxcli operating-modes update-holidays MODE_ID HOLIDAY_ID\n\n\b\nExample --json-body: '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_HOLIDAYS), indent=2))
         raise typer.Exit(0)
@@ -296,19 +300,19 @@ def update_holidays(
 
 
 
-@app.command("delete-holidays")
+@app.command("delete-holidays", short_help="Delete an Operating Mode Holiday.")
 def delete_holidays(
-    mode_id: str = typer.Argument(help="modeId"),
-    holiday_id: str = typer.Argument(help="holidayId"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
+    holiday_id: str = typer.Argument(help="Webex SCHEDULE_EVENT id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete an Operating Mode Holiday."""
+    """Delete an Operating Mode Holiday.\n\n\b\nExample: wxcli operating-modes delete-holidays MODE_ID HOLIDAY_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {holiday_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/operatingModes/{mode_id}/holidays/{holiday_id}"
     params = {}
     org_id = get_org_id()
@@ -329,11 +333,11 @@ def delete_holidays(
 
 
 
-_BODY_SKELETON_CREATE_HOLIDAYS = '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'
+_BODY_SKELETON_CREATE_HOLIDAYS = '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'
 
-@app.command("create-holidays")
+@app.command("create-holidays", short_help="Create an Operating Mode Holiday.")
 def create_holidays(
-    mode_id: str = typer.Argument(help="modeId"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
     name: str = typer.Option(None, "--name", help="(required) Name of the holiday."),
     all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="(required) Specifies if the `operating mode holiday` schedule event is enabled for the entire day. `False` if the flag is not set."),
     start_date: str = typer.Option(None, "--start-date", help="(required) Start date of the `operating mode holiday`."),
@@ -346,7 +350,7 @@ def create_holidays(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Operating Mode Holiday\n\nExample --json-body:\n  '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":"...","month":"..."},"recurYearlyByDay":{"day":"...","week":"...","month":"..."}}}'."""
+    """Create an Operating Mode Holiday.\n\n\b\nExample: wxcli operating-modes create-holidays MODE_ID --name NAME --all-day-enabled --start-date START_DATE --end-date END_DATE\n\n\b\nExample --json-body: '{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_HOLIDAYS), indent=2))
         raise typer.Exit(0)
@@ -394,16 +398,17 @@ def create_holidays(
 
 
 
-@app.command("list-available-operating-modes")
+@app.command("list-available-operating-modes", short_help="Retrieve the List of Available Operating Modes in a Location.")
 def list_available_operating_modes(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve the List of Available Operating Modes in a Location."""
+    """Retrieve the List of Available Operating Modes in a Location.\n\n\b\nExample: wxcli operating-modes list-available-operating-modes LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/operatingModes/availableOperatingModes"
     params = {}
@@ -427,9 +432,9 @@ def list_available_operating_modes(
 
 
 
-@app.command("list-available-numbers")
+@app.command("list-available-numbers", short_help="Get Operating Mode Call Forward Available Phone Numbers.")
 def list_available_numbers(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
@@ -437,9 +442,10 @@ def list_available_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Operating Mode Call Forward Available Phone Numbers."""
+    """Get Operating Mode Call Forward Available Phone Numbers.\n\n\b\nExample: wxcli operating-modes list-available-numbers LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/operatingModes/callForwarding/availableNumbers"
     params = {}
@@ -458,7 +464,10 @@ def list_available_numbers(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling device-dynamic-settings.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Supported Devices.")
 def cmd_list(
     allow_configure_layout_enabled: str = typer.Option(None, "--allow-configure-layout-enabled", help="List supported devices that allow the user to configure the layout."),
     type_param: str = typer.Option(None, "--type", help="List supported devices of a specific type. To excluded device types from a request or query, add `type=not:DEVICE_TYPE`. For example, `type=not:MPP`."),
@@ -19,6 +19,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Supported Devices."""
@@ -37,7 +38,7 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("upgradeChannelList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -53,7 +54,7 @@ def cmd_list(
 
 
 
-@app.command("list-settings-groups")
+@app.command("list-settings-groups", short_help="Get Settings Groups.")
 def list_settings_groups(
     family_or_model_display_name: str = typer.Option(None, "--family-or-model-display-name", help="Device family or model display name to filter the `settingsGroups`."),
     include_settings_type: str = typer.Option(None, "--include-settings-type", help="Choices: TABS, GROUPS, ALL"),
@@ -61,6 +62,7 @@ def list_settings_groups(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Settings Groups."""
@@ -93,7 +95,7 @@ def list_settings_groups(
 
 _BODY_SKELETON_GET_CUSTOMER_DEVICE = '{"tags":["..."]}'
 
-@app.command("get-customer-device")
+@app.command("get-customer-device", short_help="Get Customer Device Dynamic Settings.")
 def get_customer_device(
     family_or_model_display_name: str = typer.Option(..., "--family-or-model-display-name", help="The family or model name for the device. If no tag is specified, all tags related to `familyOrModelDisplayName` are returned."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -102,7 +104,7 @@ def get_customer_device(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Customer Device Dynamic Settings\n\nExample --json-body:\n  '{"tags":["..."]}'."""
+    """Get Customer Device Dynamic Settings.\n\n\b\nExample: wxcli device-dynamic-settings get-customer-device --family-or-model-display-name FAMILY_OR_MODEL_DISPLAY_NAME\n\n\b\nExample --json-body: '{"tags":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_GET_CUSTOMER_DEVICE), indent=2))
         raise typer.Exit(0)
@@ -130,9 +132,9 @@ def get_customer_device(
 
 _BODY_SKELETON_GET_LOCATION_DEVICE = '{"tags":["..."]}'
 
-@app.command("get-location-device")
+@app.command("get-location-device", short_help="Get Location Device Dynamic Settings.")
 def get_location_device(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
     family_or_model_display_name: str = typer.Option(..., "--family-or-model-display-name", help="The family or model name for the device. If no tag is specified, all tags related to `familyOrModelDisplayName` are returned."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -140,7 +142,7 @@ def get_location_device(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Location Device Dynamic Settings\n\nExample --json-body:\n  '{"tags":["..."]}'."""
+    """Get Location Device Dynamic Settings.\n\n\b\nExample: wxcli device-dynamic-settings get-location-device LOCATION_ID --family-or-model-display-name FAMILY_OR_MODEL_DISPLAY_NAME\n\n\b\nExample --json-body: '{"tags":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_GET_LOCATION_DEVICE), indent=2))
         raise typer.Exit(0)
@@ -168,16 +170,16 @@ def get_location_device(
 
 _BODY_SKELETON_GET_DEVICE_DYNAMIC = '{"tags":["..."]}'
 
-@app.command("get-device-dynamic")
+@app.command("get-device-dynamic", short_help="Get Device Dynamic Settings.")
 def get_device_dynamic(
-    device_id: str = typer.Argument(help="deviceId"),
+    device_id: str = typer.Argument(help="Webex CALLING_DEVICE id, from: wxcli devices list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Device Dynamic Settings\n\nExample --json-body:\n  '{"tags":["..."]}'."""
+    """Get Device Dynamic Settings.\n\n\b\nExample: wxcli device-dynamic-settings get-device-dynamic DEVICE_ID\n\n\b\nExample --json-body: '{"tags":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_GET_DEVICE_DYNAMIC), indent=2))
         raise typer.Exit(0)
@@ -201,18 +203,18 @@ def get_device_dynamic(
 
 
 
-_BODY_SKELETON_UPDATE = '{"tags":[{"tag":"...","action":"...","value":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"tags":[{"tag":"...","action":"ADD","value":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Update Device Dynamic Settings.")
 def update(
-    device_id: str = typer.Argument(help="deviceId"),
+    device_id: str = typer.Argument(help="Webex CALLING_DEVICE id, from: wxcli devices list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Device Dynamic Settings\n\nExample --json-body:\n  '{"tags":[{"tag":"...","action":"...","value":"..."}]}'."""
+    """Update Device Dynamic Settings.\n\n\b\nExample: wxcli device-dynamic-settings update DEVICE_ID\n\n\b\nExample --json-body: '{"tags":[{"tag":"...","action":"ADD","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -241,12 +243,13 @@ def update(
 
 
 
-@app.command("list-dynamic-device-settings")
+@app.command("list-dynamic-device-settings", short_help="List Device Dynamic Settings Jobs.")
 def list_dynamic_device_settings(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Device Dynamic Settings Jobs."""
@@ -262,7 +265,10 @@ def list_dynamic_device_settings(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -273,9 +279,9 @@ def list_dynamic_device_settings(
 
 
 
-_BODY_SKELETON_CREATE = '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"...","value":"..."}],"locationId":"..."}'
+_BODY_SKELETON_CREATE = '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"ADD","value":"..."}],"locationId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Update Device Dynamic Settings Across Organization or Location.")
 def create(
     location_id: str = typer.Option(None, "--location-id", help="If present, the requested settings will be updated to devices under this location."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -284,7 +290,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Device Dynamic Settings Across Organization or Location\n\nExample --json-body:\n  '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"...","value":"..."}],"locationId":"..."}'."""
+    """Update Device Dynamic Settings Across Organization or Location.\n\n\b\nExample: wxcli device-dynamic-settings create --json-body '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"ADD"}]}'\n\n\b\nExample --json-body: '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"ADD","value":"..."}],"locationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -318,14 +324,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Device Dynamic Settings Job Status.")
 def show(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli device-dynamic-settings list-dynamic-device-settings"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Device Dynamic Settings Job Status."""
+    """Get Device Dynamic Settings Job Status.\n\n\b\nExample: wxcli device-dynamic-settings show JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/dynamicDeviceSettings/{job_id}"
     try:
@@ -338,16 +344,17 @@ def show(
 
 
 
-@app.command("list-errors")
+@app.command("list-errors", short_help="List Device Dynamic Settings Job Errors.")
 def list_errors(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli device-dynamic-settings list-dynamic-device-settings"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Device Dynamic Settings Job Errors."""
+    """List Device Dynamic Settings Job Errors.\n\n\b\nExample: wxcli device-dynamic-settings list-errors JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/dynamicDeviceSettings/{job_id}/errors"
     params = {}
@@ -360,7 +367,10 @@ def list_errors(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

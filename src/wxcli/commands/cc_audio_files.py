@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-audio-files.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Audio File by ID.")
 def show(
     id: str = typer.Argument(help="id"),
     include_url: str = typer.Option(None, "--include-url", help="Indicates if the URL for downloading Audio Fileshould be included in the response."),
@@ -19,7 +19,7 @@ def show(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Audio File by ID."""
+    """Get specific Audio File by ID.\n\n\b\nExample: wxcli cc-audio-files show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -37,7 +37,7 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Audio File by ID.")
 def delete(
     id: str = typer.Argument(help="id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -45,12 +45,12 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Audio File by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Audio File by ID.\n\n\b\nExample: wxcli cc-audio-files delete ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/audio-file/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -67,9 +67,9 @@ def delete(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List references for a specific Audio File.")
 def cmd_list(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -77,9 +77,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Audio File."""
+    """List references for a specific Audio File.\n\n\b\nExample: wxcli cc-audio-files list ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -97,7 +98,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -108,7 +112,7 @@ def cmd_list(
 
 
 
-@app.command("list-audio-file")
+@app.command("list-audio-file", short_help="List Audio File(s).")
 def list_audio_file(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned.Default all attributes are returned along with specified columns. All Attributes are supported except URL"),
@@ -119,6 +123,7 @@ def list_audio_file(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Audio File(s)."""
@@ -143,7 +148,10 @@ def list_audio_file(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

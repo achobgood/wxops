@@ -13,9 +13,9 @@ app = typer.Typer(help="Manage Webex Contact Center cc-auto-csat.")
 
 _BODY_SKELETON_CREATE = '{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Auto CSAT mapped Question.")
 def create(
-    auto_csat_id: str = typer.Argument(help="autoCsatId"),
+    auto_csat_id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -29,7 +29,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Auto CSAT mapped Question\n\nExample --json-body:\n  '{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Create a new Auto CSAT mapped Question.\n\n\b\nExample: wxcli cc-auto-csat create AUTO_CSAT_ID --question-id QUESTION_ID --questionnaire-id QUESTIONNAIRE_ID\n\n\b\nExample --json-body: '{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -77,18 +77,18 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Auto CSAT mapped Question(s).")
 def create_bulk(
-    auto_csat_id: str = typer.Argument(help="autoCsatId"),
+    auto_csat_id: str = typer.Argument(help="UUID"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Auto CSAT mapped Question(s)\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Auto CSAT mapped Question(s).\n\n\b\nExample: wxcli cc-auto-csat create-bulk AUTO_CSAT_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -118,15 +118,15 @@ def create_bulk(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Auto CSAT mapped Question by ID.")
 def show(
-    auto_csat_id: str = typer.Argument(help="autoCsatId"),
-    id: str = typer.Argument(help="id"),
+    auto_csat_id: str = typer.Argument(help="UUID"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Auto CSAT mapped Question by ID."""
+    """Get specific Auto CSAT mapped Question by ID.\n\n\b\nExample: wxcli cc-auto-csat show AUTO_CSAT_ID ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -141,21 +141,21 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Auto CSAT mapped Question by ID.")
 def delete(
-    auto_csat_id: str = typer.Argument(help="autoCsatId"),
-    id: str = typer.Argument(help="id"),
+    auto_csat_id: str = typer.Argument(help="UUID"),
+    id: str = typer.Argument(help="UUID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Auto CSAT mapped Question by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Auto CSAT mapped Question by ID.\n\n\b\nExample: wxcli cc-auto-csat delete AUTO_CSAT_ID ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/auto-csat/{auto_csat_id}/question/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -172,14 +172,14 @@ def delete(
 
 
 
-@app.command("show-auto-csat")
+@app.command("show-auto-csat", short_help="Get specific Auto CSAT resource by ID.")
 def show_auto_csat(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Auto CSAT resource by ID."""
+    """Get specific Auto CSAT resource by ID.\n\n\b\nExample: wxcli cc-auto-csat show-auto-csat ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -194,11 +194,11 @@ def show_auto_csat(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Update specific Auto CSAT resource by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -214,7 +214,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Auto CSAT resource by ID\n\nExample --json-body:\n  '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0}'."""
+    """Update specific Auto CSAT resource by ID.\n\n\b\nExample: wxcli cc-auto-csat update ID --enabled --agent-inclusion-type ALL --survey-data-source EXPERIENCE_MANAGEMENT --selected-global-variable-id SELECTED_GLOBAL_VARIABLE_ID\n\n\b\nExample --json-body: '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -259,7 +259,7 @@ def update(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List Auto CSAT resource(s).")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
@@ -269,6 +269,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Auto CSAT resource(s)."""
@@ -291,7 +292,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -302,9 +306,9 @@ def cmd_list(
 
 
 
-@app.command("list-question")
+@app.command("list-question", short_help="List Auto CSAT mapped Question(s).")
 def list_question(
-    auto_csat_id: str = typer.Argument(help="autoCsatId"),
+    auto_csat_id: str = typer.Argument(help="UUID, from: wxcli cc-auto-csat list"),
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported.(id, questionId, questionnaireId)"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
@@ -313,9 +317,10 @@ def list_question(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Auto CSAT mapped Question(s)."""
+    """List Auto CSAT mapped Question(s).\n\n\b\nExample: wxcli cc-auto-csat list-question AUTO_CSAT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -335,7 +340,10 @@ def list_question(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

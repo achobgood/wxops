@@ -127,7 +127,7 @@ api.session.rest_put(url, json=body)
 
 > **Note**: The URL path is `people/{person_id}/features/callingBehavior`, NOT `telephony/config/people/{person_id}/callingBehavior`.
 
-**CLI**: `wxcli user-call-settings show-calling-behavior <personId>` / `update-calling-behavior <personId>`
+**CLI**: `wxcli user-settings show-calling-behavior <personId>` / `update-calling-behavior <personId>`
 
 ---
 
@@ -185,7 +185,7 @@ body = {
 api.session.rest_put(url, json=body)
 ```
 
-**CLI**: `wxcli user-call-settings show <personId>` / `update <personId>`
+**CLI**: `wxcli user-settings show <personId>` / `update <personId>`
 
 ---
 
@@ -269,7 +269,7 @@ api.session.rest_put(url, json=body)
 wxcli user-settings show-call-bridge <personId>
 
 # Update call bridge settings
-wxcli user-settings update-call-bridge <personId> --warning-tone-enabled true
+wxcli user-settings update-call-bridge <personId> --json-body '{"warningToneEnabled": true}'
 ```
 
 ---
@@ -297,7 +297,7 @@ body = {"enabled": True}
 api.session.rest_put(url, json=body)
 ```
 
-**CLI**: `wxcli user-call-settings show-hoteling <personId>` / `update-hoteling <personId>`
+**CLI**: `wxcli user-settings show-hoteling <personId>` / `update-hoteling <personId>`
 
 ### Gotchas
 
@@ -345,7 +345,7 @@ body = {
 api.session.rest_put(url, json=body)
 ```
 
-**CLI**: `wxcli user-call-settings show-reception <personId>` / `update-reception <personId>`
+**CLI**: `wxcli user-settings list-reception <personId>` / `update-reception <personId>`
 
 ---
 
@@ -418,7 +418,7 @@ api.session.rest_put(url, json=body)
 
 > **Gotcha**: Read and update use different URL prefixes. Read: `people/{id}/features/numbers`. Update: `telephony/config/people/{id}/numbers`.
 
-**CLI**: `wxcli user-call-settings list-numbers <personId>`
+**CLI**: `wxcli user-settings list-numbers <personId>`
 
 ### Gotchas
 
@@ -1100,7 +1100,7 @@ body = {
 api.session.rest_put(url, json=body)
 ```
 
-**CLI**: `wxcli user-call-settings show-push-to-talk <personId>` / `update-push-to-talk <personId>`
+**CLI**: `wxcli user-settings list-push-to-talk <personId>` / `update-push-to-talk <personId>`
 
 ### CLI Examples
 

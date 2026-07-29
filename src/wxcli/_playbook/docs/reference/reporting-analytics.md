@@ -839,7 +839,7 @@ wxcli converged-recordings create-restore \
   --json-body '{"restoreAll": true, "ownerEmail": "user@company.com"}'
 
 # Purge recordings permanently from recycle bin
-wxcli converged-recordings create-purge \
+wxcli converged-recordings delete-recordings-recycle \
   --json-body '{"purgeAll": true, "ownerEmail": "user@company.com"}'
 
 # Download a single recording's artifacts (transcript, AI notes, audio)

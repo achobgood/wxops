@@ -465,7 +465,7 @@ Next steps:
 
 12. **For bulk operations (50+ users), use the migration engine's async pattern** — wxcli runs one command at a time. For large batches, the proven async pattern handles concurrency, rate limiting, and retry. For smaller batches (<50), shell loops with `sleep 1` suffice.
 
-13. **Location-scoped feature deletes require LOCATION_ID as FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `wxcli hunt-group delete --force HG_ID`. The LOCATION_ID comes before the feature ID.
+13. **Location-scoped feature deletes require LOCATION_ID as FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `hunt-group delete --force HG_ID`. The LOCATION_ID comes before the feature ID.
 
 14. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
 

@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling broadworks-enterprises.")
 
 
-@app.command("show")
+@app.command("show", short_help="List BroadWorks Enterprises.")
 def show(
     sp_enterprise_id: str = typer.Option(None, "--sp-enterprise-id", help="The Service Provider supplied unique identifier for the subscriber's enterprise."),
     starts_with: str = typer.Option(None, "--starts-with", help="The starting string of the enterprise identifiers to match against."),
@@ -39,14 +39,14 @@ def show(
 
 
 
-@app.command("show-broadworks-directory-sync")
+@app.command("show-broadworks-directory-sync", short_help="Get Directory Sync Status for an Enterprise.")
 def show_broadworks_directory_sync(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex SUBSCRIBER id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Directory Sync Status for an Enterprise."""
+    """Get Directory Sync Status for an Enterprise.\n\n\b\nExample: wxcli broadworks-enterprises show-broadworks-directory-sync ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/broadworks/enterprises/{id}/broadworksDirectorySync"
     try:
@@ -61,9 +61,9 @@ def show_broadworks_directory_sync(
 
 _BODY_SKELETON_CREATE = '{"syncStatus":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Trigger Directory Sync for an Enterprise.")
 def create(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex SUBSCRIBER id"),
     sync_status: str = typer.Option(None, "--sync-status", help="(required) At this time, the only value allowed for this attribute is `SYNC_NOW` which will trigger the directory sync for the BroadWorks enterprise."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -71,7 +71,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Trigger Directory Sync for an Enterprise\n\nExample --json-body:\n  '{"syncStatus":"..."}'."""
+    """Trigger Directory Sync for an Enterprise.\n\n\b\nExample: wxcli broadworks-enterprises create ID --sync-status SYNC_STATUS\n\n\b\nExample --json-body: '{"syncStatus":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -107,9 +107,9 @@ def create(
 
 _BODY_SKELETON_UPDATE = '{"enableDirSync":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update Directory Sync for a BroadWorks Enterprise.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex SUBSCRIBER id"),
     enable_dir_sync: bool = typer.Option(None, "--enable-dir-sync/--no-enable-dir-sync", help="The toggle to enable/disable directory sync."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -117,7 +117,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Directory Sync for a BroadWorks Enterprise\n\nExample --json-body:\n  '{"enableDirSync":true}'."""
+    """Update Directory Sync for a BroadWorks Enterprise.\n\n\b\nExample: wxcli broadworks-enterprises update ID --enable-dir-sync\n\n\b\nExample --json-body: '{"enableDirSync":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -146,9 +146,9 @@ def update(
 
 _BODY_SKELETON_CREATE_EXTERNAL_USER = '{"userId":"..."}'
 
-@app.command("create-external-user")
+@app.command("create-external-user", short_help="Trigger Directory Sync for a User.")
 def create_external_user(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex SUBSCRIBER id"),
     user_id: str = typer.Option(None, "--user-id", help="The user ID of the Broadworks user to be synced (A non-webex user)."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -156,7 +156,7 @@ def create_external_user(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Trigger Directory Sync for a User\n\nExample --json-body:\n  '{"userId":"..."}'."""
+    """Trigger Directory Sync for a User.\n\n\b\nExample: wxcli broadworks-enterprises create-external-user ID\n\n\b\nExample --json-body: '{"userId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EXTERNAL_USER), indent=2))
         raise typer.Exit(0)

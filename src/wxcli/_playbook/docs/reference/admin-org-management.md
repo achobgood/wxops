@@ -54,23 +54,31 @@ Manage Webex organizations. Most admin tokens are scoped to a single org, so `or
 wxcli organizations list
 ```
 
-**Get details for a specific org (returns JSON with display name, creation date, etc.):**
+**Get details for the target org (returns JSON with display name, creation date, etc.):**
 
 ```bash
-wxcli organizations show Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMjM0
+wxcli organizations show
 ```
 
-**Delete an organization (prompts for confirmation):**
+**Delete the target org (prompts for confirmation):**
 
 ```bash
-wxcli organizations delete Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMjM0
+wxcli organizations delete
 ```
 
 **Delete without confirmation prompt (use with extreme caution):**
 
 ```bash
-wxcli organizations delete Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMjM0 --force
+wxcli organizations delete --force
 ```
+
+> **`show` and `delete` take no org argument.** The `{orgId}` in the paths above comes from
+> `resolve_org_id()` -- the org saved by `wxcli switch-org`, falling back to the token's own org
+> from `GET /v1/people/me`. Passing an org ID as a positional fails with "unexpected extra
+> argument"; removing it does **not** make the command target the org you named. Run
+> `wxcli whoami` and read the `Target:` line before either command, and never run
+> `organizations delete --force` without doing so -- it deletes whatever tenant `switch-org`
+> last saved.
 
 ### Raw HTTP Fallback
 
@@ -112,27 +120,27 @@ Read and write org-level settings (key/value pairs). The `create` command is a P
 **Read a specific setting by key:**
 
 ```bash
-wxcli org-settings show Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMjM0 callingBehavior
+wxcli org-settings show callingBehavior
 ```
 
 **Set/update a boolean setting:**
 
 ```bash
-wxcli org-settings create Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMjM0 \
+wxcli org-settings create \
   --key callingBehavior --value
 ```
 
 **Set a setting to false:**
 
 ```bash
-wxcli org-settings create Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMjM0 \
+wxcli org-settings create \
   --key callingBehavior --no-value
 ```
 
 **Use --json-body for non-boolean or complex settings:**
 
 ```bash
-wxcli org-settings create Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMjM0 \
+wxcli org-settings create \
   --json-body '{"key": "myCustomSetting", "value": "customValue"}'
 ```
 
@@ -179,19 +187,19 @@ Manage organization-level contacts (shared directory entries). Contacts use a SC
 **List all contacts in an org:**
 
 ```bash
-wxcli org-contacts list $ORG_ID
+wxcli org-contacts list
 ```
 
 **Search contacts by keyword:**
 
 ```bash
-wxcli org-contacts list $ORG_ID --keyword "Smith" --source CH
+wxcli org-contacts list --keyword "Smith" --source CH
 ```
 
 **Create a single contact:**
 
 ```bash
-wxcli org-contacts create $ORG_ID \
+wxcli org-contacts create \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --source CH \
   --display-name "Jane Smith" \
@@ -204,26 +212,26 @@ wxcli org-contacts create $ORG_ID \
 **Get contact details:**
 
 ```bash
-wxcli org-contacts show $ORG_ID $CONTACT_ID
+wxcli org-contacts show $CONTACT_ID
 ```
 
 **Update a contact's company name:**
 
 ```bash
-wxcli org-contacts update $ORG_ID $CONTACT_ID \
+wxcli org-contacts update $CONTACT_ID \
   --company-name "New Corp Name"
 ```
 
 **Delete a contact (with confirmation prompt):**
 
 ```bash
-wxcli org-contacts delete $ORG_ID $CONTACT_ID
+wxcli org-contacts delete $CONTACT_ID
 ```
 
 **Bulk create/update contacts via --json-body:**
 
 ```bash
-wxcli org-contacts create-bulk $ORG_ID \
+wxcli org-contacts create-bulk \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --json-body '{
     "schemas": "urn:cisco:codev:identity:contact:core:1.0",
@@ -251,7 +259,7 @@ wxcli org-contacts create-bulk $ORG_ID \
 **Bulk delete contacts:**
 
 ```bash
-wxcli org-contacts create-delete $ORG_ID \
+wxcli org-contacts create-delete \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --json-body '{
     "schemas": "urn:cisco:codev:identity:contact:core:1.0",
@@ -383,7 +391,7 @@ Manage domain verification and claiming for a Webex organization. Domain verific
 **Step 1 -- Get the DNS verification token:**
 
 ```bash
-wxcli domains get-domain-verification $ORG_ID --domain "example.com"
+wxcli domains get-domain-verification --domain "example.com"
 ```
 
 This returns a token value. Create a DNS TXT record for `example.com` with the returned token.
@@ -391,49 +399,49 @@ This returns a token value. Create a DNS TXT record for `example.com` with the r
 **Step 2 -- Verify the domain (after DNS propagation):**
 
 ```bash
-wxcli domains verify-domain $ORG_ID --domain "example.com"
+wxcli domains verify-domain --domain "example.com"
 ```
 
 **Step 3 -- Claim the domain:**
 
 ```bash
-wxcli domains claim-domain $ORG_ID
+wxcli domains claim-domain
 ```
 
 **Verify and claim in a single step:**
 
 ```bash
-wxcli domains verify-domain $ORG_ID --domain "example.com" --claim-domain true
+wxcli domains verify-domain --domain "example.com" --claim-domain true
 ```
 
 **Force-claim a domain (even if users exist on other orgs):**
 
 ```bash
-wxcli domains claim-domain $ORG_ID --force-domain-claim true
+wxcli domains claim-domain --force-domain-claim true
 ```
 
 **Claim domain without searching/marking existing users:**
 
 ```bash
-wxcli domains claim-domain $ORG_ID --claim-domain-only true
+wxcli domains claim-domain --claim-domain-only true
 ```
 
 **Unverify a domain:**
 
 ```bash
-wxcli domains unverify-domain $ORG_ID --domain "example.com"
+wxcli domains unverify-domain --domain "example.com"
 ```
 
 **Unverify and remove pending domain:**
 
 ```bash
-wxcli domains unverify-domain $ORG_ID --domain "example.com" --remove-pending true
+wxcli domains unverify-domain --domain "example.com" --remove-pending true
 ```
 
 **Unclaim (release) a domain:**
 
 ```bash
-wxcli domains unclaim-domain $ORG_ID --domain "example.com"
+wxcli domains unclaim-domain --domain "example.com"
 ```
 
 ### Raw HTTP Fallback
@@ -486,7 +494,7 @@ Complete end-to-end flow for adding a domain to your Webex org.
 
 ```bash
 # 1. Get the verification token
-wxcli domains get-domain-verification $ORG_ID --domain "newdomain.com"
+wxcli domains get-domain-verification --domain "newdomain.com"
 # Response includes a token like: "webex-verification=abc123def456"
 
 # 2. Add DNS TXT record (outside wxcli -- use your DNS provider)
@@ -496,13 +504,13 @@ wxcli domains get-domain-verification $ORG_ID --domain "newdomain.com"
 #    Wait for DNS propagation (can take up to 48 hours, typically 15-60 minutes)
 
 # 3. Verify the domain
-wxcli domains verify-domain $ORG_ID --domain "newdomain.com"
+wxcli domains verify-domain --domain "newdomain.com"
 
 # 4. Claim the domain for user provisioning
-wxcli domains claim-domain $ORG_ID
+wxcli domains claim-domain
 
 # Or combine steps 3 and 4:
-wxcli domains verify-domain $ORG_ID --domain "newdomain.com" --claim-domain true
+wxcli domains verify-domain --domain "newdomain.com" --claim-domain true
 ```
 
 ### Recipe: Bulk Import Organization Contacts
@@ -533,7 +541,7 @@ Import a batch of contacts from a prepared JSON file.
 #   ]
 # }
 
-wxcli org-contacts create-bulk $ORG_ID \
+wxcli org-contacts create-bulk \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --json-body "$(cat contacts.json)"
 ```
@@ -566,7 +574,7 @@ wxcli roles show $ROLE_ID
 wxcli organizations list
 
 # Get full org details (creation date, display name, etc.)
-wxcli organizations show $ORG_ID -o json
+wxcli organizations show -o json
 ```
 
 ---

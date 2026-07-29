@@ -11,14 +11,14 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling location-voicemail.")
 
 
-@app.command("show")
+@app.command("show", short_help="Get Location Voicemail.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Location Voicemail."""
+    """Get Location Voicemail.\n\n\b\nExample: wxcli location-voicemail show LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemail"
     params = {}
@@ -37,9 +37,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"voicemailTranscriptionEnabled":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update Location Voicemail.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     voicemail_transcription_enabled: bool = typer.Option(None, "--voicemail-transcription-enabled/--no-voicemail-transcription-enabled", help="Set to `true` to enable voicemail transcription."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -47,7 +47,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Location Voicemail\n\nExample --json-body:\n  '{"voicemailTranscriptionEnabled":true}'."""
+    """Update Location Voicemail.\n\n\b\nExample: wxcli location-voicemail update LOCATION_ID --voicemail-transcription-enabled\n\n\b\nExample --json-body: '{"voicemailTranscriptionEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -78,14 +78,14 @@ def update(
 
 
 
-@app.command("show-voice-portal")
+@app.command("show-voice-portal", short_help="Get VoicePortal.")
 def show_voice_portal(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get VoicePortal."""
+    """Get VoicePortal.\n\n\b\nExample: wxcli location-voicemail show-voice-portal LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicePortal"
     params = {}
@@ -102,11 +102,11 @@ def show_voice_portal(
 
 
 
-_BODY_SKELETON_UPDATE_VOICE_PORTAL = '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."}}'
+_BODY_SKELETON_UPDATE_VOICE_PORTAL = '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("update-voice-portal")
+@app.command("update-voice-portal", short_help="Update VoicePortal.")
 def update_voice_portal(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="Voice Portal Name."),
     language_code: str = typer.Option(None, "--language-code", help="Language code for voicemail group audio announcement."),
     extension: str = typer.Option(None, "--extension", help="Extension of incoming call."),
@@ -120,7 +120,7 @@ def update_voice_portal(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update VoicePortal\n\nExample --json-body:\n  '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."}}'."""
+    """Update VoicePortal.\n\n\b\nExample: wxcli location-voicemail update-voice-portal LOCATION_ID\n\n\b\nExample --json-body: '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICE_PORTAL), indent=2))
         raise typer.Exit(0)
@@ -163,14 +163,14 @@ def update_voice_portal(
 
 
 
-@app.command("show-passcode-rules")
+@app.command("show-passcode-rules", short_help="Get VoicePortal Passcode Rule.")
 def show_passcode_rules(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get VoicePortal Passcode Rule."""
+    """Get VoicePortal Passcode Rule.\n\n\b\nExample: wxcli location-voicemail show-passcode-rules LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicePortal/passcodeRules"
     params = {}
@@ -187,7 +187,7 @@ def show_passcode_rules(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List VoicemailGroup.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Location to which the voicemail group belongs."),
     name: str = typer.Option(None, "--name", help="Search (Contains) based on voicemail group name"),
@@ -196,6 +196,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List VoicemailGroup."""
@@ -217,7 +218,10 @@ def cmd_list(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="voicemailGroups"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -228,15 +232,15 @@ def cmd_list(
 
 
 
-@app.command("show-voicemail-groups")
+@app.command("show-voicemail-groups", short_help="Get Location Voicemail Group.")
 def show_voicemail_groups(
-    location_id: str = typer.Argument(help="locationId"),
-    voicemail_group_id: str = typer.Argument(help="voicemailGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    voicemail_group_id: str = typer.Argument(help="Webex VOICEMAIL_GROUP id, from: wxcli location-voicemail list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Location Voicemail Group."""
+    """Get Location Voicemail Group.\n\n\b\nExample: wxcli location-voicemail show-voicemail-groups LOCATION_ID VOICEMAIL_GROUP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemailGroups/{voicemail_group_id}"
     params = {}
@@ -253,12 +257,12 @@ def show_voicemail_groups(
 
 
 
-_BODY_SKELETON_UPDATE_VOICEMAIL_GROUPS = '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"..."}'
+_BODY_SKELETON_UPDATE_VOICEMAIL_GROUPS = '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"...","greeting":"DEFAULT","greetingDescription":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("update-voicemail-groups")
+@app.command("update-voicemail-groups", short_help="Modify Location Voicemail Group.")
 def update_voicemail_groups(
-    location_id: str = typer.Argument(help="locationId"),
-    voicemail_group_id: str = typer.Argument(help="voicemailGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    voicemail_group_id: str = typer.Argument(help="Webex VOICEMAIL_GROUP id, from: wxcli location-voicemail list"),
     name: str = typer.Option(None, "--name", help="Set the name of the voicemail group."),
     phone_number: str = typer.Option(None, "--phone-number", help="Set voicemail group phone number."),
     extension: str = typer.Option(None, "--extension", help="Set unique voicemail group extension number."),
@@ -276,7 +280,7 @@ def update_voicemail_groups(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Location Voicemail Group\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"..."}'."""
+    """Modify Location Voicemail Group.\n\n\b\nExample: wxcli location-voicemail update-voicemail-groups LOCATION_ID VOICEMAIL_GROUP_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"...","greeting":"DEFAULT","greetingDescription":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICEMAIL_GROUPS), indent=2))
         raise typer.Exit(0)
@@ -327,19 +331,19 @@ def update_voicemail_groups(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Voicemail Group for a Location.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    voicemail_group_id: str = typer.Argument(help="voicemailGroupId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    voicemail_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli location-voicemail list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Voicemail Group for a Location."""
+    """Delete a Voicemail Group for a Location.\n\n\b\nExample: wxcli location-voicemail delete LOCATION_ID VOICEMAIL_GROUP_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {voicemail_group_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemailGroups/{voicemail_group_id}"
     params = {}
     org_id = get_org_id()
@@ -360,11 +364,11 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."}}'
+_BODY_SKELETON_CREATE = '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"phoneNumber":"...","firstName":"...","lastName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Voicemail Group for a Location.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) Set name to create new voicemail group for a particular location for a customer."),
     phone_number: str = typer.Option(None, "--phone-number", help="Set voicemail group phone number for this particular location."),
     extension: str = typer.Option(None, "--extension", help="(required) Set unique voicemail group extension number for this particular location."),
@@ -379,7 +383,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Voicemail Group for a Location\n\nExample --json-body:\n  '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."}}'."""
+    """Create a new Voicemail Group for a Location.\n\n\b\nExample: wxcli location-voicemail create LOCATION_ID --json-body '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL"},"notifications":{"enabled":true},"faxMessage":{"enabled":true},"transferToNumber":{"enabled":true},"emailCopyOfMessage":{"enabled":true}}'\n\n\b\nExample --json-body: '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"phoneNumber":"...","firstName":"...","lastName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -431,17 +435,18 @@ def create(
 
 
 
-@app.command("list-available-numbers-fax-message")
+@app.command("list-available-numbers-fax-message", short_help="Get Voicemail Group Fax Message Available Phone Numbers.")
 def list_available_numbers_fax_message(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Voicemail Group Fax Message Available Phone Numbers."""
+    """Get Voicemail Group Fax Message Available Phone Numbers.\n\n\b\nExample: wxcli location-voicemail list-available-numbers-fax-message LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemailGroups/faxMessage/availableNumbers"
     params = {}
@@ -456,7 +461,10 @@ def list_available_numbers_fax_message(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -467,17 +475,18 @@ def list_available_numbers_fax_message(
 
 
 
-@app.command("list-available-numbers-voicemail-groups")
+@app.command("list-available-numbers-voicemail-groups", short_help="Get Voicemail Group Available Phone Numbers.")
 def list_available_numbers_voicemail_groups(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Voicemail Group Available Phone Numbers."""
+    """Get Voicemail Group Available Phone Numbers.\n\n\b\nExample: wxcli location-voicemail list-available-numbers-voicemail-groups LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicemailGroups/availableNumbers"
     params = {}
@@ -492,7 +501,10 @@ def list_available_numbers_voicemail_groups(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -503,17 +515,18 @@ def list_available_numbers_voicemail_groups(
 
 
 
-@app.command("list-available-numbers-voice-portal")
+@app.command("list-available-numbers-voice-portal", short_help="Get VoicePortal Available Phone Numbers.")
 def list_available_numbers_voice_portal(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get VoicePortal Available Phone Numbers."""
+    """Get VoicePortal Available Phone Numbers.\n\n\b\nExample: wxcli location-voicemail list-available-numbers-voice-portal LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/voicePortal/availableNumbers"
     params = {}
@@ -528,7 +541,10 @@ def list_available_numbers_voice_portal(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

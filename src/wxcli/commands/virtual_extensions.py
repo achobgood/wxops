@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling virtual-extensions.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Virtual Extensions.")
 def cmd_list(
     order: str = typer.Option(None, "--order", help="Order the list of virtual extensions in ascending or descending order. Default is ascending."),
     extension: str = typer.Option(None, "--extension", help="Filter the list of virtual extensions by extension number."),
@@ -24,6 +24,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Virtual Extensions."""
@@ -53,7 +54,10 @@ def cmd_list(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="virtualExtensions"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -66,7 +70,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"displayName":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","locationId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Virtual Extension.")
 def create(
     first_name: str = typer.Option(None, "--first-name", help="First name of the person at the virtual extension."),
     last_name: str = typer.Option(None, "--last-name", help="Last name of the person at the virtual extension."),
@@ -80,7 +84,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Virtual Extension\n\nExample --json-body:\n  '{"displayName":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","locationId":"..."}'."""
+    """Create a Virtual Extension.\n\n\b\nExample: wxcli virtual-extensions create --display-name DISPLAY_NAME --phone-number PHONE_NUMBER --extension EXTENSION\n\n\b\nExample --json-body: '{"displayName":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","locationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -128,14 +132,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get a Virtual Extension.")
 def show(
-    extension_id: str = typer.Argument(help="extensionId"),
+    extension_id: str = typer.Argument(help="Webex VIRTUAL_EXTENSION id, from: wxcli virtual-extensions list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a Virtual Extension."""
+    """Get a Virtual Extension.\n\n\b\nExample: wxcli virtual-extensions show EXTENSION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualExtensions/{extension_id}"
     params = {}
@@ -154,9 +158,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"firstName":"...","lastName":"...","displayName":"...","phoneNumber":"...","extension":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Virtual Extension.")
 def update(
-    extension_id: str = typer.Argument(help="extensionId"),
+    extension_id: str = typer.Argument(help="Webex VIRTUAL_EXTENSION id, from: wxcli virtual-extensions list"),
     first_name: str = typer.Option(None, "--first-name", help="First name of the person at the virtual extension."),
     last_name: str = typer.Option(None, "--last-name", help="Last name of the person at the virtual extension."),
     display_name: str = typer.Option(None, "--display-name", help="Display name of the person at the virtual extension."),
@@ -168,7 +172,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Virtual Extension\n\nExample --json-body:\n  '{"firstName":"...","lastName":"...","displayName":"...","phoneNumber":"...","extension":"..."}'."""
+    """Update a Virtual Extension.\n\n\b\nExample: wxcli virtual-extensions update EXTENSION_ID\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","displayName":"...","phoneNumber":"...","extension":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -207,18 +211,18 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Virtual Extension.")
 def delete(
-    extension_id: str = typer.Argument(help="extensionId"),
+    extension_id: str = typer.Argument(help="Webex VIRTUAL_EXTENSION id, from: wxcli virtual-extensions list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Virtual Extension."""
+    """Delete a Virtual Extension.\n\n\b\nExample: wxcli virtual-extensions delete EXTENSION_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {extension_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualExtensions/{extension_id}"
     params = {}
     org_id = get_org_id()
@@ -239,7 +243,7 @@ def delete(
 
 
 
-@app.command("show-settings")
+@app.command("show-settings", short_help="Get Virtual extension settings.")
 def show_settings(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -264,7 +268,7 @@ def show_settings(
 
 _BODY_SKELETON_UPDATE_SETTINGS = '{"mode":"STANDARD"}'
 
-@app.command("update-settings")
+@app.command("update-settings", short_help="Modify Virtual Extension Settings.")
 def update_settings(
     mode: str = typer.Option(None, "--mode", help="Choices: STANDARD"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -273,7 +277,7 @@ def update_settings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Virtual Extension Settings\n\nExample --json-body:\n  '{"mode":"STANDARD"}'."""
+    """Modify Virtual Extension Settings.\n\n\b\nExample: wxcli virtual-extensions update-settings --mode STANDARD\n\n\b\nExample --json-body: '{"mode":"STANDARD"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS), indent=2))
         raise typer.Exit(0)
@@ -306,7 +310,7 @@ def update_settings(
 
 _BODY_SKELETON_VALIDATE_AN_EXTERNAL = '{"phoneNumbers":["..."]}'
 
-@app.command("validate-an-external")
+@app.command("validate-an-external", short_help="Validate an external phone number.")
 def validate_an_external(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -314,7 +318,7 @@ def validate_an_external(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate an external phone number\n\nExample --json-body:\n  '{"phoneNumbers":["..."]}'."""
+    """Validate an external phone number.\n\n\b\nExample: wxcli virtual-extensions validate-an-external --json-body '{"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_AN_EXTERNAL), indent=2))
         raise typer.Exit(0)
@@ -338,7 +342,7 @@ def validate_an_external(
 
 
 
-@app.command("list-virtual-extension-ranges")
+@app.command("list-virtual-extension-ranges", short_help="Get a list of a Virtual Extension Range.")
 def list_virtual_extension_ranges(
     order: str = typer.Option(None, "--order", help="Sort the list of virtual extension ranges by name or prefix, either ASC or DSC. Default sort order is ASC."),
     name: str = typer.Option(None, "--name", help="Filter the list of virtual extension ranges by name."),
@@ -349,6 +353,7 @@ def list_virtual_extension_ranges(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a list of a Virtual Extension Range."""
@@ -374,7 +379,10 @@ def list_virtual_extension_ranges(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="virtualExtensionRanges"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -387,7 +395,7 @@ def list_virtual_extension_ranges(
 
 _BODY_SKELETON_CREATE_VIRTUAL_EXTENSION_RANGES = '{"name":"...","prefix":"...","patterns":["..."],"locationId":"..."}'
 
-@app.command("create-virtual-extension-ranges")
+@app.command("create-virtual-extension-ranges", short_help="Create a Virtual Extension Range.")
 def create_virtual_extension_ranges(
     name: str = typer.Option(None, "--name", help="(required) Name of the virtual extension range. This is a unique name for the virtual extension range."),
     prefix: str = typer.Option(None, "--prefix", help="(required) Prefix used for a virtual extension range. Prefix works in Standard and Enhanced modes. In Standard mode, it must be E.164 and unique. In Enhanced mode, it can be E.164 or non-E.164."),
@@ -398,7 +406,7 @@ def create_virtual_extension_ranges(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Virtual Extension Range\n\nExample --json-body:\n  '{"name":"...","prefix":"...","patterns":["..."],"locationId":"..."}'."""
+    """Create a Virtual Extension Range.\n\n\b\nExample: wxcli virtual-extensions create-virtual-extension-ranges --name NAME --prefix PREFIX\n\n\b\nExample --json-body: '{"name":"...","prefix":"...","patterns":["..."],"locationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_VIRTUAL_EXTENSION_RANGES), indent=2))
         raise typer.Exit(0)
@@ -440,14 +448,14 @@ def create_virtual_extension_ranges(
 
 
 
-@app.command("show-virtual-extension-ranges")
+@app.command("show-virtual-extension-ranges", short_help="Get details of a Virtual Extension Range.")
 def show_virtual_extension_ranges(
-    extension_range_id: str = typer.Argument(help="extensionRangeId"),
+    extension_range_id: str = typer.Argument(help="Webex VIRTUAL_EXTENSION id, from: wxcli virtual-extensions list-virtual-extension-ranges"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get details of a Virtual Extension Range."""
+    """Get details of a Virtual Extension Range.\n\n\b\nExample: wxcli virtual-extensions show-virtual-extension-ranges EXTENSION_RANGE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualExtensionRanges/{extension_range_id}"
     params = {}
@@ -466,9 +474,9 @@ def show_virtual_extension_ranges(
 
 _BODY_SKELETON_UPDATE_VIRTUAL_EXTENSION_RANGES = '{"name":"...","prefix":"...","patterns":["..."],"action":"ADD"}'
 
-@app.command("update-virtual-extension-ranges")
+@app.command("update-virtual-extension-ranges", short_help="Modify Virtual Extension Range.")
 def update_virtual_extension_ranges(
-    extension_range_id: str = typer.Argument(help="extensionRangeId"),
+    extension_range_id: str = typer.Argument(help="Webex VIRTUAL_EXTENSION id, from: wxcli virtual-extensions list-virtual-extension-ranges"),
     name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name for the virtual extension range."),
     prefix: str = typer.Option(None, "--prefix", help="Prefix used for a virtual extension range."),
     action: str = typer.Option(None, "--action", help="Choices: ADD, REMOVE, REPLACE"),
@@ -478,7 +486,7 @@ def update_virtual_extension_ranges(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Virtual Extension Range\n\nExample --json-body:\n  '{"name":"...","prefix":"...","patterns":["..."],"action":"ADD"}'."""
+    """Modify Virtual Extension Range.\n\n\b\nExample: wxcli virtual-extensions update-virtual-extension-ranges EXTENSION_RANGE_ID\n\n\b\nExample --json-body: '{"name":"...","prefix":"...","patterns":["..."],"action":"ADD"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VIRTUAL_EXTENSION_RANGES), indent=2))
         raise typer.Exit(0)
@@ -513,18 +521,18 @@ def update_virtual_extension_ranges(
 
 
 
-@app.command("delete-virtual-extension-ranges")
+@app.command("delete-virtual-extension-ranges", short_help="Delete a Virtual Extension Range.")
 def delete_virtual_extension_ranges(
-    extension_range_id: str = typer.Argument(help="extensionRangeId"),
+    extension_range_id: str = typer.Argument(help="Webex VIRTUAL_EXTENSION id, from: wxcli virtual-extensions list-virtual-extension-ranges"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Virtual Extension Range."""
+    """Delete a Virtual Extension Range.\n\n\b\nExample: wxcli virtual-extensions delete-virtual-extension-ranges EXTENSION_RANGE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {extension_range_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualExtensionRanges/{extension_range_id}"
     params = {}
     org_id = get_org_id()
@@ -547,7 +555,7 @@ def delete_virtual_extension_ranges(
 
 _BODY_SKELETON_VALIDATE_THE_PREFIX = '{"locationId":"...","name":"...","prefix":"...","patterns":["..."],"rangeId":"..."}'
 
-@app.command("validate-the-prefix")
+@app.command("validate-the-prefix", short_help="Validate the prefix and extension pattern for a Virtual Extension Range.")
 def validate_the_prefix(
     location_id: str = typer.Option(None, "--location-id", help="ID of the location to which the virtual extension range is assigned. The location ID is a unique identifier for the location in Webex Calling."),
     name: str = typer.Option(None, "--name", help="Name of the virtual extension range. This is a unique name for the virtual extension range."),
@@ -559,7 +567,7 @@ def validate_the_prefix(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate the prefix and extension pattern for a Virtual Extension Range\n\nExample --json-body:\n  '{"locationId":"...","name":"...","prefix":"...","patterns":["..."],"rangeId":"..."}'."""
+    """Validate the prefix and extension pattern for a Virtual Extension Range.\n\n\b\nExample --json-body: '{"locationId":"...","name":"...","prefix":"...","patterns":["..."],"rangeId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_THE_PREFIX), indent=2))
         raise typer.Exit(0)

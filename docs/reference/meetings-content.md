@@ -74,8 +74,8 @@ Transcripts provide speech-to-text content for ended meetings. Each transcript i
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
-| List (compliance) | `wxcli meeting-transcripts list` | GET /admin/meetingTranscripts | List transcripts org-wide (compliance officer) |
-| List (user) | `wxcli meeting-transcripts list-meeting-transcripts` | GET /meetingTranscripts | List transcripts for the authenticated user's meetings |
+| List (compliance) | `wxcli meeting-transcripts list-meeting-transcripts` | GET /admin/meetingTranscripts | List transcripts org-wide (compliance officer) |
+| List (user) | `wxcli meeting-transcripts list` | GET /meetingTranscripts | List transcripts for the authenticated user's meetings |
 | Download | `wxcli meeting-transcripts list-download TRANSCRIPT_ID` | GET /meetingTranscripts/{transcriptId}/download | Download transcript as VTT or TXT |
 | List snippets | `wxcli meeting-transcripts list-snippets TRANSCRIPT_ID` | GET /meetingTranscripts/{transcriptId}/snippets | List speaker segments in a transcript |
 | Show snippet | `wxcli meeting-transcripts show TRANSCRIPT_ID SNIPPET_ID` | GET /meetingTranscripts/{transcriptId}/snippets/{snippetId} | Get a single snippet's details |
@@ -84,7 +84,7 @@ Transcripts provide speech-to-text content for ended meetings. Each transcript i
 
 ### Key Parameters
 
-#### `meeting-transcripts list` (compliance)
+#### `meeting-transcripts list-meeting-transcripts` (compliance)
 
 | Option | Description |
 |--------|-------------|
@@ -93,7 +93,7 @@ Transcripts provide speech-to-text content for ended meetings. Each transcript i
 | `--max N` | Page size (1-100) |
 | `--site-url URL` | Webex site URL to scope the query |
 
-#### `meeting-transcripts list-meeting-transcripts` (user)
+#### `meeting-transcripts list` (user)
 
 | Option | Description |
 |--------|-------------|
@@ -356,19 +356,19 @@ AI-generated meeting summaries produced by the Webex AI Assistant. Two list endp
 
 | Command | CLI | HTTP Method | What It Does |
 |---------|-----|------------|-------------|
-| List (compliance) | `wxcli meeting-summaries list` | GET /admin/meetingSummaries | Get summary org-wide (compliance officer) |
-| List (user) | `wxcli meeting-summaries list-meeting-summaries` | GET /meetingSummaries | Get summary by meeting ID |
+| List (compliance) | `wxcli meeting-summaries list-meeting-summaries` | GET /admin/meetingSummaries | Get summary org-wide (compliance officer) |
+| List (user) | `wxcli meeting-summaries list` | GET /meetingSummaries | Get summary by meeting ID |
 | Delete | `wxcli meeting-summaries delete SUMMARY_ID` | DELETE /meetingSummaries/{summaryId} | Delete a summary |
 
 ### Key Parameters
 
-#### `meeting-summaries list` (compliance)
+#### `meeting-summaries list-meeting-summaries` (compliance)
 
 | Option | Description |
 |--------|-------------|
 | `--meeting-id ID` | Meeting instance ID (required — query is rejected without it) |
 
-#### `meeting-summaries list-meeting-summaries` (user)
+#### `meeting-summaries list` (user)
 
 | Option | Description |
 |--------|-------------|
@@ -421,8 +421,8 @@ All 16 endpoints covered by the 5 CLI groups in this doc.
 
 | Method | Path | CLI Group | CLI Command | Token |
 |--------|------|-----------|-------------|-------|
-| GET | /admin/meetingTranscripts | meeting-transcripts | `list` | Admin |
-| GET | /meetingTranscripts | meeting-transcripts | `list-meeting-transcripts` | User |
+| GET | /admin/meetingTranscripts | meeting-transcripts | `list-meeting-transcripts` | Admin |
+| GET | /meetingTranscripts | meeting-transcripts | `list` | User |
 | GET | /meetingTranscripts/{transcriptId}/download | meeting-transcripts | `list-download` | User/Admin |
 | GET | /meetingTranscripts/{transcriptId}/snippets | meeting-transcripts | `list-snippets` | User/Admin |
 | GET | /meetingTranscripts/{transcriptId}/snippets/{snippetId} | meeting-transcripts | `show` | User/Admin |
@@ -434,8 +434,8 @@ All 16 endpoints covered by the 5 CLI groups in this doc.
 | GET | /meetings/postMeetingChats | meeting-chats | `list` | User |
 | DELETE | /meetings/postMeetingChats | meeting-chats | `delete` | User/Admin |
 | DELETE | /meeting/messages/{meetingMessageId} | meeting-messages | `delete` | Admin |
-| GET | /admin/meetingSummaries | meeting-summaries | `list` | Admin |
-| GET | /meetingSummaries | meeting-summaries | `list-meeting-summaries` | User |
+| GET | /admin/meetingSummaries | meeting-summaries | `list-meeting-summaries` | Admin |
+| GET | /meetingSummaries | meeting-summaries | `list` | User |
 | DELETE | /meetingSummaries/{summaryId} | meeting-summaries | `delete` | User/Admin |
 
 ---

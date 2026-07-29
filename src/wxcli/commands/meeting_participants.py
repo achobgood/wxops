@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Meetings meeting-participants.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Meeting Participants.")
 def cmd_list(
     meeting_id: str = typer.Option(..., "--meeting-id", help="The unique identifier for the meeting. Please note that currently meeting ID of a scheduled [personal room](https://help.webex.com/en-us/article/nul0wut/Webex-Personal-Rooms-in-Webex-Meetings) meeting is not supported for this API."),
     breakout_session_id: str = typer.Option(None, "--breakout-session-id", help="The unique identifier for a breakout session which happened during an ended meeting instance. If the `breakoutSessionId` is specified, the operation returns participants who joined the breakout session. Only applies to ended meeting instances."),
@@ -23,9 +23,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Meeting Participants."""
+    """List Meeting Participants.\n\n\b\nExample: wxcli meeting-participants list --meeting-id MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingParticipants"
     params = {}
@@ -49,7 +50,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -62,7 +66,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"emails":["..."],"joinTimeFrom":"...","joinTimeTo":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Query Meeting Participants with Email.")
 def create(
     meeting_id: str = typer.Option(..., "--meeting-id", help="The unique identifier for the meeting."),
     meeting_start_time_from: str = typer.Option(None, "--meeting-start-time-from", help="Meetings start from the specified date and time(exclusive) in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. If `meetingStartTimeFrom` is not specified, it equals `meetingStartTimeTo` minus 1 month; if `meetingStartTimeTo` is also not specified, the default value for..."),
@@ -76,7 +80,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Meeting Participants with Email\n\nExample --json-body:\n  '{"emails":["..."],"joinTimeFrom":"...","joinTimeTo":"..."}'."""
+    """Query Meeting Participants with Email.\n\n\b\nExample: wxcli meeting-participants create --meeting-id MEETING_ID\n\n\b\nExample --json-body: '{"emails":["..."],"joinTimeFrom":"...","joinTimeTo":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -117,15 +121,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Meeting Participant Details.")
 def show(
-    participant_id: str = typer.Argument(help="participantId"),
+    participant_id: str = typer.Argument(help="from: wxcli meeting-participants list"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes, the admin may specify the email of a user in a site they manage and the API will return meeting participants of the meetings that are hosted by that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Meeting Participant Details."""
+    """Get Meeting Participant Details.\n\n\b\nExample: wxcli meeting-participants show PARTICIPANT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingParticipants/{participant_id}"
     params = {}
@@ -143,9 +147,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"muted":true,"admit":true,"expel":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Participant.")
 def update(
-    participant_id: str = typer.Argument(help="participantId"),
+    participant_id: str = typer.Argument(help="from: wxcli meeting-participants list"),
     muted: bool = typer.Option(None, "--muted/--no-muted", help="If `true`, participant is muted."),
     admit: bool = typer.Option(None, "--admit/--no-admit", help="If `true` the participant admit a participant in the lobby to the meeting. Has no effect if the participant is not in the lobby or when the value is set to `false`."),
     expel: bool = typer.Option(None, "--expel/--no-expel", help="If `true` the participant is expelled from the meeting."),
@@ -155,7 +159,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Participant\n\nExample --json-body:\n  '{"muted":true,"admit":true,"expel":true}'."""
+    """Update a Participant.\n\n\b\nExample: wxcli meeting-participants update PARTICIPANT_ID\n\n\b\nExample --json-body: '{"muted":true,"admit":true,"expel":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -188,7 +192,7 @@ def update(
 
 _BODY_SKELETON_CREATE_ADMIT = '{"items":[{"participantId":"...","breakoutSessionId":"..."}]}'
 
-@app.command("create-admit")
+@app.command("create-admit", short_help="Admit Participants.")
 def create_admit(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -196,7 +200,7 @@ def create_admit(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Admit Participants\n\nExample --json-body:\n  '{"items":[{"participantId":"...","breakoutSessionId":"..."}]}'."""
+    """Admit Participants.\n\n\b\nExample --json-body: '{"items":[{"participantId":"...","breakoutSessionId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ADMIT), indent=2))
         raise typer.Exit(0)
@@ -226,7 +230,7 @@ def create_admit(
 
 _BODY_SKELETON_CREATE_CALLOUT = '{"address":"...","displayName":"...","meetingId":"...","meetingNumber":"...","addressType":"sipAddress","invitationCorrelationId":"..."}'
 
-@app.command("create-callout")
+@app.command("create-callout", short_help="Call Out a SIP Participant.")
 def create_callout(
     meeting_id: str = typer.Option(None, "--meeting-id", help="Unique identifier of the meeting to which the SIP participant is to be called out. Either `meetingId` or `meetingNumber` must be specified."),
     meeting_number: str = typer.Option(None, "--meeting-number", help="Number of the meeting to which the SIP participant is to be called out. Either `meetingId` or `meetingNumber` must be specified."),
@@ -240,7 +244,7 @@ def create_callout(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Call Out a SIP Participant\n\nExample --json-body:\n  '{"address":"...","displayName":"...","meetingId":"...","meetingNumber":"...","addressType":"sipAddress","invitationCorrelationId":"..."}'."""
+    """Call Out a SIP Participant.\n\n\b\nExample: wxcli meeting-participants create-callout --address ADDRESS --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"address":"...","displayName":"...","meetingId":"...","meetingNumber":"...","addressType":"sipAddress","invitationCorrelationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CALLOUT), indent=2))
         raise typer.Exit(0)
@@ -286,7 +290,7 @@ def create_callout(
 
 _BODY_SKELETON_CREATE_CANCEL_CALLOUT = '{"participantId":"..."}'
 
-@app.command("create-cancel-callout")
+@app.command("create-cancel-callout", short_help="Cancel Calling Out a SIP Participant.")
 def create_cancel_callout(
     participant_id: str = typer.Option(None, "--participant-id", help="(required) ID of the SIP participant on whom the callout is to be cancelled. It can be retrieved from the response of the \"Call Out a SIP Participant\" API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -295,7 +299,7 @@ def create_cancel_callout(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Cancel Calling Out a SIP Participant\n\nExample --json-body:\n  '{"participantId":"..."}'."""
+    """Cancel Calling Out a SIP Participant.\n\n\b\nExample: wxcli meeting-participants create-cancel-callout --participant-id PARTICIPANT_ID\n\n\b\nExample --json-body: '{"participantId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CANCEL_CALLOUT), indent=2))
         raise typer.Exit(0)

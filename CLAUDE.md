@@ -37,6 +37,15 @@ are hand-written and drift as the CLI regenerates. When a recipe and `--help` di
 warning. Before trusting a read, confirm via `--help` that the command was actually
 capable of returning the field you are about to draw a conclusion from.
 
+**`--help` outranks docs on command names, flags and requiredness — but NOT on two
+things, both measured.** (1) **Argument ID kinds:** 79 arguments declare a kind their own
+name contradicts — `location_id` help-typed "Webex PEOPLE id", `call_queue_id` typed
+HUNT_GROUP. Where help and the doc disagree on an ID *kind*, the doc is right.
+(2) **Enum choices:** proven
+both ways — `--event all` works though the enum omits it, and `announcements
+--location-id` advertises a sample ID that exits 1. On these two, a live call settles it,
+not a re-read of `--help`.
+
 ## Discovery-First Rule
 
 Applies to ALL work — reads, queries, and builds — not just execution. When checking
@@ -143,10 +152,10 @@ Always inline resource IDs directly as arguments. Never use multi-line shell var
 ```bash
 # WRONG — multi-line breaks permission prefix matching
 HQ="Y2lz..."
-wxcli dect-devices show "$HQ"
+wxcli dect-devices show "$HQ" "Y2xz..."
 
 # RIGHT — inline the ID
-wxcli dect-devices show "Y2lz..."
+wxcli dect-devices show "Y2lz..." "Y2xz..."
 ```
 
 **Why:** Permission rules use prefix matching. A variable assignment line before `wxcli` means the command string doesn't start with `wxcli`, so it won't match `Bash(wxcli:*)` permission patterns, triggering unnecessary prompts.

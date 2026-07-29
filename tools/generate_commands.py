@@ -27,6 +27,16 @@ KNOWN_GLOBAL_KEYS = {
     "omit_query_params", "skip_tags", "tag_merge", "cli_name_overrides",
     "auto_inject_from_config", "tag_overrides", "tag_op_excludes",
     "verb_semantics_ack", "_resolved_cli_name_overrides",
+    # Consumed by tools/drift_check.py (check 9), not by the generator — but it
+    # must still be declared here. An unregistered top-level key falls through
+    # to the backwards-compat branch below and is treated as a TAG override
+    # block, so "spec_authority" would silently become a tag named
+    # "spec_authority". test_field_overrides.py::test_all_keys_recognized is
+    # what catches that, and it is why this set exists.
+    "spec_authority",
+    # Consumed by tools/drift_check.py (check 12) via tools/verb_naming.py:
+    # the acknowledged numeric-suffix and resource-mismatch command names.
+    "naming_ack",
 }
 
 
@@ -252,6 +262,39 @@ def generate_tag(
     for ep in endpoints:
         apply_endpoint_overrides(ep, folder_ovr)
 
+    # A rename keeps its old name as a hidden alias — but ONLY if nothing else
+    # in this tag now answers to that name. `command_name_overrides` is
+    # sometimes a SWAP, not a rename: `Features:  Call Queue` moves
+    # show -> show-org-settings AND show-queues -> show, deliberately handing
+    # the bare name to the per-queue command (2026-06 pinning). Aliasing the
+    # old `show` there would re-register a second `show` on the same Typer app
+    # and shadow the command the swap exists to protect — caught live when
+    # check 6 started failing on `call-queue show --has-cx-essentials`.
+    claimed = {ep.command_name for ep in endpoints}
+    for ep in endpoints:
+        original = getattr(ep, "original_command_name", None)
+        if original and original in claimed:
+            ep.original_command_name = None
+
+    # A command_name_overrides key that matches no command is INERT, and inert
+    # is indistinguishable from applied unless something says so. Three of the
+    # 26 Wave 3 renames were keyed on a pre-merge tag name ("Journey - Customer
+    # Identification API" is folded into "CC Journey" by tag_merge before
+    # overrides resolve) and were silently ignored — regen succeeded, the gate
+    # passed, and the commands simply kept their old names. Fail loudly instead.
+    renamed = {getattr(ep, "original_command_name", None) for ep in endpoints}
+    stale = [k for k in (folder_ovr or {}).get("command_name_overrides", {})
+             if k not in renamed and k not in claimed]
+    if stale:
+        print(
+            f"\nERROR: command_name_overrides in tag {tag_name!r} names "
+            f"{len(stale)} command(s) that do not exist here: "
+            f"{', '.join(sorted(stale))}.\n"
+            f"       Rendered commands: {', '.join(sorted(claimed))}\n"
+            f"       If this tag is merged by tag_merge, key the override on "
+            f"the MERGED name.", file=sys.stderr)
+        sys.exit(1)
+
     # Known issue #20: refuse to render a destructive op behind a name that
     # gives no hint it destroys. Runs after command_name_overrides, so a name
     # pinned to the truth clears the gate without an ack.
@@ -374,7 +417,28 @@ def main():
             spec_tag_ovr[tag_name] = merged
     for tag_name, tag_ovr in spec_tag_ovr.items():
         overrides[f"_tag_ovr:{tag_name}"] = tag_ovr
-    # Backwards compat: top-level tag blocks that aren't in tag_overrides
+    # Backwards compat: top-level tag blocks that aren't in tag_overrides.
+    #
+    # KNOWN GAP, measured 2026-07-29 — do not "fix" this by merging without
+    # reading on. When tag_overrides also names the tag, the whole top-level
+    # block is discarded silently. Six blocks are inert that way today:
+    # table_columns on 4 tags, add_query_params on `Features:  Call Queue`, and
+    # two old-style `list:` blocks. Each was written deliberately and none has
+    # ever taken effect.
+    #
+    # Merging them was tried and REVERTED. It regenerates cleanly with zero
+    # command-name changes, and then check 9 goes 0 -> 15: `Features:  Call
+    # Queue`'s old-style folder-level `list:` block applies its four columns to
+    # every list-shaped command in the tag, so 15 call-queue commands would
+    # declare columns their responses cannot fill. That is root cause #2 in
+    # tools/CLAUDE.md's table-columns entry, and the shadowing has been
+    # accidentally shielding the tree from it.
+    #
+    # The real fix is per block, not per mechanism: migrate the two `list:`
+    # blocks to per-command `table_columns`, re-verify the other four against
+    # their live response schemas, THEN make this merge. Until then the shadowed
+    # keys stay inert — but they are now inert on the record instead of by
+    # accident. Put anything that must apply into tag_overrides directly.
     for key, val in list(overrides.items()):
         if key in KNOWN_GLOBAL_KEYS or key.startswith("_"):
             continue

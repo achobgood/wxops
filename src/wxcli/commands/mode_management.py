@@ -10,12 +10,13 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling mode-management.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Mode Management Features.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Mode Management Features."""
@@ -39,16 +40,17 @@ def cmd_list(
 
 
 
-@app.command("list-common-modes")
+@app.command("list-common-modes", short_help="Get Common Modes.")
 def list_common_modes(
     feature_ids: str = typer.Option(..., "--feature-ids", help="List of feature IDs (comma-separated) for auto attendants, call queues, or hunt groups"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Common Modes."""
+    """Get Common Modes.\n\n\b\nExample: wxcli mode-management list-common-modes --feature-ids FEATURE_IDS"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/commonModes"
     params = {}
@@ -73,7 +75,7 @@ def list_common_modes(
 
 _BODY_SKELETON_SWITCH_MODE_FOR_INVOKE = '{"featureIds":["..."],"operatingModeName":"..."}'
 
-@app.command("switch-mode-for-invoke")
+@app.command("switch-mode-for-invoke", short_help="Switch Mode for Multiple Features.")
 def switch_mode_for_invoke(
     operating_mode_name: str = typer.Option(None, "--operating-mode-name", help="Name of the common operating mode to be set as current operating mode"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -82,7 +84,7 @@ def switch_mode_for_invoke(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Switch Mode for Multiple Features\n\nExample --json-body:\n  '{"featureIds":["..."],"operatingModeName":"..."}'."""
+    """Switch Mode for Multiple Features.\n\n\b\nExample: wxcli mode-management switch-mode-for-invoke --json-body '{"featureIds":["..."],"operatingModeName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_SWITCH_MODE_FOR_INVOKE), indent=2))
         raise typer.Exit(0)
@@ -104,14 +106,14 @@ def switch_mode_for_invoke(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Mode Management Feature.")
 def show(
-    feature_id: str = typer.Argument(help="featureId"),
+    feature_id: str = typer.Argument(help="Webex FEATURE id, from: wxcli mode-management list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Mode Management Feature."""
+    """Get Mode Management Feature.\n\n\b\nExample: wxcli mode-management show FEATURE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/{feature_id}"
     try:
@@ -124,14 +126,14 @@ def show(
 
 
 
-@app.command("show-normal-operation-mode")
+@app.command("show-normal-operation-mode", short_help="Get Normal Operation Mode.")
 def show_normal_operation_mode(
-    feature_id: str = typer.Argument(help="featureId"),
+    feature_id: str = typer.Argument(help="Webex FEATURE id, from: wxcli mode-management list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Normal Operation Mode."""
+    """Get Normal Operation Mode.\n\n\b\nExample: wxcli mode-management show-normal-operation-mode FEATURE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/{feature_id}/normalOperationMode"
     try:
@@ -144,15 +146,15 @@ def show_normal_operation_mode(
 
 
 
-@app.command("show-modes")
+@app.command("show-modes", short_help="Get Operating Mode.")
 def show_modes(
-    feature_id: str = typer.Argument(help="featureId"),
-    mode_id: str = typer.Argument(help="modeId"),
+    feature_id: str = typer.Argument(help="Webex FEATURE id, from: wxcli mode-management list"),
+    mode_id: str = typer.Argument(help="Webex OPERATING_MODE id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Operating Mode."""
+    """Get Operating Mode.\n\n\b\nExample: wxcli mode-management show-modes FEATURE_ID MODE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/{feature_id}/modes/{mode_id}"
     try:
@@ -165,15 +167,15 @@ def show_modes(
 
 
 
-@app.command("switch-to-normal")
+@app.command("switch-to-normal", short_help="Switch to Normal Operation.")
 def switch_to_normal(
-    feature_id: str = typer.Argument(help="featureId"),
+    feature_id: str = typer.Argument(help="Webex FEATURE id, from: wxcli mode-management list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Switch to Normal Operation."""
+    """Switch to Normal Operation.\n\n\b\nExample: wxcli mode-management switch-to-normal FEATURE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement/features/{feature_id}/actions/switchToNormalOperation/invoke"
     if json_body:
@@ -192,9 +194,9 @@ def switch_to_normal(
 
 _BODY_SKELETON_SWITCH_MODE_FOR_INVOKE_1 = '{"operatingModeId":"...","isManualSwitchbackEnabled":true}'
 
-@app.command("switch-mode-for-invoke-1")
+@app.command("switch-mode-for-invoke-1", short_help="Switch Mode for Single Feature.")
 def switch_mode_for_invoke_1(
-    feature_id: str = typer.Argument(help="featureId"),
+    feature_id: str = typer.Argument(help="Webex FEATURE id, from: wxcli mode-management list"),
     operating_mode_id: str = typer.Option(None, "--operating-mode-id", help="Operating mode ID to switch to"),
     is_manual_switchback_enabled: str = typer.Option(None, "--is-manual-switchback-enabled", help="Determines if switch back will be manual (if true) or automatic (if false or omitted from request)"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -203,7 +205,7 @@ def switch_mode_for_invoke_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Switch Mode for Single Feature\n\nExample --json-body:\n  '{"operatingModeId":"...","isManualSwitchbackEnabled":true}'."""
+    """Switch Mode for Single Feature.\n\n\b\nExample: wxcli mode-management switch-mode-for-invoke-1 FEATURE_ID --operating-mode-id OPERATING_MODE_ID\n\n\b\nExample --json-body: '{"operatingModeId":"...","isManualSwitchbackEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_SWITCH_MODE_FOR_INVOKE_1), indent=2))
         raise typer.Exit(0)
@@ -229,9 +231,9 @@ def switch_mode_for_invoke_1(
 
 _BODY_SKELETON_EXTEND_CURRENT_OPERATING = '{"operatingModeId":"...","extensionTime":0}'
 
-@app.command("extend-current-operating")
+@app.command("extend-current-operating", short_help="Extend Current Operating Mode Duration.")
 def extend_current_operating(
-    feature_id: str = typer.Argument(help="featureId"),
+    feature_id: str = typer.Argument(help="Webex FEATURE id, from: wxcli mode-management list"),
     operating_mode_id: str = typer.Option(None, "--operating-mode-id", help="Unique identifier for the operating mode for which the extension is being configured."),
     extension_time: str = typer.Option(None, "--extension-time", help="Extension time in minutes (must be multiple of 30). If not sent, mode is extended with manual switch back exception"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -240,7 +242,7 @@ def extend_current_operating(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Extend Current Operating Mode Duration\n\nExample --json-body:\n  '{"operatingModeId":"...","extensionTime":0}'."""
+    """Extend Current Operating Mode Duration.\n\n\b\nExample: wxcli mode-management extend-current-operating FEATURE_ID --operating-mode-id OPERATING_MODE_ID\n\n\b\nExample --json-body: '{"operatingModeId":"...","extensionTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_EXTEND_CURRENT_OPERATING), indent=2))
         raise typer.Exit(0)

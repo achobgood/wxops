@@ -10,16 +10,17 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling ecm.")
 
 
-@app.command("list")
+@app.command("list", short_help="List ECM folder.")
 def cmd_list(
     room_id: str = typer.Option(..., "--room-id", help="ID of the room for which to list the ECM folder."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List ECM folder."""
+    """List ECM folder.\n\n\b\nExample: wxcli ecm list --room-id ROOM_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/room/linkedFolders"
     params = {}
@@ -30,7 +31,7 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -48,7 +49,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create an ECM folder configuration.")
 def create(
     room_id: str = typer.Option(None, "--room-id", help="(required) A unique identifier for the room."),
     content_url: str = typer.Option(None, "--content-url", help="(required) URL of the ECM folder."),
@@ -62,7 +63,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an ECM folder configuration\n\nExample --json-body:\n  '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'."""
+    """Create an ECM folder configuration.\n\n\b\nExample: wxcli ecm create --room-id ROOM_ID --content-url CONTENT_URL --display-name DISPLAY_NAME --drive-id DRIVE_ID --item-id ITEM_ID --default-folder DEFAULT_FOLDER\n\n\b\nExample --json-body: '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -106,14 +107,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get ECM Folder Details.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex TABS id, from: wxcli ecm list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get ECM Folder Details."""
+    """Get ECM Folder Details.\n\n\b\nExample: wxcli ecm show ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
     try:
@@ -128,9 +129,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update an ECM Linked Folder.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex TABS id, from: wxcli ecm list"),
     room_id: str = typer.Option(None, "--room-id", help="ID of the room that contains the room tab in question."),
     content_url: str = typer.Option(None, "--content-url", help="Content URL of the folder."),
     display_name: str = typer.Option(None, "--display-name", help="This should match the folder name in the ECM backend."),
@@ -143,7 +144,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an ECM Linked Folder\n\nExample --json-body:\n  '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'."""
+    """Update an ECM Linked Folder.\n\n\b\nExample: wxcli ecm update ID --room-id ROOM_ID --content-url CONTENT_URL --display-name DISPLAY_NAME --drive-id DRIVE_ID --item-id ITEM_ID --default-folder DEFAULT_FOLDER\n\n\b\nExample --json-body: '{"roomId":"...","contentUrl":"...","displayName":"...","driveId":"...","itemId":"...","defaultFolder":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -180,18 +181,18 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Unlink an ECM linked folder.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="Webex TABS id, from: wxcli ecm list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unlink an ECM linked folder."""
+    """Unlink an ECM linked folder.\n\n\b\nExample: wxcli ecm delete ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/room/linkedFolders/{id}"
     try:
         result = api.session.rest_delete(url)

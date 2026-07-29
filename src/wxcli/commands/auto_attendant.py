@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling auto-attendant.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Auto Attendants.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Return the list of auto attendants for this location."),
     name: str = typer.Option(None, "--name", help="Only return auto attendants with the matching name."),
@@ -20,6 +20,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Auto Attendants."""
@@ -40,7 +41,7 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("autoAttendants", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -54,15 +55,15 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Details for an Auto Attendant.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for an Auto Attendant."""
+    """Get Details for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant show LOCATION_ID AUTO_ATTENDANT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}"
     params = {}
@@ -79,12 +80,12 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"...","tollFreeNumber":"..."}],"languageCode":"...","businessSchedule":"..."}'
+_BODY_SKELETON_UPDATE = '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update an Auto Attendant.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     name: str = typer.Option(None, "--name", help="Unique name for the auto attendant."),
     phone_number: str = typer.Option(None, "--phone-number", help="Auto attendant phone number. Either `phoneNumber` or `extension` is mandatory."),
     extension: str = typer.Option(None, "--extension", help="Auto attendant extension. Either `phoneNumber` or `extension` is mandatory."),
@@ -103,7 +104,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Auto Attendant\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"...","tollFreeNumber":"..."}],"languageCode":"...","businessSchedule":"..."}'."""
+    """Update an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update LOCATION_ID AUTO_ATTENDANT_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -156,19 +157,19 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete an Auto Attendant.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete an Auto Attendant."""
+    """Delete an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant delete LOCATION_ID AUTO_ATTENDANT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {auto_attendant_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}"
     params = {}
     org_id = get_org_id()
@@ -189,11 +190,11 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"...","action":"...","description":"...","value":"...","audioAnnouncementFile":"..."},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"...","level":"..."},"callTreatment":{"retryAttemptForNoInput":"...","noInputTimer":"...","actionToBePerformed":"..."}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"...","action":"...","description":"...","value":"...","audioAnnouncementFile":"..."},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"...","level":"..."},"callTreatment":{"retryAttemptForNoInput":"...","noInputTimer":"...","actionToBePerformed":"..."}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create an Auto Attendant.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the auto attendant."),
     phone_number: str = typer.Option(None, "--phone-number", help="Auto attendant phone number. Either `phoneNumber` or `extension` is mandatory."),
     extension: str = typer.Option(None, "--extension", help="Auto attendant extension. Either `phoneNumber` or `extension` is mandatory."),
@@ -212,7 +213,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Auto Attendant\n\nExample --json-body:\n  '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"...","action":"...","description":"...","value":"...","audioAnnouncementFile":"..."},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"...","level":"..."},"callTreatment":{"retryAttemptForNoInput":"...","noInputTimer":"...","actionToBePerformed":"..."}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"...","action":"...","description":"...","value":"...","audioAnnouncementFile":"..."},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"...","level":"..."},"callTreatment":{"retryAttemptForNoInput":"...","noInputTimer":"...","actionToBePerformed":"..."}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"..."}'."""
+    """Create an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant create LOCATION_ID --json-body '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT"}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT"}}}'\n\n\b\nExample --json-body: '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -272,15 +273,15 @@ def create(
 
 
 
-@app.command("show-call-forwarding")
+@app.command("show-call-forwarding", short_help="Get Call Forwarding Settings for an Auto Attendant.")
 def show_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Forwarding Settings for an Auto Attendant."""
+    """Get Call Forwarding Settings for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant show-call-forwarding LOCATION_ID AUTO_ATTENDANT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}/callForwarding"
     params = {}
@@ -297,19 +298,19 @@ def show_call_forwarding(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","sendToVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","sendToVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'
 
-@app.command("update-call-forwarding")
+@app.command("update-call-forwarding", short_help="Update Call Forwarding Settings for an Auto Attendant.")
 def update_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Forwarding Settings for an Auto Attendant\n\nExample --json-body:\n  '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","sendToVoicemailEnabled":"..."},"selective":{"enabled":"...","destination":"...","ringReminderEnabled":"...","sendToVoicemailEnabled":"..."},"rules":["..."],"operatingModes":{"enabled":"...","modes":"..."}}}'."""
+    """Update Call Forwarding Settings for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update-call-forwarding LOCATION_ID AUTO_ATTENDANT_ID --json-body '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"rules":[{"id":"..."}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER"}}]}}}'\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
         raise typer.Exit(0)
@@ -338,12 +339,12 @@ def update_call_forwarding(
 
 
 
-_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"enabled":true,"businessSchedule":"...","holidaySchedule":"...","callsTo":{"numbers":["..."]}}'
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"enabled":true,"businessSchedule":"...","holidaySchedule":"...","callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
-@app.command("create-selective-rules")
+@app.command("create-selective-rules", short_help="Create a Selective Call Forwarding Rule for an Auto Attendant.")
 def create_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the selective rule in the auto attendant."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
@@ -354,7 +355,7 @@ def create_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for an Auto Attendant\n\nExample --json-body:\n  '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"enabled":true,"businessSchedule":"...","holidaySchedule":"...","callsTo":{"numbers":["..."]}}'."""
+    """Create a Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant create-selective-rules LOCATION_ID AUTO_ATTENDANT_ID --json-body '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER"},"callsFrom":{"selection":"ANY"}}'\n\n\b\nExample --json-body: '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"enabled":true,"businessSchedule":"...","holidaySchedule":"...","callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -398,16 +399,16 @@ def create_selective_rules(
 
 
 
-@app.command("show-selective-rules")
+@app.command("show-selective-rules", short_help="Get Selective Call Forwarding Rule for an Auto Attendant.")
 def show_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Selective Call Forwarding Rule for an Auto Attendant."""
+    """Get Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant show-selective-rules LOCATION_ID AUTO_ATTENDANT_ID RULE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
@@ -424,13 +425,13 @@ def show_selective_rules(
 
 
 
-_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"businessSchedule":"...","holidaySchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"businessSchedule":"...","holidaySchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
-@app.command("update-selective-rules")
+@app.command("update-selective-rules", short_help="Update Selective Call Forwarding Rule for an Auto Attendant.")
 def update_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the auto attendant."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
     business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
@@ -441,7 +442,7 @@ def update_selective_rules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Selective Call Forwarding Rule for an Auto Attendant\n\nExample --json-body:\n  '{"name":"...","enabled":true,"businessSchedule":"...","holidaySchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":"...","unavailableNumberEnabled":"...","numbers":"..."}},"callsTo":{"numbers":["..."]}}'."""
+    """Update Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update-selective-rules LOCATION_ID AUTO_ATTENDANT_ID RULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"businessSchedule":"...","holidaySchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -478,20 +479,20 @@ def update_selective_rules(
 
 
 
-@app.command("delete-selective-rules")
+@app.command("delete-selective-rules", short_help="Delete a Selective Call Forwarding Rule for an Auto Attendant.")
 def delete_selective_rules(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
-    rule_id: str = typer.Argument(help="ruleId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
+    rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Selective Call Forwarding Rule for an Auto Attendant."""
+    """Delete a Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant delete-selective-rules LOCATION_ID AUTO_ATTENDANT_ID RULE_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {rule_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}/callForwarding/selectiveRules/{rule_id}"
     params = {}
     org_id = get_org_id()
@@ -512,17 +513,18 @@ def delete_selective_rules(
 
 
 
-@app.command("list-available-numbers-auto-attendants")
+@app.command("list-available-numbers-auto-attendants", short_help="Get Auto Attendant Primary Available Phone Numbers.")
 def list_available_numbers_auto_attendants(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Auto Attendant Primary Available Phone Numbers."""
+    """Get Auto Attendant Primary Available Phone Numbers.\n\n\b\nExample: wxcli auto-attendant list-available-numbers-auto-attendants LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/availableNumbers"
     params = {}
@@ -537,7 +539,10 @@ def list_available_numbers_auto_attendants(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -548,17 +553,18 @@ def list_available_numbers_auto_attendants(
 
 
 
-@app.command("list-available-numbers-alternate")
+@app.command("list-available-numbers-alternate", short_help="Get Auto Attendant Alternate Available Phone Numbers.")
 def list_available_numbers_alternate(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Auto Attendant Alternate Available Phone Numbers."""
+    """Get Auto Attendant Alternate Available Phone Numbers.\n\n\b\nExample: wxcli auto-attendant list-available-numbers-alternate LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/alternate/availableNumbers"
     params = {}
@@ -573,7 +579,10 @@ def list_available_numbers_alternate(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -584,9 +593,9 @@ def list_available_numbers_alternate(
 
 
 
-@app.command("list-available-numbers-call-forwarding")
+@app.command("list-available-numbers-call-forwarding", short_help="Get Auto Attendant Call Forward Available Phone Numbers.")
 def list_available_numbers_call_forwarding(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     extension: str = typer.Option(None, "--extension", help="Returns the list of PSTN phone numbers with the given `extension`."),
@@ -594,9 +603,10 @@ def list_available_numbers_call_forwarding(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Auto Attendant Call Forward Available Phone Numbers."""
+    """Get Auto Attendant Call Forward Available Phone Numbers.\n\n\b\nExample: wxcli auto-attendant list-available-numbers-call-forwarding LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/callForwarding/availableNumbers"
     params = {}
@@ -615,7 +625,10 @@ def list_available_numbers_call_forwarding(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -626,16 +639,16 @@ def list_available_numbers_call_forwarding(
 
 
 
-@app.command("switch-mode-for")
+@app.command("switch-mode-for", short_help="Switch Mode for Call Forwarding Settings for an Auto Attendant.")
 def switch_mode_for(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Switch Mode for Call Forwarding Settings for an Auto Attendant."""
+    """Switch Mode for Call Forwarding Settings for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant switch-mode-for LOCATION_ID AUTO_ATTENDANT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}/callForwarding/actions/switchMode/invoke"
     params = {}
@@ -656,20 +669,20 @@ def switch_mode_for(
 
 
 
-@app.command("delete-announcements")
+@app.command("delete-announcements", short_help="Delete a Auto Attendant Announcement File.")
 def delete_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
-    file_name: str = typer.Argument(help="fileName"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli auto-attendant list"),
+    file_name: str = typer.Argument(help="from: wxcli auto-attendant list-announcements"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Auto Attendant Announcement File."""
+    """Delete a Auto Attendant Announcement File.\n\n\b\nExample: wxcli auto-attendant delete-announcements LOCATION_ID AUTO_ATTENDANT_ID FILE_NAME"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {file_name}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}/announcements/{file_name}"
     params = {}
     org_id = get_org_id()
@@ -690,17 +703,18 @@ def delete_announcements(
 
 
 
-@app.command("list-announcements")
+@app.command("list-announcements", short_help="Read the List of Auto Attendant Announcement Files.")
 def list_announcements(
-    location_id: str = typer.Argument(help="locationId"),
-    auto_attendant_id: str = typer.Argument(help="autoAttendantId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    auto_attendant_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli auto-attendant list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Auto Attendant Announcement Files."""
+    """Read the List of Auto Attendant Announcement Files.\n\n\b\nExample: wxcli auto-attendant list-announcements LOCATION_ID AUTO_ATTENDANT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/autoAttendants/{auto_attendant_id}/announcements"
     params = {}

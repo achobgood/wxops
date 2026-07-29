@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling paging-group.")
 
 
-@app.command("list")
+@app.command("list", short_help="Read the List of Paging Groups.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Return only paging groups with matching location ID. Default is all locations"),
     name: str = typer.Option(None, "--name", help="Return only paging groups with the matching name."),
@@ -20,6 +20,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read the List of Paging Groups."""
@@ -40,7 +41,7 @@ def cmd_list(
     if org_id is not None:
         params["orgId"] = org_id
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("locationPaging", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -54,11 +55,11 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."]}'
+_BODY_SKELETON_CREATE = '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Paging Group.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the paging group. Minimum length is 1. Maximum length is 30."),
     phone_number: str = typer.Option(None, "--phone-number", help="Paging group phone number. Minimum length is 1. Maximum length is 23. Either `phoneNumber` or `extension` is mandatory."),
     extension: str = typer.Option(None, "--extension", help="Paging group extension. Minimum length is 2. Maximum length is 10. Either `phoneNumber` or `extension` is mandatory."),
@@ -73,7 +74,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Paging Group\n\nExample --json-body:\n  '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."]}'."""
+    """Create a new Paging Group.\n\n\b\nExample: wxcli paging-group create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -125,15 +126,15 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Details for a Paging Group.")
 def show(
-    location_id: str = typer.Argument(help="locationId"),
-    paging_id: str = typer.Argument(help="pagingId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    paging_id: str = typer.Argument(help="Webex PAGING_GROUP id, from: wxcli paging-group list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Paging Group."""
+    """Get Details for a Paging Group.\n\n\b\nExample: wxcli paging-group show LOCATION_ID PAGING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/paging/{paging_id}"
     params = {}
@@ -150,12 +151,12 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Paging Group.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
-    paging_id: str = typer.Argument(help="pagingId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    paging_id: str = typer.Argument(help="Webex PAGING_GROUP id, from: wxcli paging-group list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the paging group is enabled."),
     name: str = typer.Option(None, "--name", help="Unique name for the paging group. Minimum length is 1. Maximum length is 30."),
     phone_number: str = typer.Option(None, "--phone-number", help="Paging group phone number. Minimum length is 1. Maximum length is 23. Either `phoneNumber` or `extension` is mandatory."),
@@ -171,7 +172,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Paging Group\n\nExample --json-body:\n  '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true}'."""
+    """Update a Paging Group.\n\n\b\nExample: wxcli paging-group update LOCATION_ID PAGING_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -218,19 +219,19 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Paging Group.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
-    paging_id: str = typer.Argument(help="pagingId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    paging_id: str = typer.Argument(help="Webex PAGING_GROUP id, from: wxcli paging-group list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Paging Group."""
+    """Delete a Paging Group.\n\n\b\nExample: wxcli paging-group delete LOCATION_ID PAGING_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {paging_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/paging/{paging_id}"
     params = {}
     org_id = get_org_id()
@@ -251,17 +252,18 @@ def delete(
 
 
 
-@app.command("list-available-numbers")
+@app.command("list-available-numbers", short_help="Get Paging Group Primary Available Phone Numbers.")
 def list_available_numbers(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     phone_number: str = typer.Option(None, "--phone-number", help="Filter phone numbers based on the comma-separated list provided in the `phoneNumber` array."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Paging Group Primary Available Phone Numbers."""
+    """Get Paging Group Primary Available Phone Numbers.\n\n\b\nExample: wxcli paging-group list-available-numbers LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/paging/availableNumbers"
     params = {}
@@ -276,7 +278,10 @@ def list_available_numbers(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

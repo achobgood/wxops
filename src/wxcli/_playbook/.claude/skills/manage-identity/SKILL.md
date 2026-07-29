@@ -83,15 +83,15 @@ Run these checks based on the operation. **Stop and report** if any prerequisite
 
 ### For all SCIM operations (scim-users, scim-groups, scim-bulk):
 ```bash
-# Get the org ID (required as positional argument for all SCIM commands)
+# Confirm the org context (informational only -- the CLI auto-injects org ID from the token,
+# these commands do NOT take it as a positional argument)
 wxcli organizations list
-# Note the org ID from the output -- you will pass it as the first argument
 ```
 
 ### For domain verification:
 ```bash
 # Check current domain status (if available)
-wxcli domains get-domain-verification $ORG_ID --domain "example.com"
+wxcli domains get-domain-verification --domain "example.com"
 # This returns the DNS TXT token. The user must add this to their DNS before verify-domain will succeed.
 ```
 
@@ -104,13 +104,13 @@ wxcli domains get-domain-verification $ORG_ID --domain "example.com"
 ```bash
 # Verify domain is claimed before syncing users at that domain
 # The domain must be verified AND claimed, or SCIM user creation for that domain will fail
-wxcli domains verify-domain $ORG_ID --domain "example.com"
+wxcli domains verify-domain --domain "example.com"
 ```
 
 ### For user search/lookup:
 ```bash
 # SCIM search -- use filter syntax
-wxcli scim-users list $ORG_ID --filter 'userName eq "target@example.com"'
+wxcli scim-users list --filter 'userName eq "target@example.com"'
 
 # Or use People API (no org ID needed)
 wxcli people list --email "target@example.com"
@@ -119,7 +119,7 @@ wxcli people list --email "target@example.com"
 ### For org contacts:
 ```bash
 # Check existing contacts before importing
-wxcli org-contacts list $ORG_ID
+wxcli org-contacts list
 ```
 
 ## Step 5: Build plan -- [SHOW BEFORE EXECUTING]
@@ -158,39 +158,40 @@ Complete end-to-end flow for adding a domain to the Webex org.
 
 ```bash
 # Step 1: Get the verification token
-wxcli domains get-domain-verification $ORG_ID --domain "newdomain.com"
+wxcli domains get-domain-verification --domain "newdomain.com"
 # Response includes a token like: "webex-verification=abc123def456"
 
 # Step 2: DNS TXT record must be added by the user (outside CLI)
 # Record type: TXT, Name: @ (or newdomain.com), Value: the returned token
 
 # Step 3: Verify the domain
-wxcli domains verify-domain $ORG_ID --domain "newdomain.com"
+wxcli domains verify-domain --domain "newdomain.com"
 
 # Step 4: Claim the domain for user provisioning
-wxcli domains claim-domain $ORG_ID
+wxcli domains claim-domain
 
 # Or combine verify + claim in one step:
-wxcli domains verify-domain $ORG_ID --domain "newdomain.com" --claim-domain true
+wxcli domains verify-domain --domain "newdomain.com" --claim-domain true
 ```
 
 ### Operation B: SCIM User Search
 
 ```bash
 # Search by exact email
-wxcli scim-users list $ORG_ID --filter 'userName eq "jsmith@example.com"'
+wxcli scim-users list --filter 'userName eq "jsmith@example.com"'
 
 # Search by display name (contains)
-wxcli scim-users list $ORG_ID --filter 'displayName co "Smith"'
+wxcli scim-users list --filter 'displayName co "Smith"'
 
 # Search by email domain
-wxcli scim-users list $ORG_ID --filter 'userName co "@acme.com"'
+wxcli scim-users list --filter 'userName co "@acme.com"'
 
 # Get specific attributes only
-wxcli scim-users list $ORG_ID --filter 'userName sw "j"' --attributes "userName,displayName,emails"
+wxcli scim-users list --filter 'userName sw "j"' --attributes "userName,displayName,emails"
 
-# Get a specific user by ID
-wxcli scim-users show $ORG_ID $USER_ID -o json
+# Get a specific user by ID -- bind the id from the search
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jsmith@example.com"' --fields '[0].id' -o text)
+wxcli scim-users show $USER_ID -o json
 ```
 
 ### Operation C: SCIM User Create/Update/Delete
@@ -199,10 +200,10 @@ wxcli scim-users show $ORG_ID $USER_ID -o json
 
 ```bash
 # Create a single user
-wxcli scim-users create $ORG_ID --user-name "newuser@example.com" --display-name "New User" --active
+wxcli scim-users create --user-name "newuser@example.com" --display-name "New User" --active
 
 # Create with full JSON body (for nested fields: name, emails, addresses)
-wxcli scim-users create $ORG_ID --json-body '{
+wxcli scim-users create --json-body '{
   "userName": "jdoe@example.com",
   "displayName": "Jane Doe",
   "name": {"givenName": "Jane", "familyName": "Doe"},
@@ -214,8 +215,11 @@ wxcli scim-users create $ORG_ID --json-body '{
 **Update (PATCH — always use this for modifications):**
 
 ```bash
+# Bind the target user's id -- every update below reuses it
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
+
 # Change display name (only this field changes, everything else preserved)
-wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+wxcli scim-users update-users $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "replace", "path": "displayName", "value": "Jane M. Doe"}
@@ -223,7 +227,7 @@ wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
 }'
 
 # Change multiple fields at once
-wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+wxcli scim-users update-users $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "replace", "path": "displayName", "value": "Jane M. Doe"},
@@ -232,13 +236,13 @@ wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
 }'
 
 # Deactivate a user
-wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+wxcli scim-users update-users $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [{"op": "replace", "path": "active", "value": false}]
 }'
 
 # Add a value to a multi-valued attribute
-wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+wxcli scim-users update-users $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "add", "path": "phoneNumbers", "value": [{"value": "+15551234567", "type": "work"}]}
@@ -254,13 +258,15 @@ PATCH operations: `add` (append value), `replace` (change value), `remove` (dele
 
 ```bash
 # ONLY use PUT when you need to replace the entire resource
-# Step 1: GET the current full resource
-wxcli scim-users show $ORG_ID $USER_ID -o json > user.json
+# Step 1: bind the target user's id, then GET the current full resource
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
+[ -n "$USER_ID" ] || { echo "No user matched that filter -- stop, do not run Step 3"; exit 1; }
+wxcli scim-users show $USER_ID -o json > user.json
 
 # Step 2: Edit user.json (make your changes to the full object)
 
 # Step 3: PUT the modified full resource back
-wxcli scim-users update $ORG_ID $USER_ID --json-body "$(cat user.json)"
+wxcli scim-users update $USER_ID --json-body "$(cat user.json)"
 ```
 
 **When to use PUT vs PATCH:**
@@ -270,7 +276,8 @@ wxcli scim-users update $ORG_ID $USER_ID --json-body "$(cat user.json)"
 **Delete:**
 
 ```bash
-wxcli scim-users delete $ORG_ID $USER_ID --force
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
+wxcli scim-users delete $USER_ID --force
 ```
 
 The same PUT/PATCH distinction applies to groups: use `scim-groups update-groups` (PATCH) instead of `scim-groups update` (PUT).
@@ -279,7 +286,7 @@ The same PUT/PATCH distinction applies to groups: use `scim-groups update-groups
 
 ```bash
 # Bulk create multiple users in a single API call
-wxcli scim-bulk create $ORG_ID --fail-on-errors 5 --json-body '{
+wxcli scim-bulk create --fail-on-errors 5 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 5,
   "Operations": [
@@ -326,10 +333,10 @@ Check the response for per-operation status. Each operation returns its own stat
 
 ```bash
 # List all SCIM groups
-wxcli scim-groups list $ORG_ID
+wxcli scim-groups list
 
 # Create a SCIM group with members
-wxcli scim-groups create $ORG_ID --json-body '{
+wxcli scim-groups create --json-body '{
   "displayName": "DevOps Team",
   "members": [
     {"value": "USER_ID_1", "type": "user"},
@@ -337,8 +344,11 @@ wxcli scim-groups create $ORG_ID --json-body '{
   ]
 }'
 
+# Bind the target group's id from the list above
+GROUP_ID=$(wxcli scim-groups list --filter 'displayName eq "DevOps Team"' --fields '[0].id' -o text)
+
 # Add a member via PATCH
-wxcli scim-groups update-groups $ORG_ID $GROUP_ID --json-body '{
+wxcli scim-groups update-groups $GROUP_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "add", "path": "members", "value": [{"value": "USER_ID", "type": "user"}]}
@@ -346,7 +356,7 @@ wxcli scim-groups update-groups $ORG_ID $GROUP_ID --json-body '{
 }'
 
 # Remove a member via PATCH
-wxcli scim-groups update-groups $ORG_ID $GROUP_ID --json-body '{
+wxcli scim-groups update-groups $GROUP_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "remove", "path": "members[value eq \"USER_ID\"]"}
@@ -369,6 +379,9 @@ wxcli groups create --json-body '{
   ]
 }'
 
+# Bind the target group's id from the list above
+GROUP_ID=$(wxcli groups list --filter 'displayName eq "Support Team"' --fields '[0].id' -o text)
+
 # Add/remove members
 wxcli groups update $GROUP_ID --json-body '{
   "members": [
@@ -384,7 +397,7 @@ wxcli groups list-members $GROUP_ID --count 100
 
 ```bash
 # Create a single contact
-wxcli org-contacts create $ORG_ID \
+wxcli org-contacts create \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --source CH \
   --display-name "Jane Smith" \
@@ -394,7 +407,7 @@ wxcli org-contacts create $ORG_ID \
   --primary-contact-method EMAIL
 
 # Bulk create/update contacts
-wxcli org-contacts create-bulk $ORG_ID \
+wxcli org-contacts create-bulk \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --json-body '{
     "schemas": "urn:cisco:codev:identity:contact:core:1.0",
@@ -419,7 +432,7 @@ wxcli org-contacts create-bulk $ORG_ID \
   }'
 
 # Bulk delete contacts
-wxcli org-contacts create-delete $ORG_ID \
+wxcli org-contacts create-delete \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --json-body '{
     "schemas": "urn:cisco:codev:identity:contact:core:1.0",
@@ -431,16 +444,17 @@ wxcli org-contacts create-delete $ORG_ID \
 
 ```bash
 # Step 1: List active users
-wxcli scim-users list $ORG_ID --filter 'active eq true' -o json
+wxcli scim-users list --filter 'active eq true' -o json
 
-# Step 2: Deactivate individual users via PATCH
-wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+# Step 2: Deactivate individual users via PATCH -- bind the id of the user to deactivate
+USER_ID=$(wxcli scim-users list --filter 'userName eq "stale.user@example.com"' --fields '[0].id' -o text)
+wxcli scim-users update-users $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [{"op": "replace", "path": "active", "value": false}]
 }'
 
 # Or bulk deactivate many users at once
-wxcli scim-bulk create $ORG_ID --fail-on-errors 10 --json-body '{
+wxcli scim-bulk create --fail-on-errors 10 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 10,
   "Operations": [
@@ -450,7 +464,7 @@ wxcli scim-bulk create $ORG_ID --fail-on-errors 10 --json-body '{
 }'
 
 # Step 3: For permanent removal, delete after deactivation
-wxcli scim-users delete $ORG_ID $USER_ID --force
+wxcli scim-users delete $USER_ID --force
 ```
 
 ### Operation H: Schema Introspection
@@ -604,34 +618,36 @@ Always read back the created/updated resources to confirm.
 
 ### Verify SCIM users:
 ```bash
-# Verify a specific user was created/updated
-wxcli scim-users show $ORG_ID $USER_ID -o json
+# Verify a specific user was created/updated -- bind the id from a search
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
+wxcli scim-users show $USER_ID -o json
 # Confirm: userName, displayName, active status, group memberships
 
 # Verify bulk import -- search for imported users
-wxcli scim-users list $ORG_ID --filter 'userName co "@example.com"'
+wxcli scim-users list --filter 'userName co "@example.com"'
 # Count results to confirm expected number of users imported
 ```
 
 ### Verify groups:
 ```bash
 # SCIM group
-wxcli scim-groups list $ORG_ID --filter 'displayName eq "DevOps Team"' --include-members true
+wxcli scim-groups list --filter 'displayName eq "DevOps Team"' --include-members true
 
 # Webex group
+GROUP_ID=$(wxcli groups list --filter 'displayName eq "Support Team"' --fields '[0].id' -o text)
 wxcli groups show $GROUP_ID --include-members true -o json
 ```
 
 ### Verify domain:
 ```bash
 # Re-run verify to confirm domain status
-wxcli domains verify-domain $ORG_ID --domain "example.com"
+wxcli domains verify-domain --domain "example.com"
 ```
 
 ### Verify org contacts:
 ```bash
 # Search for imported contacts
-wxcli org-contacts list $ORG_ID --keyword "Smith"
+wxcli org-contacts list --keyword "Smith"
 ```
 
 ### Verify org identity / security policy changes:
@@ -687,7 +703,7 @@ Next steps:
 
 5. **Bulk operations can partially fail** -- A `scim-bulk create` request can succeed for some operations and fail for others. The `--fail-on-errors` parameter controls the abort threshold. Always check the response body for per-operation `status` codes (e.g., `201` for created, `409` for duplicate).
 
-6. **`/me` endpoint requires user-level token, not admin** -- `scim-users show-me` and `people list-me` return the identity of the authenticated user. These fail with admin service-app tokens because service apps do not represent a person. Use a user-level OAuth token.
+6. **`/me` endpoint requires user-level token, not admin** -- `scim-users show-me` and `people show-me` return the identity of the authenticated user. These fail with admin service-app tokens because service apps do not represent a person. Use a user-level OAuth token.
 
 7. **Domain verification requires DNS TXT record -- this skill cannot verify DNS** -- After providing the verification token, instruct the user to add the TXT record and wait for propagation (typically 15-60 minutes, up to 48 hours). Do not call `verify-domain` until the user confirms the TXT record is in place.
 
@@ -695,9 +711,7 @@ Next steps:
 
 9. **ALWAYS show plan before executing write operations** -- Never create, update, or delete users, groups, contacts, or domains without presenting the plan and getting user confirmation.
 
-10. **The CLI injects the org ID for you — do NOT pass it as a positional argument.** Verified 2026-07-14 against the live CLI: `identity-org`, `org-settings`, `roles`, `archive-users`, `classifications`, and `activation-email` take **no** org ID. The CLI resolves the org from the token (`GET /v1/people/me`) and injects it into the request URL. Passing one anyway fails with `Got unexpected extra argument`. **Always run `wxcli <group> <command> --help` and pass only the arguments it lists.**
-
-    > **Known stale content — do not copy blindly.** Many `$ORG_ID` examples elsewhere in this skill (`scim-users`, `scim-groups`, `scim-bulk`, `org-contacts`, `domains`) predate org-ID auto-injection and will error with `Got unexpected extra argument` if run as written. `--help` is the source of truth; drop the `$ORG_ID` argument. This is a known gap pending a separate cleanup pass.
+10. **The CLI injects the org ID for you — do NOT pass it as a positional argument.** Verified 2026-07-14 against the live CLI: `identity-org`, `org-settings`, `roles`, `archive-users`, `classifications`, `activation-email`, `scim-users`, `scim-groups`, `scim-bulk`, `org-contacts`, and `domains` take **no** org ID. The CLI resolves the org from the token (`GET /v1/people/me`) and injects it into the request URL. Passing one anyway fails with `Got unexpected extra argument`. **Always run `wxcli <group> <command> --help` and pass only the arguments it lists.**
 
 11. **Identity scopes are separate from Calling scopes** -- SCIM endpoints require `identity:people_rw` / `identity:people_read`. Webex REST endpoints (`people`, `groups`) require `spark-admin:people_write` / `spark-admin:people_read`. Mixing them up produces 403 errors.
 
@@ -719,7 +733,7 @@ When a wxcli command fails:
 3. Fix the command and retry
 
 **B. Skip and continue** -- Resource already exists or already configured:
-1. Verify current state: `wxcli scim-users show $ORG_ID $USER_ID` or `wxcli people show $PERSON_ID`
+1. Verify current state by searching on the identifier you tried to create with -- you do not have an id yet: `wxcli scim-users list --filter 'userName eq "user@example.com"' -o json` or `wxcli people list --email "user@example.com" -o json`
 2. If state is correct, skip to next operation
 
 **C. Escalate** -- Unclear or persistent error:
@@ -745,10 +759,15 @@ Identity-specific errors:
 
 **SCIM update errors:**
 - **Accidental PUT data loss:** If `scim-users update` (PUT) was run with incomplete data and attributes were deleted, recover immediately:
-  1. Check if the user still exists: `wxcli scim-users show $ORG_ID $USER_ID -o json`
+  1. Find the user and check what survived:
+     ```bash
+     USER_ID=$(wxcli scim-users list --filter 'userName eq "user@example.com"' --fields '[0].id' -o text)
+     wxcli scim-users show $USER_ID -o json
+     ```
   2. If the user exists but is missing attributes, use PATCH to restore them:
      ```bash
-     wxcli scim-users update-users $ORG_ID $USER_ID --json-body '{
+     USER_ID=$(wxcli scim-users list --filter 'userName eq "user@example.com"' --fields '[0].id' -o text)
+     wxcli scim-users update-users $USER_ID --json-body '{
        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
        "Operations": [
          {"op": "add", "path": "emails", "value": [{"value": "user@example.com", "type": "work", "primary": true}]},
@@ -758,7 +777,7 @@ Identity-specific errors:
      ```
   3. If group memberships were lost, re-add via `scim-groups update-groups`
 - **400 on PATCH (invalid operation):** Check the `Operations` array format. Each operation needs `op` (add/replace/remove), `path` (attribute name), and `value` (for add/replace). The `schemas` array with the PatchOp URN is required.
-- **409 on create (user exists):** The user already exists in this org. Use `scim-users list` with a filter to find the existing record: `wxcli scim-users list $ORG_ID --filter 'userName eq "user@example.com"' -o json`
+- **409 on create (user exists):** The user already exists in this org. Use `scim-users list` with a filter to find the existing record: `wxcli scim-users list --filter 'userName eq "user@example.com"' -o json`
 
 ---
 

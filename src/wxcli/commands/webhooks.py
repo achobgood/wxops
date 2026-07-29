@@ -10,13 +10,14 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling webhooks.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Webhooks.")
 def cmd_list(
     owned_by: str = typer.Option(None, "--owned-by", help="Limit the result list to org wide webhooks. Only allowed value is `org`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Webhooks."""
@@ -30,7 +31,7 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -46,7 +47,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"name":"...","targetUrl":"...","resource":"attachmentActions","event":"created","filter":"...","secret":"...","ownedBy":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Webhook.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) A user-friendly name for the webhook."),
     target_url: str = typer.Option(None, "--target-url", help="(required) URL that receives POST requests for each event."),
@@ -61,7 +62,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Webhook\n\nExample --json-body:\n  '{"name":"...","targetUrl":"...","resource":"attachmentActions","event":"created","filter":"...","secret":"...","ownedBy":"..."}'."""
+    """Create a Webhook.\n\n\b\nExample: wxcli webhooks create --name NAME --target-url TARGET_URL --resource attachmentActions --event created\n\n\b\nExample --json-body: '{"name":"...","targetUrl":"...","resource":"attachmentActions","event":"created","filter":"...","secret":"...","ownedBy":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -107,14 +108,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Webhook Details.")
 def show(
-    webhook_id: str = typer.Argument(help="webhookId"),
+    webhook_id: str = typer.Argument(help="Webex WEBHOOK id, from: wxcli webhooks list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Webhook Details."""
+    """Get Webhook Details.\n\n\b\nExample: wxcli webhooks show WEBHOOK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/webhooks/{webhook_id}"
     try:
@@ -129,9 +130,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"name":"...","targetUrl":"...","secret":"...","ownedBy":"...","status":"active"}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Webhook.")
 def update(
-    webhook_id: str = typer.Argument(help="webhookId"),
+    webhook_id: str = typer.Argument(help="Webex WEBHOOK id, from: wxcli webhooks list"),
     name: str = typer.Option(None, "--name", help="A user-friendly name for the webhook."),
     target_url: str = typer.Option(None, "--target-url", help="URL that receives POST requests for each event."),
     secret: str = typer.Option(None, "--secret", help="Secret used to generate payload signature."),
@@ -143,7 +144,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Webhook\n\nExample --json-body:\n  '{"name":"...","targetUrl":"...","secret":"...","ownedBy":"...","status":"active"}'."""
+    """Update a Webhook.\n\n\b\nExample: wxcli webhooks update WEBHOOK_ID --name NAME --target-url TARGET_URL\n\n\b\nExample --json-body: '{"name":"...","targetUrl":"...","secret":"...","ownedBy":"...","status":"active"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -178,18 +179,18 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Webhook.")
 def delete(
-    webhook_id: str = typer.Argument(help="webhookId"),
+    webhook_id: str = typer.Argument(help="Webex WEBHOOK id, from: wxcli webhooks list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Webhook."""
+    """Delete a Webhook.\n\n\b\nExample: wxcli webhooks delete WEBHOOK_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {webhook_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/webhooks/{webhook_id}"
     try:
         result = api.session.rest_delete(url)

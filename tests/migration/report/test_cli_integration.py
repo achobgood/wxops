@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -138,9 +137,8 @@ class TestReport:
 class TestDiscoverFromFile:
     """Tests for ``wxcli cucm discover --from-file``."""
 
-    @patch("wxcli.migration.store.MigrationStore.add_journal_entry")
     def test_discover_from_file_creates_raw_data(
-        self, _mock_journal, tmp_migrations_dir, sample_collector_file
+        self, tmp_migrations_dir, sample_collector_file
     ):
         """Loading a valid collector file should create raw_data.json."""
         _init_project()
@@ -163,9 +161,8 @@ class TestDiscoverFromFile:
         assert "devices" in raw_data
         assert "users" in raw_data
 
-    @patch("wxcli.migration.store.MigrationStore.add_journal_entry")
     def test_discover_from_file_marks_stage_complete(
-        self, _mock_journal, tmp_migrations_dir, sample_collector_file
+        self, tmp_migrations_dir, sample_collector_file
     ):
         """After ingestion, discover should be marked complete in state.json."""
         _init_project()
@@ -179,9 +176,8 @@ class TestDiscoverFromFile:
         state = json.loads((project_dir / "state.json").read_text())
         assert "discover" in state["completed_stages"]
 
-    @patch("wxcli.migration.store.MigrationStore.add_journal_entry")
     def test_discover_from_file_saves_metadata_to_config(
-        self, _mock_journal, tmp_migrations_dir, sample_collector_file
+        self, tmp_migrations_dir, sample_collector_file
     ):
         """Collector metadata (cucm_version, cluster_name) should be saved to config."""
         _init_project()
@@ -195,6 +191,66 @@ class TestDiscoverFromFile:
         config = json.loads((project_dir / "config.json").read_text())
         assert config["cucm_version"] == "14.0.1.13900-155"
         assert config["cluster_name"] == "CUCM-LAB"
+
+    def test_discover_from_file_writes_journal_entry(
+        self, tmp_migrations_dir, sample_collector_file
+    ):
+        """The ingestion journal entry must survive the objects FK constraint.
+
+        journal.canonical_id references objects(canonical_id), so writing the
+        "system:discovery" entry without its sentinel object raised
+        IntegrityError and aborted the whole command.
+        """
+        import sqlite3
+
+        _init_project()
+
+        result = runner.invoke(
+            app,
+            ["discover", "--from-file", str(sample_collector_file)],
+        )
+        assert result.exit_code == 0, f"discover --from-file failed: {result.output}"
+
+        db_path = tmp_migrations_dir / "test-project" / "migration.db"
+        conn = sqlite3.connect(db_path)
+        try:
+            rows = conn.execute(
+                "SELECT canonical_id FROM journal WHERE entry_type = 'file_ingestion'"
+            ).fetchall()
+        finally:
+            conn.close()
+        assert rows == [("system:discovery",)]
+
+    def test_discover_from_file_zero_objects_fails(self, tmp_migrations_dir, tmp_path):
+        """A collector file carrying no objects is a FAILED discovery, not an empty one.
+
+        Every downstream stage exits 0 on an empty store, so marking discover
+        complete here ends in a customer-facing report for a cluster nothing was
+        read from.
+        """
+        empty_file = tmp_path / "empty-collector.json"
+        empty_file.write_text(
+            json.dumps(
+                {
+                    "collector_version": "1.0",
+                    "cucm_version": "15.0.1.13901-2",
+                    "cluster_name": "EMPTY-CLUSTER",
+                    "collected_at": "2026-07-28T00:00:00Z",
+                    "objects": {},
+                }
+            )
+        )
+        _init_project()
+
+        result = runner.invoke(app, ["discover", "--from-file", str(empty_file)])
+        assert result.exit_code == 1, f"zero-object ingest should fail: {result.output}"
+        assert "failed" in result.output.lower()
+
+        state = json.loads(
+            (tmp_migrations_dir / "test-project" / "state.json").read_text()
+        )
+        assert "discover" not in state["completed_stages"]
+        assert state["state"] == "initialized"
 
     def test_discover_from_file_missing_file(self, tmp_migrations_dir):
         """Referencing a nonexistent collector file should fail."""

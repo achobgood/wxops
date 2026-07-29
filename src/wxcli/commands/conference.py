@@ -10,13 +10,14 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling conference.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Conference Details.")
 def cmd_list(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Conference Details."""
@@ -44,7 +45,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"callIds":["..."],"lineOwnerId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Start Conference.")
 def create(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -53,7 +54,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Start Conference\n\nExample --json-body:\n  '{"callIds":["..."],"lineOwnerId":"..."}'."""
+    """Start Conference.\n\n\b\nExample: wxcli conference create --json-body '{"callIds":["..."]}'\n\n\b\nExample --json-body: '{"callIds":["..."],"lineOwnerId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -83,7 +84,7 @@ def create(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Release Conference.")
 def delete(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -92,9 +93,9 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Release Conference."""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm("Delete this resource?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/conference"
     params = {}
     if line_owner_id is not None:
@@ -116,7 +117,7 @@ def delete(
 
 _BODY_SKELETON_CREATE_ADD_PARTICIPANT = '{"callId":"...","lineOwnerId":"..."}'
 
-@app.command("create-add-participant")
+@app.command("create-add-participant", short_help="Add Participant.")
 def create_add_participant(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the participant to add."),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
@@ -126,7 +127,7 @@ def create_add_participant(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Participant\n\nExample --json-body:\n  '{"callId":"...","lineOwnerId":"..."}'."""
+    """Add Participant.\n\n\b\nExample: wxcli conference create-add-participant --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ADD_PARTICIPANT), indent=2))
         raise typer.Exit(0)
@@ -164,7 +165,7 @@ def create_add_participant(
 
 _BODY_SKELETON_CREATE_MUTE = '{"callId":"..."}'
 
-@app.command("create-mute")
+@app.command("create-mute", short_help="Mute.")
 def create_mute(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the participant to mute. The conference host is muted when this attribute is not provided."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -173,7 +174,7 @@ def create_mute(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Mute\n\nExample --json-body:\n  '{"callId":"..."}'."""
+    """Mute.\n\n\b\nExample --json-body: '{"callId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MUTE), indent=2))
         raise typer.Exit(0)
@@ -205,7 +206,7 @@ def create_mute(
 
 _BODY_SKELETON_CREATE_UNMUTE = '{"callId":"..."}'
 
-@app.command("create-unmute")
+@app.command("create-unmute", short_help="Unmute.")
 def create_unmute(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the participant to unmute. The conference host is unmuted when this attribute is not provided."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -214,7 +215,7 @@ def create_unmute(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unmute\n\nExample --json-body:\n  '{"callId":"..."}'."""
+    """Unmute.\n\n\b\nExample --json-body: '{"callId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_UNMUTE), indent=2))
         raise typer.Exit(0)
@@ -246,7 +247,7 @@ def create_unmute(
 
 _BODY_SKELETON_CREATE_DEAFEN = '{"callId":"..."}'
 
-@app.command("create-deafen")
+@app.command("create-deafen", short_help="Deafen Participant.")
 def create_deafen(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the participant to deafen."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -255,7 +256,7 @@ def create_deafen(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Deafen Participant\n\nExample --json-body:\n  '{"callId":"..."}'."""
+    """Deafen Participant.\n\n\b\nExample: wxcli conference create-deafen --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DEAFEN), indent=2))
         raise typer.Exit(0)
@@ -291,7 +292,7 @@ def create_deafen(
 
 _BODY_SKELETON_CREATE_UNDEAFEN = '{"callId":"..."}'
 
-@app.command("create-undeafen")
+@app.command("create-undeafen", short_help="Undeafen Participant.")
 def create_undeafen(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the participant to undeafen."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -300,7 +301,7 @@ def create_undeafen(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Undeafen Participant\n\nExample --json-body:\n  '{"callId":"..."}'."""
+    """Undeafen Participant.\n\n\b\nExample: wxcli conference create-undeafen --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_UNDEAFEN), indent=2))
         raise typer.Exit(0)
@@ -334,7 +335,7 @@ def create_undeafen(
 
 
 
-@app.command("create-hold")
+@app.command("create-hold", short_help="Hold.")
 def create_hold(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -370,7 +371,7 @@ def create_hold(
 
 
 
-@app.command("create-resume")
+@app.command("create-resume", short_help="Resume.")
 def create_resume(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),

@@ -92,7 +92,7 @@ Use `scim-users` when integrating with an external IdP (Okta, Azure AD, etc.) or
 
 ## 1. SCIM Users (`scim-users`)
 
-SCIM 2.0 user provisioning and management. All commands require an `org-id` positional argument.
+SCIM 2.0 user provisioning and management. **No command takes an org-id argument** -- the `{orgId}` in the paths below is filled from `resolve_org_id()` (the org saved by `wxcli switch-org`, else the token's own org).
 
 ### Endpoints
 
@@ -112,32 +112,32 @@ SCIM 2.0 user provisioning and management. All commands require an `org-id` posi
 |---------|-------------|-------------|
 | `list` | Search users with SCIM filters | `--filter`, `--attributes`, `--excluded-attributes`, `--sort-by`, `--sort-order`, `--start-index`, `--count`, `--return-groups`, `--include-group-details`, `--group-usage-types` |
 | `create` | Create a SCIM user | `--user-name` (required), `--display-name`, `--title`, `--active/--no-active`, `--preferred-language`, `--locale`, `--timezone`, `--external-id`, `--nick-name`, `--profile-url`, `--json-body` |
-| `show` | Get a single user by ID | `ORG_ID`, `USER_ID` (positional) |
-| `update` | Full replace (PUT) of user | Same options as `create` plus `USER_ID` positional. **Replaces entire resource.** |
+| `show` | Get a single user by ID | `USER_ID` (positional) |
+| `update` | Full replace (PUT) of user | `USER_ID` (positional) plus the same options as `create`. **Replaces entire resource.** |
 | `update-users` | Partial update (PATCH) of user | `--json-body` only (SCIM patch operations) |
 | `delete` | Delete a user | `--force` to skip confirmation |
-| `show-me` | Get authenticated user's own SCIM record | No `org-id` required. Requires user-level token. |
+| `show-me` | Get authenticated user's own SCIM record | No arguments. Requires user-level token. |
 
 ### CLI Examples
 
 ```bash
 # List all SCIM users in the org
-wxcli scim-users list YOUR_ORG_ID
+wxcli scim-users list
 
 # Search for a specific user by email
-wxcli scim-users list YOUR_ORG_ID --filter 'userName eq "jsmith@example.com"'
+wxcli scim-users list --filter 'userName eq "jsmith@example.com"'
 
 # Search users by display name (contains)
-wxcli scim-users list YOUR_ORG_ID --filter 'displayName co "Smith"'
+wxcli scim-users list --filter 'displayName co "Smith"'
 
 # Get specific user attributes only
-wxcli scim-users list YOUR_ORG_ID --filter 'userName sw "j"' --attributes "userName,displayName,emails"
+wxcli scim-users list --filter 'userName sw "j"' --attributes "userName,displayName,emails"
 
 # Create a new SCIM user
-wxcli scim-users create YOUR_ORG_ID --user-name "newuser@example.com" --display-name "New User" --active
+wxcli scim-users create --user-name "newuser@example.com" --display-name "New User" --active
 
 # Create user with full JSON body (for nested fields like name, emails, addresses)
-wxcli scim-users create YOUR_ORG_ID --json-body '{
+wxcli scim-users create --json-body '{
   "userName": "jdoe@example.com",
   "displayName": "Jane Doe",
   "name": {"givenName": "Jane", "familyName": "Doe"},
@@ -146,13 +146,13 @@ wxcli scim-users create YOUR_ORG_ID --json-body '{
 }'
 
 # Get a specific user
-wxcli scim-users show YOUR_ORG_ID USER_ID -o json
+wxcli scim-users show USER_ID -o json
 
 # Full replace a user (PUT) -- always GET first to avoid data loss
-wxcli scim-users update YOUR_ORG_ID USER_ID --json-body '{ ... full user JSON ... }'
+wxcli scim-users update USER_ID --json-body '{ ... full user JSON ... }'
 
 # Partial update a user (PATCH) -- change only specific fields
-wxcli scim-users update-users YOUR_ORG_ID USER_ID --json-body '{
+wxcli scim-users update-users USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "replace", "path": "displayName", "value": "Jane M. Doe"},
@@ -161,13 +161,13 @@ wxcli scim-users update-users YOUR_ORG_ID USER_ID --json-body '{
 }'
 
 # Deactivate a user via PATCH
-wxcli scim-users update-users YOUR_ORG_ID USER_ID --json-body '{
+wxcli scim-users update-users USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [{"op": "replace", "path": "active", "value": false}]
 }'
 
 # Delete a user (with confirmation skip)
-wxcli scim-users delete YOUR_ORG_ID USER_ID --force
+wxcli scim-users delete USER_ID --force
 
 # Get your own SCIM identity (user-level token required)
 wxcli scim-users show-me -o json
@@ -210,7 +210,7 @@ curl -s -X PATCH -H "Authorization: Bearer $TOKEN" \
 
 ## 2. SCIM Groups (`scim-groups`)
 
-SCIM 2.0 group provisioning and management. All commands require an `org-id` positional argument.
+SCIM 2.0 group provisioning and management. **No command takes an org-id argument** -- the `{orgId}` in the paths below is filled from `resolve_org_id()` (the org saved by `wxcli switch-org`, else the token's own org).
 
 ### Endpoints
 
@@ -251,19 +251,19 @@ SCIM 2.0 group provisioning and management. All commands require an `org-id` pos
 
 ```bash
 # List all SCIM groups
-wxcli scim-groups list YOUR_ORG_ID
+wxcli scim-groups list
 
 # Search for a group by name
-wxcli scim-groups list YOUR_ORG_ID --filter 'displayName eq "Engineering"'
+wxcli scim-groups list --filter 'displayName eq "Engineering"'
 
 # List groups with member details
-wxcli scim-groups list YOUR_ORG_ID --include-members true --member-type user
+wxcli scim-groups list --include-members true --member-type user
 
 # Create a SCIM group
-wxcli scim-groups create YOUR_ORG_ID --display-name "DevOps Team"
+wxcli scim-groups create --display-name "DevOps Team"
 
 # Create a group with members via JSON body
-wxcli scim-groups create YOUR_ORG_ID --json-body '{
+wxcli scim-groups create --json-body '{
   "displayName": "DevOps Team",
   "members": [
     {"value": "USER_ID_1", "type": "user"},
@@ -272,7 +272,7 @@ wxcli scim-groups create YOUR_ORG_ID --json-body '{
 }'
 
 # Add a member to a group via PATCH
-wxcli scim-groups update-groups YOUR_ORG_ID GROUP_ID --json-body '{
+wxcli scim-groups update-groups GROUP_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "add", "path": "members", "value": [{"value": "USER_ID", "type": "user"}]}
@@ -280,7 +280,7 @@ wxcli scim-groups update-groups YOUR_ORG_ID GROUP_ID --json-body '{
 }'
 
 # Remove a member from a group via PATCH
-wxcli scim-groups update-groups YOUR_ORG_ID GROUP_ID --json-body '{
+wxcli scim-groups update-groups GROUP_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "remove", "path": "members[value eq \"USER_ID\"]"}
@@ -288,7 +288,7 @@ wxcli scim-groups update-groups YOUR_ORG_ID GROUP_ID --json-body '{
 }'
 
 # Delete a group
-wxcli scim-groups delete YOUR_ORG_ID GROUP_ID --force
+wxcli scim-groups delete GROUP_ID --force
 ```
 
 ### Raw HTTP Fallback
@@ -408,7 +408,7 @@ Execute multiple SCIM user/group operations in a single HTTP request. Supports c
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `create` | Execute a bulk SCIM operation | `ORG_ID` (positional), `--fail-on-errors` (required), `--json-body` |
+| `create` | Execute a bulk SCIM operation | `--fail-on-errors` (required), `--json-body`. No positional arguments. |
 
 The `--fail-on-errors` parameter specifies the maximum number of individual operation failures before the entire bulk request is aborted.
 
@@ -416,7 +416,7 @@ The `--fail-on-errors` parameter specifies the maximum number of individual oper
 
 ```bash
 # Bulk create multiple users
-wxcli scim-bulk create YOUR_ORG_ID --fail-on-errors 5 --json-body '{
+wxcli scim-bulk create --fail-on-errors 5 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 5,
   "Operations": [
@@ -448,7 +448,7 @@ wxcli scim-bulk create YOUR_ORG_ID --fail-on-errors 5 --json-body '{
 }'
 
 # Bulk deactivate users
-wxcli scim-bulk create YOUR_ORG_ID --fail-on-errors 10 --json-body '{
+wxcli scim-bulk create --fail-on-errors 10 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 10,
   "Operations": [
@@ -472,7 +472,7 @@ wxcli scim-bulk create YOUR_ORG_ID --fail-on-errors 10 --json-body '{
 }'
 
 # Bulk delete users
-wxcli scim-bulk create YOUR_ORG_ID --fail-on-errors 0 --json-body '{
+wxcli scim-bulk create --fail-on-errors 0 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 0,
   "Operations": [
@@ -515,7 +515,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 
 ## 5. Identity Organization (`identity-org`)
 
-Manage identity-level organization settings and generate one-time passwords for users. All commands require an `org-id` positional argument.
+Manage identity-level organization settings and generate one-time passwords for users. **No command takes an org-id argument** -- the `{orgId}` in the paths below is filled from `resolve_org_id()` (the org saved by `wxcli switch-org`, else the token's own org).
 
 ### Endpoints
 
@@ -529,24 +529,24 @@ Manage identity-level organization settings and generate one-time passwords for 
 
 | Command | Description | Key Options |
 |---------|-------------|-------------|
-| `show` | Get identity organization details | `ORG_ID` (positional) |
+| `show` | Get identity organization details | No arguments |
 | `update` | Update organization settings | `--display-name`, `--preferred-language`, `--json-body` |
-| `generate-otp` | Generate a one-time password for a user | `ORG_ID`, `USER_ID` (positional), `--json-body` |
+| `generate-otp` | Generate a one-time password for a user | `USER_ID` (positional), `--json-body` |
 
 ### CLI Examples
 
 ```bash
 # Get identity org details
-wxcli identity-org show YOUR_ORG_ID -o json
+wxcli identity-org show -o json
 
 # Update the org display name
-wxcli identity-org update YOUR_ORG_ID --display-name "Acme Corp"
+wxcli identity-org update --display-name "Acme Corp"
 
 # Set default language for new users
-wxcli identity-org update YOUR_ORG_ID --preferred-language "en_US"
+wxcli identity-org update --preferred-language "en_US"
 
 # Generate OTP for a user (for first-time login or password reset)
-wxcli identity-org generate-otp YOUR_ORG_ID USER_ID
+wxcli identity-org generate-otp USER_ID
 ```
 
 ### Raw HTTP Fallback
@@ -776,7 +776,7 @@ Import multiple users from a CSV/list in a single API call:
 
 ```bash
 # Build a bulk request JSON file, then submit
-wxcli scim-bulk create YOUR_ORG_ID --fail-on-errors 5 --json-body '{
+wxcli scim-bulk create --fail-on-errors 5 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 5,
   "Operations": [
@@ -814,10 +814,10 @@ Check the response for per-operation status. Each operation in the response has 
 
 ```bash
 # SCIM: exact email match
-wxcli scim-users list YOUR_ORG_ID --filter 'userName eq "target@example.com"'
+wxcli scim-users list --filter 'userName eq "target@example.com"'
 
 # SCIM: users whose email contains a domain
-wxcli scim-users list YOUR_ORG_ID --filter 'userName co "@acme.com"'
+wxcli scim-users list --filter 'userName co "@acme.com"'
 
 # People API: search by email
 wxcli people list --email "target@example.com"
@@ -826,10 +826,10 @@ wxcli people list --email "target@example.com"
 wxcli people list --display-name "John"
 
 # SCIM: search users by department (Enterprise Extension attribute)
-wxcli scim-users list YOUR_ORG_ID --filter 'department eq "Engineering"'
+wxcli scim-users list --filter 'department eq "Engineering"'
 
 # SCIM: search users whose department starts with "Eng"
-wxcli scim-users list YOUR_ORG_ID --filter 'department sw "Eng"'
+wxcli scim-users list --filter 'department sw "Eng"'
 ```
 
 ### Bulk Deactivate Stale Users
@@ -838,16 +838,16 @@ Deactivate users who should no longer have Webex access. Use PATCH for efficienc
 
 ```bash
 # Step 1: Identify users to deactivate (list and filter externally)
-wxcli scim-users list YOUR_ORG_ID --filter 'active eq true' -o json > active_users.json
+wxcli scim-users list --filter 'active eq true' -o json > active_users.json
 
 # Step 2: For each user to deactivate, PATCH their active status
-wxcli scim-users update-users YOUR_ORG_ID USER_ID --json-body '{
+wxcli scim-users update-users USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [{"op": "replace", "path": "active", "value": false}]
 }'
 
 # Or use bulk operations for many users at once
-wxcli scim-bulk create YOUR_ORG_ID --fail-on-errors 10 --json-body '{
+wxcli scim-bulk create --fail-on-errors 10 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 10,
   "Operations": [
@@ -869,7 +869,7 @@ wxcli groups update GROUP_ID --json-body '{
 }'
 
 # SCIM Groups: add members via PATCH
-wxcli scim-groups update-groups YOUR_ORG_ID SCIM_GROUP_ID --json-body '{
+wxcli scim-groups update-groups SCIM_GROUP_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "add", "path": "members", "value": [{"value": "SCIM_USER_ID", "type": "user"}]}
@@ -877,7 +877,7 @@ wxcli scim-groups update-groups YOUR_ORG_ID SCIM_GROUP_ID --json-body '{
 }'
 
 # SCIM Groups: remove a specific member
-wxcli scim-groups update-groups YOUR_ORG_ID SCIM_GROUP_ID --json-body '{
+wxcli scim-groups update-groups SCIM_GROUP_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [
     {"op": "remove", "path": "members[value eq \"SCIM_USER_ID\"]"}
@@ -891,7 +891,7 @@ Generate a one-time password for a user who needs to sign in for the first time 
 
 ```bash
 # Generate OTP for a user
-wxcli identity-org generate-otp YOUR_ORG_ID USER_ID
+wxcli identity-org generate-otp USER_ID
 
 # The response contains the OTP value -- share it securely with the user
 ```
@@ -906,7 +906,9 @@ wxcli identity-org generate-otp YOUR_ORG_ID USER_ID
 
 ### orgId Requirement on SCIM Commands
 
-All SCIM commands (`scim-users`, `scim-groups`, `scim-bulk`) require `ORG_ID` as a positional argument because the org ID is part of the URL path (`/identity/scim/{orgId}/v2/...`). It cannot be omitted or inferred from the token. The Webex REST API commands (`people`, `groups`) do not require it -- they use the org implied by the token.
+The org ID is part of the SCIM URL path (`/identity/scim/{orgId}/v2/...`), but you never pass it on the command line. Every `scim-users`, `scim-groups`, `scim-bulk`, and `identity-org` command fills it from `resolve_org_id()`: the org saved by `wxcli switch-org` if there is one, otherwise the authenticated token's own org from `GET /v1/people/me`. Passing an org ID as the first positional makes zero-argument commands fail with "unexpected extra argument", and makes `show`/`update`/`delete` treat the org ID as the **user or group** ID.
+
+On a partner/multi-org token this means SCIM commands act on whichever tenant `switch-org` last saved. Confirm the target with `wxcli whoami` (it prints a `Target:` line) before running them.
 
 ### Scope Troubleshooting for Identity Scopes
 
@@ -923,7 +925,7 @@ SCIM filter values must be URL-encoded when used in raw HTTP requests. The CLI h
 
 ```bash
 # CLI handles encoding automatically
-wxcli scim-users list YOUR_ORG_ID --filter 'userName eq "user@example.com"'
+wxcli scim-users list --filter 'userName eq "user@example.com"'
 
 # Raw curl requires manual encoding
 curl -s -H "Authorization: Bearer $TOKEN" \

@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling security-audit.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Security Audit Events.")
 def cmd_list(
     start_time: str = typer.Option(..., "--start-time", help="List events which occurred after a specific date and time."),
     end_time: str = typer.Option(..., "--end-time", help="List events which occurred before a specific date and time."),
@@ -21,9 +21,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Security Audit Events."""
+    """List Security Audit Events.\n\n\b\nExample: wxcli security-audit list --start-time START_TIME --end-time END_TIME"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/securityAudit/events"
     params = {}
@@ -44,7 +45,10 @@ def cmd_list(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

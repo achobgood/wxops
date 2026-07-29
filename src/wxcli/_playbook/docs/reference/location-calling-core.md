@@ -900,11 +900,11 @@ wxcli location-settings create-directories Y2lzY29zcGFyazovL... \
   --json-body '{"name": "Front Desk Contacts", "contacts": [{"id": "PERSON_ID"}]}'
 
 # Update a directory (full replacement of contacts)
-wxcli location-settings update-directories Y2lzY29zcGFyazovL... \
+wxcli location-settings update-directories Y2lzY29zcGFyazovL... DIRECTORY_ID \
   --json-body '{"name": "Updated Name", "contacts": [{"id": "PERSON_ID_1"}, {"id": "PERSON_ID_2"}]}'
 
 # Delete a receptionist contact directory
-wxcli location-settings delete Y2lzY29zcGFyazovL...
+wxcli location-settings delete Y2lzY29zcGFyazovL... DIRECTORY_ID
 ```
 
 ---
@@ -1430,7 +1430,7 @@ api.session.rest_get(
 wxcli location-voicemail list --location-id Y2lzY29zcGFyazovL...
 
 # Get voicemail group details
-wxcli location-voicemail show-voicemail-groups Y2lzY29zcGFyazovL...
+wxcli location-voicemail show-voicemail-groups Y2lzY29zcGFyazovL... VOICEMAIL_GROUP_ID
 
 # Create a voicemail group
 wxcli location-voicemail create Y2lzY29zcGFyazovL... \
@@ -1440,11 +1440,11 @@ wxcli location-voicemail create Y2lzY29zcGFyazovL... \
   --language-code "en_us"
 
 # Update a voicemail group
-wxcli location-voicemail update-voicemail-groups Y2lzY29zcGFyazovL... \
+wxcli location-voicemail update-voicemail-groups Y2lzY29zcGFyazovL... VOICEMAIL_GROUP_ID \
   --json-body '{"name": "Updated Sales VM", "enabled": true}'
 
 # Delete a voicemail group
-wxcli location-voicemail delete Y2lzY29zcGFyazovL...
+wxcli location-voicemail delete Y2lzY29zcGFyazovL... VOICEMAIL_GROUP_ID
 
 # List available phone numbers for voicemail groups
 wxcli location-voicemail list-available-numbers-voicemail-groups Y2lzY29zcGFyazovL...

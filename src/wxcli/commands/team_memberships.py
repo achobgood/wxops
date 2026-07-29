@@ -10,16 +10,17 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling team-memberships.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Team Memberships.")
 def cmd_list(
     team_id: str = typer.Option(..., "--team-id", help="List memberships for a team, by ID."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Team Memberships."""
+    """List Team Memberships.\n\n\b\nExample: wxcli team-memberships list --team-id TEAM_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/team/memberships"
     params = {}
@@ -30,7 +31,7 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -46,7 +47,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"teamId":"...","personId":"...","personEmail":"...","isModerator":true}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Team Membership.")
 def create(
     team_id: str = typer.Option(None, "--team-id", help="(required) The team ID."),
     person_id: str = typer.Option(None, "--person-id", help="The person ID."),
@@ -58,7 +59,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Team Membership\n\nExample --json-body:\n  '{"teamId":"...","personId":"...","personEmail":"...","isModerator":true}'."""
+    """Create a Team Membership.\n\n\b\nExample: wxcli team-memberships create --team-id TEAM_ID\n\n\b\nExample --json-body: '{"teamId":"...","personId":"...","personEmail":"...","isModerator":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -98,14 +99,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Team Membership Details.")
 def show(
-    membership_id: str = typer.Argument(help="membershipId"),
+    membership_id: str = typer.Argument(help="Webex TEAM_MEMBERSHIP id, from: wxcli team-memberships list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Team Membership Details."""
+    """Get Team Membership Details.\n\n\b\nExample: wxcli team-memberships show MEMBERSHIP_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/team/memberships/{membership_id}"
     try:
@@ -120,9 +121,9 @@ def show(
 
 _BODY_SKELETON_UPDATE = '{"isModerator":true}'
 
-@app.command("update")
+@app.command("update", short_help="Update a Team Membership.")
 def update(
-    membership_id: str = typer.Argument(help="membershipId"),
+    membership_id: str = typer.Argument(help="Webex TEAM_MEMBERSHIP id, from: wxcli team-memberships list"),
     is_moderator: bool = typer.Option(None, "--is-moderator/--no-is-moderator", help="Whether or not the participant is a team moderator."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -130,7 +131,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Team Membership\n\nExample --json-body:\n  '{"isModerator":true}'."""
+    """Update a Team Membership.\n\n\b\nExample: wxcli team-memberships update MEMBERSHIP_ID --is-moderator\n\n\b\nExample --json-body: '{"isModerator":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -157,18 +158,18 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Team Membership.")
 def delete(
-    membership_id: str = typer.Argument(help="membershipId"),
+    membership_id: str = typer.Argument(help="Webex TEAM_MEMBERSHIP id, from: wxcli team-memberships list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Team Membership."""
+    """Delete a Team Membership.\n\n\b\nExample: wxcli team-memberships delete MEMBERSHIP_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {membership_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/team/memberships/{membership_id}"
     try:
         result = api.session.rest_delete(url)

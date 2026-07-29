@@ -130,6 +130,13 @@ def test_enforce_exit_code_follows_check_8(monkeypatch, capsys, untracked, expec
     monkeypatch.setattr(drift_check, "check_flags", lambda *a: [])
     monkeypatch.setattr(drift_check, "check_prose_flags", lambda *a: [])
     monkeypatch.setattr(drift_check, "check_untracked_modules", lambda: untracked)
+    # Checks 9 and 10 were never stubbed here, so this test only isolated check 8
+    # while check 9 happened to report zero — which it did because of the
+    # spec-collision false negative, not because the tree was clean. The moment
+    # check 9 started telling the truth about `locations list`, this test failed
+    # for a reason that has nothing to do with check 8. Stub them like the rest.
+    monkeypatch.setattr(drift_check, "check_table_columns", lambda **_: ([], [], []))
+    monkeypatch.setattr(drift_check, "check_positionals", lambda *a: ([], []))
     monkeypatch.setattr(sys, "argv", ["drift_check.py", "--enforce"])
 
     assert drift_check.main() == expected_exit

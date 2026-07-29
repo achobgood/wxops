@@ -13,9 +13,9 @@ app = typer.Typer(help="Manage Webex Calling numbers.")
 
 _BODY_SKELETON_CREATE = '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Add Phone Numbers to a Location.")
 def create(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     number_type: str = typer.Option(None, "--number-type", help="Choices: TOLLFREE, DID, MOBILE"),
     number_usage_type: str = typer.Option(None, "--number-usage-type", help="Choices: NONE, SERVICE"),
     state: str = typer.Option(None, "--state", help="Choices: ACTIVE, INACTIVE"),
@@ -27,7 +27,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Phone Numbers to a Location\n\nExample --json-body:\n  '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'."""
+    """Add Phone Numbers to a Location.\n\n\b\nExample: wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -71,9 +71,9 @@ def create(
 
 _BODY_SKELETON_UPDATE = '{"phoneNumbers":["..."],"action":"ACTIVATE"}'
 
-@app.command("update")
+@app.command("update", short_help="Manage Number State in a Location.")
 def update(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     action: str = typer.Option(None, "--action", help="Choices: ACTIVATE, DEACTIVATE"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -81,7 +81,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Manage Number State in a Location\n\nExample --json-body:\n  '{"phoneNumbers":["..."],"action":"ACTIVATE"}'."""
+    """Manage Number State in a Location.\n\n\b\nExample: wxcli numbers update LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"action":"ACTIVATE"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -114,9 +114,9 @@ def update(
 
 _BODY_SKELETON_DELETE = '{"phoneNumbers":["..."]}'
 
-@app.command("delete")
+@app.command("delete", short_help="Remove Phone Numbers from a Location.")
 def delete(
-    location_id: str = typer.Argument(help="locationId"),
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -124,13 +124,13 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove Phone Numbers from a Location\n\nExample --json-body:\n  '{"phoneNumbers":["..."]}'."""
+    """Remove Phone Numbers from a Location.\n\n\b\nExample: wxcli numbers delete LOCATION_ID --json-body '{"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE), indent=2))
         raise typer.Exit(0)
-    if not force:
-        typer.confirm(f"Delete {location_id}?", abort=True)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm(f"Delete Numbers for {location_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/numbers"
     params = {}
     org_id = get_org_id()
@@ -161,7 +161,7 @@ def delete(
 
 _BODY_SKELETON_VALIDATE_PHONE_NUMBERS = '{"phoneNumbers":["..."]}'
 
-@app.command("validate-phone-numbers")
+@app.command("validate-phone-numbers", short_help="Validate Phone Numbers.")
 def validate_phone_numbers(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -169,7 +169,7 @@ def validate_phone_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate Phone Numbers\n\nExample --json-body:\n  '{"phoneNumbers":["..."]}'."""
+    """Validate Phone Numbers.\n\n\b\nExample: wxcli numbers validate-phone-numbers --json-body '{"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_PHONE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -193,7 +193,7 @@ def validate_phone_numbers(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Phone Numbers for an Organization with Given Criteria.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within the given organization. The maximum length is 36."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for this `phoneNumber`."),
@@ -216,6 +216,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Phone Numbers for an Organization with Given Criteria."""
@@ -265,7 +266,10 @@ def cmd_list(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -276,12 +280,13 @@ def cmd_list(
 
 
 
-@app.command("list-manage-numbers")
+@app.command("list-manage-numbers", short_help="List Manage Numbers Jobs.")
 def list_manage_numbers(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Manage Numbers Jobs."""
@@ -297,7 +302,10 @@ def list_manage_numbers(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -308,9 +316,9 @@ def list_manage_numbers(
 
 
 
-_BODY_SKELETON_CREATE_MANAGE_NUMBERS = '{"operation":"...","numberList":[{"locationId":"...","numbers":"..."}],"targetLocationId":"...","numberUsageType":"..."}'
+_BODY_SKELETON_CREATE_MANAGE_NUMBERS = '{"operation":"...","numberList":[{"locationId":"...","numbers":["..."]}],"targetLocationId":"...","numberUsageType":"..."}'
 
-@app.command("create-manage-numbers")
+@app.command("create-manage-numbers", short_help="Initiate Number Jobs.")
 def create_manage_numbers(
     operation: str = typer.Option(None, "--operation", help="(required) The kind of operation to be carried out."),
     target_location_id: str = typer.Option(None, "--target-location-id", help="Mandatory for a `MOVE` operation. The target location within organization where the unassigned numbers will be moved from the source location."),
@@ -321,7 +329,7 @@ def create_manage_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Initiate Number Jobs\n\nExample --json-body:\n  '{"operation":"...","numberList":[{"locationId":"...","numbers":"..."}],"targetLocationId":"...","numberUsageType":"..."}'."""
+    """Initiate Number Jobs.\n\n\b\nExample: wxcli numbers create-manage-numbers --json-body '{"operation":"...","numberList":[{"locationId":"...","numbers":["..."]}]}'\n\n\b\nExample --json-body: '{"operation":"...","numberList":[{"locationId":"...","numbers":["..."]}],"targetLocationId":"...","numberUsageType":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MANAGE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -363,14 +371,14 @@ def create_manage_numbers(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Manage Numbers Job Status.")
 def show(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli numbers list-manage-numbers"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Manage Numbers Job Status."""
+    """Get Manage Numbers Job Status.\n\n\b\nExample: wxcli numbers show JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}"
     params = {}
@@ -387,15 +395,15 @@ def show(
 
 
 
-@app.command("pause-the-manage")
+@app.command("pause-the-manage", short_help="Pause the Manage Numbers Job.")
 def pause_the_manage(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli numbers list-manage-numbers"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Pause the Manage Numbers Job."""
+    """Pause the Manage Numbers Job.\n\n\b\nExample: wxcli numbers pause-the-manage JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}/actions/pause/invoke"
     params = {}
@@ -416,15 +424,15 @@ def pause_the_manage(
 
 
 
-@app.command("resume-the-manage")
+@app.command("resume-the-manage", short_help="Resume the Manage Numbers Job.")
 def resume_the_manage(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli numbers list-manage-numbers"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Resume the Manage Numbers Job."""
+    """Resume the Manage Numbers Job.\n\n\b\nExample: wxcli numbers resume-the-manage JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}/actions/resume/invoke"
     params = {}
@@ -445,16 +453,17 @@ def resume_the_manage(
 
 
 
-@app.command("list-errors")
+@app.command("list-errors", short_help="List Manage Numbers Job Errors.")
 def list_errors(
-    job_id: str = typer.Argument(help="jobId"),
+    job_id: str = typer.Argument(help="Webex JOB_ID id, from: wxcli numbers list-manage-numbers"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Manage Numbers Job Errors."""
+    """List Manage Numbers Job Errors.\n\n\b\nExample: wxcli numbers list-errors JOB_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/jobs/numbers/manageNumbers/{job_id}/errors"
     params = {}
@@ -467,7 +476,10 @@ def list_errors(
         params["orgId"] = org_id
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

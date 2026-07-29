@@ -11,12 +11,13 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling organizations.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Organizations.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Organizations."""
@@ -40,7 +41,7 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Organization Details.")
 def show(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -60,7 +61,7 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete Organization.")
 def delete(
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -68,10 +69,10 @@ def delete(
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Organization."""
-    if not force:
-        typer.confirm(f"Delete {org_id}?", abort=True)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {org_id}?", abort=True)
     url = f"https://webexapis.com/v1/organizations/{org_id}"
     try:
         result = api.session.rest_delete(url)

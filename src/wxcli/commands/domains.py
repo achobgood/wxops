@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Calling domains.")
 
 _BODY_SKELETON_GET_DOMAIN_VERIFICATION = '{"domain":"..."}'
 
-@app.command("get-domain-verification")
+@app.command("get-domain-verification", short_help="Get Domain Verification Token.")
 def get_domain_verification(
     domain: str = typer.Option(None, "--domain", help="A valid domain name."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -22,7 +22,7 @@ def get_domain_verification(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Domain Verification Token\n\nExample --json-body:\n  '{"domain":"..."}'."""
+    """Get Domain Verification Token.\n\n\b\nExample: wxcli domains get-domain-verification --domain DOMAIN\n\n\b\nExample --json-body: '{"domain":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_GET_DOMAIN_VERIFICATION), indent=2))
         raise typer.Exit(0)
@@ -47,7 +47,7 @@ def get_domain_verification(
 
 _BODY_SKELETON_VERIFY_DOMAIN = '{"domain":"...","claimDomain":true,"reserveDomain":true}'
 
-@app.command("verify-domain")
+@app.command("verify-domain", short_help="Verify Domain.")
 def verify_domain(
     domain: str = typer.Option(None, "--domain", help="The domain name to be verified."),
     claim_domain: str = typer.Option(None, "--claim-domain", help="A boolean to specify whether the domain needs to be claimed. The default value is false. If false, the domain will be verified but not claimed."),
@@ -58,7 +58,7 @@ def verify_domain(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Verify Domain\n\nExample --json-body:\n  '{"domain":"...","claimDomain":true,"reserveDomain":true}'."""
+    """Verify Domain.\n\n\b\nExample: wxcli domains verify-domain --domain DOMAIN\n\n\b\nExample --json-body: '{"domain":"...","claimDomain":true,"reserveDomain":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VERIFY_DOMAIN), indent=2))
         raise typer.Exit(0)
@@ -87,7 +87,7 @@ def verify_domain(
 
 _BODY_SKELETON_CLAIM_DOMAIN = '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'
 
-@app.command("claim-domain")
+@app.command("claim-domain", short_help="Claim Domain.")
 def claim_domain(
     force_domain_claim: str = typer.Option(None, "--force-domain-claim", help="Indicate if the domain should be claimed when there are users outside the organization using the same domain. The default is true."),
     claim_domain_only: str = typer.Option(None, "--claim-domain-only", help="Indicate to just claim the domain only without searching/marking external users as transient. The default is false."),
@@ -97,7 +97,7 @@ def claim_domain(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Claim Domain\n\nExample --json-body:\n  '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'."""
+    """Claim Domain.\n\n\b\nExample --json-body: '{"data":[{"domain":"..."}],"forceDomainClaim":true,"claimDomainOnly":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CLAIM_DOMAIN), indent=2))
         raise typer.Exit(0)
@@ -124,7 +124,7 @@ def claim_domain(
 
 _BODY_SKELETON_UNVERIFY_DOMAIN = '{"domain":"...","removePending":true}'
 
-@app.command("unverify-domain")
+@app.command("unverify-domain", short_help="Unverify Domain.")
 def unverify_domain(
     domain: str = typer.Option(None, "--domain", help="Domain name to be verified."),
     remove_pending: str = typer.Option(None, "--remove-pending", help="Specify whether to remove pending domain. Default is false (backward compatibility). If true, domains will be deleted from pending domain list."),
@@ -134,7 +134,7 @@ def unverify_domain(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unverify Domain\n\nExample --json-body:\n  '{"domain":"...","removePending":true}'."""
+    """Unverify Domain.\n\n\b\nExample: wxcli domains unverify-domain --domain DOMAIN\n\n\b\nExample --json-body: '{"domain":"...","removePending":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UNVERIFY_DOMAIN), indent=2))
         raise typer.Exit(0)
@@ -161,7 +161,7 @@ def unverify_domain(
 
 _BODY_SKELETON_UNCLAIM_DOMAIN = '{"domain":"..."}'
 
-@app.command("unclaim-domain")
+@app.command("unclaim-domain", short_help="Unclaim Domain.")
 def unclaim_domain(
     domain: str = typer.Option(None, "--domain", help="A claimed domain."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -170,7 +170,7 @@ def unclaim_domain(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unclaim Domain\n\nExample --json-body:\n  '{"domain":"..."}'."""
+    """Unclaim Domain.\n\n\b\nExample: wxcli domains unclaim-domain --domain DOMAIN\n\n\b\nExample --json-body: '{"domain":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UNCLAIM_DOMAIN), indent=2))
         raise typer.Exit(0)

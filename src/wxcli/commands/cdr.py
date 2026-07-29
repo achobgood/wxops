@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling cdr.")
 
 
-@app.command("list")
+@app.command("list", short_help="Get Detailed Call History.")
 def cmd_list(
     start_time: str = typer.Option(..., "--start-time", help="Time of the first report you wish to collect. (Report time is the time the call finished). **Note:** The specified time must be between 5 minutes ago and 48 hours ago, and formatted as `YYYY-MM-DDTHH:MM:SS.mmmZ`."),
     end_time: str = typer.Option(..., "--end-time", help="Time of the last report you wish to collect. (Report time is the time the call finished). **Note:** The specified time should be later than `startTime` but no later than 48 hours, and formatted as `YYYY-MM-DDTHH:MM:SS.mmmZ`."),
@@ -19,9 +19,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Detailed Call History."""
+    """Get Detailed Call History.\n\n\b\nExample: wxcli cdr list --start-time START_TIME --end-time END_TIME"""
     api = get_api(debug=debug)
     url = f"https://analytics-calling.webexapis.com/v1/cdr_feed"
     params = {}
@@ -36,7 +37,7 @@ def cmd_list(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
@@ -50,7 +51,7 @@ def cmd_list(
 
 
 
-@app.command("list-cdr_stream")
+@app.command("list-cdr_stream", short_help="Get Live Stream Detailed Call History.")
 def list_cdr_stream(
     start_time: str = typer.Option(..., "--start-time", help="The start date-time of the first record you wish to collect in UTC time. It would be the earliest time at which the data was inserted into the Webex Calling cloud for the records you wish to collect. Format must be as `YYYY-MM-DDTHH:MM:SS.mmmZ`. `startTime` can't be older than 12 hours from your..."),
     end_time: str = typer.Option(..., "--end-time", help="The end date-time of the last record you wish to collect in UTC time. It would be the latest time at which the data was inserted into the Webex Calling cloud for the records you wish to collect. Format must be as `YYYY-MM-DDTHH:MM:SS.mmmZ`. `endTime` must be 1 minute ago from your current UTC time..."),
@@ -59,9 +60,10 @@ def list_cdr_stream(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Live Stream Detailed Call History."""
+    """Get Live Stream Detailed Call History.\n\n\b\nExample: wxcli cdr list-cdr_stream --start-time START_TIME --end-time END_TIME"""
     api = get_api(debug=debug)
     url = f"https://analytics-calling.webexapis.com/v1/cdr_stream"
     params = {}
@@ -76,7 +78,7 @@ def list_cdr_stream(
     if offset > 0:
         params["start"] = offset
     try:
-        if limit > 0:
+        if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])

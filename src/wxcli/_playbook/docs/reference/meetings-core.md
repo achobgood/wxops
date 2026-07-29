@@ -342,7 +342,7 @@ Templates define default meeting settings (audio options, attendee privileges, m
 | `--is-standard` | Filter to standard (system) templates only |
 | `--host-email EMAIL` | Admin: list templates available to another user |
 
-#### `meetings show TEMPLATE_ID`
+#### `meetings show-templates TEMPLATE_ID`
 
 | Option | Description |
 |--------|-------------|
@@ -384,7 +384,7 @@ Real-time controls for an active meeting. Only the meeting host can use these.
 |--------|-------------|
 | `--meeting-id TEXT` | Meeting ID of the active meeting |
 
-#### `meetings update` (meeting controls)
+#### `meetings update-controls` (meeting controls)
 
 | Option | Description |
 |--------|-------------|
@@ -469,7 +469,7 @@ Registration forms and registrant management for webinar-type meetings. These en
 | `--host-email EMAIL` | Admin: configure for another user's meeting |
 | `--json-body JSON` | Full JSON body (required for customizedQuestions and rules) |
 
-#### `meetings create` (register a single registrant)
+#### `meetings create-registrants` (register a single registrant)
 
 | Option | Description |
 |--------|-------------|
@@ -780,7 +780,7 @@ These are read-only configuration endpoints. Session types define what meeting c
 | `--host-email EMAIL` | Admin: list session types for another user |
 | `--site-url URL` | Webex site to query |
 
-#### `meetings list` (tracking codes)
+#### `meetings list-tracking-codes` (tracking codes)
 
 | Option | Description |
 |--------|-------------|
@@ -816,7 +816,7 @@ tracking_codes = resp.json().get("items", [])
 
 ## 12. Raw HTTP Endpoints
 
-Complete table of all 46 endpoints in the `meetings` CLI group.
+Complete table of all 45 endpoints in the `meetings` CLI group.
 
 | HTTP Method | Path | CLI Command | Summary |
 |-------------|------|-------------|---------|
@@ -832,17 +832,16 @@ Complete table of all 46 endpoints in the `meetings` CLI group.
 | POST | /meetings/{meetingId}/end | `create-end` | End a Meeting |
 | POST | /meetings/reassignHost | `create-reassign-host` | Reassign Meetings to a New Host |
 | GET | /meetings/templates | `list-templates` | List Meeting Templates |
-| GET | /meetings/templates/{templateId} | `show` | Get a Meeting Template |
+| GET | /meetings/templates/{templateId} | `show-templates` | Get a Meeting Template |
 | GET | /meetings/controls | `show-controls` | Get Meeting Control Status |
-| PUT | /meetings/controls | `update` | Update Meeting Control Status |
+| PUT | /meetings/controls | `update-controls` | Update Meeting Control Status |
 | GET | /meetings/{meetingId}/registration | `list-registration` | Get Registration Form |
 | PUT | /meetings/{meetingId}/registration | `update-registration` | Update Meeting Registration Form |
-| DELETE | /meetings/{meetingId}/registration | `delete` | Delete Meeting Registration Form |
+| DELETE | /meetings/{meetingId}/registration | `delete-registration` | Delete Meeting Registration Form |
 | GET | /meetings/{meetingId}/registrants | `list-registrants` | List Meeting Registrants |
-| POST | /meetings/{meetingId}/registrants | `create` | Register a Meeting Registrant |
+| POST | /meetings/{meetingId}/registrants | `create-registrants` | Register a Meeting Registrant |
 | POST | /meetings/{meetingId}/registrants/bulkInsert | `create-bulk-insert` | Batch Register Meeting Registrants |
 | GET | /meetings/{meetingId}/registrants/{registrantId} | `show-registrants` | Get Registrant Details |
-| POST | /meetings/{meetingId}/registrants/{registrantId} | `create-registrants` | Batch Update Registrant Status |
 | DELETE | /meetings/{meetingId}/registrants/{registrantId} | `delete-registrants` | Delete a Meeting Registrant |
 | POST | /meetings/{meetingId}/registrants/query | `create-query` | Query Meeting Registrants |
 | POST | /meetings/{meetingId}/registrants/approve | `create-approve` | Batch Approve Meeting Registrants |
@@ -865,7 +864,7 @@ Complete table of all 46 endpoints in the `meetings` CLI group.
 | POST | /meetings/{meetingId}/invitationSources | `create-invitation-sources` | Create Invitation Sources |
 | GET | /meetings/sessionTypes | `list-session-types` | List Meeting Session Types |
 | GET | /meetings/sessionTypes/{sessionTypeId} | `show-session-types` | Get a Meeting Session Type |
-| GET | /meetings/trackingCodes | `list` | List Meeting Tracking Codes |
+| GET | /meetings/trackingCodes | `list-tracking-codes` | List Meeting Tracking Codes |
 
 ---
 

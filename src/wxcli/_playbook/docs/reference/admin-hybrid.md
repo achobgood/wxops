@@ -160,17 +160,6 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 
 Historical analytics covering messaging activity, room device usage, and meeting aggregates. Three separate commands query three different metric endpoints.
 
-### KNOWN BUG: `/v1/v1/` Double-Path
-
-All three `analytics` commands have a confirmed bug in the generated code: the URL contains `/v1/v1/` instead of `/v1/`. For example, the `show` command hits `https://webexapis.com/v1/v1/analytics/messagingMetrics/dailyTotals` instead of the correct `https://webexapis.com/v1/analytics/messagingMetrics/dailyTotals`. This causes all three commands to fail at runtime with a 404 or routing error.
-
-**Workaround:** Use raw HTTP (curl) until a fixed release.
-
-**Affected commands:**
-- `wxcli analytics show` -- path: `/v1/v1/analytics/messagingMetrics/dailyTotals` (should be `/v1/analytics/messagingMetrics/dailyTotals`)
-- `wxcli analytics show-daily-totals` -- path: `/v1/v1/analytics/roomDeviceMetrics/dailyTotals` (should be `/v1/analytics/roomDeviceMetrics/dailyTotals`)
-- `wxcli analytics show-aggregates` -- path: `/v1/v1/analytics/meetingsMetrics/aggregates` (should be `/v1/analytics/meetingsMetrics/aggregates`)
-
 ### CLI Commands
 
 | Command | Description | Key Options |
@@ -179,7 +168,7 @@ All three `analytics` commands have a confirmed bug in the generated code: the U
 | `wxcli analytics show-daily-totals` | Room device historical data (daily totals) | `--from`, `--to`, `-o json` |
 | `wxcli analytics show-aggregates` | Meeting historical data (aggregates) | `--site-url` (required), `--from`, `--to`, `-o json` |
 
-### CLI Examples (will fail until bug is fixed)
+### CLI Examples
 
 ```bash
 # Messaging metrics for a date range
@@ -192,7 +181,7 @@ wxcli analytics show-daily-totals --from 2026-03-01 --to 2026-03-15
 wxcli analytics show-aggregates --site-url "mysite.webex.com" --from 2026-03-01 --to 2026-03-15
 ```
 
-### Raw HTTP Fallback (use these until the CLI bug is fixed)
+### Raw HTTP Fallback
 
 ```bash
 # Messaging metrics -- daily totals
@@ -309,7 +298,8 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 ### Pull historical analytics for messaging/meetings/devices
 
-Due to the `/v1/v1/` bug in the CLI, use raw HTTP for now.
+The `wxcli analytics` commands cover all three of these; the raw HTTP below is
+the fallback, not the recommended path.
 
 ```bash
 # Messaging activity over the last 30 days
@@ -334,8 +324,11 @@ You need a `meetingId` to query quality data. Get it from the Meetings API or Co
 wxcli meeting-qualities list --meeting-id "a1b2c3d4e5f6" -o json
 
 # Step 2: Parse the response for quality indicators
+# Field names come from the 200 schema: the participant is `webexUserName`, and
+# jitter/packetLoss/latency are per-stream entries inside the audioIn/audioOut/
+# videoIn/videoOut arrays — there is no `displayName` and no `mediaQuality` object.
 wxcli meeting-qualities list --meeting-id "a1b2c3d4e5f6" -o json | \
-  jq '.[] | {participant: .displayName, audioJitter: .mediaQuality.audioJitter, videoPacketLoss: .mediaQuality.videoPacketLoss, latency: .mediaQuality.latency}'
+  jq '.[] | {participant: .webexUserName, audioJitter: [.audioIn[]?.jitter], videoPacketLoss: [.videoIn[]?.packetLoss], latency: [.audioIn[]?.latency]}'
 ```
 
 Raw HTTP version:
@@ -361,14 +354,6 @@ None of these 5 command groups have write operations. There are no `update`, `de
 ### Meeting quality requires a specific `meetingId`
 
 The `meeting-qualities list` command is effectively useless without `--meeting-id`. Without it, the API may return an error or empty results. You need to obtain the meeting ID from the Meetings API (`wxcli meetings list` or the Control Hub meeting history) before querying quality data.
-
-### CONFIRMED BUG: `analytics` commands have a `/v1/v1/` double-path
-
-All three `analytics` commands (`show`, `show-daily-totals`, `show-aggregates`) generate URLs with `/v1/v1/` instead of `/v1/`. This is a generator bug -- the OpenAPI spec paths already include `/v1/`, and the generator prepends the base URL which also ends in `/v1`. The result is a broken double-path like `https://webexapis.com/v1/v1/analytics/messagingMetrics/dailyTotals`.
-
-**Impact:** All three commands fail at runtime. Use raw HTTP (curl) as shown in the fallback examples above.
-
-**Fix:** tracked as a generator bug; until a fixed release, use the raw HTTP workaround above
 
 ### Scope troubleshooting
 

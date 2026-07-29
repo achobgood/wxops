@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling reports.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Reports.")
 def cmd_list(
     report_id: str = typer.Option(None, "--report-id", help="List reports by ID."),
     service: str = typer.Option(None, "--service", help="List reports which use this service."),
@@ -21,6 +21,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Reports."""
@@ -56,7 +57,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"templateId":0,"startDate":"...","endDate":"...","siteList":"...","timeZone":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create a Report.")
 def create(
     template_id: str = typer.Option(None, "--template-id", help="(required) Unique ID representing valid report templates."),
     start_date: str = typer.Option(None, "--start-date", help="Data in the report will be from this date onwards."),
@@ -69,7 +70,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Report\n\nExample --json-body:\n  '{"templateId":0,"startDate":"...","endDate":"...","siteList":"...","timeZone":"..."}'."""
+    """Create a Report.\n\n\b\nExample: wxcli reports create --template-id TEMPLATE_ID\n\n\b\nExample --json-body: '{"templateId":0,"startDate":"...","endDate":"...","siteList":"...","timeZone":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -111,14 +112,14 @@ def create(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Report Details.")
 def show(
-    report_id: str = typer.Argument(help="reportId"),
+    report_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli reports list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Report Details."""
+    """Get Report Details.\n\n\b\nExample: wxcli reports show REPORT_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/reports/{report_id}"
     try:
@@ -131,18 +132,18 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete a Report.")
 def delete(
-    report_id: str = typer.Argument(help="reportId"),
+    report_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli reports list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a Report."""
+    """Delete a Report.\n\n\b\nExample: wxcli reports delete REPORT_ID"""
+    api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {report_id}?", abort=True)
-    api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/reports/{report_id}"
     try:
         result = api.session.rest_delete(url)

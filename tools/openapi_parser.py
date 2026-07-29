@@ -91,10 +91,16 @@ def get_tags(spec: dict) -> list[str]:
 def parse_parameters(
     params: list[dict], spec: dict, omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
-) -> tuple[list[str], list[EndpointField], list[str], list[str]]:
-    """Parse OpenAPI parameters into (path_vars, query_params, auto_inject_names, auto_inject_path_names).
+) -> tuple[list[str], list[EndpointField], list[str], list[str], dict[str, dict]]:
+    """Parse OpenAPI parameters into (path_vars, query_params, auto_inject_names,
+    auto_inject_path_names, path_var_meta).
 
-    Path params become path_vars list of variable names.
+    Path params become path_vars list of variable names, plus a path_var_meta
+    side table carrying what the spec says about each one's VALUE (example,
+    enum, format) so the renderer can describe the argument instead of echoing
+    its name back. 1961 of 2120 path params across the tracked specs declare an
+    example; the Webex ones are real base64 Spark IDs that decode to
+    ``ciscospark://us/<KIND>/<uuid>``, which is what identifies the ID's kind.
     Query params become EndpointField list with type, description, required, enum.
     Params in omit_query_params are skipped entirely.
     Params in auto_inject_params are separated into auto_inject_names and not
@@ -108,6 +114,7 @@ def parse_parameters(
     auto_inject_path_names: list[str] = []
     path_vars: list[str] = []
     query_params: list[EndpointField] = []
+    path_var_meta: dict[str, dict] = {}
 
     for param in params:
         # Resolve param-level $ref
@@ -120,6 +127,11 @@ def parse_parameters(
 
         if location == "path":
             path_vars.append(name)
+            path_var_meta[name] = {
+                "example": param.get("example", schema.get("example")),
+                "enum": schema.get("enum"),
+                "format": schema.get("format"),
+            }
             if name in auto_inject:
                 auto_inject_path_names.append(name)
         elif location == "query":
@@ -143,7 +155,8 @@ def parse_parameters(
                 )
             )
 
-    return path_vars, query_params, auto_inject_names, auto_inject_path_names
+    return (path_vars, query_params, auto_inject_names, auto_inject_path_names,
+            path_var_meta)
 
 
 def _openapi_type_to_field_type(schema: dict) -> str:
@@ -162,12 +175,87 @@ def _openapi_type_to_field_type(schema: dict) -> str:
     return "string"
 
 
-def _schema_to_example(schema: dict, spec: dict, depth: int = 0) -> Any:
-    """Generate a compact example value from an OpenAPI schema, max 2 levels deep."""
-    if depth > 2:
-        return "..."
+# Backstop only. The deepest request body in any tracked spec nests 9 levels
+# (webex-contact-center POST /organization/{orgid}/v3/user-profile/bulk), so
+# this cannot fire today; it exists so an unbounded future schema degrades to a
+# NOTED truncation instead of an unbounded expansion.
+_MAX_EXAMPLE_DEPTH = 25
+
+
+def _note_truncation(notes: list[str] | None, path: str, why: str) -> None:
+    if notes is None:
+        return
+    note = f"{path or '<root>'} not expanded ({why})"
+    if note not in notes:
+        notes.append(note)
+
+
+def _empty_for(schema: dict) -> Any:
+    """A type-correct stand-in used only where expansion has to stop.
+
+    Never `"..."` for a container: a scalar placeholder in an object's slot is
+    the exact lie this function exists to avoid — it tells a reader the API
+    wants a string where it wants a nested body.
+    """
+    t = schema.get("type") or ("object" if "properties" in schema else "string")
+    if t == "array":
+        return []
+    if t == "object":
+        return {}
+    return "..."
+
+
+def _schema_to_example(
+    schema: dict,
+    spec: dict,
+    depth: int = 0,
+    refchain: frozenset[str] = frozenset(),
+    notes: list[str] | None = None,
+    path: str = "",
+    required_only: bool = False,
+) -> Any:
+    """Generate an example value from an OpenAPI schema, expanded in full.
+
+    There is deliberately no depth cutoff and no property cap. Both used to
+    exist (`depth > 2` rendering a nested object as the scalar `"..."`, and
+    `ordered[:8]` dropping every property past the eighth) and both truncated
+    SILENTLY: `licenses update` printed `"properties":"..."` for a three-field
+    object, and on five commands the cap dropped a field the spec marks
+    required — so `--generate-json-body`, the documented escape hatch for
+    exactly these bodies, itself emitted a body the API rejects.
+
+    The only remaining bounds are ones that cannot fire silently:
+
+    * a `$ref` cycle, detected against the refs already open on this branch.
+      Measured across all 9 tracked specs: 0 cycles.
+    * `_MAX_EXAMPLE_DEPTH`, a backstop against a pathological future schema.
+      Measured deepest request body today: 9 levels.
+
+    Either one appends a note to `notes`, which the renderer prints beside the
+    skeleton. Silence is reserved for skeletons that are complete.
+
+    `required_only=True` prunes each object to the fields its own schema marks
+    required, producing the MINIMUM body the spec accepts. An object that
+    declares no required list is emitted whole — there is nothing to prune by,
+    and emitting `{}` for a required nested object would be the same lie the
+    depth cutoff used to tell. This is what the runnable `Example:` line uses;
+    the unpruned form stays on the `Example --json-body:` line, because a
+    create whose example hands back `id`, `version` and `createdTime` is not an
+    example of creating anything.
+    """
     if "$ref" in schema:
-        schema = resolve_ref(spec, schema["$ref"])
+        ref = schema["$ref"]
+        resolved = resolve_ref(spec, ref)
+        if ref in refchain:
+            _note_truncation(notes, path, f"schema recurses through {ref}")
+            return _empty_for(resolved)
+        refchain = refchain | {ref}
+        schema = resolved
+    if any(k in schema for k in ("allOf", "oneOf", "anyOf")):
+        schema = _resolve_schema_node(spec, schema)
+    if depth > _MAX_EXAMPLE_DEPTH:
+        _note_truncation(notes, path, f"nested deeper than {_MAX_EXAMPLE_DEPTH} levels")
+        return _empty_for(schema)
     t = schema.get("type", "object")
     if t == "string":
         enum = schema.get("enum")
@@ -178,32 +266,38 @@ def _schema_to_example(schema: dict, spec: dict, depth: int = 0) -> Any:
         return True
     if t == "array":
         items = schema.get("items", {})
-        return [_schema_to_example(items, spec, depth + 1)]
+        return [_schema_to_example(items, spec, depth + 1, refchain, notes,
+                                   f"{path}[]", required_only)]
     if t == "object" or "properties" in schema:
         props = schema.get("properties", {})
         required_set = set(schema.get("required", []))
         required_keys = [k for k in props if k in required_set]
         optional_keys = [k for k in props if k not in required_set]
-        ordered = required_keys + optional_keys
+        if required_only and required_keys:
+            optional_keys = []
         result = {}
-        for name in ordered[:8]:
-            prop = props[name]
-            if "$ref" in prop:
-                prop = resolve_ref(spec, prop["$ref"])
-            result[name] = _schema_to_example(prop, spec, depth + 1)
+        for name in required_keys + optional_keys:
+            # The property's own $ref is NOT resolved here: passing it down
+            # intact is what lets the cycle guard above see it.
+            result[name] = _schema_to_example(
+                props[name], spec, depth + 1, refchain, notes,
+                f"{path}.{name}" if path else name, required_only,
+            )
         return result
     return "..."
 
 
-def generate_body_example(op: dict, spec: dict, nested_only: bool = False) -> str | None:
-    """Generate a compact JSON example for the request body.
+def _request_body_schema(op: dict, spec: dict) -> dict | None:
+    """The resolved JSON request-body schema, or None if the op has no body.
 
-    nested_only=True restores the pre-2026-07 behaviour of emitting an example
-    only when the body has object/array fields. The default now emits one for
-    any body, so --generate-json-body works on every body-bearing command.
+    One reader for both the flag list and the skeleton, so the two can never
+    disagree about what the body contains. It composes allOf/oneOf/anyOf via
+    _resolve_schema_node — without that, a body declared purely as a
+    composition reads as having no properties at all, which is how
+    `cc-callbacks update` shipped with zero flags, no skeleton, and no
+    --generate-json-body while its spec declares 8 required fields.
     """
-    rb = op.get("requestBody", {})
-    content = rb.get("content", {})
+    content = op.get("requestBody", {}).get("content", {})
     json_content = (
         content.get("application/json")
         or content.get("application/json;charset=UTF-8")
@@ -211,10 +305,30 @@ def generate_body_example(op: dict, spec: dict, nested_only: bool = False) -> st
     )
     if not json_content:
         return None
-
     schema = json_content.get("schema", {})
     if "$ref" in schema:
         schema = resolve_ref(spec, schema["$ref"])
+    if any(k in schema for k in ("allOf", "oneOf", "anyOf")):
+        schema = _resolve_schema_node(spec, schema)
+    return schema
+
+
+def generate_body_example(
+    op: dict, spec: dict, nested_only: bool = False,
+    notes: list[str] | None = None, required_only: bool = False,
+) -> str | None:
+    """Generate a compact JSON example for the request body.
+
+    nested_only=True restores the pre-2026-07 behaviour of emitting an example
+    only when the body has object/array fields. The default now emits one for
+    any body, so --generate-json-body works on every body-bearing command.
+
+    `notes` is an optional out-parameter collecting any place expansion had to
+    stop (see _schema_to_example). An empty list means the skeleton is complete.
+    """
+    schema = _request_body_schema(op, spec)
+    if schema is None:
+        return None
 
     # By default (nested_only=False) an example is generated for any body,
     # nested or flat. has_nested is only consulted below to restore the old
@@ -230,7 +344,8 @@ def generate_body_example(op: dict, spec: dict, nested_only: bool = False) -> st
     if not props:
         return None
 
-    example = _schema_to_example(schema, spec)
+    example = _schema_to_example(schema, spec, notes=notes,
+                                 required_only=required_only)
     return json.dumps(example, separators=(",", ":"))
 
 
@@ -242,19 +357,9 @@ def parse_request_body(
     Resolves $ref, marks required fields, extracts enums and descriptions.
     Nested $ref objects get field_type='object'.
     """
-    rb = op.get("requestBody", {})
-    content = rb.get("content", {})
-    json_content = (
-        content.get("application/json")
-        or content.get("application/json;charset=UTF-8")
-        or content.get("application/json-patch+json", {})
-    )
-    if not json_content:
+    schema = _request_body_schema(op, spec)
+    if schema is None:
         return []
-
-    schema = json_content.get("schema", {})
-    if "$ref" in schema:
-        schema = resolve_ref(spec, schema["$ref"])
 
     properties = schema.get("properties", {})
     required_fields = set(schema.get("required", []))
@@ -521,6 +626,41 @@ def _path_to_url_path(path: str) -> str:
     return result
 
 
+# Query parameters that mark a paged collection, grouped by the walking style
+# they imply. Names come from the three shapes Webex actually ships.
+_LINK_PARAMS = {"max", "start", "offset", "cursor", "pageToken"}
+_PAGE_PARAMS = {"page", "pageSize"}
+_SCIM_PARAMS = {"startIndex", "count"}
+
+
+def _pagination_style(op: dict) -> str:
+    """'link' | 'page' | 'scim' | 'none' for a GET operation.
+
+    Order matters: Contact Center declares `page`/`pageSize` and no Link header,
+    SCIM declares `startIndex`/`count`, and Webex core uses `max`/`start` with
+    `Link: rel="next"`. Checked most-specific-first so a core endpoint that also
+    happens to carry `count` is not misread as SCIM.
+    """
+    names = {
+        pr.get("name")
+        for pr in (op.get("parameters") or [])
+        if isinstance(pr, dict) and pr.get("in") == "query"
+    }
+    has_link = any(
+        h.lower() == "link"
+        for code, resp in (op.get("responses") or {}).items()
+        if isinstance(resp, dict) and str(code).startswith("2")
+        for h in (resp.get("headers") or {})
+    )
+    if names & _PAGE_PARAMS:
+        return "page"
+    if names & _SCIM_PARAMS:
+        return "scim"
+    if has_link or (names & _LINK_PARAMS):
+        return "link"
+    return "none"
+
+
 def parse_operation(
     method: str,
     path: str,
@@ -531,7 +671,8 @@ def parse_operation(
 ) -> Endpoint:
     """Convert one OpenAPI operation to an Endpoint dataclass."""
     params = op.get("parameters", [])
-    path_vars, query_params, auto_inject_names, auto_inject_path_names = parse_parameters(
+    (path_vars, query_params, auto_inject_names, auto_inject_path_names,
+     path_var_meta) = parse_parameters(
         params, spec, omit_query_params, auto_inject_params
     )
     body_fields = parse_request_body(op, spec)
@@ -554,14 +695,22 @@ def parse_operation(
     deprecated = op.get("deprecated", False)
 
     json_body_example = None
+    json_body_minimal_example = None
+    json_body_truncations: list[str] = []
     if command_type in ("create", "update", "delete", "action"):
-        json_body_example = generate_body_example(op, spec)
+        json_body_example = generate_body_example(
+            op, spec, notes=json_body_truncations)
+        json_body_minimal_example = generate_body_example(
+            op, spec, required_only=True)
 
-    # Detect pagination: 200 response with Link header means RFC 5988 pagination
-    paginates = False
+    # `paginates` keeps its ORIGINAL rule — a 200 that declares a Link header —
+    # because it alone decides whether a command walks every page BY DEFAULT.
+    # Widening it would silently change what 109 commands return, which is the
+    # one thing this work is not allowed to do. `pagination_style` is the new,
+    # broader signal and is used only to pick which walker `--all` calls.
     resp_200 = op.get("responses", {}).get("200", {})
-    if "Link" in resp_200.get("headers", {}):
-        paginates = True
+    paginates = "Link" in resp_200.get("headers", {})
+    pagination_style = _pagination_style(op)
 
     # Detect non-standard content types (e.g., application/json-patch+json)
     content_type = None
@@ -583,12 +732,16 @@ def parse_operation(
         response_id_key=response_id_key,
         deprecated=deprecated,
         json_body_example=json_body_example,
+        json_body_minimal_example=json_body_minimal_example,
+        json_body_truncations=json_body_truncations,
         auto_inject_params=auto_inject_names,
         auto_inject_path_params=auto_inject_path_names,
         content_type=content_type,
         paginates=paginates,
+        pagination_style=pagination_style,
         real_semantics=classify_real_semantics(name, body_fields),
         response_item_fields=response_item_fields,
+        path_var_meta=path_var_meta,
     )
 
 

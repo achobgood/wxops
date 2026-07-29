@@ -10,12 +10,13 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling roles.")
 
 
-@app.command("list")
+@app.command("list", short_help="List Roles.")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Roles."""
@@ -39,14 +40,14 @@ def cmd_list(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get Role Details.")
 def show(
-    role_id: str = typer.Argument(help="roleId"),
+    role_id: str = typer.Argument(help="Webex ROLE id, from: wxcli roles list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Role Details."""
+    """Get Role Details.\n\n\b\nExample: wxcli roles show ROLE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/roles/{role_id}"
     try:

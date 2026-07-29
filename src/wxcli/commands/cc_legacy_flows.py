@@ -11,19 +11,20 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-legacy-flows.")
 
 
-@app.command("list")
+@app.command("list", short_help="Export a Flow or Subflow.")
 def cmd_list(
-    flow_id: str = typer.Argument(help="flowId"),
-    project_id: str = typer.Argument(help="projectId"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
+    project_id: str = typer.Argument(help="24-char hex id"),
     version: str = typer.Option(None, "--version", help="Version ID. Possible values are 'draft', 'latest' or version ID like '64b92c004ccd9f3d1c680709'. Defaulted to 'latest'."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Export a Flow or Subflow."""
+    """Export a Flow or Subflow.\n\n\b\nExample: wxcli cc-legacy-flows list FLOW_ID PROJECT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)

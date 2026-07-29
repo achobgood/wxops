@@ -11,9 +11,9 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-resource-collection.")
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Resource Collection.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -29,7 +29,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Resource Collection\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'."""
+    """Create a new Resource Collection.\n\n\b\nExample: wxcli cc-resource-collection create --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -79,9 +79,9 @@ def create(
 
 
 
-_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":0,"item":{"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("update")
+@app.command("update", short_help="Bulk partial update Resource Collections.")
 def update(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -89,7 +89,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Resource Collections\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk partial update Resource Collections.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -118,7 +118,7 @@ def update(
 
 _BODY_SKELETON_CREATE_UPDATE_RESOURCE = '{"resourceType":"...","resourceId":"...","resourceCollections":[{"id":"..."}]}'
 
-@app.command("create-update-resource")
+@app.command("create-update-resource", short_help="Update resource with default resource collection.")
 def create_update_resource(
     resource_type: str = typer.Option(None, "--resource-type", help="(required) Resource type."),
     resource_id: str = typer.Option(None, "--resource-id", help="(required) Resource Id."),
@@ -128,7 +128,7 @@ def create_update_resource(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update resource with default resource collection\n\nExample --json-body:\n  '{"resourceType":"...","resourceId":"...","resourceCollections":[{"id":"..."}]}'."""
+    """Update resource with default resource collection.\n\n\b\nExample: wxcli cc-resource-collection create-update-resource --resource-type RESOURCE_TYPE --resource-id RESOURCE_ID\n\n\b\nExample --json-body: '{"resourceType":"...","resourceId":"...","resourceCollections":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_UPDATE_RESOURCE), indent=2))
         raise typer.Exit(0)
@@ -166,14 +166,14 @@ def create_update_resource(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Resource Collection by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Resource Collection by ID."""
+    """Get specific Resource Collection by ID.\n\n\b\nExample: wxcli cc-resource-collection show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -188,11 +188,11 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE_RESOURCE_COLLECTION = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'
+_BODY_SKELETON_UPDATE_RESOURCE_COLLECTION = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update-resource-collection")
+@app.command("update-resource-collection", short_help="Update specific Resource Collection by ID.")
 def update_resource_collection(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -207,7 +207,7 @@ def update_resource_collection(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Resource Collection by ID\n\nExample --json-body:\n  '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'."""
+    """Update specific Resource Collection by ID.\n\n\b\nExample: wxcli cc-resource-collection update-resource-collection ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_RESOURCE_COLLECTION), indent=2))
         raise typer.Exit(0)
@@ -250,20 +250,20 @@ def update_resource_collection(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Resource Collection by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Resource Collection by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Resource Collection by ID.\n\n\b\nExample: wxcli cc-resource-collection delete ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/resource-collection/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -280,9 +280,9 @@ def delete(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List references for a specific Resource Collection.")
 def cmd_list(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
@@ -290,9 +290,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List references for a specific Resource Collection."""
+    """List references for a specific Resource Collection.\n\n\b\nExample: wxcli cc-resource-collection list ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -310,7 +311,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -321,7 +325,7 @@ def cmd_list(
 
 
 
-@app.command("list-resource-collection")
+@app.command("list-resource-collection", short_help="List Resource Collections.")
 def list_resource_collection(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
@@ -332,6 +336,7 @@ def list_resource_collection(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Resource Collections."""
@@ -356,7 +361,10 @@ def list_resource_collection(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

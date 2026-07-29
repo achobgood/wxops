@@ -12,9 +12,9 @@ app = typer.Typer(help="Manage Webex Calling service-apps.")
 
 _BODY_SKELETON_CREATE = '{"clientId":"...","clientSecret":"...","targetOrgId":"..."}'
 
-@app.command("create")
+@app.command("create", short_help="Create Service App Access Token.")
 def create(
-    application_id: str = typer.Argument(help="applicationId"),
+    application_id: str = typer.Argument(help="Webex APPLICATION id"),
     client_id: str = typer.Option(None, "--client-id", help="(required) The OAuth client ID of the Service App"),
     client_secret: str = typer.Option(None, "--client-secret", help="(required) The OAuth client secret of the Service App"),
     target_org_id: str = typer.Option(None, "--target-org-id", help="(required) The organization ID for which the token will be created"),
@@ -24,7 +24,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Service App Access Token\n\nExample --json-body:\n  '{"clientId":"...","clientSecret":"...","targetOrgId":"..."}'."""
+    """Create Service App Access Token.\n\n\b\nExample: wxcli service-apps create APPLICATION_ID --client-id CLIENT_ID --client-secret CLIENT_SECRET --target-org-id TARGET_ORG_ID\n\n\b\nExample --json-body: '{"clientId":"...","clientSecret":"...","targetOrgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

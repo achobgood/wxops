@@ -35,7 +35,7 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 ### Recording setup (3-level prerequisite chain)
 ```bash
 wxcli call-recording show -o json                          # 1. Org-level recording vendor
-wxcli call-recording list-vendors -o json                  # 2. Per-location vendor assignment
+wxcli call-recording list-vendors LOCATION_ID -o json       # 2. Per-location vendor assignment
 wxcli user-settings show-call-recording PERSON_ID -o json  # 3. Person recording
 wxcli user-settings update-call-recording PERSON_ID --json-body '{"enabled": true, "record": "Always"}'
 ```
@@ -388,7 +388,9 @@ Filter by display name in the output. Extract the `id` field to use as `WORKSPAC
 
 ```bash
 # List all users, then filter for calling-enabled users (those with a locationId)
-wxcli users list --output json
+# --calling-data true is REQUIRED — without it Webex omits locationId and extension,
+# so every user reads as not calling-enabled and the filter silently returns nothing.
+wxcli users list --calling-data true --output json
 ```
 
 For small batches, use a shell loop. For large batches (50+ users), use the migration engine's async pattern which handles concurrency, rate limiting, and retry automatically.
@@ -424,7 +426,7 @@ For small batches, use a shell loop. For large batches (50+ users), use the migr
 | **Call Recording** | `user-settings show-call-recording PERSON_ID` | `workspace-settings show-call-recordings WS_ID` | — | `call-recording show` (vendor config) | — |
 | **Music on Hold** | SDK only (telephony_config) | SDK only | `location-settings` (must enable first) | — | — |
 | **Call Intercept** | `user-settings show-intercept PERSON_ID` | `workspace-settings show-intercept WS_ID` | Location defaults apply | — | — |
-| **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show-call-forwarding WS_ID` | — | — | — |
+| **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show WS_ID` (bare `show` **is** call forwarding) | — | — | — |
 | **Hoteling Guest** | `user-settings show-hoteling PERSON_ID` | — | — | — | `call-settings-for-me-phase-5 show-guest` |
 | **Hoteling Hosts** | — | — | — | — | `call-settings-for-me-phase-5 list` |
 
@@ -525,11 +527,11 @@ For settings still marked "SDK only" above (Music on Hold, Feature Access Contro
 
 ```bash
 # Read the current setting value
-curl -s -H "Authorization: Bearer $TOKEN" \
+curl -s -H "Authorization: Bearer $WEBEX_ACCESS_TOKEN" \
   "https://webexapis.com/v1/telephony/config/people/{person_id}/{settingEndpoint}" | python3 -m json.tool
 
 # Update via PUT (read-modify-write)
-curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+curl -s -X PUT -H "Authorization: Bearer $WEBEX_ACCESS_TOKEN" -H "Content-Type: application/json" \
   "https://webexapis.com/v1/telephony/config/people/{person_id}/{settingEndpoint}" \
   -d '{ ... }'
 ```
@@ -752,7 +754,7 @@ wxcli user-settings create PERSON_ID --json-body '{
 }'
 
 # Add an event to a schedule
-wxcli user-settings create-events PERSON_ID SCHEDULE_ID --json-body '{
+wxcli user-settings create-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --json-body '{
   "name": "Weekdays",
   "startDate": "2026-01-01",
   "endDate": "2026-12-31",
@@ -762,10 +764,10 @@ wxcli user-settings create-events PERSON_ID SCHEDULE_ID --json-body '{
 }'
 
 # Show schedule detail
-wxcli user-settings show-schedules PERSON_ID SCHEDULE_ID --output json
+wxcli user-settings show-schedules PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --output json
 
 # Delete a schedule event (requires 4 positional args)
-wxcli user-settings delete PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID
+wxcli user-settings delete-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID
 ```
 
 #### Pattern: Reset voicemail PIN
@@ -809,7 +811,7 @@ import sys, json
 for u in json.load(sys.stdin).get('items', []):
     if u.get('locationId'): print(u['id'])
 "); do
-    wxcli user-settings update-call-waiting "$USER_ID" --enabled false
+    wxcli user-settings update-call-waiting "$USER_ID" --no-enabled
     sleep 1
     ])
 ```

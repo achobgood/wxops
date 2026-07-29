@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling xapi.")
 
 
-@app.command("show")
+@app.command("show", short_help="Query Status.")
 def show(
     device_id: str = typer.Option(..., "--device-id", help="The unique identifier for the Webex RoomOS Device."),
     name: str = typer.Option(..., "--name", help="A list of status expressions used to query the Webex RoomOS Device. See the [xAPI section of the Device Developers Guide](/docs/api/guides/device-developers-guide#xapi) for a description of status expressions. A request can contain at most 10 different status expressions."),
@@ -18,7 +18,7 @@ def show(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Status."""
+    """Query Status.\n\n\b\nExample: wxcli xapi show --device-id DEVICE_ID --name NAME"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/xapi/status"
     params = {}
@@ -36,7 +36,7 @@ def show(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Query Schema.")
 def cmd_list(
     device_id: str = typer.Option(..., "--device-id", help="A list of device IDs to query schemas from. A request can contain at most 5 device IDs."),
     status: str = typer.Option(None, "--status", help="A list of status key expressions to query schemas for. Supports patterns. Requires the `spark:xapi_statuses` scope."),
@@ -45,9 +45,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Schema."""
+    """Query Schema.\n\n\b\nExample: wxcli xapi list --device-id DEVICE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/xapi/schema"
     params = {}
@@ -74,9 +75,9 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":"...","Organizer":"...","Number":"..."}}}'
+_BODY_SKELETON_CREATE = '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":{"StartTime":"...","Duration":0},"Organizer":{"Name":"..."},"Number":"..."}}}'
 
-@app.command("create")
+@app.command("create", short_help="Execute Command.")
 def create(
     command_name: str = typer.Argument(help="commandName"),
     device_id: str = typer.Option(None, "--device-id", help="(required) The unique identifier for the Webex RoomOS Device."),
@@ -86,7 +87,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Execute Command\n\nExample --json-body:\n  '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":"...","Organizer":"...","Number":"..."}}}'."""
+    """Execute Command.\n\n\b\nExample: wxcli xapi create COMMAND_NAME --json-body '{"deviceId":"...","arguments":{"Level":0}}'\n\n\b\nExample --json-body: '{"deviceId":"...","arguments":{"Level":0},"body":{"Booking":{"Id":"...","Title":"...","Protocol":"...","Time":{"StartTime":"...","Duration":0},"Organizer":{"Name":"..."},"Number":"..."}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

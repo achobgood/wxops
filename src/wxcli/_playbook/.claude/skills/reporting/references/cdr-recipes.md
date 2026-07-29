@@ -414,7 +414,7 @@ Question: "What's our average hold time?"
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-holds = [int(r.get('Hold duration', 0)) for r in data if int(r.get('Hold duration', 0)) > 0]
+holds = [int(r.get('Hold Duration', 0)) for r in data if int(r.get('Hold Duration', 0)) > 0]
 if holds:
     print(f'Calls with hold: {len(holds)}')
     print(f'Average hold: {sum(holds)/len(holds):.1f}s')
@@ -431,13 +431,13 @@ Question: "How many calls had over 30 seconds of hold?"
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-over30 = [r for r in data if int(r.get('Hold duration', 0)) > 30]
+over30 = [r for r in data if int(r.get('Hold Duration', 0)) > 30]
 print(f'Calls with >30s hold: {len(over30)}')
 if not over30:
     print('No matching records found in this time window.')
 else:
     for c in over30[:10]:
-        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold Duration')}s | {c.get('Calling number')}\")
 "
 ```
 
@@ -448,13 +448,13 @@ Question: "How many calls had over a minute of hold?"
 wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
-over60 = [r for r in data if int(r.get('Hold duration', 0)) > 60]
+over60 = [r for r in data if int(r.get('Hold Duration', 0)) > 60]
 print(f'Calls with >60s hold: {len(over60)}')
 if not over60:
     print('No matching records found in this time window.')
 else:
     for c in over60[:10]:
-        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Calling number')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold Duration')}s | {c.get('Calling number')}\")
 "
 ```
 
@@ -467,14 +467,14 @@ import json, sys
 data = json.load(sys.stdin)
 hold_abandoned = [r for r in data
     if r.get('Answer indicator') == 'Yes'
-    and int(r.get('Hold duration', 0)) > 30
+    and int(r.get('Hold Duration', 0)) > 30
     and r.get('Releasing party') == 'Remote']
 print(f'Answered -> held >30s -> caller hung up: {len(hold_abandoned)}')
 if not hold_abandoned:
     print('No matching records found in this time window.')
 else:
     for c in hold_abandoned[:10]:
-        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold Duration')}s | {c.get('Duration')}s total\")
 "
 ```
 
@@ -487,14 +487,14 @@ import json, sys
 data = json.load(sys.stdin)
 hold_abandoned = [r for r in data
     if r.get('Answer indicator') == 'Yes'
-    and int(r.get('Hold duration', 0)) > 60
+    and int(r.get('Hold Duration', 0)) > 60
     and r.get('Releasing party') == 'Remote']
 print(f'Answered -> held >60s -> caller hung up: {len(hold_abandoned)}')
 if not hold_abandoned:
     print('No matching records found in this time window.')
 else:
     for c in hold_abandoned[:10]:
-        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold duration')}s | {c.get('Duration')}s total\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User')} | hold {c.get('Hold Duration')}s | {c.get('Duration')}s total\")
 "
 ```
 
@@ -541,7 +541,7 @@ from collections import defaultdict
 data = json.load(sys.stdin)
 stats = defaultdict(list)
 for r in data:
-    hold = int(r.get('Hold duration', 0))
+    hold = int(r.get('Hold Duration', 0))
     if hold > 0:
         stats[r.get('User', 'Unknown')].append(hold)
 for user, holds in sorted(stats.items(), key=lambda x: sum(x[1])/len(x[1]), reverse=True)[:15]:
@@ -881,7 +881,7 @@ from collections import defaultdict
 data = json.load(sys.stdin)
 stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
 for r in data:
-    v = r.get('PSTN vendor name')
+    v = r.get('PSTN Vendor Name')
     if v:
         stats[v]['total'] += 1
         if r.get('Answer indicator') == 'Yes':
@@ -904,7 +904,7 @@ from collections import defaultdict
 data = json.load(sys.stdin)
 stats = defaultdict(lambda: {'total':0,'answered':0,'dur':0})
 for r in data:
-    v = r.get('PSTN vendor name')
+    v = r.get('PSTN Vendor Name')
     if v:
         stats[v]['total'] += 1
         if r.get('Answer indicator') == 'Yes':
@@ -1006,7 +1006,7 @@ from collections import defaultdict
 data = json.load(sys.stdin)
 stats = defaultdict(lambda: {'calls': 0, 'duration': 0, 'answered': 0})
 for r in data:
-    v = r.get('PSTN vendor name')
+    v = r.get('PSTN Vendor Name')
     if v:
         stats[v]['calls'] += 1
         stats[v]['duration'] += int(r.get('Duration', 0))
@@ -1505,14 +1505,14 @@ data = json.load(sys.stdin)
 spam_queue_abandoned = [r for r in data
     if r.get('Caller Reputation Service Result') in ('captcha-allow', 'allow')
     and float(r.get('Caller Reputation Score') or '5') < 2.0
-    and r.get('Queue type')
+    and r.get('Queue Type')
     and r.get('Answer indicator') == 'No']
 print(f'Low-reputation calls that reached a queue and were abandoned: {len(spam_queue_abandoned)}')
 if not spam_queue_abandoned:
     print('No matching records found in this time window.')
 else:
     for c in spam_queue_abandoned[:10]:
-        print(f\"  {c.get('Start time','')[:16]} | score={c.get('Caller Reputation Score','?')} | {c.get('Caller Reputation Service Result','?')} | {c.get('Calling number','?')} | queue={c.get('Queue type','?')}\")
+        print(f\"  {c.get('Start time','')[:16]} | score={c.get('Caller Reputation Score','?')} | {c.get('Caller Reputation Service Result','?')} | {c.get('Calling number','?')} | queue={c.get('Queue Type','?')}\")
 "
 ```
 
@@ -1596,14 +1596,14 @@ wxcli cdr list --start-time START --end-time END -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 hold_transfer = [r for r in data
-    if int(r.get('Hold duration', 0)) > 60
+    if int(r.get('Hold Duration', 0)) > 60
     and r.get('Related reason') and 'Transfer' in r.get('Related reason', '')]
 print(f'Calls with >60s hold then transferred: {len(hold_transfer)}')
 if not hold_transfer:
     print('No matching records found in this time window.')
 else:
     for c in hold_transfer[:10]:
-        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | hold {c.get('Hold duration','?')}s | {c.get('Calling number','?')} -> {c.get('Called number','?')} | {c.get('Related reason','?')}\")
+        print(f\"  {c.get('Start time','')[:16]} | {c.get('User','?')} | hold {c.get('Hold Duration','?')}s | {c.get('Calling number','?')} -> {c.get('Called number','?')} | {c.get('Related reason','?')}\")
 "
 ```
 

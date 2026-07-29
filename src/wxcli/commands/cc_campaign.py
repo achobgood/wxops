@@ -11,9 +11,9 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-campaign.")
 
 
-_BODY_SKELETON_CREATE = '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0}'
+_BODY_SKELETON_CREATE = '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0,"campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"abandonRatePercentage":0,"predictiveCorrectionPace":0,"predictiveGain":0,"reservationPercentage":0,"callProgressAnalysisParams":{"cpaEnabled":true,"amdEnabled":true,"minSilencePeriod":0,"analysisPeriod":0,"minimumValidSpeech":0,"maxTimeAnalysis":0,"maxTermToneAnalysis":0,"terminatingToneDetect":true},"ivrPorts":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'
 
-@app.command("create")
+@app.command("create", short_help="Start Campaign Request.")
 def create(
     id_param: str = typer.Option(None, "--id", help="(required) The id represents the unique id with which the Campaign Request will be started, maximum length 64 characters."),
     vendor_version: str = typer.Option(None, "--vendor-version", help="(required) Vendor specific information, maximum length 32 characters."),
@@ -40,7 +40,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Start Campaign Request\n\nExample --json-body:\n  '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0}'."""
+    """Start Campaign Request.\n\n\b\nExample: wxcli cc-campaign create --id ID_PARAM --vendor-version VENDOR_VERSION --campaign-type CAMPAIGN_TYPE --dialing-rate DIALING_RATE --entry-point-id ENTRY_POINT_ID --dialing-list-fetch-url DIALING_LIST_FETCH_URL --outdial-ani OUTDIAL_ANI --record-count RECORD_COUNT\n\n\b\nExample --json-body: '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0,"campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"abandonRatePercentage":0,"predictiveCorrectionPace":0,"predictiveGain":0,"reservationPercentage":0,"callProgressAnalysisParams":{"cpaEnabled":true,"amdEnabled":true,"minSilencePeriod":0,"analysisPeriod":0,"minimumValidSpeech":0,"maxTimeAnalysis":0,"maxTermToneAnalysis":0,"terminatingToneDetect":true},"ivrPorts":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -111,7 +111,7 @@ def create(
 
 
 
-@app.command("list")
+@app.command("list", short_help="Get Valid Campaign Times.")
 def cmd_list(
     campaign_id: str = typer.Option(..., "--campaign-id", help="The campaign ID for which valid campaign times are being requested."),
     agent_id: str = typer.Option(..., "--agent-id", help="The agent ID for whom valid campaign times are being requested."),
@@ -120,9 +120,10 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Valid Campaign Times."""
+    """Get Valid Campaign Times.\n\n\b\nExample: wxcli cc-campaign list --campaign-id CAMPAIGN_ID --agent-id AGENT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -151,11 +152,11 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_UPDATE = '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0}'
+_BODY_SKELETON_UPDATE = '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'
 
-@app.command("update")
+@app.command("update", short_help="Update Campaign Request.")
 def update(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. Campaign1"),
     dialing_rate: str = typer.Option(None, "--dialing-rate", help="Number of contacts to be dialed out per available Agent. For Progressive 1:1 Dialer, it will support for only 1 contact and for Progressive 1:N Dialer it can support upto 10 contacts to be dialed out per available Agent"),
     campaign_name: str = typer.Option(None, "--campaign-name", help="(Optional) Used if different than id, maximum length 64 characters."),
     auth_token: str = typer.Option(None, "--auth-token", help="(Not in use) The token needed by the dialer for querying records."),
@@ -172,7 +173,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Campaign Request\n\nExample --json-body:\n  '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0}'."""
+    """Update Campaign Request.\n\n\b\nExample: wxcli cc-campaign update Campaign1 --dialing-rate DIALING_RATE --dialing-list-fetch-url DIALING_LIST_FETCH_URL --outdial-ani OUTDIAL_ANI\n\n\b\nExample --json-body: '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -218,19 +219,19 @@ def update(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Stop Campaign Request.")
 def delete(
-    campaign_id: str = typer.Argument(help="campaignId"),
+    campaign_id: str = typer.Argument(help="e.g. Campaign1"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Stop Campaign Request."""
-    if not force:
-        typer.confirm(f"Delete {campaign_id}?", abort=True)
+    """Stop Campaign Request.\n\n\b\nExample: wxcli cc-campaign delete Campaign1"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Delete {campaign_id}?", abort=True)
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
     try:
         result = api.session.rest_delete(url)

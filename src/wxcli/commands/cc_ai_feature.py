@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-ai-feature.")
 
 _BODY_SKELETON_CREATE = '{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("create")
+@app.command("create", short_help="Create a new Question mapped to AutoCSAT.")
 def create(
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
@@ -28,7 +28,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Question mapped to AutoCSAT\n\nExample --json-body:\n  '{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'."""
+    """Create a new Question mapped to AutoCSAT.\n\n\b\nExample: wxcli cc-ai-feature create --question-id QUESTION_ID --questionnaire-id QUESTIONNAIRE_ID\n\n\b\nExample --json-body: '{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -76,9 +76,9 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create-bulk")
+@app.command("create-bulk", short_help="Bulk save Question mapped to AutoCSAT.")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -86,7 +86,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Question mapped to AutoCSAT\n\nExample --json-body:\n  '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'."""
+    """Bulk save Question mapped to AutoCSAT.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -116,14 +116,14 @@ def create_bulk(
 
 
 
-@app.command("show")
+@app.command("show", short_help="Get specific Question mapped to AutoCSAT by ID.")
 def show(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific Question mapped to AutoCSAT by ID."""
+    """Get specific Question mapped to AutoCSAT by ID.\n\n\b\nExample: wxcli cc-ai-feature show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -138,20 +138,20 @@ def show(
 
 
 
-@app.command("delete")
+@app.command("delete", short_help="Delete specific Question mapped to AutoCSAT by ID.")
 def delete(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific Question mapped to AutoCSAT by ID."""
-    if not force:
-        typer.confirm(f"Delete {id}?", abort=True)
+    """Delete specific Question mapped to AutoCSAT by ID.\n\n\b\nExample: wxcli cc-ai-feature delete ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/ai-feature/auto-csat/question/{id}"
     try:
         result = api.session.rest_delete(url)
@@ -168,14 +168,14 @@ def delete(
 
 
 
-@app.command("show-ai-feature")
+@app.command("show-ai-feature", short_help="Get specific AI Feature resource by ID.")
 def show_ai_feature(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get specific AI Feature resource by ID."""
+    """Get specific AI Feature resource by ID.\n\n\b\nExample: wxcli cc-ai-feature show-ai-feature ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -190,11 +190,11 @@ def show_ai_feature(
 
 
 
-_BODY_SKELETON_UPDATE = '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"}}'
+_BODY_SKELETON_UPDATE = '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"},"coachingInsights":{"enable":true},"evaluationsAndAnalytics":{"enable":true},"sentimentAnalysis":{"enable":true,"queuesInclusionType":"ALL"},"predictedWaitTime":{"enable":true,"queuesInclusionType":"ALL"},"personalizedAIRouting":{"enable":true,"cjdsWorkspaceId":"...","cjdsProfileTemplateId":"..."},"createdTime":0,"lastUpdatedTime":0}'
 
-@app.command("update")
+@app.command("update", short_help="Partially update AI Feature resource by ID.")
 def update(
-    id: str = typer.Argument(help="id"),
+    id: str = typer.Argument(help="UUID"),
     organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
@@ -206,7 +206,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Partially update AI Feature resource by ID\n\nExample --json-body:\n  '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"}}'."""
+    """Partially update AI Feature resource by ID.\n\n\b\nExample: wxcli cc-ai-feature update ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"},"coachingInsights":{"enable":true},"evaluationsAndAnalytics":{"enable":true},"sentimentAnalysis":{"enable":true,"queuesInclusionType":"ALL"},"predictedWaitTime":{"enable":true,"queuesInclusionType":"ALL"},"personalizedAIRouting":{"enable":true,"cjdsWorkspaceId":"...","cjdsProfileTemplateId":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -243,7 +243,7 @@ def update(
 
 
 
-@app.command("list")
+@app.command("list", short_help="List AI Feature resource(s).")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported."),
@@ -253,6 +253,7 @@ def cmd_list(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List AI Feature resource(s)."""
@@ -275,7 +276,10 @@ def cmd_list(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -286,7 +290,7 @@ def cmd_list(
 
 
 
-@app.command("list-question")
+@app.command("list-question", short_help="List Question mapped to AutoCSAT(s).")
 def list_question(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported.(id, questionId, questionnaireId)"),
@@ -296,6 +300,7 @@ def list_question(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Question mapped to AutoCSAT(s)."""
@@ -318,7 +323,10 @@ def list_question(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

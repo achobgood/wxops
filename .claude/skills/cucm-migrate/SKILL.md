@@ -38,6 +38,8 @@ If the operator is unfamiliar with the cucm migration pipeline, point them at:
 
 These are the only operator-facing docs for this migration tool. If the operator asks "where do I learn this," send them to the operator runbook first.
 
+**Mandatory --help verification:** Before constructing or running any wxcli command in this workflow, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cucm --help` for the pipeline stages, then `wxcli cucm execute --help` for its flags). Do NOT rely on the examples in this skill, in the runbooks, or in a delegated skill — recipes are hand-written and drift as the CLI changes.
+
 ## Step 1: Load, Verify, and Assess
 
 1. **Check project exists and pipeline is complete:**
@@ -140,9 +142,9 @@ Analyze this CUCM-to-Webex migration and produce an architectural reasoning narr
 
 Project path: <project>
 Pipeline output:
-  - Run `wxcli cucm decisions -o json -p <project>` for all decisions
-  - Run `wxcli cucm decisions --type advisory -o json -p <project>` for advisories
-  - Run `wxcli cucm inventory -o json -p <project>` for canonical model summary
+  - For all decisions, run `wxcli cucm decisions -o json -p <project>`.
+  - For advisories, run `wxcli cucm decisions --type advisory -o json -p <project>`.
+  - For the canonical model summary, run `wxcli cucm inventory -o json -p <project>`.
 
 Write the narrative to: <project>/exports/migration-narrative.md
 """)
