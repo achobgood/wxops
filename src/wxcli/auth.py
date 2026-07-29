@@ -40,6 +40,59 @@ def _items_of(data, item_key: str) -> list:
     return []
 
 
+def _max_pages() -> int:
+    try:
+        return max(1, int(os.environ.get("WXCLI_MAX_PAGES", DEFAULT_MAX_PAGES)))
+    except ValueError:
+        return DEFAULT_MAX_PAGES
+
+
+def _page_cap_reached(pages: int, walker: str) -> bool:
+    """Loudly. A silent stop here would hand back a partial answer with no
+    error — the exact defect --all was built to remove."""
+    if pages < _max_pages():
+        return False
+    typer.echo(
+        f"Error: {walker} stopped after {pages} pages without the server "
+        "signalling the end — the results are INCOMPLETE. This usually means "
+        "the endpoint ignores its own paging parameter. Narrow the query, or "
+        "raise the ceiling with WXCLI_MAX_PAGES=<n>.",
+        err=True,
+    )
+    return True
+
+
+def _body_says_more(body) -> bool:
+    """True when a paged body reports more records than it just returned.
+
+    Contact Center and SCIM send NO `Link` header, so a header-only check is
+    blind to 101 of the 210 single-fetch list commands — exactly the ones `--all`
+    exists for. Their wrappers do carry a total, under three spellings verified
+    against the specs: `totalResources` (CC bulk-export), `totalRecords`/`meta`
+    (CC v2/v3) and `totalResults` (SCIM).
+
+    Compares against a total rather than guessing from a full-looking page: a
+    page that happens to be exactly full is not evidence, and warning on it
+    would fire on every complete small response.
+    """
+    if not isinstance(body, dict):
+        return False
+    returned = len(_items_of(body, "items"))
+    for key in ("totalResources", "totalRecords", "totalResults", "total"):
+        total = body.get(key)
+        if isinstance(total, bool):
+            continue
+        if isinstance(total, int) and total > returned:
+            return True
+    meta = body.get("meta")
+    if isinstance(meta, dict):
+        for key in ("totalRecords", "totalResources", "total"):
+            total = meta.get(key)
+            if isinstance(total, int) and not isinstance(total, bool) and total > returned:
+                return True
+    return False
+
+
 def _next_page_url(response: "httpx.Response") -> str | None:
     """The `Link: rel="next"` target, or None. Same parse as follow_pagination."""
     for part in response.headers.get("Link", "").split(","):
@@ -68,15 +121,15 @@ def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
     Contact Center's `page`/`pageSize` style carries no Link header and is NOT
     covered here — that is the 96 of the 210 this cannot see.
     """
-    if not _next_page_url(response):
-        return
     if os.environ.get("WXCLI_NO_PAGE_WARN"):
         return
     try:
-        body = response.json()
-        count = len(body.get("items", body.get("data", [])))
+        body = response.json() if response.content else {}
     except Exception:
-        count = 0
+        return
+    if not (_next_page_url(response) or _body_says_more(body)):
+        return
+    count = len(_items_of(body, "items")) if isinstance(body, (dict, list)) else 0
 
     # The remedy must be `--offset`, NOT `--limit 0`. On the 210 commands this
     # fires for, `--limit 0` is already the default and does not fetch more —
@@ -88,13 +141,22 @@ def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
         start = 0
 
     shown = f"{count} records returned" if count else "This response was partial"
-    nxt = f" Fetch the next page with --offset {start + count}." if count else ""
+    nxt = " Re-run with --all to fetch every page"
+    nxt += f", or --offset {start + count} for just the next one." if count else "."
     typer.echo(f"Note: {shown} and the server has more pages.{nxt}", err=True)
 
 # Bounded retry policy. WXCLI_RETRY_MODE=off (or legacy WXCLI_NO_RETRY=1) disables.
 DEFAULT_MAX_ATTEMPTS = 4
 MAX_RETRY_AFTER_SECONDS = 30
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+
+# Backstop for the offset-walking pagers. They stop on a short page, so a server
+# that ignores `page`/`startIndex` and keeps returning a full one never ends —
+# the command then hangs until the caller's timeout kills it, which in this
+# project's own agent harness means the subagent dies mid-tool-call with no
+# output at all. Set far above any real collection: at the default page size
+# that is 200,000 records. Override with WXCLI_MAX_PAGES.
+DEFAULT_MAX_PAGES = 1000
 
 
 def _retry_enabled() -> bool:
@@ -255,12 +317,16 @@ class WebexSession:
         params[size_param] = params.get(size_param) or page_size
         size = int(params[size_param])
         page = int(params.get(page_param) or first_page)
+        walked = 0
         while True:
             params[page_param] = page
             data = self._json_or_raise(self._request("GET", url, params=params))
             items = _items_of(data, item_key)
             yield from items
             if len(items) < size:
+                return
+            walked += 1
+            if _page_cap_reached(walked, "follow_page_param"):
                 return
             page += 1
 
@@ -275,6 +341,7 @@ class WebexSession:
         params["count"] = params.get("count") or count
         size = int(params["count"])
         index = int(params.get("startIndex") or 1)
+        walked = 0
         while True:
             params["startIndex"] = index
             data = self._json_or_raise(self._request("GET", url, params=params))
@@ -285,6 +352,9 @@ class WebexSession:
             index += len(items)
             total = data.get("totalResults") if isinstance(data, dict) else None
             if isinstance(total, int) and index > total:
+                return
+            walked += 1
+            if _page_cap_reached(walked, "follow_scim"):
                 return
 
 

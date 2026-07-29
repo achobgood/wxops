@@ -169,6 +169,8 @@ class TestWiredIntoTheRealTree:
 
 
 class _Resp:
+    content = b"x"   # _warn_if_more_pages guards on this before parsing
+
     def __init__(self, link="", items=0):
         self.headers = {"Link": link} if link else {}
         self._items = items
@@ -197,9 +199,33 @@ class TestPageNote:
         assert "more pages" in out.err
         assert out.out == "", "stdout must stay clean for -o json consumers"
 
-    def test_names_the_next_offset(self, capsys, monkeypatch):
+    def test_names_all_first_then_offset(self, capsys, monkeypatch):
+        """--all is the cheap remedy — one call. Paging by hand with --offset
+        drags every page through the agent's context, so it comes second."""
         out = self._note(capsys, _Resp(NEXT, 100), monkeypatch=monkeypatch)
+        assert "--all" in out.err
         assert "--offset 100" in out.err
+        assert out.err.index("--all") < out.err.index("--offset")
+
+    def test_contact_center_gets_a_note_despite_having_no_link_header(
+            self, capsys, monkeypatch):
+        """CC sends no Link header — a header-only check is blind to the 96
+        commands --all exists for."""
+        resp = _Resp(items=50)
+        resp.json = lambda: {"data": [{"id": i} for i in range(50)],
+                             "totalResources": 400, "pageNumber": 0}
+        out = self._note(capsys, resp, monkeypatch=monkeypatch)
+        assert "more pages" in out.err and "--all" in out.err
+
+    def test_a_complete_response_carrying_a_total_stays_silent(
+            self, capsys, monkeypatch):
+        """total == returned means nothing is missing. Warning here would fire
+        on every complete small response."""
+        resp = _Resp(items=3)
+        resp.json = lambda: {"data": [{"id": i} for i in range(3)],
+                             "totalResources": 3}
+        out = self._note(capsys, resp, monkeypatch=monkeypatch)
+        assert out.err == ""
 
     def test_offset_accumulates_from_the_current_page(self, capsys, monkeypatch):
         out = self._note(capsys, _Resp(NEXT, 50), {"start": 100}, monkeypatch=monkeypatch)

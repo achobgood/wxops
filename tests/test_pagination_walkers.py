@@ -94,6 +94,28 @@ class TestFollowPageParam:
         assert list(s.follow_page_param("u", item_key="data")) == []
         assert len(s.calls) == 1
 
+    def test_a_server_that_ignores_page_cannot_loop_forever(self, monkeypatch, capsys):
+        """Without a cap this hangs until the caller's timeout kills it, which
+        in this project's agent harness kills the subagent with no output."""
+        monkeypatch.setenv("WXCLI_MAX_PAGES", "5")
+        s = FakeSession([page("data", 10)] * 50)   # never a short page
+        out = list(s.follow_page_param("u", item_key="data", page_size=10))
+        assert len(s.calls) == 5
+        assert len(out) == 50
+
+    def test_hitting_the_cap_says_the_result_is_incomplete(self, monkeypatch, capsys):
+        monkeypatch.setenv("WXCLI_MAX_PAGES", "3")
+        s = FakeSession([page("data", 10)] * 20)
+        list(s.follow_page_param("u", item_key="data", page_size=10))
+        err = capsys.readouterr().err
+        assert "INCOMPLETE" in err and "WXCLI_MAX_PAGES" in err
+
+    def test_scim_is_capped_too(self, monkeypatch):
+        monkeypatch.setenv("WXCLI_MAX_PAGES", "4")
+        s = FakeSession([page("Resources", 10)] * 50)
+        list(s.follow_scim("u", count=10))
+        assert len(s.calls) == 4
+
 
 # ── SCIM: startIndex / count ─────────────────────────────────────────────────
 
@@ -162,13 +184,45 @@ class TestDefaultsUnchanged:
             total += len(re.findall(pattern, src))
         return total
 
+    # Pinned absolutely, not diffed against HEAD. An earlier version of this
+    # test counted the pre-`--all` branch shape at HEAD — which silently became
+    # 0 the moment the change was committed, so the guard would have passed
+    # forever while measuring nothing. The number is the count at 600eb38, the
+    # commit before --all, and it is the whole point of the guard: it may not
+    # move without someone deciding it should.
+    DEFAULT_WALK_ALL_COMMANDS = 53
+
     def test_the_default_walk_all_branch_did_not_grow(self):
-        before = self._count(
-            r"if limit > 0:\n            result = api\.session\.rest_get", tree="HEAD")
         after = self._count(r"if limit > 0 and not all_pages:")
-        assert before == after, (
-            f"{after - before} commands changed what they return by DEFAULT — "
-            "--all is supposed to be opt-in")
+        assert after == self.DEFAULT_WALK_ALL_COMMANDS, (
+            f"{after - self.DEFAULT_WALK_ALL_COMMANDS} commands changed what "
+            "they return by DEFAULT — --all is supposed to be opt-in")
+
+    def test_a_spec_parameter_named_all_fails_generation(self):
+        """--all must be protected the way --output and --fields are.
+
+        Not hypothetical: webex-flow-store.json already declares a query
+        parameter named `all`, inert only because that spec is dev-only.
+        Unguarded, two options would spell "--all" and Typer silently shadows
+        one — the failure mode the --filter analysis rejected.
+        """
+        from tools.command_renderer import (
+            ReservedParamCollisionError, _check_reserved_collisions)
+        from tools.postman_parser import Endpoint, EndpointField
+
+        def build(param_name):
+            return Endpoint(
+                name="List Things", method="GET", url_path="/things", path_vars=[],
+                query_params=[EndpointField(name=param_name, python_name=param_name,
+                                            field_type="bool", description="x")],
+                body_fields=[], command_type="list", command_name="list")
+
+        for reserved in ("all", "fields", "output"):
+            with pytest.raises(ReservedParamCollisionError):
+                _check_reserved_collisions(build(reserved))
+        # Control: without this the test would pass on a guard that rejects
+        # every parameter name.
+        _check_reserved_collisions(build("harmless"))
 
     def test_every_generated_list_command_accepts_all(self):
         """A flag on most list commands but not all teaches a rule that breaks
