@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-desktop-layout.")
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'
+_BODY_SKELETON_CREATE = '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true,"organizationId":"...","id":"...","version":0,"description":"...","validatedTime":0,"defaultJsonModifiedTime":0,"modifiedTime":0,"teamIds":["..."],"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Desktop Layout.")
 def create(
@@ -39,7 +39,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Desktop Layout.\n\n\b\nExample: wxcli cc-desktop-layout create --name NAME --edited-by EDITED_BY --json-file-name JSON_FILE_NAME --json-file-content JSON_FILE_CONTENT --global --status --default-json-modified --validated\n\n\b\nExample --json-body: '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'"""
+    """Create a new Desktop Layout.\n\n\b\nExample: wxcli cc-desktop-layout create --name NAME --edited-by EDITED_BY --json-file-name JSON_FILE_NAME --json-file-content JSON_FILE_CONTENT --global --status --default-json-modified --validated\n\n\b\nExample --json-body: '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true,"organizationId":"...","id":"...","version":0,"description":"...","validatedTime":0,"defaultJsonModifiedTime":0,"modifiedTime":0,"teamIds":["..."],"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -109,7 +109,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true,"organizationId":"...","id":"...","version":0,"description":"...","validatedTime":0,"defaultJsonModifiedTime":0,"modifiedTime":0,"teamIds":["..."],"systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Desktop Layout(s).")
 def create_bulk(
@@ -119,7 +119,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Desktop Layout(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Desktop Layout(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true,"organizationId":"...","id":"...","version":0,"description":"...","validatedTime":0,"defaultJsonModifiedTime":0,"modifiedTime":0,"teamIds":["..."],"systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -205,7 +205,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'
+_BODY_SKELETON_UPDATE = '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true,"organizationId":"...","id":"...","version":0,"description":"...","validatedTime":0,"defaultJsonModifiedTime":0,"modifiedTime":0,"teamIds":["..."],"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Desktop Layout by ID.")
 def update(
@@ -234,7 +234,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Desktop Layout by ID.\n\n\b\nExample: wxcli cc-desktop-layout update ID --name NAME --edited-by EDITED_BY --json-file-name JSON_FILE_NAME --json-file-content JSON_FILE_CONTENT --global --status --default-json-modified --validated\n\n\b\nExample --json-body: '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true}'"""
+    """Update specific Desktop Layout by ID.\n\n\b\nExample: wxcli cc-desktop-layout update ID --name NAME --edited-by EDITED_BY --json-file-name JSON_FILE_NAME --json-file-content JSON_FILE_CONTENT --global --status --default-json-modified --validated\n\n\b\nExample --json-body: '{"name":"...","editedBy":"...","jsonFileName":"...","jsonFileContent":"...","global":true,"status":true,"defaultJsonModified":true,"validated":true,"organizationId":"...","id":"...","version":0,"description":"...","validatedTime":0,"defaultJsonModifiedTime":0,"modifiedTime":0,"teamIds":["..."],"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

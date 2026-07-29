@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-global-vars.")
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"...","id":"...","version":0,"description":"...","sensitive":true,"desktopLabel":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Global Variable.")
 def create(
@@ -37,7 +37,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Global Variable.\n\n\b\nExample: wxcli cc-global-vars create --name NAME --active --agent-editable --variable-type String --default-value DEFAULT_VALUE --reportable --agent-viewable\n\n\b\nExample --json-body: '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'"""
+    """Create a new Global Variable.\n\n\b\nExample: wxcli cc-global-vars create --name NAME --active --agent-editable --variable-type String --default-value DEFAULT_VALUE --reportable --agent-viewable\n\n\b\nExample --json-body: '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"...","id":"...","version":0,"description":"...","sensitive":true,"desktopLabel":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -103,7 +103,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"...","id":"...","version":0,"description":"...","sensitive":true,"desktopLabel":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Global Variable(s).")
 def create_bulk(
@@ -113,7 +113,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Global Variable(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Global Variable(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"...","id":"...","version":0,"description":"...","sensitive":true,"desktopLabel":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -267,7 +267,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'
+_BODY_SKELETON_UPDATE = '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"...","id":"...","version":0,"description":"...","sensitive":true,"desktopLabel":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Global Variable by ID.")
 def update(
@@ -294,7 +294,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Global Variable by ID.\n\n\b\nExample: wxcli cc-global-vars update ID --name NAME --active --agent-editable --variable-type String --default-value DEFAULT_VALUE --reportable --agent-viewable\n\n\b\nExample --json-body: '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"..."}'"""
+    """Update specific Global Variable by ID.\n\n\b\nExample: wxcli cc-global-vars update ID --name NAME --active --agent-editable --variable-type String --default-value DEFAULT_VALUE --reportable --agent-viewable\n\n\b\nExample --json-body: '{"name":"...","active":true,"agentEditable":true,"variableType":"STRING","defaultValue":"...","reportable":true,"agentViewable":true,"organizationId":"...","id":"...","version":0,"description":"...","sensitive":true,"desktopLabel":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

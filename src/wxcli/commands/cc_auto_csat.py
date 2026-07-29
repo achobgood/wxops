@@ -77,7 +77,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Auto CSAT mapped Question(s).")
 def create_bulk(
@@ -88,7 +88,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Auto CSAT mapped Question(s).\n\n\b\nExample: wxcli cc-auto-csat create-bulk AUTO_CSAT_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Auto CSAT mapped Question(s).\n\n\b\nExample: wxcli cc-auto-csat create-bulk AUTO_CSAT_ID\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -194,7 +194,7 @@ def show_auto_csat(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Auto CSAT resource by ID.")
 def update(
@@ -214,7 +214,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Auto CSAT resource by ID.\n\n\b\nExample: wxcli cc-auto-csat update ID --enabled --agent-inclusion-type ALL --survey-data-source EXPERIENCE_MANAGEMENT --selected-global-variable-id SELECTED_GLOBAL_VARIABLE_ID\n\n\b\nExample --json-body: '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0}'"""
+    """Update specific Auto CSAT resource by ID.\n\n\b\nExample: wxcli cc-auto-csat update ID --enabled --agent-inclusion-type ALL --survey-data-source EXPERIENCE_MANAGEMENT --selected-global-variable-id SELECTED_GLOBAL_VARIABLE_ID\n\n\b\nExample --json-body: '{"enabled":true,"agentInclusionType":"ALL","surveyDataSource":"EXPERIENCE_MANAGEMENT","selectedGlobalVariableId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

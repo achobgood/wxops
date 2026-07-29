@@ -24,7 +24,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create contact list.\n\n\b\nExample: wxcli cc-contact-list create CCV_123456789\n\n\b\nExample --json-body: '{"supportedChannels":["Voice"],"activationTimeLagMinutes":0,"activationDateTime":"..."}'"""
+    """Create contact list.\n\n\b\nExample: wxcli cc-contact-list create CCV_123456789 --json-body '{"supportedChannels":["Voice"]}'\n\n\b\nExample --json-body: '{"supportedChannels":["Voice"],"activationTimeLagMinutes":0,"activationDateTime":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -59,7 +59,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_CONTACTS = '{"contacts":[{"contactAttributes":"..."}]}'
+_BODY_SKELETON_CREATE_CONTACTS = '{"contacts":[{"contactAttributes":[{"fieldName":"...","value":"..."}]}]}'
 
 @app.command("create-contacts", short_help="Create contacts within a contact list.")
 def create_contacts(
@@ -71,7 +71,7 @@ def create_contacts(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create contacts within a contact list.\n\n\b\nExample: wxcli cc-contact-list create-contacts CCV_123456789 CONTACT_LIST_ID\n\n\b\nExample --json-body: '{"contacts":[{"contactAttributes":"..."}]}'"""
+    """Create contacts within a contact list.\n\n\b\nExample: wxcli cc-contact-list create-contacts CCV_123456789 CONTACT_LIST_ID\n\n\b\nExample --json-body: '{"contacts":[{"contactAttributes":[{"fieldName":"...","value":"..."}]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CONTACTS), indent=2))
         raise typer.Exit(0)

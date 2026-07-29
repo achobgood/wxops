@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-resource-collection.")
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Resource Collection.")
 def create(
@@ -29,7 +29,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Resource Collection.\n\n\b\nExample: wxcli cc-resource-collection create --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'"""
+    """Create a new Resource Collection.\n\n\b\nExample: wxcli cc-resource-collection create --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -79,7 +79,7 @@ def create(
 
 
 
-_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":0,"item":{"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("update", short_help="Bulk partial update Resource Collections.")
 def update(
@@ -89,7 +89,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Resource Collections.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk partial update Resource Collections.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -188,7 +188,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE_RESOURCE_COLLECTION = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'
+_BODY_SKELETON_UPDATE_RESOURCE_COLLECTION = '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update-resource-collection", short_help="Update specific Resource Collection by ID.")
 def update_resource_collection(
@@ -207,7 +207,7 @@ def update_resource_collection(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Resource Collection by ID.\n\n\b\nExample: wxcli cc-resource-collection update-resource-collection ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"...","ids":"..."}],"resourceCount":0,"createdTime":0}'"""
+    """Update specific Resource Collection by ID.\n\n\b\nExample: wxcli cc-resource-collection update-resource-collection ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","resources":[{"name":"...","accessLevel":"SPECIFIC","ids":["..."]}],"resourceCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_RESOURCE_COLLECTION), indent=2))
         raise typer.Exit(0)

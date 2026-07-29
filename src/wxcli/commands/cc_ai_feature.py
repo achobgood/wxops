@@ -76,7 +76,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Question mapped to AutoCSAT.")
 def create_bulk(
@@ -86,7 +86,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Question mapped to AutoCSAT.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Question mapped to AutoCSAT.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"questionId":"...","questionnaireId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -190,7 +190,7 @@ def show_ai_feature(
 
 
 
-_BODY_SKELETON_UPDATE = '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"}}'
+_BODY_SKELETON_UPDATE = '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"},"coachingInsights":{"enable":true},"evaluationsAndAnalytics":{"enable":true},"sentimentAnalysis":{"enable":true,"queuesInclusionType":"ALL"},"predictedWaitTime":{"enable":true,"queuesInclusionType":"ALL"},"personalizedAIRouting":{"enable":true,"cjdsWorkspaceId":"...","cjdsProfileTemplateId":"..."},"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Partially update AI Feature resource by ID.")
 def update(
@@ -206,7 +206,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Partially update AI Feature resource by ID.\n\n\b\nExample: wxcli cc-ai-feature update ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"}}'"""
+    """Partially update AI Feature resource by ID.\n\n\b\nExample: wxcli cc-ai-feature update ID\n\n\b\nExample --json-body: '{"organizationId":"...","id":"...","version":0,"realtimeTranscripts":{"enable":true,"agentInclusionType":"ALL","queuesInclusionType":"ALL"},"suggestedResponses":{"enable":true},"generatedSummaries":{"callDropSummariesEnabled":true,"virtualAgentTransferSummariesEnabled":true,"consultTransferSummariesEnabled":true,"wrapUpSummariesEnabled":true,"queuesInclusionType":"ALL"},"agentWellbeing":{"enable":true,"agentInclusionType":"ALL","wellnessBreakReminders":"DISABLED"},"autoCSAT":{"enable":true,"queuesInclusionType":"ALL","selectedGlobalVariableId":"...","surveyDataSource":"EXPERIENCE_MANAGEMENT"},"coachingInsights":{"enable":true},"evaluationsAndAnalytics":{"enable":true},"sentimentAnalysis":{"enable":true,"queuesInclusionType":"ALL"},"predictedWaitTime":{"enable":true,"queuesInclusionType":"ALL"},"personalizedAIRouting":{"enable":true,"cjdsWorkspaceId":"...","cjdsProfileTemplateId":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

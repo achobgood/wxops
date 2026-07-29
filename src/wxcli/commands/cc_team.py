@@ -95,7 +95,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","teamType":"AGENT","teamStatus":"IN_SERVICE","active":true,"siteId":"...","rankQueuesForTeam":true,"organizationId":"...","id":"...","version":0,"dialedNumber":"...","capacity":0,"desktopLayoutId":"...","skillProfileId":"...","multiMediaProfileId":"...","userIds":["..."],"description":"...","systemDefault":true,"queueRankings":[{"queueId":"...","rank":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Teams.")
 def create_bulk(
@@ -105,7 +105,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Teams.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Teams.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","teamType":"AGENT","teamStatus":"IN_SERVICE","active":true,"siteId":"...","rankQueuesForTeam":true,"organizationId":"...","id":"...","version":0,"dialedNumber":"...","capacity":0,"desktopLayoutId":"...","skillProfileId":"...","multiMediaProfileId":"...","userIds":["..."],"description":"...","systemDefault":true,"queueRankings":[{"queueId":"...","rank":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)

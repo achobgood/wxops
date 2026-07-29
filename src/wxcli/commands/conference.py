@@ -53,7 +53,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Start Conference.\n\n\b\nExample --json-body: '{"callIds":["..."],"lineOwnerId":"..."}'"""
+    """Start Conference.\n\n\b\nExample: wxcli conference create --json-body '{"callIds":["..."]}'\n\n\b\nExample --json-body: '{"callIds":["..."],"lineOwnerId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

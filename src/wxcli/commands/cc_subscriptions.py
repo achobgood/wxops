@@ -59,7 +59,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register Subscription.\n\n\b\nExample: wxcli cc-subscriptions create --name NAME --destination-url DESTINATION_URL\n\n\b\nExample --json-body: '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'"""
+    """Register Subscription.\n\n\b\nExample: wxcli cc-subscriptions create --json-body '{"name":"...","eventTypes":["..."],"destinationUrl":"..."}'\n\n\b\nExample --json-body: '{"name":"...","eventTypes":["..."],"destinationUrl":"...","description":"...","secret":"...","orgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -294,7 +294,7 @@ def create_subscriptions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register Subscription.\n\n\b\nExample: wxcli cc-subscriptions create-subscriptions --name NAME --destination-url DESTINATION_URL --resource-version RESOURCE_VERSION\n\n\b\nExample --json-body: '{"name":"...","eventTypes":["..."],"destinationUrl":"...","resourceVersion":"...","description":"...","secret":"...","orgId":"..."}'"""
+    """Register Subscription.\n\n\b\nExample: wxcli cc-subscriptions create-subscriptions --json-body '{"name":"...","eventTypes":["..."],"destinationUrl":"...","resourceVersion":"..."}'\n\n\b\nExample --json-body: '{"name":"...","eventTypes":["..."],"destinationUrl":"...","resourceVersion":"...","description":"...","secret":"...","orgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUBSCRIPTIONS), indent=2))
         raise typer.Exit(0)

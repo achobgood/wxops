@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 app = typer.Typer(help="Manage Webex Contact Center cc-campaign.")
 
 
-_BODY_SKELETON_CREATE = '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0}'
+_BODY_SKELETON_CREATE = '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0,"campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"abandonRatePercentage":0,"predictiveCorrectionPace":0,"predictiveGain":0,"reservationPercentage":0,"callProgressAnalysisParams":{"cpaEnabled":true,"amdEnabled":true,"minSilencePeriod":0,"analysisPeriod":0,"minimumValidSpeech":0,"maxTimeAnalysis":0,"maxTermToneAnalysis":0,"terminatingToneDetect":true},"ivrPorts":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'
 
 @app.command("create", short_help="Start Campaign Request.")
 def create(
@@ -40,7 +40,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Start Campaign Request.\n\n\b\nExample: wxcli cc-campaign create --id ID_PARAM --vendor-version VENDOR_VERSION --campaign-type CAMPAIGN_TYPE --dialing-rate DIALING_RATE --entry-point-id ENTRY_POINT_ID --dialing-list-fetch-url DIALING_LIST_FETCH_URL --outdial-ani OUTDIAL_ANI --record-count RECORD_COUNT\n\n\b\nExample --json-body: '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0}'"""
+    """Start Campaign Request.\n\n\b\nExample: wxcli cc-campaign create --id ID_PARAM --vendor-version VENDOR_VERSION --campaign-type CAMPAIGN_TYPE --dialing-rate DIALING_RATE --entry-point-id ENTRY_POINT_ID --dialing-list-fetch-url DIALING_LIST_FETCH_URL --outdial-ani OUTDIAL_ANI --record-count RECORD_COUNT\n\n\b\nExample --json-body: '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0,"campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"abandonRatePercentage":0,"predictiveCorrectionPace":0,"predictiveGain":0,"reservationPercentage":0,"callProgressAnalysisParams":{"cpaEnabled":true,"amdEnabled":true,"minSilencePeriod":0,"analysisPeriod":0,"minimumValidSpeech":0,"maxTimeAnalysis":0,"maxTermToneAnalysis":0,"terminatingToneDetect":true},"ivrPorts":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -151,7 +151,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_UPDATE = '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0}'
+_BODY_SKELETON_UPDATE = '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'
 
 @app.command("update", short_help="Update Campaign Request.")
 def update(
@@ -172,7 +172,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Campaign Request.\n\n\b\nExample: wxcli cc-campaign update Campaign1 --dialing-rate DIALING_RATE --dialing-list-fetch-url DIALING_LIST_FETCH_URL --outdial-ani OUTDIAL_ANI\n\n\b\nExample --json-body: '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0}'"""
+    """Update Campaign Request.\n\n\b\nExample: wxcli cc-campaign update Campaign1 --dialing-rate DIALING_RATE --dialing-list-fetch-url DIALING_LIST_FETCH_URL --outdial-ani OUTDIAL_ANI\n\n\b\nExample --json-body: '{"dialingRate":0,"dialingListFetchURL":"...","outdialANI":"...","campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"reservationPercentage":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

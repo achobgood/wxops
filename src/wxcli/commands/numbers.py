@@ -27,7 +27,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Phone Numbers to a Location.\n\n\b\nExample: wxcli numbers create LOCATION_ID\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'"""
+    """Add Phone Numbers to a Location.\n\n\b\nExample: wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -81,7 +81,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Manage Number State in a Location.\n\n\b\nExample: wxcli numbers update LOCATION_ID\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"action":"ACTIVATE"}'"""
+    """Manage Number State in a Location.\n\n\b\nExample: wxcli numbers update LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"action":"ACTIVATE"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -124,7 +124,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove Phone Numbers from a Location.\n\n\b\nExample: wxcli numbers delete LOCATION_ID\n\n\b\nExample --json-body: '{"phoneNumbers":["..."]}'"""
+    """Remove Phone Numbers from a Location.\n\n\b\nExample: wxcli numbers delete LOCATION_ID --json-body '{"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE), indent=2))
         raise typer.Exit(0)
@@ -169,7 +169,7 @@ def validate_phone_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate Phone Numbers.\n\n\b\nExample --json-body: '{"phoneNumbers":["..."]}'"""
+    """Validate Phone Numbers.\n\n\b\nExample: wxcli numbers validate-phone-numbers --json-body '{"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_PHONE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -308,7 +308,7 @@ def list_manage_numbers(
 
 
 
-_BODY_SKELETON_CREATE_MANAGE_NUMBERS = '{"operation":"...","numberList":[{"locationId":"...","numbers":"..."}],"targetLocationId":"...","numberUsageType":"..."}'
+_BODY_SKELETON_CREATE_MANAGE_NUMBERS = '{"operation":"...","numberList":[{"locationId":"...","numbers":["..."]}],"targetLocationId":"...","numberUsageType":"..."}'
 
 @app.command("create-manage-numbers", short_help="Initiate Number Jobs.")
 def create_manage_numbers(
@@ -321,7 +321,7 @@ def create_manage_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Initiate Number Jobs.\n\n\b\nExample: wxcli numbers create-manage-numbers --operation OPERATION\n\n\b\nExample --json-body: '{"operation":"...","numberList":[{"locationId":"...","numbers":"..."}],"targetLocationId":"...","numberUsageType":"..."}'"""
+    """Initiate Number Jobs.\n\n\b\nExample: wxcli numbers create-manage-numbers --json-body '{"operation":"...","numberList":[{"locationId":"...","numbers":["..."]}]}'\n\n\b\nExample --json-body: '{"operation":"...","numberList":[{"locationId":"...","numbers":["..."]}],"targetLocationId":"...","numberUsageType":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MANAGE_NUMBERS), indent=2))
         raise typer.Exit(0)

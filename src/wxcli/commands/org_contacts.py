@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling org-contacts.")
 
 
-_BODY_SKELETON_CREATE = '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"..."}'
+_BODY_SKELETON_CREATE = '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"...","avatarURL":"...","primaryContactMethod":"SIPADDRESS","emails":[{"value":"...","type":"work","primary":true}],"phoneNumbers":[{"value":"...","type":"work","primary":true}],"sipAddresses":[{"value":"...","type":"enterprise","primary":true}],"ims":[{"value":"...","type":"aim","primary":true}],"groupIds":["..."]}'
 
 @app.command("create", short_help="Create a Contact.")
 def create(
@@ -31,7 +31,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Contact.\n\n\b\nExample: wxcli org-contacts create --schemas SCHEMAS --source CH\n\n\b\nExample --json-body: '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"..."}'"""
+    """Create a Contact.\n\n\b\nExample: wxcli org-contacts create --schemas SCHEMAS --source CH\n\n\b\nExample --json-body: '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"...","avatarURL":"...","primaryContactMethod":"SIPADDRESS","emails":[{"value":"...","type":"work","primary":true}],"phoneNumbers":[{"value":"...","type":"work","primary":true}],"sipAddresses":[{"value":"...","type":"enterprise","primary":true}],"ims":[{"value":"...","type":"aim","primary":true}],"groupIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -107,7 +107,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"..."}'
+_BODY_SKELETON_UPDATE = '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"...","avatarURL":"...","primaryContactMethod":"SIPADDRESS","emails":[{"value":"...","type":"work","primary":true}],"phoneNumbers":[{"value":"...","type":"work","primary":true,"operation":"..."}],"sipAddresses":[{"value":"...","type":"enterprise","primary":true}],"ims":[{"value":"...","type":"aim","primary":true}],"groupIds":["..."]}'
 
 @app.command("update", short_help="Update a Contact.")
 def update(
@@ -128,7 +128,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Contact.\n\n\b\nExample: wxcli org-contacts update CONTACT_ID --schemas SCHEMAS --source CH\n\n\b\nExample --json-body: '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"..."}'"""
+    """Update a Contact.\n\n\b\nExample: wxcli org-contacts update CONTACT_ID --schemas SCHEMAS --source CH\n\n\b\nExample --json-body: '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"...","avatarURL":"...","primaryContactMethod":"SIPADDRESS","emails":[{"value":"...","type":"work","primary":true}],"phoneNumbers":[{"value":"...","type":"work","primary":true,"operation":"..."}],"sipAddresses":[{"value":"...","type":"enterprise","primary":true}],"ims":[{"value":"...","type":"aim","primary":true}],"groupIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -242,7 +242,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"schemas":"...","contacts":[{"source":"...","contactId":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"schemas":"...","contacts":[{"source":"CH","contactId":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"...","avatarURL":"...","primaryContactMethod":"SIPADDRESS","emails":[{"value":"...","type":"work","primary":true}],"phoneNumbers":[{"value":"...","type":"work","primary":true}],"sipAddresses":[{"value":"...","type":"enterprise","primary":true}],"ims":[{"value":"...","type":"aim","primary":true}]}]}'
 
 @app.command("create-bulk", short_help="Bulk Create or Update Contacts.")
 def create_bulk(
@@ -253,7 +253,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk Create or Update Contacts.\n\n\b\nExample: wxcli org-contacts create-bulk --schemas SCHEMAS\n\n\b\nExample --json-body: '{"schemas":"...","contacts":[{"source":"...","contactId":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"..."}]}'"""
+    """Bulk Create or Update Contacts.\n\n\b\nExample: wxcli org-contacts create-bulk --json-body '{"schemas":"...","contacts":[{"source":"CH"}]}'\n\n\b\nExample --json-body: '{"schemas":"...","contacts":[{"source":"CH","contactId":"...","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"...","avatarURL":"...","primaryContactMethod":"SIPADDRESS","emails":[{"value":"...","type":"work","primary":true}],"phoneNumbers":[{"value":"...","type":"work","primary":true}],"sipAddresses":[{"value":"...","type":"enterprise","primary":true}],"ims":[{"value":"...","type":"aim","primary":true}]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -299,7 +299,7 @@ def create_delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk Delete Contacts.\n\n\b\nExample: wxcli org-contacts create-delete --schemas SCHEMAS\n\n\b\nExample --json-body: '{"schemas":"...","objectIds":["..."]}'"""
+    """Bulk Delete Contacts.\n\n\b\nExample: wxcli org-contacts create-delete --json-body '{"schemas":"...","objectIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DELETE), indent=2))
         raise typer.Exit(0)

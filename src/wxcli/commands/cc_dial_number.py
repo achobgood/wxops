@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"..."}'
+_BODY_SKELETON_CREATE = '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."}'
 
 @app.command("create", short_help="Create a new Dialed Number Mapping.")
 def create(
@@ -80,7 +80,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Dialed Number Mapping.\n\n\b\nExample: wxcli cc-dial-number create --entry-point-id ENTRY_POINT_ID --entry-point-name ENTRY_POINT_NAME\n\n\b\nExample --json-body: '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"..."}'"""
+    """Create a new Dialed Number Mapping.\n\n\b\nExample: wxcli cc-dial-number create --entry-point-id ENTRY_POINT_ID --entry-point-name ENTRY_POINT_NAME\n\n\b\nExample --json-body: '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -175,7 +175,7 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Dialed Number Mapping(s).")
 def create_bulk(
@@ -185,7 +185,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Dialed Number Mapping(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Dialed Number Mapping(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -305,7 +305,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"..."}'
+_BODY_SKELETON_UPDATE = '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."}'
 
 @app.command("update", short_help="Update specific Dialed Number Mapping by ID.")
 def update(
@@ -332,7 +332,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Dialed Number Mapping by ID.\n\n\b\nExample: wxcli cc-dial-number update ID --entry-point-id ENTRY_POINT_ID --entry-point-name ENTRY_POINT_NAME\n\n\b\nExample --json-body: '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"..."}'"""
+    """Update specific Dialed Number Mapping by ID.\n\n\b\nExample: wxcli cc-dial-number update ID --entry-point-id ENTRY_POINT_ID --entry-point-name ENTRY_POINT_NAME\n\n\b\nExample --json-body: '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

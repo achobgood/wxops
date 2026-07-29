@@ -270,7 +270,7 @@ def create_base_stations(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Multiple Base Stations.\n\n\b\nExample: wxcli dect-devices create-base-stations LOCATION_ID DECT_NETWORK_ID\n\n\b\nExample --json-body: '{"baseStationMacs":["..."]}'"""
+    """Create Multiple Base Stations.\n\n\b\nExample: wxcli dect-devices create-base-stations LOCATION_ID DECT_NETWORK_ID --json-body '{"baseStationMacs":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BASE_STATIONS), indent=2))
         raise typer.Exit(0)
@@ -623,7 +623,7 @@ def delete_handsets_dect_networks_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete multiple handsets.\n\n\b\nExample: wxcli dect-devices delete-handsets-dect-networks-bulk LOCATION_ID DECT_NETWORK_ID\n\n\b\nExample --json-body: '{"handsetIds":["..."],"deleteAll":true}'"""
+    """Delete multiple handsets.\n\n\b\nExample: wxcli dect-devices delete-handsets-dect-networks-bulk LOCATION_ID DECT_NETWORK_ID --json-body '{"handsetIds":["..."]}'\n\n\b\nExample --json-body: '{"handsetIds":["..."],"deleteAll":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_HANDSETS_DECT_NETWORKS_BULK), indent=2))
         raise typer.Exit(0)
@@ -672,7 +672,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add a List of Handsets to a DECT Network.\n\n\b\nExample: wxcli dect-devices create-bulk LOCATION_ID DECT_NETWORK_ID\n\n\b\nExample --json-body: '{"items":[{"line1MemberId":"...","customDisplayName":"...","line2MemberId":"..."}]}'"""
+    """Add a List of Handsets to a DECT Network.\n\n\b\nExample: wxcli dect-devices create-bulk LOCATION_ID DECT_NETWORK_ID --json-body '{"items":[{"line1MemberId":"...","customDisplayName":"..."}]}'\n\n\b\nExample --json-body: '{"items":[{"line1MemberId":"...","customDisplayName":"...","line2MemberId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)

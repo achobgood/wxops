@@ -57,7 +57,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"DontRepeat","recurrence":{"interval":0,"occurrenceInTheMonth":"FIRST","daysOfWeek":["SUN"],"specificDayOfMonth":0,"specificMonth":"JAN","endDate":"..."},"overlapsWith":["..."]}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Holiday List.")
 def create(
@@ -75,7 +75,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Holiday List.\n\n\b\nExample: wxcli cc-holiday-list create --name NAME\n\n\b\nExample --json-body: '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'"""
+    """Create a new Holiday List.\n\n\b\nExample: wxcli cc-holiday-list create --json-body '{"name":"...","holidays":[{"name":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"DontRepeat","recurrence":{"interval":0,"occurrenceInTheMonth":"FIRST","daysOfWeek":["SUN"],"specificDayOfMonth":0,"specificMonth":"JAN","endDate":"..."},"overlapsWith":["..."]}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -125,7 +125,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"DontRepeat","recurrence":{"interval":0,"occurrenceInTheMonth":"FIRST","daysOfWeek":["SUN"],"specificDayOfMonth":0,"specificMonth":"JAN","endDate":"..."},"overlapsWith":["..."]}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Holiday Lists.")
 def create_bulk(
@@ -135,7 +135,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Holiday Lists.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Holiday Lists.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"DontRepeat","recurrence":{"interval":0,"occurrenceInTheMonth":"FIRST","daysOfWeek":["SUN"],"specificDayOfMonth":0,"specificMonth":"JAN","endDate":"..."},"overlapsWith":["..."]}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -187,7 +187,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"DontRepeat","recurrence":{"interval":0,"occurrenceInTheMonth":"FIRST","daysOfWeek":["SUN"],"specificDayOfMonth":0,"specificMonth":"JAN","endDate":"..."},"overlapsWith":["..."]}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Holiday List by ID.")
 def update(
@@ -206,7 +206,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Holiday List by ID.\n\n\b\nExample: wxcli cc-holiday-list update ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"...","recurrence":"...","overlapsWith":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0}'"""
+    """Update specific Holiday List by ID.\n\n\b\nExample: wxcli cc-holiday-list update ID --json-body '{"name":"...","holidays":[{"name":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","holidays":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","frequency":"DontRepeat","recurrence":{"interval":0,"occurrenceInTheMonth":"FIRST","daysOfWeek":["SUN"],"specificDayOfMonth":0,"specificMonth":"JAN","endDate":"..."},"overlapsWith":["..."]}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

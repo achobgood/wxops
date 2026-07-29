@@ -68,7 +68,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'
+_BODY_SKELETON_CREATE = '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":[{"value":"..."}],"managedBy":[{"orgId":"...","type":"...","id":"...","role":"..."}]}}'
 
 @app.command("create", short_help="Create a group.")
 def create(
@@ -80,7 +80,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a group.\n\n\b\nExample: wxcli scim-groups create --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'"""
+    """Create a group.\n\n\b\nExample: wxcli scim-groups create --json-body '{"schemas":["..."],"displayName":"..."}'\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":[{"value":"..."}],"managedBy":[{"orgId":"...","type":"...","id":"...","role":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -142,7 +142,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'
+_BODY_SKELETON_UPDATE = '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":[{"value":"..."}],"managedBy":[{"orgId":"...","type":"...","id":"...","role":"..."}]}}'
 
 @app.command("update", short_help="Update a group with PUT.")
 def update(
@@ -155,7 +155,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a group with PUT.\n\n\b\nExample: wxcli scim-groups update GROUP_ID --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":["..."],"managedBy":["..."]}}'"""
+    """Update a group with PUT.\n\n\b\nExample: wxcli scim-groups update GROUP_ID --json-body '{"schemas":["..."],"displayName":"..."}'\n\n\b\nExample --json-body: '{"schemas":["..."],"displayName":"...","externalId":"...","members":[{"value":"...","type":"..."}],"urn:scim:schemas:extension:cisco:webexidentity:2.0:Group":{"usage":"...","owners":[{"value":"..."}],"managedBy":[{"orgId":"...","type":"...","id":"...","role":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -185,7 +185,7 @@ def update(
 
 
 
-_BODY_SKELETON_UPDATE_GROUPS = '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'
+_BODY_SKELETON_UPDATE_GROUPS = '{"schemas":["..."],"Operations":[{"op":"add","path":"...","value":"..."}]}'
 
 @app.command("update-groups", short_help="Update a group with PATCH.")
 def update_groups(
@@ -196,7 +196,7 @@ def update_groups(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a group with PATCH.\n\n\b\nExample: wxcli scim-groups update-groups GROUP_ID\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'"""
+    """Update a group with PATCH.\n\n\b\nExample: wxcli scim-groups update-groups GROUP_ID --json-body '{"schemas":["..."],"Operations":[{"op":"add"}]}'\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"add","path":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_GROUPS), indent=2))
         raise typer.Exit(0)

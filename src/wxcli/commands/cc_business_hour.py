@@ -57,7 +57,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"],"startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"...","overridesId":"...","workingHoursCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Business Hours resource.")
 def create(
@@ -78,7 +78,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Business Hours resource.\n\n\b\nExample: wxcli cc-business-hour create --name NAME --timezone TIMEZONE\n\n\b\nExample --json-body: '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'"""
+    """Create a new Business Hours resource.\n\n\b\nExample: wxcli cc-business-hour create --json-body '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"]}]}'\n\n\b\nExample --json-body: '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"],"startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"...","overridesId":"...","workingHoursCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -134,7 +134,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"],"startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"...","overridesId":"...","workingHoursCount":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Business Hours resources.")
 def create_bulk(
@@ -144,7 +144,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Business Hours resources.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Business Hours resources.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"],"startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"...","overridesId":"...","workingHoursCount":0,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -196,7 +196,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'
+_BODY_SKELETON_UPDATE = '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"],"startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"...","overridesId":"...","workingHoursCount":0,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Business Hours resource by ID.")
 def update(
@@ -218,7 +218,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Business Hours resource by ID.\n\n\b\nExample: wxcli cc-business-hour update ID --name NAME --timezone TIMEZONE\n\n\b\nExample --json-body: '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":"...","startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"..."}'"""
+    """Update specific Business Hours resource by ID.\n\n\b\nExample: wxcli cc-business-hour update ID --json-body '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"]}]}'\n\n\b\nExample --json-body: '{"name":"...","timezone":"...","workingHours":[{"name":"...","days":["SUN"],"startTime":"...","endTime":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","holidaysId":"...","overridesId":"...","workingHoursCount":0,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

@@ -71,7 +71,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'
+_BODY_SKELETON_CREATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","name":{"givenName":"...","familyName":"...","middleName":"...","honorificPrefix":"...","honorificSuffix":"..."},"phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'
 
 @app.command("create", short_help="Create a user.")
 def create(
@@ -92,7 +92,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a user.\n\n\b\nExample: wxcli scim-users create --user-name USER_NAME --user-type user\n\n\b\nExample --json-body: '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'"""
+    """Create a user.\n\n\b\nExample: wxcli scim-users create --json-body '{"schemas":["..."],"userName":"...","userType":"user"}'\n\n\b\nExample --json-body: '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","name":{"givenName":"...","familyName":"...","middleName":"...","honorificPrefix":"...","honorificSuffix":"..."},"phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -168,7 +168,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'
+_BODY_SKELETON_UPDATE = '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'
 
 @app.command("update", short_help="Update a user with PUT.")
 def update(
@@ -190,7 +190,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a user with PUT.\n\n\b\nExample: wxcli scim-users update USER_ID --user-name USER_NAME --user-type user\n\n\b\nExample --json-body: '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"..."}'"""
+    """Update a user with PUT.\n\n\b\nExample: wxcli scim-users update USER_ID --json-body '{"schemas":["..."],"userName":"...","userType":"user"}'\n\n\b\nExample --json-body: '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -238,7 +238,7 @@ def update(
 
 
 
-_BODY_SKELETON_UPDATE_USERS = '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'
+_BODY_SKELETON_UPDATE_USERS = '{"schemas":["..."],"Operations":[{"op":"add","path":"...","value":[{"value":"...","type":"...","display":"..."}]}]}'
 
 @app.command("update-users", short_help="Update a user with PATCH.")
 def update_users(
@@ -249,7 +249,7 @@ def update_users(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a user with PATCH.\n\n\b\nExample: wxcli scim-users update-users USER_ID\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"...","path":"...","value":"..."}]}'"""
+    """Update a user with PATCH.\n\n\b\nExample: wxcli scim-users update-users USER_ID --json-body '{"schemas":["..."],"Operations":[{"op":"add"}]}'\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"add","path":"...","value":[{"value":"...","type":"...","display":"..."}]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_USERS), indent=2))
         raise typer.Exit(0)

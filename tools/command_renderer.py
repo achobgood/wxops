@@ -423,8 +423,15 @@ def _render_docstring(ep) -> str:
     example = _render_example(ep)
     if example:
         doc += f"\\n\\n\\b\\nExample: {example}"
-    if ep.json_body_example:
+    # Suppressed only when the example above already carries this exact blob —
+    # printing the same JSON twice costs tokens on every read of the screen and
+    # tells the reader nothing new. When the example carries the pruned body
+    # the full one still earns its place: it is the only listing of the
+    # optional fields.
+    if ep.json_body_example and _example_json_body(ep) != ep.json_body_example:
         doc += f"\\n\\n\\b\\nExample --json-body: '{ep.json_body_example}'"
+    for note in getattr(ep, "json_body_truncations", ()) or ():
+        doc += f"\\n\\n\\b\\nNOTE: skeleton incomplete — {_escape_help(note)}"
     return f'    """{doc}"""'
 
 
@@ -777,6 +784,40 @@ def _flag_value(field: EndpointField) -> str:
     return _safe_param_name(field.python_name).upper()
 
 
+def _flagless_required_body_fields(ep: Endpoint) -> list[EndpointField]:
+    """Required body fields for which this command renders no flag.
+
+    Two structural causes, both of which leave --json-body as the only way to
+    supply the value:
+
+    * object/array-typed fields are never rendered as flags (every render path
+      skips `field_type in ("object", "array")`);
+    * a field whose CLI name is already claimed by a path or query parameter is
+      dropped as a flag to avoid a duplicate function argument (issue #19).
+    """
+    used_names = _used_param_names(ep)
+    return [
+        bf for bf in ep.body_fields
+        if bf.required
+        and (bf.field_type in ("object", "array")
+             or _safe_param_name(bf.python_name) in used_names)
+    ]
+
+
+def _example_json_body(ep: Endpoint) -> str | None:
+    """The body the runnable example must carry, or None if flags suffice.
+
+    The MINIMAL skeleton, not the full one: the full one is what
+    --generate-json-body prints and what the `Example --json-body:` line shows,
+    and on a create it includes server-assigned fields (`id`, `version`,
+    `createdTime`) that an agent pasting the example would send back.
+    """
+    if not _flagless_required_body_fields(ep):
+        return None
+    return (getattr(ep, "json_body_minimal_example", None)
+            or ep.json_body_example)
+
+
 def _render_example(ep: Endpoint) -> str | None:
     """One copy-pasteable invocation, or None when Usage already shows it.
 
@@ -790,6 +831,16 @@ def _render_example(ep: Endpoint) -> str | None:
     anyway, and the argument's own help now says which command produces one.
     Enum and word-ish values ARE pasted literally, because those are correct
     as-is.
+
+    When a REQUIRED body field has no flag (see _flagless_required_body_fields)
+    the flag list cannot express the call at all, so the example switches to
+    `--json-body '<skeleton>'` and drops the scalar flags entirely. Dropping
+    them is not cosmetic: the generated code is `if json_body: body =
+    load_json_body(json_body) else: <build from flags>`, so an example showing
+    both would teach that the flags still apply when in fact --json-body
+    replaces the whole body. Keeping the skeleton inline rather than pointing at
+    --generate-json-body is deliberate — an agent reads this line and issues the
+    call in the same turn, and a pointer costs it a round trip.
     """
     tokens: list[str] = []
     for var in ep.path_vars:
@@ -803,20 +854,27 @@ def _render_example(ep: Endpoint) -> str | None:
         if ep.command_type == "list" and qp.name in _SUPPRESS_SPEC_PAGING_NAMES:
             continue
         tokens.append(f"--{qp.python_name} {_flag_value(qp)}")
-    used_names = _used_param_names(ep)
-    for bf in ep.body_fields:
-        if not bf.required or bf.field_type in ("object", "array"):
-            continue
-        if _safe_param_name(bf.python_name) in used_names:
-            continue
-        if bf.field_type == "bool":
-            tokens.append(f"--{bf.python_name}")
-        else:
-            tokens.append(f"--{bf.python_name} {_flag_value(bf)}")
-    if not tokens:
+    body_via_json = _example_json_body(ep)
+    if not body_via_json:
+        used_names = _used_param_names(ep)
+        for bf in ep.body_fields:
+            if not bf.required or bf.field_type in ("object", "array"):
+                continue
+            if _safe_param_name(bf.python_name) in used_names:
+                continue
+            if bf.field_type == "bool":
+                tokens.append(f"--{bf.python_name}")
+            else:
+                tokens.append(f"--{bf.python_name} {_flag_value(bf)}")
+    if not tokens and not body_via_json:
         return None
     head = " ".join(p for p in ("wxcli", _active_cli_name, ep.command_name) if p)
-    return _escape_help(" ".join([head, *tokens]))
+    line = _escape_help(" ".join([head, *tokens]))
+    if body_via_json:
+        # Appended after _escape_help so the skeleton reads in source exactly as
+        # it does on the `Example --json-body:` line, which is unescaped too.
+        line += f" --json-body '{body_via_json}'"
+    return line
 
 
 def _render_query_params(ep: Endpoint) -> tuple[list[str], list[str]]:

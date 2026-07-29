@@ -72,7 +72,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"firstName":"...","lastName":"...","locationId":"...","displayName":"...","phoneNumber":"...","extension":"...","callerIdLastName":"...","callerIdFirstName":"..."}'
+_BODY_SKELETON_CREATE = '{"firstName":"...","lastName":"...","locationId":"...","displayName":"...","phoneNumber":"...","extension":"...","callerIdLastName":"...","callerIdFirstName":"...","callerIdNumber":"..."}'
 
 @app.command("create", short_help="Create a Virtual Line.")
 def create(
@@ -91,7 +91,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings create --first-name FIRST_NAME --last-name LAST_NAME --location-id LOCATION_ID\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","locationId":"...","displayName":"...","phoneNumber":"...","extension":"...","callerIdLastName":"...","callerIdFirstName":"..."}'"""
+    """Create a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings create --first-name FIRST_NAME --last-name LAST_NAME --location-id LOCATION_ID\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","locationId":"...","displayName":"...","phoneNumber":"...","extension":"...","callerIdLastName":"...","callerIdFirstName":"...","callerIdNumber":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -242,7 +242,7 @@ def show_virtual_lines(
 
 
 
-_BODY_SKELETON_UPDATE_VIRTUAL_LINES = '{"firstName":"...","lastName":"...","displayName":"...","phoneNumber":"...","extension":"...","announcementLanguage":"...","callerIdLastName":"...","callerIdFirstName":"..."}'
+_BODY_SKELETON_UPDATE_VIRTUAL_LINES = '{"firstName":"...","lastName":"...","displayName":"...","phoneNumber":"...","extension":"...","announcementLanguage":"...","callerIdLastName":"...","callerIdFirstName":"...","callerIdNumber":"...","timeZone":"..."}'
 
 @app.command("update-virtual-lines", short_help="Update a Virtual Line.")
 def update_virtual_lines(
@@ -263,7 +263,7 @@ def update_virtual_lines(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-virtual-lines VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","displayName":"...","phoneNumber":"...","extension":"...","announcementLanguage":"...","callerIdLastName":"...","callerIdFirstName":"..."}'"""
+    """Update a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-virtual-lines VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","displayName":"...","phoneNumber":"...","extension":"...","announcementLanguage":"...","callerIdLastName":"...","callerIdFirstName":"...","callerIdNumber":"...","timeZone":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VIRTUAL_LINES), indent=2))
         raise typer.Exit(0)
@@ -510,7 +510,7 @@ def list_caller_id(
 
 
 
-_BODY_SKELETON_UPDATE_CALLER_ID_VIRTUAL_LINES = '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true}'
+_BODY_SKELETON_UPDATE_CALLER_ID_VIRTUAL_LINES = '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true,"additionalExternalCallerIdLocationNumberEnabled":true,"additionalExternalCallerIdCustomNumber":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByFirstName":"...","dialByLastName":"..."}'
 
 @app.command("update-caller-id-virtual-lines", short_help="Configure Caller ID Settings for a Virtual Line.")
 def update_caller_id_virtual_lines(
@@ -533,7 +533,7 @@ def update_caller_id_virtual_lines(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Caller ID Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-caller-id-virtual-lines VIRTUAL_LINE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true}'"""
+    """Configure Caller ID Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-caller-id-virtual-lines VIRTUAL_LINE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true,"additionalExternalCallerIdLocationNumberEnabled":true,"additionalExternalCallerIdCustomNumber":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByFirstName":"...","dialByLastName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALLER_ID_VIRTUAL_LINES), indent=2))
         raise typer.Exit(0)
@@ -677,7 +677,7 @@ def show_call_forwarding(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"busy":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
 
 @app.command("update-call-forwarding", short_help="Configure Call Forwarding Settings for a Virtual Line.")
 def update_call_forwarding(
@@ -688,7 +688,7 @@ def update_call_forwarding(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Forwarding Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-call-forwarding VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
+    """Configure Call Forwarding Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-call-forwarding VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"busy":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING), indent=2))
         raise typer.Exit(0)
@@ -826,7 +826,7 @@ def list_outgoing_permission(
 
 
 
-_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"callingPermissions":[{"transferEnabled":"...","callType":"...","action":"..."}],"useCustomEnabled":true,"useCustomPermissions":true}'
+_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"callingPermissions":[{"transferEnabled":true,"callType":"INTERNAL_CALL","action":"ALLOW"}],"useCustomEnabled":true,"useCustomPermissions":true}'
 
 @app.command("update-outgoing-permission", short_help="Modify a virtual line's Outgoing Calling Permissions Settings.")
 def update_outgoing_permission(
@@ -839,7 +839,7 @@ def update_outgoing_permission(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a virtual line's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli virtual-line-settings update-outgoing-permission VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"callingPermissions":[{"transferEnabled":"...","callType":"...","action":"..."}],"useCustomEnabled":true,"useCustomPermissions":true}'"""
+    """Modify a virtual line's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli virtual-line-settings update-outgoing-permission VIRTUAL_LINE_ID --json-body '{"callingPermissions":[{"transferEnabled":true}]}'\n\n\b\nExample --json-body: '{"callingPermissions":[{"transferEnabled":true,"callType":"INTERNAL_CALL","action":"ALLOW"}],"useCustomEnabled":true,"useCustomPermissions":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -1408,7 +1408,7 @@ def show_intercept(
 
 
 
-_BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
+_BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"CUSTOM","newNumber":{"enabled":true,"destination":"..."},"zeroTransfer":{"enabled":true,"destination":"..."}}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
 
 @app.command("update-intercept", short_help="Configure Call Intercept Settings for a Virtual Line.")
 def update_intercept(
@@ -1420,7 +1420,7 @@ def update_intercept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Intercept Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-intercept VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
+    """Configure Call Intercept Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-intercept VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"CUSTOM","newNumber":{"enabled":true,"destination":"..."},"zeroTransfer":{"enabled":true,"destination":"..."}}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INTERCEPT), indent=2))
         raise typer.Exit(0)
@@ -1596,7 +1596,7 @@ def show_voicemail(
 
 
 
-_BODY_SKELETON_UPDATE_VOICEMAIL = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'
+_BODY_SKELETON_UPDATE_VOICEMAIL = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'
 
 @app.command("update-voicemail", short_help="Configure Voicemail Settings for a Virtual Line.")
 def update_voicemail(
@@ -1608,7 +1608,7 @@ def update_voicemail(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Voicemail Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-voicemail VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'"""
+    """Configure Voicemail Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-voicemail VIRTUAL_LINE_ID --json-body '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."}}'\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICEMAIL), indent=2))
         raise typer.Exit(0)

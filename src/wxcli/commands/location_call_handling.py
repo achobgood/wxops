@@ -137,7 +137,7 @@ def show_intercept(
 
 
 
-_BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","fileName":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
+_BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"DEFAULT","fileName":"...","newNumber":{"enabled":true,"destination":"..."},"zeroTransfer":{"enabled":true,"destination":"..."}}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
 
 @app.command("update-intercept", short_help="Put Location Intercept.")
 def update_intercept(
@@ -149,7 +149,7 @@ def update_intercept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Put Location Intercept.\n\n\b\nExample: wxcli location-call-handling update-intercept LOCATION_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","fileName":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
+    """Put Location Intercept.\n\n\b\nExample: wxcli location-call-handling update-intercept LOCATION_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"DEFAULT","fileName":"...","newNumber":{"enabled":true,"destination":"..."},"zeroTransfer":{"enabled":true,"destination":"..."}}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INTERCEPT), indent=2))
         raise typer.Exit(0)
@@ -213,7 +213,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"callingPermissions":[{"callType":"...","action":"...","transferEnabled":"..."}]}'
+_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"callingPermissions":[{"callType":"INTERNAL_CALL","action":"ALLOW","transferEnabled":true}]}'
 
 @app.command("update-outgoing-permission", short_help="Update Location Outgoing Permission.")
 def update_outgoing_permission(
@@ -224,7 +224,7 @@ def update_outgoing_permission(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Location Outgoing Permission.\n\n\b\nExample: wxcli location-call-handling update-outgoing-permission LOCATION_ID\n\n\b\nExample --json-body: '{"callingPermissions":[{"callType":"...","action":"...","transferEnabled":"..."}]}'"""
+    """Update Location Outgoing Permission.\n\n\b\nExample: wxcli location-call-handling update-outgoing-permission LOCATION_ID\n\n\b\nExample --json-body: '{"callingPermissions":[{"callType":"INTERNAL_CALL","action":"ALLOW","transferEnabled":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -404,7 +404,7 @@ def update_access_codes(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete Outgoing Permission Access Code Location.\n\n\b\nExample: wxcli location-call-handling update-access-codes LOCATION_ID\n\n\b\nExample --json-body: '{"deleteCodes":["..."]}'"""
+    """Delete Outgoing Permission Access Code Location.\n\n\b\nExample: wxcli location-call-handling update-access-codes LOCATION_ID --json-body '{"deleteCodes":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ACCESS_CODES), indent=2))
         raise typer.Exit(0)

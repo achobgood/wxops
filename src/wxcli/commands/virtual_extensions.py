@@ -314,7 +314,7 @@ def validate_an_external(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate an external phone number.\n\n\b\nExample --json-body: '{"phoneNumbers":["..."]}'"""
+    """Validate an external phone number.\n\n\b\nExample: wxcli virtual-extensions validate-an-external --json-body '{"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_AN_EXTERNAL), indent=2))
         raise typer.Exit(0)

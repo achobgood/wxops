@@ -107,7 +107,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Enable a Location for Webex Calling.\n\n\b\nExample: wxcli location-settings create --id ID_PARAM --name NAME --time-zone TIME_ZONE --preferred-language PREFERRED_LANGUAGE --announcement-language ANNOUNCEMENT_LANGUAGE\n\n\b\nExample --json-body: '{"id":"...","name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"...","address2":"..."}}'"""
+    """Enable a Location for Webex Calling.\n\n\b\nExample: wxcli location-settings create --json-body '{"id":"...","name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"..."}}'\n\n\b\nExample --json-body: '{"id":"...","name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"...","address2":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -177,7 +177,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"announcementLanguage":"...","callingLineId":{"name":"...","phoneNumber":"..."},"connection":{"type":"ROUTE_GROUP","id":"..."},"externalCallerIdName":"...","pAccessNetworkInfo":"...","outsideDialDigit":"...","enforceOutsideDialDigit":true,"routingPrefix":"..."}'
+_BODY_SKELETON_UPDATE = '{"announcementLanguage":"...","callingLineId":{"name":"...","phoneNumber":"..."},"connection":{"type":"ROUTE_GROUP","id":"..."},"externalCallerIdName":"...","pAccessNetworkInfo":"...","outsideDialDigit":"...","enforceOutsideDialDigit":true,"routingPrefix":"...","chargeNumber":"..."}'
 
 @app.command("update", short_help="Update Location Webex Calling Details.")
 def update(
@@ -195,7 +195,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Location Webex Calling Details.\n\n\b\nExample: wxcli location-settings update LOCATION_ID\n\n\b\nExample --json-body: '{"announcementLanguage":"...","callingLineId":{"name":"...","phoneNumber":"..."},"connection":{"type":"ROUTE_GROUP","id":"..."},"externalCallerIdName":"...","pAccessNetworkInfo":"...","outsideDialDigit":"...","enforceOutsideDialDigit":true,"routingPrefix":"..."}'"""
+    """Update Location Webex Calling Details.\n\n\b\nExample: wxcli location-settings update LOCATION_ID\n\n\b\nExample --json-body: '{"announcementLanguage":"...","callingLineId":{"name":"...","phoneNumber":"..."},"connection":{"type":"ROUTE_GROUP","id":"..."},"externalCallerIdName":"...","pAccessNetworkInfo":"...","outsideDialDigit":"...","enforceOutsideDialDigit":true,"routingPrefix":"...","chargeNumber":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -480,7 +480,7 @@ def validate_extensions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate Extensions.\n\n\b\nExample: wxcli location-settings validate-extensions LOCATION_ID\n\n\b\nExample --json-body: '{"extensions":["..."]}'"""
+    """Validate Extensions.\n\n\b\nExample: wxcli location-settings validate-extensions LOCATION_ID --json-body '{"extensions":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_EXTENSIONS), indent=2))
         raise typer.Exit(0)
@@ -925,7 +925,7 @@ def create_directories(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Receptionist Contact Directory.\n\n\b\nExample: wxcli location-settings create-directories LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","contacts":[{"personId":"...","featureId":"...","type":"..."}]}'"""
+    """Create a Receptionist Contact Directory.\n\n\b\nExample: wxcli location-settings create-directories LOCATION_ID --json-body '{"name":"...","contacts":[{"personId":"...","featureId":"...","type":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DIRECTORIES), indent=2))
         raise typer.Exit(0)
@@ -1019,7 +1019,7 @@ def update_directories(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Receptionist Contact Directory.\n\n\b\nExample: wxcli location-settings update-directories LOCATION_ID DIRECTORY_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","contacts":["..."]}'"""
+    """Modify a Receptionist Contact Directory.\n\n\b\nExample: wxcli location-settings update-directories LOCATION_ID DIRECTORY_ID --json-body '{"name":"...","contacts":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DIRECTORIES), indent=2))
         raise typer.Exit(0)

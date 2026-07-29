@@ -50,6 +50,14 @@ class Endpoint:
     response_id_key: str | None = None
     deprecated: bool = False
     json_body_example: str | None = None
+    # The same body pruned to what the spec marks required — the minimum call
+    # that can succeed, which is what the runnable Example line shows when no
+    # flag can carry a required field.
+    json_body_minimal_example: str | None = None
+    # Places the skeleton above had to stop expanding. Empty means complete —
+    # the skeleton generator has no silent truncation, so a non-empty list is
+    # printed beside the skeleton rather than swallowed.
+    json_body_truncations: list[str] = field(default_factory=list)
     auto_inject_params: list[str] = field(default_factory=list)
     auto_inject_path_params: list[str] = field(default_factory=list)
     content_type: str | None = None

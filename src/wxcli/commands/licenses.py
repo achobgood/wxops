@@ -73,7 +73,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"...","properties":"..."}],"siteUrls":[{"siteUrl":"...","accountType":"...","operation":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"remove","properties":{"locationId":"...","phoneNumber":"...","extension":"..."}}],"siteUrls":[{"siteUrl":"...","accountType":"attendee","operation":"remove"}]}'
 
 @app.command("update", short_help="Assign Licenses to Users.")
 def update(
@@ -86,7 +86,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign Licenses to Users.\n\n\b\nExample --json-body: '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"...","properties":"..."}],"siteUrls":[{"siteUrl":"...","accountType":"...","operation":"..."}]}'"""
+    """Assign Licenses to Users.\n\n\b\nExample --json-body: '{"email":"...","personId":"...","orgId":"...","licenses":[{"id":"...","operation":"remove","properties":{"locationId":"...","phoneNumber":"...","extension":"..."}}],"siteUrls":[{"siteUrl":"...","accountType":"attendee","operation":"remove"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

@@ -68,7 +68,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Location.\n\n\b\nExample: wxcli locations create --name NAME --time-zone TIME_ZONE --preferred-language PREFERRED_LANGUAGE --announcement-language ANNOUNCEMENT_LANGUAGE\n\n\b\nExample --json-body: '{"name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"...","address2":"..."},"latitude":"...","longitude":"...","notes":"..."}'"""
+    """Create a Location.\n\n\b\nExample: wxcli locations create --json-body '{"name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"..."}}'\n\n\b\nExample --json-body: '{"name":"...","timeZone":"...","preferredLanguage":"...","announcementLanguage":"...","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"...","address2":"..."},"latitude":"...","longitude":"...","notes":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

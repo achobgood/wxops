@@ -11,7 +11,7 @@ from wxcli.config import get_cc_base_url
 app = typer.Typer(help="Manage Webex Contact Center cc-call-monitoring.")
 
 
-_BODY_SKELETON_CREATE = '{"id":"...","monitorType":"...","taskId":"...","queueIds":["..."],"teams":["..."],"sites":["..."],"agents":["..."],"trackingId":"..."}'
+_BODY_SKELETON_CREATE = '{"id":"...","monitorType":"...","taskId":"...","queueIds":["..."],"teams":["..."],"sites":["..."],"agents":["..."],"trackingId":"...","invisibleMode":true}'
 
 @app.command("create", short_help="Create Monitoring Request.")
 def create(
@@ -26,7 +26,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create --id ID_PARAM --monitor-type MONITOR_TYPE\n\n\b\nExample --json-body: '{"id":"...","monitorType":"...","taskId":"...","queueIds":["..."],"teams":["..."],"sites":["..."],"agents":["..."],"trackingId":"..."}'"""
+    """Create Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create --id ID_PARAM --monitor-type MONITOR_TYPE\n\n\b\nExample --json-body: '{"id":"...","monitorType":"...","taskId":"...","queueIds":["..."],"teams":["..."],"sites":["..."],"agents":["..."],"trackingId":"...","invisibleMode":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

@@ -35,7 +35,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"callForwarding":{"always":{"enabled":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"...","destination":"..."},"busy":{"enabled":"...","destinationVoicemailEnabled":"...","destination":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","systemMaxNumberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destinationVoicemailEnabled":true,"destination":"..."}}'
+_BODY_SKELETON_UPDATE = '{"callForwarding":{"always":{"enabled":true,"ringReminderEnabled":true,"destinationVoicemailEnabled":true,"destination":"..."},"busy":{"enabled":true,"destinationVoicemailEnabled":true,"destination":"..."},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"systemMaxNumberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destinationVoicemailEnabled":true,"destination":"..."}}'
 
 @app.command("update", short_help="Modify Call Forwarding Settings for a Workspace.")
 def update(
@@ -46,7 +46,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Call Forwarding Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update WORKSPACE_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"...","destination":"..."},"busy":{"enabled":"...","destinationVoicemailEnabled":"...","destination":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","systemMaxNumberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destinationVoicemailEnabled":true,"destination":"..."}}'"""
+    """Modify Call Forwarding Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update WORKSPACE_ID --json-body '{"callForwarding":{"always":{"enabled":true,"ringReminderEnabled":true,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destinationVoicemailEnabled":true}}'\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"ringReminderEnabled":true,"destinationVoicemailEnabled":true,"destination":"..."},"busy":{"enabled":true,"destinationVoicemailEnabled":true,"destination":"..."},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"systemMaxNumberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destinationVoicemailEnabled":true,"destination":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -175,7 +175,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_UPDATE_CALLER_ID = '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"..."}'
+_BODY_SKELETON_UPDATE_CALLER_ID = '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
 @app.command("update-caller-id", short_help="Configure Caller ID Settings for a Workspace.")
 def update_caller_id(
@@ -195,7 +195,7 @@ def update_caller_id(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Caller ID Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-caller-id WORKSPACE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"..."}'"""
+    """Configure Caller ID Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-caller-id WORKSPACE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALLER_ID), indent=2))
         raise typer.Exit(0)
@@ -275,7 +275,7 @@ def list_monitoring(
 
 
 
-_BODY_SKELETON_UPDATE_MONITORING = '{"enableCallParkNotification":true,"monitoredElements":[{"id":"...","type":"...","lineKeyLabel":"...","phoneNumber":"..."}]}'
+_BODY_SKELETON_UPDATE_MONITORING = '{"enableCallParkNotification":true,"monitoredElements":[{"id":"...","type":"MEMBER","lineKeyLabel":"...","phoneNumber":"..."}]}'
 
 @app.command("update-monitoring", short_help="Modify Monitoring Settings for a Workspace.")
 def update_monitoring(
@@ -287,7 +287,7 @@ def update_monitoring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Monitoring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-monitoring WORKSPACE_ID\n\n\b\nExample --json-body: '{"enableCallParkNotification":true,"monitoredElements":[{"id":"...","type":"...","lineKeyLabel":"...","phoneNumber":"..."}]}'"""
+    """Modify Monitoring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-monitoring WORKSPACE_ID\n\n\b\nExample --json-body: '{"enableCallParkNotification":true,"monitoredElements":[{"id":"...","type":"MEMBER","lineKeyLabel":"...","phoneNumber":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MONITORING), indent=2))
         raise typer.Exit(0)
@@ -550,7 +550,7 @@ def list_outgoing_permission(
 
 
 
-_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"useCustomEnabled":true,"useCustomPermissions":true,"callingPermissions":[{"callType":"...","action":"...","transferEnabled":"..."}]}'
+_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"useCustomEnabled":true,"useCustomPermissions":true,"callingPermissions":[{"callType":"INTERNAL_CALL","action":"ALLOW","transferEnabled":true}]}'
 
 @app.command("update-outgoing-permission", short_help="Modify Outgoing Permission Settings for a Workspace.")
 def update_outgoing_permission(
@@ -563,7 +563,7 @@ def update_outgoing_permission(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Outgoing Permission Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-outgoing-permission WORKSPACE_ID\n\n\b\nExample --json-body: '{"useCustomEnabled":true,"useCustomPermissions":true,"callingPermissions":[{"callType":"...","action":"...","transferEnabled":"..."}]}'"""
+    """Modify Outgoing Permission Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-outgoing-permission WORKSPACE_ID\n\n\b\nExample --json-body: '{"useCustomEnabled":true,"useCustomPermissions":true,"callingPermissions":[{"callType":"INTERNAL_CALL","action":"ALLOW","transferEnabled":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -779,7 +779,7 @@ def show_intercept(
 
 
 
-_BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
+_BODY_SKELETON_UPDATE_INTERCEPT = '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"CUSTOM","newNumber":{"enabled":true,"destination":"..."},"zeroTransfer":{"enabled":true,"destination":"..."}}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'
 
 @app.command("update-intercept", short_help="Configure Call Intercept Settings for a Workspace.")
 def update_intercept(
@@ -791,7 +791,7 @@ def update_intercept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Intercept Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-intercept WORKSPACE_ID\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"...","newNumber":"...","zeroTransfer":"..."}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
+    """Configure Call Intercept Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-intercept WORKSPACE_ID\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"CUSTOM","newNumber":{"enabled":true,"destination":"..."},"zeroTransfer":{"enabled":true,"destination":"..."}}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_INTERCEPT), indent=2))
         raise typer.Exit(0)
@@ -2007,7 +2007,7 @@ def show_voicemail(
 
 
 
-_BODY_SKELETON_UPDATE_VOICEMAIL = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'
+_BODY_SKELETON_UPDATE_VOICEMAIL = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'
 
 @app.command("update-voicemail", short_help="Configure Voicemail Settings for a Workspace.")
 def update_voicemail(
@@ -2019,7 +2019,7 @@ def update_voicemail(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Voicemail Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-voicemail WORKSPACE_ID\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'"""
+    """Configure Voicemail Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-voicemail WORKSPACE_ID --json-body '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."}}'\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICEMAIL), indent=2))
         raise typer.Exit(0)
@@ -2439,7 +2439,7 @@ def list_sequential_ring(
 
 
 
-_BODY_SKELETON_UPDATE_SEQUENTIAL_RING = '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":"...","numberOfRings":"..."}]}'
+_BODY_SKELETON_UPDATE_SEQUENTIAL_RING = '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":true,"numberOfRings":0}]}'
 
 @app.command("update-sequential-ring", short_help="Modify Sequential Ring Settings for a Workspace.")
 def update_sequential_ring(
@@ -2455,7 +2455,7 @@ def update_sequential_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Sequential Ring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-sequential-ring WORKSPACE_ID\n\n\b\nExample --json-body: '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":"...","numberOfRings":"..."}]}'"""
+    """Modify Sequential Ring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-sequential-ring WORKSPACE_ID\n\n\b\nExample --json-body: '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":true,"numberOfRings":0}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SEQUENTIAL_RING), indent=2))
         raise typer.Exit(0)
@@ -2527,7 +2527,7 @@ def list_simultaneous_ring(
 
 
 
-_BODY_SKELETON_UPDATE_SIMULTANEOUS_RING = '{"criteriasEnabled":true,"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":"..."}]}'
+_BODY_SKELETON_UPDATE_SIMULTANEOUS_RING = '{"criteriasEnabled":true,"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":true}]}'
 
 @app.command("update-simultaneous-ring", short_help="Modify Simultaneous Ring Settings for a Workspace.")
 def update_simultaneous_ring(
@@ -2541,7 +2541,7 @@ def update_simultaneous_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Simultaneous Ring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-simultaneous-ring WORKSPACE_ID --criterias-enabled\n\n\b\nExample --json-body: '{"criteriasEnabled":true,"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":"..."}]}'"""
+    """Modify Simultaneous Ring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-simultaneous-ring WORKSPACE_ID --criterias-enabled\n\n\b\nExample --json-body: '{"criteriasEnabled":true,"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationRequiredEnabled":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)
@@ -3028,7 +3028,7 @@ def create_criteria_selective_reject(
 
 
 
-_BODY_SKELETON_UPDATE_NUMBERS = '{"phoneNumbers":[{"primary":"...","action":"...","directNumber":"...","extension":"...","ringPattern":"..."}],"distinctiveRingEnabled":true}'
+_BODY_SKELETON_UPDATE_NUMBERS = '{"phoneNumbers":[{"primary":true,"action":"ADD","directNumber":"...","extension":"...","ringPattern":"NORMAL"}],"distinctiveRingEnabled":true}'
 
 @app.command("update-numbers", short_help="Assign or Unassign numbers associated with a specific workspace.")
 def update_numbers(
@@ -3040,7 +3040,7 @@ def update_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign numbers associated with a specific workspace.\n\n\b\nExample: wxcli workspace-settings update-numbers WORKSPACE_ID\n\n\b\nExample --json-body: '{"phoneNumbers":[{"primary":"...","action":"...","directNumber":"...","extension":"...","ringPattern":"..."}],"distinctiveRingEnabled":true}'"""
+    """Assign or Unassign numbers associated with a specific workspace.\n\n\b\nExample: wxcli workspace-settings update-numbers WORKSPACE_ID --json-body '{"phoneNumbers":[{"primary":true,"action":"ADD","directNumber":"..."}]}'\n\n\b\nExample --json-body: '{"phoneNumbers":[{"primary":true,"action":"ADD","directNumber":"...","extension":"...","ringPattern":"NORMAL"}],"distinctiveRingEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -3709,7 +3709,7 @@ def show_criteria_selective_forward(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'
 
 @app.command("update-criteria-selective-forward", short_help="Modify Selective Forward Criteria for a Workspace.")
 def update_criteria_selective_forward(
@@ -3730,7 +3730,7 @@ def update_criteria_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-forward WORKSPACE_ID ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'"""
+    """Modify Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-forward WORKSPACE_ID ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -3810,7 +3810,7 @@ def delete_criteria_selective_forward(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'
+_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'
 
 @app.command("create-criteria-selective-forward", short_help="Create Selective Forward Criteria for a Workspace.")
 def create_criteria_selective_forward(
@@ -3830,7 +3830,7 @@ def create_criteria_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-forward WORKSPACE_ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'"""
+    """Create Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-forward WORKSPACE_ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)

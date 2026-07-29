@@ -173,7 +173,7 @@ def list_meetings(
 
 
 
-_BODY_SKELETON_CREATE = '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"..."}'
+_BODY_SKELETON_CREATE = '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"scheduledType":"meeting","enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"invitees":[{"email":"...","displayName":"...","coHost":true,"panelist":true}],"sendEmail":true,"hostEmail":"...","siteUrl":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"registration":{"autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true,"requireAddress2":true,"requireCity":true,"requireState":true,"requireZipCode":true,"requireCountryRegion":true,"requireWorkPhone":true,"requireFax":true,"maxRegisterNum":0,"customizedQuestions":[{"question":"...","type":"singleLineTextBox","required":true,"maxLength":0,"options":[{"value":"..."}],"rules":[{"condition":"contains","value":"...","result":"approve","matchCase":true}]}],"rules":[{"question":"lastName","condition":"contains","value":"...","result":"approve","order":0,"matchCase":true}]},"integrationTags":["..."],"simultaneousInterpretation":{"enabled":true,"interpreters":[{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"..."}]},"enabledBreakoutSessions":true,"breakoutSessions":[{"name":"...","invitees":["..."]}],"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'
 
 @app.command("create", short_help="Create a Meeting.")
 def create(
@@ -220,7 +220,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Meeting.\n\n\b\nExample: wxcli meetings create --title TITLE --start START --end END\n\n\b\nExample --json-body: '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"..."}'"""
+    """Create a Meeting.\n\n\b\nExample: wxcli meetings create --title TITLE --start START --end END\n\n\b\nExample --json-body: '{"title":"...","start":"...","end":"...","adhoc":true,"roomId":"...","templateId":"...","agenda":"...","password":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"scheduledType":"meeting","enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"invitees":[{"email":"...","displayName":"...","coHost":true,"panelist":true}],"sendEmail":true,"hostEmail":"...","siteUrl":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"registration":{"autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true,"requireAddress2":true,"requireCity":true,"requireState":true,"requireZipCode":true,"requireCountryRegion":true,"requireWorkPhone":true,"requireFax":true,"maxRegisterNum":0,"customizedQuestions":[{"question":"...","type":"singleLineTextBox","required":true,"maxLength":0,"options":[{"value":"..."}],"rules":[{"condition":"contains","value":"...","result":"approve","matchCase":true}]}],"rules":[{"question":"lastName","condition":"contains","value":"...","result":"approve","order":0,"matchCase":true}]},"integrationTags":["..."],"simultaneousInterpretation":{"enabled":true,"interpreters":[{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"..."}]},"enabledBreakoutSessions":true,"breakoutSessions":[{"name":"...","invitees":["..."]}],"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -353,7 +353,7 @@ def show_meetings(
 
 
 
-_BODY_SKELETON_UPDATE = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'
+_BODY_SKELETON_UPDATE = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"sendEmail":true,"hostEmail":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"integrationTags":["..."],"enabledBreakoutSessions":true,"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'
 
 @app.command("update", short_help="Update a Meeting.")
 def update(
@@ -396,7 +396,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Meeting.\n\n\b\nExample: wxcli meetings update MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'"""
+    """Update a Meeting.\n\n\b\nExample: wxcli meetings update MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"sendEmail":true,"hostEmail":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"integrationTags":["..."],"enabledBreakoutSessions":true,"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -485,7 +485,7 @@ def update(
 
 
 
-_BODY_SKELETON_UPDATE_MEETINGS = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'
+_BODY_SKELETON_UPDATE_MEETINGS = '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"sendEmail":true,"hostEmail":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"integrationTags":["..."],"enabledBreakoutSessions":true,"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'
 
 @app.command("update-meetings", short_help="Patch a Meeting.")
 def update_meetings(
@@ -529,7 +529,7 @@ def update_meetings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Patch a Meeting.\n\n\b\nExample: wxcli meetings update-meetings MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true}'"""
+    """Patch a Meeting.\n\n\b\nExample: wxcli meetings update-meetings MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"sendEmail":true,"hostEmail":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"integrationTags":["..."],"enabledBreakoutSessions":true,"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MEETINGS), indent=2))
         raise typer.Exit(0)
@@ -659,7 +659,7 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE_JOIN = '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0}'
+_BODY_SKELETON_CREATE_JOIN = '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0,"registrationId":"...","hostEmail":"...","createJoinLinkAsWebLink":true,"createStartLinkAsWebLink":true}'
 
 @app.command("create-join", short_help="Join a Meeting.")
 def create_join(
@@ -681,7 +681,7 @@ def create_join(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Join a Meeting.\n\n\b\nExample --json-body: '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0}'"""
+    """Join a Meeting.\n\n\b\nExample --json-body: '{"meetingId":"...","meetingNumber":"...","webLink":"...","joinDirectly":true,"email":"...","displayName":"...","password":"...","expirationMinutes":0,"registrationId":"...","hostEmail":"...","createJoinLinkAsWebLink":true,"createStartLinkAsWebLink":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_JOIN), indent=2))
         raise typer.Exit(0)
@@ -973,7 +973,7 @@ def list_registration(
 
 
 
-_BODY_SKELETON_UPDATE_REGISTRATION = '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true}'
+_BODY_SKELETON_UPDATE_REGISTRATION = '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true,"requireAddress2":true,"requireCity":true,"requireState":true,"requireZipCode":true,"requireCountryRegion":true,"requireWorkPhone":true,"requireFax":true,"maxRegisterNum":0,"customizedQuestions":[{"question":"...","type":"singleLineTextBox","required":true,"maxLength":0,"options":[{"value":"..."}],"rules":[{"condition":"contains","value":"...","result":"approve","matchCase":true}]}],"rules":[{"question":"lastName","condition":"contains","value":"...","result":"approve","order":0,"matchCase":true}]}'
 
 @app.command("update-registration", short_help="Update Meeting Registration Form.")
 def update_registration(
@@ -1000,7 +1000,7 @@ def update_registration(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Registration Form.\n\n\b\nExample: wxcli meetings update-registration MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true}'"""
+    """Update Meeting Registration Form.\n\n\b\nExample: wxcli meetings update-registration MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true,"requireAddress2":true,"requireCity":true,"requireState":true,"requireZipCode":true,"requireCountryRegion":true,"requireWorkPhone":true,"requireFax":true,"maxRegisterNum":0,"customizedQuestions":[{"question":"...","type":"singleLineTextBox","required":true,"maxLength":0,"options":[{"value":"..."}],"rules":[{"condition":"contains","value":"...","result":"approve","matchCase":true}]}],"rules":[{"question":"lastName","condition":"contains","value":"...","result":"approve","order":0,"matchCase":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_REGISTRATION), indent=2))
         raise typer.Exit(0)
@@ -1130,7 +1130,7 @@ def list_registrants(
 
 
 
-_BODY_SKELETON_CREATE_REGISTRANTS = '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"..."}'
+_BODY_SKELETON_CREATE_REGISTRANTS = '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"...","city":"...","state":"...","zipCode":0,"countryRegion":"...","workPhone":"...","fax":"...","customizedQuestions":[{"questionId":0,"answers":[{"answer":"...","optionId":0}]}]}'
 
 @app.command("create-registrants", short_help="Register a Meeting Registrant.")
 def create_registrants(
@@ -1157,7 +1157,7 @@ def create_registrants(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Register a Meeting Registrant.\n\n\b\nExample: wxcli meetings create-registrants MEETING_ID --first-name FIRST_NAME --last-name LAST_NAME --email EMAIL\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"..."}'"""
+    """Register a Meeting Registrant.\n\n\b\nExample: wxcli meetings create-registrants MEETING_ID --first-name FIRST_NAME --last-name LAST_NAME --email EMAIL\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"...","city":"...","state":"...","zipCode":0,"countryRegion":"...","workPhone":"...","fax":"...","customizedQuestions":[{"questionId":0,"answers":[{"answer":"...","optionId":0}]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REGISTRANTS), indent=2))
         raise typer.Exit(0)
@@ -1222,7 +1222,7 @@ def create_registrants(
 
 
 
-_BODY_SKELETON_CREATE_BULK_INSERT = '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":"...","jobTitle":"...","companyName":"...","address1":"...","address2":"..."}]}'
+_BODY_SKELETON_CREATE_BULK_INSERT = '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"...","city":"...","state":"...","zipCode":0,"countryRegion":"...","workPhone":"...","fax":"...","customizedQuestions":[{"questionId":0,"answers":[{"answer":"...","optionId":0}]}]}]}'
 
 @app.command("create-bulk-insert", short_help="Batch register Meeting Registrants.")
 def create_bulk_insert(
@@ -1235,7 +1235,7 @@ def create_bulk_insert(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Batch register Meeting Registrants.\n\n\b\nExample: wxcli meetings create-bulk-insert MEETING_ID\n\n\b\nExample --json-body: '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":"...","jobTitle":"...","companyName":"...","address1":"...","address2":"..."}]}'"""
+    """Batch register Meeting Registrants.\n\n\b\nExample: wxcli meetings create-bulk-insert MEETING_ID\n\n\b\nExample --json-body: '{"items":[{"firstName":"...","lastName":"...","email":"...","sendEmail":true,"jobTitle":"...","companyName":"...","address1":"...","address2":"...","city":"...","state":"...","zipCode":0,"countryRegion":"...","workPhone":"...","fax":"...","customizedQuestions":[{"questionId":0,"answers":[{"answer":"...","optionId":0}]}]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK_INSERT), indent=2))
         raise typer.Exit(0)
@@ -1349,7 +1349,7 @@ def create_query(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Query Meeting Registrants.\n\n\b\nExample: wxcli meetings create-query MEETING_ID\n\n\b\nExample --json-body: '{"emails":["..."],"status":"approved","orderType":"DESC","orderBy":"firstName"}'"""
+    """Query Meeting Registrants.\n\n\b\nExample: wxcli meetings create-query MEETING_ID --json-body '{"emails":["..."]}'\n\n\b\nExample --json-body: '{"emails":["..."],"status":"approved","orderType":"DESC","orderBy":"firstName"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_QUERY), indent=2))
         raise typer.Exit(0)
@@ -1865,7 +1865,7 @@ def list_breakout_sessions(
 
 
 
-_BODY_SKELETON_UPDATE_BREAKOUT_SESSIONS = '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":"..."}]}'
+_BODY_SKELETON_UPDATE_BREAKOUT_SESSIONS = '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":["..."]}]}'
 
 @app.command("update-breakout-sessions", short_help="Update Meeting Breakout Sessions.")
 def update_breakout_sessions(
@@ -1878,7 +1878,7 @@ def update_breakout_sessions(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings update-breakout-sessions MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":"..."}]}'"""
+    """Update Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings update-breakout-sessions MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":["..."]}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_BREAKOUT_SESSIONS), indent=2))
         raise typer.Exit(0)
@@ -2177,7 +2177,7 @@ def create_reassign_host(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Reassign Meetings to a New Host.\n\n\b\nExample: wxcli meetings create-reassign-host --host-email HOST_EMAIL\n\n\b\nExample --json-body: '{"hostEmail":"...","meetingIds":["..."]}'"""
+    """Reassign Meetings to a New Host.\n\n\b\nExample: wxcli meetings create-reassign-host --json-body '{"hostEmail":"...","meetingIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REASSIGN_HOST), indent=2))
         raise typer.Exit(0)

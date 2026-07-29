@@ -66,7 +66,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"..."}'
+_BODY_SKELETON_CREATE = '{"emails":["..."],"phoneNumbers":[{"type":"work","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"...","orgId":"...","roles":["..."],"licenses":["..."],"department":"...","manager":"...","managerId":"...","title":"...","addresses":[{"type":"...","country":"...","locality":"...","region":"...","streetAddress":"...","postalCode":"..."}],"siteUrls":["..."]}'
 
 @app.command("create", short_help="Create a Person.")
 def create(
@@ -89,7 +89,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Person.\n\n\b\nExample --json-body: '{"emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"..."}'"""
+    """Create a Person.\n\n\b\nExample: wxcli people create --json-body '{"emails":["..."]}'\n\n\b\nExample --json-body: '{"emails":["..."],"phoneNumbers":[{"type":"work","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"...","orgId":"...","roles":["..."],"licenses":["..."],"department":"...","manager":"...","managerId":"...","title":"...","addresses":[{"type":"...","country":"...","locality":"...","region":"...","streetAddress":"...","postalCode":"..."}],"siteUrls":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -168,7 +168,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"..."}'
+_BODY_SKELETON_UPDATE = '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"work","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"...","avatar":"...","orgId":"...","roles":["..."],"licenses":["..."],"department":"...","manager":"...","managerId":"...","title":"...","addresses":[{"type":"...","country":"...","locality":"...","region":"...","streetAddress":"...","postalCode":"..."}],"siteUrls":["..."],"loginEnabled":true}'
 
 @app.command("update", short_help="Update a Person.")
 def update(
@@ -195,7 +195,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Person.\n\n\b\nExample: wxcli people update PERSON_ID --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"...","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"..."}'"""
+    """Update a Person.\n\n\b\nExample: wxcli people update PERSON_ID --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"work","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"...","avatar":"...","orgId":"...","roles":["..."],"licenses":["..."],"department":"...","manager":"...","managerId":"...","title":"...","addresses":[{"type":"...","country":"...","locality":"...","region":"...","streetAddress":"...","postalCode":"..."}],"siteUrls":["..."],"loginEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

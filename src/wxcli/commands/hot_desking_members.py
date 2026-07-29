@@ -94,7 +94,7 @@ def list_members(
 
 
 
-_BODY_SKELETON_UPDATE = '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"members":[{"id":"...","port":0,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":0,"t38FaxCompressionEnabled":true,"hotlineEnabled":true,"hotlineDestination":"...","allowCallDeclineEnabled":true,"memberType":"USER"}]}'
 
 @app.command("update", short_help="Update Hot Desking Members.")
 def update(
@@ -105,7 +105,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Hot Desking Members.\n\n\b\nExample: wxcli hot-desking-members update PERSON_ID\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":"...","primaryOwner":"...","lineType":"...","lineWeight":"...","t38FaxCompressionEnabled":"...","hotlineEnabled":"...","hotlineDestination":"..."}]}'"""
+    """Update Hot Desking Members.\n\n\b\nExample: wxcli hot-desking-members update PERSON_ID --json-body '{"members":[{"id":"...","port":0,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":0}]}'\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":0,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":0,"t38FaxCompressionEnabled":true,"hotlineEnabled":true,"hotlineDestination":"...","allowCallDeclineEnabled":true,"memberType":"USER"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

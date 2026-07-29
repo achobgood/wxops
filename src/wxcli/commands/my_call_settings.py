@@ -393,7 +393,7 @@ def update_selected_caller_id_settings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure My Selected Caller ID Settings.\n\n\b\nExample --json-body: '{"selected":{"type":"DEFAULT_CLID","id":"...","directNumber":"..."}}'"""
+    """Configure My Selected Caller ID Settings.\n\n\b\nExample: wxcli my-call-settings update-selected-caller-id-settings --json-body '{"selected":{"type":"DEFAULT_CLID"}}'\n\n\b\nExample --json-body: '{"selected":{"type":"DEFAULT_CLID","id":"...","directNumber":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTED_CALLER_ID_SETTINGS), indent=2))
         raise typer.Exit(0)
@@ -449,7 +449,7 @@ def update_selected_caller_id_secondary_lines(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Secondary Line Owner's Selected Caller ID Settings.\n\n\b\nExample: wxcli my-call-settings update-selected-caller-id-secondary-lines LINEOWNER_ID\n\n\b\nExample --json-body: '{"selected":{"type":"DEFAULT_CLID","id":"...","directNumber":"..."}}'"""
+    """Modify My Secondary Line Owner's Selected Caller ID Settings.\n\n\b\nExample: wxcli my-call-settings update-selected-caller-id-secondary-lines LINEOWNER_ID --json-body '{"selected":{"type":"DEFAULT_CLID"}}'\n\n\b\nExample --json-body: '{"selected":{"type":"DEFAULT_CLID","id":"...","directNumber":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTED_CALLER_ID_SECONDARY_LINES), indent=2))
         raise typer.Exit(0)
@@ -593,7 +593,7 @@ def update_endpoints(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Endpoints Details.\n\n\b\nExample: wxcli my-call-settings update-endpoints ENDPOINT_ID\n\n\b\nExample --json-body: '{"mobilitySettings":{"alertingEnabled":true}}'"""
+    """Modify My Endpoints Details.\n\n\b\nExample: wxcli my-call-settings update-endpoints ENDPOINT_ID --json-body '{"mobilitySettings":{"alertingEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ENDPOINTS), indent=2))
         raise typer.Exit(0)
@@ -860,7 +860,7 @@ def list_assistant(
 
 
 
-_BODY_SKELETON_UPDATE_ASSISTANT = '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":"..."}]}'
+_BODY_SKELETON_UPDATE_ASSISTANT = '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":true}]}'
 
 @app.command("update-assistant", short_help="Modify My Executive Assistant Settings.")
 def update_assistant(
@@ -872,7 +872,7 @@ def update_assistant(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Executive Assistant Settings.\n\n\b\nExample --json-body: '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":"..."}]}'"""
+    """Modify My Executive Assistant Settings.\n\n\b\nExample --json-body: '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ASSISTANT), indent=2))
         raise typer.Exit(0)
@@ -1182,7 +1182,7 @@ def show_call_forwarding_settings(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING_SETTINGS = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING_SETTINGS = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"busy":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
 
 @app.command("update-call-forwarding-settings", short_help="Configure My Call Forwarding Settings.")
 def update_call_forwarding_settings(
@@ -1192,7 +1192,7 @@ def update_call_forwarding_settings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure My Call Forwarding Settings.\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
+    """Configure My Call Forwarding Settings.\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"busy":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING_SETTINGS), indent=2))
         raise typer.Exit(0)
@@ -1237,7 +1237,7 @@ def show_call_forwarding_secondary_lines(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_FORWARDING_SECONDARY_LINES = '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
+_BODY_SKELETON_UPDATE_CALL_FORWARDING_SECONDARY_LINES = '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"busy":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'
 
 @app.command("update-call-forwarding-secondary-lines", short_help="Modify My Secondary Line Owner's Call Forwarding Settings.")
 def update_call_forwarding_secondary_lines(
@@ -1248,7 +1248,7 @@ def update_call_forwarding_secondary_lines(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Secondary Line Owner's Call Forwarding Settings.\n\n\b\nExample: wxcli my-call-settings update-call-forwarding-secondary-lines LINEOWNER_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":"...","destination":"...","ringReminderEnabled":"...","destinationVoicemailEnabled":"..."},"busy":{"enabled":"...","destination":"...","destinationVoicemailEnabled":"..."},"noAnswer":{"enabled":"...","destination":"...","numberOfRings":"...","destinationVoicemailEnabled":"..."}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
+    """Modify My Secondary Line Owner's Call Forwarding Settings.\n\n\b\nExample: wxcli my-call-settings update-call-forwarding-secondary-lines LINEOWNER_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"busy":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_FORWARDING_SECONDARY_LINES), indent=2))
         raise typer.Exit(0)
@@ -1410,7 +1410,7 @@ def show_voicemail_settings(
 
 
 
-_BODY_SKELETON_UPDATE_VOICEMAIL_SETTINGS = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'
+_BODY_SKELETON_UPDATE_VOICEMAIL_SETTINGS = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'
 
 @app.command("update-voicemail-settings", short_help="Configure Voicemail Settings for a Person.")
 def update_voicemail_settings(
@@ -1421,7 +1421,7 @@ def update_voicemail_settings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Voicemail Settings for a Person.\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'"""
+    """Configure Voicemail Settings for a Person.\n\n\b\nExample: wxcli my-call-settings update-voicemail-settings --json-body '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."}}'\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICEMAIL_SETTINGS), indent=2))
         raise typer.Exit(0)
@@ -1468,7 +1468,7 @@ def show_voicemail_secondary_lines(
 
 
 
-_BODY_SKELETON_UPDATE_VOICEMAIL_SECONDARY_LINES = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'
+_BODY_SKELETON_UPDATE_VOICEMAIL_SECONDARY_LINES = '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'
 
 @app.command("update-voicemail-secondary-lines", short_help="Modify My Secondary Line Owner's Voicemail Settings.")
 def update_voicemail_secondary_lines(
@@ -1480,7 +1480,7 @@ def update_voicemail_secondary_lines(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Secondary Line Owner's Voicemail Settings.\n\n\b\nExample: wxcli my-call-settings update-voicemail-secondary-lines LINEOWNER_ID\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."}}'"""
+    """Modify My Secondary Line Owner's Voicemail Settings.\n\n\b\nExample: wxcli my-call-settings update-voicemail-secondary-lines LINEOWNER_ID --json-body '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."}}'\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICEMAIL_SECONDARY_LINES), indent=2))
         raise typer.Exit(0)
@@ -1687,7 +1687,7 @@ def list_queues_settings(
 
 
 
-_BODY_SKELETON_UPDATE_QUEUES_SETTINGS = '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":"..."}]}'
+_BODY_SKELETON_UPDATE_QUEUES_SETTINGS = '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":true}]}'
 
 @app.command("update-queues-settings", short_help="Modify My Call Center Settings.")
 def update_queues_settings(
@@ -1698,7 +1698,7 @@ def update_queues_settings(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Call Center Settings.\n\n\b\nExample --json-body: '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":"..."}]}'"""
+    """Modify My Call Center Settings.\n\n\b\nExample --json-body: '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_QUEUES_SETTINGS), indent=2))
         raise typer.Exit(0)
@@ -1755,7 +1755,7 @@ def list_queues_secondary_lines(
 
 
 
-_BODY_SKELETON_UPDATE_QUEUES_SECONDARY_LINES = '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":"..."}]}'
+_BODY_SKELETON_UPDATE_QUEUES_SECONDARY_LINES = '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":true}]}'
 
 @app.command("update-queues-secondary-lines", short_help="Modify My Secondary Line Owner's Call Center Settings.")
 def update_queues_secondary_lines(
@@ -1767,7 +1767,7 @@ def update_queues_secondary_lines(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Secondary Line Owner's Call Center Settings.\n\n\b\nExample: wxcli my-call-settings update-queues-secondary-lines LINEOWNER_ID\n\n\b\nExample --json-body: '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":"..."}]}'"""
+    """Modify My Secondary Line Owner's Call Center Settings.\n\n\b\nExample: wxcli my-call-settings update-queues-secondary-lines LINEOWNER_ID\n\n\b\nExample --json-body: '{"agentACDState":"SIGN_IN","queues":[{"id":"...","available":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_QUEUES_SECONDARY_LINES), indent=2))
         raise typer.Exit(0)
@@ -2073,7 +2073,7 @@ def list_schedules(
 
 
 
-_BODY_SKELETON_CREATE_SCHEDULES = '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'
+_BODY_SKELETON_CREATE_SCHEDULES = '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'
 
 @app.command("create-schedules", short_help="Add a User level Schedule for Call Settings.")
 def create_schedules(
@@ -2085,7 +2085,7 @@ def create_schedules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add a User level Schedule for Call Settings.\n\n\b\nExample: wxcli my-call-settings create-schedules --type businessHours --name NAME\n\n\b\nExample --json-body: '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":"...","recurrence":"..."}]}'"""
+    """Add a User level Schedule for Call Settings.\n\n\b\nExample: wxcli my-call-settings create-schedules --type businessHours --name NAME\n\n\b\nExample --json-body: '{"type":"businessHours","name":"...","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true},"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SCHEDULES), indent=2))
         raise typer.Exit(0)
@@ -2142,7 +2142,7 @@ def show_schedules_me(
 
 
 
-_BODY_SKELETON_UPDATE_SCHEDULES = '{"name":"...","events":[{"name":"...","startDate":"...","endDate":"...","allDayEnabled":"...","newName":"...","startTime":"...","endTime":"...","recurrence":"..."}]}'
+_BODY_SKELETON_UPDATE_SCHEDULES = '{"name":"...","events":[{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"newName":"...","startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}]}'
 
 @app.command("update-schedules", short_help="Modify User Schedule.")
 def update_schedules(
@@ -2155,7 +2155,7 @@ def update_schedules(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify User Schedule.\n\n\b\nExample: wxcli my-call-settings update-schedules businessHours SCHEDULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","events":[{"name":"...","startDate":"...","endDate":"...","allDayEnabled":"...","newName":"...","startTime":"...","endTime":"...","recurrence":"..."}]}'"""
+    """Modify User Schedule.\n\n\b\nExample: wxcli my-call-settings update-schedules businessHours SCHEDULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","events":[{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"newName":"...","startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SCHEDULES), indent=2))
         raise typer.Exit(0)
@@ -2211,7 +2211,7 @@ def delete_schedules(
 
 
 
-_BODY_SKELETON_CREATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'
+_BODY_SKELETON_CREATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}'
 
 @app.command("create-events", short_help="Add an event for a User Schedule.")
 def create_events(
@@ -2229,7 +2229,7 @@ def create_events(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add an event for a User Schedule.\n\n\b\nExample: wxcli my-call-settings create-events businessHours SCHEDULE_ID --name NAME --start-date START_DATE --end-date END_DATE --all-day-enabled\n\n\b\nExample --json-body: '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'"""
+    """Add an event for a User Schedule.\n\n\b\nExample: wxcli my-call-settings create-events businessHours SCHEDULE_ID --name NAME --start-date START_DATE --end-date END_DATE --all-day-enabled\n\n\b\nExample --json-body: '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_EVENTS), indent=2))
         raise typer.Exit(0)
@@ -2295,7 +2295,7 @@ def show_events(
 
 
 
-_BODY_SKELETON_UPDATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"newName":"...","startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'
+_BODY_SKELETON_UPDATE_EVENTS = '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"newName":"...","startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}'
 
 @app.command("update-events", short_help="Modify User Schedule Event.")
 def update_events(
@@ -2315,7 +2315,7 @@ def update_events(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify User Schedule Event.\n\n\b\nExample: wxcli my-call-settings update-events businessHours SCHEDULE_ID EVENT_ID --name NAME --start-date START_DATE --end-date END_DATE --all-day-enabled\n\n\b\nExample --json-body: '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"newName":"...","startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":"..."},"recurWeekly":{"sunday":"...","monday":"...","tuesday":"...","wednesday":"...","thursday":"...","friday":"...","saturday":"..."}}}'"""
+    """Modify User Schedule Event.\n\n\b\nExample: wxcli my-call-settings update-events businessHours SCHEDULE_ID EVENT_ID --name NAME --start-date START_DATE --end-date END_DATE --all-day-enabled\n\n\b\nExample --json-body: '{"name":"...","startDate":"...","endDate":"...","allDayEnabled":true,"newName":"...","startTime":"...","endTime":"...","recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EVENTS), indent=2))
         raise typer.Exit(0)
@@ -2915,7 +2915,7 @@ def list_assigned_numbers(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD = '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'
+_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD = '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"forwardEnabled":true}'
 
 @app.command("create-criteria-selective-forward", short_help="Add a Selective Call Forwarding Criteria.")
 def create_criteria_selective_forward(
@@ -2934,7 +2934,7 @@ def create_criteria_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add a Selective Call Forwarding Criteria.\n\n\b\nExample --json-body: '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'"""
+    """Add a Selective Call Forwarding Criteria.\n\n\b\nExample --json-body: '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"forwardEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -3000,7 +3000,7 @@ def show_criteria_selective_forward(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD = '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD = '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"forwardEnabled":true}'
 
 @app.command("update-criteria-selective-forward", short_help="Modify Settings for a Selective Call Forwarding Criteria.")
 def update_criteria_selective_forward(
@@ -3020,7 +3020,7 @@ def update_criteria_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Settings for a Selective Call Forwarding Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-selective-forward ID\n\n\b\nExample --json-body: '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true}'"""
+    """Modify Settings for a Selective Call Forwarding Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-selective-forward ID\n\n\b\nExample --json-body: '{"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"forwardEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -3545,7 +3545,7 @@ def list_sequential_ring(
 
 
 
-_BODY_SKELETON_UPDATE_SEQUENTIAL_RING = '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"answerConfirmationRequiredEnabled":"...","numberOfRings":"...","phoneNumber":"..."}]}'
+_BODY_SKELETON_UPDATE_SEQUENTIAL_RING = '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"answerConfirmationRequiredEnabled":true,"numberOfRings":0,"phoneNumber":"..."}]}'
 
 @app.command("update-sequential-ring", short_help="Modify Sequential Ring Settings for User.")
 def update_sequential_ring(
@@ -3560,7 +3560,7 @@ def update_sequential_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Sequential Ring Settings for User.\n\n\b\nExample: wxcli my-call-settings update-sequential-ring --enabled\n\n\b\nExample --json-body: '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"answerConfirmationRequiredEnabled":"...","numberOfRings":"...","phoneNumber":"..."}]}'"""
+    """Modify Sequential Ring Settings for User.\n\n\b\nExample: wxcli my-call-settings update-sequential-ring --enabled\n\n\b\nExample --json-body: '{"enabled":true,"ringBaseLocationFirstEnabled":true,"baseLocationNumberOfRings":0,"continueIfBaseLocationIsBusyEnabled":true,"callsToVoicemailEnabled":true,"phoneNumbers":[{"answerConfirmationRequiredEnabled":true,"numberOfRings":0,"phoneNumber":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SEQUENTIAL_RING), indent=2))
         raise typer.Exit(0)
@@ -3792,7 +3792,7 @@ def list_simultaneous_ring(
 
 
 
-_BODY_SKELETON_UPDATE_SIMULTANEOUS_RING = '{"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":"..."}],"criteriasEnabled":true}'
+_BODY_SKELETON_UPDATE_SIMULTANEOUS_RING = '{"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":true}],"criteriasEnabled":true}'
 
 @app.command("update-simultaneous-ring", short_help="Modify My Simultaneous Ring Settings.")
 def update_simultaneous_ring(
@@ -3805,7 +3805,7 @@ def update_simultaneous_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify My Simultaneous Ring Settings.\n\n\b\nExample --json-body: '{"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":"..."}],"criteriasEnabled":true}'"""
+    """Modify My Simultaneous Ring Settings.\n\n\b\nExample --json-body: '{"enabled":true,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":true}],"criteriasEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)
@@ -4072,7 +4072,7 @@ def update_speed_dials(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Speed Dials.\n\n\b\nExample --json-body: '{"speedDials":[{"id":"...","phoneNumber":"...","lineKeyLabel":"..."}]}'"""
+    """Modify Speed Dials.\n\n\b\nExample: wxcli my-call-settings update-speed-dials --json-body '{"speedDials":[{"id":"...","phoneNumber":"...","lineKeyLabel":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SPEED_DIALS), indent=2))
         raise typer.Exit(0)

@@ -201,7 +201,7 @@ def get_device_dynamic(
 
 
 
-_BODY_SKELETON_UPDATE = '{"tags":[{"tag":"...","action":"...","value":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"tags":[{"tag":"...","action":"ADD","value":"..."}]}'
 
 @app.command("update", short_help="Update Device Dynamic Settings.")
 def update(
@@ -212,7 +212,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Device Dynamic Settings.\n\n\b\nExample: wxcli device-dynamic-settings update DEVICE_ID\n\n\b\nExample --json-body: '{"tags":[{"tag":"...","action":"...","value":"..."}]}'"""
+    """Update Device Dynamic Settings.\n\n\b\nExample: wxcli device-dynamic-settings update DEVICE_ID\n\n\b\nExample --json-body: '{"tags":[{"tag":"...","action":"ADD","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -273,7 +273,7 @@ def list_dynamic_device_settings(
 
 
 
-_BODY_SKELETON_CREATE = '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"...","value":"..."}],"locationId":"..."}'
+_BODY_SKELETON_CREATE = '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"ADD","value":"..."}],"locationId":"..."}'
 
 @app.command("create", short_help="Update Device Dynamic Settings Across Organization or Location.")
 def create(
@@ -284,7 +284,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Device Dynamic Settings Across Organization or Location.\n\n\b\nExample --json-body: '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"...","value":"..."}],"locationId":"..."}'"""
+    """Update Device Dynamic Settings Across Organization or Location.\n\n\b\nExample: wxcli device-dynamic-settings create --json-body '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"ADD"}]}'\n\n\b\nExample --json-body: '{"tags":[{"familyOrModelDisplayName":"...","tag":"...","action":"ADD","value":"..."}],"locationId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

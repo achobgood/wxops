@@ -26,7 +26,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Login.\n\n\b\nExample: wxcli cc-agents create --dial-number DIAL_NUMBER\n\n\b\nExample --json-body: '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'"""
+    """Login.\n\n\b\nExample: wxcli cc-agents create --json-body '{"dialNumber":"...","roles":["..."]}'\n\n\b\nExample --json-body: '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -358,7 +358,7 @@ def create_login(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Login.\n\n\b\nExample: wxcli cc-agents create-login --dial-number DIAL_NUMBER\n\n\b\nExample --json-body: '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'"""
+    """Login.\n\n\b\nExample: wxcli cc-agents create-login --json-body '{"dialNumber":"...","roles":["..."]}'\n\n\b\nExample --json-body: '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_LOGIN), indent=2))
         raise typer.Exit(0)
@@ -457,7 +457,7 @@ def update_state_session_1(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """State Change.\n\n\b\nExample: wxcli cc-agents update-state-session-1 --state STATE\n\n\b\nExample --json-body: '{"channelType":["..."],"state":"...","auxCodeId":"...","reason":"...","agentId":"..."}'"""
+    """State Change.\n\n\b\nExample: wxcli cc-agents update-state-session-1 --json-body '{"channelType":["..."],"state":"..."}'\n\n\b\nExample --json-body: '{"channelType":["..."],"state":"...","auxCodeId":"...","reason":"...","agentId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATE_SESSION_1), indent=2))
         raise typer.Exit(0)

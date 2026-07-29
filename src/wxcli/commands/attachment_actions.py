@@ -22,7 +22,7 @@ def create_an_attachment(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Attachment Action.\n\n\b\nExample: wxcli attachment-actions create-an-attachment --type submit --message-id MESSAGE_ID\n\n\b\nExample --json-body: '{"type":"submit","messageId":"...","inputs":{"Name":"...","Url":"...","Email":"...","Tel":"..."}}'"""
+    """Create an Attachment Action.\n\n\b\nExample: wxcli attachment-actions create-an-attachment --json-body '{"type":"submit","messageId":"...","inputs":{"Name":"...","Url":"...","Email":"...","Tel":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_AN_ATTACHMENT), indent=2))
         raise typer.Exit(0)

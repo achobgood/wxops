@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Auxiliary Code.")
 def create(
@@ -78,7 +78,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Auxiliary Code.\n\n\b\nExample: wxcli cc-aux-code create --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'"""
+    """Create a new Auxiliary Code.\n\n\b\nExample: wxcli cc-aux-code create --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -140,7 +140,7 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("create-bulk", short_help="Bulk save Auxiliary Code(s).")
 def create_bulk(
@@ -150,7 +150,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Auxiliary Code(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk save Auxiliary Code(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -180,7 +180,7 @@ def create_bulk(
 
 
 
-_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'
+_BODY_SKELETON_UPDATE = '{"items":[{"itemIdentifier":0,"item":{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
 @app.command("update", short_help="Bulk partial update Auxiliary Code(s).")
 def update(
@@ -190,7 +190,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk partial update Auxiliary Code(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":"...","item":"...","requestAction":"..."}]}'"""
+    """Bulk partial update Auxiliary Code(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -310,7 +310,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE_AUXILIARY_CODE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'
+_BODY_SKELETON_UPDATE_AUXILIARY_CODE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update-auxiliary-code", short_help="Update specific Auxiliary Code by ID.")
 def update_auxiliary_code(
@@ -335,7 +335,7 @@ def update_auxiliary_code(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Auxiliary Code by ID.\n\n\b\nExample: wxcli cc-aux-code update-auxiliary-code ID --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0}'"""
+    """Update specific Auxiliary Code by ID.\n\n\b\nExample: wxcli cc-aux-code update-auxiliary-code ID --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUXILIARY_CODE), indent=2))
         raise typer.Exit(0)

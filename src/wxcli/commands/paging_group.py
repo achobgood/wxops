@@ -54,7 +54,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."]}'
+_BODY_SKELETON_CREATE = '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
 @app.command("create", short_help="Create a new Paging Group.")
 def create(
@@ -73,7 +73,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Paging Group.\n\n\b\nExample: wxcli paging-group create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."]}'"""
+    """Create a new Paging Group.\n\n\b\nExample: wxcli paging-group create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -150,7 +150,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
 
 @app.command("update", short_help="Update a Paging Group.")
 def update(
@@ -171,7 +171,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Paging Group.\n\n\b\nExample: wxcli paging-group update LOCATION_ID PAGING_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true}'"""
+    """Update a Paging Group.\n\n\b\nExample: wxcli paging-group update LOCATION_ID PAGING_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

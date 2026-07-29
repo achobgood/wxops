@@ -11,7 +11,7 @@ from wxcli.config import resolve_org_id
 app = typer.Typer(help="Manage Webex Calling scim-bulk.")
 
 
-_BODY_SKELETON_CREATE = '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"...","path":"...","data":"...","bulkId":"..."}]}'
+_BODY_SKELETON_CREATE = '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"POST","path":"...","data":"...","bulkId":"..."}]}'
 
 @app.command("create", short_help="User bulk API.")
 def create(
@@ -22,7 +22,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """User bulk API.\n\n\b\nExample: wxcli scim-bulk create --fail-on-errors FAIL_ON_ERRORS\n\n\b\nExample --json-body: '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"...","path":"...","data":"...","bulkId":"..."}]}'"""
+    """User bulk API.\n\n\b\nExample: wxcli scim-bulk create --json-body '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"POST","path":"..."}]}'\n\n\b\nExample --json-body: '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"POST","path":"...","data":"...","bulkId":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

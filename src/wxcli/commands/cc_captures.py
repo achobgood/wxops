@@ -21,7 +21,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Captures.\n\n\b\nExample --json-body: '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'"""
+    """List Captures.\n\n\b\nExample: wxcli cc-captures create --json-body '{"query":{"taskIds":["..."]}}'\n\n\b\nExample --json-body: '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
