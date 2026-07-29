@@ -189,7 +189,8 @@ wxcli scim-users list --filter 'userName co "@acme.com"'
 # Get specific attributes only
 wxcli scim-users list --filter 'userName sw "j"' --attributes "userName,displayName,emails"
 
-# Get a specific user by ID
+# Get a specific user by ID -- bind the id from the search
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jsmith@example.com"' --fields '[0].id' -o text)
 wxcli scim-users show $USER_ID -o json
 ```
 
@@ -214,6 +215,9 @@ wxcli scim-users create --json-body '{
 **Update (PATCH — always use this for modifications):**
 
 ```bash
+# Bind the target user's id -- every update below reuses it
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
+
 # Change display name (only this field changes, everything else preserved)
 wxcli scim-users update-users $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
@@ -254,7 +258,9 @@ PATCH operations: `add` (append value), `replace` (change value), `remove` (dele
 
 ```bash
 # ONLY use PUT when you need to replace the entire resource
-# Step 1: GET the current full resource
+# Step 1: bind the target user's id, then GET the current full resource
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
+[ -n "$USER_ID" ] || { echo "No user matched that filter -- stop, do not run Step 3"; exit 1; }
 wxcli scim-users show $USER_ID -o json > user.json
 
 # Step 2: Edit user.json (make your changes to the full object)
@@ -270,6 +276,7 @@ wxcli scim-users update $USER_ID --json-body "$(cat user.json)"
 **Delete:**
 
 ```bash
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
 wxcli scim-users delete $USER_ID --force
 ```
 
@@ -337,6 +344,9 @@ wxcli scim-groups create --json-body '{
   ]
 }'
 
+# Bind the target group's id from the list above
+GROUP_ID=$(wxcli scim-groups list --filter 'displayName eq "DevOps Team"' --fields '[0].id' -o text)
+
 # Add a member via PATCH
 wxcli scim-groups update-groups $GROUP_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
@@ -368,6 +378,9 @@ wxcli groups create --json-body '{
     {"id": "PERSON_ID_2", "type": "user"}
   ]
 }'
+
+# Bind the target group's id from the list above
+GROUP_ID=$(wxcli groups list --filter 'displayName eq "Support Team"' --fields '[0].id' -o text)
 
 # Add/remove members
 wxcli groups update $GROUP_ID --json-body '{
@@ -433,7 +446,8 @@ wxcli org-contacts create-delete \
 # Step 1: List active users
 wxcli scim-users list --filter 'active eq true' -o json
 
-# Step 2: Deactivate individual users via PATCH
+# Step 2: Deactivate individual users via PATCH -- bind the id of the user to deactivate
+USER_ID=$(wxcli scim-users list --filter 'userName eq "stale.user@example.com"' --fields '[0].id' -o text)
 wxcli scim-users update-users $USER_ID --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
   "Operations": [{"op": "replace", "path": "active", "value": false}]
@@ -604,7 +618,8 @@ Always read back the created/updated resources to confirm.
 
 ### Verify SCIM users:
 ```bash
-# Verify a specific user was created/updated
+# Verify a specific user was created/updated -- bind the id from a search
+USER_ID=$(wxcli scim-users list --filter 'userName eq "jdoe@example.com"' --fields '[0].id' -o text)
 wxcli scim-users show $USER_ID -o json
 # Confirm: userName, displayName, active status, group memberships
 
@@ -619,6 +634,7 @@ wxcli scim-users list --filter 'userName co "@example.com"'
 wxcli scim-groups list --filter 'displayName eq "DevOps Team"' --include-members true
 
 # Webex group
+GROUP_ID=$(wxcli groups list --filter 'displayName eq "Support Team"' --fields '[0].id' -o text)
 wxcli groups show $GROUP_ID --include-members true -o json
 ```
 
@@ -717,7 +733,7 @@ When a wxcli command fails:
 3. Fix the command and retry
 
 **B. Skip and continue** -- Resource already exists or already configured:
-1. Verify current state: `wxcli scim-users show $USER_ID` or `wxcli people show $PERSON_ID`
+1. Verify current state by searching on the identifier you tried to create with -- you do not have an id yet: `wxcli scim-users list --filter 'userName eq "user@example.com"' -o json` or `wxcli people list --email "user@example.com" -o json`
 2. If state is correct, skip to next operation
 
 **C. Escalate** -- Unclear or persistent error:
@@ -743,9 +759,14 @@ Identity-specific errors:
 
 **SCIM update errors:**
 - **Accidental PUT data loss:** If `scim-users update` (PUT) was run with incomplete data and attributes were deleted, recover immediately:
-  1. Check if the user still exists: `wxcli scim-users show $USER_ID -o json`
+  1. Find the user and check what survived:
+     ```bash
+     USER_ID=$(wxcli scim-users list --filter 'userName eq "user@example.com"' --fields '[0].id' -o text)
+     wxcli scim-users show $USER_ID -o json
+     ```
   2. If the user exists but is missing attributes, use PATCH to restore them:
      ```bash
+     USER_ID=$(wxcli scim-users list --filter 'userName eq "user@example.com"' --fields '[0].id' -o text)
      wxcli scim-users update-users $USER_ID --json-body '{
        "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
        "Operations": [

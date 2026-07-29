@@ -324,8 +324,11 @@ You need a `meetingId` to query quality data. Get it from the Meetings API or Co
 wxcli meeting-qualities list --meeting-id "a1b2c3d4e5f6" -o json
 
 # Step 2: Parse the response for quality indicators
+# Field names come from the 200 schema: the participant is `webexUserName`, and
+# jitter/packetLoss/latency are per-stream entries inside the audioIn/audioOut/
+# videoIn/videoOut arrays — there is no `displayName` and no `mediaQuality` object.
 wxcli meeting-qualities list --meeting-id "a1b2c3d4e5f6" -o json | \
-  jq '.[] | {participant: .displayName, audioJitter: .mediaQuality.audioJitter, videoPacketLoss: .mediaQuality.videoPacketLoss, latency: .mediaQuality.latency}'
+  jq '.[] | {participant: .webexUserName, audioJitter: [.audioIn[]?.jitter], videoPacketLoss: [.videoIn[]?.packetLoss], latency: [.audioIn[]?.latency]}'
 ```
 
 Raw HTTP version:

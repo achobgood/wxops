@@ -1563,7 +1563,7 @@ For teardown, reverse this order.
 
 1. **Different base URL.** The CC API uses `api.wxcc-{region}.cisco.com`, not `webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`). Using the wrong base URL produces connection errors.
 
-2. **CC-specific OAuth scopes.** CC endpoints require `cjp:config_read` and `cjp:config_write` scopes, not `spark-admin:*` scopes. A standard Webex admin token without CC scopes gets 403 errors. The CLI detects this and prints a scope tip. Note: `cjp:config` (bare, no suffix) also appears in some webhook and subscription API scope requirements — it may be a distinct scope or a legacy alias. Include it when building CC webhook integrations to avoid unexpected 403s.
+2. **CC-specific OAuth scopes.** CC endpoints require `cjp:config_read` and `cjp:config_write` scopes, not `spark-admin:*` scopes. A standard Webex admin token without CC scopes gets 403 errors. The CLI *may* print a scope tip for these, but do not rely on it: the handler matches on the literal strings `wxcc` and `403` appearing in the error response **body text**, not on the HTTP status code, so the tip only appears when the body happens to spell out both. Treat any 403 from a `cc-*` command as a scope problem whether or not the tip is printed. Note: `cjp:config` (bare, no suffix) also appears in some webhook and subscription API scope requirements — it may be a distinct scope or a legacy alias. Include it when building CC webhook integrations to avoid unexpected 403s.
 
 3. **orgId is auto-injected.** The `{orgid}` path parameter is resolved from your saved config or authenticated user's org. Do not pass it as a CLI flag -- it will be injected automatically.
 

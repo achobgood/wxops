@@ -388,7 +388,9 @@ Filter by display name in the output. Extract the `id` field to use as `WORKSPAC
 
 ```bash
 # List all users, then filter for calling-enabled users (those with a locationId)
-wxcli users list --output json
+# --calling-data true is REQUIRED — without it Webex omits locationId and extension,
+# so every user reads as not calling-enabled and the filter silently returns nothing.
+wxcli users list --calling-data true --output json
 ```
 
 For small batches, use a shell loop. For large batches (50+ users), use the migration engine's async pattern which handles concurrency, rate limiting, and retry automatically.
@@ -525,11 +527,11 @@ For settings still marked "SDK only" above (Music on Hold, Feature Access Contro
 
 ```bash
 # Read the current setting value
-curl -s -H "Authorization: Bearer $TOKEN" \
+curl -s -H "Authorization: Bearer $WEBEX_ACCESS_TOKEN" \
   "https://webexapis.com/v1/telephony/config/people/{person_id}/{settingEndpoint}" | python3 -m json.tool
 
 # Update via PUT (read-modify-write)
-curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+curl -s -X PUT -H "Authorization: Bearer $WEBEX_ACCESS_TOKEN" -H "Content-Type: application/json" \
   "https://webexapis.com/v1/telephony/config/people/{person_id}/{settingEndpoint}" \
   -d '{ ... }'
 ```
