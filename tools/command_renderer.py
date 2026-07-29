@@ -65,7 +65,13 @@ _SUPPRESS_SPEC_PAGING_NAMES = {"max", "start", "offset", "limit"}
 # discussion of the same failure mode). So a collision here fails the
 # generator build loudly (ReservedParamCollisionError) instead of being
 # silently dropped or silently shadowed.
-_RESERVED_OUTPUT_PARAM_NAMES = {"output", "fields"}
+# `all` joined these when --all shipped. Not hypothetical: webex-flow-store.json
+# already declares a query parameter literally named `all` on
+# GET /{orgId}/project/{projectId}/flows/{flowId}/tags. It is inert only because
+# that spec is dev-only and gitignored. Unguarded, a tracked spec adding one
+# would emit two options spelling "--all" and Typer would silently shadow one —
+# the same silent failure the --filter analysis in tools/CLAUDE.md rejected.
+_RESERVED_OUTPUT_PARAM_NAMES = {"output", "fields", "all"}
 
 
 class ReservedParamCollisionError(Exception):
