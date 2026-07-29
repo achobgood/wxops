@@ -6,6 +6,7 @@ from wxcli.auth import get_api, resolve_token, WebexApi, WebexSession
 from wxcli.commands._lazy import LazyTyper
 from wxcli.common import emit, FIELDS_HELP
 from wxcli.config import get_expires_at, get_org_id, get_org_name, save_org
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import plain_mode
 
 # LazyTyper (not typer.Typer) — see wxcli/commands/_lazy.py. Command-group
@@ -49,7 +50,16 @@ def whoami(
 ):
     """Show current authenticated user and org."""
     api = get_api(debug=debug)
-    me = api.session.rest_get("https://webexapis.com/v1/people/me")
+    # Five tips in errors.py send the reader here — "confirm it works with:
+    # wxcli whoami" — so this is the command an agent reaches for when auth is
+    # already broken. Bare, it raised WebexError through Typer as a Python
+    # traceback: the one screen that must stay readable when nothing else works.
+    try:
+        me = api.session.rest_get("https://webexapis.com/v1/people/me")
+    except WebexError as e:
+        handle_rest_error(e)
+    except Exception as e:
+        handle_network_error(e)
 
     display_name = me.get("displayName", "")
     email = (me.get("emails") or ["unknown"])[0]
