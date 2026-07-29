@@ -1,5 +1,7 @@
 """Centralized error handler for wxcli commands."""
 import json
+import sys
+
 import typer
 
 
@@ -16,17 +18,36 @@ class WebexError(Exception):
         self.body = body
 
 
+# Code 4003 is deliberately absent. It is real but ambiguous: the Cloud Calling
+# spec lists it as `User Not Found` (validate=true), while live runs also return
+# `[Error 4003] Unauthorized request: ...` for admin-token writes to user-only
+# endpoints. Only the message distinguishes them, so the OAuth tip is keyed on
+# the message in _MESSAGE_TIPS instead.
 _ERROR_TIPS = {
-    4003: "This endpoint requires a user-level OAuth token, not an admin or service app token.",
-    4008: "This endpoint requires the target user to have a Webex Calling license.",
-    9601: "This endpoint requires a user-level OAuth token, not an admin or service app token.",
+    4008: "The target user has no Webex Calling license. Check with: wxcli people show <personId> --calling-data true (an unlicensed user comes back with no extension or locationId). See what is available with: wxcli licenses list",
+    9601: "This endpoint acts as the signed-in user, so it needs a user-level OAuth token — an admin or service app token cannot stand in. Re-run: wxcli configure with that user's own access token, then confirm the owner with: wxcli whoami",
     25008: "Use --json-body for full control over the request body.",
     25409: "This workspace setting requires a Professional license. Use -o json with the /features/ path commands for Basic workspaces.",
     28018: "CX Essentials is not enabled for this queue. Use --has-cx-essentials true when creating/querying CX queues.",
 }
 
 _MESSAGE_TIPS = {
-    "Target user not authorized": "This endpoint requires a user-level OAuth token, not an admin or service app token.",
+    "Target user not authorized": "This endpoint needs a user-level OAuth token, not an admin or service app token. Re-run: wxcli configure with the target user's own access token, then confirm the owner with: wxcli whoami",
+}
+
+# Last-resort tips, keyed on the HTTP status carried by WebexError. Reached only
+# when no errorCode or message tip matched, so a specific tip always wins.
+_STATUS_TIPS = {
+    400: "The request body or a parameter was rejected. Re-check every ID you passed against the list command of the group it came from; if this command sends a body, re-run it with --generate-json-body to print the exact skeleton it accepts (that exits before authenticating).",
+    401: "The token is missing, expired, or revoked. Re-run: wxcli configure — then confirm it works with: wxcli whoami",
+    403: "The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the token owner and the 'Target:' org. If the Target line is wrong or missing, run: wxcli switch-org <orgId>",
+    404: "No such resource in the target org — the ID may belong to a different org, or already be deleted. Get a live ID from this command group's list subcommand, and confirm which org you are pointed at with: wxcli whoami",
+    # A 405 here is usually not about the verb. Live: a PUT to /people that
+    # succeeded on three licensed users returned this on an unlicensed one, and
+    # workspace /telephony/config/ returns it for Basic licenses (Known Issue #6).
+    405: "The API rejected this method on this path — but the same verb works on comparable resources, so treat this as an entitlement problem before a verb problem. Check the target is licensed for what you are writing: wxcli people show <personId> --calling-data true (an unlicensed user comes back with no extension or locationId).",
+    409: "The resource is still referenced by something else, so it cannot be changed or deleted yet. Delete the dependents first — wxcli cleanup run removes them in dependency-safe order.",
+    429: "Rate limited, and the built-in retries were already exhausted. Wait and re-run; raise the retry budget with WXCLI_MAX_ATTEMPTS=<n>.",
 }
 
 
@@ -54,26 +75,51 @@ def _truncate_html(err: str) -> str:
     return msg.strip()
 
 
+def _invoked_group() -> str:
+    """The command group this process was invoked with, e.g. 'cc-queue'.
+
+    Every root-level option is a boolean flag (--version, --no-update-check),
+    so none consumes a value and the first non-flag token is always the group.
+    """
+    for arg in sys.argv[1:]:
+        if not arg.startswith("-"):
+            return arg
+    return ""
+
+
+def _is_cc_403(e: WebexError, err: str) -> bool:
+    """A 403 raised by a Contact Center (cc-*) command.
+
+    Keys on the real HTTP status, not on the literal '403' appearing inside the
+    body — auth.py builds WebexError from response.text alone, so the status is
+    on the exception and never in the text. The CC discriminator has the same
+    problem: the api.wxcc-* host is not in the body either, so argv carries it.
+    The body check is kept for the case where the payload does name the host.
+    """
+    return e.status_code == 403 and (_invoked_group().startswith("cc-") or "wxcc" in err)
+
+
 def handle_rest_error(e: WebexError) -> None:
     """Centralized error handler with actionable tips."""
     err = str(e)
     code = _extract_error_code(err)
 
-    if code == 4003 and "Target user not authorized" not in err:
-        code = None
-
+    # Order is specific-to-generic. A CC 403 that also carries a known errorCode
+    # takes the earlier branch, which is correct: no code in _ERROR_TIPS is
+    # documented as arriving with a 403 (4008/25409 are 404/405, 25008/28018 are
+    # 400), so an errorCode on a 403 is new information the scope tip would hide.
     if code and code in _ERROR_TIPS:
-        typer.echo(f"Error: {_truncate_html(err)}", err=True)
-        typer.echo(f"Tip: {_ERROR_TIPS[code]}", err=True)
+        tip = _ERROR_TIPS[code]
     elif any(msg in err for msg in _MESSAGE_TIPS):
         tip = next(v for k, v in _MESSAGE_TIPS.items() if k in err)
-        typer.echo(f"Error: {_truncate_html(err)}", err=True)
-        typer.echo(f"Tip: {tip}", err=True)
-    elif "wxcc" in err and "403" in err:
-        typer.echo(f"Error: {_truncate_html(err)}", err=True)
-        typer.echo("Tip: Contact Center APIs require CC-scoped OAuth (cjp:config_read / cjp:config_write). Standard admin tokens won't work.", err=True)
+    elif _is_cc_403(e, err):
+        tip = "Contact Center APIs need CC-scoped OAuth (cjp:config_read / cjp:config_write); a personal access token or plain admin token always gets 403 here. Create an integration with those scopes at developer.webex.com, complete the OAuth flow, then re-run: wxcli configure with that token."
     else:
-        typer.echo(f"Error: {_truncate_html(err)}", err=True)
+        tip = _STATUS_TIPS.get(e.status_code)
+
+    typer.echo(f"Error: {_truncate_html(err)}", err=True)
+    if tip:
+        typer.echo(f"Tip: {tip}", err=True)
     raise typer.Exit(1)
 
 
