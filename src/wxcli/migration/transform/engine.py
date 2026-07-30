@@ -93,7 +93,7 @@ MAPPER_ORDER: list[type[Mapper]] = [
 
 
 class TransformEngine:
-    """Orchestrates all 20 transform mappers in dependency order.
+    """Orchestrates all 26 transform mappers in dependency order.
 
     (from 03b-transform-mappers.md section 13)
     """
