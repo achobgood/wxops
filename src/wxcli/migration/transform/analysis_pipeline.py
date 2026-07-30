@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from wxcli.migration.decision_state import is_stale
 from wxcli.migration.models import DecisionType, MigrationStatus
 from wxcli.migration.store import MigrationStore
 from wxcli.migration.transform.analyzers import (
@@ -89,7 +90,7 @@ def enrich_cross_decision_context(store: MigrationStore) -> int:
     for d in all_decisions:
         if d.get("type") != "DEVICE_INCOMPATIBLE":
             continue
-        if d.get("chosen_option") == "__stale__":
+        if is_stale(d):
             continue
         ctx = d.get("context", {})
         # Collect from all three places an analyzer might write a device
@@ -107,7 +108,7 @@ def enrich_cross_decision_context(store: MigrationStore) -> int:
     for d in all_decisions:
         if d.get("type") != "MISSING_DATA":
             continue
-        if d.get("chosen_option") == "__stale__":
+        if is_stale(d):
             continue
         ctx = dict(d.get("context", {}))
         canonical_id = ctx.get("canonical_id")
@@ -390,7 +391,7 @@ class AnalysisPipeline:
         existing_fps = {
             d["fingerprint"]
             for d in store.get_all_decisions()
-            if d.get("chosen_option") != "__stale__"
+            if not is_stale(d)
         }
 
         new_count = 0

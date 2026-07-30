@@ -31,6 +31,7 @@ from wxcli.migration.execute import (
     ORG_WIDE_TYPES,
     TIER_ASSIGNMENTS,
 )
+from wxcli.migration.decision_state import is_stale
 from wxcli.migration.execute.handlers import RECONCILE_RULES
 from wxcli.migration.store import MigrationStore
 
@@ -350,7 +351,7 @@ def _build_decisions_index(store: MigrationStore) -> dict[str, list[dict[str, An
     all_decisions = store.get_all_decisions()
     index: dict[str, list[dict[str, Any]]] = {}
     for d in all_decisions:
-        if d.get("chosen_option") == "__stale__":
+        if is_stale(d):
             continue
         context = d.get("context", {})
         for cid in context.get("_affected_objects", []):
@@ -374,7 +375,7 @@ def _build_stale_decisions_index(store: MigrationStore) -> dict[str, list[dict[s
     all_decisions = store.get_all_decisions()
     index: dict[str, list[dict[str, Any]]] = {}
     for d in all_decisions:
-        if d.get("chosen_option") != "__stale__":
+        if not is_stale(d):
             continue
         context = d.get("context", {})
         for cid in context.get("_affected_objects", []):
