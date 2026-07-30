@@ -77,11 +77,77 @@ TYPE_LABELS = {
 # ---------------------------------------------------------------------------
 
 def _count_by_type(store: MigrationStore) -> dict[str, int]:
-    """Count objects by type from the store."""
+    """Count objects by type from the store — the CUCM-side inventory.
+
+    This is what was discovered, NOT what will be built. Use
+    :func:`_count_planned_by_type` for anything the reader will act on.
+    """
     rows = store.conn.execute(
         "SELECT object_type, COUNT(*) as cnt FROM objects GROUP BY object_type ORDER BY cnt DESC"
     ).fetchall()
     return {r["object_type"]: r["cnt"] for r in rows}
+
+
+def _count_planned_by_type(store: MigrationStore) -> dict[str, int]:
+    """Count distinct resources per type that this plan actually acts on.
+
+    Read from ``plan_operations``, not ``objects``. The inventory is what CUCM
+    had; the plan is what will be built, and on director-demo-2026-04-15 those
+    differ by 388 devices, 23 users, 17 translation patterns and 12 call parks
+    (finding F03). This document is what ``cucm-migrate`` presents at the
+    "Ready to execute? (yes/no)" gate, so every number in it has to describe
+    the plan.
+
+    ``COUNT(DISTINCT canonical_id)`` rather than a create-only count:
+    ``shared_line`` and ``call_forwarding`` are never created, only configured
+    (275 and 51 operations on the real projects), so counting creates would
+    report 0 for work that definitely happens.
+    """
+    rows = store.conn.execute(
+        """SELECT resource_type, COUNT(DISTINCT canonical_id) AS cnt
+           FROM plan_operations
+           GROUP BY resource_type ORDER BY cnt DESC"""
+    ).fetchall()
+    return {r["resource_type"]: r["cnt"] for r in rows}
+
+
+def _planned_actions_by_type(store: MigrationStore) -> dict[str, list[str]]:
+    """The distinct op_types the plan uses, per resource type.
+
+    Derived from the data rather than a hand-written label map, so a new op_type
+    cannot silently render as the wrong action (the F17 failure mode).
+    """
+    rows = store.conn.execute(
+        """SELECT resource_type, op_type FROM plan_operations
+           GROUP BY resource_type, op_type
+           ORDER BY resource_type, op_type"""
+    ).fetchall()
+    out: dict[str, list[str]] = {}
+    for r in rows:
+        out.setdefault(r["resource_type"], []).append(r["op_type"])
+    return out
+
+
+def _count_excluded_by_type(
+    store: MigrationStore,
+    planned: dict[str, int],
+) -> dict[str, int]:
+    """Objects in the inventory that this plan does not act on.
+
+    The words "skip", "excluded", "incompatible" and "stale" appeared nowhere in
+    the 811-line document (finding F03), so a reader had no way to tell that 23
+    of 300 users and most of the device inventory were absent from it. Scoped to
+    :data:`WEBEX_RESOURCE_TYPES` to match the table it annotates.
+    """
+    inventory = _count_by_type(store)
+    out: dict[str, int] = {}
+    for obj_type, total in inventory.items():
+        if obj_type not in WEBEX_RESOURCE_TYPES:
+            continue
+        gap = total - planned.get(obj_type, 0)
+        if gap > 0:
+            out[obj_type] = gap
+    return out
 
 
 def _pending_decision_count(store: MigrationStore) -> int:
@@ -202,8 +268,16 @@ def _section_prerequisites(
 
 def _section_resource_summary(
     type_counts: dict[str, int],
+    actions: dict[str, list[str]] | None = None,
+    excluded: dict[str, int] | None = None,
 ) -> list[str]:
-    """Section 3: Resource Summary — Webex resource types only."""
+    """Section 3: Resource Summary — Webex resource types only.
+
+    ``type_counts`` must be plan-derived (see :func:`_count_planned_by_type`).
+    ``actions`` supplies the real op_types per type; without it every row falls
+    back to "Create", which is what made the old table claim creates for
+    translation patterns and call parks the plan never touches.
+    """
     lines = ["## 3. Resource Summary", ""]
     lines.append("| Resource Type | Count | Action |")
     lines.append("|--------------|-------|--------|")
@@ -212,9 +286,42 @@ def _section_resource_summary(
         if obj_type not in WEBEX_RESOURCE_TYPES:
             continue
         label = TYPE_LABELS.get(obj_type, obj_type)
-        lines.append(f"| {label} | {count} | Create |")
+        op_types = (actions or {}).get(obj_type)
+        if op_types:
+            action = ", ".join(
+                op.replace("_", " ").capitalize() for op in op_types
+            )
+        else:
+            action = "Create"
+        lines.append(f"| {label} | {count} | {action} |")
 
     lines.append("")
+
+    if excluded:
+        lines.append("### Not in this plan")
+        lines.append("")
+        lines.append(
+            "Discovered in CUCM but excluded from the operations above — because a "
+            "decision resolved to skip, the object is incompatible, its decision was "
+            "invalidated by re-analysis (stale), or it never reached the planner. "
+            "Reconcile these before approving:"
+        )
+        lines.append("")
+        lines.append("| Resource Type | Excluded | Discovered | In This Plan |")
+        lines.append("|--------------|----------|------------|--------------|")
+        for obj_type, gap in sorted(
+            excluded.items(), key=lambda kv: kv[1], reverse=True
+        ):
+            label = TYPE_LABELS.get(obj_type, obj_type)
+            planned = type_counts.get(obj_type, 0)
+            lines.append(f"| {label} | {gap} | {gap + planned} | {planned} |")
+        lines.append("")
+        lines.append(
+            "Investigate with `wxcli cucm decisions --status stale` and "
+            "`wxcli cucm decisions --status pending`."
+        )
+        lines.append("")
+
     return lines
 
 
@@ -446,7 +553,12 @@ def generate_plan_summary(
     Returns:
         Complete markdown string with 8 sections for admin review.
     """
-    type_counts = _count_by_type(store)
+    # Every count a reader acts on is plan-derived. `_count_by_type` (the CUCM
+    # inventory) now feeds only the excluded-population diff, where the gap
+    # between what was discovered and what will be built is the whole point.
+    planned_counts = _count_planned_by_type(store)
+    planned_actions = _planned_actions_by_type(store)
+    excluded_counts = _count_excluded_by_type(store, planned_counts)
     pending_decisions = _pending_decision_count(store)
     resolved_decisions = _get_resolved_decisions(store)
     ops = _get_plan_ops(store)
@@ -466,13 +578,15 @@ def generate_plan_summary(
         "",
     ]
 
-    lines.extend(_section_objective(type_counts, project_id))
-    lines.extend(_section_prerequisites(type_counts, pending_decisions))
-    lines.extend(_section_resource_summary(type_counts))
+    lines.extend(_section_objective(planned_counts, project_id))
+    lines.extend(_section_prerequisites(planned_counts, pending_decisions))
+    lines.extend(_section_resource_summary(
+        planned_counts, planned_actions, excluded_counts
+    ))
     lines.extend(_section_decisions(resolved_decisions))
     lines.extend(_section_batch_order(ops))
     lines.extend(_section_activation_codes(store))
-    lines.extend(_section_impact(type_counts, total_ops, total_api_calls))
+    lines.extend(_section_impact(planned_counts, total_ops, total_api_calls))
     lines.extend(_section_rollback_strategy())
     lines.extend(_section_approval())
 
