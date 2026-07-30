@@ -631,6 +631,47 @@ class TestAnalyze:
         state = json.loads((project_dir / "state.json").read_text())
         assert "analyze" in state["completed_stages"]
 
+    def test_analyze_headline_agrees_with_its_itemisation(self, tmp_migrations_dir):
+        """F10 on the shape that showed it: an empty project.
+
+        This is the run that printed `Decisions produced: 0` directly above
+        `architecture_advisor 1 decisions`. The advisor's row is inserted into
+        result.stats after result.decisions was collected.
+        """
+        import re
+
+        runner.invoke(app, ["init", "test-project"])
+        project_dir = tmp_migrations_dir / "test-project"
+        state = json.loads((project_dir / "state.json").read_text())
+        state["completed_stages"].extend(["discover", "normalize", "map"])
+        (project_dir / "state.json").write_text(json.dumps(state))
+
+        result = runner.invoke(app, ["analyze"])
+        assert result.exit_code == 0
+        text = _flat(result.output)
+
+        match = re.search(r"Decisions raised: (\d+)", text)
+        assert match, text
+        itemised = sum(int(n) for n in re.findall(r"(\d+) decisions", text))
+        assert int(match.group(1)) == itemised
+
+    def test_analyze_prints_a_line_for_every_analyzer(self, tmp_migrations_dir):
+        """F11 — all 15 analyzers plus the advisor, even at zero."""
+        from wxcli.migration.transform.analysis_pipeline import ALL_ANALYZERS
+
+        runner.invoke(app, ["init", "test-project"])
+        project_dir = tmp_migrations_dir / "test-project"
+        state = json.loads((project_dir / "state.json").read_text())
+        state["completed_stages"].extend(["discover", "normalize", "map"])
+        (project_dir / "state.json").write_text(json.dumps(state))
+
+        result = runner.invoke(app, ["analyze"])
+        text = _flat(result.output)
+        for cls in ALL_ANALYZERS:
+            name = getattr(cls, "name", None) or cls.__name__
+            assert name in text, f"{name} ran but printed nothing"
+        assert "architecture_advisor" in text
+
 
 class TestPlan:
     def test_plan_success(self, tmp_migrations_dir):
