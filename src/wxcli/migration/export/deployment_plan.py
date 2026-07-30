@@ -23,7 +23,7 @@ import json
 import logging
 import math
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
@@ -143,6 +143,19 @@ NO_OP_EXPECTED: dict[str, tuple[str, set[str]]] = {
     "device": ("compatibility_tier", {"webex_app", "infrastructure"}),
 }
 
+#: Reasons an object produced no operation that ARE knowable from its own data,
+#: keyed by object_type — ``(field that must be empty, operator-facing reason)``.
+#:
+#: The planner computes these too and prints them in the `plan` stage output
+#: (``missing_mac: 60 skipped``), but its skip report is in-memory and not
+#: persisted, so ``export`` cannot read it. Where the object itself carries the
+#: evidence, say so; do not label it "no known reason" when the reason is sitting
+#: in the row. Verified on director-demo: all 60 unplanned incompatible-tier
+#: devices have ``mac: null`` and model "CTI Port".
+NO_OP_KNOWN_GAP: dict[str, tuple[str, str]] = {
+    "device": ("mac", "no MAC address was extracted from CUCM"),
+}
+
 
 @dataclass(frozen=True)
 class UnplannedObjects:
@@ -155,10 +168,12 @@ class UnplannedObjects:
     stranded: dict[str, int]
     no_op_expected: dict[str, int]
     unexplained: dict[str, int]
+    #: ``{object_type: {reason: count}}`` — gaps the object's own data explains.
+    known_gaps: dict[str, dict[str, int]] = field(default_factory=dict)
 
     @property
     def needs_attention(self) -> bool:
-        return bool(self.stranded or self.unexplained)
+        return bool(self.stranded or self.unexplained or self.known_gaps)
 
 
 def _classify_unplanned(store: MigrationStore) -> UnplannedObjects:
@@ -187,27 +202,49 @@ def _classify_unplanned(store: MigrationStore) -> UnplannedObjects:
     expected: dict[str, int] = {}
     unexplained: dict[str, int] = {}
 
+    known_gaps: dict[str, dict[str, int]] = {}
+
     for r in rows:
         obj_type = r["object_type"]
         if obj_type not in WEBEX_RESOURCE_TYPES:
             continue
+        try:
+            data = json.loads(r["data"]) or {}
+        except (json.JSONDecodeError, TypeError):
+            data = {}
+
+        # By-design is checked BEFORE status, deliberately. An adversarial
+        # verification run caught the other order misfiling 4 devices as
+        # "stopped advancing — investigate" when they were `infrastructure` and
+        # `webex_app`, i.e. identical in kind to the 324 the same document said
+        # need no action. A type that produces no operation by design produces
+        # none at any status, so the shape of the object outranks how far it got.
+        rule = NO_OP_EXPECTED.get(obj_type)
+        if rule is not None:
+            tier_field, values = rule
+            if data.get(tier_field) in values:
+                expected[obj_type] = expected.get(obj_type, 0) + 1
+                continue
+
         if r["status"] != "analyzed":
             stranded[obj_type] = stranded.get(obj_type, 0) + 1
             continue
-        rule = NO_OP_EXPECTED.get(obj_type)
-        if rule is not None:
-            field, values = rule
-            try:
-                data = json.loads(r["data"]) or {}
-            except (json.JSONDecodeError, TypeError):
-                data = {}
-            if data.get(field) in values:
-                expected[obj_type] = expected.get(obj_type, 0) + 1
+
+        gap = NO_OP_KNOWN_GAP.get(obj_type)
+        if gap is not None:
+            gap_field, reason = gap
+            if not data.get(gap_field):
+                bucket = known_gaps.setdefault(obj_type, {})
+                bucket[reason] = bucket.get(reason, 0) + 1
                 continue
+
         unexplained[obj_type] = unexplained.get(obj_type, 0) + 1
 
     return UnplannedObjects(
-        stranded=stranded, no_op_expected=expected, unexplained=unexplained
+        stranded=stranded,
+        no_op_expected=expected,
+        unexplained=unexplained,
+        known_gaps=known_gaps,
     )
 
 
@@ -377,17 +414,33 @@ def _section_resource_summary(
             lines.append(
                 f"| {label} | {n} | Stopped advancing before the planner ran |"
             )
+        for obj_type, reasons in sorted(
+            unplanned.known_gaps.items(),
+            key=lambda kv: sum(kv[1].values()),
+            reverse=True,
+        ):
+            label = TYPE_LABELS.get(obj_type, obj_type)
+            for reason, n in sorted(
+                reasons.items(), key=lambda kv: kv[1], reverse=True
+            ):
+                lines.append(f"| {label} | {n} | {reason[0].upper()}{reason[1:]} |")
         for obj_type, n in sorted(
             unplanned.unexplained.items(), key=lambda kv: kv[1], reverse=True
         ):
             label = TYPE_LABELS.get(obj_type, obj_type)
+            # Deliberately not "no known reason". The planner may well know it —
+            # it prints per-type skip reasons — but that report is in-memory and
+            # this stage cannot read it, so claiming no reason exists would be
+            # asserting something unverified.
             lines.append(
-                f"| {label} | {n} | Analyzed, but produced no operation — no known reason |"
+                f"| {label} | {n} | Analyzed, but produced no operation "
+                f"(see the `plan` stage output for the per-type reason) |"
             )
         lines.append("")
         lines.append(
-            "Investigate with `wxcli cucm decisions --status stale` and "
-            "`wxcli cucm decisions --status pending`."
+            "The `wxcli cucm plan` output breaks these down by reason. For the "
+            "decision-related ones, `wxcli cucm decisions --status stale` and "
+            "`--status pending` show what is unresolved."
         )
         lines.append("")
 
