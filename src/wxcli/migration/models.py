@@ -219,12 +219,30 @@ class MapperError(BaseModel):
     traceback: str | None = None
 
 
+class MapperStats(BaseModel):
+    """Per-mapper outcome, keyed by mapper name in TransformResult.stats.
+
+    The engine already has all three numbers in scope per mapper and used to
+    discard them, which is why `map` could run 26 mappers and name none of
+    them. `failed` is a distinct flag rather than a -1 sentinel because a
+    mapper that raised produced no counts at all — that is a different state
+    from having produced zero.
+    """
+    objects_created: int = 0
+    objects_updated: int = 0
+    decisions: int = 0
+    failed: bool = False
+
+
 class TransformResult(BaseModel):
     """Aggregate result from running all mappers in the transform engine.
     (from 03b-transform-mappers.md, shared patterns — TransformResult)
     """
     decisions: list[Decision] = Field(default_factory=list)
     errors: list[MapperError] = Field(default_factory=list)
+    #: Per-mapper stats, mirroring AnalysisResult.stats. Every mapper that ran
+    #: gets an entry, including ones that produced nothing.
+    stats: dict[str, MapperStats] = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------

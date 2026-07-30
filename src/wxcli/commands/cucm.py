@@ -1362,6 +1362,57 @@ def normalize(
         store.close()
 
 
+def _print_mapping_summary(result) -> None:
+    """Itemise `map` the way `normalize` itemises its producer keys.
+
+    `map` used to print two lines — elapsed time and a bare decision count —
+    for a stage that runs 26 mappers. It named none of them, gave no object
+    counts, and printed mapper errors only when `result.errors` was non-empty,
+    so a mapper producing nothing and a mapper that was never reached looked
+    the same from the outside.
+
+    The engine had `objects_created`/`objects_updated`/decision counts in scope
+    per mapper and discarded them; `TransformResult.stats` now carries them.
+    Every mapper gets a row, zeros dimmed — 26 bounded lines, the same trade
+    `normalize` already makes with its 44 producer keys.
+    """
+    stats = result.stats
+    failed = [name for name, s in stats.items() if s.failed]
+    created = sum(s.objects_created for s in stats.values())
+    updated = sum(s.objects_updated for s in stats.values())
+    raised = sum(s.decisions for s in stats.values())
+
+    headline = (
+        f"  Objects: {created} created, {updated} updated — "
+        f"{raised} decisions raised"
+    )
+    if failed:
+        headline += (
+            f" [red](incomplete — {len(failed)} of {len(stats)} mappers "
+            "FAILED and produced nothing)[/red]"
+        )
+    console.print(headline)
+
+    for name, s in sorted(stats.items()):
+        if s.failed:
+            console.print(f"    {name:<28s} [red]FAILED[/red]")
+            continue
+        row = (
+            f"{s.objects_created:>5d} created "
+            f"{s.objects_updated:>5d} updated "
+            f"{s.decisions:>4d} decisions"
+        )
+        if s.objects_created or s.objects_updated or s.decisions:
+            console.print(f"    {name:<28s} {row}")
+        else:
+            console.print(f"    {name:<28s} [dim]{row}[/dim]")
+
+    if result.errors:
+        console.print(f"  [yellow]Mapper errors: {len(result.errors)}[/yellow]")
+        for err in result.errors:
+            console.print(f"    {err.mapper_name}: {err.error_message}")
+
+
 @app.command("map")
 def map_cmd(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
@@ -1389,11 +1440,7 @@ def map_cmd(
         elapsed = time.time() - t0
 
         console.print(f"\n[green]Mapping complete[/green] in {elapsed:.1f}s")
-        console.print(f"  Decisions: {len(result.decisions)}")
-        if result.errors:
-            console.print(f"  [yellow]Mapper errors: {len(result.errors)}[/yellow]")
-            for err in result.errors:
-                console.print(f"    {err.mapper_name}: {err.error_message}")
+        _print_mapping_summary(result)
     except Exception as exc:
         console.print(f"[red]Mapping failed:[/red] {exc}")
         logger.exception("Mapping failed")
