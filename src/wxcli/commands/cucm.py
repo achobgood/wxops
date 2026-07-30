@@ -312,6 +312,46 @@ def _render_skip_summary(report) -> None:
                 "wxcli cucm decisions --type <type> -p <project>"
             )
 
+    # Entities that WERE planned but carry an unresolved decision. Kept apart
+    # from the skip list above because they are present in the plan — reporting
+    # them as skips is what made the skip report untrustworthy (finding F09).
+    anomalies = getattr(report, "anomalies", None) or []
+    if anomalies:
+        agroups: dict[tuple[str, str], int] = {}
+        for a in anomalies:
+            key = a.decision_type or a.reason
+            state = a.decision_state or "no_decision"
+            agroups[(key, state)] = agroups.get((key, state), 0) + 1
+        console.print(
+            f"\n[yellow]Planned {len(anomalies)} entities that carry an "
+            f"unresolved decision:[/yellow]"
+        )
+        for (key, state), cnt in sorted(agroups.items()):
+            console.print(f"  · {key}: {cnt} planned anyway (decision={state})")
+        console.print(
+            "  [dim]These ARE in the plan.[/dim] Inspect with: "
+            "wxcli cucm decisions --status stale -p <project>"
+        )
+
+    # Objects that stopped advancing before the planner could see them.
+    # expand_to_operations queries status='analyzed' only, so these are absent
+    # from the plan and from every other signal (finding F08 — 23 of 300 users).
+    stranded = getattr(report, "stranded_counts", None) or {}
+    if stranded:
+        total_stranded = sum(stranded.values())
+        console.print(
+            f"\n[red]{total_stranded} entities never reached the planner "
+            f"and are ABSENT from this plan:[/red]"
+        )
+        for obj_type, cnt in sorted(
+            stranded.items(), key=lambda kv: kv[1], reverse=True
+        ):
+            console.print(f"  ⚠ {obj_type}: {cnt} stopped at status=normalized")
+        console.print(
+            "  [yellow]Investigate with:[/yellow] "
+            "wxcli cucm decisions --status stale -p <project>"
+        )
+
     # Entities at status='needs_decision' — held back awaiting operator
     # input, never reach the expansion loop. Surface them so operators
     # know the plan doesn't cover them.

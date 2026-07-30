@@ -71,15 +71,18 @@ def store(tmp_path):
 # ---------------------------------------------------------------------------
 
 class TestStaleDecisionWarnsAndRecords:
-    """A stale decision attached to an analyzed object must produce a WARN."""
+    """A stale decision attached to an analyzed object must produce a WARN.
 
-    def test_stale_decision_emits_warn_and_report_entry(self, store, caplog):
-        """Stale decision on an analyzed device → WARN + report entry.
+    **Expectation revised 2026-07-30 (finding F09).** The WARN is unchanged — it
+    is what stopped 611 convertible phones being hidden. What changed is where it
+    is recorded: ``report.anomalies``, not ``report.entries``. The entity is still
+    expanded, so calling it a "skip" made the skip report untrustworthy. Measured
+    on director-demo-2026-04-15: 766 of 1129 "Planner skip:" lines described
+    entities that were all present in ``plan_operations``.
+    """
 
-        This is the exact bug that hid 611 convertible phones. The planner
-        no longer silently filters stale decisions — it emits a WARN AND a
-        report entry with decision_state='stale'.
-        """
+    def test_stale_decision_emits_warn_and_anomaly_entry(self, store, caplog):
+        """Stale decision on an analyzed device → WARN + anomaly (not a skip)."""
         device = _analyzed(CanonicalDevice(
             canonical_id="device:stale_test",
             provenance=_prov(),
@@ -109,12 +112,15 @@ class TestStaleDecisionWarnsAndRecords:
         # Device still gets ops — stale decision is a WARN, not a skip
         assert len([o for o in ops if o.resource_type == "device"]) == 2
 
-        # WARN + report entry are present
-        stale_entries = [e for e in report.entries if e.decision_state == "stale"]
-        assert len(stale_entries) == 1
-        assert stale_entries[0].canonical_id == "device:stale_test"
-        assert stale_entries[0].decision_type == "DEVICE_INCOMPATIBLE"
+        # WARN + anomaly entry are present
+        stale_anomalies = [a for a in report.anomalies if a.decision_state == "stale"]
+        assert len(stale_anomalies) == 1
+        assert stale_anomalies[0].canonical_id == "device:stale_test"
+        assert stale_anomalies[0].decision_type == "DEVICE_INCOMPATIBLE"
         assert "stale" in " ".join(r.message for r in caplog.records).lower()
+
+        # ...and it is NOT in the skip report, because it was not skipped.
+        assert not any(e.canonical_id == "device:stale_test" for e in report.entries)
 
 
 class TestPendingDecisionWarnsAndRecords:
@@ -149,9 +155,12 @@ class TestPendingDecisionWarnsAndRecords:
         with caplog.at_level("WARNING", logger="wxcli.migration.execute.planner"):
             expand_to_operations(store, report=report)
 
-        pending = [e for e in report.entries if e.decision_state == "pending"]
+        # Recorded as an anomaly, not a skip — the user is still planned.
+        # Same revision as the stale case above (finding F09).
+        pending = [a for a in report.anomalies if a.decision_state == "pending"]
         assert len(pending) == 1
         assert pending[0].canonical_id == "user:pending_test"
+        assert not any(e.canonical_id == "user:pending_test" for e in report.entries)
 
 
 # ---------------------------------------------------------------------------
@@ -439,9 +448,28 @@ class TestAggregateSummary:
 # ---------------------------------------------------------------------------
 
 class TestFailOnUnresolved:
-    """--fail-on-unresolved / WXCLI_PLAN_FAIL_ON_UNRESOLVED loud-fail gate."""
+    """--fail-on-unresolved / WXCLI_PLAN_FAIL_ON_UNRESOLVED loud-fail gate.
 
-    def test_raises_when_stale_skip_and_flag_set(self, store):
+    **Contract revised 2026-07-30 (finding F09).** The gate no longer fires on a
+    stale decision attached to an entity that was still expanded. Rationale, in
+    order of weight:
+
+    1. ``PlannerUnresolvedError``'s own message says "entities **skipped** due to
+       unresolved decisions". Measured on director-demo-2026-04-15, 766 of the
+       entities it would cite are present in ``plan_operations``. The message was
+       false.
+    2. Firing on them aborts correct plans. Every one of the 300 users on that
+       project carries a stale MISSING_DATA decision, so the gate could never be
+       used on a real migration.
+    3. The gate was simultaneously **blind** to the entities genuinely missing —
+       the 23 users stranded at ``status='normalized'`` (finding F08) produce no
+       skip entry at all. Those now trip it, which is what it was for.
+
+    The WARN and the aggregate roll-up are unchanged; see
+    ``test_planner_skip_report_truth.py`` for the positive cases.
+    """
+
+    def test_does_not_raise_when_entity_was_planned_despite_stale_decision(self, store):
         device = _analyzed(CanonicalDevice(
             canonical_id="device:stale_for_fail",
             provenance=_prov(),
@@ -463,10 +491,15 @@ class TestFailOnUnresolved:
             "run_id": "r",
         })
 
-        with pytest.raises(PlannerUnresolvedError) as exc_info:
-            expand_to_operations(store, fail_on_unresolved=True)
-        assert "unresolved decisions" in str(exc_info.value).lower()
-        assert "DEVICE_INCOMPATIBLE" in str(exc_info.value)
+        report = PlannerSkipReport()
+        ops = expand_to_operations(
+            store, report=report, fail_on_unresolved=True
+        )
+        assert [o for o in ops if o.canonical_id == "device:stale_for_fail"], (
+            "the device is planned, so the gate must not abort"
+        )
+        assert not report.has_unresolved_skips
+        assert len(report.anomalies) == 1
 
     def test_does_not_raise_when_flag_unset(self, store):
         """Default behaviour: WARN + continue, no exception."""
@@ -495,7 +528,10 @@ class TestFailOnUnresolved:
         report = PlannerSkipReport()
         ops = expand_to_operations(store, report=report, fail_on_unresolved=False)
         assert len([o for o in ops if o.resource_type == "device"]) == 2
-        assert report.has_unresolved_skips
+        # Nothing is missing from the plan, so has_unresolved_skips is False —
+        # the observation lives in anomalies instead (finding F09).
+        assert not report.has_unresolved_skips
+        assert len(report.anomalies) == 1
 
     def test_does_not_raise_when_only_expected_skips(self, store):
         """Skips without unresolved decisions (e.g., dead template) should
@@ -519,31 +555,24 @@ class TestFailOnUnresolved:
         assert len(report.entries) == 1
 
     def test_env_var_enables_gate(self, store, monkeypatch):
-        """WXCLI_PLAN_FAIL_ON_UNRESOLVED=1 environment variable enables gate."""
-        device = _analyzed(CanonicalDevice(
-            canonical_id="device:env_fail",
+        """WXCLI_PLAN_FAIL_ON_UNRESOLVED=1 environment variable enables gate.
+
+        Trigger switched to a stranded object — an entity genuinely absent from
+        the plan. The env var plumbing is what this test covers; the stale-but-
+        expanded case no longer trips the gate (see the class docstring).
+        """
+        user = CanonicalUser(
+            canonical_id="user:env_stranded",
             provenance=_prov(),
-            mac="AABBCCDDEEFF",
-            compatibility_tier=DeviceCompatibilityTier.NATIVE_MPP,
-        ))
-        store.upsert_object(device)
-        store.save_decision({
-            "decision_id": "D_env_fail_1",
-            "type": "DEVICE_INCOMPATIBLE",
-            "severity": "HIGH",
-            "summary": "stale",
-            "context": {"_affected_objects": ["device:env_fail"]},
-            "options": [{"id": "skip", "label": "skip", "impact": "none"}],
-            "chosen_option": "__stale__",
-            "resolved_at": "2026-01-01T00:00:00Z",
-            "resolved_by": "stale",
-            "fingerprint": "fp-env-fail-1",
-            "run_id": "r",
-        })
+            emails=["env@x.com"],
+        )
+        user.status = MigrationStatus.NORMALIZED
+        store.upsert_object(user)
 
         monkeypatch.setenv("WXCLI_PLAN_FAIL_ON_UNRESOLVED", "1")
-        with pytest.raises(PlannerUnresolvedError):
+        with pytest.raises(PlannerUnresolvedError) as exc:
             expand_to_operations(store)
+        assert "never reached the planner" in str(exc.value)
 
 
 # ---------------------------------------------------------------------------
