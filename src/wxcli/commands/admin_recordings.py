@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling admin-recordings.")
 
 
-@app.command("list", short_help="List Recordings.")
+@app.command("list", short_help="List Recordings. (Admin)")
 def cmd_list(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
@@ -68,7 +68,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Meeting ID', 'meetingId'), ('Scheduled Meeting ID', 'scheduledMeetingId'), ('Meeting Series ID', 'meetingSeriesId')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Format', 'format'), ('Created', 'timeRecorded')], limit=limit)
 
 
 
@@ -198,7 +198,7 @@ def list_recordings_admin(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Meeting ID', 'meetingId'), ('Scheduled Meeting ID', 'scheduledMeetingId'), ('Meeting Series ID', 'meetingSeriesId')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Format', 'format'), ('Created', 'timeRecorded')], limit=limit)
 
 
 
@@ -301,7 +301,7 @@ def delete(
 
 
 
-@app.command("show", short_help="Get Recording Details.")
+@app.command("show", short_help="Get Recording Details. (Admin)")
 def show(
     recording_id: str = typer.Argument(help="from: wxcli admin-recordings list"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage, and the API will return..."),
@@ -327,7 +327,7 @@ def show(
 
 _BODY_SKELETON_DELETE_RECORDINGS = '{"reason":"...","comment":"..."}'
 
-@app.command("delete-recordings", short_help="Delete a Recording.")
+@app.command("delete-recordings", short_help="Delete a Recording. (Admin)")
 def delete_recordings(
     recording_id: str = typer.Argument(help="from: wxcli admin-recordings list"),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will delete a..."),
@@ -376,7 +376,7 @@ def delete_recordings(
 
 _BODY_SKELETON_CREATE_SOFT_DELETE = '{"recordingIds":["..."],"siteUrl":"..."}'
 
-@app.command("create-soft-delete", short_help="Move Recordings into the Recycle Bin.")
+@app.command("create-soft-delete", short_help="Move Recordings into the Recycle Bin. (Admin)")
 def create_soft_delete(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will move..."),
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API deletes recordings. If not specified, the API deletes recordings from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
@@ -421,7 +421,7 @@ def create_soft_delete(
 
 _BODY_SKELETON_CREATE_RESTORE = '{"restoreAll":true,"recordingIds":["..."],"siteUrl":"..."}'
 
-@app.command("create-restore", short_help="Restore Recordings from Recycle Bin.")
+@app.command("create-restore", short_help="Restore Recordings from Recycle Bin. (Admin)")
 def create_restore(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the..."),
     restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specified by `recordingIds`. If `true`, restores all recordings from the recycle bin."),
@@ -470,7 +470,7 @@ def create_restore(
 _BODY_SKELETON_DELETE_RECORDINGS_RECYCLE = '{"purgeAll":true,"recordingIds":["..."],"siteUrl":"..."}'
 
 @app.command("create-purge", hidden=True)
-@app.command("delete-recordings-recycle", short_help="Purge Recordings from Recycle Bin.")
+@app.command("delete-recordings-recycle", short_help="Purge Recordings from Recycle Bin. (Admin)")
 def delete_recordings_recycle(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has the required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage and the API will purge..."),
     purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified by `recordingIds`. If `true`, purges all recordings from the recycle bin."),
@@ -652,7 +652,7 @@ def list_recordings_group(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Meeting ID', 'meetingId'), ('Scheduled Meeting ID', 'scheduledMeetingId'), ('Meeting Series ID', 'meetingSeriesId')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Topic', 'topic'), ('Format', 'format'), ('Created', 'timeRecorded')], limit=limit)
 
 
 

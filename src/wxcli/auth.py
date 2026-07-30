@@ -105,21 +105,30 @@ def _next_page_url(response: "httpx.Response") -> str | None:
 def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
     """Say so on stderr when a single fetch left pages on the server.
 
-    210 list commands issue one `rest_get` against an endpoint the spec says
-    paginates, and discard the `Link: rel="next"` silently — the command exits
-    0 and hands back a partial answer with nothing indicating it. The display
+    211 list commands issue one `rest_get` against an endpoint that pages, and
+    used to discard the evidence silently — the command exits 0 and hands back
+    a partial answer with nothing indicating it. The display
     layer cannot cover this: `output.print_table`'s "... N more" row needs
     `len(data) > limit`, and on 502 of 503 list commands `--limit` is ALSO the
     API page size, so the row is unreachable exactly where truncation happens.
 
     This does not change what any command returns — stdout is untouched. It
     only makes the silent case loud, and tells us which commands truncate in
-    practice: the count of 210 is a code shape, and the one live probe on
+    practice: the count of 211 is a code shape, and the one live probe on
     record found 105 records returned whole from an endpoint whose spec
     declares a default page of 10.
 
-    Contact Center's `page`/`pageSize` style carries no Link header and is NOT
-    covered here — that is the 96 of the 210 this cannot see.
+    Two signals, because neither alone is enough. `Link: rel="next"` covers the
+    110 link-shaped commands. Contact Center (`page`/`pageSize`) and SCIM
+    (`startIndex`/`count`) send NO Link header, so `_body_says_more` reads a
+    declared total out of the body instead — that is the other 101. (Corrected
+    2026-07-29: this said the CC style was NOT covered. True at 600eb38, fixed
+    in 1f584d1; the condition below reads both.)
+
+    Still blind: an endpoint that pages while sending neither a Link header nor
+    any total spelling `_body_says_more` knows. `follow_page_param` terminates
+    on a short page precisely because some CC wrappers carry no total at all,
+    and on those this cannot tell a full page from a final one.
     """
     if os.environ.get("WXCLI_NO_PAGE_WARN"):
         return

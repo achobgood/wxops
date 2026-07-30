@@ -437,7 +437,7 @@ Content-Type: application/json
 
 The PIN must comply with the organization's passcode rules (see voicemail rules endpoint below). No response body on success (204).
 
-**CLI:** `wxcli call-settings-for-me-phase-5 update-pin --passcode "27850230"`
+**CLI:** `wxcli my-call-settings update-voicemail-pin --passcode "27850230"`
 
 ### Raw HTTP — Read Voicemail Rules
 
@@ -448,7 +448,7 @@ Authorization: Bearer {user_token}
 
 Returns the passcode policy rules for the user's organization. Read-only; rules are set at the org level. Response includes `blockRepeatedPatternsEnabled`, `blockUserNumberEnabled`, `blockReversedUserNumberEnabled`, `blockPreviousPasscodes` (with `numberOfPasscodes`), `blockReversedOldPasscodeEnabled`, `blockRepeatedDigits` (with `max`), `blockContiguousSequences` (with `numberOfAscendingDigits`, `numberOfDescendingDigits`), and `length` (with `min`, `max`).
 
-**CLI:** `wxcli call-settings-for-me-phase-5 show-rules`
+**CLI:** `wxcli my-call-settings show-voicemail-rules`
 
 ### Raw HTTP — Modify Caller ID
 
@@ -539,7 +539,7 @@ Authorization: Bearer {user_token}
 
 Supports pagination (`max`, `start`) and filtering (`name`, `phoneNumber`). Returns a `hosts` array of objects with `hostId`, `firstName`, `lastName`, `phoneNumber`, `extension`, `allowedAssociationDuration`.
 
-**CLI:** `wxcli call-settings-for-me-phase-5 list [--name "..."] [--phone-number "..."]`
+**CLI:** `wxcli my-call-settings list-available-hosts [--name "..."] [--phone-number "..."]`
 
 ### Raw HTTP — Read Hoteling Guest Settings
 
@@ -550,7 +550,7 @@ Authorization: Bearer {user_token}
 
 Returns `enabled`, `associationLimitEnabled`, `associationLimitHours`, and current host association details (`hostId`, `hostFirstName`, `hostLastName`, `hostEnforcedAssociationLimitEnabled`, `hostAssociationLimitHours`).
 
-**CLI:** `wxcli call-settings-for-me-phase-5 show-guest`
+**CLI:** `wxcli my-call-settings show-hoteling-guest`
 
 ### Raw HTTP — Modify Hoteling Guest Settings
 
@@ -567,7 +567,7 @@ Content-Type: application/json
 }
 ```
 
-**CLI:** `wxcli call-settings-for-me-phase-5 update-guest --enabled --association-limit-enabled --association-limit-hours 12 --host-id "{id}"`
+**CLI:** `wxcli my-call-settings update-hoteling-guest --enabled --association-limit-enabled --association-limit-hours 12 --host-id "{id}"`
 
 **Cross-reference:** `person-call-settings-behavior.md` section 10 (Preferred Answer Endpoint). `person-call-settings-behavior.md` section 7 (Hoteling) for admin-path hoteling host settings.
 

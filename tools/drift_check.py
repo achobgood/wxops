@@ -112,6 +112,32 @@ Checks (docs/arch/target-architecture.md §A6):
       empty container rather than dropping a property, so this check stays
       satisfiable on a pathological schema.
 
+  15. Inert overrides: no entry in tools/field_overrides.yaml is configuration
+      that cannot apply — a tag block, tag_overrides entry or
+      cli_name_overrides entry keyed on a tag no spec on disk generates, a
+      per-command key naming a command its tag does not render, or one family
+      declared in BOTH a top-level block and a tag_overrides entry (where the
+      shallow merge drops the top-level copy). This is the quietest defect in
+      the file: it parses, every existing test passes, and it does nothing.
+      Six blocks were inert that way for months — the shadowed-block class was
+      also, by accident, the only thing holding check 9 at 0 on call-queue.
+      Deliberate exceptions are declared in `inert_tag_ack` and re-validated,
+      so an ack whose tag returns fails instead of lingering.
+
+  16. Inert `--all`: no list command carries a `--all` that cannot walk
+      anything on an endpoint whose own 200 schema declares a paging total.
+      `--all` is uniform on all 507 list commands and reaches a pager on 264;
+      the other 243 are inert BY DESIGN, because the spec says the endpoint
+      does not page. Nothing verified that. Where a spec under-declares — no
+      paging parameter, no Link header — the command renders inert and returns
+      page one, while `rest_get`'s runtime warning still fires off the body
+      total, so the CLI reports truncation and offers no flag that fixes it.
+      The oracle is the RENDERED module (a fetch block with no all_pages
+      branch), so fixing the generator retires findings rather than rotting
+      them. `/count` paths are excluded — measured: 5 of 7 raw hits are
+      `availableMembers/count`, where the total is the answer. Acked per
+      operation in `undeclared_paging_ack`, re-validated every run.
+
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
 skip an operation whose declaring specs disagree rather than unioning them —
@@ -2453,6 +2479,269 @@ def write_gaps_doc(skipped_ops: dict, overrides: dict) -> None:
     print(f"wrote {GAPS_DOC.relative_to(REPO)} ({total} ops)")
 
 
+# ----------------------------------------------------------------- check 15
+
+def check_inert_overrides() -> tuple[list, list]:
+    """Override configuration in field_overrides.yaml that cannot apply.
+
+    Two kinds, both of which parse, pass every existing test, and do nothing:
+
+      * TAG-keyed — a top-level tag block, a `tag_overrides` entry or a
+        `cli_name_overrides` entry naming a tag no spec on disk generates. Six
+        blocks were inert this way until 2026-07-29, plus a table_columns block
+        and a name mapping keyed on `Features: Customer Experience Essentials`
+        after upstream renamed the tag, and four keyed on CLI GROUP names
+        (`fs-flows`) instead of tags.
+      * COMMAND-keyed — a per-command key inside a resolved tag block naming a
+        command that tag does not render (`table_columns: {list-calls: ...}` in a
+        group whose commands are list-calls-members / list-calls-me). The
+        generator refuses these outright; this re-checks them from the gate, so
+        the finding does not depend on somebody running a regen.
+
+    Deliberately NOT flagged: `tag_merge` sources and `tag_op_excludes` keys. Both
+    are "if this tag is present, correct it" — an absent tag makes them a no-op by
+    design, and gating them would fight a legitimately defensive pattern. What
+    bites is config that is supposed to change a name or a column TODAY.
+
+    `inert_tag_ack` declares the exceptions (one today: the AI Assistant tag,
+    removed upstream, whose name mapping is kept on purpose). Every ack is
+    re-validated: an acked tag that resolves again is returned as a stale ack and
+    fails, so the list cannot decay into an allowlist.
+
+    Resolution is the GENERATOR's, imported rather than reimplemented — tags come
+    from the same merge/skip pipeline and commands from the same parse_tag plus
+    apply_endpoint_overrides, keyed on the same COMMAND_KEYED_OVERRIDES. A second
+    copy of that logic here is how a check ends up disagreeing with the thing it
+    is checking.
+
+    Specs are read from DISK, not from git — unlike the rest of this file. A
+    per-spec section keyed on a spec that is absent (webex-flow-store.json on a
+    fresh clone) is out of scope rather than inert, and the dev-only tags it
+    declares must not read as defects just because the spec is untracked.
+    """
+    import yaml   # a hard runtime dependency of wxcli itself (pyproject), so it
+                  # cannot be missing where this runs. load_overrides()'s
+                  # hand-rolled parser stays for the other checks; this one needs
+                  # three levels of nesting and a folded scalar
+                  # (command_help_notes), which a line parser reads wrong.
+    try:
+        from tools import generate_commands as gc
+        from tools.openapi_parser import get_tags, load_spec, parse_tag
+        from tools.postman_parser import apply_endpoint_overrides
+    except ImportError:  # pragma: no cover — runnable as a bare script
+        import generate_commands as gc
+        from openapi_parser import get_tags, load_spec, parse_tag
+        from postman_parser import apply_endpoint_overrides
+
+    ovr = yaml.safe_load(OVERRIDES.read_text()) or {}
+    acks = ovr.get("inert_tag_ack") or {}
+    on_disk = sorted(p.name for p in SPECS_DIR.glob("*.json"))
+
+    specs, generated = {}, {}
+    for name in on_disk:
+        spec = load_spec(str(SPECS_DIR / name))
+        merge = gc.resolve_tag_merge(ovr.get("tag_merge"), name)
+        if merge:
+            gc.merge_tags(spec, merge)
+        skip = gc.resolve_skip_patterns(ovr.get("skip_tags"), name)
+        specs[name] = spec
+        generated[name] = {t for t in get_tags(spec)
+                           if not gc.should_skip_tag(t, skip)}
+    everywhere = set().union(*generated.values()) if generated else set()
+
+    top_blocks = {k: v for k, v in ovr.items()
+                  if k not in gc.KNOWN_GLOBAL_KEYS and not k.startswith("_")
+                  and isinstance(v, dict)}
+    findings = []
+
+    def resolves(spec_key: str, tag: str) -> bool | None:
+        """True/False, or None when the spec is not on disk (out of scope)."""
+        if spec_key == "_global":
+            return tag in everywhere
+        if spec_key not in generated:
+            return None
+        return tag in generated[spec_key]
+
+    for tag, block in sorted(top_blocks.items()):
+        if tag not in everywhere:
+            findings.append({"kind": "tag", "where": "top-level block",
+                             "spec": "*", "tag": tag,
+                             "detail": f"keys={', '.join(sorted(block))}"})
+    for family in ("tag_overrides", "cli_name_overrides"):
+        for spec_key, tags in sorted((ovr.get(family) or {}).items()):
+            for tag, val in sorted((tags or {}).items()):
+                if resolves(spec_key, tag) is False:
+                    detail = (f"keys={', '.join(sorted(val))}"
+                              if isinstance(val, dict) else f"-> {val!r}")
+                    findings.append({"kind": "tag", "where": family,
+                                     "spec": spec_key, "tag": tag,
+                                     "detail": detail})
+
+    # The shallow-merge clash the generator also refuses: a family declared in
+    # both forms for one tag, where tag_overrides wins and the top-level copy is
+    # dropped whole — the original defect, one level down.
+    for spec_key, tags in sorted((ovr.get("tag_overrides") or {}).items()):
+        for tag, block in sorted((tags or {}).items()):
+            clash = sorted(set(top_blocks.get(tag) or {}) & set(block or {}))
+            if clash:
+                findings.append({"kind": "clash", "where": "tag_overrides",
+                                 "spec": spec_key, "tag": tag,
+                                 "detail": f"declared twice: {', '.join(clash)}"})
+
+    # Command-keyed keys, per (spec, tag) that actually resolves.
+    raw_tag_ovr = ovr.get("tag_overrides") or {}
+    for name in on_disk:
+        excludes = gc.resolve_tag_op_excludes(ovr.get("tag_op_excludes"), name)
+        for tag in sorted(generated[name]):
+            block = dict(top_blocks.get(tag) or {})
+            block.update((raw_tag_ovr.get("_global") or {}).get(tag, {}))
+            block.update((raw_tag_ovr.get(name) or {}).get(tag, {}))
+            if not any(f in block for f in gc.COMMAND_KEYED_OVERRIDES):
+                continue
+            endpoints, _ = parse_tag(
+                tag, specs[name],
+                omit_query_params=list(ovr.get("omit_query_params", [])),
+                auto_inject_params=set(
+                    ovr.get("auto_inject_from_config", ["orgId"])),
+                seen_operation_ids=set(), exclude_paths=excludes.get(tag))
+            for ep in endpoints:
+                apply_endpoint_overrides(ep, block)
+            claimed = {ep.command_name for ep in endpoints}
+            for family in gc.COMMAND_KEYED_OVERRIDES:
+                entry = block.get(family)
+                if not isinstance(entry, dict):
+                    continue
+                for cmd in sorted(k for k in entry if k not in claimed):
+                    findings.append({"kind": "command", "where": family,
+                                     "spec": name, "tag": tag,
+                                     "detail": f"no command {cmd!r} in this tag"})
+
+    acked_tags = {f["tag"] for f in findings if f["kind"] == "tag"} & set(acks)
+    findings = [f for f in findings
+                if not (f["kind"] == "tag" and f["tag"] in acks)]
+    stale = [{"tag": t, "reason": " ".join(str(acks[t]).split())[:120]}
+             for t in sorted(set(acks) - acked_tags)]
+    return findings, stale
+
+
+# Paging totals a Webex response uses to say "there is more than this page".
+# Same four spellings src/wxcli/auth.py's _body_says_more reads at runtime, so
+# the static check and the runtime warning agree on what a total looks like.
+PAGING_TOTALS = frozenset({"totalResources", "totalRecords",
+                           "totalResults", "total"})
+
+
+def _schema_props(node, spec: dict, depth: int = 0) -> set[str]:
+    """Top-level property names of a (possibly $ref'd) schema."""
+    if depth > 4 or not isinstance(node, dict):
+        return set()
+    ref = node.get("$ref")
+    if ref:
+        target = spec.get("components", {}).get("schemas", {}).get(
+            ref.rsplit("/", 1)[-1], {})
+        return _schema_props(target, spec, depth + 1)
+    return set(node.get("properties") or {})
+
+
+def check_undeclared_paging(acks: dict | None = None,
+                            commands_dir: Path = COMMANDS_DIR,
+                            specs_dir: Path = SPECS_DIR) -> tuple[list, list]:
+    """A list command whose `--all` is inert on an endpoint that pages anyway.
+
+    `--all` ships on every list command, but which of three fetch branches it
+    gets is decided entirely by what the SPEC declares — `_pagination_style`
+    reads paging query parameters and a `Link` response header, nothing else.
+    An endpoint that really pages, described by a spec declaring neither,
+    renders into the non-paginating branch where `--all` is accepted and does
+    nothing. Flag exists, flag does not work; the command exits 0 with page one.
+
+    The signal this check adds is the spec's own 200 SCHEMA: a response that
+    declares a paging total (`totalResources` / `totalRecords` / `totalResults`
+    / `total`) is a response that expects to be paged, whatever its parameter
+    list says. Those are the same four keys `_body_says_more` reads at runtime,
+    so a hit here is an endpoint the CLI will WARN about on stderr while
+    offering no flag that fixes it.
+
+    The oracle is the RENDERED command, not the spec — a module on disk whose
+    fetch block calls `rest_get` with no `all_pages` branch is the inert case by
+    construction, so a generator change that starts honouring the schema
+    silently retires findings instead of leaving them to rot.
+
+    `/count`-terminating paths are excluded, and that exclusion is measured, not
+    defensive: 5 of the 7 raw hits are `.../availableMembers/count`, where
+    `totalCount` IS the answer the endpoint exists to return. `totalCount` is
+    deliberately absent from PAGING_TOTALS for the same reason.
+
+    Acked per operation in `undeclared_paging_ack`, re-validated every run: an
+    ack whose operation no longer qualifies — spec fixed, command regenerated
+    onto a walking branch, endpoint gone — is returned as stale and fails, so
+    the list cannot decay into an allowlist.
+
+    Specs are globbed from DISK, which for most of this file would make the
+    result non-reproducible from a clone (the untracked dev-only
+    webex-flow-store.json is on a developer's machine and nowhere else). It is
+    safe HERE only because the COMMAND side is filtered first: dev-only modules
+    are `fs_*` and are skipped, so no flow-store operation can ever reach the
+    spec loop. Verified by removing the spec and re-running — identical
+    findings. If that `fs_` skip is ever relaxed, filter the specs too.
+    """
+    if acks is None:
+        import yaml   # hard runtime dependency of wxcli itself — see check 15
+        acks = (yaml.safe_load(OVERRIDES.read_text())
+                or {}).get("undeclared_paging_ack") or {}
+    inert: dict[tuple[str, str], list[str]] = {}
+    for mod in sorted(commands_dir.glob("*.py")):
+        if mod.stem.startswith(("fs_", "_")):
+            continue
+        for block in re.split(r"\n(?=@app\.command)", mod.read_text()):
+            if 'all_pages: bool = typer.Option(False, "--all"' not in block:
+                continue
+            if "if all_pages:" in block or "and not all_pages:" in block:
+                continue  # --all reaches a walker on this command
+            named = re.search(r'@app\.command\("([^"]+)"', block)
+            url = re.search(r'url = f?"([^"]+)"', block)
+            if not (named and url):
+                continue
+            path = url.group(1)
+            for base in URL_BASES:
+                if path.startswith(base):
+                    path = path[len(base):]
+                    break
+            inert.setdefault(("GET", normalize_path(path)), []).append(
+                f"{mod.stem.replace('_', '-')} {named.group(1)}")
+
+    findings = []
+    for spec_file in sorted(specs_dir.glob("webex-*.json")):
+        spec = json.loads(spec_file.read_text())
+        for path, methods in (spec.get("paths") or {}).items():
+            op = (methods or {}).get("get")
+            if not isinstance(op, dict):
+                continue
+            if normalize_path(path).rstrip("/").rsplit("/", 1)[-1] == "count":
+                continue
+            key = ("GET", normalize_path(path))
+            if key not in inert:
+                continue
+            resp = ((op.get("responses") or {}).get("200") or {})
+            schema = ((resp.get("content") or {}).get(
+                "application/json") or {}).get("schema") or {}
+            declared = _schema_props(schema, spec) & PAGING_TOTALS
+            if not declared:
+                continue
+            findings.append({
+                "op": f"GET {key[1]}",
+                "commands": sorted(set(inert[key])),
+                "spec": spec_file.name,
+                "declares": sorted(declared),
+            })
+
+    seen = {f["op"] for f in findings}
+    findings = [f for f in findings if f["op"] not in acks]
+    stale = [{"op": op, "reason": " ".join(str(acks[op]).split())[:140]}
+             for op in sorted(set(acks) - seen)]
+    return findings, stale
+
+
 # --------------------------------------------------------------------- main
 
 def main() -> int:
@@ -2497,6 +2786,8 @@ def main() -> int:
     naming_unacked, naming_stale, naming_advisory = check_naming(
         build_naming_findings(), overrides.get("naming_ack") or {})
     bad_examples, bad_skeletons, fs_audit = check_generated_help()
+    inert_overrides, stale_inert_acks = check_inert_overrides()
+    inert_paging, stale_paging_acks = check_undeclared_paging()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -2523,6 +2814,10 @@ def main() -> int:
         "13_unrunnable_examples": bad_examples,
         "14_truncated_skeletons": bad_skeletons,
         "14_fs_exclusion_audit": fs_audit,
+        "15_inert_overrides": inert_overrides,
+        "15_stale_inert_acks": stale_inert_acks,
+        "16_inert_all_flag": inert_paging,
+        "16_stale_paging_acks": stale_paging_acks,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -2530,7 +2825,9 @@ def main() -> int:
                   or untracked_mods or bad_columns or unpinned_specs
                   or bad_positionals or missing_flags or kind_mismatches
                   or naming_unacked or naming_stale
-                  or bad_examples or bad_skeletons or fs_audit["leaked"])
+                  or bad_examples or bad_skeletons or fs_audit["leaked"]
+                  or inert_overrides or stale_inert_acks
+                  or inert_paging or stale_paging_acks)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off.
 
@@ -2685,6 +2982,26 @@ def main() -> int:
                   f"  ({s['kind']})")
         if len(bad_skeletons) > 20:
             print(f"      ... and {len(bad_skeletons) - 20} more (--json for all)")
+        print(f"[15] override entries that cannot apply: {len(inert_overrides)}"
+              f"   (stale acks: {len(stale_inert_acks)})")
+        for f in inert_overrides[:20]:
+            print(f"      {f['kind'].upper():8} {f['where']}  spec={f['spec']}  "
+                  f"tag={f['tag']!r}  {f['detail']}")
+        if len(inert_overrides) > 20:
+            print(f"      ... and {len(inert_overrides) - 20} more (--json for all)")
+        for a in stale_inert_acks:
+            print(f"      STALE ACK  inert_tag_ack[{a['tag']!r}] resolves now "
+                  f"— delete the ack: {a['reason']}")
+        print(f"[16] list commands whose `--all` is inert on a paging endpoint: "
+              f"{len(inert_paging)}   (stale acks: {len(stale_paging_acks)})")
+        for f in inert_paging[:20]:
+            print(f"      {', '.join(f['commands'])}  {f['op']}  "
+                  f"response declares {', '.join(f['declares'])}  ({f['spec']})")
+        if len(inert_paging) > 20:
+            print(f"      ... and {len(inert_paging) - 20} more (--json for all)")
+        for a in stale_paging_acks:
+            print(f"      STALE ACK  undeclared_paging_ack[{a['op']!r}] no longer "
+                  f"qualifies — delete the ack: {a['reason']}")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

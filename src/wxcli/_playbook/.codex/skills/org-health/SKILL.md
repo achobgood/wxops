@@ -43,17 +43,26 @@ save an empty JSON array `[]`.
 | 1 | `wxcli auto-attendant list -o json` | `${OUTPUT_DIR}/auto_attendants.json` |
 | 2 | `wxcli call-queue list -o json` | `${OUTPUT_DIR}/call_queues.json` |
 | 3 | `wxcli hunt-group list -o json` | `${OUTPUT_DIR}/hunt_groups.json` |
-| 4 | `wxcli location-voicemail list -o json` | `${OUTPUT_DIR}/voicemail_groups.json` |
+| 4 | `wxcli location-voicemail list --all -o json` | `${OUTPUT_DIR}/voicemail_groups.json` |
 | 5 | `wxcli paging-group list -o json` | `${OUTPUT_DIR}/paging_groups.json` |
-| 6 | `wxcli call-park list -o json` | `${OUTPUT_DIR}/call_parks.json` |
+| 6 | `wxcli call-park list --all -o json` | `${OUTPUT_DIR}/call_parks.json` |
 | 7 | `wxcli devices list -o json` | `${OUTPUT_DIR}/devices.json` |
-| 8 | `wxcli workspaces list -o json` | `${OUTPUT_DIR}/workspaces.json` |
+| 8 | `wxcli workspaces list --all -o json` | `${OUTPUT_DIR}/workspaces.json` |
 | 9 | `wxcli people list -o json` | `${OUTPUT_DIR}/users.json` |
-| 10 | `wxcli call-routing list-dial-plans -o json` | `${OUTPUT_DIR}/dial_plans.json` |
-| 11 | `wxcli call-routing list-route-groups -o json` | `${OUTPUT_DIR}/route_groups.json` |
-| 12 | `wxcli call-routing list-route-lists -o json` | `${OUTPUT_DIR}/route_lists.json` |
-| 13 | `wxcli call-routing list-trunks -o json` | `${OUTPUT_DIR}/trunks.json` |
-| 14 | `wxcli numbers list -o json` | `${OUTPUT_DIR}/numbers.json` |
+| 10 | `wxcli call-routing list-dial-plans --all -o json` | `${OUTPUT_DIR}/dial_plans.json` |
+| 11 | `wxcli call-routing list-route-groups --all -o json` | `${OUTPUT_DIR}/route_groups.json` |
+| 12 | `wxcli call-routing list-route-lists --all -o json` | `${OUTPUT_DIR}/route_lists.json` |
+| 13 | `wxcli call-routing list-trunks --all -o json` | `${OUTPUT_DIR}/trunks.json` |
+| 14 | `wxcli numbers list --all -o json` | `${OUTPUT_DIR}/numbers.json` |
+
+**Why `--all` is on 8 rows and not all 14.** Every check downstream is a count or a
+completeness test, so a collection that stops at page one does not error — it produces a
+*clean-looking report that is wrong*. On rows 4, 6, 8, 10-14 a bare `list` issues one
+request and discards the rest; `--all` walks the collection. On rows 1, 2, 3, 5, 7 and 9
+the default already fetches every page (`--limit` defaults to 0, which walks), so `--all`
+would add nothing. If a collection command prints `Note: N records returned and the server
+has more pages` on **stderr**, the file you just wrote is partial — re-run it with `--all`
+before analyzing. See AGENTS.md's Common Flags section.
 
 ### Detail Collection
 

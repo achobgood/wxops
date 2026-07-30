@@ -69,7 +69,7 @@ def cmd_list(
 
 _BODY_SKELETON_CREATE = '{"emails":["..."],"phoneNumbers":[{"type":"work","value":"..."}],"extension":"...","locationId":"...","displayName":"...","firstName":"...","lastName":"...","avatar":"...","orgId":"...","roles":["..."],"licenses":["..."],"department":"...","manager":"...","managerId":"...","title":"...","addresses":[{"type":"...","country":"...","locality":"...","region":"...","streetAddress":"...","postalCode":"..."}],"siteUrls":["..."]}'
 
-@app.command("create", short_help="Create a Person.")
+@app.command("create", short_help="Create a Person. (Calling)")
 def create(
     calling_data: str = typer.Option(None, "--calling-data", help="Include Webex Calling user details in the response."),
     min_response: str = typer.Option(None, "--min-response", help="Set to `true` to improve performance by omitting person details and returning only the ID in the response when successful. If unsuccessful the response will have optional error details."),

@@ -444,10 +444,73 @@ def _render_docstring(ep) -> str:
     return f'    """{doc}"""'
 
 
+def _normalise_summary(name: str | None) -> str:
+    """The exact string `_command_decorator` ships as short_help, so the
+    collision index and the emitter cannot disagree about what collides."""
+    summary = " ".join((name or "").split())
+    if summary and not summary.endswith("."):
+        summary += "."
+    return summary
+
+
+def _summary_qualifier(summary: str) -> str | None:
+    """Product label disambiguating a summary two products share, else None.
+
+    `teams list` and `cc-team list` both shipped `short_help="List Teams."` — a
+    Webex collaboration-space grouping and a Contact Center agent-routing
+    grouping, different APIs, described by the same four words. Three characters
+    of command name were the only difference. The root CLAUDE.md skill table
+    carries two rows for exactly that collision, which is the admission that the
+    CLI's own output could not tell them apart; a table is a workaround for a
+    description that should discriminate on its own.
+
+    Fixed here rather than in the two modules because short_help is the spec's
+    operation summary, so pinning the two strings by hand would let the next spec
+    sync reintroduce it — and it did not stay a two-command problem: 17 summaries
+    across 35 commands are shared by groups in different products.
+
+    The test is **more than one PRODUCT among the GROUPS the summary appears
+    in**, and the indexing does as much work as the condition does:
+
+    - Keying the index on CLI GROUP, not on spec, is what excludes the largest
+      false-positive class without a condition for it. 34 of the 51 summaries
+      two specs share are ONE operation both specs declare (`GET /locations` is
+      in webex-cloud-calling.json and webex-device.json) that renders into ONE
+      group. Indexed per group they collapse to a single entry with a single
+      product, so they never qualify — qualifying them would attach an
+      arbitrary product to a command that only has one, and say something false.
+      The `len(groups) < 2` line below is a cheap early-out, not a second
+      condition: a group has exactly one product, so 2+ products already implies
+      2+ groups. Measured — dropping that line leaves the count at 17.
+    - Requiring 2+ PRODUCTS, rather than merely 2+ groups, is the load-bearing
+      part. A same-product collision (`my-call-settings` vs `user-settings`,
+      both Calling) gains nothing from a product label; those groups' own names
+      already discriminate. Measured: dropping it takes 17 summaries to 40.
+
+    Shipped result, measured on the generated tree rather than modelled:
+    17 summaries, 35 command decorators.
+    """
+    global _producer_index
+    if not summary or not _active_cli_name:
+        return None
+    if _producer_index is None:
+        _producer_index = build_producer_index()
+    groups = _producer_index["summary_groups"].get(summary) or set()
+    if len(groups) < 2:   # early-out only; see the docstring
+        return None
+    products = _producer_index["group_product"]
+    mine = products.get(_active_cli_name)
+    if mine is None:
+        return None
+    if len({products[g] for g in groups if g in products}) < 2:
+        return None
+    return mine
+
+
 def _command_decorator(ep) -> str:
     """The `@app.command(...)` line(s) for an endpoint — short_help, plus any alias.
 
-    TWO separate defects live here.
+    THREE separate defects live here.
 
     1. GROUP-SCREEN TRUNCATION. Click derives a command's group-screen summary
        with `make_default_short_help(help, max_length=45)` — a 45-CHARACTER cap,
@@ -466,10 +529,15 @@ def _command_decorator(ep) -> str:
        function under both names (verified on typer 0.24.1 / click 8.3.2): the
        new name shows in --help, the old one runs and stays invisible. Nothing
        anyone scripted against the old name breaks.
+
+    3. TWO PRODUCTS, ONE DESCRIPTION. See `_summary_qualifier` — a summary that
+       two different products both use gets the product appended, so the group
+       screen discriminates without the reader having to know already.
     """
-    summary = " ".join((ep.name or "").split())
-    if summary and not summary.endswith("."):
-        summary += "."
+    summary = _normalise_summary(ep.name)
+    qualifier = _summary_qualifier(summary)
+    if qualifier:
+        summary = f"{summary} ({qualifier})"
     lines = []
     original = getattr(ep, "original_command_name", None)
     if original and original != ep.command_name:
@@ -624,6 +692,39 @@ def _value_shape(meta: dict) -> tuple[str | None, str | None]:
 # deliberately say nothing.
 _TRACKED_SPECS = Path(__file__).resolve().parent.parent / "specs"
 
+# Which Webex product each spec describes. Derived from the FILE, which the
+# generator always knows, rather than guessed from the CLI name — the same
+# authority the group-help label at the bottom of this module still guesses at
+# from a name prefix (`cc-` -> Contact Center, else Calling), which is why
+# `teams` and `hds` announce themselves as Webex Calling. That label is tracked
+# separately as findings D07/D08; when it is fixed it should read this dict
+# instead of the prefix test, not add a second mapping beside it.
+#
+# webex-flow-store.json is deliberately None, and the reason is reproducibility,
+# not scope: it is gitignored and dev-only, absent from a fresh clone and from
+# the shipped wheel, so letting it contribute to the collision index below would
+# make generated help text differ between this machine and a clone. That is the
+# same premise drift check 8 rests on. A spec present on disk with no entry here
+# raises rather than being skipped, so a future tracked spec cannot join
+# silently and inherit the dev-only exemption.
+SPEC_PRODUCT = {
+    "webex-cloud-calling.json": "Calling",
+    "webex-device.json": "Devices",
+    "webex-messaging.json": "Messaging",
+    "webex-meetings.json": "Meetings",
+    "webex-admin.json": "Admin",
+    "webex-contact-center.json": "Contact Center",
+    "webex-ucm.json": "UCM",
+    "webex-broadworks.json": "BroadWorks",
+    "webex-wholesale.json": "Wholesale",
+    "webex-flow-store.json": None,
+}
+
+
+class UnknownSpecProductError(RuntimeError):
+    """A spec on disk has no SPEC_PRODUCT entry."""
+
+
 _producer_index: dict | None = None
 
 
@@ -649,6 +750,14 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
     by_path: dict[str, str] = {}
     by_tail: dict[str, list[tuple[list[str], str, str]]] = {}
     scoping: set[str] = set()
+    # {normalised summary -> {group, ...}} and {group -> product}, for the
+    # cross-product short_help qualifier. Built here rather than in a second
+    # walk because this is the only place that resolves tag_merge, skip_tags,
+    # cli_name_overrides and tag_op_excludes the way the generator does, and a
+    # collision index that named groups the CLI does not ship would qualify the
+    # wrong commands.
+    summary_groups: dict[str, set[str]] = {}
+    group_product: dict[str, str] = {}
 
     # Same order spec_sync generates in, so that where two specs declare one
     # path the index names the same group the CLI actually ships it under.
@@ -659,6 +768,14 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
 
     for spec_path in ordered:
         name = spec_path.name
+        if name not in SPEC_PRODUCT:
+            raise UnknownSpecProductError(
+                f"{name} has no SPEC_PRODUCT entry in command_renderer.py. Add "
+                f"one naming the Webex product it describes, or map it to None "
+                f"if it is dev-only and absent from a fresh clone.")
+        # None means dev-only: it still walks, so producer pointers are
+        # unchanged, but it contributes nothing to the collision index.
+        product = SPEC_PRODUCT[name]
         spec = load_spec(spec_path)
         for path in spec.get("paths", {}):
             segs = path.strip("/").split("/")
@@ -688,15 +805,27 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
             # cited `location-settings list-1`, a name that no longer exists as
             # a visible command). Resolve the per-spec block the same way
             # main() does, and keep the other two forms as fallbacks.
+            #
+            # Resolved the same way main() does in every respect, including the
+            # top-level-block merge: `or` chaining here would re-create the
+            # shadowing that main() stopped doing on 2026-07-29, so a tag with
+            # both forms would index under different command names than it
+            # generates under.
             raw_tag_ovr = overrides.get("tag_overrides") or {}
             merged_tag_ovr = dict((raw_tag_ovr.get("_global") or {}).get(tag, {}))
             merged_tag_ovr.update((raw_tag_ovr.get(name) or {}).get(tag, {}))
-            tag_ovr = (merged_tag_ovr
-                       or overrides.get(f"_tag_ovr:{tag}")
-                       or overrides.get(tag) or {})
+            tag_ovr = dict(overrides.get(tag) or {})
+            tag_ovr.update(overrides.get(f"_tag_ovr:{tag}") or {})
+            tag_ovr.update(merged_tag_ovr)
             group = cli_ovr.get(tag) or folder_name_to_module(tag)[1]
+            if product is not None:
+                group_product.setdefault(group, product)
             for ep in endpoints:
                 apply_endpoint_overrides(ep, tag_ovr)
+                if product is not None:
+                    summary = _normalise_summary(ep.name)
+                    if summary:
+                        summary_groups.setdefault(summary, set()).add(group)
                 if ep.command_type != "list":
                     continue
                 by_path.setdefault(ep.url_path, f"{group} {ep.command_name}")
@@ -706,7 +835,8 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
                         (literals, ep.url_path, f"{group} {ep.command_name}"))
     for entries in by_tail.values():
         entries.sort(key=lambda e: (len(e[0]), len(e[1]), e[1]))
-    return {"by_path": by_path, "by_tail": by_tail, "scoping": scoping}
+    return {"by_path": by_path, "by_tail": by_tail, "scoping": scoping,
+            "summary_groups": summary_groups, "group_product": group_product}
 
 
 def _subsequence_remainder(candidate: list[str], target: list[str]) -> list[str] | None:
@@ -1154,8 +1284,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     elif ep.pagination_style in ("link", "page", "scim"):
         # Pages, but the spec never declared a Link header, so `paginates` is
         # False and the DEFAULT stays exactly what it was: one fetch. Only --all
-        # walks. This is the 210 — 109 link-shaped (max/start, header
-        # undeclared), 96 Contact Center page/pageSize, 5 SCIM.
+        # walks. Measured on the tree 2026-07-29: 211 — 110 link-shaped
+        # (max/start, header undeclared), 96 Contact Center page/pageSize, 5 SCIM.
         walker = {"link": "follow_pagination",
                   "page": "follow_page_param",
                   "scim": "follow_scim"}[ep.pagination_style]

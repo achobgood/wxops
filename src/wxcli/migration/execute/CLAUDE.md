@@ -371,7 +371,51 @@ is `_expand_device`, which takes `config`).
 - Handler returning `[]` → op marked `completed` with no API call.
 - No handler in registry → op marked `failed` immediately.
 
----
+### `wxcli cucm execute` exits 0 even with `Failed: N` — decided, not overlooked (2026-07-29)
+
+`execute()` in `commands/cucm.py` prints `Completed: N` / `Failed: N`, prints a tip
+pointing at `execution-status`, and returns normally. **Partial failure is not an
+error exit here, and that is the decision** — recorded because the same audit round
+fixed the opposite call on `cucm preflight`, and the difference is not obvious from
+either command's code.
+
+**Nothing reads this exit code.** Measured over both callers, not assumed:
+
+- `.claude/skills/cucm-migrate/SKILL.md` step 4 runs `wxcli cucm execution-status
+  -o json` and branches on its **content** — "IF all completed → deliverables",
+  "IF failures exist → triage per operation". No `$?`, no `&&`, no `set -e`.
+- `docs/runbooks/cucm-migration/operator-runbook.md` says it outright: Claude
+  "re-enters only when the skill checks `execution-status` and finds failures".
+
+**Why non-zero would be wrong, not merely unnecessary.** The documented recovery
+loop is `retry-failed` → `execute` → "repeat until execution-status shows 0 failed,
+0 pending". A partially-failed run is the *expected* mid-migration state, and the
+prescribed next step is to run the same command again. Exiting non-zero on it would
+make the first `execute` of a normal multi-pass migration kill any future `set -e`
+wrapper around the loop the runbook tells operators to run. "Exit non-zero only when
+zero operations succeeded" has the same hazard, just rarer: a retry pass where every
+retried op fails again for a new reason is still a legitimate iteration.
+
+**Why `preflight` is genuinely different.** It is a pre-execution gate whose entire
+output is a verdict, and the skill calls it MANDATORY, NOT SKIPPABLE with "if ANY
+check fails, do NOT proceed to execution". A gate that prints `Overall: ✗ FAIL` and
+exits 0 is a broken gate. `execute` is not a gate; it is a resumable worker whose
+verdict lives in the store, where `execution-status` reads it.
+
+**Correction to a round-3 note.** `PHASE-3-RESULTS.md` records that "`plan` and
+`analyze` share the shape". Checked against source: **`analyze` does** (a per-analyzer
+`count == -1` prints `FAILED` in red and the command still exits 0), but **`plan` does
+not** — it already carries `--fail-on-unresolved` plus a
+`WXCLI_PLAN_FAIL_ON_UNRESOLVED=1` env var that exits **2** when entities are dropped
+for unresolved decisions, i.e. the "should partial failure be fatal?" question was
+already answered there with a declared opt-in. `plan` retains the shape only for
+`cycle_errors` and tier violations, which print red and continue. So the in-group
+precedent is *opt-in*, never default-throw.
+
+**Rejected: adding `execute --fail-on-failures`** for symmetry with `plan`. `plan`'s
+flag exists because a real caller wanted it; no caller gates on `execute` at all, and
+a CLI flag with no consumer is surface added on speculation. Add it the day something
+scripts around `execute` — the store already has the data it would read.
 
 ## Adding a New Handler
 

@@ -13,24 +13,30 @@
 
 ## Command Recipes
 
+> **`numbers list` fetches one page by default.** Number inventory is the largest collection
+> in most orgs, so every enumeration below passes `--all`. Without it a count, an
+> "unassigned numbers" answer, or a "this number isn't in inventory" conclusion is drawn
+> from page one. The single-number and single-owner lookups further down don't need it —
+> they return at most one record.
+
 ### List all numbers (org-wide)
 ```bash
-wxcli numbers list -o json
+wxcli numbers list --all -o json
 ```
 
 ### List numbers at a location
 ```bash
-wxcli numbers list --location-id LOCATION_ID -o json
+wxcli numbers list --location-id LOCATION_ID --all -o json
 ```
 
 ### List available (unassigned) numbers
 ```bash
-wxcli numbers list --available true -o json
+wxcli numbers list --available true --all -o json
 ```
 
 ### List numbers filtered by state
 ```bash
-wxcli numbers list --state ACTIVE -o json
+wxcli numbers list --state ACTIVE --all -o json
 # States: ACTIVE, INACTIVE
 ```
 
@@ -57,7 +63,7 @@ wxcli numbers list --owner-id PERSON_ID -o json
 
 **Finding a location's numbers:**
 1. If user says a location name (not ID): `wxcli locations list -o json` → search by name → get location ID
-2. `wxcli numbers list --location-id <locationId> -o json`
+2. `wxcli numbers list --location-id <locationId> --all -o json`
 
 ## Response Guidance
 

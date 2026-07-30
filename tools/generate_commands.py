@@ -37,7 +37,24 @@ KNOWN_GLOBAL_KEYS = {
     # Consumed by tools/drift_check.py (check 12) via tools/verb_naming.py:
     # the acknowledged numeric-suffix and resource-mismatch command names.
     "naming_ack",
+    # Consumed by tools/drift_check.py (check 15): tags whose config cannot
+    # resolve against any spec on disk and is kept deliberately anyway.
+    "inert_tag_ack",
+    # Consumed by tools/drift_check.py (check 16): operations whose list command
+    # carries a `--all` that cannot walk, because the spec declares no paging
+    # parameter and no Link header on an endpoint whose 200 declares a total.
+    "undeclared_paging_ack",
 }
+
+# Override families inside a tag block whose keys are COMMAND names. Used to
+# refuse a key that names no command the tag renders — see the stale-key check
+# in generate_tag(). `list` is deliberately absent: it is the old-style
+# folder-level `list: {table_columns: [...]}` marker, not a command key.
+COMMAND_KEYED_OVERRIDES = (
+    "table_columns", "add_query_params", "command_type_overrides",
+    "url_overrides", "response_list_keys", "make_optional", "body_defaults",
+    "command_help_notes", "param_name_overrides",
+)
 
 
 def merge_tags(spec: dict, merge_map: dict) -> None:
@@ -295,6 +312,29 @@ def generate_tag(
             f"the MERGED name.", file=sys.stderr)
         sys.exit(1)
 
+    # The same defect in every OTHER command-keyed family, which went unguarded
+    # until 2026-07-29 and had three live instances: table_columns keyed
+    # `list-calls` (Call Controls renders list-calls-members / list-calls-me),
+    # `list-supported-devices-config` (no such command) and `list-regions` (the
+    # regions endpoint renders as the bare `list`). All three parsed, and all
+    # three did nothing. Validated against the POST-rename names, because that is
+    # what apply_endpoint_overrides and the renderer key on — an override on a
+    # pre-rename name is inert even though the hidden alias still answers to it.
+    for family in COMMAND_KEYED_OVERRIDES:
+        entry = (folder_ovr or {}).get(family)
+        if not isinstance(entry, dict):
+            continue
+        stale = sorted(k for k in entry if k not in claimed)
+        if stale:
+            print(
+                f"\nERROR: {family} in tag {tag_name!r} names {len(stale)} "
+                f"command(s) that do not exist here: {', '.join(stale)}.\n"
+                f"       Rendered commands: {', '.join(sorted(claimed))}\n"
+                f"       Key it on the name the command SHIPS under (after any "
+                f"command_name_overrides rename), and on the MERGED tag name if "
+                f"tag_merge folds this tag.", file=sys.stderr)
+            sys.exit(1)
+
     # Known issue #20: refuse to render a destructive op behind a name that
     # gives no hint it destroys. Runs after command_name_overrides, so a name
     # pinned to the truth clears the gate without an ack.
@@ -417,33 +457,48 @@ def main():
             spec_tag_ovr[tag_name] = merged
     for tag_name, tag_ovr in spec_tag_ovr.items():
         overrides[f"_tag_ovr:{tag_name}"] = tag_ovr
-    # Backwards compat: top-level tag blocks that aren't in tag_overrides.
+    # A tag can be configured in two places: a top-level block keyed on the tag
+    # name, and an entry under `tag_overrides:`. They MERGE, key by key, with
+    # tag_overrides winning — so a top-level block that also has a tag_overrides
+    # entry still applies.
     #
-    # KNOWN GAP, measured 2026-07-29 — do not "fix" this by merging without
-    # reading on. When tag_overrides also names the tag, the whole top-level
-    # block is discarded silently. Six blocks are inert that way today:
-    # table_columns on 4 tags, add_query_params on `Features:  Call Queue`, and
-    # two old-style `list:` blocks. Each was written deliberately and none has
-    # ever taken effect.
+    # It did not always. Until 2026-07-29 the top-level block was promoted only
+    # when tag_overrides did not name the tag, so when both existed the whole
+    # top-level block was discarded silently: it parsed, the tests passed, and it
+    # did nothing. Six blocks were inert that way — table_columns on 4 tags,
+    # add_query_params on `Features:  Call Queue`, and two old-style `list:`
+    # blocks. Merging alone would have taken check 9 from 0 to 15, because
+    # `Features:  Call Queue`'s folder-level `list:` block applies its four
+    # columns to every list-shaped command in the tag (root cause #2 in
+    # tools/CLAUDE.md's table-columns entry) — the shadowing had been
+    # accidentally shielding the tree from it. So the blocks were fixed FIRST
+    # (migrated to per-command form, or deleted after re-verification against
+    # their response schemas), and the merge landed after. Both halves are in
+    # tools/CLAUDE.md.
     #
-    # Merging them was tried and REVERTED. It regenerates cleanly with zero
-    # command-name changes, and then check 9 goes 0 -> 15: `Features:  Call
-    # Queue`'s old-style folder-level `list:` block applies its four columns to
-    # every list-shaped command in the tag, so 15 call-queue commands would
-    # declare columns their responses cannot fill. That is root cause #2 in
-    # tools/CLAUDE.md's table-columns entry, and the shadowing has been
-    # accidentally shielding the tree from it.
-    #
-    # The real fix is per block, not per mechanism: migrate the two `list:`
-    # blocks to per-command `table_columns`, re-verify the other four against
-    # their live response schemas, THEN make this merge. Until then the shadowed
-    # keys stay inert — but they are now inert on the record instead of by
-    # accident. Put anything that must apply into tag_overrides directly.
+    # The merge is SHALLOW: a key present in both is taken from tag_overrides
+    # whole, which would silently discard the top-level copy — the same defect
+    # one level down. Nothing does that today, and the loop below refuses to let
+    # it start.
     for key, val in list(overrides.items()):
         if key in KNOWN_GLOBAL_KEYS or key.startswith("_"):
             continue
-        if isinstance(val, dict) and f"_tag_ovr:{key}" not in overrides:
-            overrides[f"_tag_ovr:{key}"] = val
+        if not isinstance(val, dict):
+            continue
+        tag_ovr = overrides.get(f"_tag_ovr:{key}") or {}
+        clash = sorted(set(val) & set(tag_ovr))
+        if clash:
+            print(
+                f"\nERROR: tag {key!r} declares {', '.join(clash)} both in its "
+                f"top-level block and under tag_overrides.\n"
+                f"       The merge is shallow, so the tag_overrides copy would "
+                f"win and the top-level one would be silently dropped.\n"
+                f"       Merge them by hand into one of the two places.",
+                file=sys.stderr)
+            sys.exit(1)
+        merged = dict(val)
+        merged.update(tag_ovr)
+        overrides[f"_tag_ovr:{key}"] = merged
 
     # Resolve per-spec spurious tag/operation pairings
     overrides["_resolved_tag_op_excludes"] = resolve_tag_op_excludes(

@@ -90,7 +90,9 @@ Ask the user what they want to configure. Present this decision matrix if they a
 
 | Need | Operation | CLI Group(s) |
 |------|-----------|-------------|
+| **List the agents / see the agent roster** | Names, emails, team + skill + agent-profile assignments, CC-enabled flag | `cc-users` — **NOT `cc-agents`** |
 | Manage agent state (login, logout, state changes) | Agent lifecycle | `cc-agents` |
+| See what agents *did* in a time window | Activity/event log, requires `--from`, ≤24h window | `cc-agents list-activities` — an event log, not a roster |
 | Configure agent greetings | Upload/assign greeting files | `cc-agent-greetings` |
 | View agent summaries | Agent activity summaries | `cc-agent-summaries` |
 | Agent wellbeing settings | Burnout/wellness config | `cc-agent-wellbeing` |
@@ -435,10 +437,23 @@ wxcli cc-team show TEAM_ID -o json
 
 ### CC Users
 
-**List CC users:**
+**This is the agent roster.** If someone asks to "list the agents", this is the command — not
+anything under `cc-agents`, which holds only runtime session and telemetry operations. Verified
+live 2026-07-29: each record carries `firstName`, `lastName`, `email`, `ciUserId`,
+`contactCenterEnabled`, `siteId`, `teamIds`, `agentProfileId`, `skillProfileId`. Use
+`list-with-user-profile` when you also need each user's profile permissions expanded inline
+instead of a bare `userProfileId`.
+
+**List CC users (the agent roster):**
 
 ```bash
 wxcli cc-users list -o json
+```
+
+**List the roster with profile permissions expanded:**
+
+```bash
+wxcli cc-users list-with-user-profile -o json
 ```
 
 **Show a CC user:**

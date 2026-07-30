@@ -198,7 +198,7 @@ else:
 #### Recipe CC-10 — Agent availability status
 Question: "Who's available right now?"
 ```bash
-wxcli cc-agents list --from 1784592000000 -o json | python3.11 -c "
+wxcli cc-agents list-activities --from 1784592000000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])

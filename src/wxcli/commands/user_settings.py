@@ -3027,7 +3027,7 @@ def show_summary(
 
 
 
-@app.command("list-voice-messages", short_help="List Messages.")
+@app.command("list-voice-messages", short_help="List Messages. (Calling)")
 def list_voice_messages(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),

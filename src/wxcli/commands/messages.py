@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling messages.")
 
 
-@app.command("list", short_help="List Messages.")
+@app.command("list", short_help="List Messages. (Messaging)")
 def cmd_list(
     room_id: str = typer.Option(..., "--room-id", help="List messages in a room, by ID."),
     parent_id: str = typer.Option(None, "--parent-id", help="List messages with a parent, by ID."),

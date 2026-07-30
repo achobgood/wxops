@@ -182,7 +182,7 @@ wxcli calling-service list
 
 Verified live: returns 42 languages as `{"name": "Italian", "code": "it_it"}` pairs. See Operation G for the rest of the `calling-service` group.
 
-**Warning:** Do not promise an API-based "disable calling" step during teardown. Use CLI/API to clear visible blockers first, but final delete of a calling-enabled location may still require Control Hub if the backend continues to hold the telephony reference.
+**Note:** Teardown of a calling-enabled location is fully API-driven — Control Hub is not required. Clear visible blockers, then disable calling with `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"`, poll `wxcli location-settings show-delete-calling-location JOB_ID` until `latestExecutionStatus: COMPLETED`, then `wxcli locations delete --force LOCATION_ID`. See the teardown skill for the full 409 decision tree.
 
 ### Operation C: Create a New User
 
@@ -451,7 +451,7 @@ Next steps:
 
 5. **`announcement_language` returns None from details** — Always set it explicitly before calling `enable_for_calling`, even if it was set during creation.
 
-6. **Do not promise API disable-calling on locations** — the older `wxcli location-settings update-location-calling ...` guidance is stale in this repo. For teardown, use CLI/API to remove visible blockers, run `wxcli location-settings safe-delete-check LOCATION_ID`, retry delete, and warn that final removal of a calling-enabled location may still require Control Hub.
+6. **Disabling calling on a location IS an API operation** — `wxcli location-settings create-delete-calling-location` runs it as an async job. For teardown: remove visible blockers, run `wxcli location-settings safe-delete-check LOCATION_ID` (UNBLOCKED means "no dependencies", *not* "deletable now"), then disable calling and poll `wxcli location-settings show-delete-calling-location JOB_ID` to `COMPLETED` before retrying the delete. The older `wxcli location-settings update-location-calling ...` guidance is stale; so is any claim that Control Hub is required.
 
 7. **Phone numbers must be in location inventory first** — Before assigning a DID to a user, add it via `wxcli numbers create LOCATION_ID`.
 

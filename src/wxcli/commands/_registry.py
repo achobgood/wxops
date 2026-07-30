@@ -27,7 +27,6 @@ GENERATED_GROUPS = [
     ("call_queue", "call-queue"),
     ("call_recording", "call-recording"),
     ("call_routing", "call-routing"),
-    ("call_settings_for_me_phase_5", "call-settings-for-me-phase-5"),
     ("caller_reputation", "caller-reputation"),
     ("calling_service", "calling-service"),
     ("cc_address_book", "cc-address-book"),

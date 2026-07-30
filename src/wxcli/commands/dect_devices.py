@@ -438,7 +438,7 @@ def list_handsets(
         handle_network_error(e)
     result = result or []
     items = result.get("handsets", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Default Display Name', 'defaultDisplayName'), ('Index', 'index'), ('Custom Display Name', 'customDisplayName'), ('Access Code', 'accessCode')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'defaultDisplayName'), ('Index', 'index'), ('Primary', 'primaryEnabled')], limit=limit)
 
 
 

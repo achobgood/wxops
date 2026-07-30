@@ -195,12 +195,12 @@ Address validation: always call `lookup_for_location` before `add_to_location` t
 
 ### Location Deletion
 
-Location deletion is not a guaranteed public-API teardown path for calling-enabled locations. The practical sequence: <!-- Source: provisioning.md location deletion section; CLAUDE.md cleanup section -->
+Location deletion is a complete public-API teardown path, including for calling-enabled locations. The sequence: <!-- Source: provisioning.md location deletion section; CLAUDE.md cleanup section -->
 1. Delete all location-scoped resources (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
 2. Run `wxcli location-settings safe-delete-check LOCATION_ID` to confirm visible blockers are gone
 3. Delete the location: `wxcli locations delete --force LOCATION_ID`
 
-If delete still returns 409 after blockers are cleared, the telephony backend may still hold the calling-enabled location. Finish the delete in Control Hub if needed. <!-- Source: provisioning.md location deletion section -->
+If delete still returns 409 after blockers are cleared, the location is still enabled for Webex Calling. Disable it via `wxcli location-settings create-delete-calling-location`, poll `wxcli location-settings show-delete-calling-location JOB_ID` to `COMPLETED`, then retry the delete — Control Hub is not required. <!-- Source: provisioning.md location deletion section; corrected 2026-07-29 -->
 
 ### Per-Location Limits
 

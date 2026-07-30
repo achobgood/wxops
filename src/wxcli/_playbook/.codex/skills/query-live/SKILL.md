@@ -74,11 +74,29 @@ Every command — including every read command this skill uses — takes `--fiel
 
 If `--fields` reduces a non-empty response to empty, the CLI prints a note to stderr in the form "matched 0 of N record(s)." That note states a fact, not a diagnosis — it fires identically whether the expression is wrong or the filter genuinely matched zero of N. Decide which: check the expression against what you expected, and if there's any doubt, re-run without `--fields` to see the unfiltered N before reporting "none found" (this is the same Discovery-First guard the rest of this skill follows). Do not report the 0-match result as an error on sight — a correct filter that legitimately matches nothing is a valid answer.
 
+### Complete Reads with `--all`
+
+Every `list` command takes `--all`. **The default is a single fetch**, which on a paging endpoint returns page one and nothing else — the command exits 0, the JSON parses, and the answer is silently short. This skill exists to answer "how many", "which ones", and "are there any", so a partial read here is not a slow answer, it is a **wrong** answer delivered confidently.
+
+**Use `--all` whenever the question is about a whole collection** — a count, an enumeration, a "does any X…", or a name lookup that must be able to say "no match". Skip it only when fetching one known record by ID.
+
+- `wxcli numbers list --all -o json` — number inventory, before counting or checking assignment
+- `wxcli call-routing list-trunks --all -o json` — and the same for `list-route-groups`, `list-route-lists`, `list-dial-plans`
+- `wxcli workspaces list --all -o json`, `wxcli call-park list --all -o json`, `wxcli location-voicemail list --all -o json`
+
+Three things to know before you trust the output:
+
+1. **A truncated read warns on stderr, not stdout.** `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. Reading only stdout you will never see it. If you did not pass `--all`, you have no evidence the read was complete.
+2. **`--all` is a deliberate no-op on endpoints that do not paginate.** Getting one page back is correct there, not a failure — do not go hunting for a bug.
+3. **The word `INCOMPLETE` on stderr means records are missing.** It appears when the walk hits its 1000-page ceiling. Do not answer from output that produced it.
+
+This is the same class of trap as `--calling-data` in the root AGENTS.md: the command succeeds, and the omission is in what it did not fetch. Before reporting "none found" or any number, confirm the read could have returned everything.
+
 ### Resource Resolution Protocol
 
 When the user references a resource by name (not ID):
 
-1. **List** the resource type with `-o json`
+1. **List** the resource type with `--all -o json` (a name absent from page one is not a name that does not exist)
 2. **Search** the response for name matches (case-insensitive substring)
 3. **Exact match** → use it immediately
 4. **Multiple partial matches** → disambiguate:

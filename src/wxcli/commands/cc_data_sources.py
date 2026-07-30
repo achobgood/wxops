@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center cc-data-sources.")
 
 _BODY_SKELETON_CREATE = '{"audience":"...","nonce":"...","schemaId":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'
 
-@app.command("create", short_help="Register a Data Source.")
+@app.command("create", short_help="Register a Data Source. (Contact Center)")
 def create(
     audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
     nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
@@ -68,7 +68,7 @@ def create(
 
 
 
-@app.command("list", short_help="Retrieve All Data Sources.")
+@app.command("list", short_help="Retrieve All Data Sources. (Contact Center)")
 def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -99,7 +99,7 @@ def cmd_list(
 
 
 
-@app.command("list-schemas", short_help="Retrieve Data Source Schemas.")
+@app.command("list-schemas", short_help="Retrieve Data Source Schemas. (Contact Center)")
 def list_schemas(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -130,7 +130,7 @@ def list_schemas(
 
 
 
-@app.command("show", short_help="Retrieve Details of a Specific Data Source Schema.")
+@app.command("show", short_help="Retrieve Details of a Specific Data Source Schema. (Contact Center)")
 def show(
     schema_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list-schemas"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -151,7 +151,7 @@ def show(
 
 
 
-@app.command("show-data-sources", short_help="Retrieve Data Source Details.")
+@app.command("show-data-sources", short_help="Retrieve Data Source Details. (Contact Center)")
 def show_data_sources(
     data_source_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -174,7 +174,7 @@ def show_data_sources(
 
 _BODY_SKELETON_UPDATE = '{"audience":"...","errorMessage":"...","nonce":"...","schemaId":"...","status":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'
 
-@app.command("update", short_help="Update a Data Source.")
+@app.command("update", short_help="Update a Data Source. (Contact Center)")
 def update(
     data_source_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list"),
     audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
@@ -233,7 +233,7 @@ def update(
 
 
 
-@app.command("delete", short_help="Delete a Data Source.")
+@app.command("delete", short_help="Delete a Data Source. (Contact Center)")
 def delete(
     data_source_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
