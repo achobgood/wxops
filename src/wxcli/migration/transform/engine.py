@@ -18,6 +18,7 @@ from typing import Any
 
 from wxcli.migration.models import (
     MapperError,
+    MapperStats,
     TransformResult,
 )
 from wxcli.migration.store import MigrationStore
@@ -139,6 +140,12 @@ class TransformEngine:
                     store.save_decision(decision_to_store_dict(decision))
                     result.decisions.append(decision)
 
+                result.stats[mapper_name] = MapperStats(
+                    objects_created=mapper_result.objects_created,
+                    objects_updated=mapper_result.objects_updated,
+                    decisions=len(mapper_result.decisions),
+                )
+
                 logger.info(
                     "Mapper %s complete: %d created, %d updated, %d decisions",
                     mapper_name,
@@ -162,6 +169,9 @@ class TransformEngine:
                         traceback=tb,
                     )
                 )
+                # A failed mapper still gets a stats entry so it cannot vanish
+                # from the itemisation and read as "ran clean".
+                result.stats[mapper_name] = MapperStats(failed=True)
                 # Continue to next mapper — do NOT abort
 
         return result
