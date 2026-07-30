@@ -73,6 +73,34 @@ STAGE_PREREQUISITES: dict[str, str] = {
     "preflight": "plan",
 }
 
+# Pipeline stages in execution order. `completed_stages` is a subset of this.
+STAGE_ORDER: list[str] = [
+    "init", "discover", "normalize", "map", "analyze", "plan", "preflight",
+]
+
+# The stage each ProjectState claims has completed. Re-running an earlier
+# stage rolls `completed_stages` back but cannot roll `ProjectState` back —
+# `VALID_TRANSITIONS` has no backwards edges — so the two diverge permanently
+# and `status` printed the stale one first. Used to flag that on read; nothing
+# here rewrites state.json (finding F13, following the F07 precedent).
+STATE_IMPLIES_STAGE: dict[str, str] = {
+    "initialized": "init",
+    "connected": "init",  # discover began, did not complete
+    "discovered": "discover",
+    "analyzed": "analyze",
+    "ready": "analyze",
+    "blocked": "analyze",
+    "planned": "plan",
+    "preflight_failed": "plan",
+    "preflight": "preflight",
+    "snapshotted": "preflight",
+    "executing": "preflight",
+    "failed": "preflight",
+    "validating": "preflight",
+    "completed": "preflight",
+    "rolled_back": "preflight",
+}
+
 # Severity → Rich color for decision tables.
 SEVERITY_COLORS: dict[str, str] = {
     "CRITICAL": "bold red",
@@ -177,12 +205,11 @@ def _mark_stage_complete(project_dir: Path, stage: str) -> None:
 
 def _invalidate_downstream(project_dir: Path, current_stage: str) -> None:
     """Remove downstream stages from completed_stages when re-running an earlier stage."""
-    stage_order = ["init", "discover", "normalize", "map", "analyze", "plan", "preflight"]
     try:
-        idx = stage_order.index(current_stage)
+        idx = STAGE_ORDER.index(current_stage)
     except ValueError:
         return
-    downstream = set(stage_order[idx + 1:])
+    downstream = set(STAGE_ORDER[idx + 1:])
     data = _load_state_data(project_dir)
     stages = data.get("completed_stages", [])
     original = list(stages)
@@ -788,8 +815,14 @@ def status(
     project_state = state_data.get("state", "initialized")
 
     console.print(f"[bold]Project:[/bold] {project_dir.name}")
-    console.print(f"[bold]State:[/bold]   {project_state}")
+    diverged = _stage_divergence(project_state, completed)
+    state_line = f"[bold]State:[/bold]   {project_state}"
+    if diverged:
+        state_line += "  [yellow]⚠ STALE — see Stages[/yellow]"
+    console.print(state_line)
     console.print(f"[bold]Stages:[/bold]  {' → '.join(completed) if completed else '(none)'}")
+    if diverged:
+        _print_stage_divergence(project_state, completed, diverged)
 
     # Object counts
     store = _open_store(project_dir)
@@ -1771,6 +1804,55 @@ def preflight(
         raise typer.Exit(1)
     finally:
         store.close()
+
+
+def _stage_divergence(project_state: str, completed: list[str]) -> str | None:
+    """Return the stage `project_state` claims but `completed_stages` denies.
+
+    Re-running an earlier stage calls `_invalidate_downstream`, which rolls
+    `completed_stages` back. `ProjectState` cannot follow it: `VALID_TRANSITIONS`
+    defines no backwards edges, so `_invalidate_downstream` has no legal way to
+    rewind it. The two then disagree permanently, and `status` printed the stale
+    `ProjectState` first — a reader gating on the State line proceeds from an
+    invalidated stage.
+
+    Returns None when they agree.
+    """
+    implied = STATE_IMPLIES_STAGE.get(project_state)
+    if implied is None or implied in completed:
+        return None
+    return implied
+
+
+def _print_stage_divergence(
+    project_state: str, completed: list[str], implied: str
+) -> None:
+    """Explain the divergence and name the authoritative source.
+
+    Flag on read, never rewrite — the same shape as `_print_preflight_coverage`.
+    Rewinding `ProjectState` would need new backwards edges in the state
+    machine; treating `completed_stages` as authoritative needs none, and
+    matches the precedent that a state file recording something that is no
+    longer true gets disclosed rather than edited underneath the operator.
+    """
+    remaining = [s for s in STAGE_ORDER if s not in completed]
+    next_stage = remaining[0] if remaining else None
+
+    console.print(
+        f"\n[yellow]⚠ State and stages disagree.[/yellow] `state` is "
+        f"`{project_state}`, which requires the `{implied}` stage, but "
+        f"`{implied}` is not in the completed list — an earlier stage was "
+        "re-run and rolled the later ones back."
+    )
+    console.print(
+        "  [bold]`Stages` is authoritative.[/bold] Do not gate on the State line."
+    )
+    if next_stage:
+        console.print(f"  Next stage to run: [bold]{next_stage}[/bold]")
+    console.print(
+        "  [dim]state.json is not modified: ProjectState has no backwards "
+        "transitions, so the recorded state cannot legally be rewound.[/dim]"
+    )
 
 
 def _print_preflight_coverage(data: dict) -> None:
