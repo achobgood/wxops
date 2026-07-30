@@ -59,6 +59,12 @@ class PlannerSkipEntry:
     decision_type: str | None = None  # DecisionType if skip was decision-gated
     decision_state: str | None = None # "stale" | "pending" | "skip" | "virtual_line" | None
     consequence: str = ""             # human-readable consequence (one sentence)
+    # True when nothing SHOULD have been built — a line consumed by user:create,
+    # a softphone user moving to the Webex App, a forwarding object with every
+    # type disabled. False means an entity that should exist will not.
+    # Recorded at the call site rather than inferred from `reason`, so the
+    # classification cannot drift away from a hand-maintained name list.
+    by_design: bool = False
 
 
 @dataclass
@@ -91,6 +97,7 @@ class PlannerSkipReport:
         consequence: str,
         decision_type: str | None = None,
         decision_state: str | None = None,
+        by_design: bool = False,
     ) -> None:
         self.entries.append(PlannerSkipEntry(
             canonical_id=canonical_id,
@@ -99,6 +106,7 @@ class PlannerSkipReport:
             decision_type=decision_type,
             decision_state=decision_state,
             consequence=consequence,
+            by_design=by_design,
         ))
 
     def record_anomaly(
@@ -133,6 +141,31 @@ class PlannerSkipReport:
         """Group count by ``reason`` (or decision_type when decision-gated)."""
         out: dict[str, int] = {}
         for e in self.entries:
+            key = e.decision_type or e.reason
+            out[key] = out.get(key, 0) + 1
+        return out
+
+    @property
+    def by_design_entries(self) -> list[PlannerSkipEntry]:
+        """Entries where nothing should have been built."""
+        return [e for e in self.entries if e.by_design]
+
+    @property
+    def gap_entries(self) -> list[PlannerSkipEntry]:
+        """Entries where something that should exist will not.
+
+        This is the population an operator has to act on. Measured on
+        director-demo-2026-04-15: 360 of 1384, i.e. the headline
+        "Planner skipped 1384 entities" over-reported the actionable set by
+        3.8x. The other 1024 are lines consumed by user:create, softphone
+        users moving to the Webex App, and CTI ports.
+        """
+        return [e for e in self.entries if not e.by_design]
+
+    @staticmethod
+    def _group(entries: list[PlannerSkipEntry]) -> dict[str, int]:
+        out: dict[str, int] = {}
+        for e in entries:
             key = e.decision_type or e.reason
             out[key] = out.get(key, 0) + 1
         return out
@@ -214,9 +247,20 @@ def _warn_anomaly(
     The log prefix is deliberately NOT "Planner skip:" — that string is what made
     the skip report untrustworthy, because it was attached to 766 entities that
     were planned (finding F09).
+
+    DEBUG, not WARNING (finding F16). Reclassifying these from skips to
+    anomalies was correct but did not shrink the output: 769 "Planner anomaly:"
+    lines simply replaced 766 "Planner skip:" ones, measured on
+    director-demo-2026-04-15 at 1153 stderr lines either way. The per-entity
+    line is redundant with ``_log_anomaly_summary``, which already reports the
+    count and the by-type breakdown, and these entities ARE in the plan — a
+    per-entity warning for something that was provisioned successfully is the
+    definition of noise. The record is kept in full on the report, so
+    ``--fail-on-unresolved`` and the roll-up are unaffected; -v recovers the
+    per-entity lines.
     """
     tag = decision_type or reason
-    logger.warning(
+    logger.debug(
         "Planner anomaly: %s %s (reason=%s%s) — still planned; %s",
         entity_type,
         canonical_id,
@@ -971,8 +1015,13 @@ def _expand_device(
     model = obj.get("model")
     if tier in ("webex_app", "infrastructure", "dect") or model in _NON_WEBEX_DEVICE_MODELS:
         report = _current_report()
+        # `tier` arrives from model_dump() as a DeviceCompatibilityTier member,
+        # and a (str, Enum) formats as `DeviceCompatibilityTier.WEBEX_APP` — a
+        # Python repr leaking into operator-facing text. Use the value.
+        tier_name = getattr(tier, "value", tier)
         reason = (
-            f"compatibility_tier={tier}" if tier in ("webex_app", "infrastructure", "dect")
+            f"compatibility_tier={tier_name}"
+            if tier in ("webex_app", "infrastructure", "dect")
             else f"non_webex_model={model}"
         )
         logger.info(
@@ -988,6 +1037,7 @@ def _expand_device(
                     "device will not be provisioned to Webex "
                     f"(model/tier classified as {reason})"
                 ),
+                by_design=True,
             )
         return []
     name = obj.get("display_name") or obj.get("mac") or cid
@@ -1414,6 +1464,7 @@ def _expand_call_forwarding(obj: dict[str, Any]) -> list[MigrationOp]:
                 consequence=(
                     "no forwarding ops emitted (all always/busy/no_answer disabled)"
                 ),
+                by_design=True,
             )
         return []
     user_cid = obj.get("user_canonical_id")
@@ -1568,6 +1619,7 @@ def _expand_softkey_config(obj: dict[str, Any]) -> list[MigrationOp]:
                     "no PSK ops emitted (template-level softkey config is "
                     "report-only, not per-device)"
                 ),
+                by_design=True,
             )
         return []
     device_cid = obj.get("device_canonical_id")
@@ -2072,6 +2124,7 @@ def expand_to_operations(
                     entity_type=obj_type,
                     reason="data_only_type",
                     consequence=_DATA_ONLY_TYPES[obj_type],
+                    by_design=True,
                 )
                 continue
 
@@ -2336,18 +2389,45 @@ def _log_skip_summary(report: PlannerSkipReport) -> None:
     if not report.entries:
         return
 
-    total = len(report.entries)
-    logger.warning("Planner skipped %d entities total:", total)
-    # Group by (reason_or_decision_type, decision_state)
-    groups: dict[tuple[str, str], int] = {}
-    for e in report.entries:
-        key = (e.decision_type or e.reason, e.decision_state or "no_decision")
-        groups[key] = groups.get(key, 0) + 1
-    # Emit groups in deterministic, caller-friendly order
-    for (key, state), cnt in sorted(groups.items()):
-        state_note = f"decision={state}" if state != "no_decision" else "expander short-circuit"
-        logger.warning("  %s: %d skipped (%s)", key, cnt, state_note)
-    if report.has_unresolved_skips:
+    by_design = report.by_design_entries
+    gaps = report.gap_entries
+    logger.warning(
+        "Planner skipped %d entities (%d by design, %d gaps):",
+        len(report.entries), len(by_design), len(gaps),
+    )
+
+    def _emit(entries: list[PlannerSkipEntry], verb: str) -> None:
+        groups: dict[tuple[str, str], int] = {}
+        for e in entries:
+            key = (e.decision_type or e.reason, e.decision_state or "no_decision")
+            groups[key] = groups.get(key, 0) + 1
+        for (key, state), cnt in sorted(groups.items()):
+            note = (
+                f"decision={state}" if state != "no_decision"
+                else "expander short-circuit"
+            )
+            logger.warning("    %s: %d %s (%s)", key, cnt, verb, note)
+
+    if by_design:
+        logger.warning(
+            "  %d need no operation by design — nothing is missing:",
+            len(by_design),
+        )
+        _emit(by_design, "skipped")
+    if gaps:
+        logger.warning(
+            "  %d are gaps — an entity that should have been built was not:",
+            len(gaps),
+        )
+        _emit(gaps, "skipped")
+
+    # Gate the advice on whether any SKIP has a decision behind it. It used to
+    # key on `has_unresolved_skips`, which is also True when entities were
+    # stranded before analyze — a different population, reported in its own
+    # section. On director-demo every one of the 1384 groups printed
+    # "expander short-circuit", i.e. no decision existed anywhere in this
+    # roll-up, and it still told the operator to go review decisions.
+    if report.unresolved_entries():
         logger.warning(
             "  Review unresolved decisions with: "
             "wxcli cucm decisions --type <type> -p <project>"
