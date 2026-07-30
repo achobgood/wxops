@@ -720,10 +720,32 @@ def generate_key_findings(store: MigrationStore) -> list[dict[str, str]]:
                 parts.append(f"{webex_app} transition to Webex App")
             action_count = convertible + incompatible + webex_app
             icon = "!" if incompatible > 0 else "✓"
-            findings.append({
-                "icon": icon,
-                "text": f"<strong>{action_count} of {total} phones</strong> {'; '.join(parts)}",
-            })
+            # These counts are status-unfiltered, and deliberately so: an
+            # assessment report describes what was discovered in CUCM. The
+            # decision-derived counts elsewhere in this report describe what
+            # got a migration decision, which is a different measure — a device
+            # that never completed analysis has no decision. Naming the measure
+            # is what stops the two from reading as a contradiction; hiding the
+            # difference by filtering to analyzed objects would repeat F08,
+            # where a status filter made 23 users vanish silently.
+            text = (
+                f"<strong>{action_count} of {total} phones discovered</strong> "
+                f"{'; '.join(parts)}"
+            )
+            unanalyzed = sum(
+                1 for d in devices
+                if d.get("compatibility_tier")
+                in ("convertible", "incompatible", "webex_app")
+                and d.get("status") != "analyzed"
+            )
+            if unanalyzed:
+                noun = "device" if unanalyzed == 1 else "devices"
+                verb = "carries" if unanalyzed == 1 else "carry"
+                text += (
+                    f" — {unanalyzed} {noun} did not complete analysis and so "
+                    f"{verb} no migration decision (see Appendix J)"
+                )
+            findings.append({"icon": icon, "text": text})
         elif native + dect == total and total > 0:
             if dect > 0:
                 findings.append({

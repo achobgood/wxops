@@ -228,7 +228,14 @@ def _decisions_group(store: MigrationStore) -> str:
             resolution += f", {type_counts.stale_retired} retired"
 
         parts.append(f'<div class="explanation">')
-        parts.append(f'<h4>{html.escape(display_name)} ({len(type_decisions)}) <span class="muted small">— {resolution}</span></h4>')
+        # "(405)" alone read as a device count, and the Page 1 key finding
+        # counts the same population from the object inventory instead. Naming
+        # the unit is what distinguishes the two measures.
+        unit = "decision" if len(type_decisions) == 1 else "decisions"
+        parts.append(
+            f'<h4>{html.escape(display_name)} ({len(type_decisions)} {unit}) '
+            f'<span class="muted small">— {resolution}</span></h4>'
+        )
 
         # Show explainer for the type
         sample = type_decisions[0]
@@ -804,8 +811,54 @@ def _data_quality_group(store: MigrationStore) -> str:
         )
 
     parts.append('</tbody></table>')
+    parts.extend(_incomplete_analysis_rows(store))
     parts.append('</div></details>')
     return "\n".join(parts)
+
+
+def _incomplete_analysis_rows(store: MigrationStore) -> list[str]:
+    """Objects that stopped advancing before analysis finished.
+
+    Nothing in the report showed these. They are counted by every
+    status-unfiltered inventory figure (the Page 1 key findings, the object
+    counts) and absent from every decision-derived one, because an object that
+    never reached `analyzed` never got a decision — which is what made the key
+    finding and Appendix B disagree about the same population by one device.
+
+    Naming them here is what lets the two measures be labelled instead of
+    reconciled by filtering. Renders nothing when analysis is complete.
+    """
+    rows = store.conn.execute(
+        "SELECT object_type, status, COUNT(*) AS cnt FROM objects "
+        "WHERE status NOT IN ('analyzed', 'needs_decision') "
+        "GROUP BY object_type, status ORDER BY cnt DESC"
+    ).fetchall()
+    if not rows:
+        return []
+
+    total = sum(r["cnt"] for r in rows)
+    parts = [
+        '<h4>Objects that did not complete analysis</h4>',
+        '<p class="callout">'
+        f'<strong>{total} objects stopped advancing before analysis finished.</strong> '
+        "They were discovered in CUCM and are included in the inventory counts, but "
+        "they carry no migration decision and are not included in any "
+        "decision-derived figure in this report."
+        '</p>',
+        '<table>',
+        '<thead><tr><th>Object Type</th><th>Stopped At</th>'
+        '<th class="num">Count</th></tr></thead>',
+        '<tbody>',
+    ]
+    for r in rows:
+        display = str(r["object_type"]).replace("_", " ").title()
+        parts.append(
+            f'<tr><td>{html.escape(display)}</td>'
+            f'<td>{html.escape(str(r["status"]))}</td>'
+            f'<td class="num">{r["cnt"]}</td></tr>'
+        )
+    parts.append('</tbody></table>')
+    return parts
 
 
 # ---------------------------------------------------------------------------
