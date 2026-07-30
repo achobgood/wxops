@@ -67,9 +67,12 @@ tests/*
 !tests/test_drift_check_untracked.py
 !tests/test_drift_check_columns.py
 !tests/test_drift_check_naming.py
+!tests/test_drift_check_inert.py
+!tests/test_drift_check_paging.py
 !tests/test_errors_actionability.py
 !tests/test_suggest_and_paging.py
 !tests/test_pagination_walkers.py
+!tests/test_command_naming_residue.py
 tests/migration/**/__pycache__/
 tests/org_health/**/__pycache__/
 

@@ -175,7 +175,7 @@ Use this guide to construct CDR queries for ANY natural-language question. The r
 - All recipes use CDR Feed unless noted otherwise
 - Data available for the last 30 days (Feed) or 12 hours (Stream), with a minimum 5-minute delay
 - Add `--locations "Name1,Name2"` to filter by location (up to 10)
-- `--limit` is not supported for CDR: `wxcli cdr list` auto-paginates and always returns all records in the window regardless of `--limit`. To get a small sample, use a short time window (30 minutes) instead of relying on `--limit`.
+- **Do not pass `--limit` to CDR — it truncates the fetch.** Bare `wxcli cdr list` auto-paginates and returns every record in the window, which is what every recipe here assumes. But `--limit N` switches the command to a **single request** for N records and discards the rest, so an aggregate computed over it is wrong with no error. (Corrected 2026-07-29: this line previously said `--limit` was ignored. It is not, and never was.) To sample, narrow the time window (30 minutes) rather than reaching for `--limit`. If you have already passed one, `--all` overrides it and restores the full walk.
 
 ### CDR Call Leg Model
 

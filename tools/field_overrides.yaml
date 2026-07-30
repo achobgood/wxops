@@ -78,18 +78,27 @@
       - ["Level", "level"]
       - ["Media Type", "mediaFileType"]
 
+# Migrated 2026-07-29 from the old-style folder-level `list: {table_columns:}`
+# form, which applies its columns to EVERY list-shaped command in the tag. This
+# tag has 17, and only the bare `list` can fill `extension`/`enabled` — the
+# other 16 return announcements, agents, supervisors or available numbers. The
+# block never took effect (the tag_overrides entry below shadowed it whole), and
+# that shadowing was the only thing holding check 9 at 0 here. Same four columns
+# as `Features:  Hunt Group` list, so the sibling entities read alike.
+#
+# An `add_query_params` block was deleted in the same change: it added a
+# hasCxEssentials QUERY param to delete-supervisors-config, whose spec declares
+# hasCxEssentials in the BODY. Proven by regen diff — the injected query param
+# claims the CLI name, `_used_param_names` then drops the body field
+# (issue #19), and the existing --has-cx-essentials silently stops reaching the
+# body the API reads. Full reasoning in tools/CLAUDE.md.
 "Features:  Call Queue":
-  list:
-    table_columns:
+  table_columns:
+    list:
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Extension", "extension"]
       - ["Enabled", "enabled"]
-  add_query_params:
-    delete-supervisors-config:
-      - {name: hasCxEssentials, type: str, description: "Include Customer Assist supervisors when true."}
-    delete-supervisors-config-1:
-      - {name: hasCxEssentials, type: str, description: "Include Customer Assist supervisors when true."}
 
 "Features:  Call Park":
   table_columns:
@@ -196,33 +205,22 @@
       - ["Pattern", "matchingPattern"]
       - ["Level", "level"]
 
+# Re-verified against the 200 item schemas 2026-07-29, when the shadowing that
+# made this whole block inert was fixed. Five of the six entries were deleted:
+# four (list-base-stations, list-dect-networks-people,
+# list-dect-networks-workspaces, list-available-members) were byte-identical to
+# what _derive_default_columns already produces, and `list` was a strict subset
+# of it. Only list-handsets expresses a choice the schema cannot: the derived
+# default reaches `accessCode`, the handset pairing code, and a default table is
+# the wrong place to print it. `primaryEnabled` is what an operator is actually
+# looking for on that list.
 "DECT Devices Settings":
   table_columns:
-    list:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Model", "model"]
-    # baseStations[]/handsets[]/members[] carry none of name/model
-    list-base-stations:
-      - ["ID", "id"]
-      - ["MAC", "mac"]
-      - ["Lines Registered", "numberOfLinesRegistered"]
     list-handsets:
       - ["ID", "id"]
       - ["Display Name", "defaultDisplayName"]
       - ["Index", "index"]
       - ["Primary", "primaryEnabled"]
-    list-dect-networks-people: &dect_network_cols
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Handsets Assigned", "numberOfHandsetsAssigned"]
-    list-dect-networks-workspaces: *dect_network_cols
-    list-available-members:
-      - ["ID", "id"]
-      - ["First Name", "firstName"]
-      - ["Last Name", "lastName"]
-      - ["Extension", "extension"]
-      - ["Phone Number", "phoneNumber"]
 
 "Numbers":
   table_columns:
@@ -252,7 +250,7 @@
 
 "Call Controls":
   table_columns:
-    list:
+    list: &telephony_call_cols
       - ["Call ID", "id"]
       - ["Personality", "personality"]
       - ["State", "state"]
@@ -262,10 +260,15 @@
       - ["Name", "name"]
       - ["Number", "number"]
       - ["Time", "time"]
-    list-calls:
-      - ["Call ID", "id"]
-      - ["Personality", "personality"]
-      - ["State", "state"]
+    # Was keyed `list-calls`, which names no command in this group and had
+    # therefore never applied (found 2026-07-29 by the new inert-key check).
+    # The two member-scoped call lists resolve the SAME item schema as the bare
+    # `list` above, so they take the same columns rather than a near-copy: the
+    # derived default declares id/callSessionId/appearance/created/answered —
+    # four opaque values and a bool, on a command whose question is "who is on
+    # this call and what state is it in".
+    list-calls-members: *telephony_call_cols
+    list-calls-me: *telephony_call_cols
 
 "Workspaces":
   table_columns:
@@ -275,52 +278,40 @@
       - ["Type", "type"]
       - ["Calling", "calling.type"]
 
+# Re-verified 2026-07-29, when the shadowing that made this block inert was
+# fixed. The six list-available-numbers-* entries were deleted: each declared
+# only [phoneNumber, state], while the derived default declares the same two
+# plus isMainNumber / tollFreeNumber / telephonyType — all schema-valid, all
+# things you need to see when picking a number, and the same shape the APPLIED
+# available-numbers overrides on Hunt Group / Auto Attendant / Paging Group
+# already use. Keeping the two-column form would have made this group the
+# outlier.
+#
+# The two job lists are kept: both return a JobDetailsResponse whose point is
+# `latestExecutionStatus`, and the derived default reaches for
+# name/trackingId/sourceUserId/sourceCustomerId instead — provisioning
+# internals. list-delete-calling-location is load-bearing for the corrected
+# teardown flow, which polls exactly this field (see command_help_notes on
+# safe-delete-check under tag_overrides).
 "Location Call Settings":
-  # NOTE: this top-level block is SHADOWED — tag_overrides also names
-  # "Location Call Settings", and the loser is discarded whole (see the comment
-  # in generate_commands.py). These table_columns have never applied. Anything
-  # that must take effect goes in tag_overrides, which is where
-  # command_help_notes for safe-delete-check lives.
   table_columns:
-    list-available-numbers-external-caller-id:
-      - ["Phone Number", "phoneNumber"]
-      - ["State", "state"]
-    list-available-numbers-locations:
-      - ["Phone Number", "phoneNumber"]
-      - ["State", "state"]
-    list-available-numbers-webex-go:
-      - ["Phone Number", "phoneNumber"]
-      - ["State", "state"]
-    list-available-numbers-emergency-callback-number:
-      - ["Phone Number", "phoneNumber"]
-      - ["State", "state"]
-    list-available-numbers-call-intercept:
-      - ["Phone Number", "phoneNumber"]
-      - ["State", "state"]
-    list-available-numbers-charge-number:
-      - ["Phone Number", "phoneNumber"]
-      - ["State", "state"]
     list-update-routing-prefix:
       - ["ID", "id"]
       - ["Status", "latestExecutionStatus"]
     list-delete-calling-location:
       - ["ID", "id"]
+      - ["Location", "locationName"]
       - ["Status", "latestExecutionStatus"]
 
-"Location Call Settings: Call Handling":
-  table_columns:
-    list-access-codes:
-      - ["Code", "code"]
-      - ["Description", "description"]
-    list-digit-patterns:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Pattern", "pattern"]
-      - ["Action", "action"]
-    list:
-      - ["Call Type", "callType"]
-      - ["Action", "action"]
-      - ["Transfer", "transferEnabled"]
+# "Location Call Settings: Call Handling" had a top-level table_columns block
+# here until 2026-07-29. It was shadowed whole by its tag_overrides entry and had
+# never applied; re-verified against the schemas, all three entries were deleted
+# rather than migrated. `list-access-codes` named a command this group does not
+# have (the access-code read is `show-access-codes`, a settings-get, not a list),
+# and the other two — `list` and `list-digit-patterns` — were strict subsets of
+# the derived default, which adds `isCallTypeRestrictionEnabled` and
+# `transferEnabled` respectively. Both are schema-declared and both are the
+# answer to "is this permission actually restricting anything".
 
 "Device Call Settings":
   table_columns:
@@ -336,10 +327,11 @@
       - ["Last Name", "lastName"]
       - ["Phone Number", "phoneNumber"]
       - ["Member Type", "memberType"]
-    list-supported-devices-config:
-      - ["Model", "model"]
-      - ["Display Name", "displayName"]
-      - ["Type", "type"]
+    # A `list-supported-devices-config` entry sat here until 2026-07-29 and had
+    # never applied — this group has no such command. Its three columns are the
+    # supportedDevices shape, which is generated into `device-dynamic-settings`
+    # from the "Device Call Settings With Device Dynamic Settings" tag, where an
+    # identical rule already applies. Deleted rather than re-pointed.
     list-supported-devices-dects:
       - ["Model", "model"]
       - ["Display Name", "displayName"]
@@ -412,10 +404,11 @@
 
 "Features: Call Recording":
   table_columns:
-    list-regions:
-      - ["Code", "code"]
-      - ["Name", "name"]
-      - ["Default", "defaultEnabled"]
+    # A `list-regions` entry sat here until 2026-07-29 and had never applied —
+    # the regions endpoint is rendered as the bare `list` in this group. Deleted
+    # rather than re-keyed: `list` already derives the same three fields
+    # (code / name / defaultEnabled) from the response schema, in a different
+    # order, so re-pointing it would churn a table for nothing.
     list-vendor-users-call-recording:
       - ["ID", "id"]
       - ["First Name", "firstName"]
@@ -522,22 +515,28 @@ _monitored_element_cols: &monitored_element_cols
   table_columns:
     list-monitoring: *monitored_element_cols
 
+# The THIRD of the three commands the note above names, and the one that never
+# got the fix: this block was shadowed whole by its tag_overrides entry, so
+# `workspace-settings list-monitoring` still shipped the [ID, Name] fallback —
+# two columns that resolve empty on every row, which check 9 excuses because the
+# item declares no scalar field at all. Un-shadowed 2026-07-29.
+#
+# The block's other entry, `list: [directNumber, extension]`, was deleted: the
+# bare `list` in this group is GET /workspaces/{id}/features/callerId, which
+# extracts `types` and declares no item schema. Those two fields belong to
+# `list-numbers`, where the derived default already declares both plus
+# primary/action/ringPattern.
 "Workspace Call Settings":
   table_columns:
-    list:
-      - ["Number", "directNumber"]
-      - ["Extension", "extension"]
     list-monitoring: *monitored_element_cols
 
-"Features: Customer Experience Essentials":
-  table_columns:
-    list:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Queues Assigned", "numberOfQueuesAssigned"]
-    list-available-agents:
-      - ["ID", "id"]
-      - ["Display Name", "displayName"]
+# A "Features: Customer Experience Essentials" table_columns block sat here
+# until 2026-07-29. Upstream renamed the tag to "Features: Customer Assist", so
+# the block matched no tag and had never applied. Deleted rather than re-keyed:
+# both entries were strict subsets of what the schema-derived default already
+# produces — `list` (wrap-up reasons) derives id/name/description/
+# numberOfQueuesAssigned, and list-available-agents derives id/displayName plus
+# lastName/firstName/type.
 
 "Device Call Settings With Device Dynamic Settings":
   table_columns:
@@ -678,13 +677,25 @@ _monitored_element_cols: &monitored_element_cols
       - ["End", "end"]
       - ["Duration", "duration"]
 
+# Migrated 2026-07-29 from the old-style folder-level `list: {table_columns:}`
+# form, which had never applied (shadowed whole by the tag_overrides entry for
+# this tag under webex-admin.json — the only spec that generates it, since
+# webex-meetings.json's identical 14 ops are skipped). The tag has exactly three
+# list commands, all the same recordings resource, and all four columns are
+# declared on all three item schemas — so the old block's intent carries over
+# per-command with nothing left over. The derived default reaches for
+# meetingId / scheduledMeetingId / meetingSeriesId: three near-identical base64
+# IDs where an operator wants the format and the time. `list-recordings-admin`
+# additionally declares hostEmail / hostDisplayName — use --fields for those.
 "Recordings":
-  list:
-    table_columns:
+  table_columns:
+    list: &admin_recording_cols
       - ["ID", "id"]
       - ["Topic", "topic"]
       - ["Format", "format"]
       - ["Created", "timeRecorded"]
+    list-recordings-admin: *admin_recording_cols
+    list-recordings-group: *admin_recording_cols
 
 # Upstream's PATCH .../campaigns/{campaignId}/contacts/{contactId} declares a
 # query param literally named "fields" — server-side selection of which contact
@@ -989,6 +1000,24 @@ tag_merge:
       - "Call Settings For Me With UserHub Phase2"
       - "Call Settings For Me With UserHub Phase3"
       - "Call Settings For Me Phase 4"
+      # Phase 5 joined 2026-07-29. It had been shipping as its own group under
+      # the auto-derived name `call-settings-for-me-phase-5` — an internal
+      # build-milestone label on a path a customer types, which also told them
+      # they were looking at work in progress. All 7 ops are
+      # /telephony/config/people/me/*, the same surface the other four phases
+      # already fold into here, so the group was a naming artifact, not a
+      # distinct product area.
+      #
+      # Folding perturbs name races inside a 123-command tag, so it was measured
+      # before it was done (known issue #18/#22 — check what a bare name POINTS
+      # AT, not merely that it survived). Unpinned, the merge silently retargets
+      # two shipped commands: `show` and `update` move from
+      # settings/preferredAnswerEndpoint to settings/personalAssistant, both
+      # read/write fine and both answer a different question. It also renames
+      # show/update-preferred-answer-endpoint (the secondaryLines pair) with no
+      # alias. The command_name_overrides swap below pins all four back and is
+      # what makes this merge safe; do not remove it.
+      - "Call Settings For Me Phase 5"
     # Contact Center: merge Journey sub-folders into one group
     "CC Journey":
       - "Journey"
@@ -1014,7 +1043,13 @@ cli_name_overrides:
     "Features: Announcement Playlist": "announcement-playlists"
     "Features: Announcement Repository": "announcements"
     "Features: Call Recording": "call-recording"
-    "Features: Customer Experience Essentials": "cx-essentials"
+    # "Features: Customer Experience Essentials": "cx-essentials" was here until
+    # 2026-07-29. Upstream renamed the tag to "Features: Customer Assist", so the
+    # entry named no tag and never applied — the group ships as `customer-assist`
+    # from the derived name, and `cx-essentials` is mounted as an alias in
+    # src/wxcli/commands/_lazy.py (ALIASES), which is what keeps the old name
+    # working. Deleted rather than re-keyed: re-keying would RENAME the group to
+    # cx-essentials and invert that alias.
     "Features: Hot Desking Sign-in via Voice Portal": "hot-desking-portal"
     "Features: Operating Modes": "operating-modes"
     # Meetings spec overrides
@@ -1212,9 +1247,56 @@ keep_endpoints:
   # this plan's gate is specified to match exactly.
   - "POST /event"   # cc-ai-assistant create ({cc_base_url}/event)
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# inert_tag_ack — tag-keyed config that cannot resolve today, kept on purpose
+# ═══════════════════════════════════════════════════════════════════════════════
+# Read by drift_check.py check 15. A tag block, tag_overrides entry or
+# cli_name_overrides entry naming a tag no spec on disk declares is normally a
+# defect: it parses, the tests pass, and it does nothing (that is how six blocks
+# stayed inert until 2026-07-29). An entry here declares the exception and says
+# why. The check re-validates every ack: if the tag comes back, the ack itself
+# fails, so this list cannot rot into an allowlist.
+inert_tag_ack:
+  "AI Assistant": >
+    Dormant by decision, not stale. Upstream REMOVED this tag from the published
+    CC spec; the 2026-07-01 operator decision (see keep_endpoints above) keeps
+    cc_ai_assistant.py as a hand-maintained holdout. The cli_name_overrides entry
+    stays so that if the tag returns, the regen rebuilds the module under the
+    group name already mounted and documented — deleting it would silently rename
+    the group to `ai-assistant` on that day.
+
+# Drift-gate check 16: a list command whose `--all` is inert because the spec
+# declares no paging parameter and no Link header, on an endpoint whose own 200
+# schema declares a paging total. Ack = "measured, kept for now"; the fix is
+# generator work (teach _pagination_style to read the response schema), which
+# flips these to a walking branch and requires a regen. Every ack is re-checked
+# each run — one whose operation stops qualifying fails as STALE.
+undeclared_paging_ack:
+  "GET /identity/organizations/{}/v1/ArchivedUser": >
+    Measured 2026-07-29, static evidence only — no live call. Response declares
+    `totalResults`, the SCIM spelling, but the operation declares neither
+    `startIndex`/`count` nor a Link header, so it renders non-paginating and all
+    three paging controls miss: `--limit` sends `max`, `--offset` sends `start`,
+    `--all` is inert. SCIM reads `startIndex`/`count`, so the stderr truncation
+    note (which DOES fire here, since _body_says_more reads totalResults) names
+    two remedies that cannot work on this command. Fixing it means routing this
+    operation to the scim walker, i.e. a generator change plus a regen — out of
+    scope for the documentation pass that added this check. Stops qualifying if
+    upstream declares the SCIM parameters or the generator learns to read the
+    schema.
+  "GET /contacts/organizations/{}/contacts/search": >
+    Measured 2026-07-29, static evidence only — no live call. Response declares
+    `total`; the operation declares `limit` but no offset parameter and no Link
+    header, so it renders non-paginating and `--all` is inert. `--offset` sends
+    `start`, and whether this endpoint reads `start` is UNVERIFIED — proving it
+    needs an org with more contacts than one page. Same fix and same staleness
+    condition as the entry above.
+
 # Per-spec tag-level overrides (command_name_overrides, body_defaults, etc.)
-# Replaces top-level tag blocks that collide across specs (e.g., "Flow").
-# Non-colliding top-level tag blocks still work via backwards compat.
+# Needed when a tag name collides across specs (e.g. "Flow"), since a top-level
+# block is keyed on the tag name alone. The two forms MERGE key by key, with
+# tag_overrides winning — see the comment at the merge in generate_commands.py
+# for why that used to be a silent discard.
 tag_overrides:
   webex-cloud-calling.json:
     "Converged Recordings":
@@ -1280,10 +1362,65 @@ tag_overrides:
         "update": "update-org-settings"
         "show-queues": "show"
         "update-queues": "update"
+    # Merged tag name — the four "Call Settings For Me*" phase tags fold into
+    # this one (see tag_merge). Phase 5 joined 2026-07-29 and its arrival is
+    # what these entries exist for.
+    #
+    # The first four are a SWAP, not a rename, and it is the same shape as
+    # `Features:  Call Queue` above: the incoming personalAssistant pair wins the
+    # bare show/update name race, so the pair that has always held those names is
+    # pinned back to them and personalAssistant is named for its resource. The
+    # renderer suppresses a hidden alias whose name another command in the tag
+    # claims (generate_commands.py:278), so renaming personalAssistant does NOT
+    # re-register a second `show` — `show` keeps meaning preferredAnswerEndpoint,
+    # exactly as it does today. Nothing was scripted against `my-call-settings
+    # show` meaning personalAssistant, because until now that operation lived in
+    # a different group entirely.
+    #
+    # The secondaryLines pair keeps its current names for the same reason: the
+    # merge would otherwise push it to *-secondary-lines with no alias, and both
+    # names are cited in .claude/skills/manage-call-settings/SKILL.md.
+    #
+    # The last four rename the remaining Phase 5 arrivals off their derived
+    # names, which are too thin to read once they sit beside 123 siblings:
+    # `show-rules` next to show-voicemail-settings/-secondary-lines says nothing
+    # about voicemail, and `show-guest`/`update-guest` say nothing about hoteling.
+    # `list-available-hosts` is left as derived — it already reads correctly
+    # alongside list-available-members / list-available-assistants.
+    "My Call Settings":
+      command_name_overrides:
+        "show": "show-personal-assistant"
+        "update": "update-personal-assistant"
+        "show-preferred-answer-endpoint-settings": "show"
+        "update-preferred-answer-endpoint-settings": "update"
+        "show-preferred-answer-endpoint-secondary-lines": "show-preferred-answer-endpoint"
+        "update-preferred-answer-endpoint-secondary-lines": "update-preferred-answer-endpoint"
+        "show-rules": "show-voicemail-rules"
+        "update-pin": "update-voicemail-pin"
+        "show-guest": "show-hoteling-guest"
+        "update-guest": "update-hoteling-guest"
   webex-contact-center.json:
     "Agent Personal Greeting Files":
       command_name_overrides:
         "create": "delete-references-agent"
+    # `cc-agents list` returned agent ACTIVITIES — an event log over a required
+    # <=24h --from/--to window, not a roster. An admin asking "list the agents"
+    # reaches for the one obvious command, gets exit 0 and plausible records, and
+    # answers a different question. The short_help said "Get Agent Activities."
+    # and that was not enough: nobody reads past the group name.
+    #
+    # Settled by a live call on 2026-07-29, because neither --help nor the spec
+    # could: `cc-users list` IS the roster (firstName/lastName/email/ciUserId/
+    # teamIds/agentProfileId/skillProfileId/contactCenterEnabled), and
+    # `cc-users list-with-user-profile` is the same roster with the profile
+    # permissions expanded inline. So this is a discoverability defect, NOT the
+    # capability gap it was first recorded as — there is no deliberate gap to
+    # file. The rename leaves the group with no bare `list` to mislead, and
+    # `list-activities` reads as a sibling of `list-statistics`. Old name kept as
+    # a hidden alias.
+    "Agents":
+      command_name_overrides:
+        "list": "list-activities"
     "Auxiliary Code":
       command_name_overrides:
         "create-purge-inactive-entities": "delete-purge-inactive-entities"
@@ -1378,33 +1515,15 @@ tag_overrides:
     list:
       - limitToLocationId
 
-# Flow Store table columns
-"fs-flows":
-  list:
-    table_columns:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Type", "flowType"]
-      - ["Status", "status"]
-
-"fs-templates":
-  list:
-    table_columns:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Type", "flowType"]
-
-"fs-projects":
-  list:
-    table_columns:
-      - ["ID", "id"]
-      - ["Name", "name"]
-
-"fs-connectors":
-  list:
-    table_columns:
-      - ["ID", "id"]
-      - ["Name", "name"]
+# Four Flow Store table_columns blocks sat here until 2026-07-29, keyed
+# "fs-flows" / "fs-templates" / "fs-projects" / "fs-connectors". Those are CLI
+# GROUP names, not OpenAPI tags — the tags are "Flow", "Flow Template APIs",
+# "project-controller" and "connector-controller" (see cli_name_overrides for
+# webex-flow-store.json). A tag block is looked up by TAG, so all four had never
+# applied. Deleted rather than re-keyed: three of the four groups render no list
+# command at all, and the fourth (fs-flows list) resolves no item schema, so its
+# columns could never be validated by check 9 — on a dev-only surface generated
+# from an untracked spec. The schema-derived default covers it.
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # naming_ack — command names whose obvious reading is wrong, acknowledged
@@ -1709,33 +1828,13 @@ naming_ack:
   "resource-mismatch PUT /v1/telephony/config/premisePstn/dialPlans/{dial_plan_id}/dialPatterns":
     command: call-routing update
     severity: HIGH
-  # bare 'list' in group 'call-settings-for-me-phase-5' targets 'available-
-  # hosts' — the name gives the caller no hint that the resource differs from
-  # the group; AND no command in this group addresses 'call-settings-for-me-
-  # phase-5' itself — the headline resource is UNREACHABLE, so the wrong
-  # answer is silent
-  #   does: Get Available Hoteling Hosts.
-  "resource-mismatch GET /v1/telephony/config/people/me/settings/hoteling/availableHosts":
-    command: call-settings-for-me-phase-5 list
-    severity: HIGH
-  # bare 'show' in group 'call-settings-for-me-phase-5' targets 'personal-
-  # assistant' — the name gives the caller no hint that the resource differs
-  # from the group; AND no command in this group addresses 'call-settings-for-
-  # me-phase-5' itself — the headline resource is UNREACHABLE, so the wrong
-  # answer is silent
-  #   does: Get Personal Assistant Settings.
-  "resource-mismatch GET /v1/telephony/config/people/me/settings/personalAssistant":
-    command: call-settings-for-me-phase-5 show
-    severity: HIGH
-  # bare 'update' in group 'call-settings-for-me-phase-5' targets 'personal-
-  # assistant' — the name gives the caller no hint that the resource differs
-  # from the group; AND no command in this group addresses 'call-settings-for-
-  # me-phase-5' itself — the headline resource is UNREACHABLE, so the wrong
-  # answer is silent
-  #   does: Update Personal Assistant Settings.
-  "resource-mismatch PUT /v1/telephony/config/people/me/settings/personalAssistant":
-    command: call-settings-for-me-phase-5 update
-    severity: HIGH
+  # The three 'call-settings-for-me-phase-5' acks that sat here were DELETED on
+  # 2026-07-29, not re-keyed: the group is gone. Its 7 operations fold into
+  # my-call-settings by tag_merge and the three bare names are pinned to their
+  # resources (show-personal-assistant, update-personal-assistant,
+  # list-available-hosts), so none of them is a bare verb pointing somewhere else
+  # any more and there is nothing left to acknowledge. Deleting a fixed command's
+  # ack is part of fixing it.
   # bare 'list' in group 'caller-reputation' targets 'providers' — the name
   # gives the caller no hint that the resource differs from the group
   #   does: Get Caller Reputation Provider Providers.
@@ -1784,12 +1883,10 @@ naming_ack:
   "resource-mismatch POST {cc_base_url}/agentburnout/subscribe":
     command: cc-agent-wellbeing create
     severity: HIGH
-  # bare 'list' in group 'cc-agents' targets 'activities' — the name gives the
-  # caller no hint that the resource differs from the group
-  #   does: Get Agent Activities.
-  "resource-mismatch GET {cc_base_url}/agents/activities":
-    command: cc-agents list
-    severity: HIGH
+  # The 'cc-agents list' ack that sat here was DELETED on 2026-07-29: the command
+  # is renamed to list-activities, so the name now says what it returns and there
+  # is no mismatch to acknowledge. See the "Agents" entry under tag_overrides for
+  # the live evidence that settled where the roster actually lives.
   # bare 'create' in group 'cc-ai-assistant' targets 'event' — the name gives
   # the caller no hint that the resource differs from the group; AND no
   # command in this group addresses 'cc-ai-assistant' itself — the headline

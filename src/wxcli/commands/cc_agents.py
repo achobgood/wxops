@@ -244,8 +244,9 @@ def create_buddy_list(
 
 
 
-@app.command("list", short_help="Get Agent Activities.")
-def cmd_list(
+@app.command("list", hidden=True)
+@app.command("list-activities", short_help="Get Agent Activities.")
+def list_activities(
     agent_ids: str = typer.Option(None, "--agent-ids", help="Filter agent activities by agent ids separated with commas if more than one value (max 100). By default, there is no agent filtering."),
     team_ids: str = typer.Option(None, "--team-ids", help="Filter agent activities by team ids separated with commas if more than one value (max 100). By default, there is no team filtering."),
     channel_types: str = typer.Option(None, "--channel-types", help="Channel type(s) permitted in response. Separate values with commas. Must be lowercase. By default, there is no channelType filtering."),
@@ -260,7 +261,7 @@ def cmd_list(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Agent Activities.\n\n\b\nExample: wxcli cc-agents list --from FROM_PARAM"""
+    """Get Agent Activities.\n\n\b\nExample: wxcli cc-agents list-activities --from FROM_PARAM"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/agents/activities"

@@ -272,7 +272,7 @@ def list_update_routing_prefix(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Tracking ID', 'trackingId'), ('Source User ID', 'sourceUserId'), ('Source Customer ID', 'sourceCustomerId')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 
@@ -1189,7 +1189,7 @@ def list_delete_calling_location(
         handle_network_error(e)
     result = result or []
     items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Location Name', 'locationName'), ('Tracking ID', 'trackingId'), ('Source User ID', 'sourceUserId')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Location', 'locationName'), ('Status', 'latestExecutionStatus')], limit=limit)
 
 
 

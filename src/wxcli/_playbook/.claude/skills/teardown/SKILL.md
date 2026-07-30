@@ -230,6 +230,6 @@ When the target org uses **Cisco Calling Plan** (CCP-integrated PSTN), number de
 2. **Location-scoped feature deletes take LOCATION_ID FIRST** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `HG_ID LOCATION_ID`
 3. **Routing delete commands use PLURAL names** — `delete-route-groups` not `delete-route-group`, `delete-trunks` not `delete-trunk`
 4. **Workspaces block location deletion** — delete all workspaces at a location BEFORE running disable-calling
-5. **Do not promise API disable-calling** — use CLI/API to remove visible blockers, but warn that final delete of a calling-enabled location may still require Control Hub
+5. **Disable calling via the CLI — do not send anyone to Control Hub** — a calling-enabled location 409s even with every dependency gone. Run `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"`, poll `wxcli location-settings show-delete-calling-location JOB_ID` until `latestExecutionStatus: COMPLETED`, then `wxcli locations delete --force LOCATION_ID`. This clears the calling-enabled 409 **only** — a generic "being referenced" 409 can also mean preserved users or voice-portal state (see cause 7 and the CCP gotcha above), so do not promise that every 409 is resolved this way
 6. **Enumerate before deleting** — never start deleting without a full inventory; hidden resources (CX queues, call parks, workspaces) will block location delete
 7. **Multi-location teardown** — repeat the procedure per location, or use `wxcli cleanup run --scope "Loc1,Loc2"` for automation

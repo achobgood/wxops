@@ -6,6 +6,7 @@ parses --help output to confirm each command name is real.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 
@@ -18,12 +19,22 @@ COMMAND_RE = re.compile(r"wxcli\s+cucm\s+([a-z][a-z0-9-]*)", re.IGNORECASE)
 
 
 def _help_text() -> str:
-    """Cached output of `wxcli cucm --help`."""
+    """Cached output of `wxcli cucm --help`.
+
+    WXCLI_PLAIN=0 forces the RICH help renderer. `plain_mode()` is
+    `not sys.stdout.isatty()`, and capture_output makes stdout a pipe, so from
+    2026-07-25 (plain help formatting) every run here got the plain renderer —
+    which drops the box-drawing characters the subcommand regex below matches on.
+    The parse silently returned an empty set, and only the smoke assertion in
+    test_every_cucm_command_has_a_runbook_section kept that from reading as
+    "every command is documented".
+    """
     result = subprocess.run(
         ["wxcli", "cucm", "--help"],
         capture_output=True,
         text=True,
         check=True,
+        env={**os.environ, "WXCLI_PLAIN": "0"},
     )
     return result.stdout
 

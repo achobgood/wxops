@@ -76,7 +76,7 @@ wxcli paging-group show LOCATION_ID PAGING_GROUP_ID -o json
 
 **List (locationId is REQUIRED positional arg):**
 ```bash
-wxcli call-park list LOCATION_ID -o json
+wxcli call-park list LOCATION_ID --all -o json
 ```
 
 **Show detail:**
@@ -88,7 +88,7 @@ wxcli call-park show LOCATION_ID CALL_PARK_ID -o json
 
 **List (locationId is REQUIRED positional arg):**
 ```bash
-wxcli call-pickup list LOCATION_ID -o json
+wxcli call-pickup list LOCATION_ID --all -o json
 ```
 
 **Show detail:**
@@ -112,8 +112,8 @@ wxcli call-pickup show LOCATION_ID CALL_PICKUP_ID -o json
    wxcli call-queue list --location-id LOC_ID -o json
    wxcli auto-attendant list --location-id LOC_ID -o json
    wxcli paging-group list --location-id LOC_ID -o json
-   wxcli call-park list LOC_ID -o json
-   wxcli call-pickup list LOC_ID -o json
+   wxcli call-park list LOC_ID --all -o json
+   wxcli call-pickup list LOC_ID --all -o json
    ```
 3. Note: call-park and call-pickup take locationId as positional arg, others as --location-id flag
 

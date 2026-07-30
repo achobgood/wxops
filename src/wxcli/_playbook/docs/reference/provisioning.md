@@ -409,7 +409,7 @@ api.session.rest_post(  # POST — not PUT; URL path should be verified against 
 **Raw HTTP gotchas for locations:**
 - `announcementLanguage` must be **lowercase** (`en_us` not `en_US`) when calling `enable_for_calling` -- the telephony backend rejects mixed case with "Invalid Language Code" (gotcha #13)
 - `announcementLanguage` returns `None` from the locations details endpoint even when set -- always set it explicitly before enabling calling (gotcha #14)
-- Calling-enabled locations **cannot be deleted via API** -- returns `409 Conflict: Location is being referenced, cannot be deleted`. Must use Control Hub (gotcha #15)
+- Calling-enabled locations return `409 Conflict: Location is being referenced, cannot be deleted` until calling is disabled -- disable it via `POST /v1/telephony/config/jobs/locations/deleteCallingLocation`, poll the job to `COMPLETED`, then delete. Control Hub is not required (gotcha #15)
 - The `safe_delete_check` response uses field `locationDeleteStatus` (not `status`), with value `"UNBLOCKED"` or `"BLOCKED"` (gotcha #17)
 - The `address` field in raw HTTP is a nested object with `address1`, `city`, `state`, `postalCode`, `country`.
 
@@ -472,10 +472,8 @@ The telephony `enable_for_calling` API rejects `en_US` (mixed case) for `announc
 **`announcement_language` returns None from details endpoint.**
 Fetching location details returns `announcement_language = None` even on locations that have it set. This is a Webex API inconsistency. Always set it explicitly when enabling a location for Webex Calling.
 
-**Cannot delete calling-enabled locations via API.**
-Deleting a location (`DELETE /v1/locations/{id}`) returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling enabled. There is **no API to disable calling on a location**, and a Location with Calling enabled cannot be deleted outside of Control Hub.
-
-Calling-enabled locations can only be deleted from Control Hub.
+**A calling-enabled location must have calling disabled before it can be deleted.**
+Deleting a location (`DELETE /v1/locations/{id}`) returns `409 Conflict: Location is being referenced, cannot be deleted` for any location with Webex Calling still enabled. Disabling calling **is** a public-API operation: `POST /v1/telephony/config/jobs/locations/deleteCallingLocation` (`wxcli location-settings create-delete-calling-location`) runs it as an async job; poll the returned job to `COMPLETED` and the delete then succeeds. Control Hub is not required. See "Deleting a calling-enabled location" below for the full sequence. (Corrected 2026-07-29 — this gotcha previously said no such API existed.)
 
 **`SafeDeleteCheckResponse` uses `location_delete_status`, not `status`.**
 The response model field is `location_delete_status` (value: `"UNBLOCKED"` or `"BLOCKED"`), not `status`. The `blocking` field contains a model with `users_in_use_count`, `trunks_in_use_count`, etc.
@@ -801,28 +799,27 @@ If `POST /v1/people?callingData=false` fails with 400 (e.g., "Calling flag not s
 
 Number port-in requests, LOA submission, porting status tracking, and new number ordering from Cisco Calling Plan are all done through the Control Hub UI or via Cisco's PTS (PSTN Technical Support) team. The Numbers API (`wxcli numbers`) only manages numbers *after* they are ported in or provisioned — it cannot initiate a port.
 
-### Location deletion via API is unreliable for calling-enabled locations
+### Deleting a calling-enabled location — disable calling first (corrected 2026-07-29)
 
-Locations with Webex Calling enabled cannot be deleted directly via the public
-API (`409 Conflict: Location is being referenced`). The older guidance to
-"disable calling first" via a `location-call-settings update-location-calling`
-command is stale for this repo:
+A location with Webex Calling still enabled returns `409 Conflict: Location is
+being referenced` on `DELETE /v1/locations/{id}`. This section previously said
+the public API exposed no way to disable calling and that the delete had to be
+finished in Control Hub. **That was wrong** — proven false live, end to end, on
+2026-07-29. The 404 the old claim rested on was
+`DELETE /telephony/config/locations/{id}`, a different endpoint, and not how
+calling is disabled.
 
-- that command does **not** exist in the current CLI
-- the public API does **not** expose a reliable "disable calling on location"
-  operation for general teardown workflows
-
-What you *can* do with CLI/API:
+The working sequence is entirely API-driven:
 1. Delete all location-scoped resources first (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
-2. Run `wxcli location-settings safe-delete-check LOCATION_ID` to inspect visible blockers
-3. Retry `wxcli locations delete --force LOCATION_ID`
+2. `wxcli location-settings safe-delete-check LOCATION_ID` — inspect visible blockers. `UNBLOCKED` means "no dependencies block deletion", **not** "deletable now": a still-calling-enabled location reports UNBLOCKED with every count at 0 and then 409s
+3. `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"` — starts an async disable job that completes in roughly six seconds. Add `--force-delete` only if calling features or an unused trunk remain and you intend to remove them
+4. `wxcli location-settings show-delete-calling-location JOB_ID` — poll until `latestExecutionStatus` is `COMPLETED`
+5. `wxcli locations delete --force LOCATION_ID`
 
-What may still require Control Hub:
-- final disable/delete of a calling-enabled location, even after all visible
-  dependencies have been removed via API
-
-Practical operator rule: use CLI/API to clear dependencies, but warn the user
-that the final location removal may still need to be completed in Control Hub.
+Two things from the old text are still true: the `location-call-settings
+update-location-calling` command does **not** exist in this CLI, and a generic
+"being referenced" 409 is not by itself proof that calling enablement is the
+blocker — it can also mean preserved users or voice portal state.
 
 ---
 
@@ -849,7 +846,7 @@ When tearing down resources programmatically (e.g., cleaning up after a stress t
 | 13 | Workspaces | `wxcli workspaces delete --force {id}` | |
 | 14 | Users | `wxcli users delete --force {id}` | |
 | 15 | Schedules | `wxcli location-schedules delete --force {locationId} {type} {scheduleId}` | |
-| 16 | Locations | `wxcli locations delete --force {id}` | Clear blockers first; final delete of a calling-enabled location may still require Control Hub |
+| 16 | Locations | `wxcli locations delete --force {id}` | Clear blockers, then disable calling via `create-delete-calling-location` and poll the job to `COMPLETED`; Control Hub is not required |
 
 ### Key Behaviors
 

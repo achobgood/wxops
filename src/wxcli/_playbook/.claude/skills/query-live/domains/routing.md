@@ -16,9 +16,14 @@
 
 ## Command Recipes
 
+> **All four `list-*` commands below fetch one page by default.** Pass `--all` whenever you
+> are enumerating, counting, or resolving a name against the whole set — without it a trunk
+> or dial plan on page two is invisible and the answer is silently short. Details in the
+> `--all` section of `SKILL.md`.
+
 ### Trunks
 ```bash
-wxcli call-routing list-trunks -o json
+wxcli call-routing list-trunks --all -o json
 wxcli call-routing list-trunks --name "Main" -o json
 wxcli call-routing show-trunks TRUNK_ID -o json
 ```
@@ -26,21 +31,21 @@ Show response includes: `name`, `location`, `trunkType` (REGISTERING, CERTIFICAT
 
 ### Route Groups
 ```bash
-wxcli call-routing list-route-groups -o json
+wxcli call-routing list-route-groups --all -o json
 wxcli call-routing show-route-groups ROUTE_GROUP_ID -o json
 ```
 Show response includes: `name`, `localGateways` (list of trunks in the group with priority/weight).
 
 ### Route Lists
 ```bash
-wxcli call-routing list-route-lists -o json
+wxcli call-routing list-route-lists --all -o json
 wxcli call-routing show-route-lists ROUTE_LIST_ID -o json
 ```
 Show response includes: `name`, `routeGroup` references, `locationId`.
 
 ### Dial Plans
 ```bash
-wxcli call-routing list-dial-plans -o json
+wxcli call-routing list-dial-plans --all -o json
 wxcli call-routing list-dial-plans --dial-plan-name "International" -o json
 wxcli call-routing show-dial-plans DIAL_PLAN_ID -o json
 ```
@@ -48,7 +53,7 @@ Show response includes: `name`, `routeType` (ROUTE_LIST or ROUTE_GROUP), `routeI
 
 ### Translation Patterns
 ```bash
-wxcli call-routing list-translation-patterns -o json
+wxcli call-routing list-translation-patterns --all -o json
 wxcli call-routing list-translation-patterns --name "Emergency" -o json
 wxcli call-routing list-translation-patterns --matching-pattern "+1911" -o json
 wxcli call-routing show-translation-patterns-call-routing TRANSLATION_ID -o json
@@ -69,10 +74,10 @@ Tests how a dialed number would be routed. Useful for "what happens if I dial...
 
 **Topology query** ("Show the full routing path"):
 Build the tree bottom-up:
-1. `wxcli call-routing list-trunks -o json` → all trunks
-2. `wxcli call-routing list-route-groups -o json` → all route groups (each references its trunks)
-3. `wxcli call-routing list-route-lists -o json` → all route lists (each references its route groups)
-4. `wxcli call-routing list-dial-plans -o json` → all dial plans (each references a route list or route group)
+1. `wxcli call-routing list-trunks --all -o json` → all trunks
+2. `wxcli call-routing list-route-groups --all -o json` → all route groups (each references its trunks)
+3. `wxcli call-routing list-route-lists --all -o json` → all route lists (each references its route groups)
+4. `wxcli call-routing list-dial-plans --all -o json` → all dial plans (each references a route list or route group)
 
 Present as a tree:
 ```
@@ -88,7 +93,7 @@ Dial Plan: International
 ```
 
 **Trunk membership query** ("Which route group does Main trunk belong to?"):
-1. `wxcli call-routing list-route-groups -o json`
+1. `wxcli call-routing list-route-groups --all -o json`
 2. For each route group, check its `localGateways` list for the trunk name/ID
 3. Report all route groups that contain the trunk
 

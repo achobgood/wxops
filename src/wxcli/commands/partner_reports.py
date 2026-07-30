@@ -172,7 +172,7 @@ def delete(
 
 
 
-@app.command("list-templates", short_help="List Report Templates.")
+@app.command("list-templates", short_help="List Report Templates. (Calling)")
 def list_templates(
     on_behalf_of_sub_partner_org_id: str = typer.Option(None, "--on-behalf-of-sub-partner-org-id", help="The encoded organization ID for the sub partner."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),

@@ -54,7 +54,7 @@ Mock server URLs (public, no auth required — return saved response examples):
 
 ## CLI Test Status
 
-178 command groups (173 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
+177 command groups (172 generated modules, manifest-registered). Calling/admin/device/messaging groups live-tested across 4 batch sweeps (2026-03-19 through 2026-03-21). Contact center and meetings groups regenerated at the 2026-07-01 spec sync and not fully live-tested. CUCM pipeline tested against live test bed (10.201.123.107) with 2 test bed expansions. See git history for detailed test logs.
 
 ## Generator Rules
 
@@ -115,7 +115,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-12 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-16 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -770,6 +770,273 @@ that is a heuristic about English and never fails the build.
 fail: check 2 finds 8 with the widening and 0 without, on identical docs; check 10 finds 10
 and 0; check 11a fires on 11 when one file is reverted; check 11b tier 1 fires on 2 planted
 placeholders. A check reporting 0 deserves more suspicion than one reporting many.
+
+### `--all` is only as good as the spec's paging declaration (2026-07-29)
+
+`--all` ships on **507** generated list commands. Which of three fetch branches a command
+gets is decided entirely by what the spec **declares**, in `_pagination_style`
+(`openapi_parser.py`) and the `ep.paginates` / `ep.pagination_style` fork in
+`_render_list_command`. Measured on the tree, git-tracked modules only:
+
+| Branch | Count | Behaviour |
+|---|---|---|
+| `paginates` (200 declares a `Link` header) | 53 | default `--limit 0` **already walks**; `--all` only matters once `--limit N` is passed, which otherwise collapses the command to a single fetch |
+| `pagination_style` link / page / scim | 211 (110 / 96 / 5) | default is **one fetch**; only `--all` walks |
+| neither | 243 | `--all` accepted and **inert**, deliberately — see the renderer comment at the `all_pages` option |
+
+**The residual risk: a spec that under-declares.** The 243 inert commands are inert because
+the spec says the endpoint does not page. Nothing verifies that claim. An endpoint that
+really pages, described by a spec that declares no paging query parameter and no `Link`
+header, renders into the third branch — and `--all` is then a silent no-op on a command
+that truncates. "Flag exists ≠ flag works," which is this project's own recurring lesson.
+
+**Partially mitigated at runtime, and that is worth knowing before building anything.**
+`rest_get` calls `_warn_if_more_pages` on **every** GET including the inert branch, and
+since `1f584d1` that reads both `Link: rel="next"` *and* a declared total in the body
+(`totalResources` / `totalRecords` / `totalResults` / `total`, plus the same keys under
+`meta`). So an under-declared endpoint that returns either signal still says so on stderr.
+What it cannot do is offer a working remedy.
+
+**Two live instances, found by a static scan of the 9 tracked specs** — operations whose
+200 schema declares a total while `_pagination_style` returns `none`:
+
+| Command | Response declares | What the CLI actually sends |
+|---|---|---|
+| `archive-users list` | `totalResults` (the SCIM spelling) | `--limit`→`max`, `--offset`→`start`, `--all` inert. SCIM pages on `startIndex`/`count`, so **all three controls are inert** and the truncation note names two remedies that cannot work on this command |
+| `org-contacts list` | `total` | `--limit`→`limit`, `--offset`→`start`, `--all` inert. Whether `start` is the offset name this endpoint reads is **unverified** |
+
+Static evidence only — no live call was made against either. Confirming them needs a
+collection larger than one page on each endpoint.
+
+**If you build a detector, the false-positive class is already known.** The same scan
+returns 5 more hits, all of them `.../availableMembers/count` operations (3 distinct paths,
+2 of them declared in both `webex-cloud-calling.json` and `webex-device.json`). Their
+`totalCount` is the answer the endpoint exists to give, not a paging total. Exclude
+`/count`-terminating paths or the check reports 7 and means 2.
+
+**DO THIS ON THE NEXT REGEN — `--limit`'s help string is wrong on 211 commands.**
+Every list command ships one generic pair, emitted before the renderer picks a branch:
+
+```
+--all    Fetch every page, not just the first. Overrides --limit.
+--limit  Max results (0=all for paginated endpoints, API default for non-paginated)
+```
+
+`0=all for paginated endpoints` is TRUE on the 53 `paginates` commands and FALSE on the
+211 that page but were not declared to — there `limit=0` sends no paging parameter and
+returns exactly ONE page. So the help makes its strongest promise precisely where it does
+not hold, on endpoints that really do paginate. `--all`'s string is not wrong, but it never
+says the default is a single fetch, nor that it is a no-op on 243 commands.
+
+`ep.paginates` / `ep.pagination_style` are already in scope where those params are appended
+(above the branch fork), so the fix is branch-aware help text, not a new lookup. Deliberately
+NOT applied on 2026-07-29: it is inert until a regen, and a renderer that disagrees with the
+507 files on disk is a fresh inconsistency rather than a fix. `tests/fixtures/expected_output.py`
+must be refreshed in the same commit (see `tests/test_generator_regression.py`'s header).
+
+Until then the truthful version lives in `CLAUDE.md`'s Common Flags section, which is the
+surface an agent actually loads. This is worth more than documentation because every skill
+has a mandatory `--help` gate — `--help` is the one place every agent looks, and today it
+undersells the trap.
+
+### Six override blocks that had never applied, and check 15 (2026-07-29)
+
+Continues the table-columns entry above. That change made columns derive from the
+response schema; this one is about override configuration that **cannot reach the
+renderer at all**.
+
+**The mechanism.** A tag can be configured in two places: a top-level block keyed on
+the tag name, and an entry under `tag_overrides:`. `generate_commands.main()` used to
+promote the top-level block **only if** `tag_overrides` did not already name that tag,
+so when both existed the whole top-level block was discarded. It parsed, every test
+passed, and it did nothing. Measured 2026-07-29: **6 blocks**, `table_columns` on 4
+tags plus `add_query_params` and an old-style `list:` block on `Features:  Call Queue`
+and another on `Recordings`.
+
+**Merging alone would have been a regression, and was reverted once before this.** It
+regenerates with zero command-name changes and then check 9 goes **0 → 15**: `Features:
+Call Queue`'s block was the old-style folder-level `list:` form, which applies its four
+columns to *every* list-shaped command in the tag — 17 there, and only the bare `list`
+declares `extension`/`enabled`. That is root cause #2 above, and the shadowing had been
+accidentally shielding the tree from it. So the blocks were fixed first and the merge
+landed after.
+
+**What each block turned out to be worth.** Re-verified against each endpoint's real
+200-item schema, because a hand-written list is not automatically better than
+`_derive_default_columns`:
+
+| Block | Outcome |
+|---|---|
+| `Features:  Call Queue` `list:` | Migrated to per-command `table_columns: {list:}`. Same four columns as `Features:  Hunt Group` list, so the sibling entities read alike. |
+| `Recordings` `list:` | Migrated to per-command form on all three list commands (same recordings resource, all four columns declared on each). Derived was reaching for meetingId / scheduledMeetingId / meetingSeriesId — three near-identical base64 IDs. |
+| `DECT Devices Settings` | 5 of 6 entries **deleted** — four were byte-identical to the derived default and `list` was a strict subset. Kept `list-handsets`: derived reaches `accessCode`, the handset pairing code, which a default table should not print. |
+| `Location Call Settings` | 6 available-numbers entries **deleted** (2 columns where derived declares the same 2 plus isMainNumber / tollFreeNumber / telephonyType — the shape the applied Hunt Group / Auto Attendant / Paging Group overrides already use). Kept both job lists, whose whole point is `latestExecutionStatus`; `list-delete-calling-location` is what the corrected teardown flow polls. |
+| `Location Call Settings: Call Handling` | **Deleted entirely.** `list-access-codes` named no command in the group (the read is `show-access-codes`, not list-shaped), and the other two were strict subsets of derived. |
+| `Workspace Call Settings` | `list: [directNumber, extension]` **deleted** — the bare `list` there is GET `/workspaces/{id}/features/callerId`, which extracts `types`; those fields belong to `list-numbers`, where derived already declares both. Kept `list-monitoring`, and this is the one that mattered: the live-verified monitoredElements union was applied to `person-call-settings list` and `my-call-settings list-monitoring` on 2026-07-27 and recorded as covering all three commands — the third never got it, because this block was shadowed, so `workspace-settings list-monitoring` shipped the [ID, Name] fallback, blank on every row and excused by check 9 as wrapper-shaped. |
+
+**`add_query_params` was actively harmful, proven by regen diff.** It injected a
+`hasCxEssentials` **query** param onto `delete-supervisors-config`, whose spec declares
+`hasCxEssentials` in the **body**. Merged, the injected query param claims the CLI name,
+`_used_param_names` then drops the body field as a flag (issue #19), and
+`--has-cx-essentials` silently stops reaching the body the API reads — same flag in
+`--help`, different wire. Its other half targeted `delete-supervisors-config-1`, where
+the spec declares the parameter nowhere and the command is already unreliable (known
+issue #8: 204 but the supervisor persists); confirming a query param there needs a
+destructive live call. Block deleted.
+
+**The defect is not the six blocks, it is silently inert configuration** — so the guard
+is general, and it found eight more instances the moment it existed:
+
+- 3 per-command keys naming commands that do not exist: `table_columns.list-calls` in
+  `Call Controls` (the group renders `list-calls-members` / `list-calls-me` — re-pointed
+  at both, sharing the bare `list`'s columns since the item schema is identical),
+  `list-supported-devices-config` in `Device Call Settings` (deleted; the same rule
+  already applies in `device-dynamic-settings`), `list-regions` in `Features: Call
+  Recording` (deleted; that endpoint renders as the bare `list`, which already derives
+  the same three fields).
+- 5 tag keys naming tags nothing declares: a `table_columns` block and a
+  `cli_name_overrides` entry both keyed `Features: Customer Experience Essentials`
+  after upstream renamed the tag to `Features: Customer Assist` (the group ships as
+  `customer-assist` from the derived name, with `cx-essentials` mounted as an alias in
+  `_lazy.py` — re-keying would have *renamed* the group and inverted that alias), and
+  four `fs-*` blocks keyed on CLI **group** names instead of tags.
+
+**Two guards, each where its oracle is.** The generator hard-fails on a per-command key
+that names no rendered command — it already did this for `command_name_overrides`, now
+for all nine other command-keyed families — and refuses a family declared in both forms,
+since the merge is shallow and would drop the top-level copy. **Check 15** covers what a
+single-spec generator run structurally cannot see: a tag key no spec on disk declares.
+It reads specs from **disk**, not from git, so a per-spec section for an absent
+`webex-flow-store.json` is out of scope rather than inert on a fresh clone, and it
+imports the generator's own resolvers rather than reimplementing them.
+
+`inert_tag_ack` declares the one deliberate exception — the `AI Assistant` tag, removed
+upstream, whose name mapping is kept so a returning tag rebuilds under the group name
+already mounted. Every ack is re-validated: if the tag comes back, the ack fails.
+
+**Mutation-proven in both directions**, which for this check is the whole point: all
+four finding kinds fire on a planted defect and return to 0 on revert, and five
+mutations of the check body each fail a distinct test in
+`tests/test_drift_check_inert.py` (18 cases, tracked via a `.gitignore` negation). That
+suite's paired does-not-fire / does-fire cases exist because the check-9 suite once had
+6 of 8 cases passing without reaching the check at all.
+
+**Net CLI effect: 10 changed column lines across 6 modules, zero command renames,
+check 9 still 0.**
+
+### Three names that answered a different question (2026-07-29)
+
+The last three round-1 audit caveats. All one failure mode: the command runs, exits
+0, returns plausible data, and answers something other than what was asked.
+
+**1. `cc-agents list` returned agent ACTIVITIES.** An event log over a required
+`--from`/`--to` window of ≤24h, in the group whose name is the one an admin reaches
+for. Renamed `list-activities`, hidden alias `list`, so the group now has no bare
+`list` to mislead.
+
+Round 1 recorded this as a **capability gap** — *"no command anywhere in the CLI
+returns a contact-center agent roster."* **That claim is false**, and it was settled
+by a live call because neither `--help` nor the spec could: `cc-users list` IS the
+roster (`firstName`, `lastName`, `email`, `ciUserId`, `contactCenterEnabled`,
+`siteId`, `teamIds`, `agentProfileId`, `skillProfileId`), and
+`cc-users list-with-user-profile` is the same roster with profile permissions
+expanded inline. So no `deliberate-gaps.md` entry was filed; the defect was
+discoverability, and the fix is the rename plus pointers in
+`contact-center-core.md` and the `contact-center` skill. Provenance worth keeping:
+no detector found this. It surfaced only because a blind-test model disagreed with
+the answer key on goal 17 and was right.
+
+**2. `teams list` and `cc-team list` shipped byte-identical `short_help`.** A Webex
+collaboration-space grouping and a Contact Center agent-routing grouping, different
+APIs, four identical words. The root `CLAUDE.md` skill table carries two rows for
+exactly this collision, which is the admission that the CLI's own output could not
+tell them apart.
+
+Fixed at the generator, because `short_help` is the spec's operation summary and
+pinning two strings by hand invites the next spec sync to reintroduce it — and it
+was never a two-command problem: **17 summaries / 35 command decorators**.
+`_summary_qualifier` appends the product (`List Teams. (Messaging)` /
+`List Teams. (Contact Center)`), and `SPEC_PRODUCT` derives that from the source
+spec FILE rather than guessing from a name prefix.
+
+Two things about the rule are easy to get wrong, both measured:
+- **Index on CLI GROUP, not on spec.** 34 of the 51 summaries two specs share are
+  ONE operation both declare (`GET /locations` is in cloud-calling and device) that
+  renders into ONE group. Per-group they collapse to one entry with one product and
+  never qualify. Qualifying them would attach an arbitrary product to a command that
+  has only one.
+- **Require 2+ PRODUCTS, not 2+ groups.** Same-product collisions
+  (`my-call-settings` vs `user-settings`) gain nothing from a product label.
+  Dropping this takes 17 → 40. The `len(groups) < 2` line is a redundant early-out,
+  not a second condition — a first draft of the docstring claimed otherwise and the
+  mutation probe disproved it.
+
+`webex-flow-store.json` maps to `None` on purpose: it is gitignored and dev-only, so
+letting it into the index would make generated help differ between a developer's
+machine and a fresh clone — drift check 8's premise. A spec on disk with no entry
+**raises** rather than being skipped, so a future tracked spec cannot inherit that
+exemption silently.
+
+**This is the same root area as findings D07/D08** (the group-help label still reads
+`Manage Webex Calling teams` for a messaging group, from the CLI-name-prefix test at
+the bottom of `command_renderer.py`). That line was deliberately left alone. When
+D07/D08 lands it should READ `SPEC_PRODUCT` instead of the prefix test — not add a
+second mapping beside it.
+
+**3. `call-settings-for-me-phase-5` was an internal build-milestone label shipped as
+a command path.** 7 real commands behind a name that tells a customer they are
+looking at work in progress, and tells an agent reading `wxcli --help` nothing at
+all. All 7 ops are `/telephony/config/people/me/*` — the same surface the other four
+`Call Settings For Me*` phase tags already fold into `My Call Settings`. Phase 5 was
+simply never added to `tag_merge`. **Folded, not renamed: 178 groups → 177.**
+
+**Folding was measured before it was done, and unpinned it was NOT safe.** Merging
+into a 123-command tag perturbs name races (known issues #18/#22 — check what a bare
+name POINTS AT, not merely that it survived; a name-set diff shows nothing here):
+
+| | unpinned merge | shipped |
+|---|---|---|
+| `my-call-settings show` | silently moves preferredAnswerEndpoint → personalAssistant | unchanged |
+| `my-call-settings update` | same | unchanged |
+| `show/update-preferred-answer-endpoint` | renamed to `*-secondary-lines`, no alias | unchanged |
+
+The `command_name_overrides` block is a **SWAP**, the same shape `Features:  Call
+Queue` already uses: personalAssistant is named for its resource and the
+preferred-answer pair is pinned back to the names it has always had. It works
+because `generate_commands.py:278` already suppresses a hidden alias whose name
+another command in the tag claims — no generator change was needed, and the
+tree-wide invariant (no module registers one name twice) is asserted in
+`tests/test_command_naming_residue.py`.
+
+**Rejected: aliasing the old group name.** This is the one decision worth not
+re-litigating. `my-call-settings show`/`update`/`list` are the Preferred Answer
+Endpoint commands, so `call-settings-for-me-phase-5 show` behind a group alias would
+have returned preferredAnswerEndpoint where it used to return personalAssistant —
+read-only, exit 0, plausible JSON. That is precisely the failure mode this whole
+wave exists to remove, so the old path was left to **fail loudly** instead
+(live-verified: exit 2, `Error: No such command 'call-settings-for-me-phase-5'`) and
+the 26 skill/doc citations were swept. Renaming the group rather than folding was
+also rejected: the 7 ops are three unrelated feature clusters (personal assistant,
+voicemail rules/PIN, hoteling guest) with no honest single resource name, so any new
+group name would have been as arbitrary as the old one.
+
+**The sweep found a doc defect worse than the naming one.** The
+`manage-call-settings` skill documented `show`/`update` as *"own voicemail
+settings"* in six places, with a voicemail request body
+(`{"enabled", "sendUnansweredCalls"}`) — but that operation is personalAssistant,
+whose body is `{enabled, presence, untilDateTime, transferEnabled, transferNumber,
+alerting, alertMeFirstNumberOfRings}`. The self-service voicemail commands are
+`show-voicemail-settings`/`update-voicemail-settings`, which the skill never cited.
+It also documented the PIN field as `pin`; the spec says `passcode`. A doc that
+teaches the wrong meaning for the right-looking command is the same defect class as
+the name, one layer up — when sweeping citations, re-check what each one *claims the
+command does*, not just that the path still resolves.
+
+**Manifest pruning is manual, by design.** `update_manifest` upserts, so the vanished
+tag left `call_settings_for_me_phase_5.py` on disk and in `_registry.py` after the
+regen; check 12 then reported 3 unacked findings whose acks had just been deleted.
+Deleting the module and its manifest line is part of removing a group — see the
+docstring at `generate_commands.py:181`.
 
 ### Rich strips colour on a non-TTY but keeps box-drawing
 

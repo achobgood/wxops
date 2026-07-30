@@ -10,7 +10,7 @@ from wxcli.common import emit, load_json_body
 app = typer.Typer(help="Manage Webex Calling converged-recordings.")
 
 
-@app.command("list", short_help="List Recordings.")
+@app.command("list", short_help="List Recordings. (Calling)")
 def cmd_list(
     from_param: str = typer.Option(None, "--from", help="Starting date and time (inclusive) for recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `from` cannot be after `to`."),
     to: str = typer.Option(None, "--to", help="Ending date and time (exclusive) for List recordings to return, in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `to` cannot be before `from`."),
@@ -134,7 +134,7 @@ def list_converged_recordings(
 
 
 
-@app.command("show", short_help="Get Recording Details.")
+@app.command("show", short_help="Get Recording Details. (Calling)")
 def show(
     recording_id: str = typer.Argument(help="UUID, from: wxcli converged-recordings list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -156,7 +156,7 @@ def show(
 
 _BODY_SKELETON_DELETE = '{"reason":"...","comment":"..."}'
 
-@app.command("delete", short_help="Delete a Recording.")
+@app.command("delete", short_help="Delete a Recording. (Calling)")
 def delete(
     recording_id: str = typer.Argument(help="from: wxcli converged-recordings list"),
     reason: str = typer.Option(None, "--reason", help="Reason for deleting a recording. Only required when a Compliance Officer is operating on another user's recording."),
@@ -276,7 +276,7 @@ def create(
 
 _BODY_SKELETON_CREATE_SOFT_DELETE = '{"trashAll":true,"ownerEmail":"...","recordingIds":["..."]}'
 
-@app.command("create-soft-delete", short_help="Move Recordings into the Recycle Bin.")
+@app.command("create-soft-delete", short_help="Move Recordings into the Recycle Bin. (Calling)")
 def create_soft_delete(
     trash_all: bool = typer.Option(None, "--trash-all/--no-trash-all", help="If not specified or `false`, moves the recordings specified by `recordingIds` to the recycle bin. If `true`, moves all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` to the recycle bin."),
     owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `trashAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
@@ -320,7 +320,7 @@ def create_soft_delete(
 
 _BODY_SKELETON_CREATE_RESTORE = '{"restoreAll":true,"ownerEmail":"...","recordingIds":["..."]}'
 
-@app.command("create-restore", short_help="Restore Recordings from Recycle Bin.")
+@app.command("create-restore", short_help="Restore Recordings from Recycle Bin. (Calling)")
 def create_restore(
     restore_all: bool = typer.Option(None, "--restore-all/--no-restore-all", help="If not specified or `false`, restores the recordings specified by `recordingIds` from the recycle bin. If `true`, restores all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` from the recycle bin."),
     owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `restoreAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
@@ -365,7 +365,7 @@ def create_restore(
 _BODY_SKELETON_DELETE_RECORDINGS_RECYCLE = '{"purgeAll":true,"ownerEmail":"...","recordingIds":["..."]}'
 
 @app.command("create-purge", hidden=True)
-@app.command("delete-recordings-recycle", short_help="Purge Recordings from Recycle Bin.")
+@app.command("delete-recordings-recycle", short_help="Purge Recordings from Recycle Bin. (Calling)")
 def delete_recordings_recycle(
     purge_all: bool = typer.Option(None, "--purge-all/--no-purge-all", help="If not specified or `false`, purges the recordings specified by `recordingIds` from the recycle bin. If `true`, purges all recordings owned by the caller in case of `user`, and all recordings owned by `ownerEmail` in case of `administrator` from the recycle bin."),
     owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `purgeAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),

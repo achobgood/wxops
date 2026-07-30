@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 178 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 177 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -386,17 +386,18 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 ## CLI Status & Known Issues
 
-**178 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+**177 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
-### Common Flags (`--fields`, `--output`, `--json-body`)
+### Common Flags (`--fields`, `--output`, `--json-body`, `--all`)
 
 Every generated command takes `--fields` and `--output`/`-o` — **including `update`, `delete`, and action commands.** An earlier build had `--output` only on list/show/create and no `--fields` at all; that split is gone, so don't assume a write command lacks them.
 
 - **`--fields`** — a JMESPath expression applied to the response before rendering. Same syntax on every command: a projection (`[].{name:name,id:id}`) reshapes the output, a filter (`` [?enabled==`false`] ``) narrows it.
 - **`--output`/`-o`** — `table|json|text` on every command, plus `id` (create's default) on create only.
 - **`--json-body`** accepts inline JSON, `file://path`, a bare path, or `-` for stdin (pairs with `--generate-json-body`; see Known Issue #2 below).
+- **`--all`** — on **every `list` command**: fetch every page, not just the first. Default is one fetch; `--all` walks the whole collection and **overrides `--limit`**. Read the detail below before trusting a count.
 
-Three worked examples:
+Four worked examples:
 
 ```bash
 # Projection — pick just the fields you need
@@ -409,9 +410,26 @@ wxcli call-queue list --fields '[?enabled==`false`].name' -o json
 wxcli locations list --fields '[].id' -o text | while read -r LOC_ID; do
   wxcli call-park list "$LOC_ID" -o json
 done
+
+# --all: never answer "how many?" from a single page
+wxcli people list --calling-data true --all --fields 'length(@)' -o json
 ```
 
 If `--fields` reduces a non-empty response to an empty one, a note goes to stderr naming the unfiltered record count — stdout stays pipeable. The note states the fact (0 of N matched) without diagnosing the cause: it can mean a wrong expression, or it can mean the filter genuinely matched nothing. Decide which based on the expression and what you expected, not from the note alone.
+
+**`--all` in detail — read this before counting or aggregating anything.** The default for a list command is a **single fetch**, which on a paging endpoint quietly hands back page one. `--all` walks the whole collection and overrides `--limit`. Three paging shapes are handled, so it behaves the same across the CLI: `Link: rel="next"`, Contact Center `page`/`pageSize`, and SCIM `startIndex`/`count`.
+
+Three behaviors that will otherwise read as bugs:
+
+- **It is deliberately a no-op on endpoints the spec says do not paginate** — that is roughly half the commands carrying it. The flag is uniform on every list command *by design*: an option present on most commands but not all teaches a rule that breaks unpredictably, costing a failed call plus a `--help` round trip each time (the same reasoning that closed the `--output` gap). One page back from `--all` on a non-paging endpoint is correct, not a failure.
+- **Walking is bounded at 1000 pages**, overridable with `WXCLI_MAX_PAGES`. Hitting the ceiling prints an error to stderr containing the word **INCOMPLETE**. That word means records are missing — not that a request failed. Do not draw a conclusion from output that produced it.
+- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. If you are reading only stdout — the normal case for a structured read — you will never see it, and the partial answer looks complete. `WXCLI_NO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
+
+One precision on "overrides `--limit`": it overrides what is **fetched**. In `-o table` mode `--limit` still caps *printed* rows (with a visible `... N more` row); `-o json` prints everything fetched.
+
+Practical rule: any question of the form *how many*, *which ones*, or *are there any* needs `--all` on a paging endpoint. A read that merely fetches a known record by ID does not.
+
+Watch the inverse too: on a command whose default already walks every page, passing `--limit N` **switches it to a single fetch** and silently drops the rest. `--limit` narrows; it never just "caps the display."
 
 ### Partner Multi-Org Support
 
@@ -447,7 +465,7 @@ When you hit one of these errors, jump to the matching known issue:
 
 1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". The CLI now detects this error and prints a tip about needing user-level OAuth.
 2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Run the command with `--generate-json-body` to print an indented request-body skeleton and exit before authenticating, e.g. `wxcli user-settings update-call-forwarding PERSON_ID --generate-json-body`; edit the printed skeleton and pass it back via `--json-body`. Caveat, verified live: `--generate-json-body` does not bypass required positional arguments — `wxcli call-queue create --generate-json-body` fails with `Missing argument 'LOCATION_ID'`; pass a placeholder positional first, e.g. `wxcli call-queue create dummy-location-id --generate-json-body`.
-3. **my-call-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The `my-call-settings` group (120 commands) covers base + UserHub Phase 2/3/4 self-service endpoints. The CLI detects this error and prints a tip.
+3. **my-call-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The `my-call-settings` group (130 commands) covers base + UserHub Phase 2/3/4/5 self-service endpoints. Phase 5 was folded in on 2026-07-29 — it had been shipping as its own group named `call-settings-for-me-phase-5`; its 7 commands are now `show-personal-assistant`, `update-personal-assistant`, `show-voicemail-rules`, `update-voicemail-pin`, `show-hoteling-guest`, `update-hoteling-guest`, `list-available-hosts`. The old group name is **deliberately not aliased**: `my-call-settings show`/`update`/`list` are the Preferred Answer Endpoint commands, so an alias would have answered a different question with exit 0. The CLI detects this error and prints a tip.
 4. **19 person settings are user-only (no admin path).** Admin tokens get 404. Use `wxcli my-call-settings` with user-level OAuth. Includes core settings (`callBlock`, `callCaptions`, `anonymousCallReject`, `callNotify`, `preferredAnswerEndpoint`, `guestCalling`, `modeManagement`) plus informational/read-only endpoints (`availableCallerIds`, `queues`, `services`, etc.). See `docs/reference/self-service-call-settings.md` gotchas.
 5. **Two path families for person settings.** Classic `/people/{id}/features/` vs newer `/telephony/config/people/{id}/`. Some names differ. See `docs/reference/person-call-settings-behavior.md` (lines 36-54) for the full mapping table.
 6. **Workspace `/telephony/config/` settings require Professional license.** Basic workspaces get 405. See `docs/reference/devices-workspaces.md` gotcha #10 for the endpoint-by-license matrix.

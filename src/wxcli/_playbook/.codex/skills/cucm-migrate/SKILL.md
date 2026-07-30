@@ -440,6 +440,12 @@ execution — only for failure diagnosis afterward.
 4. Check results:
    wxcli cucm execution-status -o json
 
+   Branch on this COMMAND'S OUTPUT, never on execute's exit code. `execute`
+   exits 0 even when it printed "Failed: N" — deliberately, because a
+   partially-failed run is a resumable state and step 6 below re-runs the same
+   command until execution-status is clean. (`preflight` at step 2b is the
+   opposite: it DOES carry its verdict in the exit code.)
+
 5. IF all completed → proceed to Step 5 (deliverables bundle) then Step 6 (report)
 
 6. IF failures exist:
@@ -525,7 +531,7 @@ Delete in the order returned (reverse tier: features → devices → users → r
 | dial_plan | `wxcli call-routing delete <webex_id> --force` | Remove patterns first |
 | route_group | `wxcli call-routing delete-route-groups <webex_id> --force` | Remove from dial plans first |
 | trunk | `wxcli call-routing delete-trunks <webex_id> --force` | Remove from route groups first |
-| location | `wxcli locations delete <webex_id> --force` | Clear blockers first with CLI/API, then retry. Final delete of a calling-enabled location may still require Control Hub. |
+| location | `wxcli locations delete <webex_id> --force` | Clear blockers first, then disable calling: `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"`, poll `wxcli location-settings show-delete-calling-location JOB_ID` to `COMPLETED`, then retry the delete. Control Hub is not required. |
 
 **IMPORTANT:**
 - Before deleting locations, verify all users/devices/features at that location are already deleted.

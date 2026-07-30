@@ -61,11 +61,23 @@ Two path families exist:
 
 Runtime agent operations: login, logout, state changes, reload, buddy lists, activities, and statistics. These use the runtime path family (`/v1/agents/`, `/v2/agents/`), not the config API.
 
+> **This group does NOT contain the agent roster.** Nothing under `cc-agents` answers "who are my
+> agents?" — every command here is a runtime session or telemetry operation. **The roster is
+> `wxcli cc-users list`** (verified live 2026-07-29: returns `firstName`, `lastName`, `email`,
+> `ciUserId`, `contactCenterEnabled`, `siteId`, `teamIds`, `agentProfileId`, `skillProfileId`),
+> and `wxcli cc-users list-with-user-profile` returns the same roster with each user's profile
+> permissions expanded inline.
+>
+> This group deliberately has **no bare `list`**. `GET /v1/agents/activities` was named `list`
+> until 2026-07-29, which made the obvious command for "list the agents" return an activity log
+> with exit 0 and plausible records — a different question, answered silently. It is now
+> `list-activities`; `list` still runs as a hidden alias so nothing scripted breaks.
+
 ### Endpoints
 
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
-| GET | `/v1/agents/activities` | `list` | Get Agent Activities |
+| GET | `/v1/agents/activities` | `list-activities` (alias: `list`) | Get Agent Activities — an event log, NOT the roster |
 | POST | `/v1/agents/buddyList` | `create-buddy-list` | Buddy Agents List |
 | POST | `/v1/agents/login` | `create` | Login (v1) |
 | PUT | `/v1/agents/logout` | `update` | Logout |
@@ -96,8 +108,11 @@ wxcli cc-agents update-state-session-1 --json-body '{
   "state": "Available"
 }'
 
-# Get agent activities for a date range
-wxcli cc-agents list --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
+# List the agent roster (this is NOT in cc-agents)
+wxcli cc-users list -o json
+
+# Get agent activities for a date range — an event log, not the roster
+wxcli cc-agents list-activities --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
 
 # Get agent statistics
 wxcli cc-agents list-statistics --agent-ids "..." --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"

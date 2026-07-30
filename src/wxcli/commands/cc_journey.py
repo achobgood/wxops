@@ -208,7 +208,7 @@ def show(
 
 _BODY_SKELETON_CREATE = '{"firstName":"...","lastName":"...","phone":["..."],"email":["..."],"temporaryId":["..."],"customerId":["..."]}'
 
-@app.command("create", short_help="Create a Person.")
+@app.command("create", short_help="Create a Person. (Contact Center)")
 def create(
     workspace_id: str = typer.Argument(help="workspaceId"),
     first_name: str = typer.Option(None, "--first-name", help="firstName"),

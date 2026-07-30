@@ -123,7 +123,10 @@ def test_enforce_exit_code_follows_check_8(monkeypatch, capsys, untracked, expec
     monkeypatch.setattr(drift_check, "distinct_command_sets", lambda: 0)
     monkeypatch.setattr(drift_check, "check_parity",
                         lambda *a: {"missing_from_cli": [], "cli_ahead_of_spec": []})
-    monkeypatch.setattr(drift_check, "check_references", lambda *a: ([], {}))
+    # ([], {}) until 2026-07-29, which is a 2-tuple main() stopped unpacking when
+    # check 2 began counting prefixless citations — so this test failed at HEAD
+    # for a reason unrelated to check 8, the same way it once failed on check 9.
+    monkeypatch.setattr(drift_check, "check_references", lambda *a: ([], {}, 0))
     monkeypatch.setattr(drift_check, "check_counts", lambda *a: [])
     monkeypatch.setattr(drift_check, "check_unreferenced", lambda *a: [])
     monkeypatch.setattr(drift_check, "check_overlays", lambda: [])
@@ -136,7 +139,21 @@ def test_enforce_exit_code_follows_check_8(monkeypatch, capsys, untracked, expec
     # check 9 started telling the truth about `locations list`, this test failed
     # for a reason that has nothing to do with check 8. Stub them like the rest.
     monkeypatch.setattr(drift_check, "check_table_columns", lambda **_: ([], [], []))
+    monkeypatch.setattr(drift_check, "build_positional_surface", lambda: {})
     monkeypatch.setattr(drift_check, "check_positionals", lambda *a: ([], []))
+    # Same reason, for every check added after that comment was written: an
+    # unstubbed check here runs for real against the repo, so this test would
+    # start reporting on ITS state instead of check 8's.
+    monkeypatch.setattr(drift_check, "build_required_surface", lambda: {})
+    monkeypatch.setattr(drift_check, "check_required_flags", lambda *a: ([], []))
+    monkeypatch.setattr(drift_check, "build_arg_kind_surface", lambda: {})
+    monkeypatch.setattr(drift_check, "check_arg_kinds", lambda *a: ([], [], []))
+    monkeypatch.setattr(drift_check, "build_naming_findings", lambda: [])
+    monkeypatch.setattr(drift_check, "check_naming", lambda *a: ([], [], []))
+    monkeypatch.setattr(drift_check, "check_generated_help",
+                        lambda: ([], [], {"declared": [], "present_on_disk": [],
+                                          "leaked": []}))
+    monkeypatch.setattr(drift_check, "check_inert_overrides", lambda: ([], []))
     monkeypatch.setattr(sys, "argv", ["drift_check.py", "--enforce"])
 
     assert drift_check.main() == expected_exit
