@@ -2152,9 +2152,34 @@ def _export_deployment_plan(project_dir: Path, store) -> None:
         "SELECT COUNT(*) as cnt FROM plan_operations"
     ).fetchone()["cnt"]
     if op_count == 0:
-        console.print(
-            "[red]Execution plan is empty.[/red] Run `wxcli cucm plan` first."
-        )
+        # An empty plan_operations table has two unrelated causes and the old
+        # message asserted the wrong one on an empty environment: it told the
+        # operator to run `plan` immediately after `plan` had exited 0.
+        # `completed_stages` distinguishes them.
+        if "plan" not in _completed_stages(project_dir):
+            console.print(
+                "[red]No execution plan yet.[/red] Run `wxcli cucm plan` first."
+            )
+            raise typer.Exit(1)
+
+        obj_count = store.conn.execute(
+            "SELECT COUNT(*) as cnt FROM objects"
+        ).fetchone()["cnt"]
+        if obj_count == 0:
+            console.print(
+                "[yellow]Nothing to migrate.[/yellow] `wxcli cucm plan` completed "
+                "and produced 0 operations — no CUCM objects were discovered.\n"
+                "No deployment plan was written."
+            )
+        else:
+            console.print(
+                "[yellow]Nothing to migrate.[/yellow] `wxcli cucm plan` completed "
+                f"and produced 0 operations from {obj_count} discovered objects — "
+                "every object was skipped or never reached the planner.\n"
+                "Re-run `wxcli cucm plan` and read its `Planner skipped` summary "
+                "for the per-reason breakdown.\n"
+                "No deployment plan was written."
+            )
         raise typer.Exit(1)
 
     project_id = project_dir.name
