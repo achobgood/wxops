@@ -1402,6 +1402,73 @@ def map_cmd(
         store.close()
 
 
+def _print_analysis_summary(result) -> None:
+    """Print `analyze`'s headline and itemisation so that they agree.
+
+    The headline used to be `len(result.decisions)`, which is collected before
+    the advisor runs, while the itemisation iterates `result.stats`, into which
+    the advisor inserts its own row afterwards. The headline was therefore
+    short by exactly the advisor's count — `Decisions produced: 70` over a list
+    summing to 85, and `0` directly above `architecture_advisor 1 decisions`.
+
+    Making the two agree needed the headline to mean something first. "Produced"
+    was ambiguous: a raised decision may already have existed in the store. So
+    the two questions are now reported separately —
+
+      Decisions raised   what the analyzers found this run (== the itemisation)
+      Store              what the merge did with it (new / updated / kept)
+
+    A failed analyzer raises nothing, so `raised` understates the run whenever
+    one fails; that is stated rather than left to look like a clean zero.
+    """
+    stats = result.stats
+    failed = [name for name, count in stats.items() if count == -1]
+    raised = sum(count for count in stats.values() if count > 0)
+
+    headline = f"  Decisions raised: {raised}"
+    if failed:
+        headline += (
+            f" [red](incomplete — {len(failed)} of {len(stats)} analyzers FAILED "
+            "and raised nothing)[/red]"
+        )
+    console.print(headline)
+
+    # Every analyzer that ran gets a line, including the ones that found
+    # nothing. Printing only `count > 0` made a clean analyzer indistinguishable
+    # from one that never ran at all — and an analyzer silently dropping out of
+    # a run is what invalidates the decisions it would have re-raised.
+    for analyzer_name, count in sorted(stats.items()):
+        if count == -1:
+            console.print(f"    {analyzer_name:<35s} [red]FAILED[/red]")
+        elif count == 0:
+            console.print(f"    {analyzer_name:<35s} [dim]  0 decisions[/dim]")
+        else:
+            console.print(f"    {analyzer_name:<35s} {count:>3d} decisions")
+
+    merge = result.merge_counts or {}
+    if merge:
+        console.print(
+            f"  Store: {merge.get('new', 0)} new, "
+            f"{merge.get('updated', 0)} updated, "
+            f"{merge.get('kept', 0)} already resolved and still current"
+        )
+        previously_resolved = merge.get("invalidated", 0)
+        invalidated = merge.get("stale", 0) + previously_resolved
+        if invalidated:
+            console.print(
+                f"  Invalidated by this run: {invalidated} no longer detected"
+                + (
+                    f" ({previously_resolved} of them had already been answered — "
+                    "those answers are now void)"
+                    if previously_resolved
+                    else ""
+                )
+            )
+            console.print(
+                "  [dim]Inspect with: wxcli cucm decisions --status stale[/dim]"
+            )
+
+
 @app.command()
 def analyze(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
@@ -1430,12 +1497,7 @@ def analyze(
         elapsed = time.time() - t0
 
         console.print(f"\n[green]Analysis complete[/green] in {elapsed:.1f}s")
-        console.print(f"  Decisions produced: {len(result.decisions)}")
-        for analyzer_name, count in sorted(result.stats.items()):
-            if count == -1:
-                console.print(f"    {analyzer_name:<35s} [red]FAILED[/red]")
-            elif count > 0:
-                console.print(f"    {analyzer_name:<35s} {count:>3d} decisions")
+        _print_analysis_summary(result)
 
         # Print full decision report
         all_decisions = store.get_all_decisions()

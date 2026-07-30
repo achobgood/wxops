@@ -130,6 +130,13 @@ class AnalysisResult:
     decisions: list[Decision] = field(default_factory=list)
     stats: dict[str, int] = field(default_factory=dict)
     run_id: str = ""
+    #: Combined ``store.merge_decisions()`` outcome across every merge the run
+    #: performed (Phase 1 analyzers + the advisory pass). Keys: kept, updated,
+    #: new, stale, invalidated. ``decisions``/``stats`` describe what the
+    #: analyzers *raised*; this describes what the store *did* with it — a
+    #: raised decision may already have existed, so the two are not the same
+    #: question and must not be reported with one number.
+    merge_counts: dict[str, int] = field(default_factory=dict)
 
 
 # Re-export common types for analyzer implementations

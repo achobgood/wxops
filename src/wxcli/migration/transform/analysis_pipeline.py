@@ -199,6 +199,7 @@ class AnalysisPipeline:
         merge_result = store.merge_decisions(
             new_decision_dicts, decision_types=phase1_types
         )
+        merge_counts: dict[str, int] = dict(merge_result)
         logger.info(
             "Decision merge: kept=%d, updated=%d, new=%d, stale=%d, invalidated=%d",
             merge_result["kept"],
@@ -251,6 +252,8 @@ class AnalysisPipeline:
                     advisory_merge.get("new", 0),
                     advisory_merge.get("stale", 0),
                 )
+                for key, value in advisory_merge.items():
+                    merge_counts[key] = merge_counts.get(key, 0) + value
                 stats["architecture_advisor"] = len(advisory_decisions)
             else:
                 stats["architecture_advisor"] = 0
@@ -293,6 +296,7 @@ class AnalysisPipeline:
             decisions=all_decisions,
             stats=stats,
             run_id=store.current_run_id,
+            merge_counts=merge_counts,
         )
 
     def resolve_and_cascade(
