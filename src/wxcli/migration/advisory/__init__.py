@@ -9,6 +9,7 @@ import logging
 from typing import Any
 
 from wxcli.migration.advisory.advisor import ArchitectureAdvisor
+from wxcli.migration.decision_state import is_stale
 from wxcli.migration.advisory.recommendation_rules import RECOMMENDATION_DISPATCH
 from wxcli.migration.store import MigrationStore
 
@@ -26,7 +27,7 @@ def populate_recommendations(store: MigrationStore) -> int:
     all_decisions = store.get_all_decisions()
     count = 0
     for dec in all_decisions:
-        if dec.get("chosen_option") == "__stale__":
+        if is_stale(dec):
             continue
         dec_type = dec.get("type", "")
         fn = RECOMMENDATION_DISPATCH.get(dec_type)

@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from wxcli.migration.decision_state import is_pending
 from wxcli.migration.store import MigrationStore
 
 
@@ -145,8 +146,12 @@ def classify_decisions(
 
     Needs-input = pending decisions that no rule matches.
 
-    Both groups exclude already-resolved decisions and ``__stale__``
-    decisions.
+    Both groups exclude already-resolved decisions and stale ones. That held
+    only emergently before — ``chosen_option is None`` excludes stale because
+    the sentinel is a string, not None — which is the same truthiness trap that
+    produced the original bug from the other direction. Stating it via
+    :func:`is_pending` keeps a later "simplification" to ``not chosen_option``
+    from silently readmitting every invalidated decision.
     """
     from wxcli.migration.transform.rules import preview_auto_rules
 
@@ -156,7 +161,7 @@ def classify_decisions(
     all_decisions = store.get_all_decisions()
     needs_input = [
         d for d in all_decisions
-        if d.get("chosen_option") is None
+        if is_pending(d)
         and d["decision_id"] not in auto_apply_ids
     ]
 

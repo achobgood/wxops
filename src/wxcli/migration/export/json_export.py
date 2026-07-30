@@ -13,6 +13,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
+from wxcli.migration.decision_state import is_stale
 from wxcli.migration.store import MigrationStore
 
 
@@ -43,7 +44,7 @@ def generate_json_export(
 
     # Decisions (exclude stale)
     all_decisions = store.get_all_decisions()
-    data["decisions"] = [d for d in all_decisions if d.get("chosen_option") != "__stale__"]
+    data["decisions"] = [d for d in all_decisions if not is_stale(d)]
 
     # Cross-refs
     xrefs = store.conn.execute("SELECT * FROM cross_refs").fetchall()

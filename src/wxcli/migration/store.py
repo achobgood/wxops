@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from wxcli.migration.decision_state import STALE, is_stale
 from wxcli.migration.models import (
     CANONICAL_CLASS_TO_TYPE,
     CANONICAL_TYPE_REGISTRY,
@@ -613,7 +614,7 @@ class MigrationStore:
         for d in existing_rows:
             fp = d.get("fingerprint", "")
             # Skip already-stale decisions
-            if d.get("chosen_option") == "__stale__":
+            if is_stale(d):
                 continue
             # Scope to specific decision types if provided
             if decision_types is not None and d.get("type") not in decision_types:
@@ -699,9 +700,9 @@ class MigrationStore:
             if old.get("chosen_option") is not None:
                 # Was resolved, now irrelevant
                 self.conn.execute(
-                    """UPDATE decisions SET chosen_option = '__stale__',
+                    """UPDATE decisions SET chosen_option = ?,
                        resolved_by = 'stale' WHERE decision_id = ?""",
-                    (old_id,),
+                    (STALE, old_id),
                 )
                 self.add_merge_log(
                     stage, "invalidated", "decision", old_id,
@@ -710,9 +711,9 @@ class MigrationStore:
                 result["invalidated"] += 1
             else:
                 self.conn.execute(
-                    """UPDATE decisions SET chosen_option = '__stale__',
+                    """UPDATE decisions SET chosen_option = ?,
                        resolved_by = 'stale' WHERE decision_id = ?""",
-                    (old_id,),
+                    (STALE, old_id),
                 )
                 self.add_merge_log(
                     stage, "stale", "decision", old_id,

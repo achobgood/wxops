@@ -12,6 +12,7 @@ import csv
 import io
 from typing import Any
 
+from wxcli.migration.decision_state import is_stale
 from wxcli.migration.store import MigrationStore
 
 
@@ -24,7 +25,7 @@ def generate_csv_decisions(
         CSV string with header row and one row per decision.
     """
     all_decisions = store.get_all_decisions()
-    non_stale = [d for d in all_decisions if d.get("chosen_option") != "__stale__"]
+    non_stale = [d for d in all_decisions if not is_stale(d)]
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -53,7 +54,7 @@ def generate_csv_decisions(
 def has_decisions(store: MigrationStore) -> bool:
     """Check if there are any non-stale decisions to export."""
     all_decisions = store.get_all_decisions()
-    return any(d.get("chosen_option") != "__stale__" for d in all_decisions)
+    return any(not is_stale(d) for d in all_decisions)
 
 
 def has_activation_codes(store: MigrationStore) -> bool:
