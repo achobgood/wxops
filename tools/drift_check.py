@@ -2481,6 +2481,144 @@ def write_gaps_doc(skipped_ops: dict, overrides: dict) -> None:
 
 # ----------------------------------------------------------------- check 15
 
+#: Registries whose size is claimed in prose, and where the claim is made.
+#: Each entry: (label, source file, registry variable, [(file, regex) claims]).
+#: The regex must capture the claimed number in group 1.
+#:
+#: Round-3 finding F17 measured the state before this check existed: mappers were
+#: claimed as 20 in two places and 26 in two others (26 correct); analyzers as 13,
+#: 14 and 15 (15 correct); preflight checks as 7, 8, 9 and 8 — and **no source
+#: anywhere claimed the real number, 10**. Per the project's Source of Truth
+#: Precedence, `--help` outranks the docs, so an agent trusting it under-counted
+#: the analysis coverage it was verifying.
+_REGISTRY_CLAIMS: list[tuple[str, str, str, list[tuple[str, str]]]] = [
+    (
+        "transform mappers",
+        "src/wxcli/migration/transform/engine.py",
+        "MAPPER_ORDER",
+        [
+            ("src/wxcli/commands/cucm.py", r"Run (\d+) transform mappers"),
+            ("src/wxcli/migration/transform/engine.py",
+             r"Orchestrates all (\d+) transform mappers"),
+            ("src/wxcli/migration/CLAUDE.md", r"Phase 05 — (\d+) mappers"),
+        ],
+    ),
+    (
+        "analyzers",
+        "src/wxcli/migration/transform/analysis_pipeline.py",
+        "ALL_ANALYZERS",
+        [
+            ("src/wxcli/commands/cucm.py", r"Run (\d+) analyzers"),
+            ("src/wxcli/migration/transform/analysis_pipeline.py",
+             r"runs all (\d+) analyzers"),
+            ("src/wxcli/migration/CLAUDE.md", r"Phase 06 — (\d+) analyzers"),
+        ],
+    ),
+]
+
+#: The preflight check registry is a dict literal inside a method, not a
+#: module-level assignment, so it needs its own extractor.
+_PREFLIGHT_CLAIMS: list[tuple[str, str]] = [
+    ("src/wxcli/migration/preflight/runner.py",
+     r"Orchestrates all (\d+) preflight checks"),
+    ("src/wxcli/migration/preflight/CLAUDE.md", r"## The (\d+) Checks"),
+    ("src/wxcli/migration/preflight/CLAUDE.md", r"\| (\d+) check functions"),
+    ("src/wxcli/migration/preflight/CLAUDE.md", r"run (\d+) checks as pure functions"),
+    ("src/wxcli/migration/preflight/CLAUDE.md", r"Phase 10 — checks\.py \((\d+) preflight checks\)"),
+    ("src/wxcli/migration/CLAUDE.md", r"checks\.py \((\d+) preflight checks\)"),
+    (".claude/skills/cucm-migrate/SKILL.md", r"Preflight runs (\d+) checks"),
+]
+
+
+def _list_literal_len(path: Path, var: str) -> int | None:
+    """Length of a module-level list assigned to ``var``, via ast. No import."""
+    try:
+        tree = ast.parse(path.read_text())
+    except (OSError, SyntaxError):
+        return None
+    for node in ast.walk(tree):
+        targets = []
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            continue
+        for t in targets:
+            if isinstance(t, ast.Name) and t.id == var:
+                if isinstance(node.value, (ast.List, ast.Tuple, ast.Set)):
+                    return len(node.value.elts)
+    return None
+
+
+def _preflight_check_count() -> int | None:
+    """Number of entries in ``PreflightRunner.run``'s ``all_checks`` dict."""
+    path = REPO / "src/wxcli/migration/preflight/runner.py"
+    try:
+        tree = ast.parse(path.read_text())
+    except (OSError, SyntaxError):
+        return None
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        for t in node.targets:
+            if isinstance(t, ast.Name) and t.id == "all_checks":
+                if isinstance(node.value, ast.Dict):
+                    return len(node.value.keys)
+    return None
+
+
+def check_registry_counts() -> list[dict]:
+    """Prose that claims a registry's size but disagrees with the registry.
+
+    The count is derived from the registry by ``ast`` — reading the source, never
+    importing it. Runtime derivation was considered and rejected: the CLI mounts
+    groups lazily (870ms -> 108ms startup, see tools/CLAUDE.md), and importing
+    the transform stack just to render a docstring would give that back. A gate
+    check also covers the claims a runtime value cannot reach at all — the ones
+    in CLAUDE.md and SKILL.md.
+    """
+    findings: list[dict] = []
+
+    def _check(label: str, actual: int | None, claims: list[tuple[str, str]]) -> None:
+        if actual is None:
+            findings.append({
+                "kind": "unreadable_registry",
+                "label": label,
+                "where": "-",
+                "claimed": "-",
+                "actual": "-",
+                "detail": f"could not derive the {label} count from its registry",
+            })
+            return
+        for rel, pattern in claims:
+            p = REPO / rel
+            if not p.exists():
+                continue
+            text = p.read_text()
+            for m in re.finditer(pattern, text):
+                claimed = int(m.group(1))
+                if claimed != actual:
+                    line = text[:m.start()].count("\n") + 1
+                    findings.append({
+                        "kind": "count_mismatch",
+                        "label": label,
+                        "where": f"{rel}:{line}",
+                        "claimed": claimed,
+                        "actual": actual,
+                        "detail": (
+                            f"claims {claimed} {label}, registry has {actual} "
+                            f"— fix the prose or the registry"
+                        ),
+                    })
+
+    for label, src, var, claims in _REGISTRY_CLAIMS:
+        _check(label, _list_literal_len(REPO / src, var), claims)
+    _check("preflight checks", _preflight_check_count(), _PREFLIGHT_CLAIMS)
+
+    return findings
+
+
 def check_inert_overrides() -> tuple[list, list]:
     """Override configuration in field_overrides.yaml that cannot apply.
 
@@ -2788,6 +2926,7 @@ def main() -> int:
     bad_examples, bad_skeletons, fs_audit = check_generated_help()
     inert_overrides, stale_inert_acks = check_inert_overrides()
     inert_paging, stale_paging_acks = check_undeclared_paging()
+    registry_counts = check_registry_counts()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -2818,6 +2957,7 @@ def main() -> int:
         "15_stale_inert_acks": stale_inert_acks,
         "16_inert_all_flag": inert_paging,
         "16_stale_paging_acks": stale_paging_acks,
+        "17_registry_count_claims": registry_counts,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -2827,7 +2967,8 @@ def main() -> int:
                   or naming_unacked or naming_stale
                   or bad_examples or bad_skeletons or fs_audit["leaked"]
                   or inert_overrides or stale_inert_acks
-                  or inert_paging or stale_paging_acks)
+                  or inert_paging or stale_paging_acks
+                  or registry_counts)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off.
 
@@ -3002,6 +3143,12 @@ def main() -> int:
         for a in stale_paging_acks:
             print(f"      STALE ACK  undeclared_paging_ack[{a['op']!r}] no longer "
                   f"qualifies — delete the ack: {a['reason']}")
+        print(f"[17] prose counts that disagree with their registry: "
+              f"{len(registry_counts)}")
+        for f in registry_counts[:20]:
+            print(f"      {f['where']}  {f['detail']}")
+        if len(registry_counts) > 20:
+            print(f"      ... and {len(registry_counts) - 20} more (--json for all)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

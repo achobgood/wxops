@@ -22,7 +22,7 @@ All 11 phases complete. **2535 tests passing.** Wired into the CLI as `wxcli cuc
 | `transform/analysis_pipeline.py` | Phase 06 — Orchestrator: run analyzers → merge → auto-rules + resolve_and_cascade() |
 | `execute/` | Phase 07 — planner.py, dependency.py (NetworkX DAG), batch.py |
 | `export/` | Phase 09 — deployment_plan.py, json/csv exports (command_builder.py removed in Phase 12b) |
-| `preflight/` | Phase 10 — checks.py (9 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
+| `preflight/` | Phase 10 — checks.py (10 preflight checks), runner.py (orchestrator), CLI `wxcli cucm preflight` |
 | `advisory/` | Phase 13 — Advisory system: per-decision recommendations (19 rules) + cross-cutting advisor (30 patterns) |
 | `report/` | Assessment report generator — complexity score, SVG charts, executive summary + appendix → HTML/PDF. See its CLAUDE.md. |
 | `.claude/skills/cucm-migrate/SKILL.md` | Phase 11 — 6-step execution skill: preflight → plan summary → batch execute → delegate → report |

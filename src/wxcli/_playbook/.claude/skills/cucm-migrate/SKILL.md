@@ -347,7 +347,13 @@ This prevents mid-migration auth failures that leave the org in a partial state.
 wxcli cucm preflight
 ```
 
-**Preflight runs 8 checks** against the Webex target org. If ANY check fails, **do NOT proceed to execution.** Show failures with actionable fixes:
+**Preflight runs 10 checks** against the Webex target org. If ANY check fails, **do NOT proceed to execution.** Show failures with actionable fixes.
+
+A check may also report **INCOMPLETE** — it could not run because the Webex data it
+needed was never retrieved (expired token, network failure). INCOMPLETE is **not** a
+pass: treat it exactly like a failure for gating purposes, fix the cause, and re-run.
+Before this existed, a missing token produced confident PASSes on the number-conflict
+and duplicate-user checks, which are the two that stop a live org being corrupted.
 
 | Failure Type | Actionable Fix |
 |---|---|

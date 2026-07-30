@@ -84,27 +84,35 @@ wxcli call-queue list --location-id $LOC --has-cx-essentials true -o json 2>&1
 wxcli auto-attendant list --location-id $LOC -o json 2>&1
 wxcli paging-group list --location-id $LOC -o json 2>&1
 # Call parks and pickups REQUIRE location as positional arg — org-wide list returns EMPTY
-wxcli call-park list $LOC -o json 2>&1
-wxcli call-pickup list $LOC -o json 2>&1
-wxcli location-voicemail list --location-id $LOC -o json 2>&1
+wxcli call-park list $LOC --all -o json 2>&1
+wxcli call-pickup list $LOC --all -o json 2>&1
+wxcli location-voicemail list --location-id $LOC --all -o json 2>&1
 
 # Layer 2: Routing (org-wide — filter by location in output)
-wxcli call-routing list-dial-plans -o json 2>&1    # dial plans
-wxcli call-routing list-route-lists -o json 2>&1   # route lists
-wxcli call-routing list-route-groups -o json 2>&1  # check which reference trunks in this location
-wxcli call-routing list-trunks -o json 2>&1        # filter by location in output
+wxcli call-routing list-dial-plans --all -o json 2>&1    # dial plans
+wxcli call-routing list-route-lists --all -o json 2>&1   # route lists
+wxcli call-routing list-route-groups --all -o json 2>&1  # check which reference trunks in this location
+wxcli call-routing list-trunks --all -o json 2>&1        # filter by location in output
 
 # Layer 3: Supporting resources
-wxcli virtual-extensions list --location-id $LOC -o json 2>&1
+wxcli virtual-extensions list --location-id $LOC --all -o json 2>&1
 wxcli location-schedules list $LOC -o json 2>&1
-wxcli operating-modes list --limit-to-location-id $LOC -o json 2>&1
+wxcli operating-modes list --limit-to-location-id $LOC --all -o json 2>&1
 
 # Layer 4: Users
 wxcli users list --location-id $LOC -o json 2>&1
 
 # Layer 5: Workspaces (no --location-id flag — filter client-side by locationId)
-wxcli workspaces list -o json 2>&1
+wxcli workspaces list --all -o json 2>&1
 ```
+
+**`--all` is load-bearing here, not decoration.** Nine of these commands fetch one page by
+default, and this block is what Critical Rule 6 ("enumerate before deleting") depends on. An
+inventory that stops at page one produces the single most confusing failure in teardown:
+you delete everything you found, retry the location delete, and get `409 being referenced`
+with no visible blocker — which reads as "the API cannot do this" and sends people to
+Control Hub for a job the CLI does (see cause 7). The commands without `--all` above already
+walk every page by default; adding it there would change nothing.
 
 Present the full inventory to the user before proceeding.
 
@@ -162,8 +170,9 @@ wxcli workspaces delete --force <WORKSPACE_ID>
 LOC=<LOCATION_ID>
 
 # Remove phone numbers BEFORE location deletion — numbers block location delete with 409
-# List numbers for the location
-wxcli numbers list --location-id $LOC -o json
+# List numbers for the location (--all: inventory is the largest collection here,
+# and a missed number is a 409 on the location delete with nothing visible to blame)
+wxcli numbers list --location-id $LOC --all -o json
 # Delete numbers (API accepts max 5 per request, main number cannot be removed)
 # Use wxcli numbers delete $LOC or raw API:
 #   DELETE /telephony/config/locations/{LOC}/numbers  body: {"phoneNumbers": ["+1..."]}
@@ -195,10 +204,10 @@ wxcli locations delete --force $LOC
 
 If `locations delete` returns 409 "being referenced", check these in order:
 
-1. **Phone numbers still assigned** — `wxcli numbers list --location-id LOCATION_ID -o json`. Remove non-main numbers before location delete. `wxcli cleanup` handles this automatically (Layer 12).
+1. **Phone numbers still assigned** — `wxcli numbers list --location-id LOCATION_ID --all -o json`. Remove non-main numbers before location delete. `wxcli cleanup` handles this automatically (Layer 12). Without `--all` this read stops at page one, so a number on page two looks like "no blocker" while still blocking.
 2. **CX Essentials queues** hidden from default `call-queue list` — need `--has-cx-essentials true`
 3. **Call parks / pickups** not found — `call-park list` and `call-pickup list` without `LOCATION_ID` as first positional arg return empty
-4. **Virtual lines** — discoverable via `wxcli numbers list -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
+4. **Virtual lines** — discoverable via `wxcli numbers list --all -o json` (owner.type == VIRTUAL_LINE), not always via `virtual-extensions list`
 5. **Workspaces** still assigned — workspaces API has no location filter, must filter client-side by `locationId` field
 6. **Operating modes** referencing deleted schedules
 7. **Calling-enabled location (most common cause)** — with every visible dependency gone, the location still 409s because it remains calling-enabled. **Fixable via CLI; Control Hub is not required.** Run `wxcli location-settings create-delete-calling-location --location-id $LOC --location-name "<NAME>"`, poll the returned job with `show-delete-calling-location <JOB_ID>` until `latestExecutionStatus: COMPLETED`, then re-run the delete. Add `--force-delete` only if calling features or an unused trunk still exist and you intend to remove them. (Corrected 2026-07-29, verified live: this step previously read "not fixable via CLI/API". The `DELETE /telephony/config/locations/{id}` 404 that claim rested on is a different endpoint and not how calling is disabled.)

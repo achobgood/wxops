@@ -431,9 +431,9 @@ wxcli user-settings show-call-forwarding PERSON_ID --output json
 wxcli user-settings update-do-not-disturb PERSON_ID --enabled
 
 # Routing
-wxcli call-routing list-trunks
+wxcli call-routing list-trunks --all
 wxcli pstn list LOCATION_ID
-wxcli numbers list --location-id LOCATION_ID
+wxcli numbers list --location-id LOCATION_ID --all
 ```
 
 ### Bulk Operations
