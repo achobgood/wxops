@@ -154,3 +154,52 @@ class TestDecisionsCanShowStale:
         result = runner.invoke(app, ["decisions", "--status", "stale"])
         assert "__stale__" not in result.output
         assert "invalidated" in result.output.lower()
+
+
+class TestRetiredTypesAreNotReportedAsProblems:
+    """Retired decision types must not be counted as needing review."""
+
+    @pytest.fixture()
+    def retired_stale_project(self, tmp_migrations_dir):
+        runner.invoke(app, ["init", "retired-proj"])
+        store = MigrationStore(tmp_migrations_dir / "retired-proj" / "migration.db")
+        for i in range(6):
+            store.save_decision({
+                "decision_id": store.next_decision_id(),
+                "type": DecisionType.DEVICE_FIRMWARE_CONVERTIBLE.value,
+                "severity": "MEDIUM",
+                "summary": f"CP-7841 {i} can be converted",
+                "context": {},
+                "options": [{"id": "convert", "label": "Convert", "impact": "Reflash"}],
+                "fingerprint": f"conv-{i}",
+                "run_id": "r1",
+                "chosen_option": STALE,
+                "resolved_by": "stale",
+            })
+        for i in range(2):
+            store.save_decision({
+                "decision_id": store.next_decision_id(),
+                "type": DecisionType.DEVICE_INCOMPATIBLE.value,
+                "severity": "HIGH",
+                "summary": f"CP-7962G {i} is incompatible",
+                "context": {},
+                "options": [{"id": "replace", "label": "Replace", "impact": "1 phone"}],
+                "fingerprint": f"inc-{i}",
+                "run_id": "r1",
+                "chosen_option": STALE,
+                "resolved_by": "stale",
+            })
+        store.close()
+        return tmp_migrations_dir
+
+    def test_status_reports_active_and_retired_separately(self, retired_stale_project):
+        result = runner.invoke(app, ["status"])
+        assert result.exit_code == 0
+        assert "2 invalidated" in result.output, "only the live-type rows need review"
+        assert "8 invalidated" not in result.output
+        assert "6 retired" in result.output
+
+    def test_status_does_not_ask_for_action_on_retired_rows(self, retired_stale_project):
+        """The inspect prompt is tied to the population that needs inspecting."""
+        result = runner.invoke(app, ["status"])
+        assert "No action needed" in result.output

@@ -406,18 +406,28 @@ def _page_scope(store: MigrationStore) -> str:
     parts.append('<div class="stat-grid">')
     parts.append(_stat_card(str(resolved), "Auto-resolved"))
     parts.append(_stat_card(str(unresolved), "Decisions Needed"))
-    if counts.stale:
-        parts.append(_stat_card(str(counts.stale), "Invalidated"))
+    if counts.stale_active:
+        parts.append(_stat_card(str(counts.stale_active), "Invalidated"))
     if critical:
         parts.append(_stat_card(str(critical), "Critical"))
     parts.append('</div>')
 
-    if counts.stale:
+    if counts.stale_active:
         parts.append(
             '<p class="callout">'
-            f'<strong>{counts.stale} decisions were invalidated</strong> by a later analysis pass — '
+            f'<strong>{counts.stale_active} decisions were invalidated</strong> by a later analysis pass — '
             "the object they described changed, so nothing has chosen an option for them. They are "
             "not auto-resolved, and the questions they raised are still open. See Appendix B."
+            '</p>'
+        )
+    if counts.stale_retired:
+        # Not a finding. These belong to decision types the pipeline no longer
+        # emits, so "nothing decided them" is the intended outcome. Stated for
+        # completeness so the numbers add up, deliberately not as a warning.
+        parts.append(
+            '<p class="small muted">'
+            f'A further {counts.stale_retired} decisions relate to checks the migration '
+            "tool no longer performs; they are retired and need no action."
             '</p>'
         )
 
@@ -475,8 +485,8 @@ def _page_scope(store: MigrationStore) -> str:
             f'Decision resolution: <strong>{counts.resolved} of {counts.live_total}</strong> '
             f'auto-resolved ({counts.resolved_pct}%)'
         )
-        if counts.stale:
-            line += f', with {counts.stale} invalidated and excluded'
+        if counts.stale_active:
+            line += f', with {counts.stale_active} invalidated and excluded'
         parts.append(f'<p class="small muted">{line}</p>')
 
     cross_site = [d for d in decisions if d.get("type") == "CROSS_SITE_DEPENDENCY"]

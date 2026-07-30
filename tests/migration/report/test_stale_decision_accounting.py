@@ -15,14 +15,14 @@ decision stale, one genuinely resolved decision, one genuinely pending.
 import pytest
 
 from wxcli.migration.decision_state import (
+    RETIRED_DECISION_TYPES,
     STALE,
     DecisionCounts,
     count_decisions,
     is_pending,
     is_resolved,
+    is_retired,
     is_stale,
-    live,
-    stale_only,
 )
 from wxcli.migration.models import DecisionType
 from wxcli.migration.store import MigrationStore
@@ -80,16 +80,39 @@ class TestPredicate:
         assert counts.resolved + counts.pending + counts.stale == counts.total
         assert counts.live_total == 2
 
-    def test_live_and_stale_only_partition_the_population(self):
+    def test_retired_stale_rows_are_counted_apart_from_active_ones(self):
+        """611 of dcloud-fresh's 1399 stale rows are a retired decision type.
+
+        Telling the operator all 1399 "need review" is wrong in the alarming
+        direction, the same way counting them as resolved was wrong in the
+        flattering direction.
+        """
+        retired_type = next(iter(RETIRED_DECISION_TYPES))
         decisions = [
-            {"chosen_option": None},
-            {"chosen_option": STALE},
-            {"chosen_option": STALE},
-            {"chosen_option": "accept"},
+            {"chosen_option": STALE, "type": retired_type},
+            {"chosen_option": STALE, "type": retired_type},
+            {"chosen_option": STALE, "type": "DEVICE_INCOMPATIBLE"},
+            {"chosen_option": "accept", "type": "FEATURE_APPROXIMATION"},
         ]
-        assert len(live(decisions)) == 2
-        assert len(stale_only(decisions)) == 2
-        assert len(live(decisions)) + len(stale_only(decisions)) == len(decisions)
+        counts = count_decisions(decisions)
+        assert counts.stale == 3
+        assert counts.stale_retired == 2
+        assert counts.stale_active == 1, "only the live-type stale row needs review"
+
+    def test_is_retired_only_matches_the_declared_set(self):
+        assert is_retired({"type": "DEVICE_FIRMWARE_CONVERTIBLE"}) is True
+        assert is_retired({"type": "DEVICE_INCOMPATIBLE"}) is False
+        assert is_retired({}) is False
+
+    def test_retired_set_members_are_real_decision_types(self):
+        """A typo here would silently classify nothing, hiding the split."""
+        from wxcli.migration.models import DecisionType
+
+        valid = {d.value for d in DecisionType}
+        assert RETIRED_DECISION_TYPES <= valid, (
+            f"unknown decision types in RETIRED_DECISION_TYPES: "
+            f"{RETIRED_DECISION_TYPES - valid}"
+        )
 
     def test_resolved_pct_is_over_the_live_population_not_the_total(self):
         """1399 of 1579 stale must not drag the resolution percentage down."""
@@ -167,8 +190,139 @@ def stale_heavy_store(tmp_path):
 def test_fixture_really_is_stale_heavy(stale_heavy_store):
     """Guard the guard: a fixture with no stale rows would pass everything."""
     counts = count_decisions(stale_heavy_store.get_all_decisions())
-    assert counts == DecisionCounts(total=8, resolved=2, pending=1, stale=5)
+    assert counts == DecisionCounts(
+        total=8, resolved=2, pending=1, stale=5, stale_retired=0
+    )
     assert counts.live_total == 3
+    assert counts.stale_active == 5
+
+
+@pytest.fixture()
+def mixed_stale_store(tmp_path):
+    """Stale rows of both kinds: 4 of a retired type, 2 of a live type.
+
+    dcloud-fresh in miniature — 611 of its 1399 invalidated decisions are
+    DEVICE_FIRMWARE_CONVERTIBLE, retired 2026-04-15.
+    """
+    store = MigrationStore(tmp_path / "migration.db")
+    run_id = "20260729T120000-mixed"
+
+    for i in range(4):
+        store.save_decision({
+            "decision_id": store.next_decision_id(),
+            "type": DecisionType.DEVICE_FIRMWARE_CONVERTIBLE.value,
+            "severity": "MEDIUM",
+            "summary": f"CP-7841 device {i} can be converted",
+            "context": {},
+            "options": [{"id": "convert", "label": "Convert", "impact": "Reflash"}],
+            "fingerprint": f"conv-{i}",
+            "run_id": run_id,
+            "chosen_option": STALE,
+            "resolved_by": "stale",
+        })
+    for i in range(2):
+        store.save_decision({
+            "decision_id": store.next_decision_id(),
+            "type": DecisionType.DEVICE_INCOMPATIBLE.value,
+            "severity": "HIGH",
+            "summary": f"CP-7962G device {i} is incompatible",
+            "context": {},
+            "options": [{"id": "replace", "label": "Replace", "impact": "1 phone"}],
+            "fingerprint": f"incompat-{i}",
+            "run_id": run_id,
+            "chosen_option": STALE,
+            "resolved_by": "stale",
+        })
+    store.save_decision({
+        "decision_id": store.next_decision_id(),
+        "type": DecisionType.FEATURE_APPROXIMATION.value,
+        "severity": "LOW",
+        "summary": "Hunt group maps to REGULAR",
+        "context": {},
+        "options": [{"id": "accept", "label": "Accept", "impact": "Minor"}],
+        "fingerprint": "fa-live",
+        "run_id": run_id,
+        "chosen_option": "accept",
+        "resolved_by": "auto_rule",
+    })
+    yield store
+    store.close()
+
+
+class TestRetiredStaleRowsAreNotReportedAsProblems:
+    def test_fixture_has_both_kinds(self, mixed_stale_store):
+        counts = count_decisions(mixed_stale_store.get_all_decisions())
+        assert counts.stale == 6
+        assert counts.stale_retired == 4
+        assert counts.stale_active == 2
+
+    def test_executive_page_reports_only_the_active_stale_as_needing_review(
+        self, mixed_stale_store
+    ):
+        from wxcli.migration.report.executive import _page_scope
+
+        html_out = _page_scope(mixed_stale_store)
+        assert '<div class="stat-number">2</div>' in html_out, (
+            "the Invalidated card must show 2 active, not all 6"
+        )
+        assert '<div class="stat-number">6</div>' not in html_out
+
+    def test_executive_page_accounts_for_retired_rows_separately(
+        self, mixed_stale_store
+    ):
+        from wxcli.migration.report.executive import _page_scope
+
+        html_out = _page_scope(mixed_stale_store).lower()
+        assert "retired" in html_out or "no longer" in html_out, (
+            "the 4 retired rows must be explained, not silently dropped"
+        )
+
+    def test_verdict_does_not_demand_review_of_retired_rows(self, mixed_stale_store):
+        from wxcli.migration.report.explainer import generate_verdict
+        from wxcli.migration.report.score import compute_complexity_score
+
+        score = compute_complexity_score(mixed_stale_store)
+        verdict = generate_verdict(score, mixed_stale_store)
+        assert "6 decisions were invalidated" not in verdict
+        assert "A further 6" not in verdict
+
+    def test_key_findings_flag_only_the_active_stale(self, mixed_stale_store):
+        from wxcli.migration.report.explainer import generate_key_findings
+
+        texts = " ".join(f["text"] for f in generate_key_findings(mixed_stale_store))
+        assert "6 decisions were invalidated" not in texts
+        if "invalidated" in texts:
+            assert "2 decisions were invalidated" in texts
+
+    def test_appendix_separates_the_two_kinds(self, mixed_stale_store):
+        from wxcli.migration.report.appendix import _decisions_group
+
+        html_out = _decisions_group(mixed_stale_store)
+        assert "6 invalidated by re-analysis" not in html_out
+        assert "retired" in html_out.lower()
+
+    def test_all_retired_means_nothing_needs_review(self, tmp_path):
+        """A project whose only stale rows are retired must not raise an alarm."""
+        from wxcli.migration.report.executive import _page_scope
+
+        store = MigrationStore(tmp_path / "retired_only.db")
+        for i in range(3):
+            store.save_decision({
+                "decision_id": store.next_decision_id(),
+                "type": DecisionType.DEVICE_FIRMWARE_CONVERTIBLE.value,
+                "severity": "MEDIUM",
+                "summary": f"convertible {i}",
+                "context": {},
+                "options": [{"id": "convert", "label": "Convert", "impact": "Reflash"}],
+                "fingerprint": f"c-{i}",
+                "run_id": "r",
+                "chosen_option": STALE,
+                "resolved_by": "stale",
+            })
+        html_out = _page_scope(store)
+        store.close()
+        assert "need review" not in html_out.lower()
+        assert '<div class="stat-number">3</div>' not in html_out
 
 
 # ---------------------------------------------------------------------------

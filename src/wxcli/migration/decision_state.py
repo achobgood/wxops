@@ -34,11 +34,11 @@ from typing import Any, Iterable, Mapping
 
 __all__ = [
     "STALE",
+    "RETIRED_DECISION_TYPES",
     "is_stale",
     "is_resolved",
     "is_pending",
-    "live",
-    "stale_only",
+    "is_retired",
     "DecisionCounts",
     "count_decisions",
 ]
@@ -47,6 +47,23 @@ __all__ = [
 #: invalidated by a later ``merge_decisions`` pass. Truthy — never test a
 #: decision's resolution by the truthiness of ``chosen_option``.
 STALE = "__stale__"
+
+#: Decision types the pipeline no longer emits. Stale rows of these types are
+#: **not** a finding to review — the product stopped asking the question, so
+#: "nothing decided this" is the expected and correct state.
+#:
+#: Without this distinction a report tells the operator that 611 of
+#: dcloud-fresh's 1399 invalidated decisions "need review" when they are the
+#: intended outcome of a deliberate 2026-04-15 change. Reporting them as
+#: problems is wrong in the alarming direction, the same way counting them as
+#: resolved was wrong in the flattering direction.
+#:
+#: ``DEVICE_FIRMWARE_CONVERTIBLE`` — retired 2026-04-15. Convertible devices now
+#: auto-convert and unconditionally emit a ``create_activation_code`` op with no
+#: decision, no option and no skip path. The enum member survives only so
+#: pre-2026-04-15 stored projects still deserialize (see ``models.py`` and
+#: ``advisory/recommendation_rules.py``, both marked DEPRECATED 2026-04-15).
+RETIRED_DECISION_TYPES = frozenset({"DEVICE_FIRMWARE_CONVERTIBLE"})
 
 Decision = Mapping[str, Any]
 
@@ -77,14 +94,13 @@ def is_pending(decision: Decision) -> bool:
     return decision.get("chosen_option") is None
 
 
-def live(decisions: Iterable[Decision]) -> list[Decision]:
-    """The decisions that still describe the environment — everything but stale."""
-    return [d for d in decisions if not is_stale(d)]
+def is_retired(decision: Decision) -> bool:
+    """True when this decision's type is one the pipeline no longer emits.
 
-
-def stale_only(decisions: Iterable[Decision]) -> list[Decision]:
-    """The invalidated population, which callers must be able to report on."""
-    return [d for d in decisions if is_stale(d)]
+    See :data:`RETIRED_DECISION_TYPES`. Only meaningful for stale rows: a
+    retired type cannot produce a live decision, because nothing emits it.
+    """
+    return decision.get("type") in RETIRED_DECISION_TYPES
 
 
 @dataclass(frozen=True)
@@ -93,17 +109,28 @@ class DecisionCounts:
 
     ``resolved + pending + stale == total`` always holds, which is what makes a
     headline count and its itemisation reconcilable.
+
+    ``stale`` is subdivided because the invalidated population is not
+    homogeneous: ``stale_retired`` rows belong to decision types the product
+    deliberately stopped emitting and need no action, while ``stale_active``
+    rows are questions that went unanswered and do.
     """
 
     total: int = 0
     resolved: int = 0
     pending: int = 0
     stale: int = 0
+    stale_retired: int = 0
 
     @property
     def live_total(self) -> int:
         """Decisions that still describe the environment: resolved + pending."""
         return self.resolved + self.pending
+
+    @property
+    def stale_active(self) -> int:
+        """Invalidated decisions of a type still in use — these need review."""
+        return self.stale - self.stale_retired
 
     @property
     def resolved_pct(self) -> int:
@@ -115,10 +142,12 @@ class DecisionCounts:
 
 def count_decisions(decisions: Iterable[Decision]) -> DecisionCounts:
     """Split a decision population into resolved / pending / stale."""
-    resolved = pending = stale = 0
+    resolved = pending = stale = stale_retired = 0
     for d in decisions:
         if is_stale(d):
             stale += 1
+            if is_retired(d):
+                stale_retired += 1
         elif is_pending(d):
             pending += 1
         else:
@@ -128,4 +157,5 @@ def count_decisions(decisions: Iterable[Decision]) -> DecisionCounts:
         resolved=resolved,
         pending=pending,
         stale=stale,
+        stale_retired=stale_retired,
     )

@@ -23,6 +23,7 @@ import json
 import logging
 import math
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -128,26 +129,86 @@ def _planned_actions_by_type(store: MigrationStore) -> dict[str, list[str]]:
     return out
 
 
-def _count_excluded_by_type(
-    store: MigrationStore,
-    planned: dict[str, int],
-) -> dict[str, int]:
-    """Objects in the inventory that this plan does not act on.
+#: Object shapes that legitimately produce no plan operation, keyed by
+#: object_type — ``(data field, values that need no operation)``.
+#:
+#: Measured on director-demo-2026-04-15: of the 328 devices with no operation,
+#: **314 are `webex_app`** (softphones moving to the Webex App, so there is no
+#: device to provision) and **13 are `infrastructure`** (CTI ports, route points
+#: — no Webex device equivalent). Only 4 had genuinely stopped advancing.
+#: Reporting all 328 as "excluded because a decision resolved to skip, the object
+#: is incompatible, or its decision was invalidated" would put a false claim in a
+#: customer-facing document — the same class of defect as F03 itself.
+NO_OP_EXPECTED: dict[str, tuple[str, set[str]]] = {
+    "device": ("compatibility_tier", {"webex_app", "infrastructure"}),
+}
+
+
+@dataclass(frozen=True)
+class UnplannedObjects:
+    """Objects with no plan operation, split by *why* — counts keyed by type.
+
+    Only ``stranded`` and ``unexplained`` warrant an operator's attention.
+    ``no_op_expected`` is stated so the arithmetic reconciles, never as a warning.
+    """
+
+    stranded: dict[str, int]
+    no_op_expected: dict[str, int]
+    unexplained: dict[str, int]
+
+    @property
+    def needs_attention(self) -> bool:
+        return bool(self.stranded or self.unexplained)
+
+
+def _classify_unplanned(store: MigrationStore) -> UnplannedObjects:
+    """Split the objects this plan does not act on by the reason it does not.
 
     The words "skip", "excluded", "incompatible" and "stale" appeared nowhere in
     the 811-line document (finding F03), so a reader had no way to tell that 23
-    of 300 users and most of the device inventory were absent from it. Scoped to
-    :data:`WEBEX_RESOURCE_TYPES` to match the table it annotates.
+    of 300 users were absent from it. But a flat "excluded" count is its own
+    misstatement — see :data:`NO_OP_EXPECTED`. Three buckets:
+
+    * ``stranded`` — never reached ``status='analyzed'``, so ``expand_to_operations``
+      never saw them. This is the 23-user population from finding F08.
+    * ``no_op_expected`` — analyzed, and the object's own shape says no operation
+      is required.
+    * ``unexplained`` — analyzed, no operation, and no known reason. The bucket
+      that should be empty and is worth chasing when it is not.
+
+    Scoped to :data:`WEBEX_RESOURCE_TYPES` to match the table it annotates.
     """
-    inventory = _count_by_type(store)
-    out: dict[str, int] = {}
-    for obj_type, total in inventory.items():
+    rows = store.conn.execute(
+        """SELECT object_type, status, data FROM objects
+           WHERE canonical_id NOT IN (SELECT canonical_id FROM plan_operations)"""
+    ).fetchall()
+
+    stranded: dict[str, int] = {}
+    expected: dict[str, int] = {}
+    unexplained: dict[str, int] = {}
+
+    for r in rows:
+        obj_type = r["object_type"]
         if obj_type not in WEBEX_RESOURCE_TYPES:
             continue
-        gap = total - planned.get(obj_type, 0)
-        if gap > 0:
-            out[obj_type] = gap
-    return out
+        if r["status"] != "analyzed":
+            stranded[obj_type] = stranded.get(obj_type, 0) + 1
+            continue
+        rule = NO_OP_EXPECTED.get(obj_type)
+        if rule is not None:
+            field, values = rule
+            try:
+                data = json.loads(r["data"]) or {}
+            except (json.JSONDecodeError, TypeError):
+                data = {}
+            if data.get(field) in values:
+                expected[obj_type] = expected.get(obj_type, 0) + 1
+                continue
+        unexplained[obj_type] = unexplained.get(obj_type, 0) + 1
+
+    return UnplannedObjects(
+        stranded=stranded, no_op_expected=expected, unexplained=unexplained
+    )
 
 
 def _pending_decision_count(store: MigrationStore) -> int:
@@ -269,7 +330,7 @@ def _section_prerequisites(
 def _section_resource_summary(
     type_counts: dict[str, int],
     actions: dict[str, list[str]] | None = None,
-    excluded: dict[str, int] | None = None,
+    unplanned: UnplannedObjects | None = None,
 ) -> list[str]:
     """Section 3: Resource Summary — Webex resource types only.
 
@@ -277,6 +338,8 @@ def _section_resource_summary(
     ``actions`` supplies the real op_types per type; without it every row falls
     back to "Create", which is what made the old table claim creates for
     translation patterns and call parks the plan never touches.
+    ``unplanned`` adds the "Not in this plan" disclosure — see
+    :func:`_classify_unplanned` for why it is three buckets and not one.
     """
     lines = ["## 3. Resource Summary", ""]
     lines.append("| Resource Type | Count | Action |")
@@ -297,28 +360,52 @@ def _section_resource_summary(
 
     lines.append("")
 
-    if excluded:
+    if unplanned is not None and unplanned.needs_attention:
         lines.append("### Not in this plan")
         lines.append("")
         lines.append(
-            "Discovered in CUCM but excluded from the operations above — because a "
-            "decision resolved to skip, the object is incompatible, its decision was "
-            "invalidated by re-analysis (stale), or it never reached the planner. "
-            "Reconcile these before approving:"
+            "Discovered in CUCM but absent from the operations above. Reconcile these "
+            "before approving:"
         )
         lines.append("")
-        lines.append("| Resource Type | Excluded | Discovered | In This Plan |")
-        lines.append("|--------------|----------|------------|--------------|")
-        for obj_type, gap in sorted(
-            excluded.items(), key=lambda kv: kv[1], reverse=True
+        lines.append("| Resource Type | Count | Why |")
+        lines.append("|--------------|-------|-----|")
+        for obj_type, n in sorted(
+            unplanned.stranded.items(), key=lambda kv: kv[1], reverse=True
         ):
             label = TYPE_LABELS.get(obj_type, obj_type)
-            planned = type_counts.get(obj_type, 0)
-            lines.append(f"| {label} | {gap} | {gap + planned} | {planned} |")
+            lines.append(
+                f"| {label} | {n} | Stopped advancing before the planner ran |"
+            )
+        for obj_type, n in sorted(
+            unplanned.unexplained.items(), key=lambda kv: kv[1], reverse=True
+        ):
+            label = TYPE_LABELS.get(obj_type, obj_type)
+            lines.append(
+                f"| {label} | {n} | Analyzed, but produced no operation — no known reason |"
+            )
         lines.append("")
         lines.append(
             "Investigate with `wxcli cucm decisions --status stale` and "
             "`wxcli cucm decisions --status pending`."
+        )
+        lines.append("")
+
+    if unplanned is not None and unplanned.no_op_expected:
+        # Deliberately not a warning and deliberately not in the table above:
+        # these need no operation by design, and calling them "excluded" was a
+        # false claim in a customer-facing document.
+        total = sum(unplanned.no_op_expected.values())
+        detail = ", ".join(
+            f"{n} {TYPE_LABELS.get(t, t).lower()}"
+            for t, n in sorted(
+                unplanned.no_op_expected.items(), key=lambda kv: kv[1], reverse=True
+            )
+        )
+        lines.append(
+            f"A further {total} discovered objects ({detail}) require no operation: "
+            "softphone users move to the Webex App, and infrastructure endpoints such "
+            "as CTI ports have no Webex device equivalent. No action needed."
         )
         lines.append("")
 
@@ -558,7 +645,7 @@ def generate_plan_summary(
     # between what was discovered and what will be built is the whole point.
     planned_counts = _count_planned_by_type(store)
     planned_actions = _planned_actions_by_type(store)
-    excluded_counts = _count_excluded_by_type(store, planned_counts)
+    unplanned = _classify_unplanned(store)
     pending_decisions = _pending_decision_count(store)
     resolved_decisions = _get_resolved_decisions(store)
     ops = _get_plan_ops(store)
@@ -581,7 +668,7 @@ def generate_plan_summary(
     lines.extend(_section_objective(planned_counts, project_id))
     lines.extend(_section_prerequisites(planned_counts, pending_decisions))
     lines.extend(_section_resource_summary(
-        planned_counts, planned_actions, excluded_counts
+        planned_counts, planned_actions, unplanned
     ))
     lines.extend(_section_decisions(resolved_decisions))
     lines.extend(_section_batch_order(ops))
