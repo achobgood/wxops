@@ -72,7 +72,7 @@ def _count_selective_call_handling_candidates(store: MigrationStore) -> int:
     for d in store.get_all_decisions():
         if d.get("type") != "FEATURE_APPROXIMATION":
             continue
-        if d.get("chosen_option") == "__stale__":
+        if is_stale(d):
             continue
         ctx = d.get("context", {}) or {}
         if ctx.get("selective_call_handling_pattern"):

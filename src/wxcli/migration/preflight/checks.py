@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 from typing import Any, Callable
 
+from wxcli.migration.decision_state import is_resolved
 from wxcli.migration.models import DecisionType
 from wxcli.migration.preflight import (
     CheckResult,
@@ -767,7 +768,7 @@ def check_e911_readiness(store: MigrationStore) -> CheckResult:
     for d in store.get_all_decisions():
         dtype = d.get("type", "")
         if dtype in ("E911_ECBN_AMBIGUOUS", "E911_LOCATION_MISMATCH"):
-            if d.get("chosen_option") is None or d.get("chosen_option") == "__stale__":
+            if not is_resolved(d):
                 unresolved_e911 += 1
                 issues.append(PreflightIssue(
                     "E911_UNRESOLVED_DECISION",

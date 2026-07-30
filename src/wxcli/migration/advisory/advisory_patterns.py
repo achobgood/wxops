@@ -13,6 +13,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from wxcli.migration.decision_state import is_stale
 from wxcli.migration.store import MigrationStore
 
 
@@ -1108,7 +1109,7 @@ def detect_e911_migration_flag(store: MigrationStore) -> list[AdvisoryFinding]:
     ambiguous_count = 0
     mismatch_count = 0
     for d in store.get_all_decisions():
-        if d.get("chosen_option") == "__stale__":
+        if is_stale(d):
             continue
         if d.get("type") == "E911_ECBN_AMBIGUOUS":
             ambiguous_count += 1
