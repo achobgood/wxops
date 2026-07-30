@@ -21,6 +21,7 @@ from wxcli.migration.export.deployment_plan import (
     _section_impact,
     _section_rollback_strategy,
     _section_approval,
+    _count_planned_by_type,
     WEBEX_RESOURCE_TYPES,
 )
 from wxcli.migration.models import (
@@ -230,14 +231,86 @@ class TestSectionResourceSummary:
         assert "Person" in text
         assert "Hunt Group" in text
 
-    def test_excludes_cucm_types(self):
-        counts = {"location": 2, "partition": 5, "css": 3, "device_pool": 4}
-        lines = _section_resource_summary(counts)
-        text = "\n".join(lines)
-        assert "Location" in text
-        assert "partition" not in text.lower()
-        assert "css" not in text.lower()
-        assert "device_pool" not in text.lower()
+    def test_renders_every_planned_type_including_the_eight_it_used_to_drop(self):
+        """The table is plan-derived, so nothing in it may be filtered out.
+
+        Section 3 was scoped to WEBEX_RESOURCE_TYPES, which omitted 8 types /
+        615 entities on director-demo-2026-04-15 — about a third of the plan.
+        They were in the operation totals and Section 5's batch order, so the
+        document was not wrong; the one table an approver reads as "what this
+        builds" was.
+        """
+        counts = {
+            "ecbn_config": 304, "device_layout": 215, "call_forwarding": 51,
+            "line_key_template": 18, "bulk_line_key_template": 12,
+            "bulk_rebuild_phones": 6, "bulk_device_settings": 6, "route_list": 3,
+        }
+        text = "\n".join(_section_resource_summary(counts))
+        assert sum(counts.values()) == 615
+        for count in counts.values():
+            assert f"| {count} |" in text
+        assert "Emergency Callback Number" in text
+        assert "Device Line Key Layout" in text
+        assert "Line Key Template (bulk job)" in text
+        assert "Route List" in text
+
+    def test_states_that_counts_are_resources_not_operations(self):
+        text = "\n".join(_section_resource_summary({"user": 277}))
+        assert "Distinct resources this plan acts on" in text
+        assert "lower than the operation total in Section 6" in text
+
+    def test_cucm_only_types_never_reach_the_table(self, tmp_path):
+        """The invariant the old display filter stood in for.
+
+        `partition` / `css` / `device_pool` are CUCM constructs consumed by
+        mappers; no expander emits operations for them, so they cannot appear
+        in `plan_operations`. Enforced here at the data source rather than by
+        an allowlist on the renderer, which silently dropped real work and
+        would need hand-extending for every new op type. Verified against
+        dcloud-fresh and director-demo-2026-04-15: neither has a single
+        CUCM-only row in plan_operations.
+        """
+        from datetime import datetime, timezone
+
+        from wxcli.migration.models import (
+            CanonicalLocation, MigrationObject, MigrationStatus, Provenance,
+        )
+        from wxcli.migration.store import MigrationStore
+
+        store = MigrationStore(tmp_path / "migration.db")
+        prov = Provenance(
+            source_system="cucm", source_id="pk1", source_name="x",
+            extracted_at=datetime.now(timezone.utc),
+        )
+        store.upsert_object(CanonicalLocation(
+            canonical_id="location:hq", provenance=prov,
+            status=MigrationStatus.ANALYZED, name="HQ",
+            time_zone="America/New_York", preferred_language="en_US",
+            announcement_language="en_us",
+        ))
+        # CUCM-only objects exist in the store and get no operations.
+        for cid in ("partition:PT-Internal", "css:CSS-Internal", "device_pool:DP-HQ"):
+            store.upsert_object(MigrationObject(
+                canonical_id=cid, provenance=prov,
+                status=MigrationStatus.ANALYZED,
+            ))
+        store.conn.execute(
+            """INSERT INTO plan_operations
+               (node_id, canonical_id, op_type, resource_type, tier, batch,
+                api_calls, description, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("location:hq:create", "location:hq", "create", "location", 0,
+             "org-wide", 1, "Create location HQ", "pending"),
+        )
+        store.conn.commit()
+        try:
+            counts = _count_planned_by_type(store)
+        finally:
+            store.close()
+
+        assert counts == {"location": 1}
+        for cucm_only in ("partition", "css", "device_pool"):
+            assert cucm_only not in counts
 
 
 class TestSectionDecisions:
