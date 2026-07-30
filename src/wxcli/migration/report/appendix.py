@@ -35,6 +35,7 @@ def _axl_str(value: Any) -> str:
         return str(value.get("_value_1", ""))
     return str(value)
 
+from wxcli.migration.decision_state import count_decisions, is_resolved, is_stale
 from wxcli.migration.report.charts import stacked_bar_chart
 from wxcli.migration.report.explainer import (
     DECISION_TYPE_DISPLAY_NAMES,
@@ -171,25 +172,43 @@ def _decisions_group(store: MigrationStore) -> str:
     if not decisions:
         return ""
 
-    total = len(decisions)
-    resolved = sum(1 for d in decisions if d.get("chosen_option"))
+    counts = count_decisions(decisions)
 
     # Group by type
     by_type: dict[str, list[dict]] = defaultdict(list)
     for d in decisions:
         by_type[d.get("type", "UNKNOWN")].append(d)
 
+    headline = f"— {counts.total} total, {counts.resolved} auto-resolved"
+    if counts.stale:
+        headline += f", {counts.stale} invalidated by re-analysis"
+
     parts = [
         f'<details id="decision-detail">',
-        f'<summary>B. Decision Detail <span class="summary-count">— {total} total, {resolved} auto-resolved</span></summary>',
+        f'<summary>B. Decision Detail <span class="summary-count">{headline}</span></summary>',
         '<div class="details-content">',
     ]
+    if counts.stale:
+        parts.append(
+            '<p class="callout">'
+            f'<strong>{counts.stale} of these {counts.total} decisions were invalidated</strong> '
+            "when the pipeline re-analysed the environment: the underlying object changed, so the "
+            "decision no longer applies and <em>nothing has chosen an option for it</em>. "
+            "Invalidated rows are listed below for the record, but they are not resolutions — "
+            "the underlying question is still open."
+            '</p>'
+        )
 
     for dtype in sorted(by_type.keys()):
         type_decisions = by_type[dtype]
         display_name = DECISION_TYPE_DISPLAY_NAMES.get(dtype, dtype.replace("_", " ").title())
-        type_resolved = sum(1 for d in type_decisions if d.get("chosen_option"))
-        resolution = f"{type_resolved}/{len(type_decisions)} resolved"
+        type_counts = count_decisions(type_decisions)
+        if type_counts.live_total:
+            resolution = f"{type_counts.resolved}/{type_counts.live_total} resolved"
+        else:
+            resolution = "none resolved"
+        if type_counts.stale:
+            resolution += f", {type_counts.stale} invalidated"
 
         parts.append(f'<div class="explanation">')
         parts.append(f'<h4>{html.escape(display_name)} ({len(type_decisions)}) <span class="muted small">— {resolution}</span></h4>')
@@ -212,7 +231,12 @@ def _decisions_group(store: MigrationStore) -> str:
             parts.append('<tbody>')
             for d in type_decisions:
                 severity = d.get("severity", "MEDIUM")
-                status = "Auto-resolved" if d.get("chosen_option") else "Pending"
+                if is_resolved(d):
+                    status = "Auto-resolved"
+                elif is_stale(d):
+                    status = "Invalidated"
+                else:
+                    status = "Pending"
                 parts.append(
                     f'<tr><td>{html.escape(d.get("summary", ""))}</td>'
                     f'<td><span class="badge badge-{severity.lower()}">{html.escape(severity)}</span></td>'

@@ -12,6 +12,7 @@ import html
 import json
 from typing import Any
 
+from wxcli.migration.decision_state import count_decisions, is_resolved, is_stale
 from wxcli.migration.report.charts import donut_chart, gauge_chart, stacked_bar_chart
 from wxcli.migration.report.explainer import (
     DECISION_TYPE_DISPLAY_NAMES,
@@ -384,11 +385,16 @@ def _page_scope(store: MigrationStore) -> str:
     """Page 3: Three effort bands — auto, planning, manual."""
     decisions = store.get_all_decisions()
 
-    # Decision summary stat grid
-    total_decisions = len(decisions)
-    resolved = sum(1 for d in decisions if d.get("chosen_option"))
-    unresolved = total_decisions - resolved
-    critical = sum(1 for d in decisions if d.get("severity", "").upper() == "CRITICAL")
+    # Decision summary stat grid. Invalidated decisions are neither resolved
+    # nor "needed" — they are a third bucket and get their own card, because
+    # folding them into either one misstates the migration (finding F04).
+    counts = count_decisions(decisions)
+    resolved = counts.resolved
+    unresolved = counts.pending
+    critical = sum(
+        1 for d in decisions
+        if d.get("severity", "").upper() == "CRITICAL" and not is_stale(d)
+    )
 
     auto, planning, manual = _classify_decisions(decisions)
 
@@ -400,9 +406,20 @@ def _page_scope(store: MigrationStore) -> str:
     parts.append('<div class="stat-grid">')
     parts.append(_stat_card(str(resolved), "Auto-resolved"))
     parts.append(_stat_card(str(unresolved), "Decisions Needed"))
+    if counts.stale:
+        parts.append(_stat_card(str(counts.stale), "Invalidated"))
     if critical:
         parts.append(_stat_card(str(critical), "Critical"))
     parts.append('</div>')
+
+    if counts.stale:
+        parts.append(
+            '<p class="callout">'
+            f'<strong>{counts.stale} decisions were invalidated</strong> by a later analysis pass — '
+            "the object they described changed, so nothing has chosen an option for them. They are "
+            "not auto-resolved, and the questions they raised are still open. See Appendix B."
+            '</p>'
+        )
 
     # Effort band: Migrates Automatically
     parts.append('<div class="effort-band auto">')
@@ -449,15 +466,18 @@ def _page_scope(store: MigrationStore) -> str:
         parts.append('</ul>')
     parts.append('</div>')
 
-    # Decision resolution bar
-    total = len(decisions)
-    resolved = sum(1 for d in decisions if d.get("chosen_option"))
-    if total > 0:
-        pct = round(resolved / total * 100)
-        parts.append(
-            f'<p class="small muted">'
-            f'Decision resolution: <strong>{resolved} of {total}</strong> auto-resolved ({pct}%)</p>'
+    # Decision resolution bar. Measured against the live population — an
+    # invalidated decision was never a candidate for resolution, so counting it
+    # in the denominator understates progress the same way counting it in the
+    # numerator overstated it.
+    if counts.live_total > 0:
+        line = (
+            f'Decision resolution: <strong>{counts.resolved} of {counts.live_total}</strong> '
+            f'auto-resolved ({counts.resolved_pct}%)'
         )
+        if counts.stale:
+            line += f', with {counts.stale} invalidated and excluded'
+        parts.append(f'<p class="small muted">{line}</p>')
 
     cross_site = [d for d in decisions if d.get("type") == "CROSS_SITE_DEPENDENCY"]
     if cross_site:
@@ -514,7 +534,10 @@ def _classify_decisions(
     }
 
     for d in decisions:
-        if d.get("chosen_option"):
+        # is_resolved, not truthiness: an invalidated decision falls through to
+        # the type-based buckets below, so a stale DEVICE_INCOMPATIBLE lands in
+        # "manual work" where it belongs rather than "migrates automatically".
+        if is_resolved(d):
             auto.append(d)
         elif d.get("type") in manual_types:
             # Webex App transitions are INFO severity and go to planning, not manual

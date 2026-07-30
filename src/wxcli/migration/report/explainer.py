@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from wxcli.migration.decision_state import count_decisions, is_resolved
 from wxcli.migration.report.score import ScoreResult
 from wxcli.migration.store import MigrationStore
 
@@ -663,17 +664,29 @@ def generate_verdict(score_result: ScoreResult, store: MigrationStore) -> str:
     else:
         driver = ""
 
-    decisions = store.get_all_decisions()
-    total = len(decisions)
-    resolved = sum(1 for d in decisions if d.get("chosen_option"))
-    unresolved = total - resolved
+    counts = count_decisions(store.get_all_decisions())
 
-    if total == 0:
+    if counts.total == 0:
         decision_text = "No migration decisions were generated."
-    elif unresolved == 0:
-        decision_text = f"All {total} decisions were auto-resolved — no manual decisions required at this stage."
+    elif counts.live_total == 0:
+        decision_text = (
+            f"All {counts.stale} decisions were invalidated by a later analysis pass — "
+            "none of them has been decided, and they need review before migration can proceed."
+        )
+    elif counts.pending == 0:
+        decision_text = (
+            f"All {counts.live_total} live decisions were auto-resolved — "
+            "no manual decisions required at this stage."
+        )
     else:
-        decision_text = f"{unresolved} of {total} decisions require manual input before migration can proceed."
+        decision_text = (
+            f"{counts.pending} of {counts.live_total} live decisions require manual input "
+            "before migration can proceed."
+        )
+    if counts.stale and counts.live_total:
+        decision_text += (
+            f" A further {counts.stale} decisions were invalidated by re-analysis and are not counted here."
+        )
 
     return f"{opener} {driver} {decision_text}"
 
@@ -743,23 +756,25 @@ def generate_key_findings(store: MigrationStore) -> list[dict[str, str]]:
     if routing_decisions:
         findings.append({
             "icon": "!",
-            "text": f"<strong>{len(routing_decisions)} calling restriction rules</strong> differ between CUCM and Webex — {'all auto-resolved' if all(d.get('chosen_option') for d in routing_decisions) else 'review needed'}",
+            "text": f"<strong>{len(routing_decisions)} calling restriction rules</strong> differ between CUCM and Webex — {'all auto-resolved' if all(is_resolved(d) for d in routing_decisions) else 'review needed'}",
         })
 
-    all_decisions = store.get_all_decisions()
-    total = len(all_decisions)
-    resolved = sum(1 for d in all_decisions if d.get("chosen_option"))
-    if total > 0:
-        if resolved == total:
+    counts = count_decisions(store.get_all_decisions())
+    if counts.live_total > 0:
+        if counts.pending == 0:
             findings.append({
                 "icon": "✓",
-                "text": f"<strong>{total} of {total} decisions</strong> auto-resolved — no manual input needed at this stage",
+                "text": f"<strong>{counts.resolved} of {counts.live_total} live decisions</strong> auto-resolved — no manual input needed at this stage",
             })
         else:
-            unresolved = total - resolved
             findings.append({
                 "icon": "!",
-                "text": f"<strong>{unresolved} of {total} decisions</strong> require manual input before migration",
+                "text": f"<strong>{counts.pending} of {counts.live_total} live decisions</strong> require manual input before migration",
             })
+    if counts.stale:
+        findings.append({
+            "icon": "!",
+            "text": f"<strong>{counts.stale} decisions were invalidated</strong> by re-analysis — nothing has decided them, so they need review",
+        })
 
     return findings
