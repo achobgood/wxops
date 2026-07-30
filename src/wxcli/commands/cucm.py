@@ -766,15 +766,27 @@ def status(
             console.print(f"  {'TOTAL':<25s} {total:>5d}")
 
         # Decision summary
+        from wxcli.migration.decision_state import count_decisions, is_stale
+
         all_decisions = store.get_all_decisions()
-        non_stale = [d for d in all_decisions if d.get("chosen_option") != "__stale__"]
-        if non_stale:
+        non_stale = [d for d in all_decisions if not is_stale(d)]
+        counts = count_decisions(all_decisions)
+        # Gate on counts.total, not on the live subset: a project whose every
+        # decision was invalidated used to print no decision block at all —
+        # the loudest possible silence about the loudest possible problem.
+        if counts.total:
             pending = [d for d in non_stale if d.get("chosen_option") is None]
             resolved = [d for d in non_stale if d.get("chosen_option") is not None]
             console.print(
-                f"\n[bold]Decisions:[/bold] {len(non_stale)} total "
+                f"\n[bold]Decisions:[/bold] {counts.live_total} live "
                 f"({len(resolved)} resolved, {len(pending)} pending)"
             )
+            if counts.stale:
+                console.print(
+                    f"  [yellow]{counts.stale} invalidated[/yellow] of {counts.total} total"
+                    " — re-analysis rewrote the underlying object, so nothing decided these."
+                )
+                console.print("  Inspect with: wxcli cucm decisions --status stale")
             if pending:
                 by_severity: dict[str, int] = defaultdict(int)
                 for d in pending:
@@ -1638,7 +1650,7 @@ def _preflight_json_output(result, output: str = "json", fields: str | None = No
 def decisions(
     type: Optional[str] = typer.Option(None, "--type", "-t", help="Filter by decision type"),
     severity: Optional[str] = typer.Option(None, "--severity", "-s", help="Filter by severity"),
-    status_filter: Optional[str] = typer.Option(None, "--status", help="Filter: pending or resolved"),
+    status_filter: Optional[str] = typer.Option(None, "--status", help="Filter: pending, resolved, or stale (invalidated by re-analysis)"),
     export_review: bool = typer.Option(False, "--export-review", help="Generate markdown decision review file"),
     output: Optional[str] = typer.Option(None, "-o", "--output", help="Output format: table (default) or json"),
     fields: str = typer.Option(None, "--fields", help=FIELDS_HELP),
@@ -1720,9 +1732,17 @@ def decisions(
                 console.print(f"  Needs input: {len(needs)} decisions")
             return
 
+        from wxcli.migration.decision_state import is_stale
+
         all_decisions = store.get_all_decisions()
-        # Exclude stale
-        decs = [d for d in all_decisions if d.get("chosen_option") != "__stale__"]
+        # Exclude stale by default. `--status stale` is the one way to reach the
+        # invalidated population: `status` reports its size and points here, and
+        # a count with nothing behind it is not a disclosure (finding F15).
+        wants_stale = bool(status_filter) and status_filter.lower() == "stale"
+        if wants_stale:
+            decs = [d for d in all_decisions if is_stale(d)]
+        else:
+            decs = [d for d in all_decisions if not is_stale(d)]
 
         # Apply filters
         if type:
@@ -1736,6 +1756,7 @@ def decisions(
                 decs = [d for d in decs if d.get("chosen_option") is None]
             elif status_filter.lower() == "resolved":
                 decs = [d for d in decs if d.get("chosen_option") is not None]
+            # "stale" already selected the population above — no further narrowing.
 
         if not decs:
             if output == "json" or fields:
@@ -1752,12 +1773,20 @@ def decisions(
             emit(data, output=output or "table", fields=fields)
             return
 
-        # Summary line
-        pending = sum(1 for d in decs if d.get("chosen_option") is None)
-        resolved = len(decs) - pending
-        console.print(
-            f"\n[bold]Migration Decisions:[/bold] {pending} pending, {resolved} resolved\n"
-        )
+        # Summary line. `resolved = len(decs) - pending` would count the stale
+        # sentinel as a resolution, because it is not None — the same truthiness
+        # trap as finding F04, in the listing that exists to expose it.
+        if wants_stale:
+            console.print(
+                f"\n[bold]Migration Decisions:[/bold] {len(decs)} invalidated by re-analysis"
+                " — nothing decided these\n"
+            )
+        else:
+            pending = sum(1 for d in decs if d.get("chosen_option") is None)
+            resolved = len(decs) - pending
+            console.print(
+                f"\n[bold]Migration Decisions:[/bold] {pending} pending, {resolved} resolved\n"
+            )
 
         # Rich table
         table = Table(show_header=True, header_style="bold")
@@ -1771,7 +1800,10 @@ def decisions(
             sev = d.get("severity", "")
             color = SEVERITY_COLORS.get(sev, "white")
             chosen = d.get("chosen_option")
-            status_str = chosen if chosen else "pending"
+            if is_stale(d):
+                status_str = "invalidated"
+            else:
+                status_str = chosen if chosen else "pending"
             table.add_row(
                 d.get("decision_id", ""),
                 d.get("type", ""),
