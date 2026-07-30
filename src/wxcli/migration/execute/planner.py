@@ -80,6 +80,8 @@ class PlannerSkipReport:
     """
     entries: list[PlannerSkipEntry] = field(default_factory=list)
     needs_decision_counts: dict[str, int] = field(default_factory=dict)
+    anomalies: list[PlannerSkipEntry] = field(default_factory=list)
+    stranded_counts: dict[str, int] = field(default_factory=dict)
 
     def record(
         self,
@@ -99,6 +101,33 @@ class PlannerSkipReport:
             consequence=consequence,
         ))
 
+    def record_anomaly(
+        self,
+        canonical_id: str,
+        entity_type: str,
+        reason: str,
+        consequence: str,
+        decision_type: str | None = None,
+        decision_state: str | None = None,
+    ) -> None:
+        """Record something wrong about an entity that WAS still expanded.
+
+        Separate from ``entries`` because the aggregate roll-up, the
+        ``--fail-on-unresolved`` gate and ``PlannerUnresolvedError``'s wording all
+        say *skipped*. Measured on director-demo-2026-04-15: 766 of 1129
+        "Planner skip:" lines described entities that are in ``plan_operations``
+        (finding F09). The observation is worth keeping — a stale decision on
+        something about to be provisioned is a smell — but it is not a skip.
+        """
+        self.anomalies.append(PlannerSkipEntry(
+            canonical_id=canonical_id,
+            entity_type=entity_type,
+            reason=reason,
+            decision_type=decision_type,
+            decision_state=decision_state,
+            consequence=consequence,
+        ))
+
     @property
     def counts(self) -> dict[str, int]:
         """Group count by ``reason`` (or decision_type when decision-gated)."""
@@ -109,9 +138,26 @@ class PlannerSkipReport:
         return out
 
     @property
+    def anomaly_counts(self) -> dict[str, int]:
+        """Group anomaly count by ``reason`` (or decision_type when decision-gated)."""
+        out: dict[str, int] = {}
+        for a in self.anomalies:
+            key = a.decision_type or a.reason
+            out[key] = out.get(key, 0) + 1
+        return out
+
+    @property
     def has_unresolved_skips(self) -> bool:
-        """True if any entry was caused by a stale or pending decision."""
-        return any(
+        """True if anything is genuinely missing from the plan.
+
+        Two sources, both meaning "an entity that should be in the plan is not":
+        a skip entry caused by an unresolved decision, or an object that never
+        reached ``analyzed`` so expansion never saw it (finding F08 — 23 of 300
+        users, invisible to every existing signal).
+
+        Anomalies are deliberately excluded: those entities ARE in the plan.
+        """
+        return bool(self.stranded_counts) or any(
             e.decision_state in ("stale", "pending")
             for e in self.entries
         )
@@ -145,6 +191,40 @@ def _warn_skip(
         consequence,
     )
     report.record(
+        canonical_id=canonical_id,
+        entity_type=entity_type,
+        reason=reason,
+        consequence=consequence,
+        decision_type=decision_type,
+        decision_state=decision_state,
+    )
+
+
+def _warn_anomaly(
+    report: PlannerSkipReport,
+    canonical_id: str,
+    entity_type: str,
+    reason: str,
+    consequence: str,
+    decision_type: str | None = None,
+    decision_state: str | None = None,
+) -> None:
+    """Emit a WARN for an entity that was expanded anyway, and record it apart.
+
+    The log prefix is deliberately NOT "Planner skip:" — that string is what made
+    the skip report untrustworthy, because it was attached to 766 entities that
+    were planned (finding F09).
+    """
+    tag = decision_type or reason
+    logger.warning(
+        "Planner anomaly: %s %s (reason=%s%s) — still planned; %s",
+        entity_type,
+        canonical_id,
+        tag,
+        f", state={decision_state}" if decision_state else "",
+        consequence,
+    )
+    report.record_anomaly(
         canonical_id=canonical_id,
         entity_type=entity_type,
         reason=reason,
@@ -256,6 +336,62 @@ def _build_stale_decisions_index(store: MigrationStore) -> dict[str, list[dict[s
         for cid in context.get("_affected_objects", []):
             index.setdefault(cid, []).append(d)
     return index
+
+
+#: Statuses an object passes through before it is eligible for planning.
+#: ``discovered`` is excluded from the stranded report on purpose — an object that
+#: has not been through normalize yet was never a candidate for this plan.
+_STRANDED_STATUSES = ("normalized",)
+
+
+def _plannable_types() -> frozenset[str]:
+    """Object types this planner could actually turn into operations.
+
+    Anything else at ``status='normalized'`` is a CUCM-side source or
+    intermediate type that was never going to produce an operation — ``phone``
+    normalizes into ``device``, ``hunt_pilot`` into ``hunt_group``,
+    ``button_template`` into ``line_key_template``, and the ``info_*`` family is
+    reference data. Counting those as "absent from the plan" reported 2005
+    entities on director-demo when 67 were real, which is the same
+    by-design-vs-genuine error the F03 fix had to be corrected for.
+
+    ``_DATA_ONLY_TYPES`` are excluded too: ``line`` and ``voicemail_profile`` are
+    consumed by ``user:create`` and produce no operations by design.
+    """
+    return frozenset(_EXPANDERS) - frozenset(_DATA_ONLY_TYPES)
+
+
+def _count_stranded_by_type(store: MigrationStore) -> dict[str, int]:
+    """Count objects that stopped advancing before the planner could see them.
+
+    ``expand_to_operations`` queries ``status='analyzed'`` only, and
+    ``_count_needs_decision_by_type`` counts ``status='needs_decision'`` only, so
+    an object left at ``normalized`` is invisible to every existing signal.
+    Finding F08: 23 of 300 users on both real projects sit exactly there — absent
+    from ``plan_operations``, absent from all 1370 lines of plan output, and not
+    covered by the "held back awaiting your decision" roll-up. 7.7% of the user
+    population dropped silently.
+
+    Returns ``{object_type: count}``; empty when everything advanced.
+    """
+    # Counted in SQL rather than via query_by_status(): the object_type column is
+    # authoritative, and there is no reason to deserialize hundreds of Pydantic
+    # models to produce a count. Mirrors query_by_status's exclusion of the
+    # synthetic bulk-op placeholder rows, which are FK anchors, not real objects.
+    plannable = _plannable_types()
+    if not plannable:
+        return {}
+    status_slots = ",".join("?" * len(_STRANDED_STATUSES))
+    type_slots = ",".join("?" * len(plannable))
+    plannable_ordered = sorted(plannable)
+    rows = store.conn.execute(
+        f"SELECT object_type, COUNT(*) AS cnt FROM objects "
+        f"WHERE status IN ({status_slots}) "
+        f"AND object_type IN ({type_slots}) "
+        f"GROUP BY object_type",
+        (*_STRANDED_STATUSES, *plannable_ordered),
+    ).fetchall()
+    return {r["object_type"]: r["cnt"] for r in rows}
 
 
 def _build_pending_decisions_index(store: MigrationStore) -> dict[str, list[dict[str, Any]]]:
@@ -1960,7 +2096,7 @@ def expand_to_operations(
             # logging. Detect and WARN so this class of bug is loud going forward.
             stale_decisions = stale_index.get(cid, [])
             for sd in stale_decisions:
-                _warn_skip(
+                _warn_anomaly(
                     report,
                     canonical_id=cid,
                     entity_type=obj_type,
@@ -1970,7 +2106,8 @@ def expand_to_operations(
                     consequence=(
                         f"{obj_type} has a stale {sd.get('type')} decision — "
                         "re-running analyze may have invalidated this decision; "
-                        "inspect with `wxcli cucm decisions` and re-resolve if needed"
+                        "inspect with `wxcli cucm decisions --status stale` and "
+                        "re-resolve if needed"
                     ),
                 )
 
@@ -1981,7 +2118,7 @@ def expand_to_operations(
             for pd in pending_decisions:
                 if pd.get("type") == _CROSS_SITE_TYPE:
                     continue  # handled by the cross-site gate below
-                _warn_skip(
+                _warn_anomaly(
                     report,
                     canonical_id=cid,
                     entity_type=obj_type,
@@ -2132,7 +2269,14 @@ def expand_to_operations(
         # back awaiting their input.
         report.needs_decision_counts = _count_needs_decision_by_type(store)
 
+        # Objects that never reached 'analyzed' are invisible to everything
+        # above: expansion queries 'analyzed', needs_decision_counts queries
+        # 'needs_decision'. Finding F08's 23 users live in that blind spot.
+        report.stranded_counts = _count_stranded_by_type(store)
+
         _log_skip_summary(report)
+        _log_anomaly_summary(report)
+        _log_stranded_summary(report)
         _log_needs_decision_summary(report)
 
         # Post-expansion bulk optimization pass.
@@ -2141,15 +2285,36 @@ def expand_to_operations(
         all_ops = _optimize_for_bulk(all_ops, store, bulk_device_threshold,
                                      skip_rebuild_phones=skip_rebuild_phones)
 
-        # Loud-fail gate: raise if requested and any unresolved skips occurred.
+        # Loud-fail gate: raise if requested and anything is genuinely missing
+        # from the plan. Anomalies are excluded — those entities are IN the plan,
+        # and firing on them aborted correct plans citing 766 entities that were
+        # all present (finding F09).
         if fail_on_unresolved and report.has_unresolved_skips:
             unresolved = report.unresolved_entries()
-            types = sorted({e.decision_type or e.reason for e in unresolved})
+            reasons = sorted({e.decision_type or e.reason for e in unresolved})
+            parts: list[str] = []
+            if unresolved:
+                parts.append(
+                    f"{len(unresolved)} entities skipped due to unresolved "
+                    f"decisions ({', '.join(reasons)})"
+                )
+            if report.stranded_counts:
+                total = sum(report.stranded_counts.values())
+                detail = ", ".join(
+                    f"{t}: {n}"
+                    for t, n in sorted(
+                        report.stranded_counts.items(),
+                        key=lambda kv: kv[1],
+                        reverse=True,
+                    )
+                )
+                parts.append(
+                    f"{total} entities never reached the planner ({detail})"
+                )
             raise PlannerUnresolvedError(
-                f"Planner aborted: {len(unresolved)} entities skipped due to "
-                f"unresolved decisions ({', '.join(types)}). "
+                f"Planner aborted: {'; '.join(parts)}. "
                 "Re-run `wxcli cucm decisions` to resolve, or rerun `wxcli cucm plan` "
-                "without `--fail-on-unresolved` to accept the skips."
+                "without `--fail-on-unresolved` to accept the gaps."
             )
 
         return all_ops
@@ -2187,6 +2352,59 @@ def _log_skip_summary(report: PlannerSkipReport) -> None:
             "  Review unresolved decisions with: "
             "wxcli cucm decisions --type <type> -p <project>"
         )
+
+
+def _log_anomaly_summary(report: PlannerSkipReport) -> None:
+    """Log an aggregate roll-up of entities that were planned despite a problem.
+
+    Aggregate only — no per-entity line. On director-demo the per-entity form of
+    this was 766 of the 1129 "Planner skip:" lines, describing entities that are
+    all in the plan (findings F09 and F16). The count and the breakdown are the
+    useful part; 766 individual sentences are not.
+    """
+    if not report.anomalies:
+        return
+
+    logger.warning(
+        "Planner planned %d entities that carry an unresolved decision:",
+        len(report.anomalies),
+    )
+    groups: dict[tuple[str, str], int] = {}
+    for a in report.anomalies:
+        key = (a.decision_type or a.reason, a.decision_state or "no_decision")
+        groups[key] = groups.get(key, 0) + 1
+    for (key, state), cnt in sorted(groups.items()):
+        logger.warning("  %s: %d planned anyway (decision=%s)", key, cnt, state)
+    logger.warning(
+        "  These ARE in the plan. Inspect with: "
+        "wxcli cucm decisions --status stale -p <project>"
+    )
+
+
+def _log_stranded_summary(report: PlannerSkipReport) -> None:
+    """Log objects that stopped advancing before the planner could see them.
+
+    Finding F08: 23 of 300 users sat at ``status='normalized'`` and appeared in
+    none of the 1370 lines of plan output, in no roll-up, and in no report. The
+    only hint anywhere was ``user-diff.html`` printing "277 users included" with
+    no denominator.
+    """
+    if not report.stranded_counts:
+        return
+
+    total = sum(report.stranded_counts.values())
+    logger.warning(
+        "Planner never saw %d entities — they stopped advancing before analyze "
+        "completed and are ABSENT from this plan:",
+        total,
+    )
+    for obj_type, cnt in sorted(
+        report.stranded_counts.items(), key=lambda kv: kv[1], reverse=True
+    ):
+        logger.warning("  %s: %d never reached status=analyzed", obj_type, cnt)
+    logger.warning(
+        "  Investigate with: wxcli cucm decisions --status stale -p <project>"
+    )
 
 
 def _log_needs_decision_summary(report: PlannerSkipReport) -> None:
