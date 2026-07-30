@@ -95,7 +95,7 @@ def inventory_larger_than_plan(tmp_path):
             provenance=_prov(),
             name=f"SEP00000000000{i}",
             model="Cisco 8845",
-            mac_address=f"00000000000{i}",
+            mac=f"00000000000{i}",
             owner_canonical_id=f"user:u{i % 3}",
             compatibility_tier=tiers[i],
         )
@@ -233,10 +233,75 @@ class TestUnplannedObjectsAreDisclosedByReason:
         assert "require no operation" in doc
         assert "No action needed" in doc
 
-    def test_unexplained_absence_is_flagged(self, inventory_larger_than_plan):
-        """1 analyzed native_mpp device produced no op for no known reason."""
+    def test_unexplained_absence_is_flagged_without_claiming_no_reason_exists(
+        self, inventory_larger_than_plan
+    ):
+        """The planner may know the reason; this stage cannot read its report.
+
+        Claiming "no known reason" asserts something unverified — an adversarial
+        run showed 60 devices so labelled whose reason the planner had already
+        computed and printed (`missing_mac`).
+        """
         doc = generate_plan_summary(inventory_larger_than_plan, "proj")
-        assert "no known reason" in doc
+        assert "no known reason" not in doc
+        assert "produced no operation" in doc
+        assert "see the `plan` stage output" in doc
+
+    def test_by_design_wins_over_status(self, tmp_path):
+        """A webex_app device at `normalized` needs no operation at ANY status.
+
+        The first ordering checked status first, so 4 devices that were both
+        `normalized` AND (`infrastructure`|`webex_app`) were filed as "stopped
+        advancing — investigate" alongside genuine problems, while the same
+        document said 324 identical-in-kind devices needed no action.
+        """
+        store = MigrationStore(tmp_path / "ordering.db")
+        dev = CanonicalDevice(
+            canonical_id="device:softphone",
+            provenance=_prov(),
+            name="SEPSOFT",
+            model="Cisco IP Communicator",
+            owner_canonical_id="user:u0",
+            compatibility_tier=DeviceCompatibilityTier.WEBEX_APP,
+        )
+        dev.status = MigrationStatus.NORMALIZED
+        store.upsert_object(dev)
+
+        from wxcli.migration.export.deployment_plan import _classify_unplanned
+
+        unplanned = _classify_unplanned(store)
+        store.close()
+
+        assert unplanned.no_op_expected == {"device": 1}
+        assert unplanned.stranded == {}, (
+            "a by-design absence must not also be reported as stranded"
+        )
+
+    def test_known_gap_states_the_reason_from_the_object_data(self, tmp_path):
+        """A device with no MAC has a reason sitting in its own row."""
+        store = MigrationStore(tmp_path / "gap.db")
+        dev = CanonicalDevice(
+            canonical_id="device:ctiport",
+            provenance=_prov(),
+            name="CTI-PORT-1",
+            model="CTI Port",
+            owner_canonical_id="user:u0",
+            compatibility_tier=DeviceCompatibilityTier.INCOMPATIBLE,
+        )
+        dev.status = MigrationStatus.ANALYZED
+        store.upsert_object(dev)
+
+        from wxcli.migration.export.deployment_plan import _classify_unplanned
+
+        unplanned = _classify_unplanned(store)
+        doc = generate_plan_summary(store, "proj")
+        store.close()
+
+        assert unplanned.known_gaps == {
+            "device": {"no MAC address was extracted from CUCM": 1}
+        }
+        assert unplanned.unexplained == {}
+        assert "No MAC address was extracted from CUCM" in doc
 
     def test_no_disclosure_section_when_the_plan_is_complete(self, tmp_path):
         """A plan that covers everything must not grow an empty warning block."""
