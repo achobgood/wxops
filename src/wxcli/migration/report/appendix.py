@@ -289,7 +289,7 @@ def _e911_readiness(store: MigrationStore) -> str:
     ambiguous = 0
     mismatch = 0
     for d in store.get_all_decisions():
-        if d.get("chosen_option") == "__stale__":
+        if is_stale(d):
             continue
         t = d.get("type", "")
         if t == "E911_ECBN_AMBIGUOUS":
@@ -2142,7 +2142,7 @@ def _selective_call_handling(store: MigrationStore) -> str:
     for d in store.get_all_decisions():
         if d.get("type") != "FEATURE_APPROXIMATION":
             continue
-        if d.get("chosen_option") == "__stale__":
+        if is_stale(d):
             continue
         ctx = d.get("context", {}) or {}
         pattern = ctx.get("selective_call_handling_pattern")
@@ -2558,7 +2558,7 @@ def _cross_site_group(store: MigrationStore) -> str:
     decisions = [
         d for d in store.get_all_decisions()
         if d.get("type") == "CROSS_SITE_DEPENDENCY"
-        and d.get("chosen_option") != "__stale__"
+        and not is_stale(d)
     ]
     if not decisions:
         return ""

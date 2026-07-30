@@ -1564,6 +1564,7 @@ def analyze(
     _invalidate_downstream(project_dir, "analyze")
 
     from wxcli.migration.transform.analysis_pipeline import AnalysisPipeline
+    from wxcli.migration.decision_state import is_stale
     from wxcli.migration.transform.decisions import format_decision_report
 
     config = load_config(project_dir)
@@ -1581,7 +1582,7 @@ def analyze(
 
         # Print full decision report
         all_decisions = store.get_all_decisions()
-        non_stale = [d for d in all_decisions if d.get("chosen_option") != "__stale__"]
+        non_stale = [d for d in all_decisions if not is_stale(d)]
         if non_stale:
             console.print()
             console.print(format_decision_report(non_stale))
@@ -2775,11 +2776,13 @@ def _print_object_detail(objects: list[dict], store) -> None:
                 console.print(f"  {k}: {v}")
 
         # Show decisions affecting this object
+        from wxcli.migration.decision_state import is_stale
+
         all_decisions = store.get_all_decisions()
         obj_decisions = [
             d for d in all_decisions
             if cid in d.get("context", {}).get("_affected_objects", [])
-            and d.get("chosen_option") != "__stale__"
+            and not is_stale(d)
         ]
         if obj_decisions:
             console.print(f"\n  [bold]Decisions:[/bold]")

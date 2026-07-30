@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from wxcli.migration.decision_state import is_resolved
 from wxcli.migration.store import MigrationStore
 
 logger = logging.getLogger(__name__)
@@ -279,8 +280,7 @@ def _get_resolved_decisions(store: MigrationStore) -> list[dict[str, Any]]:
     all_decisions = store.get_all_decisions()
     return [
         d for d in all_decisions
-        if d.get("chosen_option") is not None
-        and d.get("chosen_option") != "__stale__"
+        if is_resolved(d)
     ]
 
 
