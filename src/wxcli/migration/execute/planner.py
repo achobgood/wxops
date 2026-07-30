@@ -209,15 +209,26 @@ def _warn_skip(
     consequence: str,
     decision_type: str | None = None,
     decision_state: str | None = None,
+    by_design: bool = False,
 ) -> None:
-    """Emit a WARN and record into the report.
+    """Record a planner skip and log it at the level its classification earns.
 
-    Keeping WARN + record in one helper ensures every silent-skip site has
-    identical observability (log + report entry).
+    Keeping the log + record in one helper ensures every silent-skip site has
+    identical observability. ``by_design`` is the single switch: it sets the
+    flag the roll-up splits on AND drops the log to INFO.
+
+    Binding those two together is deliberate. They used to be correlated only
+    by convention — by-design sites hand-rolled ``logger.info`` plus a bare
+    ``report.record``, genuine gaps came through here at WARNING — and nothing
+    enforced the pairing. ``dead_template_zero_phones`` sat on the wrong side
+    of it, so 224 line key templates that no phone references produced 224
+    warnings apiece about work that was never owed.
     """
     tag = decision_type or reason
-    logger.warning(
-        "Planner skip: %s %s (reason=%s%s) — %s",
+    logger.log(
+        logging.INFO if by_design else logging.WARNING,
+        "Planner skip (expected): %s %s (reason=%s%s) — %s" if by_design
+        else "Planner skip: %s %s (reason=%s%s) — %s",
         entity_type,
         canonical_id,
         tag,
@@ -231,6 +242,7 @@ def _warn_skip(
         consequence=consequence,
         decision_type=decision_type,
         decision_state=decision_state,
+        by_design=by_design,
     )
 
 
@@ -1433,6 +1445,20 @@ def _expand_line_key_template(obj: dict[str, Any]) -> list[MigrationOp]:
                     "line key template will not be created "
                     "(phones_using=0 — no device references this template)"
                 ),
+                # By design, and measured rather than assumed. The worry was
+                # that phones_using=0 might mean a failed
+                # phone_uses_button_template cross-ref rather than a genuinely
+                # unused template — a real gap wearing a by-design costume.
+                # On director-demo-2026-04-15: 227 of 1100 phones carry a
+                # non-null phoneTemplateName, those 227 name 18 distinct
+                # templates, exactly 18 templates have phones_using > 0, and
+                # their phones_using sums to exactly 227 — which is also the
+                # phone_uses_button_template cross-ref count. The chain is
+                # intact end to end; 224 of CUCM's 242 templates are simply
+                # unreferenced. `phones_using` is `len(phone_refs)` straight
+                # off those cross-refs (button_template_mapper.py:97), so a
+                # zero is structurally "nothing references this".
+                by_design=True,
             )
         return []
     name = obj.get("name") or cid
@@ -1662,6 +1688,15 @@ def _expand_device_settings_template(
                     "device settings template will not be applied "
                     f"({reason} — nothing to apply or no phones to apply it to)"
                 ),
+                # Only the zero-phones half is by design — it is the same
+                # structural condition as dead_template_zero_phones above, a
+                # template nothing references. `no_settings` stays a gap: an
+                # empty settings dict could equally be a mapping that produced
+                # nothing, and no measurement says otherwise. Neither reason
+                # occurs on director-demo, so this one is reasoned, not
+                # measured, and is scoped to the half that matches a condition
+                # that was.
+                by_design=bool(settings),
             )
         return []
 
