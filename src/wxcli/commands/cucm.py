@@ -805,6 +805,12 @@ def status(
                 total += r["cnt"]
             console.print(f"  {'TOTAL':<25s} {total:>5d}")
 
+        # Preflight verdict, with how much of it actually ran. A recorded PASS
+        # over one check is not a passed gate, and three saved projects are in
+        # exactly that state (finding F07). Reported, never rewritten — the
+        # state file on disk is left alone by design.
+        _print_preflight_coverage(_load_state_data(project_dir))
+
         # Decision summary
         from wxcli.migration.decision_state import count_decisions, is_stale
 
@@ -1361,7 +1367,7 @@ def map_cmd(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Run 20 transform mappers to produce canonical Webex objects + decisions."""
+    """Run 26 transform mappers to produce canonical Webex objects + decisions."""
     if verbose:
         import logging as _logging
         _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
@@ -1401,7 +1407,7 @@ def analyze(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Run 13 analyzers + auto-rules + merge decisions."""
+    """Run 15 analyzers + auto-rules + merge decisions."""
     if verbose:
         import logging as _logging
         _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
@@ -1566,7 +1572,7 @@ _STATUS_SYMBOLS = {
 def preflight(
     check: Optional[str] = typer.Option(
         None, "--check", "-c",
-        help="Run only this check: licenses, workspace-licenses, locations, trunks, features, numbers, users, rate-limit",
+        help="Run only this check: licenses, workspace-licenses, locations, trunks, features, numbers, users, rate-limit, e911-readiness, bulk-job-support. Does NOT satisfy the preflight gate.",
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be checked without querying Webex"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table or json"),
@@ -1606,9 +1612,24 @@ def preflight(
                 {"name": c.name, "status": c.status.value, "detail": c.detail}
                 for c in result.checks
             ]
+            # How many checks EXIST, recorded alongside how many ran, so a
+            # partial pass is legible from the state file itself. Three saved
+            # projects hold `preflight_result: "PASS"` over a single
+            # {"name": "Rate limit budget"} entry — indistinguishable at a
+            # glance from a full pass (finding F07).
+            data["preflight_checks_total"] = _preflight_check_total()
             _save_state_data(project_dir, data)
 
-            if result.overall != CheckStatus.FAIL:
+            # The gate is satisfied only by a FULL run with no failures and no
+            # unknowns. `--check <one>` is a legitimate debugging tool, but it
+            # ran one check that needs no Webex data, so it cannot stand in for
+            # a gate the skill calls MANDATORY, NOT SKIPPABLE. INCOMPLETE is
+            # excluded for the same reason: "could not check" is not "passed".
+            gate_ok = (
+                result.overall not in (CheckStatus.FAIL, CheckStatus.INCOMPLETE)
+                and check is None
+            )
+            if gate_ok:
                 _mark_stage_complete(project_dir, "preflight")
 
                 # Advance project state to PREFLIGHT
@@ -1619,6 +1640,13 @@ def preflight(
                     ms.transition(ProjectState.PREFLIGHT)
                 except InvalidTransitionError:
                     pass
+            elif check is not None:
+                console.print(
+                    f"\n[yellow]Partial run:[/yellow] {len(result.checks)} of "
+                    f"{_preflight_check_total()} checks. The preflight gate is NOT "
+                    "satisfied — run `wxcli cucm preflight` with no --check before "
+                    "executing."
+                )
 
         # The exit code has to carry the verdict. A caller that gates on $?
         # (the cucm-migrate skill calls preflight MANDATORY, NOT SKIPPABLE)
@@ -1634,6 +1662,48 @@ def preflight(
         raise typer.Exit(1)
     finally:
         store.close()
+
+
+def _print_preflight_coverage(data: dict) -> None:
+    """Print the recorded preflight verdict AND how many checks produced it.
+
+    A verdict alone is not enough: `preflight --check rate-limit` recorded
+    ``preflight_result: "PASS"`` with a single check and marked the gate complete.
+    Older state files predate ``preflight_checks_total``, so the total is taken
+    from the live registry when it is absent.
+    """
+    verdict = data.get("preflight_result")
+    if not verdict:
+        return
+
+    checks = data.get("preflight_checks") or []
+    ran = len(checks)
+    total = data.get("preflight_checks_total") or _preflight_check_total()
+
+    color = {"PASS": "green", "WARN": "yellow"}.get(verdict, "red")
+    line = f"\n[bold]Preflight:[/bold] [{color}]{verdict}[/{color}]"
+    if ran and total and ran < total:
+        console.print(f"{line} on {ran} of {total} checks — [yellow]PARTIAL[/yellow]")
+        names = ", ".join(c.get("name", "?") for c in checks)
+        console.print(f"  Ran: {names}")
+        console.print(
+            "  [yellow]The preflight gate is NOT satisfied.[/yellow] Re-run "
+            "`wxcli cucm preflight` with no --check before executing."
+        )
+    elif ran:
+        console.print(f"{line} on all {ran} checks")
+    else:
+        console.print(line)
+
+
+def _preflight_check_total() -> int:
+    """How many preflight checks exist, from the runner's own registry.
+
+    Imported lazily to keep `wxcli --help` off the migration import path.
+    """
+    from wxcli.migration.preflight.runner import PreflightRunner
+
+    return len(PreflightRunner.registered_check_names())
 
 
 def _preflight_table_output(result, elapsed: float) -> None:

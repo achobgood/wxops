@@ -36,11 +36,31 @@ from wxcli.migration.store import MigrationStore
 
 
 # Priority order for overall result (worst wins)
+#: INCOMPLETE outranks WARN but not FAIL. A definite failure is the more
+#: actionable message ("the org is not ready"); INCOMPLETE means "we do not
+#: know", which must still stop the gate but should not masquerade as a verdict.
 _STATUS_PRIORITY = {
-    CheckStatus.FAIL: 3,
+    CheckStatus.FAIL: 4,
+    CheckStatus.INCOMPLETE: 3,
     CheckStatus.WARN: 2,
     CheckStatus.PASS: 1,
     CheckStatus.SKIP: 0,
+}
+
+#: Which fetched dataset each check's verdict depends on. A check whose data was
+#: never retrieved cannot distinguish "nothing found" from "never queried", so it
+#: reports INCOMPLETE rather than a verdict it did not earn (finding F06).
+#: Checks absent from this map need no Webex data — ``rate-limit`` reads the plan,
+#: ``e911-readiness`` reads the store, ``bulk-job-support`` carries its own probe
+#: which already SKIPs when auth is unavailable.
+_CHECK_FETCH_DEPS: dict[str, tuple[str, ...]] = {
+    "licenses": ("licenses",),
+    "workspace-licenses": ("licenses",),
+    "locations": ("locations",),
+    "trunks": ("trunks",),
+    "numbers": ("numbers",),
+    "users": ("people",),
+    "features": ("features",),
 }
 
 
@@ -54,11 +74,35 @@ def _worst_status(results: list[CheckResult]) -> CheckStatus:
 
 
 class PreflightRunner:
-    """Orchestrates all 7 preflight checks + DUPLICATE_USER detection.
+    """Orchestrates all 10 preflight checks + DUPLICATE_USER detection.
 
     Fetches shared data once before running individual checks.
     (from 05a-preflight-checks.md, Shared Data Between Checks)
     """
+
+    #: Every check this runner knows about, in registry order. Callers need the
+    #: total to tell a full run from a partial one — `--check <one>` used to mark
+    #: the "MANDATORY, NOT SKIPPABLE" gate complete, leaving a state file
+    #: indistinguishable from a full 10-check pass (finding F07).
+    #: `test_registered_names_match_the_registry` pins this against the dict
+    #: built inside `run()`, so the two cannot drift.
+    CHECK_NAMES: tuple[str, ...] = (
+        "licenses",
+        "workspace-licenses",
+        "locations",
+        "trunks",
+        "features",
+        "numbers",
+        "users",
+        "rate-limit",
+        "e911-readiness",
+        "bulk-job-support",
+    )
+
+    @classmethod
+    def registered_check_names(cls) -> tuple[str, ...]:
+        """The full set of check names — what a complete run covers."""
+        return cls.CHECK_NAMES
 
     def __init__(self, config: dict | None = None):
         self.config = config or {}
@@ -76,6 +120,9 @@ class PreflightRunner:
             check_filter: Run only this check (e.g., "numbers", "licenses").
             dry_run: Show what would be checked without querying Webex.
         """
+        # Reset per-run so a reused runner instance cannot leak a stale failure.
+        self._fetch_failures: dict[str, str] = {}
+
         if dry_run:
             return self._dry_run(store, check_filter)
 
@@ -134,12 +181,14 @@ class PreflightRunner:
             if check_filter not in all_checks:
                 valid = ", ".join(sorted(all_checks.keys()))
                 raise PreflightError(f"Unknown check '{check_filter}'. Valid: {valid}")
-            result = all_checks[check_filter]()
+            result = self._mark_incomplete_if_unfetched(
+                check_filter, all_checks[check_filter]()
+            )
             results.append(result)
         else:
             for name, check_fn in all_checks.items():
                 try:
-                    result = check_fn()
+                    result = self._mark_incomplete_if_unfetched(name, check_fn())
                     results.append(result)
                 except PreflightError as e:
                     results.append(CheckResult(
@@ -172,6 +221,45 @@ class PreflightRunner:
             merge_result=merge_result,
         )
 
+    def _mark_incomplete_if_unfetched(
+        self, check_name: str, result: CheckResult
+    ) -> CheckResult:
+        """Replace a check's verdict with INCOMPLETE when its data never arrived.
+
+        The check function still runs — it is a pure function of (store, data) and
+        running it is how the display name is obtained — but its verdict is
+        discarded, because a verdict computed from an empty list that was supposed
+        to hold the org's numbers is not a verdict.
+
+        Any decisions the check captured are dropped too: a NUMBER_CONFLICT set
+        derived from zero fetched numbers would merge "no conflicts" into the
+        store as fact.
+        """
+        failed = [
+            dep for dep in _CHECK_FETCH_DEPS.get(check_name, ())
+            if dep in self._fetch_failures
+        ]
+        if not failed:
+            return result
+
+        if check_name == "numbers":
+            self._number_decisions = []
+        elif check_name == "users":
+            self._user_decisions = []
+
+        reasons = "; ".join(
+            f"{dep}: {self._fetch_failures[dep]}" for dep in failed
+        )
+        return CheckResult(
+            name=result.name,
+            status=CheckStatus.INCOMPLETE,
+            detail=(
+                f"Could not check — required Webex data was not retrieved "
+                f"({reasons}). This is not a pass: re-run preflight once the "
+                f"query succeeds."
+            ),
+        )
+
     def _run_number_check(self, store: MigrationStore, numbers: list[dict]) -> CheckResult:
         """Run number conflict check and capture decisions."""
         result, decisions = check_number_conflicts(store, numbers)
@@ -185,10 +273,18 @@ class PreflightRunner:
         return result
 
     def _fetch(self, label: str, args: list[str]) -> list[dict]:
-        """Fetch data from wxcli, returning empty list on failure."""
+        """Fetch data from wxcli, recording failure so callers can tell.
+
+        Still returns ``[]`` so the shared-data plumbing is unchanged, but the
+        failure is recorded against ``label``. Without that record every check
+        received an empty list and could not distinguish "nothing found" from
+        "never queried" — which turned a missing token into three confident
+        PASSes (finding F06).
+        """
         try:
             return _run_wxcli(args)
-        except PreflightError:
+        except PreflightError as exc:
+            self._fetch_failures[label] = str(exc)
             return []
 
     def _build_bulk_job_probe(self):
@@ -254,8 +350,12 @@ class PreflightRunner:
             try:
                 data = _run_wxcli(args)
                 counts[obj_type] = len(data)
-            except PreflightError:
+            except PreflightError as exc:
+                # Same swallow as _fetch had: a count of 0 from a failed query
+                # reads as "no features exist" and the entitlement check then
+                # passes on headroom it never confirmed.
                 counts[obj_type] = 0
+                self._fetch_failures["features"] = str(exc)
         return counts
 
     def _dry_run(

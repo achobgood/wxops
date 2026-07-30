@@ -23,6 +23,13 @@ class CheckStatus(str, Enum):
     WARN = "WARN"
     FAIL = "FAIL"
     SKIP = "SKIP"
+    #: The check could not run because the Webex data it needed was never
+    #: retrieved. Distinct from FAIL (the org is not ready) and from PASS
+    #: (nothing found): with no token at all, checks fed an empty list reported
+    #: "No number/extension conflicts" and "No cross-system duplicate users" —
+    #: the exact false negative the Discovery-First rule warns about, on the two
+    #: checks that exist to stop a live org being corrupted (finding F06).
+    INCOMPLETE = "INCOMPLETE"
 
 
 @dataclass

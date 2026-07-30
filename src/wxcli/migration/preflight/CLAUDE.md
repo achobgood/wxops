@@ -7,7 +7,7 @@ Preflight checks that verify the Webex org is ready for the migration plan. Read
 | File | Purpose |
 |------|---------|
 | `__init__.py` | Data models (CheckStatus, CheckResult, PreflightResult, PreflightIssue, PreflightError), `_run_wxcli()` subprocess helper, `preflight_fingerprint()` |
-| `checks.py` | 8 check functions — each takes store + fetched data, returns CheckResult (or tuple with decisions) |
+| `checks.py` | 10 check functions — each takes store + fetched data, returns CheckResult (or tuple with decisions) |
 | `runner.py` | PreflightRunner — fetches shared Webex data once, runs all checks, merges decisions |
 
 ## Architecture
@@ -16,12 +16,17 @@ Preflight checks that verify the Webex org is ready for the migration plan. Read
 wxcli cucm preflight
   → PreflightRunner.run()
     → _fetch() shared data (licenses, locations, numbers, people, trunks)
-    → run 8 checks as pure functions of (store, fetched_data)
+    → run 10 checks as pure functions of (store, fetched_data)
     → merge NUMBER_CONFLICT + DUPLICATE_USER decisions into store
     → return PreflightResult (overall PASS/WARN/FAIL/SKIP)
 ```
 
-## The 9 Checks
+## The 10 Checks
+
+Count derived from `runner.py`'s `all_checks` registry and asserted by
+`tools/drift_check.py` check [17] — four different numbers (7, 8, 9, 8) were
+claimed across this file, `runner.py` and `cucm-migrate/SKILL.md`, and none of
+them was 10 (finding F17).
 
 1. **User licenses** — enough Calling Professional licenses
 2. **Workspace licenses** — enough Workspace licenses (matches API's `UserLicenseType.WORKSPACE`)
@@ -32,6 +37,25 @@ wxcli cucm preflight
 7. **Duplicate users** — planned users already in Webex (produces DUPLICATE_USER decisions, 3 scenarios)
 8. **Rate limit budget** — estimated migration duration from plan_operations
 9. **E911 readiness** — Every user has a resolvable ECBN candidate (DIRECT_LINE or LOCATION_ECBN); no unresolved E911 decisions; extension-only users warn, missing candidates fail.
+10. **Bulk device job support** — probes the bulk device job endpoint when the plan contains bulk ops; SKIPs when auth is unavailable. This is the check every prior count omitted.
+
+### INCOMPLETE — a check that could not run
+
+`CheckStatus.INCOMPLETE` is returned when a check's required Webex data was never
+retrieved. `_fetch` records the failure against the dataset label, and
+`_mark_incomplete_if_unfetched` replaces the check's verdict (keeping its display
+name) for every check listed in `_CHECK_FETCH_DEPS`.
+
+Before this existed, `_fetch` swallowed `PreflightError` and returned `[]`, so with
+no token at all preflight reported `✓ PASS Number conflicts: No number/extension
+conflicts` and `✓ PASS Duplicate users: No cross-system duplicate users` — the two
+checks that exist to stop a live org being corrupted on execute (finding F06).
+`_count_existing_features` had the same swallow and is now recorded too.
+
+`INCOMPLETE` ranks above `WARN` and below `FAIL` in `_STATUS_PRIORITY`: a definite
+failure is the more actionable message, but "we do not know" must still stop the
+gate. Any decisions a check captured from unfetched data are discarded rather than
+merged into the store.
 
 ## Key Design Decisions
 
