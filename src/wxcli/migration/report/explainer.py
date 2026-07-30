@@ -668,9 +668,14 @@ def generate_verdict(score_result: ScoreResult, store: MigrationStore) -> str:
 
     if counts.total == 0:
         decision_text = "No migration decisions were generated."
+    elif counts.live_total == 0 and counts.stale_active == 0:
+        decision_text = (
+            f"All {counts.stale_retired} decisions relate to checks the migration tool no "
+            "longer performs — nothing is outstanding."
+        )
     elif counts.live_total == 0:
         decision_text = (
-            f"All {counts.stale} decisions were invalidated by a later analysis pass — "
+            f"{counts.stale_active} decisions were invalidated by a later analysis pass — "
             "none of them has been decided, and they need review before migration can proceed."
         )
     elif counts.pending == 0:
@@ -683,9 +688,10 @@ def generate_verdict(score_result: ScoreResult, store: MigrationStore) -> str:
             f"{counts.pending} of {counts.live_total} live decisions require manual input "
             "before migration can proceed."
         )
-    if counts.stale and counts.live_total:
+    if counts.stale_active and counts.live_total:
         decision_text += (
-            f" A further {counts.stale} decisions were invalidated by re-analysis and are not counted here."
+            f" A further {counts.stale_active} decisions were invalidated by re-analysis "
+            "and are not counted here."
         )
 
     return f"{opener} {driver} {decision_text}"
@@ -771,10 +777,10 @@ def generate_key_findings(store: MigrationStore) -> list[dict[str, str]]:
                 "icon": "!",
                 "text": f"<strong>{counts.pending} of {counts.live_total} live decisions</strong> require manual input before migration",
             })
-    if counts.stale:
+    if counts.stale_active:
         findings.append({
             "icon": "!",
-            "text": f"<strong>{counts.stale} decisions were invalidated</strong> by re-analysis — nothing has decided them, so they need review",
+            "text": f"<strong>{counts.stale_active} decisions were invalidated</strong> by re-analysis — nothing has decided them, so they need review",
         })
 
     return findings

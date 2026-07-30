@@ -79,7 +79,16 @@ def inventory_larger_than_plan(tmp_path):
         )
         store.upsert_object(user)
 
-    # 4 devices in inventory; only 2 get a create op.
+    # 4 devices in inventory; only 2 get a create op. The remaining two are
+    # deliberately different so all three "unplanned" buckets are exercised:
+    #   d2 — webex_app, needs no operation by design (must NOT be a finding)
+    #   d3 — native_mpp, analyzed, no operation, no known reason (must be one)
+    tiers = [
+        DeviceCompatibilityTier.NATIVE_MPP,
+        DeviceCompatibilityTier.NATIVE_MPP,
+        DeviceCompatibilityTier.WEBEX_APP,
+        DeviceCompatibilityTier.NATIVE_MPP,
+    ]
     for i in range(4):
         dev = CanonicalDevice(
             canonical_id=f"device:d{i}",
@@ -88,7 +97,7 @@ def inventory_larger_than_plan(tmp_path):
             model="Cisco 8845",
             mac_address=f"00000000000{i}",
             owner_canonical_id=f"user:u{i % 3}",
-            compatibility_tier=DeviceCompatibilityTier.NATIVE_MPP,
+            compatibility_tier=tiers[i],
         )
         dev.status = MigrationStatus.ANALYZED
         store.upsert_object(dev)
@@ -151,6 +160,15 @@ def test_fixture_inventory_really_exceeds_the_plan(inventory_larger_than_plan):
     assert inv["translation_pattern"] == 1 and "translation_pattern" not in plan
     assert inv["pickup_group"] == 1 and "pickup_group" not in plan
 
+    from wxcli.migration.export.deployment_plan import _classify_unplanned
+
+    unplanned = _classify_unplanned(store)
+    assert unplanned.stranded == {
+        "user": 2, "translation_pattern": 1, "pickup_group": 1
+    }
+    assert unplanned.no_op_expected == {"device": 1}, "the webex_app device"
+    assert unplanned.unexplained == {"device": 1}, "the analyzed native_mpp device"
+
 
 class TestResourceSummaryReflectsThePlan:
     def test_person_count_is_the_planned_count(self, inventory_larger_than_plan):
@@ -169,23 +187,79 @@ class TestResourceSummaryReflectsThePlan:
         assert "| Pickup Group | 1 | Create |" not in doc
 
 
-class TestExcludedPopulationIsDisclosed:
-    def test_document_names_the_excluded_objects(self, inventory_larger_than_plan):
+class TestUnplannedObjectsAreDisclosedByReason:
+    """A flat "excluded" count is its own misstatement.
+
+    Measured on director-demo: of 328 devices with no operation, 314 are
+    `webex_app` (softphones moving to the Webex App — nothing to provision) and
+    13 are `infrastructure`. Calling those "excluded because a decision resolved
+    to skip, the object is incompatible, or its decision was invalidated" puts a
+    false claim in a customer-facing document.
+    """
+
+    def test_document_discloses_unplanned_objects(self, inventory_larger_than_plan):
         """"skip", "excluded", "incompatible" and "stale" appeared nowhere."""
         doc = generate_plan_summary(inventory_larger_than_plan, "proj").lower()
-        assert "excluded" in doc or "not in this plan" in doc
+        assert "not in this plan" in doc
 
-    def test_excluded_counts_are_stated(self, inventory_larger_than_plan):
+    def test_stranded_objects_are_flagged_with_the_right_reason(
+        self, inventory_larger_than_plan
+    ):
+        """2 users never reached 'analyzed' — the finding-F08 population."""
         doc = generate_plan_summary(inventory_larger_than_plan, "proj")
-        # 2 users and 2 devices in the inventory produce no operation.
-        assert "Person" in doc and "Device" in doc
-        lowered = doc.lower()
-        idx = lowered.find("not in this plan")
-        if idx == -1:
-            idx = lowered.find("excluded")
+        assert "| Person | 2 | Stopped advancing before the planner ran |" in doc
+
+    def test_by_design_absences_are_not_called_excluded(
+        self, inventory_larger_than_plan
+    ):
+        """The webex_app device needs no operation and must not be a finding."""
+        doc = generate_plan_summary(inventory_larger_than_plan, "proj")
+        idx = doc.find("### Not in this plan")
         assert idx != -1
-        tail = doc[idx:]
-        assert "2" in tail, "the excluded counts must be quantified, not just mentioned"
+        table = doc[idx:doc.find("Investigate with", idx)]
+        assert "Stopped advancing" in table
+        # Exactly one device is a genuine finding (the analyzed native_mpp with
+        # no op). The webex_app device must not be counted alongside it.
+        assert "| Device | 1 | Analyzed, but produced no operation" in table
+        assert "| Device | 2 |" not in table, (
+            "the webex_app device must not be listed alongside genuine problems"
+        )
+
+    def test_by_design_absences_are_still_accounted_for(
+        self, inventory_larger_than_plan
+    ):
+        """Stated so the arithmetic reconciles — but with no call to action."""
+        doc = generate_plan_summary(inventory_larger_than_plan, "proj")
+        assert "require no operation" in doc
+        assert "No action needed" in doc
+
+    def test_unexplained_absence_is_flagged(self, inventory_larger_than_plan):
+        """1 analyzed native_mpp device produced no op for no known reason."""
+        doc = generate_plan_summary(inventory_larger_than_plan, "proj")
+        assert "no known reason" in doc
+
+    def test_no_disclosure_section_when_the_plan_is_complete(self, tmp_path):
+        """A plan that covers everything must not grow an empty warning block."""
+        store = MigrationStore(tmp_path / "complete.db")
+        loc = CanonicalLocation(
+            canonical_id="location:hq",
+            provenance=_prov(),
+            name="HQ",
+            time_zone="America/New_York",
+            preferred_language="en_US",
+            announcement_language="en_us",
+        )
+        loc.status = MigrationStatus.ANALYZED
+        store.upsert_object(loc)
+        G = nx.DiGraph()
+        G.add_node("location:hq:create", canonical_id="location:hq", op_type="create",
+                   resource_type="location", tier=0, batch="org-wide", api_calls=1,
+                   description="Create location HQ")
+        save_plan_to_store(G, store)
+        doc = generate_plan_summary(store, "proj")
+        store.close()
+        assert "### Not in this plan" not in doc
+        assert "no known reason" not in doc
 
 
 class TestImpactSectionReflectsThePlan:

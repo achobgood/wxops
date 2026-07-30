@@ -781,12 +781,19 @@ def status(
                 f"\n[bold]Decisions:[/bold] {counts.live_total} live "
                 f"({len(resolved)} resolved, {len(pending)} pending)"
             )
-            if counts.stale:
+            if counts.stale_active:
                 console.print(
-                    f"  [yellow]{counts.stale} invalidated[/yellow] of {counts.total} total"
+                    f"  [yellow]{counts.stale_active} invalidated[/yellow] of {counts.total} total"
                     " — re-analysis rewrote the underlying object, so nothing decided these."
                 )
                 console.print("  Inspect with: wxcli cucm decisions --status stale")
+            if counts.stale_retired:
+                # Retired decision types are not a finding — the pipeline stopped
+                # emitting them on purpose. Dim, and never with a call to action.
+                console.print(
+                    f"  [dim]{counts.stale_retired} retired[/dim] — decision types this"
+                    " pipeline no longer emits. No action needed."
+                )
             if pending:
                 by_severity: dict[str, int] = defaultdict(int)
                 for d in pending:

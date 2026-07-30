@@ -35,7 +35,12 @@ def _axl_str(value: Any) -> str:
         return str(value.get("_value_1", ""))
     return str(value)
 
-from wxcli.migration.decision_state import count_decisions, is_resolved, is_stale
+from wxcli.migration.decision_state import (
+    count_decisions,
+    is_resolved,
+    is_retired,
+    is_stale,
+)
 from wxcli.migration.report.charts import stacked_bar_chart
 from wxcli.migration.report.explainer import (
     DECISION_TYPE_DISPLAY_NAMES,
@@ -180,22 +185,32 @@ def _decisions_group(store: MigrationStore) -> str:
         by_type[d.get("type", "UNKNOWN")].append(d)
 
     headline = f"— {counts.total} total, {counts.resolved} auto-resolved"
-    if counts.stale:
-        headline += f", {counts.stale} invalidated by re-analysis"
+    if counts.stale_active:
+        headline += f", {counts.stale_active} invalidated by re-analysis"
+    if counts.stale_retired:
+        headline += f", {counts.stale_retired} retired"
 
     parts = [
         f'<details id="decision-detail">',
         f'<summary>B. Decision Detail <span class="summary-count">{headline}</span></summary>',
         '<div class="details-content">',
     ]
-    if counts.stale:
+    if counts.stale_active:
         parts.append(
             '<p class="callout">'
-            f'<strong>{counts.stale} of these {counts.total} decisions were invalidated</strong> '
+            f'<strong>{counts.stale_active} of these {counts.total} decisions were invalidated</strong> '
             "when the pipeline re-analysed the environment: the underlying object changed, so the "
             "decision no longer applies and <em>nothing has chosen an option for it</em>. "
             "Invalidated rows are listed below for the record, but they are not resolutions — "
             "the underlying question is still open."
+            '</p>'
+        )
+    if counts.stale_retired:
+        parts.append(
+            '<p class="small muted">'
+            f'A further {counts.stale_retired} decisions belong to checks the migration tool '
+            "no longer performs. They are retired, not outstanding, and are listed below only "
+            "so the totals reconcile."
             '</p>'
         )
 
@@ -207,8 +222,10 @@ def _decisions_group(store: MigrationStore) -> str:
             resolution = f"{type_counts.resolved}/{type_counts.live_total} resolved"
         else:
             resolution = "none resolved"
-        if type_counts.stale:
-            resolution += f", {type_counts.stale} invalidated"
+        if type_counts.stale_active:
+            resolution += f", {type_counts.stale_active} invalidated"
+        if type_counts.stale_retired:
+            resolution += f", {type_counts.stale_retired} retired"
 
         parts.append(f'<div class="explanation">')
         parts.append(f'<h4>{html.escape(display_name)} ({len(type_decisions)}) <span class="muted small">— {resolution}</span></h4>')
@@ -233,6 +250,8 @@ def _decisions_group(store: MigrationStore) -> str:
                 severity = d.get("severity", "MEDIUM")
                 if is_resolved(d):
                     status = "Auto-resolved"
+                elif is_retired(d):
+                    status = "Retired"
                 elif is_stale(d):
                     status = "Invalidated"
                 else:
