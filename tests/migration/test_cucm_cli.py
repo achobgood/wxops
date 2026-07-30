@@ -686,6 +686,43 @@ def _seed_plan(project_dir: Path) -> None:
     store.close()
 
 
+def _flat(text: str) -> str:
+    """Collapse Rich's terminal-width line wrapping so substrings match."""
+    return " ".join(text.split())
+
+
+def _mark_plan_complete(project_dir: Path) -> None:
+    """Add 'plan' to completed_stages without touching plan_operations."""
+    state_path = project_dir / "state.json"
+    data = json.loads(state_path.read_text())
+    stages = data.get("completed_stages", [])
+    if "plan" not in stages:
+        stages.append("plan")
+    data["completed_stages"] = stages
+    state_path.write_text(json.dumps(data, indent=2))
+
+
+def _seed_objects_without_plan(project_dir: Path) -> None:
+    """Insert one canonical object and no plan_operations rows."""
+    from datetime import datetime, timezone
+    from wxcli.migration.models import CanonicalLocation, MigrationStatus, Provenance
+    from wxcli.migration.store import MigrationStore
+
+    store = MigrationStore(project_dir / "migration.db")
+    store.upsert_object(CanonicalLocation(
+        canonical_id="location:hq",
+        provenance=Provenance(
+            source_system="cucm", source_id="pk-test",
+            source_name="test", extracted_at=datetime.now(timezone.utc),
+        ),
+        status=MigrationStatus.NORMALIZED,
+        name="HQ", time_zone="America/New_York",
+        preferred_language="en_US", announcement_language="en_us",
+    ))
+    store.conn.commit()
+    store.close()
+
+
 def _seed_activation_codes(project_dir: Path) -> None:
     """Insert a CONVERTIBLE device with a completed create_activation_code op."""
     from datetime import datetime, timezone
@@ -867,6 +904,40 @@ class TestExport:
         plan_path = tmp_migrations_dir / "test-project" / "exports" / "deployment-plan.md"
         assert plan_path.exists()
         assert "Deployment Plan" in plan_path.read_text()
+
+    def test_export_deployment_plan_never_planned(self, tmp_migrations_dir):
+        """No `plan` in completed_stages → tell the operator to run plan."""
+        runner.invoke(app, ["init", "test-project"])
+        result = runner.invoke(app, ["export", "--format", "deployment-plan"])
+        assert result.exit_code == 1
+        assert "No execution plan yet" in _flat(result.output)
+        assert "Run `wxcli cucm plan` first" in _flat(result.output)
+
+    def test_export_deployment_plan_ran_but_produced_nothing(self, tmp_migrations_dir):
+        """F14: `plan` completed on an empty environment — do not blame `plan`."""
+        runner.invoke(app, ["init", "test-project"])
+        _mark_plan_complete(tmp_migrations_dir / "test-project")
+
+        result = runner.invoke(app, ["export", "--format", "deployment-plan"])
+        assert result.exit_code == 1
+        assert "Nothing to migrate" in _flat(result.output)
+        assert "no CUCM objects were discovered" in _flat(result.output)
+        # The false diagnosis this finding is about: pointing back at a stage
+        # that had just exited 0.
+        assert "Run `wxcli cucm plan` first" not in _flat(result.output)
+
+    def test_export_deployment_plan_objects_but_no_operations(self, tmp_migrations_dir):
+        """Objects exist but none produced an operation — say so, don't blame plan."""
+        runner.invoke(app, ["init", "test-project"])
+        _seed_objects_without_plan(tmp_migrations_dir / "test-project")
+        _mark_plan_complete(tmp_migrations_dir / "test-project")
+
+        result = runner.invoke(app, ["export", "--format", "deployment-plan"])
+        assert result.exit_code == 1
+        assert "Nothing to migrate" in _flat(result.output)
+        assert "0 operations from 1 discovered objects" in _flat(result.output)
+        assert "Planner skipped" in _flat(result.output)
+        assert "Run `wxcli cucm plan` first" not in _flat(result.output)
 
     def test_export_unknown_format(self, tmp_migrations_dir):
         runner.invoke(app, ["init", "test-project"])
