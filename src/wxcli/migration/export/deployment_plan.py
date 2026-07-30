@@ -70,6 +70,16 @@ TYPE_LABELS = {
     "shared_line": "Shared Line",
     "calling_permission": "Calling Permission",
     "schedule": "Location Schedule",
+    # Types the plan acts on that Section 3 used to omit — 615 entities on
+    # director-demo-2026-04-15, about a third of the plan.
+    "ecbn_config": "Emergency Callback Number",
+    "device_layout": "Device Line Key Layout",
+    "call_forwarding": "Call Forwarding",
+    "line_key_template": "Line Key Template",
+    "route_list": "Route List",
+    "bulk_line_key_template": "Line Key Template (bulk job)",
+    "bulk_device_settings": "Device Settings (bulk job)",
+    "bulk_rebuild_phones": "Phone Rebuild (bulk job)",
 }
 
 
@@ -191,7 +201,14 @@ def _classify_unplanned(store: MigrationStore) -> UnplannedObjects:
     * ``unexplained`` — analyzed, no operation, and no known reason. The bucket
       that should be empty and is worth chasing when it is not.
 
-    Scoped to :data:`WEBEX_RESOURCE_TYPES` to match the table it annotates.
+    Scoped to :data:`WEBEX_RESOURCE_TYPES`, and unlike the Section 3 table
+    above it this filter is load-bearing: it reads the ``objects`` inventory,
+    which is full of CUCM-only types (``partition``, ``css``, ``line``,
+    ``phone``, ``button_template``) that were never going to become Webex
+    resources. Reporting those as "absent from this plan" is the 2005-vs-67
+    over-report from finding F08. The Section 3 table reads
+    ``plan_operations``, where nothing needs excluding — the two are no longer
+    scoped alike and should not be made to match.
     """
     rows = store.conn.execute(
         """SELECT object_type, status, data FROM objects
@@ -379,12 +396,30 @@ def _section_resource_summary(
     :func:`_classify_unplanned` for why it is three buckets and not one.
     """
     lines = ["## 3. Resource Summary", ""]
+    lines.append(
+        "Distinct resources this plan acts on. One resource can carry several "
+        "operations, so these counts are lower than the operation total in "
+        "Section 6."
+    )
+    lines.append("")
     lines.append("| Resource Type | Count | Action |")
     lines.append("|--------------|-------|--------|")
 
+    # Deliberately NOT filtered to WEBEX_RESOURCE_TYPES. That allowlist was
+    # correct when this table was built from the `objects` inventory, which
+    # holds CUCM-only types (partition, css, line) that were never going to
+    # become Webex resources. F03 repointed the table at `plan_operations`,
+    # where every row is by definition something this plan builds — and the
+    # filter was left behind, silently subtracting real work. It hid 8 types /
+    # 615 entities on director-demo-2026-04-15: 304 emergency callback numbers,
+    # 215 device layouts, 51 call forwarding configs and five smaller types,
+    # roughly a third of the plan. They were counted in the operation totals
+    # and listed in Section 5's batch order, so the document was not wrong —
+    # but the one table an approver reads as "what this builds" was.
+    #
+    # An allowlist here would also have to be extended by hand every time a new
+    # op type lands, and would fail silently by omission when it wasn't.
     for obj_type, count in type_counts.items():
-        if obj_type not in WEBEX_RESOURCE_TYPES:
-            continue
         label = TYPE_LABELS.get(obj_type, obj_type)
         op_types = (actions or {}).get(obj_type)
         if op_types:
