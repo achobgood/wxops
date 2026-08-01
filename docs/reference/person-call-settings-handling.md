@@ -983,6 +983,7 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 - **No CLI for Sim Ring, Sequential Ring, or Priority Alert:** These features do not have wxcli command groups. Use Raw HTTP or the SDK.
 - **Selective Forward uses `numbers` not `phoneNumbers`:** Unlike all other criteria-based features that use `phoneNumbers` for their number list, Selective Forward criteria use `numbers`.
 - **Nested settings require `--json-body` in CLI:** Call forwarding and other nested payloads cannot be expressed with simple CLI flags. Use `--json-body '{"key": {...}}'` for these.
+- **`400` / error `4003` "Unauthorized request: `<BroadWorksRequestName>`" means the TARGET USER is not calling-active — not that your request was malformed.** Measured 2026-08-01: four different person-setting reads on one user (`show-do-not-disturb`, `show-call-waiting`, `show-call-forwarding`, `show-voicemail`) all returned this, each naming its own internal BroadWorks request (`UserDoNotDisturbGetRequestWC`, `UserCallWaitingGetRequest17Sp4`, …). The user was invite-pending with no extension. Confirm with `wxcli people show <personId> --calling-data true` — no `extension` or `locationId` means no person setting will read or write until they are licensed and activated. Note this is **not** the 404 / error `4008` shape documented for the 19 user-only settings (Known Issue #4); a licensed-but-user-only endpoint returns `4008`, an unlicensed target returns `4003`. `wxcli` now prints this distinction as a tip on the error.
 
 ---
 
