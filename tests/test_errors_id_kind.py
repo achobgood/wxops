@@ -64,6 +64,30 @@ def test_the_same_kind_on_an_unproven_group_stays_silent(monkeypatch, capsys):
     assert "callingDeviceId" not in capsys.readouterr().err
 
 
+def test_4003_unauthorized_request_blames_the_user_not_the_request(monkeypatch, capsys):
+    """Live shape, 2026-08-01. Four person-setting reads returned this for one
+    invite-pending user; untipped they fell through to the generic 400 tip and
+    sent the reader off auditing ids and request bodies for a user problem.
+    """
+    monkeypatch.setattr(sys, "argv", ["wxcli", "user-settings", "show-do-not-disturb", _id("PEOPLE")])
+    body = '{"errorCode":4003,"message":"[Error 4003] Unauthorized request: UserDoNotDisturbGetRequestWC"}'
+    with pytest.raises(typer.Exit):
+        handle_rest_error(WebexError(body, status_code=400))
+    err = capsys.readouterr().err
+    assert "--calling-data true" in err
+    assert "not calling-active" in err
+    # the generic 400 tip must NOT be what the reader gets here
+    assert "re-run it with --generate-json-body" not in err
+
+
+def test_an_ordinary_400_still_gets_the_generic_tip(monkeypatch, capsys):
+    """Control: the tip above must not swallow every 400."""
+    monkeypatch.setattr(sys, "argv", ["wxcli", "call-queue", "create", "loc"])
+    with pytest.raises(typer.Exit):
+        handle_rest_error(WebexError('{"message":"bad body"}', status_code=400))
+    assert "--generate-json-body" in capsys.readouterr().err
+
+
 def test_decoded_ids_are_not_printed_on_unrelated_statuses(monkeypatch, capsys):
     """403 is an auth problem; listing ids there is noise, not a diagnosis."""
     monkeypatch.setattr(sys, "argv", ["wxcli", "devices", "show", _id("DEVICE")])

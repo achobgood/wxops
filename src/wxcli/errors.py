@@ -35,6 +35,13 @@ _ERROR_TIPS = {
 
 _MESSAGE_TIPS = {
     "Target user not authorized": "This endpoint needs a user-level OAuth token, not an admin or service app token. Re-run: wxcli configure with the target user's own access token, then confirm the owner with: wxcli whoami",
+    # Measured 2026-08-01: four person-setting reads (do-not-disturb, call
+    # waiting, call forwarding, voicemail) all returned this shape for one
+    # invite-pending user with no extension. Without a tip they fell through to
+    # the generic 400 ("re-check every ID", "try --generate-json-body"), which
+    # sends you to audit ids and request bodies when nothing is wrong with
+    # either. The fault is the TARGET USER, so say so.
+    "Unauthorized request:": "This is about the target user, not your request — the ids and body are probably fine. Most often the user has no ACTIVE Webex Calling license: an invite-pending or unlicensed person returns this on every person-setting read. Check with: wxcli people show <personId> --calling-data true — coming back with no extension or locationId means they are not calling-active, and no person setting will read or write until they are. If the user IS calling-active, this endpoint may be one of the 19 that have no admin path (Known Issue #4): retry as that user with wxcli my-call-settings and their own OAuth token.",
 }
 
 # Last-resort tips, keyed on the HTTP status carried by WebexError. Reached only
