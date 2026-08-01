@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling dect-devices.")
@@ -153,6 +154,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update DECT Network.\n\n\b\nExample: wxcli dect-devices update LOCATION_ID DECT_NETWORK_ID --name NAME --default-access-code-enabled --default-access-code DEFAULT_ACCESS_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultAccessCodeEnabled":true,"defaultAccessCode":"...","displayName":"..."}'"""
@@ -183,6 +185,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -539,6 +543,7 @@ def update_handsets(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update DECT Network Handset.\n\n\b\nExample: wxcli dect-devices update-handsets LOCATION_ID DECT_NETWORK_ID HANDSET_ID --line1-member-id LINE1_MEMBER_ID --custom-display-name CUSTOM_DISPLAY_NAME\n\n\b\nExample --json-body: '{"line1MemberId":"...","customDisplayName":"...","line2MemberId":"..."}'"""
@@ -567,6 +572,8 @@ def update_handsets(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -900,6 +907,7 @@ def update_serviceability_password(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update DECT Serviceability Password status.\n\n\b\nExample: wxcli dect-devices update-serviceability-password LOCATION_ID DECT_NETWORK_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
@@ -924,6 +932,8 @@ def update_serviceability_password(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

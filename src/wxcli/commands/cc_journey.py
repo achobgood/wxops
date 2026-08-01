@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_cc_base_url
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-journey.")
@@ -484,6 +485,7 @@ def update_template_id(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update existing ProfileViewTemplate.\n\n\b\nExample: wxcli cc-journey update-template-id WORKSPACE_ID TEMPLATE_ID --json-body '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true}]}'\n\n\b\nExample --json-body: '{"name":"...","attributes":[{"displayName":"...","version":"...","event":"...","metaDataType":"...","metaData":"...","limit":0,"lookBackDurationType":"...","lookBackPeriod":0,"aggregationMode":"...","verbose":true,"widgetAttributes":{"type":"..."},"rules":{"logic":"...","args":["..."]}}]}'"""
@@ -505,6 +507,8 @@ def update_template_id(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1114,6 +1118,7 @@ def update_action_id(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update existing Journey Action.\n\n\b\nExample: wxcli cc-journey update-action-id WORKSPACE_ID TEMPLATE_ID ACTION_ID --json-body '{"name":"...","rules":{"logic":"...","args":["..."]}}'\n\n\b\nExample --json-body: '{"name":"...","rules":{"logic":"...","args":["..."]},"cooldownPeriodInMinutes":0,"actionTriggers":[{"type":"..."}],"isActive":true}'"""
@@ -1139,6 +1144,8 @@ def update_action_id(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1211,6 +1218,7 @@ def update_workspace_id(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Workspace.\n\n\b\nExample: wxcli cc-journey update-workspace-id WORKSPACE_ID --name NAME --description DESCRIPTION\n\n\b\nExample --json-body: '{"name":"...","description":"..."}'"""
@@ -1234,6 +1242,8 @@ def update_workspace_id(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

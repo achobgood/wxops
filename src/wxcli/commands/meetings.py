@@ -5,6 +5,7 @@ from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Meetings meetings.")
@@ -396,6 +397,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Meeting.\n\n\b\nExample: wxcli meetings update MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"sendEmail":true,"hostEmail":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"integrationTags":["..."],"enabledBreakoutSessions":true,"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'"""
@@ -478,6 +480,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -529,6 +533,7 @@ def update_meetings(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Patch a Meeting.\n\n\b\nExample: wxcli meetings update-meetings MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"sendEmail":true,"hostEmail":"...","meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"integrationTags":["..."],"enabledBreakoutSessions":true,"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'"""
@@ -617,6 +622,8 @@ def update_meetings(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -842,6 +849,7 @@ def update_controls(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Meeting Control Status.\n\n\b\nExample: wxcli meetings update-controls --meeting-id MEETING_ID\n\n\b\nExample --json-body: '{"recordingStarted":true,"recordingPaused":true,"locked":true}'"""
@@ -869,6 +877,8 @@ def update_controls(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1003,6 +1013,7 @@ def update_registration(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Meeting Registration Form.\n\n\b\nExample: wxcli meetings update-registration MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","autoAcceptRequest":true,"requireFirstName":true,"requireLastName":true,"requireEmail":true,"requireJobTitle":true,"requireCompanyName":true,"requireAddress1":true,"requireAddress2":true,"requireCity":true,"requireState":true,"requireZipCode":true,"requireCountryRegion":true,"requireWorkPhone":true,"requireFax":true,"maxRegisterNum":0,"customizedQuestions":[{"question":"...","type":"singleLineTextBox","required":true,"maxLength":0,"options":[{"value":"..."}],"rules":[{"condition":"contains","value":"...","result":"approve","matchCase":true}]}],"rules":[{"question":"lastName","condition":"contains","value":"...","result":"approve","order":0,"matchCase":true}]}'"""
@@ -1053,6 +1064,8 @@ def update_registration(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1770,6 +1783,7 @@ def update_interpreters(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Meeting Interpreter.\n\n\b\nExample: wxcli meetings update-interpreters MEETING_ID INTERPRETER_ID --language-code1 LANGUAGE_CODE1 --language-code2 LANGUAGE_CODE2\n\n\b\nExample --json-body: '{"languageCode1":"...","languageCode2":"...","email":"...","displayName":"...","hostEmail":"...","sendEmail":true}'"""
@@ -1800,6 +1814,8 @@ def update_interpreters(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1887,6 +1903,7 @@ def update_breakout_sessions(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings update-breakout-sessions MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","sendEmail":true,"items":[{"name":"...","invitees":["..."]}]}'"""
@@ -1909,6 +1926,8 @@ def update_breakout_sessions(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

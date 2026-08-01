@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling call-queue.")
@@ -103,6 +104,7 @@ def update_org_settings(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Call Queue Settings.\n\n\b\nExample --json-body: '{"maintainQueuePositionForSimRingEnabled":true,"forceAgentUnavailableOnBouncedEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true}'"""
@@ -135,6 +137,8 @@ def update_org_settings(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -288,6 +292,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue.\n\n\b\nExample: wxcli call-queue update LOCATION_ID QUEUE_ID --json-body '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM"}}}'\n\n\b\nExample --json-body: '{"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"enabled":true,"name":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","phoneNumber":"...","extension":"...","alternateNumberSettings":{"distinctiveRingEnabled":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}]},"callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowCallWaitingForAgentsEnabled":true,"agents":[{"id":"...","weight":"...","skillLevel":0,"joinEnabled":true}],"allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'"""
@@ -340,6 +345,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -486,6 +493,7 @@ def update_call_forwarding(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Call Forwarding Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue update-call-forwarding LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'"""
@@ -508,6 +516,8 @@ def update_call_forwarding(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -618,6 +628,7 @@ def update_selective_rules(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Selective Call Forwarding Rule for a Call Queue.\n\n\b\nExample: wxcli call-queue update-selective-rules LOCATION_ID QUEUE_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
@@ -648,6 +659,8 @@ def update_selective_rules(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -743,6 +756,7 @@ def update_holiday_service(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Holiday Service.\n\n\b\nExample: wxcli call-queue update-holiday-service LOCATION_ID QUEUE_ID --holiday-service-enabled --action BUSY --holiday-schedule-level LOCATION --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"holidayServiceEnabled":true,"action":"BUSY","holidayScheduleLevel":"LOCATION","playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","holidayScheduleName":"...","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
@@ -779,6 +793,8 @@ def update_holiday_service(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -843,6 +859,7 @@ def update_night_service(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Night Service.\n\n\b\nExample: wxcli call-queue update-night-service LOCATION_ID QUEUE_ID --night-service-enabled --play-announcement-before-enabled --announcement-mode NORMAL --audio-message-selection DEFAULT --force-night-service-enabled --manual-audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"nightServiceEnabled":true,"playAnnouncementBeforeEnabled":true,"announcementMode":"NORMAL","audioMessageSelection":"DEFAULT","forceNightServiceEnabled":true,"manualAudioMessageSelection":"DEFAULT","action":"BUSY","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"businessHoursName":"...","businessHoursLevel":"ORGANIZATION","manualAudioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
@@ -885,6 +902,8 @@ def update_night_service(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -943,6 +962,7 @@ def update_forced_forward(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Forced Forward Service.\n\n\b\nExample: wxcli call-queue update-forced-forward LOCATION_ID QUEUE_ID --forced-forward-enabled --play-announcement-before-enabled --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"forcedForwardEnabled":true,"playAnnouncementBeforeEnabled":true,"audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}'"""
@@ -973,6 +993,8 @@ def update_forced_forward(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1031,6 +1053,7 @@ def update_stranded_calls(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Call Queue Stranded Calls Service.\n\n\b\nExample: wxcli call-queue update-stranded-calls LOCATION_ID QUEUE_ID --action NONE --audio-message-selection DEFAULT\n\n\b\nExample --json-body: '{"action":"NONE","audioMessageSelection":"DEFAULT","transferPhoneNumber":"...","audioFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"triggerPolicyWhenAllAgentsAreUnreachableEnabled":true}'"""
@@ -1061,6 +1084,8 @@ def update_stranded_calls(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1448,6 +1473,7 @@ def update_supervisors(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Assign or Unassign Agents to Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue update-supervisors SUPERVISOR_ID --json-body '{"agents":[{"id":"...","action":"ADD"}]}'"""
@@ -1472,6 +1498,8 @@ def update_supervisors(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1956,6 +1984,7 @@ def update_dnis(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a DNIS for a Call Queue.\n\n\b\nExample: wxcli call-queue update-dnis LOCATION_ID QUEUE_ID DNIS_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","ringPattern":"NORMAL","customDnisAnnouncementSettingsEnabled":true}'"""
@@ -1988,6 +2017,8 @@ def update_dnis(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2068,6 +2099,7 @@ def update_settings_dnis(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify DNIS Settings for a Call Queue.\n\n\b\nExample: wxcli call-queue update-settings-dnis LOCATION_ID QUEUE_ID\n\n\b\nExample --json-body: '{"distinctiveRingingEnabled":true,"displayDnisNameAndNumberEnabled":true}'"""
@@ -2094,6 +2126,8 @@ def update_settings_dnis(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2141,6 +2175,7 @@ def update_announcements(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify DNIS Announcements for a Call Queue.\n\n\b\nExample: wxcli call-queue update-announcements LOCATION_ID QUEUE_ID DNIS_ID\n\n\b\nExample --json-body: '{"customDnisAnnouncementSettingsEnabled":true,"welcomeMessage":{"enabled":true,"alwaysEnabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessage":{"enabled":true,"timeBetweenMessages":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"comfortMessageBypass":{"enabled":true,"callWaitingAgeThreshold":0,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]},"mohMessage":{"normalSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."},"alternateSource":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}],"audioPlaylistId":"..."}},"waitMessage":{"enabled":true,"waitMode":"TIME","handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"whisperMessage":{"enabled":true,"greeting":"DEFAULT","audioAnnouncementFiles":[{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}]}}'"""
@@ -2165,6 +2200,8 @@ def update_announcements(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

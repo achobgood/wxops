@@ -3,6 +3,7 @@ import base64
 import re
 from pathlib import Path
 
+from wxcli.common import FIELD_UNLOCKS
 from tools.postman_parser import (
     DESTRUCTIVE_SEMANTICS,
     Endpoint,
@@ -209,9 +210,45 @@ def _render_output_options(default_output: str = "json") -> list[str]:
     ]
 
 
+# GET paths available in the tag currently being rendered. Set by
+# render_command_file, same pattern as _active_base_url_override. --verify needs
+# a read-back endpoint, and only a same-path GET is provably the same resource.
+_active_get_paths: set[str] = set()
+
+
+def _can_verify(ep) -> bool:
+    """True when this write has a same-path GET to read back from.
+
+    Scoped to PUT/PATCH on a path the tag also exposes as GET. A write with no
+    same-path read cannot be verified without guessing which endpoint describes
+    the resource afterwards, and a --verify that silently verifies nothing is
+    worse than no flag: it converts an unchecked write into one that LOOKS
+    checked. So the flag is only offered where it can actually do its job.
+    """
+    return ep.method.upper() in ("PUT", "PATCH") and ep.url_path in _active_get_paths
+
+
+def _expansion_kwargs(ep) -> str:
+    """emit() kwargs enabling the field-expansion interlock, or "" if N/A.
+
+    Emitted ONLY for endpoints that actually declare an unlocking query param,
+    so the warning can never name a flag this command does not have —
+    `virtual-lines list` returns `extension` natively and has no --calling-data.
+    Applied on EVERY render path that accepts the param, not just list: the trap
+    is a property of the response shape, so covering some commands and not
+    others would teach a rule that breaks unpredictably (the --output lesson).
+    A non-empty result implies the endpoint has query params, so the generated
+    `params` local is always in scope where this is used.
+    Reads wxcli.common.FIELD_UNLOCKS directly so the two cannot drift apart.
+    """
+    unlockable = tuple(sorted({qp.name for qp in ep.query_params} & set(FIELD_UNLOCKS)))
+    return f", params=params, expansions={unlockable!r}" if unlockable else ""
+
+
 def _render_imports(include_org_id: bool = False, include_org_id_path: bool = False,
                     include_cc_url: bool = False, include_cc_org_id: bool = False,
-                    include_fs_url: bool = False, include_fs_project_id: bool = False) -> str:
+                    include_fs_url: bool = False, include_fs_project_id: bool = False,
+                    include_verify: bool = False) -> str:
     lines = '''import json
 import httpx
 import typer
@@ -235,6 +272,10 @@ from wxcli.common import emit, load_json_body
         config_imports.append('get_fs_project_id')
     if config_imports:
         lines += f'from wxcli.config import {", ".join(config_imports)}\n'
+    # Conditional so the 100+ modules with no verifiable write keep an unchanged
+    # header -- a tree-wide import churn would bury the real diff on every regen.
+    if include_verify:
+        lines += 'from wxcli.common import verify_write\n'
     return lines
 
 
@@ -1257,6 +1298,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             derived = _derive_default_columns(ep)
             col_str = repr(derived) if derived else '[("ID", "id"), ("Name", "name")]'
 
+    emit_extra = _expansion_kwargs(ep)
+
     if ep.paginates:
         # Paginating endpoint: use follow_pagination for complete results when
         # --limit=0 (the default). When --limit>0, fall back to a single
@@ -1324,7 +1367,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             *_render_auto_inject_params(ep),
             *fetch_block,
             _render_error_handler("    "),
-            f"    emit(items, output=output, fields=fields, columns={col_str}, limit=limit)",
+            f"    emit(items, output=output, fields=fields, columns={col_str}, limit=limit{emit_extra})",
         ]
     else:
         lines = [
@@ -1342,7 +1385,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             _render_error_handler("    "),
             f'    result = result or []',
         f'    items = result.get("{list_key}", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
-            f"    emit(items, output=output, fields=fields, columns={col_str}, limit=limit)",
+            f"    emit(items, output=output, fields=fields, columns={col_str}, limit=limit{emit_extra})",
         ]
     return "\n".join(lines)
 
@@ -1363,7 +1406,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     # dict-in-table auto-detect behaviour is preserved inside emit() (Task 1's
     # dict branch).
     show_output = [
-        "    emit(result, output=output, fields=fields)",
+        f"    emit(result, output=output, fields=fields{_expansion_kwargs(ep)})",
     ]
 
     has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
@@ -1417,7 +1460,7 @@ def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = N
             '    if output == "id":',
             f'        typer.echo("{_success_message(ep, "Created.")}")',
             '    else:',
-            '        emit(result, output=output, fields=fields)',
+            f'        emit(result, output=output, fields=fields{_expansion_kwargs(ep)})',
         ])
     # Prefer schema-derived response_id_key, fall back to folder overrides
     id_key = ep.response_id_key or (folder_overrides or {}).get("create", {}).get("id_key")
@@ -1444,7 +1487,7 @@ def _render_create_id_extraction(ep: Endpoint, folder_overrides: dict | None = N
         ])
     lines.extend([
         '    else:',
-        '        emit(result, output=output, fields=fields)',
+        f'        emit(result, output=output, fields=fields{_expansion_kwargs(ep)})',
     ])
     return "\n".join(lines)
 
@@ -1585,6 +1628,12 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
     params.extend(_render_output_options("json"))
+    if _can_verify(ep):
+        params.append(
+            '    verify: bool = typer.Option(False, "--verify", help="After the write, '
+            're-read the resource and report any sent field that did not take. A 2xx '
+            'means accepted, not applied."),'
+        )
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
@@ -1650,8 +1699,14 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "    try:",
         f"        {method_call}",
         _render_error_handler("    "),
+        # Before rendering the result: the read-back is about the resource's
+        # real state, and burying it after the response body invites treating
+        # the 2xx as the answer -- which is the exact habit --verify exists for.
+        *(["    if verify:",
+           f"        verify_write(api, url, {'params' if has_params else 'None'}, body)"]
+          if _can_verify(ep) else []),
         "    if result:",
-        "        emit(result, output=output, fields=fields)",
+        f"        emit(result, output=output, fields=fields{_expansion_kwargs(ep)})",
         '    elif output in ("table", "id") and not fields:',
         f'        typer.echo(f"{_success_message(ep, "Updated.")}")',
         "    else:",
@@ -1988,9 +2043,12 @@ def render_command_file(
         for ep in endpoints
     )
     needs_org_id = needs_org_id_query or needs_org_id_path
-    global _active_base_url_override, _active_cli_name
+    global _active_base_url_override, _active_cli_name, _active_get_paths
     _active_base_url_override = base_url_override
     _active_cli_name = cli_name
+    # Must be set before any renderer runs, since _can_verify reads it.
+    _active_get_paths = {e.url_path for e in endpoints if e.method.upper() == "GET"}
+    needs_verify = any(_can_verify(e) for e in endpoints)
     needs_cc_url = base_url_override == BASE_URL_CC
     needs_fs_url = base_url_override == BASE_URL_FS
     needs_fs_project_id = needs_fs_url and any(
@@ -2010,7 +2068,8 @@ def render_command_file(
     sections = [
         _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path,
                         include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id,
-                        include_fs_url=needs_fs_url, include_fs_project_id=needs_fs_project_id),
+                        include_fs_url=needs_fs_url, include_fs_project_id=needs_fs_project_id,
+                        include_verify=needs_verify),
         f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]
 

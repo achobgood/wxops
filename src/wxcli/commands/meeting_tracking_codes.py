@@ -5,6 +5,7 @@ from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Meetings meeting-tracking-codes.")
@@ -134,6 +135,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Tracking Code.\n\n\b\nExample: wxcli meeting-tracking-codes update TRACKING_CODE_ID --json-body '{"name":"...","siteUrl":"...","options":[{"value":"...","defaultValue":true}],"inputMode":"text","hostProfileCode":"optional","scheduleStartCodes":[{"service":"All","type":"optional"}]}'"""
@@ -160,6 +162,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -248,6 +252,7 @@ def update_tracking_codes(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update User Tracking Codes.\n\n\b\nExample: wxcli meeting-tracking-codes update-tracking-codes --site-url SITE_URL\n\n\b\nExample --json-body: '{"siteUrl":"...","personId":"...","email":"...","trackingCodes":[{"name":"...","value":"..."}]}'"""
@@ -272,6 +277,8 @@ def update_tracking_codes(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling auto-attendant.")
@@ -102,6 +103,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update LOCATION_ID AUTO_ATTENDANT_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
@@ -148,6 +150,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -308,6 +312,7 @@ def update_call_forwarding(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Call Forwarding Settings for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update-call-forwarding LOCATION_ID AUTO_ATTENDANT_ID --json-body '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"rules":[{"id":"..."}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER"}}]}}}'\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"selective":{"enabled":true,"destination":"...","ringReminderEnabled":true,"sendToVoicemailEnabled":true},"rules":[{"id":"...","enabled":true}],"operatingModes":{"enabled":true,"modes":[{"normalOperationEnabled":true,"id":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","destination":"...","destinationVoicemailEnabled":true}}]}}}'"""
@@ -330,6 +335,8 @@ def update_call_forwarding(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -440,6 +447,7 @@ def update_selective_rules(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update-selective-rules LOCATION_ID AUTO_ATTENDANT_ID RULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"businessSchedule":"...","holidaySchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
@@ -470,6 +478,8 @@ def update_selective_rules(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

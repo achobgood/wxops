@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-address-book.")
@@ -317,6 +318,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update specific Address Book Entry by ID.\n\n\b\nExample: wxcli cc-address-book update ADDRESS_BOOK_ID ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
@@ -351,6 +353,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -431,6 +435,7 @@ def update_address_book_organization(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-organization ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
@@ -469,6 +474,8 @@ def update_address_book_organization(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -815,6 +822,7 @@ def update_address_book_v3(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-v3 ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'"""
@@ -853,6 +861,8 @@ def update_address_book_v3(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

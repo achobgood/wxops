@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling hot-desking-portal.")
@@ -45,6 +46,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Voice Portal Hot desking sign in details for a location.\n\n\b\nExample: wxcli hot-desking-portal update LOCATION_ID\n\n\b\nExample --json-body: '{"voicePortalHotDeskSignInEnabled":true}'"""
@@ -69,6 +71,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -112,6 +116,7 @@ def update_guest(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Voice Portal Hot desking sign in details for a user.\n\n\b\nExample: wxcli hot-desking-portal update-guest PERSON_ID\n\n\b\nExample --json-body: '{"voicePortalHotDeskSignInEnabled":true}'"""
@@ -136,6 +141,8 @@ def update_guest(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling device-settings.")
@@ -54,6 +55,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Members on the device.\n\n\b\nExample: wxcli device-settings update DEVICE_ID\n\n\b\nExample --json-body: '{"members":[{"port":0,"id":"...","primaryOwner":true,"lineType":"PRIMARY","lineWeight":0,"hotlineEnabled":true,"hotlineDestination":"...","allowCallDeclineEnabled":true,"t38FaxCompressionEnabled":true,"lineLabel":"..."}]}'"""
@@ -76,6 +78,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -290,6 +294,7 @@ def update_settings_devices(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update device settings.\n\n\b\nExample: wxcli device-settings update-settings-devices DEVICE_ID --json-body '{"customizations":{"ata":{"audioCodecPriority":{"selection":"REGIONAL","primary":"...","secondary":"...","tertiary":"..."},"ataDtmfMode":"STRICT","ataDtmfMethod":"INBAND","cdpEnabled":true,"lldpEnabled":true,"qosEnabled":true,"vlan":{"enabled":true,"value":0},"webAccessEnabled":true,"nightlyResyncEnabled":true,"snmp":{"enabled":true,"trustedIP":"...","getCommunity":"...","setCommunity":"...","snmpV3Enabled":true}},"mpp":{"pnacEnabled":true,"audioCodecPriority":{"selection":"REGIONAL","primary":"...","secondary":"...","tertiary":"..."},"backlightTimer":"ONE_MIN","background":{"image":"NONE","customUrl":"..."},"cdpEnabled":true,"defaultLoggingLevel":"STANDARD","dndServicesEnabled":true,"acd":{"enabled":true,"displayCallqueueAgentSoftkeys":"FRONT_PAGE"},"shortInterdigitTimer":0,"longInterdigitTimer":0,"lineKeyLabelFormat":"PERSON_EXTENSION","lineKeyLEDPattern":"DEFAULT","lldpEnabled":true,"mppUserWebAccessEnabled":true,"multicast":["..."],"enhancedMulticast":{"multicastList":[{"hostAndPort":"...","hasXmlAppUrl":true}]},"offHookTimer":0,"phoneLanguage":"PERSON_LANGUAGE","poeMode":"NORMAL","qosEnabled":true,"screenTimeout":{"enabled":true,"value":0},"usbPortsEnabled":true,"usbPorts":{"enabled":true,"sideUsbEnabled":true,"rearUsbEnabled":true},"vlan":{"enabled":true},"wifiNetwork":{"enabled":true,"authenticationMethod":"NONE","ssidName":"...","userId":"..."},"callHistory":"WEBEX_UNIFIED_CALL_HISTORY","contacts":"XSI_DIRECTORY","webexMeetingsEnabled":true,"volumeSettings":{"ringerVolume":0,"speakerVolume":0,"handsetVolume":0,"headsetVolume":0,"eHookEnabled":true,"allowEndUserOverrideEnabled":true},"cfExpandedSoftKey":"ONLY_THE_CALL_FORWARD_ALL","httpProxy":{"mode":"OFF","autoDiscoveryEnabled":true},"bluetooth":{"enabled":true},"passThroughPortEnabled":true,"userPasswordOverrideEnabled":true,"activeCallFocusEnabled":true,"peerFirmwareEnabled":true,"noiseCancellation":{"enabled":true,"allowEndUserOverrideEnabled":true},"voiceFeedbackAccessibilityEnabled":true,"dialAssistEnabled":true,"callsPerLine":0,"nightlyResyncEnabled":true,"missedCallNotificationEnabled":true,"softKeyLayout":{"softKeyMenu":{"idleKeyList":"...","offHookKeyList":"...","dialingInputKeyList":"...","progressingKeyList":"...","connectedKeyList":"...","connectedVideoKeyList":"...","startTransferKeyList":"...","startConferenceKeyList":"...","conferencingKeyList":"...","releasingKeyList":"...","holdKeyList":"...","ringingKeyList":"...","sharedActiveKeyList":"...","sharedHeldKeyList":"..."},"psk":{"psk1":"...","psk4":"..."},"softKeyMenuDefaults":{"idleKeyList":"...","offHookKeyList":"...","dialingInputKeyList":"...","progressingKeyList":"...","connectedKeyList":"...","connectedVideoKeyList":"...","startTransferKeyList":"...","startConferenceKeyList":"...","conferencingKeyList":"...","releasingKeyList":"...","holdKeyList":"...","ringingKeyList":"...","sharedActiveKeyList":"...","sharedHeldKeyList":"..."},"pskDefaults":{"psk1":"...","psk4":"..."}},"backgroundImage8875":"CYAN_DARK","backlightTimer68XX78XX":"ALWAYS_ON","allowMonitorLinesEnabled":true},"wifi":{"audioCodecPriority":{"selection":"...","primary":"...","secondary":"...","tertiary":"..."},"ldap":{"enabled":true},"webAccess":{"enabled":true,"password":"..."},"phoneSecurityPwd":"..."}},"customEnabled":true}'\n\n\b\nExample --json-body: '{"customizations":{"ata":{"audioCodecPriority":{"selection":"REGIONAL","primary":"...","secondary":"...","tertiary":"..."},"ataDtmfMode":"STRICT","ataDtmfMethod":"INBAND","cdpEnabled":true,"lldpEnabled":true,"qosEnabled":true,"vlan":{"enabled":true,"value":0},"webAccessEnabled":true,"nightlyResyncEnabled":true,"snmp":{"enabled":true,"trustedIP":"...","getCommunity":"...","setCommunity":"...","snmpV3Enabled":true}},"mpp":{"pnacEnabled":true,"audioCodecPriority":{"selection":"REGIONAL","primary":"...","secondary":"...","tertiary":"..."},"backlightTimer":"ONE_MIN","background":{"image":"NONE","customUrl":"..."},"cdpEnabled":true,"defaultLoggingLevel":"STANDARD","dndServicesEnabled":true,"acd":{"enabled":true,"displayCallqueueAgentSoftkeys":"FRONT_PAGE"},"shortInterdigitTimer":0,"longInterdigitTimer":0,"lineKeyLabelFormat":"PERSON_EXTENSION","lineKeyLEDPattern":"DEFAULT","lldpEnabled":true,"mppUserWebAccessEnabled":true,"multicast":["..."],"enhancedMulticast":{"multicastList":[{"hostAndPort":"...","hasXmlAppUrl":true,"xmlAppTimeout":0}],"xmlAppUrl":"..."},"offHookTimer":0,"phoneLanguage":"PERSON_LANGUAGE","poeMode":"NORMAL","qosEnabled":true,"screenTimeout":{"enabled":true,"value":0},"usbPortsEnabled":true,"usbPorts":{"enabled":true,"sideUsbEnabled":true,"rearUsbEnabled":true},"vlan":{"enabled":true,"value":0,"pcPort":0},"wifiNetwork":{"enabled":true,"authenticationMethod":"NONE","ssidName":"...","userId":"..."},"callHistory":"WEBEX_UNIFIED_CALL_HISTORY","contacts":"XSI_DIRECTORY","webexMeetingsEnabled":true,"volumeSettings":{"ringerVolume":0,"speakerVolume":0,"handsetVolume":0,"headsetVolume":0,"eHookEnabled":true,"allowEndUserOverrideEnabled":true},"cfExpandedSoftKey":"ONLY_THE_CALL_FORWARD_ALL","httpProxy":{"mode":"OFF","autoDiscoveryEnabled":true,"host":"...","port":"...","packUrl":"...","authSettingsEnabled":true,"username":"...","password":"..."},"bluetooth":{"enabled":true,"mode":"PHONE"},"passThroughPortEnabled":true,"userPasswordOverrideEnabled":true,"activeCallFocusEnabled":true,"peerFirmwareEnabled":true,"noiseCancellation":{"enabled":true,"allowEndUserOverrideEnabled":true},"voiceFeedbackAccessibilityEnabled":true,"dialAssistEnabled":true,"callsPerLine":0,"nightlyResyncEnabled":true,"missedCallNotificationEnabled":true,"softKeyLayout":{"softKeyMenu":{"idleKeyList":"...","offHookKeyList":"...","dialingInputKeyList":"...","progressingKeyList":"...","connectedKeyList":"...","connectedVideoKeyList":"...","startTransferKeyList":"...","startConferenceKeyList":"...","conferencingKeyList":"...","releasingKeyList":"...","holdKeyList":"...","ringingKeyList":"...","sharedActiveKeyList":"...","sharedHeldKeyList":"..."},"psk":{"psk1":"...","psk4":"...","psk2":"...","psk3":"...","psk5":"...","psk6":"...","psk7":"...","psk8":"...","psk9":"...","psk10":"...","psk11":"...","psk12":"...","psk13":"...","psk14":"...","psk15":"...","psk16":"..."},"softKeyMenuDefaults":{"idleKeyList":"...","offHookKeyList":"...","dialingInputKeyList":"...","progressingKeyList":"...","connectedKeyList":"...","connectedVideoKeyList":"...","startTransferKeyList":"...","startConferenceKeyList":"...","conferencingKeyList":"...","releasingKeyList":"...","holdKeyList":"...","ringingKeyList":"...","sharedActiveKeyList":"...","sharedHeldKeyList":"..."},"pskDefaults":{"psk1":"...","psk4":"...","psk2":"...","psk3":"...","psk5":"...","psk6":"...","psk7":"...","psk8":"...","psk9":"...","psk10":"...","psk11":"...","psk12":"...","psk13":"...","psk14":"...","psk15":"...","psk16":"..."}},"backgroundImage8875":"CYAN_DARK","backlightTimer68XX78XX":"ALWAYS_ON","allowMonitorLinesEnabled":true,"displayNameFormat":"PERSON_NUMBER","iceEnabled":true},"wifi":{"audioCodecPriority":{"selection":"...","primary":"...","secondary":"...","tertiary":"..."},"ldap":{"enabled":true,"serverAddress":"...","serverPort":0,"commSecurityType":"NONE","bindDn":"...","bindPw":"...","baseDn":"...","primaryEmailAttribute":"...","alternateEmailAttribute":"..."},"webAccess":{"enabled":true,"password":"..."},"phoneSecurityPwd":"..."}},"customEnabled":true}'"""
@@ -316,6 +321,8 @@ def update_settings_devices(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -383,6 +390,7 @@ def update_devices_config(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Third Party Device.\n\n\b\nExample: wxcli device-settings update-devices-config DEVICE_ID --sip-password SIP_PASSWORD\n\n\b\nExample --json-body: '{"sipPassword":"..."}'"""
@@ -407,6 +415,8 @@ def update_devices_config(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -536,6 +546,7 @@ def update_devices_workspaces(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Workspace Devices.\n\n\b\nExample: wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true,"limitGuestUse":true,"guestHoursLimit":0}'"""
@@ -564,6 +575,8 @@ def update_devices_workspaces(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -718,6 +731,7 @@ def update_line_key_templates(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a Line Key Template.\n\n\b\nExample: wxcli device-settings update-line-key-templates TEMPLATE_ID --json-body '{"lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0}]}'\n\n\b\nExample --json-body: '{"lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0,"lineKeyLabel":"...","lineKeyValue":"..."}],"userReorderEnabled":true}'"""
@@ -742,6 +756,8 @@ def update_line_key_templates(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1255,6 +1271,7 @@ def update_layout(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Device Layout by Device ID.\n\n\b\nExample: wxcli device-settings update-layout DEVICE_ID --json-body '{"layoutMode":"DEFAULT","lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0}]}'\n\n\b\nExample --json-body: '{"layoutMode":"DEFAULT","lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0,"lineKeyLabel":"...","lineKeyValue":"..."}],"userReorderEnabled":true,"kemModuleType":"KEM_14_KEYS","kemKeys":[{"kemModuleIndex":0,"kemKeyIndex":0,"kemKeyType":"PRIMARY_LINE","sharedLineIndex":0,"kemKeyLabel":"...","kemKeyValue":"..."}]}'"""
@@ -1283,6 +1300,8 @@ def update_layout(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1466,6 +1485,7 @@ def update_settings_devices_1(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Device Settings for a Person.\n\n\b\nExample: wxcli device-settings update-settings-devices-1 PERSON_ID --compression ON\n\n\b\nExample --json-body: '{"compression":"ON"}'"""
@@ -1490,6 +1510,8 @@ def update_settings_devices_1(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1533,6 +1555,7 @@ def update_settings_devices_2(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Device Settings for a Workspace.\n\n\b\nExample: wxcli device-settings update-settings-devices-2 WORKSPACE_ID --compression ON\n\n\b\nExample --json-body: '{"compression":"ON"}'"""
@@ -1557,6 +1580,8 @@ def update_settings_devices_2(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

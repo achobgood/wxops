@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling scim-users.")
@@ -192,6 +193,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a user with PUT.\n\n\b\nExample: wxcli scim-users update USER_ID --json-body '{"schemas":["..."],"userName":"...","userType":"user"}'\n\n\b\nExample --json-body: '{"schemas":["..."],"userName":"...","userType":"user","title":"...","active":true,"roles":[{"value":"...","type":"...","display":"..."}],"preferredLanguage":"...","locale":"...","timezone":"...","profileUrl":"...","externalId":"...","displayName":"...","nickName":"...","phoneNumbers":[{"value":"...","type":"work","display":"...","primary":true}],"photos":[{"value":"...","type":"photo","display":"...","primary":true}],"addresses":[{"type":"...","streetAddress":"...","locality":"...","region":"...","postalCode":"...","country":"..."}],"emails":[{"value":"...","type":"work","display":"...","primary":true}],"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":{"costCenter":"...","organization":"...","division":"...","department":"...","employeeNumber":"...","manager":{"value":"..."}},"urn:scim:schemas:extension:cisco:webexidentity:2.0:User":{"accountStatus":"active","sipAddresses":[{"value":"...","type":"enterprise","display":"...","primary":true}],"managedOrgs":[{"orgId":"...","role":"..."}],"managedGroups":[{"orgId":"...","groupId":"...","role":"..."}],"extensionAttribute*":["..."],"externalAttribute*":[{"source":"...","value":"..."}]}}'"""
@@ -233,6 +235,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -251,6 +255,7 @@ def update_users(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a user with PATCH.\n\n\b\nExample: wxcli scim-users update-users USER_ID --json-body '{"schemas":["..."],"Operations":[{"op":"add"}]}'\n\n\b\nExample --json-body: '{"schemas":["..."],"Operations":[{"op":"add","path":"...","value":[{"value":"...","type":"...","display":"..."}]}]}'"""
@@ -270,6 +275,8 @@ def update_users(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

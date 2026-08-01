@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling user-settings.")
@@ -51,6 +52,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a person's Application Services Settings.\n\n\b\nExample: wxcli user-settings update PERSON_ID\n\n\b\nExample --json-body: '{"ringDevicesForClickToDialCallsEnabled":true,"ringDevicesForGroupPageEnabled":true,"ringDevicesForCallParkEnabled":true,"browserClientEnabled":true,"desktopClientEnabled":true,"tabletClientEnabled":true,"mobileClientEnabled":true}'"""
@@ -87,6 +89,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -131,6 +135,7 @@ def update_barge_in(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Barge In Settings for a Person.\n\n\b\nExample: wxcli user-settings update-barge-in PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"toneEnabled":true}'"""
@@ -157,6 +162,8 @@ def update_barge_in(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -199,6 +206,7 @@ def update_call_forwarding(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Call Forwarding Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-forwarding PERSON_ID\n\n\b\nExample --json-body: '{"callForwarding":{"always":{"enabled":true,"destination":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true},"busy":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"noAnswer":{"enabled":true,"destination":"...","numberOfRings":0,"destinationVoicemailEnabled":true}},"businessContinuity":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'"""
@@ -221,6 +229,8 @@ def update_call_forwarding(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -264,6 +274,7 @@ def update_intercept(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Call Intercept Settings for a Person.\n\n\b\nExample: wxcli user-settings update-intercept PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"incoming":{"type":"INTERCEPT_ALL","voicemailEnabled":true,"announcements":{"greeting":"CUSTOM","newNumber":{"enabled":true,"destination":"..."},"zeroTransfer":{"enabled":true,"destination":"..."}}},"outgoing":{"type":"INTERCEPT_ALL","transferEnabled":true,"destination":"..."}}'"""
@@ -288,6 +299,8 @@ def update_intercept(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -362,6 +375,7 @@ def update_call_recording(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Call Recording Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-recording PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'"""
@@ -390,6 +404,8 @@ def update_call_recording(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -433,6 +449,7 @@ def update_call_waiting(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Call Waiting Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-waiting PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
@@ -457,6 +474,8 @@ def update_call_waiting(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -521,6 +540,7 @@ def update_caller_id_features(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Caller ID Settings for a Person.\n\n\b\nExample: wxcli user-settings update-caller-id-features PERSON_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true,"additionalExternalCallerIdLocationNumberEnabled":true,"additionalExternalCallerIdCustomNumber":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByFirstName":"...","dialByLastName":"..."}'"""
@@ -567,6 +587,8 @@ def update_caller_id_features(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -611,6 +633,7 @@ def update_calling_behavior(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure a person's Calling Behavior.\n\n\b\nExample: wxcli user-settings update-calling-behavior PERSON_ID\n\n\b\nExample --json-body: '{"behaviorType":"NATIVE_WEBEX_TEAMS_CALLING","profileId":"..."}'"""
@@ -637,6 +660,8 @@ def update_calling_behavior(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -682,6 +707,7 @@ def update_do_not_disturb(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Do Not Disturb Settings for a Person.\n\n\b\nExample: wxcli user-settings update-do-not-disturb PERSON_ID --webex-go-override-enabled\n\n\b\nExample --json-body: '{"webexGoOverrideEnabled":true,"enabled":true,"ringSplashEnabled":true}'"""
@@ -710,6 +736,8 @@ def update_do_not_disturb(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -753,6 +781,7 @@ def update_executive_assistant(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Executive Assistant Settings for a Person.\n\n\b\nExample: wxcli user-settings update-executive-assistant PERSON_ID\n\n\b\nExample --json-body: '{"type":"UNASSIGNED"}'"""
@@ -777,6 +806,8 @@ def update_executive_assistant(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -820,6 +851,7 @@ def update_hoteling(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Hoteling Settings for a Person.\n\n\b\nExample: wxcli user-settings update-hoteling PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
@@ -844,6 +876,8 @@ def update_hoteling(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -988,6 +1022,7 @@ def update_incoming_permission(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Incoming Permission Settings for a Person.\n\n\b\nExample: wxcli user-settings update-incoming-permission PERSON_ID --use-custom-enabled --external-transfer ALLOW_ALL_EXTERNAL --internal-calls-enabled --collect-calls-enabled\n\n\b\nExample --json-body: '{"useCustomEnabled":true,"externalTransfer":"ALLOW_ALL_EXTERNAL","internalCallsEnabled":true,"collectCallsEnabled":true}'"""
@@ -1018,6 +1053,8 @@ def update_incoming_permission(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1072,6 +1109,7 @@ def update_outgoing_permission(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a person's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli user-settings update-outgoing-permission PERSON_ID --json-body '{"callingPermissions":[{"transferEnabled":true}]}'\n\n\b\nExample --json-body: '{"callingPermissions":[{"transferEnabled":true,"callType":"INTERNAL_CALL","action":"ALLOW"}],"useCustomEnabled":true,"useCustomPermissions":true}'"""
@@ -1098,6 +1136,8 @@ def update_outgoing_permission(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1191,6 +1231,7 @@ def update_privacy(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure a person's Privacy Settings.\n\n\b\nExample: wxcli user-settings update-privacy PERSON_ID\n\n\b\nExample --json-body: '{"aaExtensionDialingEnabled":true,"aaNamingDialingEnabled":true,"enablePhoneStatusDirectoryPrivacy":true,"enablePhoneStatusPickupBargeInPrivacy":true,"monitoringAgents":["..."]}'"""
@@ -1221,6 +1262,8 @@ def update_privacy(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1276,6 +1319,7 @@ def update_push_to_talk(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Push-to-Talk Settings for a Person.\n\n\b\nExample: wxcli user-settings update-push-to-talk PERSON_ID\n\n\b\nExample --json-body: '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'"""
@@ -1304,6 +1348,8 @@ def update_push_to_talk(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1357,6 +1403,7 @@ def update_reception(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Receptionist Client Settings for a Person.\n\n\b\nExample: wxcli user-settings update-reception PERSON_ID --reception-enabled\n\n\b\nExample --json-body: '{"receptionEnabled":true,"monitoredMembers":["..."]}'"""
@@ -1381,6 +1428,8 @@ def update_reception(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1525,6 +1574,7 @@ def update_schedules(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Schedule.\n\n\b\nExample: wxcli user-settings update-schedules PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --new-name NEW_NAME --name NAME --type businessHours\n\n\b\nExample --json-body: '{"newName":"...","name":"...","type":"businessHours","events":[{"name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"recurInterval":0,"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}]}'"""
@@ -1553,6 +1603,8 @@ def update_schedules(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1642,6 +1694,7 @@ def update_events(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update an Event for a person's Schedule.\n\n\b\nExample: wxcli user-settings update-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID EVENT_ID --new-name NEW_NAME --name NAME --start-date START_DATE --end-date END_DATE --start-time START_TIME --end-time END_TIME\n\n\b\nExample --json-body: '{"newName":"...","name":"...","startDate":"...","endDate":"...","startTime":"...","endTime":"...","allDayEnabled":true,"recurrence":{"recurForEver":true,"recurEndDate":"...","recurEndOccurrence":0,"recurDaily":{"recurInterval":0},"recurWeekly":{"recurInterval":0,"sunday":true,"monday":true,"tuesday":true,"wednesday":true,"thursday":true,"friday":true,"saturday":true}}}'"""
@@ -1678,6 +1731,8 @@ def update_events(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1823,6 +1878,7 @@ def update_voicemail(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Voicemail Settings for a Person.\n\n\b\nExample: wxcli user-settings update-voicemail PERSON_ID --json-body '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."}}'\n\n\b\nExample --json-body: '{"notifications":{"enabled":true,"destination":"...","smsDestination":"..."},"transferToNumber":{"enabled":true,"destination":"..."},"enabled":true,"sendAllCalls":{"enabled":true},"sendBusyCalls":{"enabled":true,"greeting":"DEFAULT"},"sendUnansweredCalls":{"enabled":true,"greeting":"DEFAULT","numberOfRings":0},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"messageStorage":{"mwiEnabled":true,"storageType":"INTERNAL","externalEmail":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":"..."}}'"""
@@ -1847,6 +1903,8 @@ def update_voicemail(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2177,6 +2235,7 @@ def update_music_on_hold(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Music On Hold Settings for a Person.\n\n\b\nExample: wxcli user-settings update-music-on-hold PERSON_ID\n\n\b\nExample --json-body: '{"mohEnabled":true,"greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}'"""
@@ -2203,6 +2262,8 @@ def update_music_on_hold(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2308,6 +2369,7 @@ def update_access_codes(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Access Codes for a Person.\n\nDESTRUCTIVE: this PUT only deletes despite the summary above. It cannot add or modify.\n\n\b\nExample: wxcli user-settings update-access-codes PERSON_ID\n\n\b\nExample --json-body: '{"deleteCodes":["..."]}'"""
@@ -2330,6 +2392,8 @@ def update_access_codes(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2408,6 +2472,7 @@ def update_auto_transfer_numbers(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Transfer Numbers for a Person.\n\n\b\nExample: wxcli user-settings update-auto-transfer-numbers PERSON_ID --use-custom-transfer-numbers\n\n\b\nExample --json-body: '{"useCustomTransferNumbers":true,"autoTransferNumber1":"...","autoTransferNumber2":"...","autoTransferNumber3":"..."}'"""
@@ -2438,6 +2503,8 @@ def update_auto_transfer_numbers(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2550,6 +2617,7 @@ def update_digit_patterns_outgoing_permission(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify the Digit Pattern Category Control Settings for a Person.\n\n\b\nExample: wxcli user-settings update-digit-patterns-outgoing-permission PERSON_ID\n\n\b\nExample --json-body: '{"useCustomDigitPatterns":true}'"""
@@ -2574,6 +2642,8 @@ def update_digit_patterns_outgoing_permission(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2654,6 +2724,7 @@ def update_digit_patterns_outgoing_permission_1(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a Digit Pattern for a Person.\n\n\b\nExample: wxcli user-settings update-digit-patterns-outgoing-permission-1 PERSON_ID DIGIT_PATTERN_ID\n\n\b\nExample --json-body: '{"name":"...","pattern":"...","action":"ALLOW","transferEnabled":true}'"""
@@ -2684,6 +2755,8 @@ def update_digit_patterns_outgoing_permission_1(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2813,6 +2886,7 @@ def update_preferred_answer_endpoint(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Preferred Answer Endpoint.\n\n\b\nExample: wxcli user-settings update-preferred-answer-endpoint PERSON_ID --preferred-answer-endpoint-id PREFERRED_ANSWER_ENDPOINT_ID\n\n\b\nExample --json-body: '{"preferredAnswerEndpointId":"..."}'"""
@@ -2837,6 +2911,8 @@ def update_preferred_answer_endpoint(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -2938,6 +3014,7 @@ def update_members_applications(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Put Shared-Line Appearance Members.\n\n\b\nExample: wxcli user-settings update-members-applications PERSON_ID APPLICATION_ID\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":0,"primaryOwner":"...","lineType":"PRIMARY","lineWeight":0,"hotlineEnabled":true,"hotlineDestination":"...","allowCallDeclineEnabled":true,"t38FaxCompressionEnabled `true`":true,"lineLabel":"..."}]}'"""
@@ -2956,6 +3033,8 @@ def update_members_applications(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -3240,6 +3319,7 @@ def update_caller_id_agent(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Agent's Caller ID Information.\n\n\b\nExample: wxcli user-settings update-caller-id-agent PERSON_ID --selected-caller-id SELECTED_CALLER_ID\n\n\b\nExample --json-body: '{"selectedCallerId":"..."}'"""
@@ -3260,6 +3340,8 @@ def update_caller_id_agent(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -3303,6 +3385,7 @@ def update_call_bridge(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure Call Bridge Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-bridge PERSON_ID\n\n\b\nExample --json-body: '{"warningToneEnabled":true}'"""
@@ -3327,6 +3410,8 @@ def update_call_bridge(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -3641,6 +3726,7 @@ def update_ms_teams(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Configure a Person's MS Teams Setting.\n\n\b\nExample: wxcli user-settings update-ms-teams PERSON_ID --setting-name HIDE_WEBEX_APP --value\n\n\b\nExample --json-body: '{"settingName":"HIDE_WEBEX_APP","value":true}'"""
@@ -3667,6 +3753,8 @@ def update_ms_teams(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -3716,6 +3804,7 @@ def update_personal_assistant(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Personal Assistant.\n\n\b\nExample: wxcli user-settings update-personal-assistant PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"presence":"NONE","untilDateTime":"...","transferEnabled":true,"transferNumber":"...","alerting":"ALERT_ME_FIRST","alertMeFirstNumberOfRings":0}'"""
@@ -3752,6 +3841,8 @@ def update_personal_assistant(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -3853,6 +3944,7 @@ def update_mode_management(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Assign a List of Features to a User for Mode Management.\n\n\b\nExample: wxcli user-settings update-mode-management PERSON_ID --json-body '{"featureIds":["..."]}'"""
@@ -3875,6 +3967,8 @@ def update_mode_management(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -3928,6 +4022,7 @@ def update_selective_accept(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update User’s Selective Call Accept Criteria.\n\n\b\nExample: wxcli user-settings update-selective-accept PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
@@ -3952,6 +4047,8 @@ def update_selective_accept(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4071,6 +4168,7 @@ def update_criteria_selective_accept(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a Criteria From the User’s Selective Call Accept Service.\n\n\b\nExample: wxcli user-settings update-criteria-selective-accept PERSON_ID ID --calls-from ANY_PHONE_NUMBER --accept-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
@@ -4107,6 +4205,8 @@ def update_criteria_selective_accept(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4193,6 +4293,7 @@ def update_selective_reject(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update User’s Selective Call Rejection Criteria List.\n\n\b\nExample: wxcli user-settings update-selective-reject PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
@@ -4217,6 +4318,8 @@ def update_selective_reject(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4336,6 +4439,7 @@ def update_criteria_selective_reject(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a Criteria for the User’s Selective Call Rejection Service.\n\n\b\nExample: wxcli user-settings update-criteria-selective-reject PERSON_ID ID --calls-from ANY_PHONE_NUMBER --reject-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
@@ -4372,6 +4476,8 @@ def update_criteria_selective_reject(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4461,6 +4567,7 @@ def update_selective_forward(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update User’s Selective Call Forwarding Criteria List.\n\n\b\nExample: wxcli user-settings update-selective-forward PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"defaultPhoneNumberToForward":"...","ringReminderEnabled":true,"destinationVoicemailEnabled":true}'"""
@@ -4491,6 +4598,8 @@ def update_selective_forward(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4618,6 +4727,7 @@ def update_criteria_selective_forward(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a Criteria for the User’s Selective Call Forwarding Service.\n\n\b\nExample: wxcli user-settings update-criteria-selective-forward PERSON_ID ID --forward-to-phone-number FORWARD_TO_PHONE_NUMBER --send-to-voicemail-enabled --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"forwardToPhoneNumber":"...","sendToVoicemailEnabled":true,"callsFrom":"ANY_PHONE_NUMBER","scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"forwardEnabled":true}'"""
@@ -4658,6 +4768,8 @@ def update_criteria_selective_forward(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4825,6 +4937,7 @@ def update_members_applications_1(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Put Shared-Line Appearance Members New.\n\n\b\nExample: wxcli user-settings update-members-applications-1 PERSON_ID\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":0,"primaryOwner":"...","lineType":"PRIMARY","lineWeight":0,"allowCallDeclineEnabled":true,"lineLabel":"..."}]}'"""
@@ -4843,6 +4956,8 @@ def update_members_applications_1(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4888,6 +5003,7 @@ def update_call_captions(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update the user call captions settings.\n\n\b\nExample: wxcli user-settings update-call-captions PERSON_ID\n\n\b\nExample --json-body: '{"userClosedCaptionsEnabled":true,"userTranscriptsEnabled":true,"useLocationSettingsEnabled":true}'"""
@@ -4916,6 +5032,8 @@ def update_call_captions(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -4970,6 +5088,7 @@ def update_call_filtering(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Person Executive Call Filtering Settings.\n\n\b\nExample: wxcli user-settings update-call-filtering PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"filterType":"CUSTOM_CALL_FILTERS","criteriaActivation":[{"id":"...","activationEnabled":true}]}'"""
@@ -4996,6 +5115,8 @@ def update_call_filtering(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5047,6 +5168,7 @@ def update_criteria_call_filtering(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Person Executive Call Filtering Criteria Settings.\n\n\b\nExample: wxcli user-settings update-criteria-call-filtering PERSON_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"holidays","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"filterEnabled":true,"callsToNumbers":[{"type":"PRIMARY","phoneNumber":"..."}]}'"""
@@ -5083,6 +5205,8 @@ def update_criteria_call_filtering(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5240,6 +5364,7 @@ def update_alert(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Person Executive Alert Settings.\n\n\b\nExample: wxcli user-settings update-alert PERSON_ID\n\n\b\nExample --json-body: '{"alertingMode":"SEQUENTIAL","nextAssistantNumberOfRings":0,"rolloverEnabled":true,"rolloverAction":"VOICE_MESSAGING","rolloverForwardToPhoneNumber":"...","rolloverWaitTimeInSecs":0,"clidNameMode":"EXECUTIVE_ORIGINATOR","customCLIDName":"...","customCLIDNameInUnicode":"...","clidPhoneNumberMode":"EXECUTIVE","customCLIDPhoneNumber":"..."}'"""
@@ -5284,6 +5409,8 @@ def update_alert(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5336,6 +5463,7 @@ def update_assigned_assistants(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Person Executive Assigned Assistants.\n\n\b\nExample: wxcli user-settings update-assigned-assistants PERSON_ID\n\n\b\nExample --json-body: '{"assistantIds":["..."]}'"""
@@ -5358,6 +5486,8 @@ def update_assigned_assistants(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5455,6 +5585,7 @@ def update_assistant(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Person Executive Assistant Settings.\n\n\b\nExample: wxcli user-settings update-assistant PERSON_ID\n\n\b\nExample --json-body: '{"forwardFilteredCallsEnabled":true,"forwardToPhoneNumber":"...","executives":[{"personId":"...","optInEnabled":true}]}'"""
@@ -5481,6 +5612,8 @@ def update_assistant(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5528,6 +5661,7 @@ def update_screening(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Person Executive Screening Settings.\n\n\b\nExample: wxcli user-settings update-screening PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"alertType":"SILENT","alertAnywhereLocationEnabled":true,"alertMobilityLocationEnabled":true,"alertSharedCallAppearanceLocationEnabled":true}'"""
@@ -5560,6 +5694,8 @@ def update_screening(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5604,6 +5740,7 @@ def update_people(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Timezone and Announcement Language Settings of a Person.\n\n\b\nExample: wxcli user-settings update-people PERSON_ID\n\n\b\nExample --json-body: '{"announcementLanguage":"...","timeZone":"..."}'"""
@@ -5630,6 +5767,8 @@ def update_people(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5697,6 +5836,7 @@ def update_anonymous_call_reject(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Anonymous Call Rejection Settings for a Person.\n\n\b\nExample: wxcli user-settings update-anonymous-call-reject PERSON_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
@@ -5721,6 +5861,8 @@ def update_anonymous_call_reject(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5810,6 +5952,7 @@ def update_simultaneous_ring(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Simultaneous Ring Settings for a Person.\n\n\b\nExample: wxcli user-settings update-simultaneous-ring PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"doNotRingIfOnCallEnabled":true,"criteriasEnabled":true,"phoneNumbers":[{"phoneNumber":"...","answerConfirmationEnabled":true}]}'"""
@@ -5838,6 +5981,8 @@ def update_simultaneous_ring(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -5957,6 +6102,7 @@ def update_criteria_simultaneous_ring(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify Simultaneous Ring Criteria for a Person.\n\n\b\nExample: wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"LOCATION","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'"""
@@ -5993,6 +6139,8 @@ def update_criteria_simultaneous_ring(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -6129,6 +6277,7 @@ def update_members_hot_desking(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Hot Desking Members.\n\n\b\nExample: wxcli user-settings update-members-hot-desking PERSON_ID --json-body '{"members":[{"id":"...","port":0,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":0}]}'\n\n\b\nExample --json-body: '{"members":[{"id":"...","port":0,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":0,"t38FaxCompressionEnabled":true,"hotlineEnabled":true,"hotlineDestination":"...","allowCallDeclineEnabled":true,"memberType":"USER"}]}'"""
@@ -6151,6 +6300,8 @@ def update_members_hot_desking(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -6200,6 +6351,7 @@ def update_outbound_billing_plan(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Modify a Person's Outbound Billing Plan.\n\n\b\nExample: wxcli user-settings update-outbound-billing-plan PERSON_ID"""
@@ -6219,6 +6371,8 @@ def update_outbound_billing_plan(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

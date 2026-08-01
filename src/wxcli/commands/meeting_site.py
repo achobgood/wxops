@@ -5,6 +5,7 @@ from wxcli.auth import get_api
 from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Meetings meeting-site.")
@@ -41,6 +42,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Meeting Common Settings Configuration.\n\n\b\nExample --json-body: '{"siteOptions":{"allowCustomPersonalRoomURL":true},"defaultSchedulerOptions":{"entryAndExitTone":"NoTone","telephonySupport":"None","joinTeleconfNotPress1":true,"tollFree":true,"VoIP":true},"scheduleMeetingOptions":{"emailReminders":true},"securityOptions":{"joinBeforeHost":true,"audioBeforeHost":true,"firstAttendeeAsPresenter":true,"unlistAllMeetings":true,"requireLoginBeforeAccess":true,"allowMobileScreenCapture":true,"requireStrongPassword":true,"passwordCriteria":{"mixedCase":true,"minLength":0,"minNumeric":0,"minAlpha":0,"minSpecial":0,"disallowDynamicWebText":true,"disallowList":true,"disallowValues":["..."]}}}'"""
@@ -59,6 +61,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

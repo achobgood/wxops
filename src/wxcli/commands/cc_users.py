@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-users.")
@@ -469,6 +470,7 @@ def update_user(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update specific User by ID.\n\n\b\nExample: wxcli cc-users update-user ID --first-name FIRST_NAME --last-name LAST_NAME --email EMAIL --ci-user-id CI_USER_ID --user-profile-id USER_PROFILE_ID --contact-center-enabled --active\n\n\b\nExample --json-body: '{"firstName":"...","lastName":"...","email":"...","ciUserId":"...","userProfileId":"...","contactCenterEnabled":true,"active":true,"organizationId":"...","id":"...","version":0,"workPhone":"...","mobile":"...","broadCloudUserId":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","siteId":"...","teamIds":[{}],"skillProfileId":"...","agentProfileId":"...","multimediaProfileId":"...","deafultDialledNumber":"...","externalIdentifier":"...","imiUserCreated":true,"preferredSupervisorTeamId":"...","userLevelBurnoutInclusion":"INCLUDED","userLevelAutoCSATInclusion":"INCLUDED","userLevelWellnessBreakReminders":"DISABLED","userLevelSummariesInclusion":"INCLUDED","supervisorCapabilitiesEnabled":true,"agentCapabilitiesEnabled":true,"dynamicSkills":[{"skillId":"...","organizationId":"...","id":"...","version":0,"skillName":"...","textValue":"...","booleanValue":true,"proficiencyValue":0,"enumValue":"...","enumSkillValues":"...","createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
@@ -553,6 +555,8 @@ def update_user(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
