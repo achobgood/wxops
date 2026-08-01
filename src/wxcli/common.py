@@ -64,12 +64,136 @@ def _warn_if_projection_emptied(before: Any, after: Any, fields: str | None) -> 
     )
 
 
+# Query params that ADD FIELDS to each record. Omit one and the field is absent
+# from every record — the command still exits 0 and still returns every record,
+# so a --fields expression naming that field yields null/[] and reads as a
+# truthful zero. `wxcli people list --fields '[].extension'` answers "no user
+# has an extension" on an org where every user does.
+#
+# Proven pairs only, and deliberately narrow. Two limits worth stating:
+#
+#   1. This catches FIELD expansion, not RECORD expansion. `--has-cx-essentials`
+#      is the same class of trap (CLAUDE.md known issue #7: standard
+#      `call-queue list` omits CX queues entirely without it) but is invisible
+#      here — nothing in a --fields expression says "I also wanted CX queues",
+#      so there is no signal to check. Do not add record-expanding flags to
+#      this table; they need a different mechanism.
+#   2. A field named here may also exist independently on some endpoints. The
+#      warning says the answer is not trustworthy, never that it is wrong.
+FIELD_UNLOCKS: dict[str, frozenset[str]] = {
+    "callingData": frozenset({"extension", "locationId"}),
+}
+
+
+def warn_missing_expansion(
+    params: dict | None, fields: str | None, expansions: tuple[str, ...] = ()
+) -> None:
+    """Say so when --fields asks for a field the request did not unlock.
+
+    The single highest-value interlock in the CLI, because this failure is
+    otherwise invisible: exit 0, every record returned, and a confident wrong
+    number. Everything else in this module warns about a result that LOOKS
+    wrong; this warns about one that looks perfectly right.
+
+    `expansions` is the set of unlocking params THIS endpoint actually accepts,
+    passed by the generator. It is not optional rigour — without it the check
+    fires on any endpoint whose records legitimately carry `extension` natively
+    (virtual lines do), telling the caller to pass a flag that does not exist
+    there. A warning that cannot be acted on is worse than none.
+    """
+    if not fields:
+        return
+    for param in expansions:
+        unlocked = FIELD_UNLOCKS.get(param)
+        if not unlocked:
+            continue
+        if params and params.get(param) is not None:
+            continue
+        named = sorted(f for f in unlocked if f in fields)
+        if not named:
+            continue
+        typer.echo(
+            f"Note: --fields references {', '.join(named)}, which this endpoint "
+            f"omits unless --{_flag_of(param)} is passed. Without it the field is "
+            f"absent from every record, so an empty or zero result here is not "
+            f"evidence of anything. Re-run with --{_flag_of(param)} true.",
+            err=True,
+        )
+
+
+def _flag_of(param: str) -> str:
+    """camelCase query param -> the --kebab-case option that sets it."""
+    out = []
+    for ch in param:
+        if ch.isupper():
+            out.append("-")
+            out.append(ch.lower())
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def verify_write(api, url: str, params: dict | None, sent: Any) -> None:
+    """Re-read after a write and report any field that did not take.
+
+    A 2xx proves the request was WELL-FORMED, not that the configuration is
+    right. `docs/reference/devices-core.md` carries the worked case:
+    device-members does no port validation, so PRIMARY on two ports returns 200
+    and both persist. Nothing about the response says the config is wrong.
+
+    Three deliberate limits:
+
+      1. **Only the fields you sent are compared.** A full-response diff drowns
+         the signal in server-computed fields (`lastModified`, expanded objects)
+         that differ on every call by design.
+      2. **Warn-only; the exit code is untouched.** Servers legitimately
+         normalise — case, E.164 rewriting, defaults filled in — so a hard
+         failure would break correct callers. This reports the difference and
+         lets the caller judge it.
+      3. **A read-back failure is reported, never swallowed.** "Could not
+         verify" and "verified clean" must never look alike, which is the whole
+         point of the flag.
+    """
+    if not isinstance(sent, dict) or not sent:
+        typer.echo("Note: --verify had no request body to compare against.", err=True)
+        return
+    try:
+        got = api.session.rest_get(url, params=params)
+    except Exception as e:  # noqa: BLE001 - any failure must stay visible
+        typer.echo(f"Note: --verify could not re-read {url}: {e}", err=True)
+        return
+    if not isinstance(got, dict):
+        typer.echo("Note: --verify read back a non-object response; cannot compare.", err=True)
+        return
+
+    drift = []
+    for key, want in sent.items():
+        if key not in got:
+            drift.append((key, want, "<not present in read-back>"))
+        elif got[key] != want:
+            drift.append((key, want, got[key]))
+
+    if not drift:
+        typer.echo(f"Verified: re-read {url} and all {len(sent)} sent field(s) match.", err=True)
+        return
+    typer.echo(
+        f"Note: --verify re-read {url} and {len(drift)} of {len(sent)} sent "
+        f"field(s) differ. A 2xx means the request was accepted, not that it "
+        f"took effect — check whether the server normalised these or ignored them:",
+        err=True,
+    )
+    for key, want, actual in drift:
+        typer.echo(f"  {key}: sent {want!r}, now {actual!r}", err=True)
+
+
 def emit(
     data: Any,
     output: str = "json",
     fields: str | None = None,
     columns: list[tuple[str, str]] | None = None,
     limit: int = 0,
+    params: dict | None = None,
+    expansions: tuple[str, ...] = (),
 ) -> None:
     """Apply --fields, then render in the requested format.
 
@@ -79,6 +203,10 @@ def emit(
     or bare-list result falls back to JSON so a legitimate projection never
     crashes the command.
     """
+    # Before the projection warning, because this is the root cause the other
+    # one is a symptom of: an unlocked-field miss can render as "matched 0 of N".
+    warn_missing_expansion(params, fields, expansions)
+
     raw = data
     data = apply_fields(data, fields)
     _warn_if_projection_emptied(raw, data, fields)

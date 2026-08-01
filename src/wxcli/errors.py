@@ -1,5 +1,7 @@
 """Centralized error handler for wxcli commands."""
+import base64
 import json
+import re
 import sys
 
 import typer
@@ -75,6 +77,64 @@ def _truncate_html(err: str) -> str:
     return msg.strip()
 
 
+_SPARK_URN = re.compile(r"^ciscospark://[^/]+/([A-Z_]+)/")
+
+
+def decode_id_kind(token: str) -> str | None:
+    """'Y2lzY29zcGFyazovL3VzL0RFVklDRS8x…' -> 'DEVICE'. None if not a Webex id.
+
+    Webex ids are base64 of `ciscospark://<cluster>/<KIND>/<uuid>`, so the kind
+    is knowable locally, before the call and before any error.
+    """
+    if len(token) < 24 or not re.fullmatch(r"[A-Za-z0-9_\-+/]+=*", token):
+        return None
+    try:
+        raw = base64.b64decode(token + "=" * (-len(token) % 4)).decode("utf-8")
+    except Exception:
+        return None
+    m = _SPARK_URN.match(raw)
+    return m.group(1) if m else None
+
+
+# ALLOWLIST, not broad detection. A naive "declared kind != passed kind" check
+# cannot be trusted here: 79 CLI arguments declare a kind their own name
+# contradicts (`location_id` help-typed PEOPLE, `call_queue_id` typed
+# HUNT_GROUP — see CLAUDE.md), so comparing against the declared kind would
+# manufacture false warnings on correct calls. Only pairs proven live go here.
+#
+# Keyed (invoked group, kind actually passed). Each entry must name a remedy
+# that produces the right id, or it is not worth printing.
+_ID_KIND_TIPS = {
+    ("device-settings", "DEVICE"): (
+        "You passed a DEVICE id, but this group needs the callingDeviceId — a "
+        "different id for the same phone, of kind CALLING_DEVICE. Webex reports "
+        "the mismatch as 'device not found', which reads as though the phone does "
+        "not exist, so this is easy to misdiagnose. Get the right id with: "
+        "wxcli devices show <deviceId> -o json (use the callingDeviceId field)."
+    ),
+}
+
+
+def _passed_id_kinds() -> list[tuple[str, str]]:
+    """(token-prefix, KIND) for every Webex id on the command line."""
+    out = []
+    for arg in sys.argv[1:]:
+        kind = decode_id_kind(arg)
+        if kind:
+            out.append((arg[:12] + "…", kind))
+    return out
+
+
+def _id_kind_tip() -> str | None:
+    """The allowlisted remedy for an id-kind mismatch, if one applies."""
+    group = _invoked_group()
+    for _, kind in _passed_id_kinds():
+        tip = _ID_KIND_TIPS.get((group, kind))
+        if tip:
+            return tip
+    return None
+
+
 def _invoked_group() -> str:
     """The command group this process was invoked with, e.g. 'cc-queue'.
 
@@ -112,6 +172,8 @@ def handle_rest_error(e: WebexError) -> None:
         tip = _ERROR_TIPS[code]
     elif any(msg in err for msg in _MESSAGE_TIPS):
         tip = next(v for k, v in _MESSAGE_TIPS.items() if k in err)
+    elif _id_kind_tip():
+        tip = _id_kind_tip()
     elif _is_cc_403(e, err):
         tip = "Contact Center APIs need CC-scoped OAuth (cjp:config_read / cjp:config_write); a personal access token or plain admin token always gets 403 here. Create an integration with those scopes at developer.webex.com, complete the OAuth flow, then re-run: wxcli configure with that token."
     else:
@@ -120,6 +182,17 @@ def handle_rest_error(e: WebexError) -> None:
     typer.echo(f"Error: {_truncate_html(err)}", err=True)
     if tip:
         typer.echo(f"Tip: {tip}", err=True)
+
+    # Neutral, and deliberately not a diagnosis. "No such resource" reads as
+    # "it does not exist" when the real fault is often an id of the wrong KIND
+    # for this endpoint. Stating what was actually passed costs one line and
+    # cannot be wrong — unlike guessing what the endpoint wanted, which the 79
+    # mis-declared arguments make unsafe.
+    if e.status_code in (400, 404):
+        kinds = _passed_id_kinds()
+        if kinds:
+            shown = ", ".join(f"{tok} = {kind}" for tok, kind in kinds)
+            typer.echo(f"Ids you passed, decoded: {shown}", err=True)
     raise typer.Exit(1)
 
 

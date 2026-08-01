@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling people.")
@@ -63,7 +64,7 @@ def cmd_list(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Email', 'emails')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Email', 'emails')], limit=limit, params=params, expansions=('callingData',))
 
 
 
@@ -141,7 +142,7 @@ def create(
         else:
             print_json(result)
     else:
-        emit(result, output=output, fields=fields)
+        emit(result, output=output, fields=fields, params=params, expansions=('callingData',))
 
 
 
@@ -165,7 +166,7 @@ def show(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(result, output=output, fields=fields)
+    emit(result, output=output, fields=fields, params=params, expansions=('callingData',))
 
 
 
@@ -194,6 +195,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Person.\n\n\b\nExample: wxcli people update PERSON_ID --display-name DISPLAY_NAME\n\n\b\nExample --json-body: '{"displayName":"...","emails":["..."],"phoneNumbers":[{"type":"work","value":"..."}],"extension":"...","locationId":"...","firstName":"...","lastName":"...","nickName":"...","avatar":"...","orgId":"...","roles":["..."],"licenses":["..."],"department":"...","manager":"...","managerId":"...","title":"...","addresses":[{"type":"...","country":"...","locality":"...","region":"...","streetAddress":"...","postalCode":"..."}],"siteUrls":["..."],"loginEnabled":true}'"""
@@ -245,8 +247,10 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
-        emit(result, output=output, fields=fields)
+        emit(result, output=output, fields=fields, params=params, expansions=('callingData',))
     elif output in ("table", "id") and not fields:
         typer.echo(f"Updated.")
     else:
@@ -301,6 +305,6 @@ def show_me(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    emit(result, output=output, fields=fields)
+    emit(result, output=output, fields=fields, params=params, expansions=('callingData',))
 
 

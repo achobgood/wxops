@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling wholesale-provisioning.")
@@ -153,6 +154,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Wholesale Customer.\n\n\b\nExample: wxcli wholesale-provisioning update CUSTOMER_ID --json-body '{"packages":["common_area_calling"]}'\n\n\b\nExample --json-body: '{"packages":["common_area_calling"],"externalId":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"provisioningParameters":{"calling":{"location":{"name":"...","address":{"addressLine1":"...","city":"...","country":"...","addressLine2":"...","stateOrProvince":"...","zipOrPostalCode":"..."},"timezone":"...","language":"...","emergencyLocationIdentifier":"..."}},"meetings":{"timezone":"..."},"packages":{"limits":{"webex_calling":0,"common_area_calling":0,"webex_meetings":0,"webex_suite":0,"webex_voice":0,"cx_essentials":0,"webex_calling_standard":0,"attendant_console":0}}},"subPartnerAdminEmail":"..."}'"""
@@ -178,6 +180,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -460,6 +464,7 @@ def update_subscribers(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update a Wholesale Subscriber.\n\n\b\nExample: wxcli wholesale-provisioning update-subscribers SUBSCRIBER_ID\n\n\b\nExample --json-body: '{"package":"webex_calling","packages":["webex_calling"],"provisioningParameters":{"primaryPhoneNumber":"...","extension":"...","locationId":"..."}}'"""
@@ -483,6 +488,8 @@ def update_subscribers(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Calling call-recording.")
@@ -43,6 +44,7 @@ def update(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Call Recording Settings.\n\n\b\nExample: wxcli call-recording update --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
@@ -67,6 +69,8 @@ def update(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -110,6 +114,7 @@ def update_terms_of_service(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Call Recording Terms Of Service Settings.\n\n\b\nExample: wxcli call-recording update-terms-of-service VENDOR_ID --terms-of-service-enabled\n\n\b\nExample --json-body: '{"termsOfServiceEnabled":true}'"""
@@ -134,6 +139,8 @@ def update_terms_of_service(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -180,6 +187,7 @@ def update_compliance_announcement_call_recording(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update the organization Compliance Announcement.\n\n\b\nExample --json-body: '{"inboundPSTNCallsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useCustomAnnouncementEnabled":true,"audioAnnouncementFileId":"..."}'"""
@@ -214,6 +222,8 @@ def update_compliance_announcement_call_recording(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -262,6 +272,7 @@ def update_compliance_announcement_call_recording_1(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update the Location Compliance Announcement.\n\n\b\nExample: wxcli call-recording update-compliance-announcement-call-recording-1 LOCATION_ID\n\n\b\nExample --json-body: '{"inboundPSTNCallsEnabled":true,"useOrgSettingsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useOrgLevelAnnouncementEnabled":true,"customComplianceAnnouncement":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'"""
@@ -296,6 +307,8 @@ def update_compliance_announcement_call_recording_1(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -699,6 +712,7 @@ def update_announcements_call_recording(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Organization Call Recording Announcement Settings.\n\n\b\nExample --json-body: '{"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'"""
@@ -721,6 +735,8 @@ def update_announcements_call_recording(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -764,6 +780,7 @@ def update_announcements_call_recording_1(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Location Call Recording Announcement Settings.\n\n\b\nExample: wxcli call-recording update-announcements-call-recording-1 LOCATION_ID\n\n\b\nExample --json-body: '{"useOrgLevelAnnouncementEnabled":true,"start":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"stop":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"pause":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"resume":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureEndWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."},"failureProceedWithCall":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'"""
@@ -788,6 +805,8 @@ def update_announcements_call_recording_1(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

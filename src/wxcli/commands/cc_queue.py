@@ -6,6 +6,7 @@ from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
+from wxcli.common import verify_write
 
 
 app = typer.Typer(help="Manage Webex Contact Center cc-queue.")
@@ -1007,6 +1008,7 @@ def update_contact_service_queue(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update specific Contact Service Queue by ID.\n\n\b\nExample: wxcli cc-queue update-contact-service-queue ID --json-body '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}]}'\n\n\b\nExample --json-body: '{"name":"...","queueType":"INBOUND","checkAgentAvailability":true,"channelType":"TELEPHONY","serviceLevelThreshold":0,"maxActiveContacts":0,"maxTimeInQueue":0,"active":true,"routingType":"LONGEST_AVAILABLE_AGENT","queueRoutingType":"TEAM_BASED","callDistributionGroups":[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}],"organizationId":"...","id":"...","version":0,"description":"...","socialChannelType":"MESSAGEBIRD","defaultMusicInQueueMediaFileId":"...","timezone":"...","outdialCampaignEnabled":true,"monitoringPermitted":true,"parkingPermitted":true,"recordingPermitted":true,"recordingAllCallsPermitted":true,"pauseRecordingPermitted":true,"recordingPauseDuration":0,"controlFlowScriptUrl":"...","ivrRequeueUrl":"...","overflowNumber":"...","vendorId":"...","skillBasedRoutingType":"LONGEST_AVAILABLE_AGENT","queueSkillRequirements":[{"skillId":"...","condition":"...","skillValue":"...","organizationId":"...","id":"...","version":0,"skillName":"...","skillType":"...","weight":0,"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0}],"agents":[{"id":"...","ciUserId":"..."}],"xspVersion":"...","subscriptionId":"...","assistantSkill":{"assistantSkillId":"...","assistantSkillUpdatedTime":0},"systemDefault":true,"manuallyAssignable":true,"agentsLastUpdatedByUserName":"...","agentsLastUpdatedByUserEmailPrefix":"...","agentsLastUpdatedTime":0,"queueLevelSummariesInclusion":"...","queueLevelSentimentAnalysisInclusion":"...","queueLevelPredictedWaitTimeInclusion":"...","queueLevelAutoCsatInclusion":"...","queueLevelRealTimeTranscriptionsInclusion":"...","personalizedAIRouting":{"aiRoutingMode":"NONE","aiRoutingKPIId":"...","evaluationModeStartTime":0},"pauseAndResume":{"enabled":true,"pauseTimeout":{"days":0,"hours":0,"minutes":0}},"createdTime":0,"lastUpdatedTime":0}'"""
@@ -1113,6 +1115,8 @@ def update_contact_service_queue(
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
