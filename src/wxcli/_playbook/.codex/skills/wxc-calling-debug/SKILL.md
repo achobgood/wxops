@@ -29,6 +29,54 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 4. **call-controls requires user-level OAuth** — admin tokens and service-app tokens get 400 "Target user not authorized" on `/telephony/calls/*` endpoints. The user must authenticate with a personal or OAuth token for a specific calling-licensed user.
 5. **my-settings requires a calling-licensed user** — all `/people/me/*` endpoints return 404 (error 4008) if the authenticated user does not have a Webex Calling license. Test with a calling user's token, not the admin token.
 
+## Verification Gate — a cause you did not observe is a hypothesis
+
+This skill's entire surface is "why is X happening", which is exactly where an
+unverified cause is cheapest to produce and most expensive to act on. A wrong
+diagnosis sends the next hour at the wrong subsystem.
+
+1. **Run the check, read the full output, then state the conclusion** — that
+   order, same turn. Never the conclusion first, then a check that "confirms" it.
+2. **The user's diagnosis is a hypothesis too.** "The token expired", "the
+   location is broken", "it's a scope problem" — verify before building a theory
+   on top. If a check contradicts the premise, say so plainly rather than
+   quietly working around it.
+3. **Never conclude from truncated output.** A `--debug` dump cut off by a
+   `head`, or a list read that warned it left pages behind, is not evidence.
+   Re-run for the full result first.
+4. **An anomaly is a thing to verify, never a thing to explain away.** If a
+   value surprised you, that is precisely the thing to confirm. "Probably
+   re-registration settling", "same as it was before", "that's expected" are
+   rationalizations wearing a finding's clothes.
+
+Rule 4 earned its place here: a device moved from `connected` to
+`connected_with_issues` in the middle of a change, and the correct report was
+**"the status changed and I could not establish what caused it"** — not a
+plausible story about registration. Report the state you observed plus the
+causal question you could not close. An open question is a finding; a
+comfortable guess is not.
+
+**What this looks like.** Three reports of the same finding — only the third is right:
+
+```
+Bad   "It's a scope problem — add the missing scope."
+      (unverified; the fix costs a token re-issue and does not work)
+
+Bad   "hypothesis: could be scope. [runs whoami] verified: token already has
+       spark-admin:telephony_config_write, so not scope. Next hypothesis: the
+       id kind. [runs devices show] verified: id is /DEVICE/…"
+      (ceremony — the search narrated back as if it were the finding)
+
+Good  "Not scope — the token already carries
+       spark-admin:telephony_config_write. The 400 · 27123 is an id-kind
+       mismatch: device-settings needs the callingDeviceId (/CALLING_DEVICE/…)
+       and a /DEVICE/… id was passed. That error text reads as 'device not
+       found', which is what sent this to the wrong place."
+```
+
+The middle line is not extra rigor. Narrating the search is its own failure:
+the tool calls are already the record, so report the finding, not the hunt.
+
 ## Step 1: Load references
 
 Load the reference docs relevant to the reported symptom. Do NOT load all docs — pick 1-2 based on the API area involved.
