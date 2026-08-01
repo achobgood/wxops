@@ -25,10 +25,33 @@ sources conflict, trust them in this order:
 3. **Reference docs** — comprehensive but can lag behind skill and CLI updates
 4. **Your training data** — least reliable; NEVER trust over the above three
 
+**This covers corrections.** Overriding `--help`, a doc, or a subagent's
+doc-grounded finding is itself a rank-4 claim unless you checked. A retraction
+*sounds* more verified than what it replaces — it is not. Flagging that
+something may be wrong is always fine; asserting the replacement as fact needs
+the same evidence as the original.
+
 This refines the grounding rule above: skills and docs outrank your training, but
 `--help` outranks *them*. A skill's recipe is a starting point, not a guarantee — recipes
 are hand-written and drift as the CLI regenerates. When a recipe and `--help` disagree,
 `--help` wins, and the stale recipe should be fixed, not worked around.
+
+**The ladder above does not apply to the `@webex/contact-center` JavaScript SDK.**
+It tops out at `wxcli --help`, which has zero visibility into a JS SDK — no `wxcli`
+command can tell you anything about `webex.cc` or `task.*`. For that surface only,
+the order is:
+
+1. **Live observation against a real tenant** — the wire format is repeatedly not the
+   declared type (`Team` declares `{teamId}`, the wire sends `{id}`)
+2. **The SDK's own TypeScript sources** — `sourcesContent` inside the shipped `.map`
+3. **The published typedoc** (`web-sdk.webex.com/wxcc`) — built from the **`next`
+   prerelease**, so it is *ahead of* stable and documents members that exist in no
+   shipping release
+4. **Your training data**
+
+Never conclude "field X does not exist" by grepping the minified bundle: TypeScript
+types are erased at compile time, so a type-only field never appears in the `.js`.
+Enumerate a type's members instead. See `docs/reference/contact-center-agent-sdk.md`.
 
 **A read-only command can be silently wrong.** Real case: the query-live recipe said
 `wxcli people list -o json`, but Webex omits `extension` and `locationId` unless
@@ -73,6 +96,9 @@ The target user has ZERO platform experience. When explaining findings, trade-of
 - Answer their real questions directly: **what should we do, why, is it easy to maintain, what risks breaking.**
 - **End with a clear recommendation**, not a neutral menu of options.
 - If a technical term must appear, define it inline the first time.
+- **Report the finding, not the search.** Tool calls are already the record —
+  don't narrate them again in prose. Conclusion plus evidence, usually one
+  sentence. Progress updates during delegated work are not findings.
 
 This applies to chat answers AND the option text in any question you ask the user.
 
@@ -205,6 +231,7 @@ When multiple skills could match, use this lookup. (Basic skill-vs-skill routing
 | "Create a workspace" (Calling device workspace) | `manage-devices` | `contact-center` (CC JDS workspaces are journey data containers) |
 | "Set up business hours / holidays" (Calling schedule) | `configure-features` | `contact-center` (CC business hours are a separate entity type) |
 | "Set up business hours / holidays" (CC schedule) | `contact-center` | `configure-features` (Calling schedules attach to AA/CQ/HG) |
+| Build a custom agent desktop / browser softphone with WebRTC audio | **`docs/reference/contact-center-agent-sdk.md`** (a reference doc, not a skill — no CLI path exists for this) | `contact-center` (that provisions the agents/queues the desktop connects to) and **not** `cc-desktop-layout` (that configures Cisco's own Agent Desktop; a custom desktop ignores layouts entirely) |
 | **Undocumented capabilities — user asks, table must route:** | | |
 | Set up executive-assistant delegation | `manage-call-settings` | `configure-features` (delegation is a person setting, not a call feature) |
 | Configure line keys, BLF, speed dials on phones | `manage-devices` | `manage-call-settings` (line key templates are device config, not call settings) |
@@ -303,6 +330,7 @@ Common admin goals that span multiple skills. When the user states one of these 
 | `docs/reference/contact-center-routing.md` | CC dial plans, dial number-to-entry-point mapping, campaigns, flows, audio, contacts, outdial |
 | `docs/reference/contact-center-analytics.md` | CC AI, monitoring, subscriptions, tasks, search |
 | `docs/reference/contact-center-journey.md` | JDS: workspaces, persons, identity, profile views, events, WXCC subscription |
+| `docs/reference/contact-center-agent-sdk.md` | `@webex/contact-center` JS SDK — building a **custom agent desktop** (browser softphone): `webex.cc`/`task.*`, WebRTC audio, events, flow variables, `cjp:user` runtime scope. Not the REST/`wxcli` surface |
 
 ### Migration (KB, Runbooks, Tool)
 
@@ -355,7 +383,7 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 **177 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
-### Common Flags (`--fields`, `--output`, `--json-body`, `--all`)
+### Common Flags (`--fields`, `--output`, `--json-body`, `--all`, `--verify`)
 
 Every generated command takes `--fields` and `--output`/`-o` — **including `update`, `delete`, and action commands.** An earlier build had `--output` only on list/show/create and no `--fields` at all; that split is gone, so don't assume a write command lacks them.
 
@@ -363,6 +391,9 @@ Every generated command takes `--fields` and `--output`/`-o` — **including `up
 - **`--output`/`-o`** — `table|json|text` on every command, plus `id` (create's default) on create only.
 - **`--json-body`** accepts inline JSON, `file://path`, a bare path, or `-` for stdin (pairs with `--generate-json-body`; see Known Issue #2 below).
 - **`--all`** — on **every `list` command**: fetch every page, not just the first. Default is one fetch; `--all` walks the whole collection and **overrides `--limit`**. Read the detail below before trusting a count.
+- **`--verify`** — on **328 update commands** (every PUT/PATCH that has a same-path GET to read back from). Off by default. After the write it re-reads the resource and reports any field you sent that did not take, then prints either `Verified: … all N sent field(s) match.` or a per-field `sent X, now Y` list. It compares **only the fields you sent**, and it **never changes the exit code** — servers legitimately normalise values, so the CLI reports the difference and leaves the judgement to you. Use it whenever a write's success matters: a 2xx means the request was *accepted*, not that it was *applied*. `device-members` is the worked case — it does no port validation, so `PRIMARY` on two ports returns 200 and both persist. A command with no same-path GET deliberately does **not** offer the flag, because a `--verify` that silently verifies nothing is worse than none.
+
+**The `--calling-data` interlock.** `people list/show/create/update/show-me` now check the `--fields` expression before rendering: ask for `extension` or `locationId` without `--calling-data`, and the CLI says so on stderr instead of handing back a silent, confident zero. Measured live on 2026-08-01 — `people list --fields '[].extension' --all` returns `[]` on an org where 15 users have extensions; adding `--calling-data true` returns all 15. The check fires only on endpoints that actually accept the flag, so it can never point you at an option a command does not have.
 
 Four worked examples:
 
@@ -390,7 +421,7 @@ Three behaviors that will otherwise read as bugs:
 
 - **It is deliberately a no-op on endpoints the spec says do not paginate** — that is roughly half the commands carrying it. The flag is uniform on every list command *by design*: an option present on most commands but not all teaches a rule that breaks unpredictably, costing a failed call plus a `--help` round trip each time (the same reasoning that closed the `--output` gap). One page back from `--all` on a non-paging endpoint is correct, not a failure.
 - **Walking is bounded at 1000 pages**, overridable with `WXCLI_MAX_PAGES`. Hitting the ceiling prints an error to stderr containing the word **INCOMPLETE**. That word means records are missing — not that a request failed. Do not draw a conclusion from output that produced it.
-- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. If you are reading only stdout — the normal case for a structured read — you will never see it, and the partial answer looks complete. `WXCLI_NO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
+- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. **You will see that note — do not assume otherwise.** (Measured 2026-08-01 on Codex and Codex 0.144.1: both merge stderr into the tool result the model reads, so it stays visible when stdout is piped, redirected to a file, or large enough to be truncated to a head preview — the note is written by `rest_get` *before* any row is rendered, so it lands on line 1. It is lost only if you suppress it yourself with `2>/dev/null` or `WXCLI_NO_PAGE_WARN=1`.) The failure mode this guards against is therefore *ignoring* the note, not missing it: if you see it and still answer a "how many" question, the answer is wrong. `WXCLI_NO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
 
 One precision on "overrides `--limit`": it overrides what is **fetched**. In `-o table` mode `--limit` still caps *printed* rows (with a visible `... N more` row); `-o json` prints everything fetched.
 
@@ -440,7 +471,7 @@ When you hit one of these errors, jump to the matching known issue:
 8. **Supervisor delete returns 204 but supervisor persists.** Workaround: `update-supervisors` with `action: DELETE` on each agent. See `docs/reference/call-features-additional.md` gotchas.
 9. **`virtual-extensions` commands use wrong ID type.** Uses `VIRTUAL_EXTENSION`-encoded IDs but virtual lines use `VIRTUAL_LINE` IDs. Still separate path families in the spec (`virtualExtensions/{extensionId}` vs `virtualLines/{virtualLineId}`). `wxcli cleanup` uses raw REST as a workaround. See `docs/reference/virtual-lines.md` Raw HTTP Gotchas #9.
 10. **Device config schema is firmware-dependent.** Per-line ringtone was absent on PhoneOS 3.5/3.6 but fixed in 4.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
-11. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** PATs do NOT carry `cjp:config` scopes — even full admins on CC orgs get 403. Use an OAuth integration with `cjp:config_read`/`cjp:config_write` explicitly selected, then re-run the OAuth flow. The CC API also requires the bare UUID org ID (not the base64 Spark ID); `get_cc_org_id()` in `config.py` handles decoding. See `docs/reference/contact-center-core.md` gotchas #14 and #18-22.
+11. **Contact Center (`cc-*`) commands require CC-scoped OAuth and region config.** PATs do NOT carry `cjp:config` scopes — even full admins on CC orgs get 403. Use an OAuth integration with `cjp:config_read`/`cjp:config_write` explicitly selected, then re-run the OAuth flow. The CC API also requires the bare UUID org ID (not the base64 Spark ID); `get_cc_org_id()` in `config.py` handles decoding. See `docs/reference/contact-center-core.md` gotchas #18-23. **Scope of this issue: the config surface only.** A PAT *does* carry `cjp:user`, the per-agent runtime scope — verified live driving `register()`/`stationLogin()`/`setAgentState()` through the `@webex/contact-center` JS SDK. See `docs/reference/contact-center-agent-sdk.md` §10.
 
 ### Cleanup Command
 

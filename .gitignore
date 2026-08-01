@@ -73,6 +73,13 @@ tests/*
 !tests/test_suggest_and_paging.py
 !tests/test_pagination_walkers.py
 !tests/test_command_naming_residue.py
+# Same contract: these assert on behaviour that ships (the --calling-data
+# interlock on people.py, and --verify across 328 generated update commands).
+# Both guard SCOPING — a check that reaches the wrong commands warns about
+# flags they do not have — which only a tree-wide assertion can catch.
+!tests/test_field_expansion.py
+!tests/test_verify_flag.py
+!tests/test_errors_id_kind.py
 tests/migration/**/__pycache__/
 tests/org_health/**/__pycache__/
 
@@ -122,3 +129,6 @@ src/wxcli/commands/fs_*.py
 # General skills (not part of the Webex toolset)
 .claude/skills/seven-advisors/
 .claude/skills/researcher/
+
+# Prototype archive (redundant with the tracked prototypes/napa-procall/ sources)
+prototypes/*.zip

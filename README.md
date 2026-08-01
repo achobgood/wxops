@@ -133,7 +133,7 @@ A guided AI assistant that walks you through Webex Calling configuration end-to-
 
 - **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
 - **24 domain skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting (calling, meetings, contact center), identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, meetings, video mesh, contact center, CUCM migration, org health, live query, and debugging
-- **43 reference docs** in `docs/reference/` (+8 archived historical SDK docs) documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
+- **42 reference docs** in `docs/reference/` (+8 archived historical SDK docs) documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
 - **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
 
 ### How to Use It
@@ -152,7 +152,7 @@ The repo includes a `.claude/settings.json` that pre-approves common commands (`
 The AI playbook is optional — everything else works standalone:
 
 - **wxcli** is a regular Python CLI tool. Install it and use it directly.
-- The **43 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
+- The **42 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
 - The **9 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
 
 ## CLI Reference
@@ -386,7 +386,7 @@ wxops/
 │   └── field_overrides.yaml      # Table columns, display config, bug fixes
 ├── tests/                        # 2535 tests (pytest)
 ├── specs/                        # 9 OpenAPI 3.0 specs (calling, admin, device, messaging, meetings, CC, UCM, BroadWorks, wholesale)
-├── docs/reference/               # 43 API reference docs (SDK + raw HTTP + gotchas)
+├── docs/reference/               # 42 API reference docs (SDK + raw HTTP + gotchas)
 ├── .claude/settings.json         # Shared permissions (pre-approves wxcli commands)
 ├── .claude/agents/               # Claude Code builder + migration advisor agents
 └── .claude/skills/               # 25 Claude Code skills

@@ -1,0 +1,1692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAPA PROCall — WxCC Integration Prototype</title>
+<style>
+/* ============================================================
+   Design tokens — sampled from the customer's PROCall screenshots
+   ============================================================ */
+:root{
+  --navy:#1a2a6c;          /* top nav */
+  --navy-deep:#152257;
+  --strip:#1c3bb0;         /* stats strip */
+  --blue:#1d4ed8;          /* primary button */
+  --blue-dark:#1e3a8a;
+  --blue-link:#1d4ed8;
+  --green:#0f7b3f;         /* accept */
+  --green-pill:#0e8f52;    /* ready state */
+  --red:#dc2626;           /* end / decline */
+  --red-soft:#b91c1c;
+  --amber:#f59e0b;
+  --amber-text:#c2740a;
+  --mint:#eaf6ef;          /* active-call bar */
+  --ink:#1a1f25;
+  --ink-2:#475569;
+  --ink-3:#64748b;
+  --line:#e2e8f0;
+  --line-2:#cbd5e1;
+  --bg:#f1f5f9;
+  --card:#ffffff;
+  --shadow:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.06);
+  --shadow-lg:0 20px 45px rgba(15,23,42,.22);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select{font:inherit}
+a{color:var(--blue-link);text-decoration:none}
+.hidden{display:none !important}
+
+/* ============================================================
+   Top navigation
+   ============================================================ */
+.nav{
+  background:var(--navy); color:#fff; display:flex; align-items:center;
+  gap:10px; padding:10px 16px; position:sticky; top:0; z-index:60;
+}
+.logo{display:flex;align-items:center;gap:10px;margin-right:6px}
+.logo-mark{
+  background:#ffc72c; color:#0f2350; font-weight:800; font-size:11px;
+  letter-spacing:.5px; padding:7px 9px; border-radius:6px;
+  clip-path:polygon(12% 0,88% 0,100% 50%,88% 100%,12% 100%,0 50%);
+}
+.logo-word{font-size:20px;font-weight:700;letter-spacing:-.2px}
+.nav-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.16);
+  padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:600;color:#fff;
+}
+.nav-btn:hover{background:rgba(255,255,255,.18)}
+.nav-btn.rose{background:rgba(190,40,70,.35);border-color:rgba(255,140,160,.35)}
+.badge-count{
+  background:var(--red); color:#fff; font-size:11px; font-weight:700;
+  min-width:19px; height:19px; border-radius:5px;
+  display:inline-flex;align-items:center;justify-content:center;padding:0 5px;
+}
+.nav-spacer{flex:1}
+.state-pill{
+  display:inline-flex;align-items:center;gap:9px;
+  border-radius:999px;padding:9px 16px;font-weight:700;font-size:13.5px;
+  border:1px solid transparent;
+}
+.state-pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+.state-ready{background:var(--green-pill);color:#fff}
+.state-oncall{background:#7f1d3a;color:#ffd9e2;border-color:#a83355}
+.state-wrap{background:#8a5a00;color:#ffe9bf;border-color:#b8801a}
+.agent{display:flex;align-items:center;gap:10px;padding-left:6px}
+.agent-av{
+  width:32px;height:32px;border-radius:50%;background:#ffc72c;color:#0f2350;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+}
+.agent-name{font-weight:700;font-size:13.5px;line-height:1.15}
+.agent-role{font-size:11.5px;opacity:.75;line-height:1.15}
+
+/* Return-to-order button (appears only in catalog) */
+.btn-return{
+  background:#f0b429;color:#3b2a02;font-weight:700;padding:8px 14px;border-radius:8px;
+  display:inline-flex;align-items:center;gap:8px;font-size:13.5px;
+}
+.kbd{font-size:11px;opacity:.7;font-weight:600}
+
+/* ============================================================
+   Stats strip
+   ============================================================ */
+.strip{
+  background:var(--strip);color:#fff;display:flex;justify-content:center;
+  gap:34px;padding:9px 16px;font-size:13px;flex-wrap:wrap;
+}
+.stat{display:inline-flex;align-items:center;gap:8px}
+.stat b{font-size:14.5px;font-weight:800}
+.s-amber{color:#ffd08a}.s-green{color:#86efac}.s-white{color:#fff}
+
+/* ============================================================
+   Active-call bar — persistent chrome across every screen
+   ============================================================ */
+.callbar{
+  background:var(--mint); border-top:3px solid var(--amber);
+  border-bottom:1px solid #cfe6d9;
+  display:flex;align-items:center;gap:16px;padding:9px 16px;
+  position:sticky;top:52px;z-index:55;
+}
+.callbar-live{
+  display:inline-flex;align-items:center;gap:7px;background:#d6f0e0;color:#0b5e34;
+  font-weight:700;font-size:12.5px;padding:5px 11px;border-radius:999px;
+}
+.callbar-live .pulse{
+  width:8px;height:8px;border-radius:50%;background:#0f7b3f;
+  animation:pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.callbar-timer{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;color:var(--ink-2);font-weight:600}
+.callbar-mid{flex:1;display:flex;justify-content:center;gap:26px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+.callbar-mid b{color:var(--ink);font-weight:700}
+.cb-btn{
+  display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line-2);
+  padding:8px 15px;border-radius:8px;font-weight:600;font-size:13px;color:var(--ink);
+}
+.cb-btn:hover{background:#f8fafc}
+.cb-btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+.cb-btn.danger:hover{background:#b91c1c}
+.cb-btn.on{background:#fff7e6;border-color:var(--amber);color:#92600a}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+.view{padding:16px}
+.grid3{display:grid;grid-template-columns:340px 1fr 470px;gap:16px;align-items:start}
+@media (max-width:1400px){.grid3{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 10px}
+.card-t{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+.card-b{padding:0 18px 18px}
+.muted{color:var(--ink-3);font-size:12.5px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;background:var(--blue);color:#fff;
+  font-weight:600;font-size:13px;padding:9px 15px;border-radius:8px;
+}
+.btn:hover{background:#1e40af}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line-2)}
+.btn.ghost:hover{background:#f8fafc}
+.btn.soft{background:#93a9dd;color:#fff}
+.btn.danger-o{background:#fff;color:var(--red);border:1px solid #fca5a5}
+.btn.block{width:100%;justify-content:center}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.input{
+  width:100%;border:1px solid var(--line-2);border-radius:8px;padding:9px 12px;
+  background:#fff;color:var(--ink);
+}
+.input:focus{outline:2px solid #bfdbfe;border-color:var(--blue)}
+.field-lbl{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--ink-3);text-transform:uppercase;margin-bottom:5px}
+
+/* chips / badges */
+.chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;border:1px solid}
+.c-blue{background:#eff6ff;color:#1e40af;border-color:#bfdbfe}
+.c-amber{background:#fffbeb;color:#92400e;border-color:#fde68a}
+.c-green{background:#ecfdf5;color:#166534;border-color:#a7f3d0}
+.c-gray{background:#f8fafc;color:#475569;border-color:var(--line-2)}
+
+/* ============================================================
+   Dashboard — customer search / activity / stores
+   ============================================================ */
+.cust-card{
+  border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;
+  background:#fff;cursor:pointer;transition:border-color .12s,box-shadow .12s;
+}
+.cust-card:hover{border-color:#93c5fd;box-shadow:0 2px 8px rgba(29,78,216,.10)}
+.cust-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.cust-name{font-weight:700;font-size:14.5px}
+.cust-badges{display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0}
+.cust-meta{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.cust-line{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+
+.filters{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);padding:0 18px 12px}
+.filters .fl{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.tbl-wrap{max-height:520px;overflow:auto;border-top:1px solid var(--line)}
+table.act{width:100%;border-collapse:collapse;font-size:12.5px}
+table.act th{
+  text-align:left;font-size:11.5px;font-weight:700;color:var(--ink-2);
+  padding:10px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:1;
+}
+table.act td{padding:11px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+table.act tr:hover td{background:#f8fafc}
+.type-cell{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.type-btn{
+  display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px;
+  padding:5px 11px;border-radius:7px;border:1px solid var(--line-2);background:#fff;color:var(--ink);
+  white-space:nowrap;
+}
+.type-btn:hover{background:#eff6ff;border-color:var(--blue);color:var(--blue-dark)}
+.type-btn:active{transform:translateY(1px)}
+.type-btn.s-verified{border-color:#86efac;background:#f0fdf4}
+.type-btn.s-unverified{border-color:#fde68a}
+.num-tag{font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px;vertical-align:middle}
+.num-tag.demo{background:#f1f5f9;color:#64748b;border:1px solid var(--line-2)}
+.num-tag.warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.store-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.store-card{border:1px solid var(--line);border-radius:10px;padding:11px 12px;background:#fff}
+.store-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.store-name{font-weight:700;font-size:13.5px}
+.store-sub{font-size:11.5px;color:var(--ink-3)}
+.tams{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700}
+.tams.up{color:#0f7b3f}
+.tams.down{color:var(--red)}
+
+/* ============================================================
+   Order-entry view
+   ============================================================ */
+.tabs-row{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:2px;padding:0 12px}
+.otab{
+  padding:11px 16px;font-size:13px;font-weight:600;border:1px solid var(--line);
+  border-bottom:0;border-radius:8px 8px 0 0;margin-top:6px;background:#f8fafc;color:var(--ink-2);
+}
+.otab.active{background:#fff;color:var(--ink);border-color:var(--line);position:relative;top:1px}
+.otab-add{padding:8px 12px;color:var(--ink-3);font-size:18px}
+
+.ord-head{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ord-search{display:flex;align-items:center;gap:0}
+.ord-search .input{border-radius:8px 0 0 8px;width:300px;font-weight:600}
+.ord-search button{background:var(--blue);color:#fff;padding:9px 13px;border-radius:0 8px 8px 0}
+.money{font-size:11px;color:var(--ink-3);text-align:center;line-height:1.2}
+.money b{display:block;font-size:14px;color:var(--ink);font-weight:700}
+.ord-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.info-grid{
+  background:#fff;border-bottom:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);gap:22px;padding:14px 16px;
+}
+@media (max-width:1200px){.info-grid{grid-template-columns:repeat(2,1fr)}}
+.info-row{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px}
+.stock-box{
+  background:#eef2f7;border:1px solid var(--line);border-radius:8px;min-height:96px;
+  display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-style:italic;font-size:12.5px;
+}
+.note-warn{display:flex;gap:7px;align-items:flex-start;font-size:13px;color:#92400e}
+
+.part-row{background:#fff;border-bottom:1px solid var(--line);padding:12px 16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.part-row .grow{flex:1;min-width:180px}
+.part-actions{display:flex;gap:8px;margin-left:auto}
+
+table.parts{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff}
+table.parts .grp th{
+  background:#f8fafc;color:var(--blue-dark);font-weight:700;text-align:left;
+  padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px;
+}
+table.parts .grp th+th{border-left:1px solid var(--line)}
+table.parts .sub th{
+  background:#f8fafc;color:var(--ink-2);font-weight:600;text-align:left;
+  padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:11.5px;
+}
+table.parts td{padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+table.parts tr:hover td{background:#f8fafc}
+table.parts .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pn{font-weight:700;color:var(--blue-dark)}
+.avail{font-weight:700;font-size:11.5px}
+.avail.ok{color:#0f7b3f}.avail.low{color:#b45309}.avail.no{color:var(--red)}
+.xp{font-size:11px;color:var(--ink-3)}
+.rm{color:var(--red);font-weight:700;padding:2px 7px;border-radius:5px}
+.rm:hover{background:#fef2f2}
+.parts-empty{
+  min-height:180px;background:#fff;display:flex;align-items:center;justify-content:center;
+}
+.qty-in{width:56px;border:1px solid var(--line-2);border-radius:6px;padding:4px 7px;text-align:center}
+/* stock check populated */
+.stock-list{width:100%;font-size:12px}
+.stock-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f1f5f9}
+.stock-row:last-child{border:0}
+/* agent state menu */
+.state-menu{
+  position:absolute;right:150px;top:52px;background:#fff;border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow-lg);z-index:70;min-width:250px;overflow:hidden;
+}
+.state-menu .sm-h{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--ink-3);padding:10px 14px 4px;text-transform:uppercase}
+.state-menu button{display:block;width:100%;text-align:left;padding:9px 14px;font-size:13px;color:var(--ink)}
+.state-menu button:hover{background:#f1f5f9}
+.state-menu .avail-opt{color:#0f7b3f;font-weight:700}
+.watermark{font-size:96px;font-weight:900;color:#f8d77e;opacity:.32;letter-spacing:6px;user-select:none}
+
+.ord-foot{background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:1.6fr .7fr .55fr;gap:16px;padding:14px 16px}
+@media (max-width:1200px){.ord-foot{grid-template-columns:1fr}}
+.delivery-opts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.dopt{border:1px solid var(--line-2);border-radius:9px;padding:11px 12px;cursor:pointer;font-size:12px;background:#fff}
+.dopt.sel{border-color:var(--blue);background:#eff6ff;box-shadow:0 0 0 1px var(--blue) inset}
+.dopt b{font-size:13px;display:block;margin-bottom:3px}
+.dopt .eta{color:var(--amber-text);font-weight:700;margin-top:5px;display:block}
+.totals{font-size:12px;color:var(--ink-2)}
+.totals .t-row{display:flex;justify-content:space-between;gap:14px;padding:3px 0}
+.totals b{color:var(--ink)}
+.foot-actions{display:flex;flex-direction:column;gap:8px}
+
+/* ============================================================
+   Catalog view
+   ============================================================ */
+.cat-nav{background:var(--navy-deep);color:#fff;display:flex;gap:26px;padding:11px 20px;font-size:13.5px;font-weight:600}
+.cat-nav span{opacity:.9;cursor:pointer}
+.cat-nav span:hover{opacity:1}
+.veh-bar{background:#eef2f7;border-bottom:1px solid var(--line);padding:9px 20px;font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:9px}
+.cat-grid{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:16px}
+@media (max-width:1000px){.cat-grid{grid-template-columns:1fr}}
+.search-big{display:flex;gap:10px}
+.search-big .input{flex:1}
+.btn-amber{background:var(--amber);color:#3b2a02;font-weight:700;padding:10px 24px;border-radius:8px}
+.btn-amber:hover{background:#e08c07}
+.qtabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin:16px 0 0}
+.qtab{padding:12px 22px;font-size:13.5px;font-weight:600;color:var(--ink-2);border:1px solid transparent;border-bottom:0}
+.qtab.active{color:var(--ink);border-color:var(--line);border-radius:8px 8px 0 0;background:#fff;box-shadow:0 -2px 0 var(--blue) inset}
+.top10{display:grid;grid-template-columns:repeat(5,1fr);gap:12px 18px;padding:18px 4px}
+@media (max-width:1000px){.top10{grid-template-columns:repeat(2,1fr)}}
+.top10 label{display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer}
+.tagq{display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border:1px solid var(--line-2);border-radius:6px;padding:3px 8px;font-size:11.5px}
+
+/* ============================================================
+   Modals
+   ============================================================ */
+.scrim{
+  position:fixed;inset:0;background:rgba(15,23,42,.42);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;
+}
+.modal{background:#fff;border-radius:14px;box-shadow:var(--shadow-lg);width:100%;max-width:560px;overflow:hidden}
+.modal.wide{max-width:760px}
+.modal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px 6px}
+.modal-t{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700}
+.modal-b{padding:10px 22px 22px}
+.modal-f{display:flex;justify-content:flex-end;gap:10px;padding:0 22px 22px}
+.x{font-size:22px;color:var(--ink-3);line-height:1}
+
+/* incoming-call pop */
+.pop{border:2px solid var(--blue);text-align:center;max-width:520px}
+.pop-av{
+  width:76px;height:76px;border-radius:50%;background:#dbeafe;color:var(--blue);
+  display:flex;align-items:center;justify-content:center;margin:22px auto 12px;font-size:30px;
+}
+.pop-h{font-size:15px;color:var(--ink-2);font-weight:600}
+.pop-name{font-size:27px;font-weight:800;color:var(--navy);margin:2px 0 4px}
+.pop-num{font-size:21px;font-weight:700;color:var(--blue);letter-spacing:.3px}
+.pop-store{font-size:12.5px;color:var(--ink-2);margin-top:7px;display:flex;align-items:center;justify-content:center;gap:6px}
+.pop-panel{background:#f8fafc;border:1px solid var(--line);border-radius:10px;margin:18px 22px;padding:13px}
+.pop-badges{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:11px}
+.pop-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line);padding-top:11px}
+.pop-two .k{font-size:10.5px;font-weight:700;letter-spacing:.5px;color:var(--ink-3)}
+.pop-two .v{font-size:15px;font-weight:700}
+.pop-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 22px 22px}
+.btn-decline{background:#fff;border:1px solid #fca5a5;color:var(--red);font-weight:700;padding:14px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:15px}
+.btn-decline:hover{background:#fef2f2}
+.btn-accept{background:var(--green);color:#fff;font-weight:700;padding:14px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:15px}
+.btn-accept:hover{background:#0b6533}
+
+/* transfer modal */
+.radio-row{display:flex;gap:26px;flex-wrap:wrap;margin:6px 0 16px}
+.radio-row label{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
+.radio-row .desc{color:var(--ink-3);font-size:12.5px}
+.dest-list{border:1px solid var(--line);border-radius:9px;max-height:220px;overflow:auto;margin-top:10px}
+.dest{display:flex;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer}
+.dest:hover{background:#f8fafc}
+.dest.sel{background:#eff6ff;box-shadow:0 0 0 1px var(--blue) inset}
+.dest-name{font-weight:700;font-size:13px}
+.dest-sub{font-size:11.5px;color:var(--ink-3)}
+
+/* ACW modal */
+.acw-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+@media (max-width:760px){.acw-grid{grid-template-columns:1fr}}
+.acw-cust{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:13px 15px;margin-bottom:18px}
+.req{color:var(--red)}
+.disp-select{width:100%;background:var(--blue);color:#fff;font-weight:600;padding:11px 14px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.disp-list{border:1px solid var(--line);border-radius:9px;margin-top:8px;max-height:250px;overflow:auto;background:#fff}
+.disp-item{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #f8fafc}
+.disp-item:hover{background:#f1f5f9}
+.disp-item.sel{background:#eff6ff;font-weight:700}
+.bypass{border-left:1px solid var(--line);padding-left:26px}
+@media (max-width:760px){.bypass{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:18px}}
+
+/* toast for SDK trace */
+.trace{
+  position:fixed;right:16px;bottom:16px;width:390px;max-height:44vh;overflow:auto;
+  background:#0f172a;color:#cbd5e1;border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px;z-index:200;box-shadow:var(--shadow-lg);
+}
+.trace-h{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid #1e293b;position:sticky;top:0;background:#0f172a;font-weight:700;color:#e2e8f0}
+.trace-b{padding:8px 12px}
+.trace-line{padding:3px 0;border-bottom:1px solid #14203a;word-break:break-word}
+.t-call{color:#7dd3fc}
+.t-evt{color:#86efac}
+.t-note{color:#fca5a5}
+/* Flow data panel — what the WxCC flow attached to this call. Monospace and
+   copyable on purpose: a developer reads keys out of here to wire the lookup. */
+.flowbox{border:1px solid var(--line);border-radius:10px;background:#f8fafc;margin:10px 0}
+.flowbox-h{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);
+  font-size:12px;font-weight:700;color:#334155;cursor:pointer;user-select:none}
+.flowbox-h .cnt{margin-left:auto;font-weight:600;color:#64748b}
+.flowbox-b{padding:6px 12px 10px;max-height:190px;overflow:auto}
+.fvar{display:grid;grid-template-columns:minmax(120px,34%) 1fr;gap:8px;padding:3px 0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.45}
+.fvar .fk{color:#0f766e;font-weight:700;overflow-wrap:anywhere}
+.fvar .fv{color:#1a1f25;overflow-wrap:anywhere;user-select:all}
+.fvar.custom{background:#ecfdf5;border-radius:4px;padding-left:5px;margin-left:-5px}
+.fvar.custom .fk::after{content:" ★";color:#059669}
+.flow-empty{font-size:12px;color:#64748b;padding:4px 0}
+.flow-note{font-size:11px;color:#64748b;padding:4px 0 0}
+.pop .flowbox{text-align:left}
+</style>
+</head>
+<body>
+
+<!-- ============================ TOP NAV ============================ -->
+<div class="nav">
+  <div class="logo">
+    <span class="logo-mark">NAPA</span>
+    <span class="logo-word">PROCall</span>
+  </div>
+  <button class="nav-btn">&#128222; Make Phone Call</button>
+  <button class="nav-btn rose">&#9993; Voicemails <span class="badge-count">3</span></button>
+  <button class="nav-btn rose">&#128276; Reminders <span class="badge-count">1</span></button>
+  <div class="nav-spacer"></div>
+  <button id="btnReturnOrder" class="btn-return hidden" onclick="showView('order')">
+    Return to Order <span class="kbd">(F9)</span>
+  </button>
+  <span id="liveBadge" class="chip c-gray" style="margin-right:6px">&#9675; MOCK</span>
+  <button class="nav-btn" onclick="openModal('modal-live')">&#9889; Go Live</button>
+  <button class="nav-btn" onclick="Wxcc.simulateIncoming()">&#128222; Simulate Call</button>
+  <button id="statePill" class="state-pill state-ready" onclick="toggleStateMenu()">
+    <span class="dot"></span><span id="stateText">Ready (Voice,VM)</span> &#9662;
+  </button>
+  <div class="agent">
+    <div class="agent-av">SJ</div>
+    <div>
+      <div class="agent-name">Sarah Johnson</div>
+      <div class="agent-role">PROCall Agent</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ STATS STRIP ============================ -->
+<div class="strip" id="statStrip">
+  <span class="stat">&#128222; <b class="s-white">134</b> Calls Answered</span>
+  <span class="stat">&#9200; <b class="s-amber">12s</b> Avg Speed to Answer</span>
+  <span class="stat">&#128200; <b class="s-green">92%</b> Service Level</span>
+  <span class="stat">&#128245; <b class="s-white">3</b> Missed Calls</span>
+  <span class="stat">&#8646; <b class="s-white">8</b> Transfers</span>
+</div>
+
+<!-- ============================ ACTIVE CALL BAR ============================ -->
+<div class="callbar hidden" id="callBar">
+  <span class="callbar-live"><span class="pulse"></span> Active Call</span>
+  <span class="callbar-timer">&#9201; <span id="callTimer">0:00</span></span>
+  <div class="callbar-mid">
+    <span>&#127970; Store: <b id="cbStore">#400005001 DM001 - Main Store</b></span>
+    <span>&#128100; Customer: <b id="cbCust">City Fleet Services (003456)</b></span>
+    <span>&#128222; <b id="cbNum">(555) 456-7890</b></span>
+    <span id="cbAlert" class="hidden" style="color:#7f1d1d;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:3px 9px;font-weight:700"></span>
+  </div>
+  <button class="cb-btn" id="btnHold" onclick="Wxcc.toggleHold()">&#9208; <span id="holdLabel">Hold</span></button>
+  <button class="cb-btn" id="btnMute" onclick="Wxcc.toggleMute()">&#127908; <span id="muteLabel">Mute</span></button>
+  <button class="cb-btn" id="btnRec" onclick="Wxcc.toggleRecording()" title="Pause recording while taking card details">&#9210; <span id="recLabel">Pause Rec</span></button>
+  <button class="cb-btn" onclick="openTransfer()">&#8644; Transfer</button>
+  <button class="cb-btn danger" onclick="Wxcc.endCall()">&#128244; End</button>
+</div>
+
+<!-- consult bar — shown while a warm transfer is in progress -->
+<div class="callbar hidden" id="consultBar" style="background:#fff7e6;border-top-color:#d97706;top:104px">
+  <span class="callbar-live" style="background:#fde68a;color:#92400e"><span class="pulse" style="background:#b45309"></span> Consulting</span>
+  <div class="callbar-mid"><span>Customer on hold &nbsp;•&nbsp; speaking with <b id="consultWho"></b></span></div>
+  <button class="cb-btn" onclick="Wxcc.endConsult()">&#10006; End Consult</button>
+  <button class="cb-btn" onclick="Wxcc.completeConsult('conference')">&#128101; Conference All</button>
+  <button class="cb-btn" onclick="Wxcc.completeConsult('transfer')">&#8644; Complete Transfer</button>
+</div>
+
+<!-- ============================ DASHBOARD ============================ -->
+<div class="view" id="view-dashboard">
+  <div class="grid3">
+
+    <!-- Customer search -->
+    <div class="card">
+      <div class="card-h"><div class="card-t">&#128101; Customer Search</div></div>
+      <div class="card-b">
+        <div class="field-lbl">Search Method</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <select class="input" style="width:150px">
+            <option>Customer Name</option><option>Phone Number</option><option>Account #</option>
+          </select>
+          <input class="input" placeholder="Search by customer name...">
+        </div>
+        <div class="muted" style="margin-bottom:10px">Showing top customers</div>
+        <div id="custList"></div>
+      </div>
+    </div>
+
+    <!-- Activity -->
+    <div class="card">
+      <div class="card-h">
+        <div class="card-t">&#8635; My Activity</div>
+        <button class="btn">+ Create Agent Reminder</button>
+      </div>
+      <div class="filters">
+        <span>Show (<a href="#">Reset to default</a>)</span>
+        <span class="fl">Select dispositions to display &#9662;</span>
+        <span class="fl">Select types to display &#9662;</span>
+        <span class="fl">Today &#9662;</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 18px 12px">
+        <span class="muted" id="actCount">15 Interaction(s)</span>
+        <input class="input" style="max-width:260px" placeholder="Search activity...">
+      </div>
+      <div class="tbl-wrap">
+        <table class="act">
+          <thead><tr>
+            <th>Type</th><th>From</th><th>To</th><th>Call<br>Notes</th>
+            <th>Disposition</th><th>Start Time &#9662;</th><th>Talk</th><th>Wrap</th>
+          </tr></thead>
+          <tbody id="actBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Stores -->
+    <div class="card">
+      <div class="card-h">
+        <div class="card-t">&#127970; My Stores</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn">&#8592; Return to Point-of-Sale</button>
+          <button class="btn">My RADS Orders</button>
+        </div>
+      </div>
+      <div class="card-b">
+        <input class="input" placeholder="Search by store name, store number, city..." style="margin-bottom:12px">
+        <div class="muted" style="margin-bottom:10px">8 Store(s) Found</div>
+        <div class="store-grid" id="storeGrid"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================ ORDER ENTRY ============================ -->
+<div class="view hidden" id="view-order" style="padding:0">
+  <div class="tabs-row">
+    <div class="otab active">003456 - City Fleet ...</div>
+    <button class="otab-add">+</button>
+  </div>
+
+  <div class="ord-head">
+    <div class="ord-search">
+      <input class="input" value="003456 - City Fleet Services">
+      <button>&#128269;</button>
+    </div>
+    <span class="chip c-blue">Wholesale</span>
+    <span class="chip c-amber">Fleet/Govt</span>
+    <span class="chip c-gray">Charge</span>
+    <div class="money">Balance<b>$25,000</b></div>
+    <div class="money">Credit Limit<b>$100,000</b></div>
+    <div class="ord-actions">
+      <button class="btn" onclick="showView('dashboard')">&#8592; Return to Call Agent</button>
+      <button class="btn" onclick="toggleFlowBox('ordFlow',true)">&#128225; Call Data</button>
+      <button class="btn">My RADS Orders</button>
+      <button class="btn">Customer Order History</button>
+      <button class="btn">Additional Customer Info</button>
+    </div>
+  </div>
+
+  <div class="flowbox hidden" id="ordFlow" style="margin:10px 14px">
+    <div class="flowbox-h" onclick="toggleFlowBox('ordFlow')">&#128225; Call data from flow
+      <span class="cnt" id="ordFlowCnt"></span></div>
+    <div class="flowbox-b" id="ordFlowBody"></div>
+  </div>
+
+  <div class="info-grid">
+    <div>
+      <div class="field-lbl">Calling Contact</div>
+      <div class="info-row">&#128100; <b>James Chen</b></div>
+      <div class="muted" style="margin:-3px 0 6px 24px">Owner</div>
+      <div class="info-row">&#128222; (555) 456-7890</div>
+      <div class="info-row">&#9993; jchen@cityfleet.gov</div>
+    </div>
+    <div>
+      <div class="field-lbl">Serving Store</div>
+      <select class="input" id="servingStore"></select>
+      <div class="field-lbl" style="margin-top:12px">System Status</div>
+      <div class="info-row" style="color:#0f7b3f;font-weight:600">&#128246; TAMS</div>
+      <div class="muted" style="margin-left:24px;margin-top:-4px">Online</div>
+    </div>
+    <div>
+      <div class="field-lbl">Delivery Address</div>
+      <select class="input"><option>&#128205; 150 Fleet Maintenance Way (Primary)</option></select>
+      <div class="field-lbl" style="margin-top:12px">Preferred Fulfillment</div>
+      <div style="font-size:13px">Delivery</div>
+      <div class="field-lbl" style="margin-top:10px">Delivery Priority</div>
+      <span class="chip c-gray">Platinum (30min)</span>
+    </div>
+    <div>
+      <div class="field-lbl">Tax Status</div>
+      <div style="font-size:13px;margin-bottom:12px">Tax Never</div>
+      <div class="field-lbl">Customer Notes</div>
+      <div class="note-warn">&#9888; Municipal — PO number required</div>
+    </div>
+    <div>
+      <div class="field-lbl">Store Stock Check</div>
+      <div class="stock-box">Select a part to view inventory</div>
+    </div>
+  </div>
+
+  <div class="part-row">
+    <div style="width:230px">
+      <div class="field-lbl">Part Number</div>
+      <div class="ord-search">
+        <input class="input" id="pnIn" list="pnList" autofocus placeholder="e.g. NAPA 1515"
+               onkeydown="if(event.key==='Enter')addLine()" oninput="previewStock()">
+        <button onclick="addLine()">&#128269;</button>
+      </div>
+      <datalist id="pnList"></datalist>
+    </div>
+    <div style="width:90px"><div class="field-lbl">Line</div><input class="input" id="lineIn" readonly></div>
+    <div style="width:90px"><div class="field-lbl">Qty</div><input class="input" id="qtyIn" value="1"></div>
+    <div class="grow"><div class="field-lbl">Description</div><input class="input" id="descIn" readonly></div>
+    <div class="part-actions">
+      <button class="btn" onclick="showView('catalog')">Open Catalog <span class="kbd">(F9)</span></button>
+      <button class="btn">Message</button>
+      <button class="btn">Delivery</button>
+      <button class="btn">Freight</button>
+    </div>
+  </div>
+
+  <table class="parts">
+    <thead>
+      <tr class="grp">
+        <th colspan="5">Part Information</th>
+        <th colspan="4">Pricing</th>
+        <th>Tax</th>
+        <th colspan="2">Sourcing</th>
+      </tr>
+      <tr class="sub">
+        <th>Part #</th><th>Line</th><th>Description</th><th>Qty</th><th>Avail</th>
+        <th>List Price</th><th>Sale Price</th><th>Unit Price</th><th>Ext. Price</th>
+        <th>Tax</th><th>NAPA XPress</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="partsBody"></tbody>
+  </table>
+  <div class="parts-empty" id="partsEmpty"><div class="watermark">NAPA</div></div>
+
+  <div class="ord-foot">
+    <div>
+      <div style="font-weight:700;margin-bottom:9px">Delivery Options:</div>
+      <div class="delivery-opts">
+        <div class="dopt sel" onclick="pickDelivery(this)"><b>&#9673; Earliest Delivery</b>Get in store items today. All other items are delivered as soon as possible.<span class="eta">Refer to the ETAs shown above</span></div>
+        <div class="dopt" onclick="pickDelivery(this)"><b>&#9711; One Delivery</b><span class="eta">By August 11, 3:30 PM</span></div>
+        <div class="dopt" onclick="pickDelivery(this)"><b>&#9711; No Rush Delivery</b>Select the date &amp; time for when you want these items delivered.<span class="eta">As soon as August 12</span></div>
+        <div class="dopt" onclick="pickDelivery(this)"><b>&#9711; Customer Pickup</b>Customer will pick up items at the store location.<span class="eta">Refer to the ETAs shown above</span></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-weight:700;margin-bottom:9px">Notes:</div>
+      <div style="display:flex;gap:14px;font-size:12px;margin-bottom:9px">
+        <span>Order #: <b id="ordNo">ORD-000000</b></span><span>Date: 7/27/2026</span>
+      </div>
+      <div class="field-lbl">Attention</div><input class="input" style="margin-bottom:9px">
+      <div class="field-lbl">PO #</div><input class="input">
+    </div>
+    <div>
+      <div class="totals" style="margin-bottom:12px">
+        <div class="t-row"><span>Delivery</span><b id="tDel">$0.00</b></div>
+        <div class="t-row"><span>Freight</span><b>$0.00</b></div>
+        <div class="t-row"><span>Credits</span><b>$0.00</b></div>
+        <div class="t-row"><span>Subtotal</span><b id="tSub" style="color:var(--blue)">$0.00</b></div>
+      </div>
+      <div class="foot-actions">
+        <button class="btn soft block">Send Saved Order to Store</button>
+        <button class="btn soft block">Send Saved Quote to Customer</button>
+        <button class="btn soft block">Send Order to RADS</button>
+        <button class="btn soft block" style="padding:14px;font-size:15px">Complete Invoice <span class="kbd">(F2)</span></button>
+        <button class="btn danger-o block">Close Unsaved Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ CATALOG ============================ -->
+<div class="view hidden" id="view-catalog" style="padding:0">
+  <div class="cat-nav"><span>Categories</span><span>Resources</span><span>E-Catalogs</span><span>Feedback</span></div>
+  <div class="veh-bar">&#128663; No vehicle selected</div>
+  <div class="cat-grid">
+    <div class="card">
+      <div class="card-h"><div class="card-t" style="font-size:15px">Vehicle</div><button class="x">&times;</button></div>
+      <div class="card-b">
+        <div style="display:flex;gap:18px;border-bottom:1px solid var(--line);margin-bottom:14px">
+          <span style="padding-bottom:8px;border-bottom:2px solid var(--blue);font-weight:700;color:var(--blue)">New</span>
+          <span style="padding-bottom:8px;color:var(--ink-3)">Recent</span>
+        </div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">Year Make Model Engine</div>
+        <label style="display:flex;gap:8px;font-size:12.5px;margin-bottom:14px"><input type="checkbox"> Show Non-US/Canada Vehicles</label>
+        <div class="field-lbl">Vehicle Type</div>
+        <select class="input" style="margin-bottom:12px"><option>Auto/Light Trucks</option></select>
+        <div class="field-lbl">Year</div>
+        <select class="input" style="margin-bottom:12px"><option>Select year</option></select>
+        <div class="field-lbl">License Plate</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <select class="input" style="width:80px"><option>GA</option><option>IA</option></select>
+          <input class="input" placeholder="License Plate">
+        </div>
+        <div class="field-lbl">VIN</div>
+        <input class="input" placeholder="11-17 Characters">
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-h"><div class="card-t" style="font-size:16px">Search</div></div>
+        <div class="card-b">
+          <div class="search-big">
+            <input class="input" placeholder="Product, NAPA Part Number, Interchanges">
+            <button class="btn-amber">Search</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <span class="muted">Search Queue</span>
+            <span class="tagq">Tag &times;</span><span class="tagq">Tag &times;</span><span class="tagq">Tag &times;</span>
+            <span class="tagq">Tag &times;</span><span class="tagq">Tag &times;</span><span class="tagq">Tag &times;</span>
+            <a href="#">Reset</a>
+          </div>
+          <div class="qtabs">
+            <span class="qtab active">Quick Picks</span><span class="qtab">Interchange</span>
+            <span class="qtab">Categories</span><span class="qtab">Job Types</span><span class="qtab">eCatalog</span>
+          </div>
+          <div style="font-weight:700;margin-top:16px">Top 10</div>
+          <div class="top10">
+            <label><input type="checkbox"> Air Filter</label>
+            <label><input type="checkbox"> Brake Caliper</label>
+            <label><input type="checkbox"> Brake Rotor</label>
+            <label><input type="checkbox"> Motor Oil</label>
+            <label><input type="checkbox"> Wheel Bearing</label>
+            <label><input type="checkbox"> Battery</label>
+            <label><input type="checkbox"> Brake Pads</label>
+            <label><input type="checkbox"> Filter - Oil</label>
+            <label><input type="checkbox"> Spark Plug</label>
+            <label><input type="checkbox"> Wiper</label>
+          </div>
+          <div style="text-align:right"><a href="#" style="color:var(--amber-text);font-weight:700">Show More</a></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-h"><div class="card-t" style="font-size:16px">Recent Searches - DM001 - Main Store</div></div>
+        <div class="card-b">
+          <div style="display:flex;gap:18px;border-bottom:1px solid var(--line);margin-bottom:12px">
+            <span style="padding-bottom:8px;border-bottom:2px solid var(--blue);font-weight:700;color:var(--blue)">My Recent Searches</span>
+            <span style="padding-bottom:8px;color:var(--ink-3)">All Recent Searches</span>
+          </div>
+          <table class="act" style="width:100%">
+            <thead><tr><th>Date</th><th>Search</th><th>Vehicle</th><th>VIN</th><th>Actions</th></tr></thead>
+            <tbody><tr><td colspan="5" class="muted" style="padding:22px;text-align:center">No recent searches</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ MODALS ============================ -->
+<div class="scrim hidden" id="modal-incoming">
+  <div class="modal pop">
+    <div class="pop-av">&#128222;</div>
+    <div class="pop-h">Incoming Call</div>
+    <div class="pop-name" id="popName">City Fleet Services</div>
+    <div class="pop-num" id="popNum">(W) (555) 456-7890</div>
+    <div class="pop-store">&#127970; <span id="popStore">DM001 - Main Store</span> <span class="muted" id="popStoreNum">#400005001</span></div>
+    <div class="pop-panel">
+      <div class="pop-badges">
+        <span class="chip c-green">Customer Identified</span>
+        <span class="chip c-blue">Wholesale</span>
+        <span class="chip c-amber">Fleet/Govt</span>
+        <span class="chip c-gray">&#127894; Platinum (30min)</span>
+      </div>
+      <div class="pop-two">
+        <div><div class="k">ACCOUNT</div><div class="v" id="popAcct">003456</div></div>
+        <div><div class="k">TAX STATUS</div><div class="v">Tax Never</div></div>
+      </div>
+    </div>
+    <div class="flowbox" id="popFlow">
+      <div class="flowbox-h" onclick="toggleFlowBox('popFlow')">&#128225; Call data from flow
+        <span class="cnt" id="popFlowCnt"></span></div>
+      <div class="flowbox-b" id="popFlowBody"></div>
+    </div>
+    <div class="pop-actions">
+      <button class="btn-decline" onclick="Wxcc.decline()">&#128244; Decline</button>
+      <button class="btn-accept" onclick="Wxcc.accept()">&#128222; Accept</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim hidden" id="modal-transfer">
+  <div class="modal">
+    <div class="modal-h"><div class="modal-t">Transfer Call</div><button class="x" onclick="closeModal('modal-transfer')">&times;</button></div>
+    <div class="modal-b">
+      <div style="font-weight:700;margin-bottom:4px">Transfer Type</div>
+      <div class="radio-row">
+        <label><input type="radio" name="ttype" value="warm" checked onchange="updateTransferBtn();refreshDest()"> <b>Warm Transfer</b> <span class="desc">- Speak with recipient first</span></label>
+        <label><input type="radio" name="ttype" value="cold" onchange="updateTransferBtn();refreshDest()"> <b>Cold Transfer</b> <span class="desc">- Transfer immediately</span></label>
+      </div>
+      <div style="font-weight:700;margin-bottom:4px">Transfer To</div>
+      <div class="radio-row">
+        <label><input type="radio" name="tdest" value="store" checked onchange="refreshDest()"> &#127970; Store</label>
+        <label><input type="radio" name="tdest" value="agent" onchange="refreshDest()"> &#127911; Call Agent</label>
+        <label><input type="radio" name="tdest" value="number" onchange="refreshDest()"> &#128222; Phone Number</label>
+      </div>
+      <input class="input" id="destSearch" placeholder="Search by store number, name, or city..." oninput="refreshDest()">
+      <div class="dest-list" id="destList"></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn ghost" onclick="closeModal('modal-transfer')">Cancel</button>
+      <button class="btn" id="btnTransfer" onclick="Wxcc.doTransfer()">&#8644; Start Warm Transfer</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim hidden" id="modal-acw">
+  <div class="modal wide">
+    <div class="modal-h"><div class="modal-t" style="color:var(--red)">&#128244; After Call Work</div><button class="x" id="acwClose" onclick="closeModal('modal-acw')">&times;</button></div>
+    <div class="modal-b">
+      <div class="acw-cust">
+        <div style="font-weight:700">&#128100; City Fleet Services <span class="muted">(003456)</span></div>
+        <div class="muted" style="margin-top:3px">&#128222; (555) 456-7890 &nbsp;•&nbsp; &#9201; <span id="acwDur">1:29</span></div>
+      </div>
+      <div class="acw-grid">
+        <div>
+          <div style="font-weight:700;margin-bottom:7px">&#127991; Call Disposition <span class="req">*</span></div>
+          <button class="disp-select" onclick="toggleDisp()"><span id="dispLabel">Select a disposition...</span> &#9662;</button>
+          <div class="disp-list hidden" id="dispList"></div>
+        </div>
+        <div class="bypass">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:7px">
+            <div style="font-weight:700">&#128222; Bypass Phone Calls to Store</div>
+            <button class="btn">+ Add Number</button>
+          </div>
+          <div class="muted">Calls from this phone number will bypass PROCall and route directly to the store they called.</div>
+          <div class="field-lbl" style="margin-top:16px">Call Notes</div>
+          <textarea class="input" rows="4" id="acwNotes" placeholder="Add notes for this interaction..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <span id="acwRequired" class="muted hidden" style="margin-right:auto;color:#b45309;font-weight:600">
+        &#9888; The call has ended — pick a disposition to finish wrap-up and return to Ready.
+      </span>
+      <span id="acwError" class="hidden" style="margin-right:auto;color:var(--red);font-weight:600;font-size:12.5px"></span>
+      <button class="btn ghost" id="acwBack" onclick="closeModal('modal-acw')">Back to Call</button>
+      <button class="btn" id="btnSaveAcw" onclick="Wxcc.saveWrapup()" disabled>&#10003; Save Call Details</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim hidden" id="modal-live">
+  <div class="modal">
+    <div class="modal-h"><div class="modal-t">&#9889; Connect to Webex Contact Center</div><button class="x" onclick="closeModal('modal-live')">&times;</button></div>
+    <div class="modal-b">
+      <div class="note-warn" style="margin-bottom:14px">&#9888; Must be served over <b>http://localhost</b> (run <code>./serve.sh</code>) — WebRTC will not get microphone access from a <code>file://</code> page.</div>
+      <div class="field-lbl">Access token for the agent</div>
+      <input class="input" id="liveToken" type="password" placeholder="Paste the agent's access token" style="margin-bottom:12px">
+      <div class="field-lbl">Login option</div>
+      <select class="input" id="liveOpt">
+        <option value="BROWSER">BROWSER — audio in this page (WebRTC)</option>
+        <option value="EXTENSION">EXTENSION — audio to the agent's extension</option>
+        <option value="AGENT_DN">AGENT_DN — audio to a dial number</option>
+      </select>
+      <div class="muted" style="margin-top:12px">
+        The token must authenticate <b>as the agent</b>, not an admin — <code>stationLogin()</code>
+        signs in whoever the token belongs to. The agent must also be signed out of the
+        real Agent Desktop (<code>allowMultiLogin</code> defaults to false).
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn ghost" onclick="closeModal('modal-live')">Cancel</button>
+      <button class="btn" onclick="goLive()">Connect &amp; Station Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- WebRTC media sink — task:media attaches the inbound track here -->
+<audio id="remote-audio" autoplay playsinline></audio>
+
+<!-- ============================ SDK TRACE ============================ -->
+<div class="trace" id="trace">
+  <div class="trace-h"><span>WxCC SDK trace</span><button class="x" style="color:#64748b" onclick="document.getElementById('trace').classList.toggle('collapsed');document.getElementById('traceBody').classList.toggle('hidden')">&minus;</button></div>
+  <div class="trace-b" id="traceBody"></div>
+</div>
+
+<script>
+/* ================================================================
+   NAPA PROCall — WxCC integration prototype
+   ----------------------------------------------------------------
+   Every call-control action routes through the Wxcc adapter below.
+   Today the adapter drives local mock state and prints the exact
+   @webex/contact-center call it WOULD make. To go live, replace the
+   bodies marked  >>> LIVE <<<  with the real SDK calls. No UI code
+   changes are required — that is the point of the seam.
+   ================================================================ */
+
+/* --- Real tenant IDs, pulled live 2026-07-31 -------------------- */
+const TENANT = {
+  teamMainId:        '5f06fe30-ac3c-46e4-9d6b-751262769ea1', // "Main Team" (AGENT)
+  teamMemberSvcId:   'c6b84493-527d-47d6-ad24-63ea006e3eb4', // "MemberServices_Team" (AGENT)
+  profileBrowserOk:  '27d1bede-90d2-447a-a383-bd88b4075a1d', // loginVoiceOptions includes BROWSER
+  profileNoBrowser:  'f6c21a48-cc2d-4244-9bf6-7784d785ec49', // BROWSER MISSING — cannot do browser audio
+  idleCodeMeeting:   '25811958-f9b1-4465-b17c-33293ff8eeed',
+  wrapCodeSale:      '355e8a91-ee82-436e-8651-6426c738e631'  // the ONLY wrap-up code that exists today
+};
+
+/* --- The 12 dispositions, verbatim from the customer's ACW screen.
+   Every auxCodeId below is a REAL wrap-up code in the tenant: the 11
+   PROCall codes were created 2026-07-31, and "Resolved - Order Placed"
+   maps onto the pre-existing "Sale" code (still the tenant default). */
+const DISPOSITIONS = [
+  { label:'PROCall - Billing - Invoice Copies',        auxCodeId:'a9528b44-46ae-45b2-a931-ef33f5e1a4c0' },
+  { label:'PROCall - Delivery Status - Tracking',      auxCodeId:'9df355f6-e35b-49ab-955d-a27edd33c384' },
+  { label:'PROCall - Order Cancellation',              auxCodeId:'aa824967-cce5-486c-b154-2436d291e960' },
+  { label:'PROCall - Order Pending - Quote',           auxCodeId:'e906ca41-5a93-4a13-893a-a9f21f0babf3' },
+  { label:'PROCall - Order Status',                    auxCodeId:'44f73287-45ee-4bfc-a410-b3d48ced8117' },
+  { label:'PROCall - Product Information',             auxCodeId:'985ff9c1-4853-488d-9fa1-187ccbbe40b6' },
+  { label:'PROCall - Promotions - Price Match',        auxCodeId:'fc60ae55-6a40-44f5-9522-57628a0542ac' },
+  { label:'PROCall - Requires Follow-up',              auxCodeId:'b11e4554-e2e0-476a-afe5-a20bc8d9628f' },
+  { label:'PROCall - Resolved - Order Placed',         auxCodeId:TENANT.wrapCodeSale },
+  { label:'PROCall - Spam',                            auxCodeId:'ef3f8f42-6b36-4b67-9ce6-884a7f0a4dd9' },
+  { label:'PROCall - Store Hours and Location',        auxCodeId:'688d19f6-bd28-40ba-ba08-12792247a563' },
+  { label:'PROCall - Wrong Number - Not Interested',   auxCodeId:'a9f1fa53-2f6d-41ed-a363-53d4256a01a3' }
+];
+
+const STORES = [
+  {code:'DM001', name:'Main Store',  num:'400005001', city:'Des Moines, IA', phone:'(515) 555-5001', tams:true},
+  {code:'DM005', name:'Ankeny',      num:'400005005', city:'Ankeny, IA',     phone:'(515) 555-5005', tams:true},
+  {code:'DM009', name:'W Douglas',   num:'400005009', city:'Des Moines, IA', phone:'(515) 555-5009', tams:false},
+  {code:'DM011', name:'SE 14th St',  num:'400005011', city:'Des Moines, IA', phone:'(515) 555-5011', tams:true},
+  {code:'DM012', name:'Urbandale',   num:'400005012', city:'Urbandale, IA',  phone:'(515) 555-5012', tams:true},
+  {code:'DM013', name:'SW 63rd St',  num:'400005013', city:'Des Moines, IA', phone:'(515) 555-5013', tams:true},
+  {code:'DM015', name:'Waukee',      num:'400005015', city:'Waukee, IA',     phone:'(515) 555-5015', tams:true},
+  {code:'DM019', name:'Grimes',      num:'400005019', city:'Grimes, IA',     phone:'(515) 555-5019', tams:true}
+];
+
+const CUSTOMERS = [
+  {name:"Mike's Auto Repair", addr:'123 Main Street, Springfield', phone:'(555) 123-4567', acct:'Accounts 001234 | 004321', badges:[['Wholesale','c-blue'],['Major Account','c-amber']]},
+  /* `alt` holds additional numbers that should resolve to the same account —
+     real DIDs used for live testing sit here alongside the demo number. */
+  {name:'City Fleet Services', addr:'100 Government Plaza, Springfield', phone:'(555) 456-7890', acct:'Account 003456', badges:[['Wholesale','c-blue'],['Fleet','c-amber']], alt:['9103915567']},
+  {name:"Tony's Transmission", addr:'789 Elm Street, Decatur', phone:'(555) 345-6789', acct:'Account 002891', badges:[['Wholesale','c-blue'],['NAPA AutoCare','c-amber']]},
+  {name:'Precision Auto Care', addr:'222 Tech Drive, Urbana', phone:'(555) 678-9012', acct:'Account 005789', badges:[['Wholesale','c-blue'],['NAPA AutoCare','c-amber']]},
+  {name:'Quick Lube Express', addr:'456 Oak Avenue, Springfield', phone:'(555) 234-5678', acct:'Account 004102', badges:[['Wholesale','c-blue']]}
+];
+
+/* `num` is what the Call / Callback button dials. The first row is the real
+   test number so click-to-dial can be demonstrated against a live handset. */
+const ACTIVITY = [
+  {type:'Call',     from:'City Fleet Services (James Chen)', to:'DM001 - Main Store',              num:'9103915567',      disp:'PROCall - Requires Follow-up',            at:'Fri, 04/03/2026, 8:41 am', talk:'1:12', wrap:'0:05'},
+  {type:'Call',     from:'Riverside Auto (Tom Rivera)',      to:'DM001 - Main Store',              num:'(555) 555-0101',  disp:'PROCall - Requires Follow-up',            at:'Fri, 04/03/2026, 8:25 am', talk:'0:25', wrap:'0:04'},
+  {type:'Call',     from:'8609532282',                        to:'DM005 - Ankeny',                  num:'8609532282',      disp:'PROCall - Wrong Number - Not Interested', at:'Fri, 04/03/2026, 8:05 am', talk:'0:00', wrap:'0:04'},
+  {type:'Call',     from:'4757633083',                        to:'DM005 - Ankeny',                  num:'4757633083',      disp:'PROCall - Wrong Number - Not Interested', at:'Fri, 04/03/2026, 8:01 am', talk:'0:00', wrap:'0:05'},
+  {type:'Callback', from:'Sarah Johnson',                     to:'Johnson Fleet Services (Mike Johnson)', num:'(555) 555-0102', disp:'PROCall - Resolved - Order Placed',  at:'Fri, 04/03/2026, 7:45 am', talk:'3:12', wrap:'0:08'},
+  {type:'Call',     from:'Metro Collision (Lisa Chen)',       to:'DM009 - W Douglas',               num:'(555) 555-0103',  disp:'PROCall - Order Pending - Quote',         at:'Fri, 04/03/2026, 7:30 am', talk:'1:45', wrap:'0:03'},
+  {type:'Voicemail',from:'Northside Garage (Ray Norris)',     to:'DM009 - W Douglas',               num:'(555) 555-0104',  disp:'PROCall - Requires Follow-up',            at:'Fri, 04/03/2026, 7:15 am', talk:'0:00', wrap:'0:02'},
+  {type:'Call',     from:'Central Fleet Mgmt (Dave Okonkwo)', to:'DM012 - Urbandale',               num:'(555) 555-0105',  disp:'PROCall - Resolved - Order Placed',        at:'Thu, 04/02/2026, 4:55 pm', talk:'5:30', wrap:'0:06'},
+  {type:'Callback', from:'Sarah Johnson',                     to:'Eastside Auto Parts (Gina Park)', num:'(555) 555-0106',  disp:'PROCall - Product Information',           at:'Thu, 04/02/2026, 4:30 pm', talk:'2:15', wrap:'0:04'},
+  {type:'Call',     from:'Downtown Motors (Sam Torres)',      to:'DM011 - SE 14th St',              num:'(555) 555-0107',  disp:'PROCall - Delivery Status - Tracking',    at:'Thu, 04/02/2026, 3:45 pm', talk:'0:45', wrap:'0:02'},
+  {type:'Voicemail',from:'Westpark Service',                  to:'DM013 - SW 63rd St',              num:'(555) 555-0108',  disp:'PROCall - Requires Follow-up',            at:'Thu, 04/02/2026, 3:00 pm', talk:'0:00', wrap:'0:01'},
+  {type:'Call',     from:'Prairie Diesel (Ann Vogel)',        to:'DM015 - Waukee',                  num:'(555) 555-0109',  disp:'PROCall - Store Hours and Location',      at:'Thu, 04/02/2026, 2:10 pm', talk:'1:02', wrap:'0:03'},
+  {type:'Call',     from:'5153338890',                        to:'DM019 - Grimes',                  num:'5153338890',      disp:'PROCall - Spam',                          at:'Thu, 04/02/2026, 1:35 pm', talk:'0:00', wrap:'0:02'}
+];
+
+/* Match an inbound ANI to the customer book. Compares the last 10 digits so
+   +1 / 1 / bare-10-digit all resolve the same, and checks each customer's
+   `alt` numbers as well as its primary. */
+const last10 = v => (v||'').replace(/\D/g,'').slice(-10);
+function matchCustomer(ani){
+  const d = last10(ani);
+  if(d.length < 10) return null;
+  return CUSTOMERS.find(c =>
+    last10(c.phone) === d || (c.alt||[]).some(a => last10(a) === d)) || null;
+}
+const fmtAni = a => {
+  const d = last10(a);
+  return d.length===10 ? '('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6) : (a||'unknown');
+};
+
+/* ================================================================
+   Trace panel — shows the SDK call each UI action maps to
+   ================================================================ */
+function trace(kind, msg){
+  const b = document.getElementById('traceBody');
+  const d = document.createElement('div');
+  d.className = 'trace-line ' + (kind==='call'?'t-call':kind==='evt'?'t-evt':'t-note');
+  d.textContent = (kind==='call'?'→ ':kind==='evt'?'← ':'! ') + msg;
+  b.appendChild(d); b.scrollTop = b.scrollHeight;
+}
+
+/* ================================================================
+   Wxcc — the seam. Swap these bodies for real SDK calls.
+   ================================================================ */
+const Wxcc = {
+  state:'IDLE', task:null, held:false, timer:null, seconds:0, recPaused:false,
+
+  /* >>> LIVE <<<
+     const webex = Webex.init({credentials:{access_token: TOKEN}});
+     await webex.cc.register();
+     await webex.cc.stationLogin({teamId: TENANT.teamMainId, loginOption:'BROWSER'});
+     webex.cc.on('task:incoming', t => Wxcc.onIncoming(t));                        */
+  /* Do NOT fake login traces here. This used to emit register/stationLogin/
+     stationLoginSuccess plus a warning about profile f6c21a48 (the Auto WrapUp
+     profile, which nobody in this demo uses). During a live test those lines sit
+     at the top of the trace looking exactly like real diagnostics and send you
+     chasing a problem that does not exist. One unambiguous banner instead. */
+  init(){
+    trace('note', 'MOCK MODE — nothing here touches Webex. Click "Go Live" to connect.');
+  },
+
+  simulateIncoming(outbound){
+    if(this.state !== 'IDLE' && this.state !== 'IDLE_CODED'){ trace('note','ignored — agent is not idle'); return; }
+    if(outbound){ this.state='RINGING'; this.accept(); return; }
+    this.state = 'RINGING';
+    trace('evt', "task:incoming  {ani:'+15554567890', dnis:'DM001'}");
+    trace('note', "screen pop keyed on ANI → account 003456");
+    renderFlowData(MOCK_FLOW_DATA,
+      'MOCK — the three ★ names are invented placeholders. A real call replaces these with what your flow actually sent.',
+      MOCK_FLOW_PARAMS);
+    toggleFlowBox('popFlow', true);
+    openModal('modal-incoming');
+  },
+
+  /* UNRESOLVED — do not implement against a guessed method name.
+     @webex/contact-center v3.12.0 has NO CAD-variable API. Its entire
+     public Task surface is: accept decline hold resume end wrapup
+     toggleMute consult endConsult consultTransfer consultConference
+     transfer transferConference exitConference pauseRecording
+     resumeRecording cancelAutoWrapupTimer. (Verified by searching
+     dist, src and README for any updateCad / cadVariable / setCad
+     identifier — zero hits.)
+
+     CAD writes exist in @wxcc-desktop/sdk, the widget SDK that only runs
+     inside Cisco's Agent Desktop — which is ruled out here. So joining
+     "which call produced which order" needs another route (flow variables
+     set before the agent leg, or a server-side write keyed on the
+     interaction id). Open question, deliberately not faked. */
+  pushCad(){
+    if(this.state!=='CONNECTED') return;
+    const sub=lines.reduce((a,l)=>a+l.sale*l.qty,0);
+    trace('note', "order now "+lines.length+" line(s) / $"+sub.toFixed(2)+
+      " — no SDK method exists to attach this to the interaction (see pushCad comment)");
+  },
+
+  /* >>> LIVE <<<  await task.toggleMute();  */
+  toggleMute(){
+    if(this.state!=='CONNECTED') return;
+    this.muted=!this.muted;
+    trace('call','task.toggleMute()');
+    document.getElementById('muteLabel').textContent=this.muted?'Unmute':'Mute';
+    document.getElementById('btnMute').classList.toggle('on',this.muted);
+  },
+
+  /* >>> LIVE <<<
+     await task.pauseRecording();
+     await task.resumeRecording({autoResumed:false});
+     Do NOT drive the button off a local boolean: WxCC auto-resumes after the
+     tenant's pauseDuration, which arrives as task:recordingResumed with no
+     click behind it. The button must follow the event. */
+  toggleRecording(){
+    if(this.state!=='CONNECTED') return;
+    this.recPaused = !this.recPaused;
+    trace('call', this.recPaused ? 'task.pauseRecording()'
+                                 : 'task.resumeRecording({autoResumed:false})');
+    trace('evt',  this.recPaused ? 'task:recordingPaused' : 'task:recordingResumed');
+    setRecordBtn(this.recPaused ? 'paused' : 'recording');
+  },
+
+  /* >>> LIVE <<<  await task.endConsult();  */
+  endConsult(){
+    trace('call','task.endConsult()');
+    trace('evt','task:established (customer retrieved)');
+    document.getElementById('consultBar').classList.add('hidden');
+  },
+
+  /* >>> LIVE <<<
+     complete a warm transfer: await task.consultTransfer(...)
+     turn it into a 3-way:    await task.consultConference(...)          */
+  completeConsult(mode){
+    trace('call', mode==='conference' ? "task.consultConference()" : "task.consultTransfer()");
+    trace('evt',  mode==='conference' ? "task:established (conference)" : "task:end (consult transferred)");
+    document.getElementById('consultBar').classList.add('hidden');
+    if(mode!=='conference') this.endCall(true);
+  },
+
+  /* >>> LIVE <<<  await task.accept();  then task.on('task:media', …)  */
+  accept(){
+    closeModal('modal-incoming');
+    trace('call', "task.accept()");
+    trace('evt',  "task:established");
+    trace('evt',  "task:media  → attach MediaStream to <audio>");
+    this.state='CONNECTED'; this.seconds=0; this.held=false;
+    setStatePill('oncall','On Call');
+    document.getElementById('callBar').classList.remove('hidden');
+    document.getElementById('statStrip').classList.add('hidden');
+    document.getElementById('holdLabel').textContent='Hold';
+    document.getElementById('btnHold').classList.remove('on');
+    this.recPaused=false; setRecordBtn('recording'); cbAlert('');
+    showView('order');
+    this.timer = setInterval(()=>{ Wxcc.seconds++; document.getElementById('callTimer').textContent=fmt(Wxcc.seconds); },1000);
+  },
+
+  /* >>> LIVE <<<  await task.decline();  */
+  decline(){
+    closeModal('modal-incoming');
+    trace('call', "task.decline()");
+    this.state='IDLE';
+  },
+
+  /* >>> LIVE <<<  await task.hold() / await task.resume();  */
+  toggleHold(){
+    if(this.state!=='CONNECTED') return;
+    this.held = !this.held;
+    trace('call', this.held ? "task.hold()" : "task.resume()");
+    trace('evt',  this.held ? "task:hold" : "task:established");
+    document.getElementById('holdLabel').textContent = this.held ? 'Resume' : 'Hold';
+    document.getElementById('btnHold').classList.toggle('on', this.held);
+  },
+
+  /* >>> LIVE <<<
+     warm: await task.consult({to: dest, destinationType:'dialNumber'|'agent'|'queue'})
+     cold: await task.transfer({to: dest, destinationType: …})                      */
+  doTransfer(){
+    const warm = document.querySelector('input[name=ttype]:checked').value === 'warm';
+    const kind = document.querySelector('input[name=tdest]:checked').value;
+    const dtype = kind==='agent' ? 'agent' : kind==='store' ? 'queue' : 'dialNumber';
+    const sel = document.querySelector('.dest.sel');
+    if(!sel){ trace('note','pick a destination first'); return; }
+    const to = sel.dataset.id;
+    trace('call', (warm?'task.consult':'task.transfer')+"({to:'"+to+"', destinationType:'"+dtype+"'})");
+    trace('evt',  warm ? "task:established (consult)" : "task:end (transferred)");
+    closeModal('modal-transfer');
+    if(warm){
+      document.getElementById('consultWho').textContent = sel.querySelector('.dest-name').textContent;
+      document.getElementById('consultBar').classList.remove('hidden');
+    } else this.endCall(true);
+  },
+
+  /* >>> LIVE <<<  await task.end();  then wait for task:end before ACW  */
+  endCall(silent){
+    if(this.state!=='CONNECTED') return;
+    if(!silent) trace('call', "task.end()");
+    trace('evt', "task:end → agent enters wrapup");
+    clearInterval(this.timer);
+    document.getElementById('acwDur').textContent = fmt(this.seconds);
+    enterWrapup();
+  },
+
+  /* >>> LIVE <<<  await task.wrapup({auxCodeId, wrapUpReason});  */
+  saveWrapup(){
+    if(selectedDisp === null || selectedDisp === undefined) return acwError('Pick a disposition first.');
+    const d = DISPOSITIONS[selectedDisp];
+    if(!d) return acwError('Pick a disposition first.');
+    acwError('');
+    /* Notes have nowhere to go from the browser: the SDK has no CAD-write API
+       (see the pushCad comment). Do not trace a call that does not exist —
+       a plausible-looking fake line here sends the next person chasing it.
+       The real route is a backend PATCH /v1/tasks/{interactionId}
+       {"attributes":{...}}, and it must happen BEFORE wrapup() ends the task. */
+    const notes=document.getElementById('acwNotes').value;
+    if(notes) trace('note', "call notes captured ("+notes.length+" chars) — no SDK path "+
+                            "to attach them; needs the backend task PATCH");
+    if(d.auxCodeId){
+      trace('call', "task.wrapup({auxCodeId:'"+d.auxCodeId+"', wrapUpReason:'"+d.label+"'})");
+      trace('evt',  "task:ended");
+    } else {
+      trace('note', "BLOCKED — no wrap-up code exists for \""+d.label+"\"");
+      trace('note', "create it:  wxcli cc-aux-code create --json-body '{\"name\":\""+d.label+"\",\"workTypeCode\":\"WRAP_UP_CODE\"}'");
+    }
+    /* Clear WRAPUP before closing — closeModal() refuses to dismiss the
+       dialog while the agent is still in wrap-up. */
+    this.state='IDLE'; exitWrapup(); closeModal('modal-acw');
+    selectedDisp=null;
+    renderFlowData({}, null, {});
+    lines=[]; renderLines(); renderStock(null);
+    document.getElementById('consultBar').classList.add('hidden');
+    document.getElementById('dispLabel').textContent='Select a disposition...';
+    document.getElementById('btnSaveAcw').disabled=true;
+    document.getElementById('acwNotes').value='';
+    setStatePill('ready','Ready (Voice,VM)');
+    document.getElementById('statStrip').classList.remove('hidden');
+    showView('dashboard');
+    trace('call', "webex.cc.setAgentState({state:'Available'})");
+  },
+
+};
+
+/* ================================================================
+   UI plumbing
+   ================================================================ */
+let selectedDisp = null;
+const fmt = s => Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+
+function setStatePill(kind,text){
+  const p=document.getElementById('statePill');
+  p.className='state-pill state-'+(kind==='oncall'?'oncall':kind==='wrap'?'wrap':'ready');
+  document.getElementById('stateText').textContent=text;
+}
+/* Recording control. Four states, because on a PCI-relevant control "not
+   paused" and "cannot pause" must never look alike:
+     recording   — running; Pause available
+     paused      — paused; Resume available
+     off         — this interaction is not being recorded at all
+     unavailable — the queue has pause/resume disabled in Control Hub
+                   (callProcessingDetails.pauseResumeEnabled !== 'true') */
+function setRecordBtn(mode){
+  const b=document.getElementById('btnRec'), l=document.getElementById('recLabel');
+  if(!b) return;
+  b.classList.toggle('on', mode==='paused');
+  b.disabled = (mode==='off' || mode==='unavailable');
+  l.textContent = mode==='paused'      ? 'Resume Rec'
+                : mode==='off'         ? 'Not Recording'
+                : mode==='unavailable' ? 'Pause N/A'
+                :                        'Pause Rec';
+  b.title = mode==='unavailable' ? 'Pause/resume is not enabled for this queue in Control Hub'
+          : mode==='off'         ? 'This interaction is not being recorded'
+          : mode==='paused'      ? 'Recording is paused — resume before ending the call'
+          :                        'Pause recording while taking card details';
+}
+
+/* ================================================================
+   Flow data — what the WxCC flow attached to this call.
+
+   Every key the SDK's own Interaction type declares is "platform plumbing";
+   anything else is a variable YOUR flow set, and those are the ones a customer
+   lookup gets wired to. So the undeclared keys are sorted to the top, tinted
+   green and marked ★. List is verbatim from services/task/types.ts:588-705 of
+   the SDK sources shipped in vendor/contact-center.min.js.map.
+   ================================================================ */
+const CPD_DECLARED = new Set(['QMgrName','taskToBeSelfServiced','ani','displayAni','dnis',
+  'tenantId','QueueId','vteamId','pauseResumeEnabled','pauseDuration','isPaused',
+  'recordInProgress','recordingStarted','ctqInProgress','outdialTransferToQueueEnabled',
+  'convIvrTranscript','customerName','virtualTeamName','ronaTimeout','category','reason',
+  'sourceNumber','sourcePage','appUser','customerNumber','reasonCode','IvrPath','pathId',
+  'fromAddress','parentInteractionId','childInteractionId','relationshipType','parent_ANI',
+  'parent_DNIS','consultDestinationAgentJoined','consultDestinationAgentName','parent_Agent_DN',
+  'parent_Agent_Name','parent_Agent_TeamName','isConferencing','monitorType','workflowName',
+  'workflowId','monitoringInvisibleMode','monitoringRequestId','participantInviteTimeout',
+  'mohFileName','CONTINUE_RECORDING_ON_TRANSFER','EP_ID','ROUTING_TYPE','fceRegisteredEvents',
+  'isParked','priority','routingStrategyId','monitoringState','BLIND_TRANSFER_IN_PROGRESS',
+  'fcDesktopView','outdialAgentId','campaignId']);
+
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* Renders into BOTH the screen pop and the order screen. Returns the flow-set
+   key names so the caller can log/act on them.
+
+   TWO sources, and the first one is the important one:
+
+   1. `interaction.callFlowParams` — the SDK's own declared home for flow
+      variables: Record<string, {name, qualifier, description, valueDataType,
+      value}>, i.e. arbitrary keys BY DESIGN (services/task/types.ts:736-751).
+      Anything here was put there by your flow. Always marked as flow data.
+   2. `interaction.callProcessingDetails` — mostly platform plumbing, but any
+      key the SDK type does not declare is also flow-set, so those count too.
+
+   The `next` prerelease (v3.12.0-next.96) adds `callAssociatedData` and
+   `callAssociatedDetails` alongside these. Stable does NOT — npm `latest` is
+   3.12.0, exactly what vendor/ already is. There is nothing to upgrade to
+   without moving a POS terminal onto a prerelease. Pin the version. */
+function renderFlowData(cpd, note, flowParams){
+  const rows = [];
+  Object.entries(flowParams||{}).forEach(([k,p]) => {
+    const val = (p && typeof p === 'object') ? p.value : p;
+    if(val === '' || val === null || val === undefined) return;
+    rows.push([ (p && p.name) || k, val, true ]);
+  });
+  Object.entries(cpd||{}).forEach(([k,v]) => {
+    if(v === '' || v === null || v === undefined) return;
+    rows.push([ k, v, !CPD_DECLARED.has(k) ]);
+  });
+  const entries = rows.sort((a,b) => (b[2] - a[2]) || String(a[0]).localeCompare(String(b[0])));
+  const custom = entries.filter(r => r[2]);
+  /* Note goes FIRST: the box scrolls at ~8 rows, so a caveat appended at the
+     bottom is a caveat nobody reads. */
+  const head = note ? '<div class="flow-note" style="padding:0 0 5px">'+esc(note)+'</div>' : '';
+  const html = entries.length
+    ? head + entries.map(([k,v,isFlow]) =>
+        '<div class="fvar'+(isFlow?' custom':'')+'">'+
+        '<span class="fk">'+esc(k)+'</span><span class="fv">'+esc(v)+'</span></div>').join('')
+    : head + '<div class="flow-empty">No call data on this interaction.</div>';
+  const cnt = entries.length
+    ? custom.length+' from your flow &#9733; &nbsp;/&nbsp; '+entries.length+' total'
+    : 'none';
+  ['pop','ord'].forEach(p => {
+    const b=document.getElementById(p+'FlowBody'), c=document.getElementById(p+'FlowCnt');
+    if(b) b.innerHTML = html;
+    if(c) c.innerHTML = cnt;
+  });
+  const ord=document.getElementById('ordFlow');
+  if(ord) ord.classList.toggle('hidden', !entries.length);
+  return custom.map(r=>r[0]);
+}
+
+function toggleFlowBox(id, forceOpen){
+  const el=document.getElementById(id); if(!el) return;
+  el.classList.remove('hidden');
+  const body=el.querySelector('.flowbox-b');
+  body.classList.toggle('hidden', forceOpen ? false : !body.classList.contains('hidden'));
+}
+
+/* MOCK mode only. Real callProcessingDetails fields, real values' shape. */
+const MOCK_FLOW_DATA = {
+  ani:'+15554567890', dnis:'4000050011', virtualTeamName:'NAPA_PROCall_Queue',
+  workflowName:'NAPA_HuntGroup_Main', QueueId:'q-8f21c0', ronaTimeout:'18',
+  customerNumber:'5554567890', IvrPath:'main>parts>wholesale'
+};
+/* callFlowParams shape, verbatim from services/task/types.ts:736-751.
+   The three NAMES are INVENTED placeholders — no NAPA flow produces them today.
+   What is NOT invented is the structure: this is exactly what a Flow Designer
+   Set Variable node delivers, so the panel is reading the right container. */
+const MOCK_FLOW_PARAMS = {
+  napaAccountNumber:{name:'napaAccountNumber', qualifier:'custom', description:'', valueDataType:'string', value:'003456'},
+  napaStoreCode:   {name:'napaStoreCode',    qualifier:'custom', description:'', valueDataType:'string', value:'DM001'},
+  napaCallerIntent:{name:'napaCallerIntent', qualifier:'custom', description:'', valueDataType:'string', value:'ORDER_STATUS'}
+};
+
+/* In-call alert. A recording pause that fails silently is worse than no pause
+   button at all — the agent believes it worked and reads a card number onto the
+   recording. Anything safety-relevant goes here, where the agent is looking,
+   not into the developer trace panel. */
+function cbAlert(msg){
+  const el=document.getElementById('cbAlert');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('hidden', !msg);
+}
+
+function toggleStateMenu(){
+  /* Escape hatch: if the agent is stuck in wrap-up, clicking the state pill
+     brings the disposition dialog back rather than doing nothing. */
+  if(Wxcc.state==='WRAPUP'){
+    trace('note','still in wrap-up — submit a disposition to return to Ready');
+    openModal('modal-acw');
+    return;
+  }
+  if(Wxcc.state==='CONNECTED'){ trace('note','state change unavailable while on a call'); return; }
+  document.getElementById('stateMenu').classList.toggle('hidden');
+}
+function showView(v){
+  ['dashboard','order','catalog'].forEach(x=>document.getElementById('view-'+x).classList.toggle('hidden', x!==v));
+  document.getElementById('btnReturnOrder').classList.toggle('hidden', v!=='catalog');
+  if(v==='dashboard' && Wxcc.state==='IDLE') document.getElementById('statStrip').classList.remove('hidden');
+  else document.getElementById('statStrip').classList.toggle('hidden', v!=='dashboard');
+}
+function openModal(id){document.getElementById(id).classList.remove('hidden')}
+function closeModal(id){
+  /* Wrap-up cannot be dismissed. WxCC keeps the agent in wrap-up until a
+     disposition is submitted; letting the modal close with no way back left the
+     agent stranded — visibly in Wrap Up, unable to return to Ready. */
+  if(id==='modal-acw' && Wxcc.state==='WRAPUP'){
+    trace('note','wrap-up is required — pick a disposition to return to Ready');
+    return;
+  }
+  document.getElementById(id).classList.add('hidden');
+}
+
+/* Shared by the mock and the live adapter so both behave identically. */
+function enterWrapup(){
+  Wxcc.state='WRAPUP';
+  setStatePill('wrap','Wrap Up');
+  document.getElementById('callBar').classList.add('hidden');
+  document.getElementById('consultBar').classList.add('hidden');
+  document.getElementById('acwClose').classList.add('hidden');   // no dismiss
+  document.getElementById('acwBack').classList.add('hidden');    // no "Back to Call"
+  document.getElementById('acwRequired').classList.remove('hidden');
+  openModal('modal-acw');
+}
+/* Wrap-up failures must be visible in the dialog, not buried in the trace. */
+function acwError(msg){
+  const el=document.getElementById('acwError');
+  const req=document.getElementById('acwRequired');
+  if(msg){ el.textContent='⚠ '+msg; el.classList.remove('hidden'); req.classList.add('hidden'); }
+  else   { el.textContent=''; el.classList.add('hidden'); }
+  if(msg) trace('note', msg);
+}
+
+/* Restore the dismissable controls once wrap-up is done. */
+function exitWrapup(){
+  acwError('');
+  document.getElementById('acwClose').classList.remove('hidden');
+  document.getElementById('acwBack').classList.remove('hidden');
+  document.getElementById('acwRequired').classList.add('hidden');
+}
+function pickDelivery(el){document.querySelectorAll('.dopt').forEach(d=>d.classList.remove('sel'));el.classList.add('sel')}
+
+function openTransfer(){
+  updateTransferBtn(); syncTransferBtn(); refreshDest(); openModal('modal-transfer');
+}
+function updateTransferBtn(){
+  const warm=document.querySelector('input[name=ttype]:checked').value==='warm';
+  document.getElementById('btnTransfer').innerHTML = '&#8644; '+(warm?'Start Warm Transfer':'Cold Transfer');
+}
+function renderDest(){
+  const kind=document.querySelector('input[name=tdest]:checked').value;
+  const q=(document.getElementById('destSearch').value||'').toLowerCase();
+  const el=document.getElementById('destList');
+  let rows=[];
+  if(kind==='store'){
+    rows=STORES.filter(s=>(s.code+s.name+s.city).toLowerCase().includes(q)).map(s=>({
+      id:s.phone.replace(/\D/g,''), t:'#'+s.num+' - '+s.code+' - '+s.name, s:s.city,
+      r:s.phone, ok:s.tams }));
+  } else if(kind==='agent'){
+    rows=[{id:'agent-3c64bc62',t:'Marcus Webb',s:'Main Team • Available',r:'',ok:true},
+          {id:'agent-d15ac771',t:'Priya Raman',s:'Main Team • Available',r:'',ok:true},
+          {id:'agent-b519c710',t:'Dana Kirsch',s:'MemberServices_Team • Idle',r:'',ok:false}]
+        .filter(a=>a.t.toLowerCase().includes(q));
+  } else {
+    rows=[{id:q||'manual',t:q?('Dial '+q):'Type a number above',s:'External destination',r:'',ok:true}];
+  }
+  el.innerHTML = rows.map(r=>
+    '<div class="dest" data-id="'+r.id+'" onclick="selectDest(this)">'+
+      '<div><div class="dest-name">'+r.t+'</div><div class="dest-sub">'+r.s+'</div></div>'+
+      '<div style="text-align:right"><div class="dest-sub">'+r.r+'</div>'+
+      (r.ok?'<span class="tams up">&#128246; TAMS</span>':'<span class="tams down">&#128246; TAMS</span>')+'</div>'+
+    '</div>').join('');
+}
+function selectDest(el){
+  document.querySelectorAll('.dest').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel');
+  syncTransferBtn();
+}
+/* The transfer button used to look clickable with nothing selected, then
+   silently do nothing but log "pick a destination first". Make the
+   precondition visible instead. */
+/* renderDest is async in live mode (buddy-agent lookup), sync in mock. Always
+   re-sync the button after it settles so the two can never drift apart. */
+function refreshDest(){ return Promise.resolve(renderDest()).then(syncTransferBtn); }
+function syncTransferBtn(){
+  const b=document.getElementById('btnTransfer');
+  const picked=!!document.querySelector('.dest.sel');
+  b.disabled=!picked;
+  b.title=picked?'':'Select a destination from the list first';
+}
+
+function toggleDisp(){document.getElementById('dispList').classList.toggle('hidden')}
+function pickDisp(i){
+  selectedDisp=i;
+  document.getElementById('dispLabel').textContent=DISPOSITIONS[i].label;
+  document.getElementById('dispList').classList.add('hidden');
+  document.getElementById('btnSaveAcw').disabled=false;
+  if(!DISPOSITIONS[i].auxCodeId) trace('note','"'+DISPOSITIONS[i].label+'" has no WxCC wrap-up code yet');
+}
+
+/* ================================================================
+   Parts catalog + order lines
+   ================================================================ */
+const CATALOG = {
+  'NAPA 1515': {line:'GLD', desc:'NAPA Gold Oil Filter',            list:14.49, sale:10.87, stock:{DM001:18,DM005:6,DM009:0,DM011:4,DM012:11}},
+  'NAPA 7135': {line:'SIL', desc:'NAPA Silver Air Filter',          list:22.99, sale:17.24, stock:{DM001:7,DM005:2,DM011:0,DM013:9}},
+  'NAPA 8991': {line:'PRO', desc:'Proformer Brake Pads - Front',    list:68.99, sale:51.74, stock:{DM001:3,DM012:5,DM015:1}},
+  'NAPA 7565': {line:'LEG', desc:'Legend Battery - 65 Series',      list:189.99,sale:142.49,stock:{DM001:2,DM005:4,DM019:3}},
+  'BK 6607235':{line:'BK',  desc:'Balkamp Wiper Blade 22"',         list:16.49, sale:12.37, stock:{DM001:24,DM005:15,DM011:8}},
+  'NBH 25060': {line:'NBH', desc:'Serpentine Belt - 6 Rib',         list:41.99, sale:31.49, stock:{DM001:0,DM012:2,DM013:6}},
+  'NAPA 4003': {line:'PRE', desc:'Premium Rotor - Front Vented',    list:94.50, sale:70.88, stock:{DM001:6,DM015:2}},
+  'NAPA 2233': {line:'TEM', desc:'Thermostat 195F w/ Gasket',       list:19.75, sale:14.81, stock:{DM001:12,DM009:0,DM013:5}}
+};
+let lines = [];
+
+function previewStock(){
+  const p = CATALOG[(document.getElementById('pnIn').value||'').trim().toUpperCase()];
+  document.getElementById('lineIn').value = p ? p.line : '';
+  document.getElementById('descIn').value = p ? p.desc : '';
+  renderStock(p);
+}
+function renderStock(p){
+  const box = document.querySelector('.stock-box');
+  if(!p){ box.innerHTML = 'Select a part to view inventory'; box.style.fontStyle='italic'; return; }
+  box.style.fontStyle='normal';
+  box.innerHTML = '<div class="stock-list">' + Object.entries(p.stock).map(([s,q])=>
+    '<div class="stock-row"><span>'+s+'</span><span class="avail '+(q>3?'ok':q>0?'low':'no')+'">'+
+    (q>0?q+' on hand':'none')+'</span></div>').join('') + '</div>';
+}
+function addLine(){
+  const key=(document.getElementById('pnIn').value||'').trim().toUpperCase();
+  const p=CATALOG[key];
+  if(!p){ trace('note','unknown part "'+key+'" — try NAPA 1515, BK 6607235, NBH 25060'); return; }
+  const qty=Math.max(1,parseInt(document.getElementById('qtyIn').value)||1);
+  const here=p.stock['DM001']||0;
+  lines.push({pn:key,...p,qty,xpress: here>=qty ? 'In stock - DM001'
+    : (Object.entries(p.stock).find(([s,q])=>q>=qty)||[null])[0]
+      ? 'XPress from '+Object.entries(p.stock).find(([s,q])=>q>=qty)[0] : 'Order from DC'});
+  document.getElementById('pnIn').value=''; document.getElementById('qtyIn').value='1';
+  document.getElementById('lineIn').value=''; document.getElementById('descIn').value='';
+  renderLines(); renderStock(null);
+  Wxcc.pushCad();
+}
+function removeLine(i){ lines.splice(i,1); renderLines(); Wxcc.pushCad(); }
+function setQty(i,v){ lines[i].qty=Math.max(1,parseInt(v)||1); renderLines(); Wxcc.pushCad(); }
+
+function renderLines(){
+  const tb=document.getElementById('partsBody');
+  document.getElementById('partsEmpty').classList.toggle('hidden', lines.length>0);
+  tb.innerHTML = lines.map((l,i)=>{
+    const here=l.stock['DM001']||0;
+    const av = here>=l.qty ? ['ok', here+' avail'] : here>0 ? ['low', here+' avail'] : ['no','0 avail'];
+    return '<tr>'+
+      '<td class="pn">'+l.pn+'</td><td>'+l.line+'</td><td>'+l.desc+'</td>'+
+      '<td><input class="qty-in" value="'+l.qty+'" onchange="setQty('+i+',this.value)"></td>'+
+      '<td><span class="avail '+av[0]+'">'+av[1]+'</span></td>'+
+      '<td class="r">$'+l.list.toFixed(2)+'</td>'+
+      '<td class="r">$'+l.sale.toFixed(2)+'</td>'+
+      '<td class="r">$'+l.sale.toFixed(2)+'</td>'+
+      '<td class="r"><b>$'+(l.sale*l.qty).toFixed(2)+'</b></td>'+
+      '<td class="r">$0.00</td>'+
+      '<td class="xp">'+l.xpress+'</td>'+
+      '<td><button class="rm" onclick="removeLine('+i+')">&times;</button></td></tr>';
+  }).join('');
+  const sub=lines.reduce((a,l)=>a+l.sale*l.qty,0);
+  document.getElementById('tSub').textContent='$'+sub.toFixed(2);
+  document.getElementById('tDel').textContent='$'+(lines.length?12.50:0).toFixed(2);
+  document.getElementById('ordNo').textContent = lines.length? 'ORD-'+String(104822).slice(0,6) : 'ORD-000000';
+}
+
+/* ================================================================
+   Agent state menu (real idle codes from the tenant)
+   ================================================================ */
+const IDLE_CODES = [
+  {name:'Meeting',        id:TENANT.idleCodeMeeting},
+  {name:'WellbeingBreak', id:'89e6192c-5655-4bde-bd06-df34f4438b02'},
+  {name:'Agent_Busy',     id:'3b4c5187-b0ac-4f1f-8c5b-06ec69abab87'},
+  {name:'Agent_Unavailable', id:'eae8c238-5b2d-44a3-8693-322caf4f07e8'}
+];
+function buildStateMenu(){
+  const m=document.createElement('div');
+  m.className='state-menu hidden'; m.id='stateMenu';
+  m.innerHTML='<div class="sm-h">Available</div>'+
+    '<button class="avail-opt" onclick="chooseState(null)">&#9679; Ready (Voice,VM)</button>'+
+    '<div class="sm-h">Idle reason</div>'+
+    IDLE_CODES.map(c=>'<button onclick="chooseState(\''+c.id+'\',\''+c.name+'\')">&#9679; '+c.name+'</button>').join('');
+  document.body.appendChild(m);
+}
+function chooseState(auxId,name){
+  document.getElementById('stateMenu').classList.add('hidden');
+  if(!auxId){
+    trace('call',"webex.cc.setAgentState({state:'Available'})");
+    setStatePill('ready','Ready (Voice,VM)'); Wxcc.state='IDLE';
+  } else {
+    trace('call',"webex.cc.setAgentState({state:'Idle', auxCodeId:'"+auxId+"'})");
+    setStatePill('wrap','Idle — '+name); Wxcc.state='IDLE_CODED';
+  }
+  trace('evt','agent:stateChange');
+}
+
+/* ================================================================
+   Click-to-dial (PROCall "Make Phone Call" / customer card)
+   ================================================================ */
+function dial(num){
+  if(Wxcc.state!=='IDLE' && Wxcc.state!=='IDLE_CODED'){ trace('note','cannot dial while on a call'); return; }
+  document.getElementById('cbCust').textContent = matchCustomer(num)?.name || 'Outbound call';
+  document.getElementById('cbNum').textContent  = fmtAni(num);
+  /* origin is the CONTACT CENTRE's outbound number in E.164 — not the agent's
+     DN. entryPointId is filled in by the SDK from profile.outDialEp. */
+  trace('call',"webex.cc.startOutdial('"+e164(num)+"', '<outdial ANI>')");
+  trace('evt',"task:established (outbound)");
+  Wxcc.simulateIncoming(true);
+}
+/* Normalise anything the UI holds into E.164 for the SDK. */
+function e164(v){
+  const d=(v||'').replace(/\D/g,'');
+  if(!d) return '';
+  if(d.length===10) return '+1'+d;
+  if(d.length===11 && d[0]==='1') return '+'+d;
+  return (v||'').trim().startsWith('+') ? v.trim() : '+'+d;
+}
+
+/* --- initial render --- */
+document.getElementById('custList').innerHTML = CUSTOMERS.map(c=>
+  '<div class="cust-card"><div class="cust-top"><div><div class="cust-name">'+c.name+'</div>'+
+  '<div class="cust-meta">'+c.addr+'</div></div><div class="cust-badges">'+
+  c.badges.map(b=>'<span class="chip '+b[1]+'">'+b[0]+'</span>').join('')+'</div></div>'+
+  '<div class="cust-line">Phone Number <a href="#" title="Click to dial" onclick="dial(\''+c.phone+'\');return false">'+c.phone+'</a></div>'+
+  '<div class="cust-line">'+c.acct+'</div></div>').join('');
+
+function renderActivity(){
+  document.getElementById('actBody').innerHTML = ACTIVITY.map((r,i)=>{
+    const icon = r.type==='Voicemail'?'&#9993;':r.type==='Callback'?'&#8617;':'&#128222;';
+    const label = r.type==='Voicemail' ? 'Call back' : r.type;
+    const safety = numberSafety(r.num);
+    const mark = safety==='verified' ? '' : safety==='fiction'
+      ? ' <span class="num-tag demo" title="Reserved fictional number — never routes">demo</span>'
+      : ' <span class="num-tag warn" title="From the customer screenshots — may be a real subscriber">unverified</span>';
+    return '<tr>'+
+      '<td><button class="type-btn s-'+safety+'" onclick="dialFromActivity('+i+')" '+
+          'title="Dial '+r.num+' ('+safety+')">'+icon+' '+label+'</button>'+mark+'</td>'+
+      '<td><a href="#" onclick="dialFromActivity('+i+');return false">'+r.from+'</a></td>'+
+      '<td>'+r.to+'</td>'+
+      '<td>&#128172;</td><td>'+r.disp+'</td>'+
+      '<td class="num">'+r.at+'</td><td class="num">'+r.talk+'</td><td class="num">'+r.wrap+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('actCount').textContent = ACTIVITY.length+' Interaction(s)';
+}
+
+/* Where a number came from decides whether it is safe to actually dial.
+     verified   — supplied by the operator for testing; dial freely
+     fiction    — NANP reserved range 555-0100..555-0199, never routes to a
+                  real subscriber, so harmless to click
+     unverified — lifted from the customer's screenshots. These look like real
+                  DIDs and may belong to actual people. Never auto-dial one. */
+const OPERATOR_TEST_NUMBERS = ['9103915567'];
+function numberSafety(num){
+  const d = (num||'').replace(/\D/g,'').slice(-10);
+  if(OPERATOR_TEST_NUMBERS.includes(d)) return 'verified';
+  const line = parseInt(d.slice(6),10);
+  if(d.slice(3,6)==='555' && line>=100 && line<=199) return 'fiction';
+  return 'unverified';
+}
+
+renderActivity();
+
+/* Click-to-dial from the activity log. Routes through dial(), which the live
+   adapter overrides with webex.cc.startOutdial(). */
+function dialFromActivity(i){
+  const r = ACTIVITY[i];
+  if(!r) return;
+  if(Wxcc.state==='CONNECTED' || Wxcc.state==='WRAPUP'){
+    trace('note','finish the current interaction before dialling out');
+    return;
+  }
+  const safety = numberSafety(r.num);
+  const isLive = !!(window.LIVE && LIVE.profile);
+  if(isLive && safety==='unverified'){
+    const ok = confirm(
+      'Place a REAL outbound call to '+r.num+'?\n\n'+
+      'This number came from the customer\'s screenshots, not from you. '+
+      'It may belong to an actual person.\n\nDial anyway?');
+    if(!ok){ trace('note','outbound cancelled — '+r.num+' is an unverified number'); return; }
+  }
+  trace('note','dialling '+r.from+' — '+r.num+' ['+safety+']');
+  dial(r.num);
+}
+
+document.getElementById('storeGrid').innerHTML = STORES.map(s=>
+  '<div class="store-card"><div class="store-top"><div class="store-name">'+s.code+' - '+s.name+'</div>'+
+  (s.tams?'<span class="tams up">&#128246; TAMS</span>':'<span class="tams down">&#10007; TAMS</span>')+
+  '</div><div class="store-sub">'+s.num+'</div><div class="store-sub">'+s.city+'</div></div>').join('');
+
+document.getElementById('servingStore').innerHTML = STORES.map(s=>
+  '<option>'+s.code+' - '+s.name+' (#'+s.num+')</option>').join('');
+
+function renderDispList(){
+  document.getElementById('dispList').innerHTML = DISPOSITIONS.map((d,i)=>
+    '<div class="disp-item" onclick="pickDisp('+i+')">'+d.label+
+    (d.auxCodeId?'':' <span style="color:#dc2626;font-size:11px">• no code</span>')+'</div>').join('');
+}
+renderDispList();
+
+document.getElementById('pnList').innerHTML =
+  Object.keys(CATALOG).map(k=>'<option value="'+k+'">').join('');
+
+buildStateMenu();
+renderLines();
+
+/* keyboard shortcuts the UI advertises */
+document.addEventListener('keydown', e=>{
+  if(e.key==='F9'){ e.preventDefault();
+    showView(document.getElementById('view-catalog').classList.contains('hidden')?'catalog':'order'); }
+  if(e.key==='F2'){ e.preventDefault();
+    if(lines.length){ trace('note','invoice completed — '+lines.length+' line(s)'); Wxcc.pushCad(); }
+    else trace('note','nothing to invoice'); }
+});
+document.addEventListener('click', e=>{
+  const m=document.getElementById('stateMenu');
+  if(m && !m.classList.contains('hidden') && !m.contains(e.target) && e.target.closest('#statePill')===null)
+    m.classList.add('hidden');
+});
+
+Wxcc.init();
+</script>
+
+<!-- Real SDK. Loaded but inert until connected. -->
+<script src="vendor/contact-center.min.js"></script>
+<!-- Optional, gitignored. Supplies the token + auto-connect. Absent = manual entry. -->
+<script src="local-token.js" onerror="console.info('no local-token.js — use the Go Live dialog')"></script>
+<script src="live.js"></script>
+
+</body>
+</html>

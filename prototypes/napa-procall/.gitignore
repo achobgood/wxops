@@ -1,0 +1,7 @@
+node_modules/
+*.log
+local-token.js
+
+# 8.2 MB of SDK bundle + sourcemap, re-fetchable byte-identical from unpkg.
+# See "Fetching the SDK bundle" in README.md.
+vendor/
