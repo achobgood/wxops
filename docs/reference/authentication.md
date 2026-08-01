@@ -61,7 +61,7 @@ Authorization: Bearer <ACCESS_TOKEN>
 - Cannot be refreshed — you must generate a new one manually
 - Carries most scopes your account has access to (including `spark-admin:*` scopes if you are an admin), but does NOT include Contact Center scopes (`cjp:config_read`, `cjp:config_write`). CC config operations require an OAuth integration with CC scopes explicitly selected.
 - Intended strictly for development and testing — never embed in production code
-- **Contact Center limitation:** Even full admins on CC-provisioned orgs get 403 on CC config endpoints (`api.wxcc-{region}.cisco.com`) with a PAT. Create an OAuth integration at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes, complete the OAuth flow, and use that token instead.
+- **Contact Center limitation — *config* endpoints only:** Even full admins on CC-provisioned orgs get 403 on CC config endpoints (`api.wxcc-{region}.cisco.com`) with a PAT. Create an OAuth integration at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes, complete the OAuth flow, and use that token instead. **This does not extend to the CC agent runtime.** A PAT *does* carry `cjp:user` — verified live on 2026-07-31 driving `register()`, `stationLogin()` and `setAgentState()` through the `@webex/contact-center` JS SDK against a live tenant. So a PAT works for a custom agent desktop and for `PATCH /v1/tasks/{taskId}`, and fails for `wxcli cc-*`. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §10.
 
 **Usage:**
 

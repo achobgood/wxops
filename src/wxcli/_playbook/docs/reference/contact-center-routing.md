@@ -1148,5 +1148,6 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 - [Contact Center: Core](contact-center-core.md) -- Agents, queues, teams, skills, desktop, configuration
 - [Contact Center: Analytics](contact-center-analytics.md) -- AI, monitoring, subscriptions, tasks, search
 - [Contact Center: Journey](contact-center-journey.md) -- JDS: workspaces, persons, identity, profile views, events
+- [Contact Center: Agent Desktop SDK](contact-center-agent-sdk.md) -- The `@webex/contact-center` JS SDK. Relevant here because a Flow Designer **Set Variable** node marked *Agent Viewable* is what makes a variable appear in `interaction.callFlowParams` on the agent's desktop
 - [Call Routing & PSTN](call-routing.md) -- Webex Calling routing (trunks, route groups, route lists -- entirely separate from CC routing)
 - [Authentication](authentication.md) -- CC-specific OAuth scopes and region configuration

@@ -29,6 +29,8 @@ If you cannot answer all three, you skipped reading this skill. Go back and read
 3. Read `docs/reference/contact-center-analytics.md` for AI features, monitoring, subscriptions, tasks
 4. Read `docs/reference/contact-center-journey.md` for JDS: workspaces, persons, identity, profile views, events, WXCC subscription
 
+**Out of scope for this skill:** if the user wants to *build a custom agent desktop* (a browser softphone on the `@webex/contact-center` JS SDK — `webex.cc`, `task.*`, WebRTC audio), that is not a `wxcli` task and this skill has no path for it. Send them to `docs/reference/contact-center-agent-sdk.md`. This skill provisions the agents, queues and profiles such a desktop connects to — including `loginVoiceOptions` on the desktop profile, which is the gate on browser audio.
+
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cc-queue create --help` — note the `cc-` prefix is what distinguishes Contact Center commands from Calling, so `cc-queue` ≠ `call-queue`; guessing the wrong one builds the wrong entity). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
 ## Step 2: Verify auth token and CC region

@@ -1034,6 +1034,7 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 - [Contact Center: Core](contact-center-core.md) — Agents, queues, teams, skills, desktop, configuration
 - [Contact Center: Journey](contact-center-journey.md) — JDS: workspaces, persons, identity, profile views, events
 - [Contact Center: Routing](contact-center-routing.md) — Dial plans, campaigns, flows, audio, contacts
+- [Contact Center: Agent Desktop SDK](contact-center-agent-sdk.md) — The `@webex/contact-center` JS SDK. The `cc-tasks` group documented here is the server-side counterpart to a live task in a custom desktop: `wxcli cc-tasks update` is `PATCH /v1/tasks/{taskId}`, the only route that writes call variables, and `create-pause`/`create-resume` mirror `task.pauseRecording()`
 - [Webhooks & Events](webhooks-events.md) — Webex platform webhooks (separate from CC subscriptions)
 - [Reporting & Analytics](reporting-analytics.md) — Webex Calling CDR, queue stats, call quality
 - [Authentication](authentication.md) — CC-specific OAuth scopes and region configuration
