@@ -520,7 +520,7 @@ wxcli device-settings list-available-members DEVICE_ID --output json
 wxcli device-settings update DEVICE_ID --json-body '{
   "members": [
     {"id": "PRIMARY_PERSON_ID", "port": 1, "lineType": "PRIMARY", "primaryOwner": true, "lineWeight": 1},
-    {"id": "SHARED_PERSON_ID", "port": 2, "lineType": "SHARED_LINE", "primaryOwner": false, "lineWeight": 1}
+    {"id": "SHARED_PERSON_ID", "port": 2, "lineType": "SHARED_CALL_APPEARANCE", "primaryOwner": false, "lineWeight": 1}
   ]
 }'
 
