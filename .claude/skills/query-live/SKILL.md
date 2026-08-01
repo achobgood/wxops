@@ -86,11 +86,54 @@ Every `list` command takes `--all`. **The default is a single fetch**, which on 
 
 Three things to know before you trust the output:
 
-1. **A truncated read warns on stderr, not stdout.** `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. Reading only stdout you will never see it. If you did not pass `--all`, you have no evidence the read was complete.
+1. **A truncated read warns on stderr, not stdout.** `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. **You will see that note** — measured 2026-08-01, both Claude Code and Codex merge stderr into the tool result, and the note is written before the first row is rendered, so it survives piping, redirection, and head-truncation of a large response. Which makes ignoring it the real risk: if that note appears and you still answer a "how many" question, your answer is wrong. And its *absence* proves nothing — if you did not pass `--all`, you have no evidence the read was complete.
 2. **`--all` is a deliberate no-op on endpoints that do not paginate.** Getting one page back is correct there, not a failure — do not go hunting for a bug.
 3. **The word `INCOMPLETE` on stderr means records are missing.** It appears when the walk hits its 1000-page ceiling. Do not answer from output that produced it.
 
 This is the same class of trap as `--calling-data` in the root CLAUDE.md: the command succeeds, and the omission is in what it did not fetch. Before reporting "none found" or any number, confirm the read could have returned everything.
+
+### Verification Gate — before you state a number or a negative
+
+This skill answers "how many", "which ones", and "are there any". Every one of
+those can be answered **wrongly with exit 0**. Before reporting a count or a
+"none found", confirm the command could have returned the opposite:
+
+1. **Could it return the field?** `wxcli people list -o json` omits `extension`
+   and `locationId` entirely unless `--calling-data true` is passed. "How many
+   users have extensions?" then answers **0** — no error, every user returned.
+   An absent field may mean "not configured" or may mean "you didn't ask for
+   it". Confirm via `--help` which one before drawing the conclusion.
+2. **Could it return every record?** See `--all` above. A count taken from page
+   one is not a slightly-off answer, it is a wrong one.
+3. **The inverse trap: `--limit N` narrows the fetch, not the display.** On a
+   command that already walks every page, adding `--limit` switches it to a
+   single fetch and silently drops the rest.
+4. **A negative needs a query that could have gone positive.** "No hunt group
+   named Sales" is only true if you listed hunt groups with `--all`. Otherwise
+   the honest report is "not present in the records I fetched" — and that is
+   not yet an answer.
+
+State the evidence with the answer. "12 users" is a claim; "12 users, counted
+on `extension` from `people list --all --calling-data true`" is a finding.
+
+**What this looks like.** Three reports of the same finding — only the third is right:
+
+```
+Bad   "No users have extensions."
+      (unverified — far more likely a --calling-data miss than a real zero)
+
+Bad   "hypothesis: extensions may be unset. [runs people list] verified: 0.
+       Now checking whether the field is returned at all. [runs --help]
+       verified: needs --calling-data. Re-running… verified: 8."
+      (ceremony — the search narrated back as if it were the finding)
+
+Good  "8 of 14 users have extensions. I passed --calling-data true — without
+       it this command returns no extension field at all and the answer would
+       read 0 — and --all, so the count covers every page."
+```
+
+The middle line is not extra rigor. Narrating the search is its own failure:
+the tool calls are already the record, so report the finding, not the hunt.
 
 ### Resource Resolution Protocol
 
@@ -119,7 +162,7 @@ When the user references a resource by name (not ID):
 
 For audit queries checking a setting across many users (e.g., "which users don't have voicemail?"):
 
-1. **Count first:** `wxcli people list -o json` → count results
+1. **Count first:** `wxcli people list --all --fields 'length(@)' -o json`. `--all` is not optional here — this count decides which branch below you take, and a page-one count silently picks the wrong one. Add `--calling-data true` if the setting you are about to audit is a calling field.
 2. **If ≤ 50 users:** Fetch settings for each user sequentially
 3. **If > 50 users:** Note upfront: "Checking [N] users — this will take a moment." Batch in groups of 20 with brief progress updates every 20 users.
 4. **Report:** "Checked all [N] users at [location]. [X] of [N] don't have voicemail enabled."
