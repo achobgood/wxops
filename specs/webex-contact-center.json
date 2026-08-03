@@ -82145,7 +82145,7 @@
           },
           "location": {
             "type": "string",
-            "description": "The name of the location as configured on Webex Calling(applicable only for Webex Calling).",
+            "description": "The ID of the location as configured on Webex Calling(applicable only for Webex Calling).",
             "example": "7cbd4aad-0c3b-4de4-a15a-33cf05b9bf8j"
           },
           "regionId": {
