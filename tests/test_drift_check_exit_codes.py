@@ -102,9 +102,18 @@ def test_ci_distinguishes_a_crash_and_asserts_completion():
     assert '"$status" -eq 2' in ci or "status\" -eq 2" in ci, (
         "CI must treat exit 2 (crashed) as its own outcome, not as findings"
     )
-    assert r"^\[18\]" in ci and "^result: (PASS|FAIL)" in ci, (
-        "CI must assert the gate REACHED THE END (last check present + a verdict "
-        "line), which is what catches a partial run that still exits 0"
+    # Derived, not hardcoded. The assertion is only meaningful if it names the
+    # LAST check: pinned to an earlier one it passes for a run that died after
+    # it. Adding check 19 left this reading `^\[18\]`, which would have gone on
+    # passing while the two newest checks could silently never run.
+    import re as _re
+    from tools import drift_check as _dc
+    last = max(int(n) for n in _re.findall(r"^ {2}(\d+)[a-z]?\.\s",
+                                           _dc.__doc__, _re.M))
+    assert rf"^\[{last}\]" in ci and "^result: (PASS|FAIL)" in ci, (
+        f"CI must assert the gate REACHED THE END — the last check is {last}, "
+        f"so the completion assertion must grep for '^\\[{last}\\]' plus a "
+        f"verdict line. That is what catches a partial run that still exits 0"
     )
     # Match the DIRECTIVE on its own line, not the phrase anywhere in the file —
     # a substring check passes on the explanatory comment alone, which a mutation
