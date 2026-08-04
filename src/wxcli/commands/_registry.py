@@ -9,6 +9,7 @@ in main.py. A stale entry whose module is missing fails import loudly.
 GENERATED_GROUPS = [
     ("activation_email", "activation-email"),
     ("admin_recordings", "admin-recordings"),
+    ("ai_receptionist", "ai-receptionist"),
     ("analytics", "analytics"),
     ("announcement_playlists", "announcement-playlists"),
     ("announcements", "announcements"),

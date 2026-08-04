@@ -7,7 +7,8 @@ description: |
   text-to-speech prompt generation, announcement playlists (music on hold) and playlist usage,
   location call handling (internal dialing, location intercept, outgoing calling permissions,
   access/authorization codes, outgoing digit patterns), caller reputation (spam/fraud call scoring),
-  and external voicemail MWI control. Guides the user from prerequisites through creation,
+  external voicemail MWI control, and AI Receptionist (an AI that answers calls, with its
+  intents and knowledge bases). Guides the user from prerequisites through creation,
   modification, deletion, and verification.
   Use for: create, update, delete, remove, list, or troubleshoot any Calling call feature.
   NOT for: Contact Center queues/teams/flows (use contact-center skill), Customer Assist/CX Essentials
@@ -34,6 +35,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 4. Read `docs/reference/location-calling-core.md` for internal dialing and location-level call handling
 5. Read `docs/reference/location-recording-advanced.md` for caller reputation
 6. Read `docs/reference/call-control.md` §6 for external voicemail MWI
+7. Read `docs/reference/ai-receptionist.md` for AI Receptionist, its intents, and knowledge bases
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli call-queue create --help` reveals the kebab-cased flags like `--has-cx-essentials` and the `--json-body` shape you cannot guess from training data). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
@@ -69,6 +71,7 @@ Ask the user which feature they want to create. Present this decision matrix if 
 | Route unknown extensions off-net; block/allow outbound call types; access codes; digit patterns | **Location Call Handling** (`location-call-handling`) |
 | Score inbound calls for spam/fraud via an external reputation provider | **Caller Reputation** (`caller-reputation`) |
 | Turn a user's or workspace's voicemail waiting light on/off from an external voicemail system | **External Voicemail MWI** (`external-voicemail`) |
+| An AI answers the call, understands why the caller rang, and routes or answers from your own documents | **AI Receptionist** (`ai-receptionist`) |
 
 ## Step 4: Check prerequisites
 
@@ -787,6 +790,65 @@ wxcli external-voicemail create --id PERSON_OR_WORKSPACE_ID --action CLEAR
 `--id` is required; `--action` accepts `SET` or `CLEAR` only.
 
 > **Requires a Service App token** with the `spark-admin:calls_write` scope — an ordinary admin token or PAT will not work here. See `docs/reference/call-control.md` §6. This command only drives the indicator; it does not create or store voicemail.
+
+---
+
+### AI Receptionist
+
+An AI answers the call instead of an IVR menu: it hears why the caller rang, answers from
+documents you upload (a **knowledge base**), and hands off to a person when an **intent**
+matches. Three separate resources, created in this order:
+
+| Resource | Scope | Command family |
+|----------|-------|----------------|
+| Knowledge base + its documents | **Org-wide** — build once, reuse at every location | `*-knowledge-bases`, `*-documents` |
+| AI Receptionist | **Per location** | bare `list`/`show`/`create`/`update`/`delete` |
+| Intents (route "I need billing" to a person) | Per receptionist | `*-intents` |
+
+**Read the bare verbs carefully — they act on the receptionist, and the template read is
+separate.** `show` returns an AI Receptionist; `show-template` returns a starter template
+from the org catalogue (`list-templates`). These were pinned deliberately, because the
+generator's derived names had `show` returning a *template* while `update` and `delete` acted
+on the *receptionist* — same group, three verbs, two different resources.
+
+```bash
+# Knowledge base first — org-wide, plain flags work
+wxcli ai-receptionist create-knowledge-bases --name "Store FAQ" --description "Hours, returns, parking"
+wxcli ai-receptionist list-knowledge-bases
+
+# What voices and numbers are available at this location
+wxcli ai-receptionist list-voices LOCATION_ID
+wxcli ai-receptionist list-available-numbers LOCATION_ID
+
+# Check the country is supported before building anything
+wxcli ai-receptionist validate-country --country-code US
+
+# Create the receptionist — see the --json-body note below
+wxcli ai-receptionist create LOCATION_ID --generate-json-body
+
+# Read it back, and list every receptionist in the org
+wxcli ai-receptionist show LOCATION_ID AI_RECEPTIONIST_ID
+wxcli ai-receptionist list --all
+```
+
+> **`create` and `create-intents` need `--json-body`, not flags.** Both declare required
+> fields that are nested objects — `--default-action` and `--ai-agent` on `create`,
+> `transferTo` on `create-intents` — and the generator renders a nested object as a plain
+> TEXT option, so passing a JSON string to those flags sends a string where the API expects
+> an object (Known Issue #2). Run the command with `--generate-json-body` first, fill in the
+> skeleton, then pass it back with `--json-body`. `create-knowledge-bases` has no nested
+> required field and works with plain flags.
+
+**Document upload is not in the CLI.** `POST .../documents/actions/upload/invoke` is a
+`multipart/form-data` endpoint, which the generator structurally skips — that is why this
+group has 27 commands and not 28. Add document *content* with
+`wxcli ai-receptionist create-documents KNOWLEDGE_BASE_ID --name "Returns" --content "..."`,
+or upload a file with raw HTTP. `download-documents` downloads one document (not the whole
+knowledge base, despite the container in the path).
+
+Deleting: work inwards-out — intents, then the receptionist, then its knowledge base. That
+order follows the containment in the paths; **the API's behaviour when you delete out of
+order has not been tested here**, so do not promise the user it will be refused cleanly.
 
 ---
 
