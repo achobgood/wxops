@@ -70,6 +70,8 @@ At minimum, one of `displayName`, `firstName`, or `lastName` is required. For a 
 The update is a **full PUT** -- you must include all fields, not just the changed ones. Standard pattern: GET details first, modify, then PUT.
 
 **Key constraints on update:**
+- When assigning a Webex Calling license, **either a telephone number or an extension must already be assigned** to the person, or be supplied in the same request payload. A license with neither is rejected. *(Added upstream 2026-08-03.)*
+- When `callingData` is `true`, a **Webex Calling license must be present in the `licenses` array**. Asking for calling fields on a person who has no calling license is an error, not an empty response. *(Added upstream 2026-08-03.)*
 - `location_id` can only be set when **first assigning** a calling license. It cannot be changed for an existing calling user.
 - The `extension` field value should **not** include the location routing prefix. The `work_extension` phone number in the response *will* include it, but when setting `extension` on update, omit the prefix.
 - When updating a user with multiple email addresses, the **primary email must be listed first** in the array.
@@ -211,6 +213,12 @@ wxcli people delete <person_id> --force
 
 **`calling_data=True` is not optional -- it is mandatory for calling fields.**
 The single most common mistake. Without `calling_data=True` on `list()`, `details()`, `create()`, and `update()`, the response will **not include** `location_id`, `extension`, or calling-related `phone_numbers`. Your code will see `None` for these fields and may incorrectly conclude the user is not calling-enabled.
+
+**A calling license needs a number or an extension in the same breath.**
+Assigning a Webex Calling license to a person who has neither a telephone number nor an extension fails unless the request payload supplies one. In practice: set `extension` (or a `work` phone number) in the same PUT that adds the license, rather than adding the license first and the number after. Stated in the operation's spec `description` since 2026-08-03 — and the CLI structurally cannot surface it, because the generator renders an operation's `summary` into `--help` and never its `description`. This doc is the only place it lives.
+
+**`callingData=true` requires the person to actually have a calling license.**
+Upstream 2026-08-03: when `callingData` is `true`, a Webex Calling license must be in the `licenses` array. Do not read `--calling-data true` as "also show me calling fields if there are any" on a non-calling user — pair it with the license, not with a hope. This is the write-side counterpart to the read-side trap above: on a read, omitting the flag hands back a confident empty answer; on a write, passing it without a license is an error.
 
 **`location_id` is write-once for calling users.**
 You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. The preferred path for moving a calling user to a different location is the dedicated **Move Users Job API**: `POST /v1/people/{personId}/actions/moveLocation`. This moves the user without removing and re-adding the calling license. See `User Call Settings - Validate or Initiate Move Users Job` in the API docs. As a fallback, you can remove the calling license and re-add it with the new `location_id`, but the Move Users Job API is preferred.

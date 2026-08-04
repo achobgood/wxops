@@ -785,6 +785,33 @@ Provides hosted call recording for replay and archival, for quality assurance, s
 | `summary_and_action_items_enabled` | `bool` | Undocumented field (not in the official API docs)  |
 | `transcript_enabled` | `bool` | Undocumented field (not in the official API docs)  |
 
+#### `SelectiveCallRecordingSettings`
+
+Added upstream 2026-08-03. Turns `record` from one switch into four independent
+ones: which *directions* of call get recorded. All four are spec-**required**
+when the object is sent, and it applies to people, virtual lines and workspaces
+alike (same object, same four fields, three endpoints).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `recordInboundInternalCallsEnabled` | `bool` | Record inbound calls from inside the org |
+| `recordInboundExternalCallsEnabled` | `bool` | Record inbound calls from outside the org |
+| `recordOutboundInternalCallsEnabled` | `bool` | Record outbound calls to inside the org |
+| `recordOutboundExternalCallsEnabled` | `bool` | Record outbound calls to outside the org |
+
+**Only meaningful on two of the five `record` modes.** The spec says the object
+applies "when `recordingMode` is set to either `Always` or `Always with
+Pause/Resume`" — and note the field it names, `recordingMode`, **does not exist
+on this body**; the field is `record`. Read it as: `--record "Always"` or
+`--record "Always with Pause/Resume"`. On the on-demand modes the direction
+filter has nothing to filter.
+
+**There is no flag for it.** The generator emits flags for scalar body fields
+only, so `--enabled`, `--record` and `--record-voicemail-enabled` exist and this
+nested object does not. It is reachable only through `--json-body`, and a `PUT`
+replaces the whole body — so send the settings you want kept, and pass
+`--verify` to confirm they applied.
+
 #### `CallRecordingSetting`
 
 | Field | Type | Description |
@@ -801,6 +828,7 @@ Provides hosted call recording for replay and archival, for quality assurance, s
 | `start_stop_announcement` | `StartStopAnnouncement` | Separate start/stop per internal vs. PSTN |
 | `call_recording_access_settings` | `CallRecordingAccessSettings` | User's access to their own recordings |
 | `post_call_recording_settings` | `PostCallRecordingSettings` | Post-call summary/transcript settings |
+| `selective_call_recording_settings` | `SelectiveCallRecordingSettings` | Record inbound/outbound × internal/external independently |
 
 #### Default Settings
 
@@ -837,7 +865,33 @@ wxcli user-settings update-call-recording PERSON_ID --json-body '{
   "repeat": {"interval": 15, "enabled": false},
   "startStopAnnouncement": {"internalCallsEnabled": true, "pstnCallsEnabled": true}
 }'
+
+# Record external calls only, in both directions — selectiveCallRecordingSettings
+# has no flag, so it goes through --json-body. --verify re-reads and reports any
+# field that did not take.
+wxcli user-settings update-call-recording PERSON_ID --verify --json-body '{
+  "enabled": true,
+  "record": "Always",
+  "selectiveCallRecordingSettings": {
+    "recordInboundInternalCallsEnabled": false,
+    "recordInboundExternalCallsEnabled": true,
+    "recordOutboundInternalCallsEnabled": false,
+    "recordOutboundExternalCallsEnabled": true
+  }
+}'
+
+# The same object on a virtual line and on a workspace — identical four fields
+wxcli virtual-line-settings update VIRTUAL_LINE_ID --verify --json-body '{"enabled":true,"record":"Always","selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":false,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":false,"recordOutboundExternalCallsEnabled":true}}'
+wxcli workspace-settings update-call-recordings WORKSPACE_ID --verify --json-body '{"enabled":true,"record":"Always","selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":false,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":false,"recordOutboundExternalCallsEnabled":true}}'
+
+# Or start from the generated skeleton, which now includes the object
+wxcli user-settings update-call-recording PERSON_ID --generate-json-body
 ```
+
+> **Unverified:** the four toggles are documented from the 2026-08-03 spec and
+> the generated `--generate-json-body` skeleton. No live call has been made
+> against them — a 2xx would prove acceptance, not application, which is what
+> `--verify` is for.
 
 ### Raw HTTP
 

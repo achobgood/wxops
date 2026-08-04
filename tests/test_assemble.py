@@ -75,10 +75,15 @@ def fake_repo(tmp_path):
         p = repo / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content)
-    # untracked dev junk that must never ship
+    # untracked dev junk that must never ship. GITIGNORED, as it is in the real
+    # tree — that is what keeps it out of untracked_sources() structurally
+    # rather than by name, and the real tree was verified to gitignore all five
+    # of its untracked playbook files on 2026-08-04.
     (repo / ".claude/skills/seven-advisors").mkdir(parents=True)
     (repo / ".claude/skills/seven-advisors/SKILL.md").write_text("dev only\n")
     (repo / ".claude/settings.local.json").write_text("{}")
+    (repo / ".gitignore").write_text(
+        ".claude/skills/seven-advisors/\n.claude/settings.local.json\n")
     _git(repo, "init", "-q")
     _git(repo, "add", "-f", *tracked)
     _git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x")
@@ -100,6 +105,39 @@ def test_enumeration_scopes_and_excludes(fake_repo):
     assert ".claude/settings.local.json" not in files              # untracked
     assert ".claude/settings.json" not in files                    # substituted, not enumerated
     assert "src/wxcli/main.py" not in files                        # outside scope
+
+
+def test_an_unstaged_playbook_file_is_reported_not_silently_omitted(fake_repo):
+    """The 2026-08-04 defect. `git ls-files` cannot see an unstaged file, so a
+    newly written docs/reference/*.md was dropped from the bundle while the run
+    printed a file count and exited 0. Reproduced live before this fix: unstaged
+    it vanished; `git add` alone (identical bytes) put it in the bundle."""
+    A = _load_assemble()
+    assert A.untracked_sources(fake_repo) == []          # control: clean tree
+    (fake_repo / "docs/reference/new-surface.md").write_text("new\n")
+    assert A.untracked_sources(fake_repo) == ["docs/reference/new-surface.md"]
+    assert "docs/reference/new-surface.md" not in A.enumerate_sources(fake_repo)
+    _git(fake_repo, "add", "docs/reference/new-surface.md")
+    assert A.untracked_sources(fake_repo) == []
+    assert "docs/reference/new-surface.md" in A.enumerate_sources(fake_repo)
+
+
+def test_gitignored_dev_content_is_not_reported_as_unstaged(fake_repo):
+    """Membership is on_disk - tracked - IGNORED, the same classification
+    drift_check.module_state() uses. Dropping the ignore step turns every
+    dev-only skill into a permanent failure and the guard gets deleted."""
+    A = _load_assemble()
+    assert A.untracked_sources(fake_repo) == []
+    assert (fake_repo / ".claude/skills/seven-advisors/SKILL.md").exists()
+
+
+def test_excluded_basenames_are_not_reported_as_unstaged(fake_repo):
+    """A stray TODO.md is excluded from the bundle by design; demanding it be
+    staged would be a failure with no correct resolution."""
+    A = _load_assemble()
+    (fake_repo / "docs/reference/TODO.md").write_text("scratch\n")
+    (fake_repo / ".claude/skills/provision-calling/.DS_Store").write_bytes(b"\x00")
+    assert A.untracked_sources(fake_repo) == []
 
 
 def test_assemble_preserves_layout_and_substitutes_settings(fake_repo, tmp_path):

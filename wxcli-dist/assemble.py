@@ -95,20 +95,58 @@ CODEX_FORBIDDEN = [
 ]
 
 
+def _keep(rel: str) -> bool:
+    return bool(rel) and rel not in EXCLUDE_FILES and Path(rel).name not in EXCLUDE_BASENAMES
+
+
 def enumerate_sources(repo_root: Path) -> list[str]:
     """Tracked playbook files minus explicit excludes.
 
-    git ls-files already omits untracked dev-only content (seven-advisors,
-    researcher, settings.local.json, docs/references/).
+    Tracked, not on-disk, and that is correct: the bundle must be reproducible
+    from a fresh clone. What was WRONG is doing it silently — see
+    untracked_sources().
     """
     out = subprocess.run(
         ["git", "ls-files", "--", *INCLUDE_PATHS],
         cwd=repo_root, capture_output=True, text=True, check=True,
     ).stdout
-    return [
-        f for f in out.splitlines()
-        if f and f not in EXCLUDE_FILES and Path(f).name not in EXCLUDE_BASENAMES
-    ]
+    return [f for f in out.splitlines() if _keep(f)]
+
+
+def untracked_sources(repo_root: Path) -> list[str]:
+    """Playbook files present on disk, not gitignored, and not yet `git add`ed.
+
+    This script enumerates with `git ls-files`, so a doc you have written but
+    not staged is invisible to it — and it used to say nothing: `Assembled … 91
+    Claude file(s)`, exit 0, file absent from the bundle. Reproduced 2026-08-04
+    with a new docs/reference/*.md: unstaged it was silently dropped, and `git
+    add` alone (identical bytes) put it in the bundle and correctly failed the
+    link audit. A build step that reports success while omitting a file is the
+    same defect drift_check's check 8 exists for, one layer over.
+
+    Membership is `on_disk - tracked - ignored`, exactly as drift_check's
+    module_state() classifies command modules — and for the same reason: index
+    membership is the wrong proxy for "dev-only". The five untracked playbook
+    files on disk today (seven-advisors, researcher, settings.local.json) are
+    all gitignored, so they stay out structurally rather than by name.
+    """
+    tracked = set(enumerate_sources(repo_root))
+    on_disk: set[str] = set()
+    for rel in INCLUDE_PATHS:
+        p = repo_root / rel
+        if p.is_file():
+            on_disk.add(rel)
+        elif p.is_dir():
+            on_disk.update(str(f.relative_to(repo_root))
+                           for f in p.rglob("*") if f.is_file())
+    extra = sorted(f for f in on_disk - tracked if _keep(f))
+    if not extra:
+        return []
+    ignored = set(subprocess.run(
+        ["git", "check-ignore", "--stdin"], input="\n".join(extra),
+        cwd=repo_root, capture_output=True, text=True,
+    ).stdout.split("\n"))
+    return [f for f in extra if f not in ignored]
 
 
 def assemble(repo_root: Path, bundle_dir: Path, curated_settings: Path) -> list[str]:
@@ -155,6 +193,18 @@ def audit_bundle(bundle_dir: Path) -> list[tuple[str, int, str]]:
 
 
 def main() -> int:
+    # Before assembling, not after: the run must not report a file count that
+    # silently excludes work sitting in the working tree.
+    unstaged = untracked_sources(REPO_ROOT)
+    if unstaged:
+        for rel in unstaged:
+            print(f"UNSTAGED {rel}", file=sys.stderr)
+        print(f"FAILED: {len(unstaged)} playbook file(s) on disk but not staged. "
+              f"The bundle is enumerated with `git ls-files` so it stays "
+              f"reproducible from a clone — these would be silently omitted. "
+              f"Run `git add` on them, or gitignore them if they are dev-only.",
+              file=sys.stderr)
+        return 1
     files = assemble(REPO_ROOT, BUNDLE_DIR, CURATED_SETTINGS)
     assemble_codex(BUNDLE_DIR)
     violations = audit_bundle(BUNDLE_DIR)

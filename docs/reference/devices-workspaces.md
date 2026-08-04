@@ -826,9 +826,27 @@ wxcli workspace-settings update-call-recordings <workspace_id> --json-body '{
   }
 }'
 
+# Record external calls only, both directions. selectiveCallRecordingSettings
+# (added upstream 2026-08-03) has no flag — nested objects reach the body only
+# through --json-body. All four toggles are required when the object is sent,
+# and it applies only on --record "Always" or "Always with Pause/Resume".
+wxcli workspace-settings update-call-recordings <workspace_id> --verify --json-body '{
+  "enabled": true,
+  "record": "Always",
+  "selectiveCallRecordingSettings": {
+    "recordInboundInternalCallsEnabled": false,
+    "recordInboundExternalCallsEnabled": true,
+    "recordOutboundInternalCallsEnabled": false,
+    "recordOutboundExternalCallsEnabled": true
+  }
+}'
+
 # Disable call recording
 wxcli workspace-settings update-call-recordings <workspace_id> --no-enabled
 ```
+
+The four toggles are the same object people and virtual lines carry — field-by-field
+detail in [Person Call Settings: Media](person-call-settings-media.md#7-call-recording).
 
 #### Permissions
 
