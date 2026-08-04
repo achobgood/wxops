@@ -11,7 +11,7 @@ Webex API reference docs grounded in the Webex OpenAPI specs and live API behavi
 - **Meetings** (4): `meetings-{core,content,settings,infrastructure}.md`
 - **Messaging** (2): `messaging-{spaces,bots}.md`
 - **Contact Center** (5): `contact-center-{core,routing,analytics,journey}.md` + `contact-center-agent-sdk.md` (the `@webex/contact-center` **JS SDK** for a custom agent desktop — a browser runtime surface, not REST/`wxcli`; grounded in the SDK's own TypeScript sources rather than an OpenAPI spec)
-- **Standalone** (10): `authentication.md`, `provisioning.md`, `call-features-major.md`, `call-features-additional.md`, `call-routing.md`, `call-control.md`, `webhooks-events.md`, `reporting-analytics.md`, `virtual-lines.md`, `emergency-services.md`
+- **Standalone** (11): `authentication.md`, `provisioning.md`, `call-features-major.md`, `call-features-additional.md`, `call-routing.md`, `call-control.md`, `webhooks-events.md`, `reporting-analytics.md`, `virtual-lines.md`, `emergency-services.md`, `ai-receptionist.md`
 
 ## Consumers
 

@@ -1027,6 +1027,36 @@ tag_merge:
       - "Journey - Subscription API"
       - "Journey - Trigger Actions API"
       - "Journey - Workspace management API"
+    # AI Receptionist arrived 2026-08-03. Upstream puts BOTH tags on all 28
+    # operations — not two parallel families that happen to match: verified the
+    # path+method sets are identical AND every one of the 28 operation objects
+    # carries both tags. Ungmerged, per-tag dedup renders two identical groups.
+    #
+    # The two tags are NOT the same thing, which is why the direction matters.
+    # "AI Receptionist for Webex Calling" is described as "APIs for managing AI
+    # Receptionists" and all 28 endpoints are management CRUD, so it is the
+    # honest name and the one kept. "AI Receptionist" is described as
+    # "retrieving AI Receptionist sessions and conversational transcripts,
+    # restricted to Full Administrators" and carries a feature-toggle marker
+    # (calling-air-transcript-api-CALL-205781) — a surface that does not exist:
+    # the spec declares ZERO transcript or session endpoints. Upstream declared
+    # a not-yet-shipped tag and sprayed it over the management operations.
+    #
+    # Merge, NOT skip_tags and NOT tag_op_excludes, and the reason is drift
+    # check 1. It classifies an operation by its PRIMARY tag only
+    # (drift_check.load_spec_ops, `tags[0]`), which here is the management tag:
+    #   - skip_tags "AI Receptionist" would work today, but when the transcript
+    #     endpoints do ship carrying it as tags[0], check 1 files them under
+    #     "no CLI command ON PURPOSE" and they vanish silently. A blind spot
+    #     that opens later is worse than one that is loud now.
+    #   - tag_op_excludes would strip all 28 pairings and leave the tag with
+    #     zero operations; generate_tag has no empty-tag early return, so it
+    #     writes an empty module and registers it in the manifest.
+    #   - merge_tags rewrites the tag in place, so future transcript operations
+    #     still generate (into this group) instead of disappearing. Wrong
+    #     grouping is visible on a regen diff; a missing command is not.
+    "AI Receptionist for Webex Calling":
+      - "AI Receptionist"
   webex-flow-store.json:
     "Flow":
       - "Flow APIs"
@@ -1040,6 +1070,11 @@ cli_name_overrides:
     "Features:  Call Park": "call-park"
     "Features:  Call Pickup": "call-pickup"
     "Features:  Paging Group": "paging-group"
+    # Chosen before the first regen, per the 2026-07-26 precedent: the derived
+    # name would be `ai-receptionist-for-webex-calling`, the longest in the CLI
+    # by a wide margin. The tag_merge block above folds the bare "AI
+    # Receptionist" tag into this one, so that name is free to take here.
+    "AI Receptionist for Webex Calling": "ai-receptionist"
     "Features: Announcement Playlist": "announcement-playlists"
     "Features: Announcement Repository": "announcements"
     "Features: Call Recording": "call-recording"
@@ -1299,6 +1334,41 @@ undeclared_paging_ack:
 # for why that used to be a silent discard.
 tag_overrides:
   webex-cloud-calling.json:
+    # Keyed on the MERGED tag name — "AI Receptionist" folds into this one in
+    # tag_merge above, and overrides resolve by the merged name.
+    #
+    # A SWAP, the same shape `Features:  Call Queue` and `My Call Settings` use,
+    # and it is the whole reason this group is safe to ship. The generator names
+    # from the HTTP method, so whichever operation parsed first took the bare
+    # names — and they landed on two different resources:
+    #
+    #   show    GET  /telephony/config/aiReceptionists/templates/{templateId}
+    #                "Get AI Receptionist Template Details"   <- a TEMPLATE
+    #   update  PUT  /…/locations/{locationId}/aiReceptionists/{aiReceptionistId}
+    #   delete  DELETE  (same path)                           <- the RECEPTIONIST
+    #
+    # So `show`/`update`/`delete` in one group pointed at two different things,
+    # and `wxcli ai-receptionist show <id>` answered a question nobody asked —
+    # exit 0, plausible JSON, wrong resource. That is the defect shape that cost
+    # this repo the most (cc-agents list, hds list, location-settings list).
+    # `list` is already correct (GET /telephony/config/aiReceptionists), which
+    # made the inconsistency worse, not better.
+    #
+    # The alias `show` emitted by the first rename collides with the name the
+    # second rename claims; generate_commands.py:278 suppresses it, which is
+    # what makes a swap work. Nothing is scripted against these names — the
+    # group has never shipped — so no compatibility is lost either way.
+    "AI Receptionist for Webex Calling":
+      command_name_overrides:
+        "show": "show-template"
+        "show-ai-receptionists": "show"
+        # "Download Knowledge Base Document" — it downloads a DOCUMENT, and the
+        # sibling document commands are all *-documents. The derived name says
+        # knowledge base, which is the container, not what comes back.
+        "download-knowledge-base": "download-documents"
+        # Derived from "Validate Country for AI Receptionist" and truncated
+        # mid-phrase, leaving a dangling preposition that reads as a bug.
+        "validate-country-for": "validate-country"
     "Converged Recordings":
       command_name_overrides:
       # Wave 3 renames (2026-07-27): 26 CRITICAL commands whose name gave an
