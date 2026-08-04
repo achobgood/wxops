@@ -3325,5 +3325,32 @@ def main() -> int:
     return 1 if (failed and args.enforce) else 0
 
 
+# Exit codes are a SIGNAL, and they used to carry no information:
+#   0 = ran, clean
+#   1 = ran, found problems (with --enforce)
+#   2 = DID NOT RUN — crashed before finishing
+#
+# Code 2 exists because of a real 11-day outage. `import yaml` at check 15 was
+# unavailable in CI's drift-gate job, so the gate died before check 1 and
+# reported nothing — and an unhandled traceback exits 1, which is byte-identical
+# to "the gate ran and found problems". Four consecutive red builds were read as
+# "we know why that's failing" when in fact nothing had been checked since
+# 2026-07-25. A guard whose failure is indistinguishable from its success-with-
+# findings is not a guard.
+#
+# KeyboardInterrupt and SystemExit are BaseException, not Exception, so Ctrl-C
+# and main()'s own exit propagate untouched.
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        # Goes to stdout on purpose: `result:` is the line every reader and the
+        # CI assertion greps for, so the crash must speak in the same place the
+        # verdict normally does, not only in a stderr traceback.
+        print("\nresult: CRASHED — the gate did not run to completion.")
+        print("This is NOT a findings failure. Nothing above was verified; the "
+              "checks that did not print did not run. Fix the crash, then judge "
+              "the findings.")
+        sys.exit(2)
