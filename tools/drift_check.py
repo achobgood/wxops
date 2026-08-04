@@ -138,6 +138,14 @@ Checks (docs/arch/target-architecture.md §A6):
       `availableMembers/count`, where the total is the answer. Acked per
       operation in `undeclared_paging_ack`, re-validated every run.
 
+  17. Registry counts: prose claiming the size of an in-repo registry — the
+      CUCM transform mappers, the analyzers, the preflight checks — agrees
+      with the registry, read by ast rather than imported. Check 3 covers the
+      published "N command groups" figure; this covers counts a docstring or a
+      SKILL.md states about a list that lives beside it. Measured before it
+      existed: mappers were claimed as 20 twice and 26 twice, and no source
+      anywhere named the real preflight count.
+
   18. Reference-doc shape: every docs/reference/*.md satisfies the structural
       rules in that directory's own CLAUDE.md — in-document `](#anchor)` links
       land on a real heading, the file ends with exactly one newline, and a
@@ -152,6 +160,40 @@ Checks (docs/arch/target-architecture.md §A6):
       Gotchas, no contents list, See Also not last — are ADVISORY and never
       fail: a gate that fails on a judgement call is a gate someone switches
       off.
+
+  19. Spec-delta acknowledgment: every operation the generator renders is
+      recorded in tools/spec_semantics.json — its request-body field paths
+      (nested), its parameters, requiredness, enums, and a hash of each
+      description — and recomputed from specs/*.json on every run. The other
+      17 checks all verify that every REFERENCE points at something real;
+      this is the other direction, at FIELD level: everything real is still
+      referenced, and still means what the docs say it means. Three tiers,
+      split by measurement over the last 8 upstream refreshes rather than by
+      taste (see tools/CLAUDE.md, "Check 19"). GATED — structural deltas: an
+      operation, field, tag, requiredness or enum appearing, disappearing or
+      moving (median 34 per refresh, max 215; no judgement involved). GATED —
+      an ID-kind flip: a description that called a value a name now calls it
+      an ID, or the reverse (3 across 8 refreshes, all 3 the real
+      cc-dial-number defect, 0 false positives among the other 446 prose
+      deltas in the same window). ADVISORY — all other prose, with constraint
+      changes named apart from rewording (median 20 per refresh, max 307;
+      judging which of those changed a meaning is precisely what a gate must
+      not fail on).
+      Refreshing the snapshot IS the acknowledgment, and the refresh prints
+      the delta it records, so acknowledging is the act of looking. There is
+      deliberately no ack list: the snapshot is a complete mirror re-validated
+      in both directions, so an entry for an operation upstream deleted is a
+      finding rather than a line nobody re-reads.
+
+  20. Reference-doc coverage: every registered command SET is cited by at
+      least one docs/reference/*.md, or declared on CLAUDE.md's
+      out-of-skill-scope list. Check 4 is the same question one layer over —
+      does the SKILLS layer claim this group — off the same oracle and the
+      same declaration list, and neither answer implies the other:
+      `ai-receptionist` has a reference doc only because someone chose to
+      write one, and nothing required it. Keyed on the MODULE, so an alias
+      counts as coverage for the set it mounts (call-features-additional.md
+      documents `customer-assist` under `cx-essentials`).
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -171,7 +213,9 @@ counted — and reported by check 8 — rather than silently treated as absent.
 """
 import argparse
 import ast
+import datetime
 import fnmatch
+import hashlib
 import json
 import re
 import shlex
@@ -3035,6 +3079,461 @@ def check_reference_doc_shape(
     return failures, advisories
 
 
+# ----------------------------------------------------------------- check 19
+
+SPEC_SNAPSHOT = REPO / "tools" / "spec_semantics.json"
+
+# "The NAME of the location" vs "The ID of the location" — the whole of the
+# 2026-08-03 cc-dial-number defect. The flag existed before and after and every
+# other check passed, so nothing in the gate could see it. Anchored on the
+# `<kind> of` phrase rather than on the presence of the words: the loose form
+# fires 26 times on one historical refresh (mostly `"" -> "Name."`), the
+# anchored form fires 3 times across 8 refreshes and all 3 are this defect.
+KIND_PHRASE = re.compile(r"\b(?:the\s+)?(names?|ids?|identifiers?|uuids?)\s+of\b",
+                         re.I)
+# A sentence that states an API RULE rather than describing a value. This is
+# the class the 2026-08-03 update-person change belongs to ("either a telephone
+# number or extension must already be assigned…").
+CONSTRAINT_WORDS = re.compile(
+    r"\b(must|cannot|can't|may not|is required|are required|only if|"
+    r"not allowed|not supported|no longer supported)\b", re.I)
+SCHEMA_DEPTH = 6
+# Sorted-constraint join character: a control byte no description contains, so
+# two constraint sets cannot hash equal by accident of concatenation.
+_SEP = "\x1f"
+
+
+def _short_hash(text: str) -> str:
+    """6 hex of sha256 over whitespace-collapsed text.
+
+    Collapsed because upstream reflows descriptions constantly: the 2026-08-03
+    refresh rewrote 22,328 lines of webex-cloud-calling.json while changing the
+    semantics of exactly four operations. A hash over raw bytes would have
+    reported the whole spec as changed and taught everyone to ignore it.
+    """
+    return hashlib.sha256(" ".join(text.split()).encode()).hexdigest()[:6]
+
+
+def describe_kind(text: str) -> str | None:
+    """`name` / `id` when a description says what the value IS, else None."""
+    m = KIND_PHRASE.search(text or "")
+    if not m:
+        return None
+    return "name" if m.group(1).lower().rstrip("s") == "name" else "id"
+
+
+def constraint_sentences(text: str) -> list[str]:
+    """Sorted, deduped sentences of a description that state a rule.
+
+    Whitespace is collapsed BEFORE splitting, not after, so a description
+    upstream rewraps is byte-different and constraint-identical. Splitting on
+    raw newlines is the tempting version and it is reflow-sensitive: one added
+    line break inside a sentence changes the set without changing a word.
+    Markdown bullet markers survive the collapse and still separate items,
+    which is what keeps the four `* …` NOTE bullets on `Update a Person`
+    distinguishable from one run-on paragraph.
+    """
+    flat = " ".join((text or "").split())
+    out = set()
+    for s in re.split(r"(?<=[.!?])\s+|\s+(?=[*•]\s)|^(?=[*•]\s)", flat):
+        s = (s or "").strip()
+        if s and CONSTRAINT_WORDS.search(s):
+            out.add(s)
+    return sorted(out)
+
+
+# One snapshot line per field, encoded so that WHAT changed is readable off the
+# encoding itself rather than recovered by re-reading the spec:
+#
+#     !          the spec marks this field required
+#     ~name|~id  the description says it is a name / an identifier
+#     #xxxxxx    hash of the description text
+#     %xxxxxx    hash of the constraint sentences inside that description
+#     =a|b|c     enum values
+#
+# The kind marker exists so an ID-kind flip is a STRUCTURAL comparison against
+# the snapshot (`~name` -> `~id`), not a text diff against text the snapshot
+# does not keep. Enum goes last because its values are arbitrary API tokens; a
+# fixed-width hash and a two-word kind vocabulary make the prefix unambiguous.
+_FIELD_VALUE = re.compile(r"^(!?)(?:~(name|id))?(?:#([0-9a-f]{6}))?"
+                          r"(?:%([0-9a-f]{6}))?(?:=(.*))?$", re.S)
+
+
+def encode_field(required: bool, desc: str, enum) -> str:
+    out = "!" if required else ""
+    kind = describe_kind(desc)
+    if kind:
+        out += f"~{kind}"
+    if (desc or "").strip():
+        out += f"#{_short_hash(desc)}"
+    cons = constraint_sentences(desc)
+    if cons:
+        out += f"%{_short_hash(_SEP.join(cons))}"
+    if enum:
+        out += "=" + "|".join(sorted(str(v) for v in enum))
+    return out
+
+
+def decode_field(value: str) -> dict:
+    """Parse an encoded field back into its parts.
+
+    A value the grammar cannot parse is reported as malformed rather than
+    silently read as an empty field — a hand-edited snapshot must fail loudly,
+    not quietly disable the comparison for that field.
+    """
+    m = _FIELD_VALUE.match(value or "")
+    if not m:
+        return {"required": False, "kind": None, "desc": None,
+                "constraints": None, "enum": None, "malformed": value}
+    return {"required": bool(m.group(1)), "kind": m.group(2),
+            "desc": m.group(3), "constraints": m.group(4),
+            "enum": m.group(5), "malformed": None}
+
+
+def _deref(spec: dict, node, seen: frozenset) -> tuple[dict, frozenset]:
+    """Follow $ref chains into components/schemas, refusing to revisit a name.
+
+    `seen` is per-BRANCH, not global: a schema legitimately reused by two
+    sibling properties must expand under both. Only a cycle back into a schema
+    already open on this branch is cut.
+    """
+    hops = 0
+    while isinstance(node, dict) and "$ref" in node and hops < 10:
+        name = node["$ref"].rsplit("/", 1)[-1]
+        if name in seen:
+            return {}, seen
+        seen = seen | {name}
+        node = (spec.get("components", {}).get("schemas") or {}).get(name) or {}
+        hops += 1
+    return (node if isinstance(node, dict) else {}), seen
+
+
+def walk_body(spec: dict, schema, prefix: str = "", depth: int = 0,
+              seen: frozenset = frozenset()):
+    """Yield (dotted_path, required, description, enum) for every body field.
+
+    Nested objects are walked, arrays contribute a `[]` segment, and allOf /
+    oneOf / anyOf are flattened. Depth is bounded at SCHEMA_DEPTH; a schema
+    deeper than that contributes nothing rather than looping, which is the same
+    bounded-but-honest tradeoff check 14's skeleton walker makes.
+    """
+    schema, seen = _deref(spec, schema, seen)
+    if depth > SCHEMA_DEPTH or not schema:
+        return
+    for comb in ("allOf", "oneOf", "anyOf"):
+        for sub in schema.get(comb) or []:
+            yield from walk_body(spec, sub, prefix, depth, seen)
+    if schema.get("type") == "array" or "items" in schema:
+        items, item_seen = _deref(spec, schema.get("items") or {}, seen)
+        if items:
+            yield from walk_body(spec, items, prefix + "[]", depth + 1, item_seen)
+        return
+    required = set(schema.get("required") or [])
+    for name, sub in (schema.get("properties") or {}).items():
+        path = f"{prefix}.{name}" if prefix else name
+        sub, sub_seen = _deref(spec, sub, seen)
+        yield (path, name in required, sub.get("description") or "",
+               tuple(sub.get("enum") or ()))
+        yield from walk_body(spec, sub, path, depth + 1, sub_seen)
+
+
+def _json_body_schema(spec: dict, op: dict) -> dict:
+    content = ((op.get("requestBody") or {}).get("content") or {})
+    for key in content:
+        if "json" in key.lower():
+            return content[key].get("schema") or {}
+    return {}
+
+
+def spec_semantics(specs: dict[str, dict] | None = None,
+                   skip_tags: dict | None = None) -> dict:
+    """{spec_file: {"<METHOD> <norm_path>": {tag, summary, fields}}}.
+
+    Scoped to the operations the generator actually renders — the same three
+    exclusions load_spec_ops applies (untagged, skip_tags, multipart upload) —
+    because a deliberate gap is not a surface whose meaning anyone maintains.
+    Keyed PER SPEC FILE, never unioned: `Update a Person` is declared in three
+    tracked specs and its meaning is maintained in exactly one of them (People
+    is in skip_tags for admin and messaging). Unioning is how check 9's
+    predecessor reported a confident 0 over a live-broken command.
+    """
+    if skip_tags is None:
+        skip_tags = load_overrides()["skip_tags"]
+    if specs is None:
+        specs = {}
+        for rel in sorted(tracked_specs()):
+            raw = json.loads((REPO / rel).read_text())
+            # overlays are merged for the same reason load_spec_ops merges
+            # them: they are part of what the CLI is generated from.
+            specs[Path(rel).name] = merge_overlay(raw, load_overlay(REPO / rel))
+    out: dict[str, dict] = {}
+    for spec_name in sorted(specs):
+        spec = specs[spec_name]
+        ops: dict[str, dict] = {}
+        for path, methods in (spec.get("paths") or {}).items():
+            for method, op in (methods or {}).items():
+                if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+                    continue
+                tag = (op.get("tags") or ["(untagged)"])[0]
+                if tag == "(untagged)" or tag_is_skipped(tag, spec_name, skip_tags):
+                    continue
+                if "multipart/form-data" in (
+                        (op.get("requestBody") or {}).get("content") or {}):
+                    continue
+                fields = {"(operation)": encode_field(
+                    False, op.get("description") or "", ())}
+                for p in op.get("parameters") or []:
+                    p, _ = _deref(spec, p, frozenset())
+                    schema, _ = _deref(spec, p.get("schema") or {}, frozenset())
+                    fields[f"{p.get('in', '?')}:{p.get('name')}"] = encode_field(
+                        bool(p.get("required")), p.get("description") or "",
+                        tuple(schema.get("enum") or ()))
+                for name, req, desc, enum in walk_body(
+                        spec, _json_body_schema(spec, op)):
+                    fields[f"body:{name}"] = encode_field(req, desc, enum)
+                ops[f"{method.upper()} {normalize_path(path)}"] = {
+                    "tag": tag,
+                    "summary": " ".join((op.get("summary") or "").split()),
+                    "fields": dict(sorted(fields.items())),
+                }
+        if ops:
+            out[spec_name] = dict(sorted(ops.items()))
+    return out
+
+
+def _field_deltas(spec: str, op: str, old: dict, new: dict,
+                  structural: list, flips: list, prose: list) -> None:
+    """Classify every field-level difference between two operation records."""
+    def add(bucket, kind, field, detail):
+        bucket.append({"spec": spec, "op": op, "field": field,
+                       "kind": kind, "detail": detail})
+
+    o_f, n_f = old.get("fields") or {}, new.get("fields") or {}
+    for f in sorted(set(n_f) - set(o_f)):
+        add(structural, "field_added", f, n_f[f] or "(no attributes)")
+    for f in sorted(set(o_f) - set(n_f)):
+        add(structural, "field_removed", f, o_f[f] or "(no attributes)")
+    for f in sorted(set(o_f) & set(n_f)):
+        if o_f[f] == n_f[f]:
+            continue
+        a, b = decode_field(o_f[f]), decode_field(n_f[f])
+        if a["malformed"] is not None or b["malformed"] is not None:
+            add(structural, "malformed_entry", f,
+                f"cannot parse {a['malformed'] or b['malformed']!r}")
+            continue
+        if a["required"] != b["required"]:
+            add(structural, "required_added" if b["required"]
+                else "required_removed", f, "spec requiredness changed")
+        if a["enum"] != b["enum"]:
+            add(structural, "enum_changed", f,
+                f"{a['enum'] or '(none)'} -> {b['enum'] or '(none)'}")
+        # Every branch below is a consequence of one description moving, so the
+        # most specific one that applies is the only one reported. Emitting all
+        # of them would count a single change up to three times across two
+        # tiers and inflate the number a reader uses to decide whether to look.
+        said = False
+        if a["kind"] != b["kind"] and a["kind"] and b["kind"]:
+            add(flips, "kind_flip", f,
+                f"description called it {a['kind']}, now calls it {b['kind']}")
+            said = True
+        elif a["kind"] != b["kind"]:
+            add(prose, "kind_stated" if b["kind"] else "kind_dropped", f,
+                f"{a['kind'] or '(unstated)'} -> {b['kind'] or '(unstated)'}")
+            said = True
+        if a["constraints"] != b["constraints"]:
+            add(prose, "constraint_changed", f,
+                "the rules stated in this description changed")
+        elif a["desc"] != b["desc"] and not said:
+            add(prose, "wording_changed", f, "description text changed")
+
+
+def diff_spec_semantics(old: dict, new: dict) -> tuple[list, list, list]:
+    """(structural, kind_flips, prose) between a snapshot and a recomputation.
+
+    Three tiers, and the split was measured over the last 8 upstream refreshes
+    rather than chosen by taste (see tools/CLAUDE.md, "Check 19"):
+
+    * STRUCTURAL — an operation, field, requiredness or enum appearing or
+      disappearing. Median 14 per refresh, max 192. Nothing here needs a
+      judgement: either the field exists or it does not. GATED.
+    * KIND FLIP — a description that called a value a name now calls it an ID,
+      or the reverse. 3 hits in 8 refreshes and all 3 were the real
+      cc-dial-number defect; 0 false positives across the other 389 prose
+      deltas. Mechanical, and it is the same defect class check 11b tier 1
+      gates on the CLI side, arriving as a spec edit instead. GATED.
+    * PROSE — every other description or summary change, with constraint
+      changes named separately so they read first. Median 18 per refresh, max
+      267, and "does this rewording change the meaning" is exactly the
+      judgement call a gate must not fail on. ADVISORY.
+    """
+    structural, flips, prose = [], [], []
+    for spec in sorted(set(old) | set(new)):
+        o_ops, n_ops = old.get(spec) or {}, new.get(spec) or {}
+        if spec not in new:
+            structural.append({"spec": spec, "op": "(whole spec)",
+                               "field": "", "kind": "spec_removed",
+                               "detail": f"{len(o_ops)} operations were "
+                                         "recorded here and the spec is gone"})
+            continue
+        if spec not in old:
+            structural.append({"spec": spec, "op": "(whole spec)",
+                               "field": "", "kind": "spec_added",
+                               "detail": f"{len(n_ops)} operations, none recorded"})
+            continue
+        for op in sorted(set(n_ops) - set(o_ops)):
+            structural.append({"spec": spec, "op": op, "field": "",
+                               "kind": "operation_added",
+                               "detail": f"{n_ops[op]['tag']} — "
+                                         f"{n_ops[op]['summary'] or '(no summary)'}"})
+        for op in sorted(set(o_ops) - set(n_ops)):
+            structural.append({"spec": spec, "op": op, "field": "",
+                               "kind": "operation_removed",
+                               "detail": f"{o_ops[op].get('tag', '?')} — "
+                                         f"{o_ops[op].get('summary') or '(no summary)'}"})
+        for op in sorted(set(o_ops) & set(n_ops)):
+            a, b = o_ops[op], n_ops[op]
+            if a.get("tag") != b.get("tag"):
+                structural.append({"spec": spec, "op": op, "field": "",
+                                   "kind": "tag_changed",
+                                   "detail": f"{a.get('tag')} -> {b.get('tag')}"})
+            if a.get("summary") != b.get("summary"):
+                prose.append({"spec": spec, "op": op, "field": "(summary)",
+                              "kind": "summary_changed",
+                              "detail": f"{a.get('summary')!r} -> "
+                                        f"{b.get('summary')!r}"})
+            _field_deltas(spec, op, a, b, structural, flips, prose)
+    return structural, flips, prose
+
+
+def load_spec_snapshot(path: Path = None) -> dict:
+    path = SPEC_SNAPSHOT if path is None else path
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())
+
+
+def check_spec_semantics(snapshot: dict | None = None,
+                         current: dict | None = None) -> tuple[list, list, list]:
+    """Check 19 — no upstream spec change alters meaning without being recorded.
+
+    The snapshot IS the acknowledgment, and deliberately not an ack LIST. An
+    ack list records the entries someone chose to write down; a snapshot
+    records every operation, so it is re-validated in BOTH directions on every
+    run — an entry for an operation upstream deleted is a finding, not a
+    lingering line nobody re-reads. That is the property tools/CLAUDE.md's
+    exemption rule asks for, obtained structurally instead of by convention.
+
+    A missing snapshot fails loudly with every operation reported as added,
+    which is the safe direction: with nothing recorded, nothing was reviewed.
+    """
+    if snapshot is None:
+        snapshot = load_spec_snapshot()
+    if current is None:
+        current = spec_semantics()
+    return diff_spec_semantics(snapshot.get("specs") or {}, current)
+
+
+def refresh_spec_snapshot(path: Path = None) -> int:
+    """Rewrite the snapshot, printing what is being acknowledged.
+
+    Printing is the point. The snapshot stores hashes, so its own diff shows
+    that a description moved but not to what — this report is the only place
+    the new text appears, and running it is therefore the act of looking.
+    """
+    path = SPEC_SNAPSHOT if path is None else path
+    old = load_spec_snapshot(path)
+    current = spec_semantics()
+    structural, flips, prose = diff_spec_semantics(old.get("specs") or {}, current)
+    print(f"spec-snapshot refresh: {len(structural)} structural, "
+          f"{len(flips)} ID-kind flip(s), {len(prose)} prose delta(s)")
+    for label, rows in (("STRUCTURAL", structural), ("ID-KIND FLIP", flips),
+                        ("PROSE", prose)):
+        for r in rows:
+            where = f"{r['spec']} {r['op']}" + (f" {r['field']}" if r["field"] else "")
+            print(f"  {label:12} {r['kind']:18} {where}\n"
+                  f"               {r['detail']}")
+    captured = (old.get("captured") if (old.get("specs") or {}) == current
+                else datetime.date.today().isoformat())
+    path.write_text(json.dumps({
+        "_about": "Drift gate check 19. Regenerate with "
+                  "`python -m tools.drift_check --refresh-spec-snapshot`; "
+                  "never hand-edit. Field encoding: ! required, ~name/~id the "
+                  "kind its description states, #hash of the description, "
+                  "%hash of the rules stated in it, =enum values.",
+        "captured": captured,
+        "specs": current,
+    }, indent=1, sort_keys=True) + "\n")
+    shown = path.relative_to(REPO) if path.is_relative_to(REPO) else path
+    print(f"wrote {shown} (captured {captured})")
+    return 0
+
+
+# ----------------------------------------------------------------- check 20
+
+def command_sets() -> dict[str, list[str]]:
+    """{module: [every registered name that mounts it]}, countable modules only.
+
+    Keyed on the MODULE because an alias is a second name for one command set,
+    not a second thing to document: `customer-assist` and `cx-essentials` share
+    a Typer app, and call-features-additional.md documents the pair under the
+    alias. Keying on the group name instead reports one of them as uncovered
+    while the reader is holding its documentation.
+    """
+    countable = module_state()["countable"]
+    sets: dict[str, list[str]] = {}
+    for group, module in parse_registrations().items():
+        if module in countable:
+            sets.setdefault(module, []).append(group)
+    return {m: sorted(g) for m, g in sorted(sets.items())}
+
+
+def check_reference_doc_coverage(sets: dict[str, list[str]] | None = None,
+                                 doc_texts: dict[str, str] | None = None,
+                                 declared: set[str] | None = None) -> list:
+    """Check 20 — every command set is reachable from docs/reference/.
+
+    Check 4 is the same shape one layer over: it asks whether the SKILLS layer
+    claims a group, and takes CLAUDE.md's out-of-skill-scope list as the
+    escape hatch. This asks whether the REFERENCE docs do. Both matter and
+    neither implies the other — the gap this closes is a group a skill routes
+    to while no reference doc describes it, which is `ai-receptionist`'s
+    situation in reverse: that group has a doc only because someone chose to
+    write one, and nothing required it.
+
+    The oracle is deliberately the same one check 4 uses — a backticked group
+    name or a `wxcli <group>` citation — so the two checks cannot disagree
+    about what "referenced" means. It is a weak oracle by design: check 2
+    already proves every `wxcli <group> <command>` inside those docs resolves,
+    so this one only has to prove the group is not INVISIBLE there.
+
+    The escape hatch is CLAUDE.md's existing out-of-skill-scope table, not a
+    second list. That table's own premise is that the playbook does not cover
+    those groups, and a group the playbook does not cover needs neither a skill
+    nor a reference doc — 6 of its 12 rows already give "No reference doc
+    exists" as the reason. Widening one declaration to answer two questions is
+    only safe because the questions have the same answer; if a group ever needs
+    to be skill-routed AND deliberately undocumented, that needs its own table
+    with its own reason, not a stretched row here.
+    """
+    if sets is None:
+        sets = command_sets()
+    if doc_texts is None:
+        doc_texts = {rel: (REPO / rel).read_text()
+                     for rel in sorted(tracked_files("docs/reference/**"))
+                     if rel.endswith(".md")}
+    if declared is None:
+        declared = declared_out_of_scope()
+    findings = []
+    for module, groups in sets.items():
+        if any(any(fnmatch.fnmatch(g, d) for d in declared) for g in groups):
+            continue
+        if any(f"`{g}`" in text or f"wxcli {g}" in text
+               for g in groups for text in doc_texts.values()):
+            continue
+        findings.append({"module": module, "groups": groups})
+    return findings
+
+
 # --------------------------------------------------------------------- main
 
 def main() -> int:
@@ -3044,7 +3543,13 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument("--write-gaps", action="store_true",
                         help="emit docs/arch/deliberate-gaps.md from skip_tags")
+    parser.add_argument("--refresh-spec-snapshot", action="store_true",
+                        help="rewrite tools/spec_semantics.json (check 19) and "
+                             "print the delta it acknowledges")
     args = parser.parse_args()
+
+    if args.refresh_spec_snapshot:
+        return refresh_spec_snapshot()
 
     overrides = load_overrides()
     spec_ops, skipped_ops = load_spec_ops(overrides["skip_tags"])
@@ -3083,6 +3588,8 @@ def main() -> int:
     inert_paging, stale_paging_acks = check_undeclared_paging()
     registry_counts = check_registry_counts()
     doc_shape, doc_shape_advisory = check_reference_doc_shape()
+    spec_structural, spec_flips, spec_prose = check_spec_semantics()
+    undocumented_groups = check_reference_doc_coverage()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -3116,6 +3623,10 @@ def main() -> int:
         "17_registry_count_claims": registry_counts,
         "18_reference_doc_shape": doc_shape,
         "18_reference_doc_advisory": doc_shape_advisory,
+        "19_spec_structural_deltas": spec_structural,
+        "19_spec_id_kind_flips": spec_flips,
+        "19_spec_prose_advisory": spec_prose,
+        "20_groups_without_a_reference_doc": undocumented_groups,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -3126,9 +3637,13 @@ def main() -> int:
                   or bad_examples or bad_skeletons or fs_audit["leaked"]
                   or inert_overrides or stale_inert_acks
                   or inert_paging or stale_paging_acks
-                  or registry_counts or doc_shape)
+                  or registry_counts or doc_shape
+                  or spec_structural or spec_flips or undocumented_groups)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
-    # about English, and a gate that fails on one gets switched off.
+    # about English, and a gate that fails on one gets switched off. spec_prose
+    # (check 19 tier 3) is out for the same reason and was measured, not
+    # assumed: 267 prose deltas landed in one historical refresh and judging
+    # which of them changed a meaning is not a decision a machine can make.
 
     if args.json:
         print(json.dumps(results, indent=2))
@@ -3319,6 +3834,34 @@ def main() -> int:
             print(f"      {f['file']}  {f['detail']}")
         if len(doc_shape_advisory) > 10:
             print(f"      ... and {len(doc_shape_advisory) - 10} more (--json for all)")
+        print(f"[19] spec changes not in tools/spec_semantics.json: "
+              f"{len(spec_structural)} structural, {len(spec_flips)} ID-kind "
+              f"flip(s)")
+        for f in (spec_structural + spec_flips)[:20]:
+            where = f"{f['spec']} {f['op']}" + (f"  {f['field']}" if f["field"] else "")
+            print(f"      {f['kind']:18} {where}")
+            print(f"        {f['detail']}")
+        if len(spec_structural) + len(spec_flips) > 20:
+            print(f"      ... and {len(spec_structural) + len(spec_flips) - 20}"
+                  f" more (--json for all)")
+        if spec_structural or spec_flips:
+            print("      review the change, then record it: "
+                  "python -m tools.drift_check --refresh-spec-snapshot")
+        print(f"[19] ADVISORY — spec prose that changed: {len(spec_prose)}"
+              f"   ({sum(f['kind'] == 'constraint_changed' for f in spec_prose)}"
+              f" change the rules a description states; never fails the build)")
+        for f in sorted(spec_prose,
+                        key=lambda r: r["kind"] != "constraint_changed")[:10]:
+            where = f"{f['spec']} {f['op']}" + (f"  {f['field']}" if f["field"] else "")
+            print(f"      {f['kind']:18} {where}")
+        if len(spec_prose) > 10:
+            print(f"      ... and {len(spec_prose) - 10} more (--json for all)")
+        print(f"[20] command sets with no docs/reference/ coverage: "
+              f"{len(undocumented_groups)}")
+        for f in undocumented_groups:
+            print(f"      {'/'.join(f['groups'])}  ({f['module']}.py) — write a "
+                  f"docs/reference/ section or declare it out of scope in "
+                  f"CLAUDE.md")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

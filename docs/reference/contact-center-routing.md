@@ -514,6 +514,28 @@ DELETE https://api.wxcc-us1.cisco.com/v1/dialer/campaign/{campaignId}
 Authorization: Bearer {cc_token}
 ```
 
+### Campaign Groups (cc-campaign-group)
+
+Campaign groups bundle campaigns for reporting and bulk handling. The only operation is the reverse lookup — given a group, which campaigns belong to it. 1 command, on the configuration path family (`/v3/campaign-management/`), not the runtime `/v1/dialer/` family the three commands above use.
+
+| CLI Command | HTTP | Description |
+|---|---|---|
+| `wxcli cc-campaign-group list` | GET /v3/campaign-management/campaign-groups/{campaignGroupName}/campaigns | List Campaigns by Campaign Group |
+
+```bash
+# Every campaign in a group
+wxcli cc-campaign-group list CAMPAIGN_GROUP_NAME -o json
+
+# Only the ones currently dialing, one page at a time
+wxcli cc-campaign-group list CAMPAIGN_GROUP_NAME --campaign-status Running --page-size 50
+```
+
+#### Gotchas
+
+- **The positional is a group NAME, not an ID.** Most `cc-*` commands take a UUID; the spec declares this one as `campaignGroupName` and it goes into the URL path verbatim. What the API does with a UUID passed here is untested.
+- **`--page` / `--page-size` are the endpoint's own paging controls**, separate from `--limit` / `--offset`. `--page-size` must be between 1 and 100. Use `--all` to walk every page.
+- **There is no create/update/delete here.** The tracked spec declares one operation for this group, so the CLI has one command — creating or deleting a campaign group is not an API surface wxcli can reach.
+
 ---
 
 ## 9. Contact Lists & DNC (cc-contact-list, cc-dnc)

@@ -308,6 +308,35 @@ api.session.rest_put(url, json=body)
 
 - **Person-level hoteling API may be incomplete.** Unlike workspace devices, which have complete coverage for all hoteling settings, the person-level API only exposes a single boolean toggle (`enabled`), while workspace-level hoteling has richer configuration including host/guest settings and time limits. If you need full hoteling host configuration, use the workspace/device-level APIs instead.
 
+### Hot Desking Members
+
+A separate surface from the `enabled` toggle above: which people may hot-desk onto this person's device. Three operations on `/telephony/config/people/{personId}/features/hotDesking/`, shipped as the `hot-desking-members` command group.
+
+| Endpoint | CLI | Returns |
+|---|---|---|
+| `GET .../hotDesking/availableMembers` | `wxcli hot-desking-members list PERSON_ID` | **Candidates** — people who *could* be added |
+| `GET .../hotDesking/members` | `wxcli hot-desking-members list-members PERSON_ID` | **Assigned** — people who *are* configured |
+| `PUT .../hotDesking/members` | `wxcli hot-desking-members update PERSON_ID` | Replaces the assigned list |
+
+```bash
+# Narrow the candidate search before assigning
+wxcli hot-desking-members list PERSON_ID --location-id LOCATION_ID --extension 2001
+
+# What is configured today
+wxcli hot-desking-members list-members PERSON_ID -o json
+
+# Assign. The PUT REPLACES the whole list — send every member you want kept.
+wxcli hot-desking-members update PERSON_ID --verify --json-body '{"members":[{"id":"GUEST_PERSON_ID","port":0,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":0}]}'
+```
+
+Run `wxcli hot-desking-members update PERSON_ID --generate-json-body` for the full body skeleton (it adds `t38FaxCompressionEnabled`, `hotlineEnabled`, `hotlineDestination`, `allowCallDeclineEnabled`, `memberType`).
+
+#### Gotchas
+
+- **`list` and `list-members` answer different questions.** The bare `list` returns *available* members — candidates, not configuration. Reading it as "who is assigned" returns a plausible, wrong answer with exit 0. Use `list-members` for current state.
+- **The PUT is a whole-list replace, not an append.** Any member absent from the body is removed. Read `list-members` first and send back everything you intend to keep.
+- **A 2xx does not mean the members applied.** Pass `--verify` so the CLI re-reads and reports any field that did not take — the same caveat as `device-members` (see `docs/reference/devices-core.md`).
+
 ---
 
 ## 7. Receptionist Client

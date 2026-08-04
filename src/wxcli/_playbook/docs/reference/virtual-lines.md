@@ -227,7 +227,16 @@ wxcli virtual-line-settings update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 
 # Enable call recording with voicemail recording
 wxcli virtual-line-settings update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
   --enabled --record "Always" --record-voicemail-enabled
+
+# Record external calls only, both directions. selectiveCallRecordingSettings
+# (added upstream 2026-08-03) has no flag — nested objects reach the body only
+# through --json-body. All four toggles are required when the object is sent.
+wxcli virtual-line-settings update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
+  --verify --json-body '{"enabled":true,"record":"Always","selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":false,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":false,"recordOutboundExternalCallsEnabled":true}}'
 ```
+
+The four toggles are the same object people and workspaces carry — field-by-field
+detail in [Person Call Settings: Media](person-call-settings-media.md#7-call-recording).
 
 #### Permissions & Other Settings
 
