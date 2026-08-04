@@ -71,10 +71,33 @@ jobs:
     # flaky unit test mask a docs-drift failure and vice versa — they are
     # independent signals and must be able to fail independently.
     #
-    # Deliberately does NOT `pip install` anything: drift_check.py reads the CLI
-    # surface statically (regex + stdlib ast over tracked sources) and shells out
-    # to `git ls-files`. Dependency-free means it cannot be broken by a dependency
-    # resolution problem, and it runs in seconds.
+    # This job used to install NOTHING, on the stated grounds that
+    # drift_check.py reads the CLI surface statically (regex + stdlib ast over
+    # tracked sources) and shells out to `git ls-files` — so no dependency
+    # resolution could ever break it.
+    #
+    # That is no longer true, and the job did not notice for 11 days. Check 15
+    # imports the generator's own resolvers rather than reimplementing them
+    # (deliberate — it is how the two are kept from diverging), and the
+    # generator chain reaches tools/command_renderer.py, which imports `wxcli`
+    # itself. Checks 15/16 also `import yaml`, because field_overrides.yaml has
+    # three levels of nesting and folded scalars that load_overrides()'s
+    # hand-rolled line parser deliberately cannot read.
+    #
+    # So the gate crashed with ModuleNotFoundError BEFORE check 1 and reported
+    # nothing, while looking like an ordinary red build — indistinguishable from
+    # a gate that ran and found problems, unless you open the log. Both fixes
+    # below were verified in a clean venv:
+    #   1. `pip install -e .` — the gate needs the package, not just PyYAML.
+    #   2. `python -m tools.drift_check`, NOT `python tools/drift_check.py`.
+    #      Running it as a script puts tools/ on sys.path instead of the repo
+    #      root, so `from tools.openapi_parser import ...` fails even when the
+    #      package IS installed. Measured: script form exit 1, module form
+    #      exit 0 / result: PASS, same tree, same venv.
+    #
+    # It is still a SEPARATE job from `test` on purpose (see below), but it is
+    # no longer dependency-free — if that property matters again, the thing to
+    # change is check 15's import of the generator, not this comment.
     steps:
       - uses: actions/checkout@v4
 
@@ -83,9 +106,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install the package the gate imports
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
       - name: Drift gate (enforcing)
         run: |
-          python tools/drift_check.py --enforce
+          python -m tools.drift_check --enforce
 
   playbook-freshness:
     name: Playbook bundle freshness

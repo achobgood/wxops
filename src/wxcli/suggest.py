@@ -18,7 +18,32 @@ delete still gets delete suggestions, which is what makes this safe to do.
 from __future__ import annotations
 
 import click
+import typer.core as _typer_core
 from typer.core import TyperGroup
+
+
+def _usage_error_classes() -> tuple[type[BaseException], ...]:
+    """Every UsageError class typer might raise, because there is more than one.
+
+    typer 0.26+ VENDORS its own click as `typer._click`, and
+    `typer._click.exceptions.UsageError` is a DIFFERENT class object from
+    `click.exceptions.UsageError` — same name, same shape, unrelated by
+    inheritance. So a bare `except click.UsageError` catches nothing typer
+    raises, and the filtering below becomes silently inert: no error, no
+    warning, just a safety feature that stops running.
+
+    That is the failure mode this module exists to prevent, one level up. Catch
+    both, deduplicated, so the class works whichever click typer resolved.
+    """
+    classes: list[type[BaseException]] = [click.UsageError]
+    shim = getattr(_typer_core, "_click", None)
+    vendored = getattr(getattr(shim, "exceptions", None), "UsageError", None)
+    if isinstance(vendored, type) and vendored not in classes:
+        classes.append(vendored)
+    return tuple(classes)
+
+
+USAGE_ERRORS = _usage_error_classes()
 
 # Verbs an agent types when it wants to READ. `get`/`describe`/`view` are not in
 # this CLI's own verb vocabulary, but they are exactly what a model reaches for
@@ -74,10 +99,38 @@ class SafeSuggestGroup(TyperGroup):
     handler follows everywhere else in this CLI.
     """
 
+    def _resolve_without_typers_suggestion(self, ctx: click.Context, args: list[str]):
+        """Plain click resolution, with Typer's own did-you-mean bypassed.
+
+        This class REPLACES that message rather than editing it, so it must reach
+        the raw click behaviour — but where that lives moved.
+
+        typer 0.26.0 changed TyperGroup's MRO from `TyperGroup -> Group ->
+        Command` to `TyperGroup -> Command -> ABC`: click.Group is no longer
+        behind it. The original `super(TyperGroup, self).resolve_command(...)`
+        therefore found nothing and raised AttributeError, which took down
+        **every** `wxcli <group> <command> --help` on typer >= 0.26 — measured
+        exit 1 on people, locations, call-queue and cucm in a clean venv, versus
+        exit 0 on typer 0.25.1 from the same source tree. It survived unnoticed
+        because a dev machine whose typer was resolved months ago still satisfies
+        `typer>=0.9.0`, and pip never upgrades an already-satisfied pin.
+
+        0.26+ exposes the underlying click call as `_click_resolve_command`, so
+        prefer it and fall back to the pre-0.26 MRO walk. Binary-searched: 0.25.1
+        is the last version taking the fallback, 0.26.0 the first taking the
+        branch. Do NOT "simplify" this to `super().resolve_command(...)` — that
+        is TyperGroup's own, which appends the suggestion this class exists to
+        replace, and would double it.
+        """
+        base = getattr(self, "_click_resolve_command", None)
+        if base is not None:
+            return base(ctx, args)
+        return super(TyperGroup, self).resolve_command(ctx, args)
+
     def resolve_command(self, ctx: click.Context, args: list[str]):
         try:
-            return super(TyperGroup, self).resolve_command(ctx, args)
-        except click.UsageError as e:
+            return self._resolve_without_typers_suggestion(ctx, args)
+        except USAGE_ERRORS as e:
             if not (self.suggest_commands and args and self.commands):
                 raise
             typed = args[0]
