@@ -38,6 +38,10 @@ wxcli call-recording show -o json                          # 1. Org-level record
 wxcli call-recording list-vendors LOCATION_ID -o json       # 2. Per-location vendor assignment
 wxcli user-settings show-call-recording PERSON_ID -o json  # 3. Person recording
 wxcli user-settings update-call-recording PERSON_ID --json-body '{"enabled": true, "record": "Always"}'
+# 4. Record only some DIRECTIONS — inbound/outbound x internal/external, four
+#    independent toggles. Nested object, so no flag exists; --json-body only.
+#    All four are required when sent; applies on "Always" / "Always with Pause/Resume".
+wxcli user-settings update-call-recording PERSON_ID --verify --json-body '{"enabled":true,"record":"Always","selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":false,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":false,"recordOutboundExternalCallsEnabled":true}}'
 ```
 
 ### Voicemail transcription (location-scoped — affects ALL users at location)
@@ -486,7 +490,7 @@ Present the user with the settings categories. Ask which settings they want to r
 | Anonymous Call Rejection | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/anonymousCallReject`; workspace-level uses `workspaces/{id}/anonymousCallReject`** |
 | Privacy | `list-privacy` | `update-privacy` | Controls line monitoring, AA extension/name dialing |
 | Barge-In | `show-barge-in` | `update-barge-in` | Enables FAC-based barge-in across locations |
-| Call Recording | `show-call-recording` | `update-call-recording` | **Read scope is `people_read` not `people_write` (SDK doc bug)**; inherits from location recording vendor config |
+| Call Recording | `show-call-recording` | `update-call-recording` | **Read scope is `people_read` not `people_write` (SDK doc bug)**; inherits from location recording vendor config. `selectiveCallRecordingSettings` (4 direction toggles, added 2026-08-03) has **no flag** — `--json-body` only; same object on virtual lines and workspaces |
 | Call Intercept | `show-intercept` | `update-intercept` | Takes phone out of service; greeting upload via `configure-call-intercept` |
 | Monitoring | `person-call-settings list` | `person-call-settings update` | **NOT in `user-settings`** — `list-monitoring`/`update-monitoring` do not exist. Use the `person-call-settings` group (monitoring ONLY). Candidate lookup: `user-settings list-available-members-monitoring`. Max 50 elements |
 | Push-to-Talk | `list-push-to-talk` | `update-push-to-talk` | One-way or two-way intercom; allow/block member lists |

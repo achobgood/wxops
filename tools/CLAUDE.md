@@ -115,7 +115,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-16 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-20 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -1051,6 +1051,149 @@ but 24 of 40 characters are box-drawing. Suppressing them requires
 unaffected — any claim of a repo-wide reduction is overcounting.
 
 See `docs/superpowers/plans/2026-07-25-cli-plain-output.md`.
+
+### Check 19 — the granularity call, decided by measurement (2026-08-04)
+
+Checks 1-18 all verify one direction: **every reference points at something
+real**. Docs cite commands that exist (2, 6, 7, 10, 11), every spec *operation*
+has a command (1), every group is skill-routed or declared out of scope (4),
+prose counts match their registry (3, 17), reference docs are structurally sound
+(18). Check 19 is the other direction, at **field** level: everything real is
+still referenced, and still *means* what the docs say it means.
+
+**Why it exists — three real changes that landed with the gate green.** The
+2026-08-03 refresh brought 28 new AI Receptionist operations plus edits to four
+other specs. `spec_sync.py` regenerated, `drift_check` reported `PASS`, and three
+meaning changes went through unnoticed:
+
+| | What changed | Why every existing check passed |
+|---|---|---|
+| `selectiveCallRecordingSettings` | A whole capability — record inbound/outbound × internal/external as four independent toggles — appeared on the call-recording body for people, virtual lines and workspaces | It added **body fields**, not operations. Check 1 detects a missing operation. The fields reached the CLI only as `--generate-json-body` skeleton content, and **no reference doc or skill mentions them to this day** |
+| `cc-dial-number --location` | Cisco corrected the help text from "The **name** of the location" to "The **ID** of the location" | The flag existed before and after. Had a doc said "pass the location name", nothing would have caught it — this is the ID-kind confusion class check 11b already exists for, arriving as a spec edit |
+| `update-person` | Gained two API constraints in its `description`: a telephone number or extension must already be assigned, and `callingData: true` requires a Calling license in the `licenses` array | `openapi_parser.py:694` reads `op.get("summary")`; an operation's `description` is rendered nowhere. **The CLI structurally cannot carry these**, so their only home is `docs/reference/provisioning.md`, and nothing noticed they were missing |
+
+**The one decision that decides whether this is useful or noise is granularity**,
+and it was settled by counting, not by argument. Every dimension was measured
+across the last **8 consecutive upstream refreshes** (`ac9b724` → `a898c76`),
+scoped to the operations the generator actually renders:
+
+| Tier | median / refresh | max | total over the 8 | verdict |
+|---|---|---|---|---|
+| **structural** | 34 | 215 | 462 | **GATED** |
+| **ID-kind flip** | 0 | 3 | 3 | **GATED** |
+| prose | 20 | 307 | 446 | advisory |
+
+Broken out, so the shape of each tier is visible rather than asserted — totals
+across all 8 refreshes:
+
+| Structural | | Prose | |
+|---|---|---|---|
+| `field_added` | 157 | `wording_changed` | 330 |
+| `field_removed` | 154 | `summary_changed` | 60 |
+| `operation_added` | 98 | `constraint_changed` | 47 |
+| `operation_removed` | 24 | `kind_stated` | 7 |
+| `tag_changed` | 18 | `kind_dropped` | 2 |
+| `enum_changed` | 9 | | |
+| `required_removed` | 2 | | |
+
+Structural churn is bounded and always means something — 128 fields leaving
+request bodies in one refresh is the *definition* of a change worth a human, and
+the median refresh is 34 lines, which is a review, not a wall. Prose is the
+larger and softer half, dominated by `wording_changed`, and "did this rewording
+change the meaning" is exactly the judgement call rule 3 forbids failing a build
+on. Two tiers, the same split check 11b and check 18 already use.
+
+**The third tier — one prose class IS gated, and only because it measured
+clean.** An ID-kind flip is mechanical: a description that said "the **name** of
+X" now says "the **ID** of X". Two forms were tried and the loose one was
+rejected on data:
+
+| Detector | Hits per refresh, oldest → newest | What they were |
+|---|---|---|
+| *does the text mention id/name at all* | 26, 2, 0, 1, 0, 0, 1, 3 | mostly `"" -> "Name."` and `Team(s) -> Teams` — noise |
+| *anchored on the `<kind> of` phrase* | 0, 0, 0, 0, 0, 0, 0, **3** | all 3 are the cc-dial-number defect; **0 false positives among the other 446 prose deltas** |
+
+Constraint sentences (`must` / `cannot` / `only if`) get their own **advisory**
+line rather than a gate, and that was measured too: 47 across the 8 refreshes,
+22 of them in the worst one, and about half of those are restatements (`It is not
+supported for responses with multiple objects` on four sibling parameters).
+Detection is mechanical; deciding which is a real new rule is not. So case 3
+above is *reported by name on every run* and never fails — and because the
+refresh command prints it, it cannot vanish unseen.
+
+**The residual risk, stated rather than hidden:** a refresh whose *only* change
+is prose passes green. Two things bound it — the advisory line reports it on
+every run until someone refreshes the snapshot, and refreshing prints it — but a
+constraint-only refresh will not fail a build. That is the deliberate price of
+rule 3, not an oversight.
+
+**The snapshot is the acknowledgment, and deliberately not an ack list.**
+`verb_semantics_ack` / `naming_ack` / `inert_tag_ack` / `undeclared_paging_ack`
+all record the entries someone chose to write down, which is why each needs its
+own staleness re-validation. `tools/spec_semantics.json` records **every**
+operation, so it is re-validated in both directions for free: an entry for an
+operation upstream deleted is a finding, not a line nobody re-reads. A second ack
+mechanism on top would reintroduce exactly the blind spot the snapshot removes,
+and `test_check_19_has_no_ack_list` pins that it stays absent.
+
+**The encoding is what makes the flip detector structural.** One line per field:
+`!` required, `~name`/`~id` the kind its description states, `#hash` of the
+description, `%hash` of the rules stated in it, `=a|b|c` enum values. So a flip
+is a comparison against the snapshot rather than a text diff against text the
+snapshot does not keep. Enum is encoded last because its values are arbitrary API
+tokens and could otherwise be read as a hash or a kind marker.
+
+**Two things that would have made it noise, both fixed before shipping:**
+- **Hashes collapse whitespace.** The same refresh rewrote 22,328 lines of
+  `webex-cloud-calling.json` while changing four operations. Hashing raw bytes
+  would have reported the whole spec as changed on day one.
+- **Constraint sentences are split after collapsing, not on raw newlines.** The
+  reflow-sensitive version changes the constraint set when upstream rewraps a
+  paragraph without changing a word. Markdown bullet markers survive the
+  collapse, so the four `* …` NOTE bullets on `Update a Person` stay separable.
+
+**Refresh with** `python -m tools.drift_check --refresh-spec-snapshot`. It prints
+every delta it is recording *before* writing, because the snapshot stores hashes
+— its own diff shows that a description moved but not to what, and this report is
+the only place the new text appears. Running it is therefore the act of looking.
+It is idempotent: `captured` moves only when the surface actually changed.
+
+**Proven by mutation in both directions** against the real tree, not only against
+fixtures: deleting one `body:selectiveCallRecordingSettings` entry from the
+snapshot fires `field_added`; reverting `body:location` to the pre-refresh
+`~name` fires `kind_flip`; an empty snapshot reports all 9 specs rather than
+passing. `tests/test_drift_check_semantics.py` (63 cases, tracked via a
+`.gitignore` negation) carries all three 2026-08-03 changes inlined from the spec
+diff rather than read out of git, so a shallow CI checkout still proves the gate
+sees them.
+
+### Check 20 — a reference doc is required, not optional (2026-08-04)
+
+`docs/reference/ai-receptionist.md` exists because someone chose to write it.
+Check 4 requires a group be routed by a **skill** or listed out-of-scope; nothing
+required a doc. Check 20 closes that, on the same oracle and the same escape
+hatch, so the two checks cannot disagree about what "referenced" means.
+
+**Keyed on the MODULE, not the group name.** An alias is a second name for one
+command set: `customer-assist` and `cx-essentials` share a Typer app, and
+`call-features-additional.md` documents the pair under the alias. Keying on the
+group name reports `customer-assist` as uncovered while the reader is holding its
+documentation — that was the first draft's result, and it is a false positive of
+exactly the shape that gets a check switched off.
+
+**It found two real gaps on a tree where everything else was green:**
+`cc-campaign-group` and `hot-desking-members`, both skill-routed by the root
+`CLAUDE.md` disambiguation table and described by no reference doc at all. Both
+are now documented (`contact-center-routing.md` §8, `person-call-settings-behavior.md`
+§6), which is what makes the check green — not an exemption.
+
+**One declaration answers both checks, and that widening is stated where the
+declaration lives.** CLAUDE.md's out-of-skill-scope preamble now says checks 4
+and 20 both read it, and why: the table's premise is that the playbook does not
+cover the group, and a group the playbook does not cover needs neither a skill
+nor a reference doc — 6 of its 12 rows already give "No reference doc exists" as
+the reason. A group that must be skill-routed *and* deliberately undocumented is
+a different decision and needs its own table; do not stretch a row here.
 
 ## Known Issues — Generator / Pipeline Only
 

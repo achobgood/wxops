@@ -132,8 +132,12 @@ jobs:
             echo "::error::Drift gate CRASHED — it did not run. This is not a findings failure."
             exit 2
           fi
-          if ! grep -q '^\[18\]' gate.log; then
-            echo "::error::Drift gate stopped before check 18 — it did not run to completion."
+          # Assert on the LAST check, not on any check. Pin this to whatever
+          # the highest-numbered check is; an assertion left on an earlier one
+          # passes for a run that died after it, which is the exact blindness
+          # the exit-2 work above exists to remove.
+          if ! grep -q '^\[20\]' gate.log; then
+            echo "::error::Drift gate stopped before check 20 — it did not run to completion."
             exit 2
           fi
           if ! grep -qE '^result: (PASS|FAIL)' gate.log; then

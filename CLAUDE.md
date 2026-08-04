@@ -393,7 +393,7 @@ The migration tool is wired into the CLI as `wxcli cucm <command>`. Pipeline wor
 
 ## Out-of-Skill-Scope Command Groups
 
-These groups are registered in the CLI but deliberately have **no skill routing** — the playbook does not cover them. Drift-gate check 4 reads this list.
+These groups are registered in the CLI but deliberately have **no skill routing** — the playbook does not cover them. Drift-gate checks **4 and 20** both read this list: check 4 asks whether a skill claims the group, check 20 asks whether a `docs/reference/*.md` describes it. One declaration answers both, because the premise of this table is that the playbook does not cover the group at all, and a group the playbook does not cover needs neither a skill nor a reference doc. If a group ever needs to be skill-routed *and* deliberately undocumented, that is a different decision and needs its own table with its own reason — do not stretch a row here to cover it.
 
 Listing a group here is a commitment that we intentionally do not route to it. It is **not** a way to quiet the gate: if a group belongs in a skill, wire it into the skill instead. Every entry states a reason.
 

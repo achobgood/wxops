@@ -154,6 +154,16 @@ def test_enforce_exit_code_follows_check_8(monkeypatch, capsys, untracked, expec
                         lambda: ([], [], {"declared": [], "present_on_disk": [],
                                           "leaked": []}))
     monkeypatch.setattr(drift_check, "check_inert_overrides", lambda: ([], []))
+    # 16-20 were left unstubbed and passed only because they happen to report
+    # zero on this tree — the same accident the two comments above describe.
+    # Check 19 made it visible: `load_overrides` is stubbed to empty skip_tags,
+    # so recomputing the spec snapshot pulls in every deliberately-skipped tag
+    # and reports 137 operations this test has no opinion about.
+    monkeypatch.setattr(drift_check, "check_undeclared_paging", lambda: ([], []))
+    monkeypatch.setattr(drift_check, "check_registry_counts", lambda: [])
+    monkeypatch.setattr(drift_check, "check_reference_doc_shape", lambda: ([], []))
+    monkeypatch.setattr(drift_check, "check_spec_semantics", lambda: ([], [], []))
+    monkeypatch.setattr(drift_check, "check_reference_doc_coverage", lambda: [])
     monkeypatch.setattr(sys, "argv", ["drift_check.py", "--enforce"])
 
     assert drift_check.main() == expected_exit

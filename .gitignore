@@ -70,6 +70,10 @@ tests/*
 !tests/test_drift_check_inert.py
 !tests/test_drift_check_paging.py
 !tests/test_drift_check_doc_shape.py
+# Checks 19/20. This one also carries the three real 2026-08-03 spec changes
+# that reached the CLI while the gate said PASS — inlined from the spec diff,
+# not read out of git, so a shallow CI checkout still proves the gate sees them.
+!tests/test_drift_check_semantics.py
 # Guards the gate's ability to report that it DID NOT RUN. Both halves of that
 # (exit 2 in drift_check.py, and CI treating 2 as distinct + asserting the run
 # reached the end) regressed silently once already and cost 11 days of a gate
