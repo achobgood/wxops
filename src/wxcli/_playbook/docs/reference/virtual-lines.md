@@ -8,9 +8,10 @@
 2. [Virtual Lines](#virtual-lines)
 3. [Virtual Extensions](#virtual-extensions)
 4. [Raw HTTP](#raw-http)
-5. [Virtual Lines vs. Virtual Extensions: Decision Guide](#virtual-lines-vs-virtual-extensions-decision-guide)
-6. [Source](#source)
-7. [See Also](#see-also)
+5. [Gotchas](#gotchas)
+6. [Virtual Lines vs. Virtual Extensions: Decision Guide](#virtual-lines-vs-virtual-extensions-decision-guide)
+7. [Source](#source)
+8. [See Also](#see-also)
 
 ## Overview
 
@@ -737,7 +738,9 @@ result = api.session.rest_post(
 # Returns: {status: "OK"|"ERRORS", validationStatus: [...]}
 ```
 
-### Raw HTTP Gotchas
+---
+
+## Gotchas
 
 1. **Virtual lines response key is `virtualLines`** -- Not `items`. This differs from the Workspaces API which uses `items`.
 2. **Virtual extensions response key is `virtualExtensions`** -- Consistent with the domain-specific naming pattern.

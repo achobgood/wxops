@@ -13,6 +13,29 @@ Person-level call handling settings control how incoming calls are routed, filte
 
 ---
 
+## Table of Contents
+
+- [Admin vs User-Only Access](#admin-vs-user-only-access)
+- [Required Scopes](#required-scopes)
+- [Common Patterns](#common-patterns)
+- [1. Call Forwarding](#1-call-forwarding)
+- [2. Call Waiting](#2-call-waiting)
+- [3. Do Not Disturb (DND)](#3-do-not-disturb-dnd)
+- [4. Simultaneous Ring](#4-simultaneous-ring)
+- [5. Sequential Ring](#5-sequential-ring)
+- [6. Single Number Reach](#6-single-number-reach)
+- [7. Selective Accept](#7-selective-accept)
+- [8. Selective Forward](#8-selective-forward)
+- [9. Selective Reject](#9-selective-reject)
+- [10. Priority Alert](#10-priority-alert)
+- [Shared Criteria Model (`SelectiveCriteria`)](#shared-criteria-model-selectivecriteria)
+- [Precedence Order](#precedence-order)
+- [URL Routing Internals](#url-routing-internals)
+- [Gotchas (Cross-Cutting)](#gotchas-cross-cutting)
+- [See Also](#see-also)
+
+---
+
 ## Admin vs User-Only Access
 
 Not all person call handling endpoints support admin-level access. Four features are **user-only** — they exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these settings for another user.

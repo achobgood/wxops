@@ -11,6 +11,18 @@ Reference for managing audio media (announcements, playlists), time-based routin
 
 ---
 
+## Table of Contents
+
+1. [Announcements Repository](#1-announcements-repository)
+2. [Playlists (Music On Hold)](#2-playlists-music-on-hold)
+3. [Access Codes](#3-access-codes)
+4. [Schedules & Holiday Schedules](#4-schedules--holiday-schedules)
+5. [Cross-Cutting Patterns](#5-cross-cutting-patterns)
+6. [Gotchas](#gotchas)
+7. [See Also](#see-also)
+
+---
+
 ## 1. Announcements Repository
 
 The announcement repository stores binary audio files (WAV) used by Auto Attendants, Call Queues, and Music On Hold. Files can be uploaded at the **organization level** or scoped to a **specific location**.
@@ -692,6 +704,43 @@ User schedules:
 2. Check if a holiday schedule already exists for each location.
 3. Create the schedule with all-day events, or add events to an existing schedule.
 4. Periodically clean up past events and add future ones.
+
+---
+
+## Gotchas
+
+These are collected from the sections above; each is stated where it was first
+documented, and nothing here is new.
+
+1. **Schedule and event IDs are name-derived, so renaming changes the ID.** They are
+   base64-encoded from the schedule name — the old ID returns 404 after a rename. Always
+   re-fetch the ID after a name change. Event IDs behave the same way. (§4.3, §4.4)
+
+2. **`schedules list` does NOT include events.** It returns
+   `{"schedules": [{"id", "name", "type"}]}` only. Use the details endpoint to get the
+   events inside a schedule — a caller that reads `list` and reports "no events" is
+   answering a different question than the one asked. (§4.3)
+
+3. **`announcements create --file-uri` takes a URI, not a local file.** Both
+   `wxcli announcements create` (org level) and `create-announcements LOCATION_ID`
+   (location level) send a JSON body (`fileUri`/`fileName`/`isTextToSpeech`) to
+   `POST /telephony/config/announcements` — **not** a `multipart/form-data` upload. They
+   do not push local binary `.wav` bytes. For that, use the manual multipart raw HTTP path
+   in §1.3. (§1)
+
+4. **Playlist announcement IDs must go through `--json-body`.** There is no repeatable
+   flag for `announcementIds` on `announcement-playlists create`. Maximum 25 announcements
+   per playlist. (§2, §5)
+
+5. **Announcements and Playlists are not supported on Webex for Government (FedRAMP).**
+   Both APIs are explicitly excluded. See
+   [authentication.md → FedRAMP](authentication.md#webex-for-government-fedramp) for the
+   full restriction list. (§1)
+
+6. **Deleting specific access codes uses PUT with a `deleteCodes` array, not DELETE.** This
+   applies at both location and org level. The `DELETE` verb means *delete all*, and only at
+   the location level — so reaching for it to remove one code removes every code. This is
+   the destructive-PUT shape described in the root `CLAUDE.md` known issue #20. (§3)
 
 ---
 

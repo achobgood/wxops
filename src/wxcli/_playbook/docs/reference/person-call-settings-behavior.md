@@ -1,6 +1,11 @@
 # Person Call Settings -- Behavior, Devices, Apps & Misc
 
-SDK reference for person-level settings that control calling behavior, application/device configuration, shared lines, hoteling, receptionist, number management, preferred answer endpoints, MS Teams integration, mode management, personal assistant, and emergency callback numbers.
+Reference for person-level settings that control calling behavior, application/device configuration, shared lines, hoteling, receptionist, number management, preferred answer endpoints, MS Teams integration, mode management, personal assistant, and emergency callback numbers.
+
+## Sources
+
+- OpenAPI spec: specs/webex-cloud-calling.json
+- developer.webex.com Person Call Settings APIs
 
 ---
 

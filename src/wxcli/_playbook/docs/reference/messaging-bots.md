@@ -11,6 +11,22 @@ For space/team/membership CRUD, see [`messaging-spaces.md`](messaging-spaces.md)
 - developer.webex.com Messaging APIs
 - Webex Bot Framework documentation
 
+## Table of Contents
+
+- [Required Scopes](#required-scopes)
+- [1. Bot Fundamentals](#1-bot-fundamentals)
+- [2. Sending Messages](#2-sending-messages)
+- [3. Adaptive Card Recipe Catalog](#3-adaptive-card-recipe-catalog)
+- [4. Webex Adaptive Cards — Supported Features and Gaps](#4-webex-adaptive-cards--supported-features-and-gaps)
+- [5. Attachment Actions (`attachment-actions` CLI group — 2 commands)](#5-attachment-actions-attachment-actions-cli-group--2-commands)
+- [6. Room Tabs (`room-tabs` CLI group — 5 commands)](#6-room-tabs-room-tabs-cli-group--5-commands)
+- [7. Cross-Domain Recipes (Calling + Messaging)](#7-cross-domain-recipes-calling--messaging)
+- [8. Webhook Signpost](#8-webhook-signpost)
+- [Gotchas (Cross-Cutting)](#gotchas-cross-cutting)
+- [9. See Also](#9-see-also)
+
+---
+
 ## Required Scopes
 
 | Command Group | Bot Token | User Token | Admin Token |

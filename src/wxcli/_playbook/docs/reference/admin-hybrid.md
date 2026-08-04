@@ -10,6 +10,20 @@ Hybrid cluster/connector monitoring, historical analytics, live meeting monitori
 
 ---
 
+## Table of Contents
+
+- [Required Scopes](#required-scopes)
+- [1. Hybrid Clusters](#1-hybrid-clusters)
+- [2. Hybrid Connectors](#2-hybrid-connectors)
+- [3. Live Monitoring](#3-live-monitoring)
+- [4. Analytics (Historical)](#4-analytics-historical)
+- [5. Meeting Qualities](#5-meeting-qualities)
+- [Recipes](#recipes)
+- [Gotchas](#gotchas)
+- [See Also](#see-also)
+
+---
+
 ## Required Scopes
 
 | Scope | Purpose |

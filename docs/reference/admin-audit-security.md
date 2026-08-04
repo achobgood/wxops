@@ -11,6 +11,19 @@ Admin audit trail, security audit events, and compliance event review for Webex 
 
 ---
 
+## Table of Contents
+
+- [Key Concepts](#key-concepts)
+- [Required Scopes](#required-scopes)
+- [1. Admin Audit Events (`audit-events`)](#1-admin-audit-events-audit-events)
+- [2. Security Audit Events (`security-audit`)](#2-security-audit-events-security-audit)
+- [3. Events (`events`)](#3-events-events)
+- [Recipes](#recipes)
+- [Gotchas](#gotchas)
+- [See Also](#see-also)
+
+---
+
 ## Key Concepts
 
 Three different event APIs serve different purposes. Picking the right one matters.

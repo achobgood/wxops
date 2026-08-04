@@ -13,8 +13,8 @@
 2. [RoomOS / Config-Service Device Settings](#2-roomos--config-service-device-settings)
 3. [Webex Calling Device Management](#3-webex-calling-device-management)
 4. [API Relationship Summary](#4-api-relationship-summary)
-5. [Raw HTTP](#5-raw-http)
-6. [Gotchas](#6-gotchas)
+5. [Raw HTTP](#6-raw-http)
+6. [Gotchas](#7-gotchas)
 7. [See Also](#see-also)
 
 ---
@@ -140,7 +140,7 @@ Create a phone by MAC address in a workspace or for a person.
 
 ### 1.4 Sub-APIs
 
-**Bulk device settings jobs** operate at the location and organization level — start a job, list jobs, check status, and list errors. **Base endpoint:** `telephony/config/jobs/devices/callDeviceSettings`. See [5.6 Device Settings Jobs (Bulk)](#56-device-settings-jobs-bulk) for the raw HTTP calls.
+**Bulk device settings jobs** operate at the location and organization level — start a job, list jobs, check status, and list errors. **Base endpoint:** `telephony/config/jobs/devices/callDeviceSettings`. See [6.6 Device Settings Jobs (Bulk)](#66-device-settings-jobs-bulk) for the raw HTTP calls.
 
 > **Gotcha — Tags PATCH content type:** Modifying device tags requires `application/json-patch+json` content type, not standard JSON. Raw HTTP callers must set the header explicitly.
 
@@ -559,7 +559,7 @@ Scope: `spark-admin:telephony_config_write`
 
 #### Line Key Templates (PLK)
 
-Full CRUD (create, list, get, update, delete) plus a preview endpoint that reports how many devices an `APPLY_TEMPLATE` action would affect before running the bulk job (see [5.3 Line Key Templates](#53-line-key-templates)).
+Full CRUD (create, list, get, update, delete) plus a preview endpoint that reports how many devices an `APPLY_TEMPLATE` action would affect before running the bulk job (see [6.3 Line Key Templates](#63-line-key-templates)).
 
 #### Device Layout
 

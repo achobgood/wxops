@@ -69,6 +69,7 @@ tests/*
 !tests/test_drift_check_naming.py
 !tests/test_drift_check_inert.py
 !tests/test_drift_check_paging.py
+!tests/test_drift_check_doc_shape.py
 !tests/test_errors_actionability.py
 !tests/test_suggest_and_paging.py
 !tests/test_pagination_walkers.py

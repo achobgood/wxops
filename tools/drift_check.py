@@ -138,6 +138,21 @@ Checks (docs/arch/target-architecture.md §A6):
       `availableMembers/count`, where the total is the answer. Acked per
       operation in `undeclared_paging_ack`, re-validated every run.
 
+  18. Reference-doc shape: every docs/reference/*.md satisfies the structural
+      rules in that directory's own CLAUDE.md — in-document `](#anchor)` links
+      land on a real heading, the file ends with exactly one newline, and a
+      `## See Also` section exists. This is the only check that reads a doc as
+      a DOCUMENT rather than as a carrier of wxcli commands, and it catches a
+      rot the others structurally cannot: devices-core.md's contents list
+      pointed at `#5-raw-http` / `#6-gotchas` long after those headings became
+      `## 6.` / `## 7.`, so four links landed nowhere while checks 2/6/7/10/11
+      all read that file and reported it clean. Hand-repaired once (a016cea)
+      and drifted straight back, which is the argument for a machine reading
+      it. Conventions with legitimate exceptions on disk — no Sources, no
+      Gotchas, no contents list, See Also not last — are ADVISORY and never
+      fail: a gate that fails on a judgement call is a gate someone switches
+      off.
+
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
 skip an operation whose declaring specs disagree rather than unioning them —
@@ -2880,6 +2895,140 @@ def check_undeclared_paging(acks: dict | None = None,
     return findings, stale
 
 
+# ----------------------------------------------------------------- check 18
+
+REFERENCE_DIR = REPO / "docs" / "reference"
+# docs/reference/ files that are not API reference docs and are exempt from the
+# shape rules: the directory's own CLAUDE.md, its TODO list, and the migration
+# spec TEMPLATE (a skeleton to copy, deliberately not a reference doc).
+NON_REFERENCE_DOCS = {"CLAUDE.md", "TODO.md", "migration-spec-template.md"}
+
+_FENCE = re.compile(r"^\s*(```|~~~)", re.M)
+_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
+_INDOC_LINK = re.compile(r"\]\(#([^)]+)\)")
+
+
+def strip_fences(text: str) -> str:
+    """Blank out fenced code blocks, preserving line count.
+
+    Both harvests below must ignore fences: a bash example's `# comment` is not
+    a heading, and a `](#anchor)` inside a fence is sample text, not a live
+    link. Lines are replaced rather than removed so reported line numbers stay
+    true to the file.
+    """
+    out, in_fence, marker = [], False, ""
+    for line in text.split("\n"):
+        hit = _FENCE.match(line)
+        if hit and not in_fence:
+            in_fence, marker = True, hit.group(1)
+            out.append("")
+            continue
+        if in_fence:
+            out.append("")
+            if line.strip().startswith(marker):
+                in_fence = False
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
+def heading_slugs(body: str) -> set[str]:
+    """Every anchor GitHub would mint for this document's headings.
+
+    Mirrors GitHub's slugger: strip inline code and link syntax, drop emphasis
+    and punctuation, lowercase, spaces to hyphens. Repeated heading text gets
+    the `-1`, `-2` … suffixes GitHub appends, so both forms are accepted.
+    """
+    slugs, seen = set(), {}
+    for line in body.split("\n"):
+        m = _HEADING.match(line)
+        if not m:
+            continue
+        text = m.group(2)
+        text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)   # [label](url) -> label
+        text = text.replace("`", "")
+        text = re.sub(r"[*_~]", "", text)
+        text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
+        base = re.sub(r"\s", "-", text.strip().lower())
+        n = seen.get(base, 0)
+        seen[base] = n + 1
+        slugs.add(base if n == 0 else f"{base}-{n}")
+        slugs.add(base)
+    return slugs
+
+
+def check_reference_doc_shape(
+        reference_dir: Path = None) -> tuple[list, list]:
+    """Structural conformance of docs/reference/**, per that directory's CLAUDE.md.
+
+    Two tiers, and the split is the whole point. GATED are the rules every
+    reference doc already satisfies and that a machine can judge with no
+    taste involved:
+
+      * every in-document `](#anchor)` lands on a heading in the same file
+      * the file ends with exactly one newline
+      * a `## See Also` section exists
+
+    The anchor rule is the one with teeth. It is the only check in this gate
+    that reads a doc as a DOCUMENT rather than as a carrier of wxcli commands,
+    and it catches a rot nothing else can see: devices-core.md's contents list
+    pointed at `#5-raw-http` and `#6-gotchas` while the headings had long since
+    become `## 6.` and `## 7.`, so four links silently landed nowhere. That
+    was hand-repaired once (commit a016cea) and drifted straight back, which
+    is the argument for checking it mechanically instead of by eye.
+
+    ADVISORY are conventions with real exceptions on disk — a doc may
+    legitimately have no gotchas to record, and a short one needs no contents
+    list. They are reported so a gap is visible, never failed, because a gate
+    that fails on a judgement call is a gate someone switches off.
+    """
+    root = REFERENCE_DIR if reference_dir is None else Path(reference_dir)
+    failures, advisories = [], []
+    for path in sorted(root.glob("*.md")):
+        if path.name in NON_REFERENCE_DOCS:
+            continue
+        raw = path.read_text()
+        body = strip_fences(raw)
+        slugs = heading_slugs(body)
+        h2 = [_HEADING.match(ln).group(2).strip() for ln in body.split("\n")
+              if _HEADING.match(ln) and _HEADING.match(ln).group(1) == "##"]
+        lower = [h.lower() for h in h2]
+
+        for n, line in enumerate(body.split("\n"), 1):
+            for anchor in _INDOC_LINK.findall(line):
+                if anchor not in slugs:
+                    failures.append({"file": f"docs/reference/{path.name}",
+                                     "line": n, "kind": "dead anchor",
+                                     "detail": f"](#{anchor}) matches no heading"})
+
+        trailing = len(raw) - len(raw.rstrip("\n"))
+        if trailing != 1:
+            failures.append({
+                "file": f"docs/reference/{path.name}",
+                "line": raw.count("\n") + 1, "kind": "trailing newlines",
+                "detail": f"file ends with {trailing} newline(s), expected 1"})
+
+        if not any("see also" in h for h in lower):
+            failures.append({"file": f"docs/reference/{path.name}", "line": 0,
+                             "kind": "missing section",
+                             "detail": "no `## See Also` section"})
+        elif "see also" not in lower[-1]:
+            advisories.append({"file": f"docs/reference/{path.name}",
+                               "detail": f"`## See Also` is not the last section "
+                                         f"(last is {h2[-1]!r})"})
+
+        if not any(h.startswith("source") for h in lower):
+            advisories.append({"file": f"docs/reference/{path.name}",
+                               "detail": "no `## Sources` section"})
+        if not any("gotcha" in h for h in lower):
+            advisories.append({"file": f"docs/reference/{path.name}",
+                               "detail": "no `## Gotchas` section"})
+        if not any("table of contents" in h or h == "contents" for h in lower):
+            advisories.append({"file": f"docs/reference/{path.name}",
+                               "detail": f"no contents list ({len(h2)} sections)"})
+    return failures, advisories
+
+
 # --------------------------------------------------------------------- main
 
 def main() -> int:
@@ -2927,6 +3076,7 @@ def main() -> int:
     inert_overrides, stale_inert_acks = check_inert_overrides()
     inert_paging, stale_paging_acks = check_undeclared_paging()
     registry_counts = check_registry_counts()
+    doc_shape, doc_shape_advisory = check_reference_doc_shape()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -2958,6 +3108,8 @@ def main() -> int:
         "16_inert_all_flag": inert_paging,
         "16_stale_paging_acks": stale_paging_acks,
         "17_registry_count_claims": registry_counts,
+        "18_reference_doc_shape": doc_shape,
+        "18_reference_doc_advisory": doc_shape_advisory,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -2968,7 +3120,7 @@ def main() -> int:
                   or bad_examples or bad_skeletons or fs_audit["leaked"]
                   or inert_overrides or stale_inert_acks
                   or inert_paging or stale_paging_acks
-                  or registry_counts)
+                  or registry_counts or doc_shape)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off.
 
@@ -3149,6 +3301,18 @@ def main() -> int:
             print(f"      {f['where']}  {f['detail']}")
         if len(registry_counts) > 20:
             print(f"      ... and {len(registry_counts) - 20} more (--json for all)")
+        print(f"[18] reference docs with a broken shape: {len(doc_shape)}")
+        for f in doc_shape[:20]:
+            where = f"{f['file']}:{f['line']}" if f["line"] else f["file"]
+            print(f"      {where}  {f['kind']} — {f['detail']}")
+        if len(doc_shape) > 20:
+            print(f"      ... and {len(doc_shape) - 20} more (--json for all)")
+        print(f"[18] ADVISORY — reference-doc conventions not followed: "
+              f"{len(doc_shape_advisory)}   (style, never fails the build)")
+        for f in doc_shape_advisory[:10]:
+            print(f"      {f['file']}  {f['detail']}")
+        if len(doc_shape_advisory) > 10:
+            print(f"      ... and {len(doc_shape_advisory) - 10} more (--json for all)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

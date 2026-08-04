@@ -17,6 +17,18 @@ These APIs operate on the software layer of a device that is already provisioned
 
 ---
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Scopes](#scopes)
+- [1. Device Configurations](#1-device-configurations)
+- [2. Workspace Personalization](#2-workspace-personalization)
+- [3. xAPI (Device Command Execution & Status Queries)](#3-xapi-device-command-execution--status-queries)
+- [Gotchas](#gotchas)
+- [See Also](#see-also)
+
+---
+
 ## Prerequisites
 
 Before using any of the three APIs documented here, you need:
