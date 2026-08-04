@@ -10,6 +10,18 @@ Partner/VAR/MSP multi-tenant management -- customer org management, admin assign
 
 ---
 
+## Table of Contents
+
+- [Required Scopes](#required-scopes)
+- [1. Partner Admins (`partner-admins`)](#1-partner-admins-partner-admins)
+- [2. Partner Tags (`partner-tags`)](#2-partner-tags-partner-tags)
+- [3. Partner Reports (`partner-reports`)](#3-partner-reports-partner-reports)
+- [Recipes](#recipes)
+- [Gotchas](#gotchas)
+- [See Also](#see-also)
+
+---
+
 ## Required Scopes
 
 | Scope | Purpose |

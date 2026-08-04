@@ -2,6 +2,24 @@
 
 Reference for managing incoming/outgoing call permissions, feature access controls, executive/assistant pairing, and call policy settings.
 
+## Sources
+
+- OpenAPI spec: specs/webex-cloud-calling.json
+- developer.webex.com Person Call Settings APIs
+
+---
+
+## Table of Contents
+
+1. [Incoming Permissions](#1-incoming-permissions)
+2. [Outgoing Permissions](#2-outgoing-permissions)
+3. [Feature Access Controls](#3-feature-access-controls)
+4. [Executive / Assistant Settings](#4-executive--assistant-settings)
+5. [Call Policy](#5-call-policy)
+6. [Scope Summary](#scope-summary)
+7. [Gotchas (Cross-Cutting)](#gotchas-cross-cutting)
+8. [See Also](#see-also)
+
 ---
 
 ## 1. Incoming Permissions

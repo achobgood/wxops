@@ -1084,9 +1084,10 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `desktopLayoutId`, optional `dialNumberSettings`, `agentAvailableOptions`
+- **Create:** Requires `name`, `desktopLayoutId`, optional `dialNumberSettings`, `agentAvailableOptions`, `loginVoiceOptions`
 - **Desktop layout link:** The profile references a desktop layout by ID
 - **Buddy teams:** Configure which teams an agent can see and consult/transfer to
+- **`loginVoiceOptions`** — array of `AGENT_DN` | `EXTENSION` | `BROWSER` (`AgentProfileDTO` in `specs/webex-contact-center.json`). This is the **gate on browser/WebRTC audio**: it is what an agent's `Profile.loginVoiceOptions` reads back as, and `stationLogin({loginOption:'BROWSER'})` fails for an agent whose profile omits `BROWSER` even when everything else is correct. `dialNumberSettings` and `agentAvailableOptions` are *not* this field — do not read either one to decide whether browser audio is available. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §1.
 
 ### CLI Examples
 

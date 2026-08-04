@@ -22,11 +22,17 @@ this repo, which covers *administering* WxCC over REST.
 
 ## Sources
 
-- **Vendored SDK sources** — `prototypes/napa-procall/vendor/contact-center.min.js.map`
-  ships `sourcesContent` for 1015 modules, 41 of them from the SDK's own source tree. Every
-  file:line citation below points into those extracted sources for version **3.12.0**.
-- **Live observation** — `prototypes/napa-procall/` is a working custom desktop tested against
-  a live tenant on 2026-07-31. Its `README.md` is the origin of most of the Gotchas section.
+- **The SDK's own TypeScript sources**, at version **3.12.0**. Every `file:line` citation
+  below points into `sourcesContent` inside the sourcemap the package publishes —
+  `umd/contact-center.min.js.map`, 1015 modules, 41 of them from the SDK's own source tree.
+  Fetch it from the registry, not from anywhere in this repo:
+  `npm pack @webex/contact-center@3.12.0`, or
+  `curl -L https://unpkg.com/@webex/contact-center@3.12.0/umd/contact-center.min.js.map`
+  (both verified 2026-08-01). **Pin the version** — these line numbers are 3.12.0's and will
+  not survive a bump.
+- **Live observation against a live tenant on 2026-07-31**, driving a working custom desktop.
+  This is the origin of Gotchas 1–14 and the source of every place below where the wire
+  format contradicts the declared type.
 - [`web-sdk.webex.com/wxcc`](https://web-sdk.webex.com/wxcc) — Cisco's published typedoc.
   **Built from the `next` prerelease, not from the shipping release.** See §11.
 - [`npmjs.com/package/@webex/contact-center`](https://www.npmjs.com/package/@webex/contact-center)
@@ -881,9 +887,9 @@ window.addEventListener('beforeunload', () => { cc.deregister(); });
 
 ## 13. Gotchas
 
-Numbers 1–14 keep the identifiers used in `prototypes/napa-procall/README.md`, where each was
-found the hard way against a live tenant on 2026-07-31. Numbers 15+ were established from the
-SDK sources on 2026-08-01. **None is discoverable from the TypeScript definitions alone.**
+Numbers 1–14 were each found the hard way against a live tenant on 2026-07-31; numbers 15+
+were established from the SDK sources on 2026-08-01. The numbering is stable — cite a gotcha
+by its number. **None is discoverable from the TypeScript definitions alone.**
 
 1. **The `Team` type does not match the wire format.** `Profile.teams` is typed
    `{teamId, teamName, desktopLayoutId?}` (`services/config/types.ts:882`); the runtime payload
@@ -1056,8 +1062,5 @@ SDK sources on 2026-08-01. **None is discoverable from the TypeScript definition
   different tasks, different events; not interchangeable with this SDK.
 - [`web-sdk.webex.com/wxcc`](https://web-sdk.webex.com/wxcc) — Cisco's typedoc for the happy
   path. Built from the `next` prerelease; read §11 before trusting any member it lists.
-- `prototypes/napa-procall/` — A working custom agent desktop, live-tested. The origin of
-  Gotchas 1–14.
-
-
-
+- [`npmjs.com/package/@webex/contact-center`](https://www.npmjs.com/package/@webex/contact-center)
+  — the package itself. §11 lists the dist-tags, several of which are feature branches.

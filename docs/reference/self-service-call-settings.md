@@ -10,6 +10,25 @@ User-level self-service endpoints for managing personal call settings via user O
 
 ---
 
+## Table of Contents
+
+1. [Overview & Authentication](#1-overview--authentication)
+2. [User-Only Settings (No Admin Path)](#2-user-only-settings-no-admin-path)
+3. [Call Handling](#3-call-handling)
+4. [Executive & Assistant](#4-executive--assistant)
+5. [Voicemail & Media](#5-voicemail--media)
+6. [Endpoints & Devices](#6-endpoints--devices)
+7. [Routing & Groups](#7-routing--groups)
+8. [Queue & Agent](#8-queue--agent)
+9. [Location & System](#9-location--system)
+10. [Secondary Line Settings](#10-secondary-line-settings)
+11. [Mode Management](#11-mode-management)
+12. [Admin Path Cross-Reference Table](#12-admin-path-cross-reference-table)
+13. [Gotchas](#gotchas)
+14. [See Also](#see-also)
+
+---
+
 ## 1. Overview & Authentication
 
 ### Token Requirements

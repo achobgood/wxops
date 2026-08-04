@@ -11,6 +11,22 @@ CDR feed, report templates, report generation/download, and call quality/queue/A
 
 ---
 
+## Table of Contents
+
+- [Required Scopes](#required-scopes)
+- [1. Detailed Call History (CDR) API](#1-detailed-call-history-cdr-api)
+- [2. Report Templates API](#2-report-templates-api)
+- [3. Reports API](#3-reports-api)
+- [4. Complete Workflow: Generate and Download a Report](#4-complete-workflow-generate-and-download-a-report)
+- [5. CDR Feed vs. Reports API — When to Use Which](#5-cdr-feed-vs-reports-api--when-to-use-which)
+- [6. Use Cases](#6-use-cases)
+- [7. Known API Documentation Bugs](#7-known-api-documentation-bugs)
+- [8. Gotchas](#8-gotchas)
+- [9. Raw HTTP Endpoints](#9-raw-http-endpoints)
+- [See Also](#see-also)
+
+---
+
 ## Required Scopes
 
 | Scope | Purpose |
