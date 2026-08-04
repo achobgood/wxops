@@ -70,6 +70,11 @@ tests/*
 !tests/test_drift_check_inert.py
 !tests/test_drift_check_paging.py
 !tests/test_drift_check_doc_shape.py
+# Guards the gate's ability to report that it DID NOT RUN. Both halves of that
+# (exit 2 in drift_check.py, and CI treating 2 as distinct + asserting the run
+# reached the end) regressed silently once already and cost 11 days of a gate
+# that verified nothing while looking like an ordinary red build.
+!tests/test_drift_check_exit_codes.py
 !tests/test_errors_actionability.py
 !tests/test_suggest_and_paging.py
 !tests/test_pagination_walkers.py

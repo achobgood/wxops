@@ -112,8 +112,35 @@ jobs:
           pip install -e .
 
       - name: Drift gate (enforcing)
+        # Exit code alone is not enough. The gate exits 1 for findings and, until
+        # 2026-08-04, also exited 1 when it crashed on import — so a dead gate
+        # and a working one were the same red X, and that went unnoticed for 11
+        # days. drift_check.py now exits 2 on a crash; this step additionally
+        # asserts the run REACHED THE END and reported a verdict, which catches
+        # a partial run that somehow still exits 0.
         run: |
-          python -m tools.drift_check --enforce
+          set -o pipefail
+          # `set +e` is required, not stylistic: Actions runs this under
+          # `bash -e`, so a non-zero gate would abort the step right here and
+          # never reach the branches below — the crash annotation and the
+          # completion assertions would silently never run.
+          set +e
+          python -m tools.drift_check --enforce 2>&1 | tee gate.log
+          status=$?
+          set -e
+          if [ "$status" -eq 2 ]; then
+            echo "::error::Drift gate CRASHED — it did not run. This is not a findings failure."
+            exit 2
+          fi
+          if ! grep -q '^\[18\]' gate.log; then
+            echo "::error::Drift gate stopped before check 18 — it did not run to completion."
+            exit 2
+          fi
+          if ! grep -qE '^result: (PASS|FAIL)' gate.log; then
+            echo "::error::Drift gate printed no verdict line — it did not run to completion."
+            exit 2
+          fi
+          exit "$status"
 
   playbook-freshness:
     name: Playbook bundle freshness
