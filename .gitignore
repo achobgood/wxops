@@ -81,6 +81,14 @@ tests/*
 !tests/test_field_expansion.py
 !tests/test_verify_flag.py
 !tests/test_errors_id_kind.py
+# Same contract again, and the sharpest case for it: this one guards the
+# PreToolUse gate that stops the main session mutating a live org. The gate
+# script ships tracked; its shell decision table ships tracked; but the
+# tree-wide "no list-*/show-* command writes" invariant lived only here, where
+# CI could not see it — and so nobody noticed it had been inspecting 86 of 1961
+# commands. Stdlib + pytest only, no conftest, no network: verified green in a
+# `git archive HEAD` checkout.
+!tests/test_wxcli_gate.py
 tests/migration/**/__pycache__/
 tests/org_health/**/__pycache__/
 
