@@ -171,7 +171,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true},"selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":true,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":true,"recordOutboundExternalCallsEnabled":true}}'
 
 @app.command("update", short_help="Configure Call Recording Settings for a Virtual Line.")
 def update(
@@ -186,7 +186,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Recording Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'"""
+    """Configure Call Recording Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true},"selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":true,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":true,"recordOutboundExternalCallsEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

@@ -9,7 +9,22 @@ description = "Webex Calling CLI — terminal-based provisioning for Webex APIs"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 dependencies = [
-    "typer>=0.9.0",
+    # typer floor verified 2026-08-04 in throwaway venvs (pip install -e . +
+    # pip install typer==<version>), checking `wxcli --version`, `wxcli --help`,
+    # and `wxcli people list --help` exit 0. Every version from 0.9.0 through
+    # 0.19.2 fails at least one: 0.9.0 makes `--version` exit 2; 0.15.0-0.19.2
+    # (spot-checked 0.15.0/0.17.1/0.17.5/0.18.0/0.19.0/0.19.1/0.19.2) all make
+    # the subcommand --help raise `AttributeError: 'LazyTyper' object has no
+    # attribute 'suggest_commands'` from SafeSuggestGroup in suggest.py. 0.20.0
+    # is the lowest version where all three pass; 0.24.1 and 0.27.1 also verified
+    # clean (0.27.1 additionally green on the full CI suite). No upper bound:
+    # CI resolves fresh and actually executes on every run, which catches a
+    # future break faster than a pin that goes stale.
+    "typer>=0.20.0",
+    # click floor: typer==0.20.0's own metadata only requires click>=8.0.0, but
+    # this floor was verified directly rather than lowered to match — typer==0.20.0
+    # paired with click==8.1.0 (the version below) passed all three checks above
+    # on 2026-08-04.
     "click>=8.1",
     "rich>=13.0",
     "httpx>=0.27.0",

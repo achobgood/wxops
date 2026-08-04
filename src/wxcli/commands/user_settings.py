@@ -363,7 +363,7 @@ def show_call_recording(
 
 
 
-_BODY_SKELETON_UPDATE_CALL_RECORDING = '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'
+_BODY_SKELETON_UPDATE_CALL_RECORDING = '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true},"selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":true,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":true,"recordOutboundExternalCallsEnabled":true}}'
 
 @app.command("update-call-recording", short_help="Configure Call Recording Settings for a Person.")
 def update_call_recording(
@@ -378,7 +378,7 @@ def update_call_recording(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Call Recording Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-recording PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true}}'"""
+    """Configure Call Recording Settings for a Person.\n\n\b\nExample: wxcli user-settings update-call-recording PERSON_ID\n\n\b\nExample --json-body: '{"enabled":true,"record":"Always","recordVoicemailEnabled":true,"notification":{"type":"Beep","enabled":true},"repeat":{"interval":0,"enabled":true},"startStopAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true},"selectiveCallRecordingSettings":{"recordInboundInternalCallsEnabled":true,"recordInboundExternalCallsEnabled":true,"recordOutboundInternalCallsEnabled":true,"recordOutboundExternalCallsEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_RECORDING), indent=2))
         raise typer.Exit(0)
