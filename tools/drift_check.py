@@ -2672,11 +2672,17 @@ def check_inert_overrides() -> tuple[list, list]:
     fresh clone) is out of scope rather than inert, and the dev-only tags it
     declares must not read as defects just because the spec is untracked.
     """
-    import yaml   # a hard runtime dependency of wxcli itself (pyproject), so it
-                  # cannot be missing where this runs. load_overrides()'s
-                  # hand-rolled parser stays for the other checks; this one needs
-                  # three levels of nesting and a folded scalar
-                  # (command_help_notes), which a line parser reads wrong.
+    import yaml   # load_overrides()'s hand-rolled parser stays for the other
+                  # checks; this one needs three levels of nesting and a folded
+                  # scalar (command_help_notes), which a line parser reads wrong.
+                  #
+                  # This used to claim yaml "cannot be missing where this runs,
+                  # since it is a hard runtime dependency in pyproject". That was
+                  # false: CI's drift-gate job installed nothing on purpose, so
+                  # the gate crashed with ModuleNotFoundError before check 1 and
+                  # reported NOTHING while looking like an ordinary red build.
+                  # The job now installs pyyaml explicitly — if you move this
+                  # import or add another dependency, update that job too.
     try:
         from tools import generate_commands as gc
         from tools.openapi_parser import get_tags, load_spec, parse_tag

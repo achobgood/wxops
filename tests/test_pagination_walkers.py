@@ -190,7 +190,20 @@ class TestDefaultsUnchanged:
     # forever while measuring nothing. The number is the count at 600eb38, the
     # commit before --all, and it is the whole point of the guard: it may not
     # move without someone deciding it should.
-    DEFAULT_WALK_ALL_COMMANDS = 53
+    #
+    # 53 -> 55 on 2026-08-04, deliberately. The `ai-receptionist` group landed
+    # with two list commands in this branch: `list`
+    # (GET /telephony/config/aiReceptionists) and `list-available-numbers`
+    # (GET /telephony/config/locations/{locationId}/aiReceptionists/
+    # availableNumbers). Checked the cause rather than the count — both
+    # operations declare a `Link` response header in
+    # specs/webex-cloud-calling.json, which is exactly what puts an endpoint in
+    # the `paginates` branch where `--limit 0` already walks. So they behave like
+    # the other 53 for the same declared reason, and the move is correct.
+    # If this number changes again, confirm the new commands' 200 really
+    # declares `Link` before touching it — a command reaching this branch
+    # WITHOUT that header would be the actual defect this guard exists to catch.
+    DEFAULT_WALK_ALL_COMMANDS = 55
 
     def test_the_default_walk_all_branch_did_not_grow(self):
         after = self._count(r"if limit > 0 and not all_pages:")
