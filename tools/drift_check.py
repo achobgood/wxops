@@ -3534,6 +3534,153 @@ def check_reference_doc_coverage(sets: dict[str, list[str]] | None = None,
     return findings
 
 
+# ----------------------------------------------------------------- check 21
+
+def parse_module_confirms(module: str) -> dict[str, bool]:
+    """Parse a command module with ast: command name -> has a typer.confirm.
+
+    `ast` rather than a substring test, and the distinction is measured: a
+    substring test over the dumped function ("typer" and "confirm" both
+    present) reports 208 gated commands where the parse tree reports 203,
+    over-counting by 5 on commands whose HELP TEXT contains the word
+    (05-safety.md 2). The gate must not inherit that.
+
+    Keyed by `command_names` — EVERY decorator name on the function, not
+    `_command_name`'s first one. That asymmetry is 02-drift.md F1 and it bit
+    this check during development: `parse_module_commands` (which
+    `build_cli_surface` uses) emits an entry per decorator, so a renamed
+    command appears under both its hidden legacy alias and its visible name,
+    while `_command_name` returns only the alias. Keying on the first name left
+    every renamed destructive command looking ungated and the check reported 15
+    findings on a tree where all 15 were correctly gated.
+
+    A confirm is a property of the FUNCTION, so both names share the function's
+    answer. That keeps the key set aligned with `build_cli_surface` and makes
+    the join below exactly check 1's join.
+    """
+    path = COMMANDS_DIR / f"{module}.py"
+    if not path.exists():
+        return {}
+    out: dict[str, bool] = {}
+    for node in ast.walk(ast.parse(path.read_text())):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        names = command_names(node)
+        if not names:
+            continue
+        gated = any(
+            isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "confirm"
+            for n in ast.walk(node))
+        for name, _hidden in names:
+            out[name] = gated
+    return out
+
+
+def build_confirm_surface() -> dict[str, dict[str, bool]]:
+    """{group: {command: has_confirm}} — mirrors build_flag_surface exactly."""
+    countable = module_state()["countable"]
+    surface = {}
+    for group, module in parse_registrations().items():
+        if module not in countable:
+            continue
+        surface[group] = parse_module_confirms(module)
+    if "converged-recordings" in surface:
+        surface["converged-recordings"].update(
+            parse_module_confirms("converged_recordings_export"))
+    return surface
+
+
+def destructive_spec_ops(spec_ops: dict) -> dict:
+    """{(METHOD, norm_path): verb} for every op the GENERATOR calls destructive.
+
+    Deliberately the generator's own classifier (`classify_real_semantics`,
+    tools/postman_parser.py) rather than a second opinion re-implemented here.
+    A check that disagreed with the generator about what is destructive would
+    fail on operations the generator was never asked to gate, and the argument
+    would be about the classifier rather than about the missing guard. This
+    check asserts one thing only: what the generator itself flags, it gates.
+
+    Body resolution goes through the generator's own `_request_body_schema`
+    for the same reason — a hand-rolled `content/application-json/schema` walk
+    misses the shapes it handles, and `classify_real_semantics`'s second signal
+    (every body field is delete-shaped) reads exactly those field names. Getting
+    the body wrong would silently disable half the classifier and the check
+    would under-report while looking clean.
+    """
+    from tools.openapi_parser import _request_body_schema
+    from tools.postman_parser import classify_real_semantics
+
+    out = {}
+    for rel in sorted(tracked_specs()):
+        spec = json.loads((REPO / rel).read_text())
+        spec = merge_overlay(spec, load_overlay(REPO / rel))
+        for path, methods in spec.get("paths", {}).items():
+            for method, op in methods.items():
+                if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+                    continue
+                key = (method.upper(), normalize_path(path))
+                if key not in spec_ops:
+                    continue  # skipped tag / multipart / untagged — not rendered
+                schema = _request_body_schema(op, spec) or {}
+                fields = [_NamedField(n) for n in (schema.get("properties") or {})]
+                verb = classify_real_semantics(
+                    op.get("summary") or op.get("operationId", ""), fields)
+                if verb:
+                    out.setdefault(key, verb)
+    return out
+
+
+class _NamedField:
+    """classify_real_semantics reads `.name` off each body field, nothing else."""
+
+    def __init__(self, name: str):
+        self.name = name
+
+
+def check_confirm_gates(surface: dict, spec_ops: dict,
+                        confirms: dict | None = None,
+                        destructive: dict | None = None) -> list:
+    """Check 21 — a destructive operation's command carries a confirmation gate.
+
+    02-drift.md F3: no check asserted this. The consequence was measured by
+    mutation in audit Phase 4 — deleting every `_render_destructive_gate` call
+    site from the renderer regenerates cleanly, drops all 24 confirms added on
+    2026-08-04, and reports PASS with 415/415 tracked tests green. The guard
+    the audit shipped was reversible in silence, and so are the 179 DELETE
+    gates that predate it.
+
+    Two artifacts, no third source of truth: the specs (through the
+    generator's own classifier) and the generated modules (through `ast`).
+    No network, no fixture, no import of `wxcli`.
+
+    Scoped to `real_semantics` on purpose. `device-settings
+    create-apply-line-key-template` is gated for SCOPE rather than
+    destructiveness (`command_confirms` in field_overrides.yaml), and this
+    check deliberately does not claim it — folding the two would make the
+    check assert something its name does not say, which is the failure mode
+    the audit spec calls out for check 20.
+    """
+    confirms = build_confirm_surface() if confirms is None else confirms
+    destructive = (destructive_spec_ops(spec_ops) if destructive is None
+                   else destructive)
+    by_op: dict[tuple, list[tuple[str, str]]] = {}
+    for group, commands in surface.items():
+        for command, ops in commands.items():
+            for op in ops:
+                by_op.setdefault(op, []).append((group, command))
+    findings = []
+    for op, verb in sorted(destructive.items()):
+        for group, command in by_op.get(op, []):
+            if confirms.get(group, {}).get(command):
+                continue
+            findings.append({
+                "method": op[0], "path": op[1], "verb": verb,
+                "group": group, "command": command,
+            })
+    return findings
+
+
 # --------------------------------------------------------------------- main
 
 def main() -> int:
@@ -3590,6 +3737,7 @@ def main() -> int:
     doc_shape, doc_shape_advisory = check_reference_doc_shape()
     spec_structural, spec_flips, spec_prose = check_spec_semantics()
     undocumented_groups = check_reference_doc_coverage()
+    ungated_destructive = check_confirm_gates(surface, spec_ops)
 
     results = {
         "1_spec_cli_parity": parity,
@@ -3627,6 +3775,7 @@ def main() -> int:
         "19_spec_id_kind_flips": spec_flips,
         "19_spec_prose_advisory": spec_prose,
         "20_groups_without_a_reference_doc": undocumented_groups,
+        "21_destructive_commands_without_a_confirm": ungated_destructive,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -3638,7 +3787,8 @@ def main() -> int:
                   or inert_overrides or stale_inert_acks
                   or inert_paging or stale_paging_acks
                   or registry_counts or doc_shape
-                  or spec_structural or spec_flips or undocumented_groups)
+                  or spec_structural or spec_flips or undocumented_groups
+                  or ungated_destructive)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -3862,6 +4012,13 @@ def main() -> int:
             print(f"      {'/'.join(f['groups'])}  ({f['module']}.py) — write a "
                   f"docs/reference/ section or declare it out of scope in "
                   f"CLAUDE.md")
+        print(f"[21] destructive commands with no confirmation gate: "
+              f"{len(ungated_destructive)}")
+        for f in ungated_destructive[:15]:
+            print(f"      {f['method']:6} {f['path']}  -> {f['group']} "
+                  f"{f['command']}  (real_semantics={f['verb']!r})")
+        if len(ungated_destructive) > 15:
+            print(f"      ... and {len(ungated_destructive) - 15} more")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

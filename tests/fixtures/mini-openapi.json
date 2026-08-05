@@ -1,0 +1,497 @@
+{
+  "openapi": "3.0.0",
+  "info": {"title": "Test API", "version": "1.0.0"},
+  "paths": {
+    "/v1/things": {
+      "get": {
+        "operationId": "listThings",
+        "summary": "List Things",
+        "tags": ["Things"],
+        "parameters": [
+          {"name": "orgId", "in": "query", "schema": {"type": "string"}},
+          {"name": "max", "in": "query", "schema": {"type": "integer"}, "description": "Max results to return"},
+          {"name": "status", "in": "query", "schema": {"type": "string", "enum": ["active", "inactive"]}, "description": "Filter by status"}
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {"type": "array", "items": {"$ref": "#/components/schemas/Thing"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createThing",
+        "summary": "Create a Thing",
+        "tags": ["Things"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateThingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/things/{thingId}": {
+      "get": {
+        "operationId": "getThing",
+        "summary": "Get Thing Details",
+        "tags": ["Things"],
+        "parameters": [
+          {"name": "thingId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Thing"}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateThing",
+        "summary": "Update a Thing",
+        "tags": ["Things"],
+        "parameters": [
+          {"name": "thingId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string", "description": "Thing name"},
+                  "enabled": {"type": "boolean", "description": "Whether the thing is enabled"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteThing",
+        "summary": "Delete a Thing",
+        "tags": ["Things"],
+        "parameters": [
+          {"name": "thingId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "204": {}
+        }
+      }
+    },
+    "/v1/things/{thingId}/settings": {
+      "get": {
+        "operationId": "getThingSettings",
+        "summary": "Get Thing Settings",
+        "tags": ["Things"],
+        "parameters": [
+          {"name": "thingId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "volume": {"type": "integer"},
+                    "language": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags": {
+      "get": {
+        "operationId": "listTags",
+        "summary": "List Tags",
+        "tags": ["Things"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"type": "object", "properties": {"name": {"type": "string"}}}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/things/{thingId}/actions/invoke": {
+      "post": {
+        "operationId": "invokeThing",
+        "summary": "Invoke Thing Action",
+        "tags": ["Things"],
+        "parameters": [
+          {"name": "thingId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {"type": "string", "description": "Command to invoke"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {"type": "object"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/combined": {
+      "get": {
+        "operationId": "getCombined",
+        "summary": "Get Combined Data",
+        "tags": ["Combined"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {"$ref": "#/components/schemas/PaginationInfo"},
+                    {
+                      "type": "object",
+                      "properties": {
+                        "records": {"type": "array", "items": {"type": "object"}}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/nested-body": {
+      "post": {
+        "operationId": "createNestedThing",
+        "summary": "Create Nested Thing",
+        "tags": ["Nested"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string", "description": "Name"},
+                  "config": {"$ref": "#/components/schemas/ThingConfig"},
+                  "tags": {"type": "array", "items": {"type": "string"}}
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customId": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/keywords": {
+      "post": {
+        "operationId": "createKeywords",
+        "summary": "Create Keywords Test",
+        "tags": ["Keywords"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "list": {"type": "string", "description": "A list name"},
+                  "type": {"type": "string", "description": "The type"},
+                  "normalField": {"type": "string", "description": "Normal field"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {"201": {}}
+      }
+    },
+    "/v1/quoted-things": {
+      "get": {
+        "operationId": "listQuotedThings",
+        "summary": "List \"Quoted\" Things\nwith newlines",
+        "tags": ["Quoted"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {"type": "array", "items": {"type": "object"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/things/me": {
+      "get": {
+        "operationId": "getMyThingSettings",
+        "summary": "Get My Thing Settings",
+        "tags": ["Things"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "email": {"type": "string"},
+                    "theme": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/multi-array": {
+      "get": {
+        "operationId": "listMultiArray",
+        "summary": "List Multi Array",
+        "tags": ["MultiArray"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["primary"],
+                  "properties": {
+                    "primary": {"type": "array", "items": {"type": "object"}},
+                    "secondary": {"type": "array", "items": {"type": "object"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/upload-test": {
+      "post": {
+        "operationId": "uploadFile",
+        "summary": "Upload a File",
+        "tags": ["Things"],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {"type": "string", "format": "binary"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {}}
+      }
+    },
+    "/v1/ref-param": {
+      "get": {
+        "operationId": "listRefParam",
+        "summary": "List With Ref Param",
+        "tags": ["RefParam"],
+        "parameters": [
+          {"$ref": "#/components/parameters/OrgIdParam"}
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {"type": "array", "items": {"type": "object"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/deprecated-thing": {
+      "get": {
+        "operationId": "getDeprecatedThing",
+        "summary": "Get Deprecated Thing",
+        "tags": ["Deprecated"],
+        "deprecated": true,
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {"type": "array", "items": {"type": "object"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/v1/scim-test": {
+      "get": {
+        "operationId": "listScimTest",
+        "summary": "List SCIM Test",
+        "tags": ["SCIM"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Resources": {"type": "array", "items": {"type": "object"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cdr_feed/records": {
+      "get": {
+        "operationId": "listCdrRecords",
+        "summary": "List CDR Records",
+        "tags": ["CDR"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {"type": "array", "items": {"type": "object"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Thing": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "enabled": {"type": "boolean"}
+        }
+      },
+      "CreateThingRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {"type": "string", "description": "Thing name"},
+          "description": {"type": "string", "description": "Optional description"},
+          "enabled": {"type": "boolean", "description": "Whether to enable"},
+          "thingType": {"type": "string", "enum": ["A", "B", "C"], "description": "Type of thing"}
+        }
+      },
+      "PaginationInfo": {
+        "type": "object",
+        "properties": {
+          "totalCount": {"type": "integer"},
+          "startIndex": {"type": "integer"}
+        }
+      },
+      "ThingConfig": {
+        "type": "object",
+        "properties": {
+          "timeout": {"type": "integer"},
+          "retries": {"type": "integer"}
+        }
+      }
+    },
+    "parameters": {
+      "OrgIdParam": {
+        "name": "orgId",
+        "in": "query",
+        "schema": {"type": "string"},
+        "description": "Organization ID"
+      }
+    }
+  }
+}
