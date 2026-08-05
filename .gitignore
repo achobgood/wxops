@@ -148,5 +148,10 @@ src/wxcli/commands/fs_*.py
 .claude/skills/seven-advisors/
 .claude/skills/researcher/
 
-# Prototype archive (redundant with the tracked prototypes/napa-procall/ sources)
-prototypes/*.zip
+# Prototypes are local-only scratch work — demo shells and SDK spikes, not part
+# of the CLI or the shipped playbook. napa-procall is the one exception: it is
+# already tracked, so it is re-included after the blanket exclude (same shape as
+# the tests/* rule above). This also covers the node_modules trees the untracked
+# prototypes carry — pos-demo alone was 2,330 files one `git add .` from landing.
+prototypes/*
+!prototypes/napa-procall/
