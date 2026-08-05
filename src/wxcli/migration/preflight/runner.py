@@ -47,6 +47,11 @@ _STATUS_PRIORITY = {
     CheckStatus.SKIP: 0,
 }
 
+#: Webex REST base. Same literal every generated command builds its URL from
+#: (e.g. ``commands/device_settings.py:1103``) and the same one the execute
+#: engine uses (``execute/engine.py:35``).
+_WEBEX_BASE = "https://webexapis.com/v1"
+
 #: Which fetched dataset each check's verdict depends on. A check whose data was
 #: never retrieved cannot distinguish "nothing found" from "never queried", so it
 #: reports INCOMPLETE rather than a verdict it did not earn (finding F06).
@@ -292,20 +297,37 @@ class PreflightRunner:
 
         Returns ``None`` if auth is unavailable — the check then SKIPs.
         On invocation the callable returns ``(status_code, error_message)``.
-        Uses ``WebexSimpleApi`` so auth/orgId injection matches the rest of
-        the CLI.
+
+        **This probe could not run at all until 2026-08-05.** It was written
+        against ``wxc_sdk``'s ``WebexSimpleApi`` — which exposes ``session.ep()``
+        and ``session.get()`` and is built on ``requests`` — then repointed at
+        ``wxcli.auth.get_api()`` and never adapted. ``wxc_sdk`` was dropped as a
+        dependency in ``e4dfb22`` (2026-04-17) and ``WebexSession`` defines
+        neither method (``auth.py:215-367``), so every invocation raised
+        ``AttributeError: 'WebexSession' object has no attribute 'ep'``, which
+        ``checks.py``'s ``except Exception`` downgraded to ``WARN`` — a status
+        the preflight gate treats as passing. Check 10 of 10, the one that
+        verifies the org supports jobs touching *every device in the org*, had
+        therefore never returned PASS or FAIL in its life. The seam that made
+        the check testable is what hid it: all eight tests of
+        ``check_bulk_device_job_support`` inject a lambda, and this factory —
+        the only part that was wrong — is constructed by no test.
+        (Phase 6 §5 / Phase 5.)
 
         Design note (Finding #11): this preflight module's convention is
         **subprocess, not import** — checks normally shell out to ``wxcli``
         via ``_run_wxcli`` to reuse the CLI's auth, pagination, and error
-        handling (see the module CLAUDE.md). This probe deliberately deviates
-        and calls ``api.session.get`` directly because there is no equivalent
-        ``wxcli`` subcommand that lists bulk device jobs — generating one
-        just to satisfy the convention would be overkill for a single
-        read-only probe. If ``wxcli`` ever gains a
-        ``bulk-device-jobs list --job-type callDeviceSettings --max 1``
-        command, this probe should be re-routed through ``_run_wxcli`` to
-        restore convention parity.
+        handling (see the module CLAUDE.md). This probe deviates and calls the
+        session directly, and the original reason ("there is no equivalent
+        ``wxcli`` subcommand") is **no longer true**:
+        ``wxcli device-settings list-call-device-settings``
+        (``commands/device_settings.py:1093``) hits this exact path. The reason
+        it still deviates is narrower — ``_run_wxcli`` surfaces only a process
+        exit code and stderr text, and this check branches on the **HTTP
+        status** (403/404 → FAIL "not supported for this org", everything else
+        → WARN/INCOMPLETE). Routing through the subprocess would collapse those
+        into a single non-zero exit. ``rest_get`` raising ``WebexError`` keeps
+        the status, which is what the check needs.
         (Wave 4, Issue #9)
         """
         try:
@@ -322,18 +344,29 @@ class PreflightRunner:
             return None
 
         def _probe() -> tuple[int, str]:
-            import requests
+            from wxcli.config import get_org_id
+            from wxcli.errors import WebexError
 
-            url = api.session.ep("telephony/config/jobs/devices/callDeviceSettings")
+            url = f"{_WEBEX_BASE}/telephony/config/jobs/devices/callDeviceSettings"
             params: dict[str, str] = {"max": "1"}
             org_id = self.config.get("orgId") if isinstance(self.config, dict) else None
+            if not org_id:
+                # Match the generated surface, which injects orgId from
+                # ~/.wxcli/config.json. Unscoped, this probe answers about
+                # whatever org the token happens to default to — which on a
+                # partner token is not necessarily the migration target.
+                org_id = get_org_id()
             if org_id:
                 params["orgId"] = org_id
             try:
-                resp = api.session.get(url, params=params)
-            except requests.RequestException as exc:
+                api.session.rest_get(url, params=params)
+            except WebexError as exc:
+                # WebexError carries the status so the check can key off it
+                # rather than substring-match the body (errors.py:17).
+                return exc.status_code or 0, str(exc)
+            except Exception as exc:  # noqa: BLE001 — transport, DNS, TLS
                 return 0, str(exc)
-            return resp.status_code, getattr(resp, "text", "") or ""
+            return 200, ""
 
         return _probe
 
