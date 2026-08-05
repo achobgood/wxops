@@ -299,6 +299,7 @@ def create_cancel_callout(
     participant_id: str = typer.Option(None, "--participant-id", help="(required) ID of the SIP participant on whom the callout is to be cancelled. It can be retrieved from the response of the \"Call Out a SIP Participant\" API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -308,6 +309,8 @@ def create_cancel_callout(
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CANCEL_CALLOUT), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm("Cancel Callout?", abort=True)
     url = f"https://webexapis.com/v1/meetingParticipants/cancelCallout"
     if json_body:
         body = load_json_body(json_body)

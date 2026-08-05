@@ -1524,6 +1524,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
     if ep.json_body_example:
         params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
+    params.extend(_render_force_option(ep))
     params.extend(_render_output_options("id"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
@@ -1580,6 +1581,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *generate_json_body_check,
         "    api = get_api(debug=debug)",
         *_render_path_inject(ep),
+        *_render_destructive_gate(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
@@ -1627,6 +1629,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     if ep.json_body_example:
         params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
+    params.extend(_render_force_option(ep))
     params.extend(_render_output_options("json"))
     if _can_verify(ep):
         params.append(
@@ -1692,6 +1695,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *generate_json_body_check,
         "    api = get_api(debug=debug)",
         *_render_path_inject(ep),
+        *_render_destructive_gate(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
@@ -1732,6 +1736,107 @@ def _humanize_path_segment(segment: str) -> str:
     spaced = re.sub(r"(?<!^)(?=[A-Z])", " ", spaced)
     words = [w for w in spaced.split() if w]
     return " ".join(w[:1].upper() + w[1:] for w in words) if words else segment
+
+
+def _destructive_noun(ep: Endpoint) -> str:
+    """The resource a destructive non-DELETE operation acts on, from its URL.
+
+    The terminal segment of these paths is usually the ACTION, not the resource
+    (`recordings/purge`, `.../contact-service-queue/purge-inactive-entities`),
+    so naming it directly would produce "Purge Purge?".
+
+    Where the action segment carries its own object, that object is the honest
+    noun and it is preferred over walking back up the path: `purge-inactive-
+    entities` under `.../auxiliary-code/` means *the inactive ones*, so
+    "Purge Auxiliary Code?" would overstate what is destroyed, while "Purge
+    Inactive Entities?" is exactly right. Only when the action segment is a
+    bare verb (`recordings/purge`) do we walk back for the resource.
+    """
+    segs = [s for s in ep.url_path.rstrip("/").split("/") if s and not s.startswith("{")]
+    if not segs:
+        return ""
+    # Split on separators AND camelCase, so `cancelCallout` -> ['cancel', 'Callout'].
+    parts = [p for p in re.split(r"[-_]|(?<!^)(?=[A-Z])", segs[-1]) if p]
+    if parts and parts[0].lower() in DESTRUCTIVE_SEMANTICS:
+        remainder = " ".join(p[:1].upper() + p[1:] for p in parts[1:])
+        if remainder:
+            return remainder
+        segs = segs[:-1]  # bare verb — the resource is further up the path
+    for seg in reversed(segs):
+        label = _humanize_path_segment(seg)
+        if label:
+            return label
+    return ""
+
+
+def _destructive_confirm_line(ep: Endpoint) -> str | None:
+    """The `typer.confirm(...)` line for an operation that destroys, or None.
+
+    Known issue #20 established that `classify_real_semantics` can identify a
+    destructive operation independently of its HTTP method — it is already used
+    for the success message and for a build-failing gate on misleading names.
+    It was NOT consulted where the confirmation gate is emitted, which lives
+    only in `_render_delete_command` and is selected on the HTTP verb. So 23
+    operations the generator itself classifies as destructive (18 POST, 4 PUT,
+    1 PATCH — every CC `purge-inactive-entities`, both recording recycle-bin
+    purges, the four delete-only `accessCodes` PUTs) rendered with no gate at
+    all, while a POST that merely creates a room prompted for nothing and a
+    DELETE of the same room prompted every time.
+
+    Emitted for create/update/action commands ONLY when `real_semantics` is
+    set, so a normal create or update is untouched.
+    """
+    declared = getattr(ep, "confirm_prompt", None)
+    if declared:
+        # Hand-written because the reason is scope, which no signal in the spec
+        # expresses — see _apply_command_confirms.
+        return f'        typer.confirm("{declared}", abort=True)'
+    semantics = getattr(ep, "real_semantics", None)
+    if not semantics:
+        return None
+    verb = semantics[:1].upper() + semantics[1:]
+    noun = _destructive_noun(ep)
+    if ep.path_vars:
+        id_var = _path_var_to_param(ep.path_vars[-1])
+        terminal = _url_terminal_segment(ep.url_path)
+        if terminal == "{" + ep.path_vars[-1] + "}":
+            return f'        typer.confirm(f"{verb} {{{id_var}}}?", abort=True)'
+        if noun:
+            return f'        typer.confirm(f"{verb} {noun} for {{{id_var}}}?", abort=True)'
+        return f'        typer.confirm(f"{verb} this resource (scoped by {{{id_var}}})?", abort=True)'
+    if noun:
+        return f'        typer.confirm("{verb} {noun}?", abort=True)'
+    return f'        typer.confirm("{verb} this resource?", abort=True)'
+
+
+def _render_force_option(ep: Endpoint) -> list[str]:
+    """`--force` for a destructive create/update/action, matching the delete text."""
+    if _destructive_confirm_line(ep) is None or not _emits_force_flag(ep):
+        return []
+    return ['    force: bool = typer.Option(False, "--force", help="Skip confirmation"),']
+
+
+def _render_destructive_gate(ep: Endpoint) -> list[str]:
+    """The two-line `if not force:` gate, or [] for a non-destructive op."""
+    confirm = _destructive_confirm_line(ep)
+    if confirm is None or not _emits_force_flag(ep):
+        return []
+    return ["    if not force:", confirm]
+
+
+def _emits_force_flag(ep: Endpoint) -> bool:
+    """Whether we may add `--force` without colliding with a spec-declared one.
+
+    Checked against body fields as well as query params: `cc-notification
+    create` and `cc-realtime create` declare a BODY field named `force` whose
+    meaning is the inverse of ours (it drops live connections). Neither is
+    destructive-classified, so neither reaches this path today — the guard is
+    here so that a future spec revision cannot silently shadow one with the
+    other.
+    """
+    if any(qp.name == "force" for qp in ep.query_params):
+        return False
+    return not any(bf.name == "force" for bf in getattr(ep, "body_fields", []) or [])
 
 
 def _delete_confirm_subject(ep: Endpoint, id_var: str) -> str:
@@ -1910,6 +2015,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     if ep.json_body_example:
         params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
     params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
+    params.extend(_render_force_option(ep))
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
@@ -1945,6 +2051,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *generate_json_body_check,
         "    api = get_api(debug=debug)",
         *_render_path_inject(ep),
+        *_render_destructive_gate(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
@@ -2027,12 +2134,54 @@ def _apply_command_help_notes(endpoints: list[Endpoint], folder_overrides: dict)
             ep.help_note = " ".join(str(notes[ep.command_name]).split())
 
 
+class CommandConfirmError(Exception):
+    """A `command_confirms` entry names a command this tag does not render."""
+
+
+def _apply_command_confirms(endpoints: list[Endpoint], folder_overrides: dict) -> None:
+    """Gate a command whose RISK IS SCOPE rather than destructiveness.
+
+    `classify_real_semantics` answers "does this remove something", and
+    `_render_destructive_gate` guards everything it flags. Neither can see the
+    other dangerous shape: an operation that only ever writes, but whose scope
+    silently defaults to the entire organization.
+
+    The first user is `device-settings create-apply-line-key-template`. Its
+    summary is "Apply a Line Key Template" and no body field is delete-shaped,
+    so it is correctly NOT destructive by classification — yet omitting the
+    (array-typed, therefore flagless) `locationIds` applies it to every
+    location in the org, and `--action APPLY_DEFAULT_TEMPLATES` resets every
+    affected phone's programmable line keys to factory.
+
+    Deliberately separate from `real_semantics` rather than folded into it:
+    that value also drives the success word, the DESTRUCTIVE docstring line and
+    the build-failing name gate, so overloading it to mean "needs a guard"
+    would change three unrelated behaviours and force a rename or an ack on a
+    command whose name is already honest. Same anti-rot contract as
+    `command_help_notes` — re-validated every generation.
+    """
+    confirms = (folder_overrides or {}).get("command_confirms") or {}
+    if not confirms:
+        return
+    rendered = {ep.command_name for ep in endpoints}
+    unknown = sorted(set(confirms) - rendered)
+    if unknown:
+        raise CommandConfirmError(
+            f"command_confirms names command(s) this tag does not render: "
+            f"{', '.join(unknown)}. Rendered here: {', '.join(sorted(rendered))}"
+        )
+    for ep in endpoints:
+        if ep.command_name in confirms:
+            ep.confirm_prompt = " ".join(str(confirms[ep.command_name]).split())
+
+
 def render_command_file(
     folder_name: str, endpoints: list[Endpoint], folder_overrides: dict,
     base_url_override: str | None = None,
 ) -> str:
     _infer_missing_path_vars(endpoints)
     _apply_command_help_notes(endpoints, folder_overrides)
+    _apply_command_confirms(endpoints, folder_overrides)
     _, cli_name = folder_name_to_module(folder_name)
     needs_org_id_query = any(
         "orgId" in getattr(ep, "auto_inject_params", [])

@@ -234,6 +234,7 @@ def list_bulk_export(
 def delete_purge_inactive_entities(
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch with be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -242,6 +243,8 @@ def delete_purge_inactive_entities(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Purge Inactive Entities for {orgid}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/multimedia-profile/purge-inactive-entities"
     params = {}
     if next_start_id is not None:

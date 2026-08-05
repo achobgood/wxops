@@ -314,6 +314,26 @@
 # answer to "is this permission actually restricting anything".
 
 "Device Call Settings":
+  # `locationIds` is array-typed, and the renderer can only express arrays via
+  # --json-body — so the ONLY scope control on this command is invisible to
+  # anyone reading --help, and omitting it means every location in the org.
+  # `--action APPLY_DEFAULT_TEMPLATES` then resets every affected phone's
+  # programmable line keys to factory. The operation is correctly not
+  # destructive by classification (summary "Apply a Line Key Template", no
+  # delete-shaped body field), so nothing else guards it: the note says what
+  # the default scope is, and command_confirms makes it fail closed.
+  # Rendering all 476 array body fields as flags would not fix this — the
+  # danger is the silent default, not the missing flag.
+  command_help_notes:
+    create-apply-line-key-template: >
+      omitting `locationIds` applies this to EVERY location in the
+      organization. Pass --json-body with a locationIds array to limit it.
+      --action APPLY_DEFAULT_TEMPLATES RESETS programmable line keys to
+      factory settings on every device in scope.
+  command_confirms:
+    create-apply-line-key-template: >
+      Apply line key template to every device in scope (all locations unless
+      locationIds was set)?
   table_columns:
     list:
       - ["ID", "id"]

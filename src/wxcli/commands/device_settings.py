@@ -884,15 +884,18 @@ def create_apply_line_key_template(
     exclude_devices_with_custom_layout: bool = typer.Option(None, "--exclude-devices-with-custom-layout/--no-exclude-devices-with-custom-layout", help="Indicates whether to exclude devices with custom layout."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Apply a Line Key Template.\n\n\b\nExample: wxcli device-settings create-apply-line-key-template --action APPLY_TEMPLATE --template-id TEMPLATE_ID\n\n\b\nExample --json-body: '{"action":"APPLY_TEMPLATE","templateId":"...","locationIds":["..."],"excludeDevicesWithCustomLayout":true,"includeDeviceTags":["..."],"excludeDeviceTags":["..."],"advisoryTypes":{"moreSharedAppearancesEnabled":true,"fewSharedAppearancesEnabled":true,"moreMonitorAppearancesEnabled":true,"moreCPEAppearancesEnabled":true,"moreModeManagementAppearancesEnabled":true}}'"""
+    """Apply a Line Key Template.\n\nNOTE: omitting `locationIds` applies this to EVERY location in the organization. Pass --json-body with a locationIds array to limit it. --action APPLY_DEFAULT_TEMPLATES RESETS programmable line keys to factory settings on every device in scope.\n\n\b\nExample: wxcli device-settings create-apply-line-key-template --action APPLY_TEMPLATE --template-id TEMPLATE_ID\n\n\b\nExample --json-body: '{"action":"APPLY_TEMPLATE","templateId":"...","locationIds":["..."],"excludeDevicesWithCustomLayout":true,"includeDeviceTags":["..."],"excludeDeviceTags":["..."],"advisoryTypes":{"moreSharedAppearancesEnabled":true,"fewSharedAppearancesEnabled":true,"moreMonitorAppearancesEnabled":true,"moreCPEAppearancesEnabled":true,"moreModeManagementAppearancesEnabled":true}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_APPLY_LINE_KEY_TEMPLATE), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm("Apply line key template to every device in scope (all locations unless locationIds was set)?", abort=True)
     url = f"https://webexapis.com/v1/telephony/config/jobs/devices/applyLineKeyTemplate"
     params = {}
     org_id = get_org_id()

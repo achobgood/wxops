@@ -922,6 +922,7 @@ def delete_preview_task(
     task_id: str = typer.Argument(help="UUID"),
     campaign_id: str = typer.Argument(help="UUID"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -929,6 +930,8 @@ def delete_preview_task(
     """Remove Preview Task.\n\n\b\nExample: wxcli cc-tasks delete-preview-task TASK_ID CAMPAIGN_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Remove Preview Task for {campaign_id}?", abort=True)
     url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
     if json_body:
         body = load_json_body(json_body)

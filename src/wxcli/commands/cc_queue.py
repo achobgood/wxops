@@ -171,6 +171,7 @@ _BODY_SKELETON_DELETE_REFERENCE = '{"references":{}}'
 def delete_reference(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -182,6 +183,8 @@ def delete_reference(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete Reference for {orgid}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/delete-reference"
     if json_body:
         body = load_json_body(json_body)
@@ -343,6 +346,7 @@ def create_fetch_manually_assignable_queues(
 def delete_purge_inactive_entities(
     next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch will be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -351,6 +355,8 @@ def delete_purge_inactive_entities(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Purge Inactive Entities for {orgid}?", abort=True)
     url = f"{cc_base_url}/organization/{orgid}/contact-service-queue/purge-inactive-entities"
     params = {}
     if next_start_id is not None:

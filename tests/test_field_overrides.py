@@ -22,7 +22,12 @@ from tools.command_renderer import (
     ReservedParamCollisionError,
 )
 from tools.openapi_parser import load_spec, parse_operation, parse_tag
-from tools.generate_commands import KNOWN_GLOBAL_KEYS, should_skip_tag, merge_tags
+from tools.generate_commands import (
+    COMMAND_KEYED_OVERRIDES,
+    KNOWN_GLOBAL_KEYS,
+    should_skip_tag,
+    merge_tags,
+)
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -70,11 +75,15 @@ class TestOverridesYamlValidity:
         # and a second copy here silently drifts out of date (it did, for
         # tag_op_excludes). Contents of each global key are checked separately.
         known_global_keys = KNOWN_GLOBAL_KEYS
-        known_tag_keys = {
-            "list", "table_columns", "command_type_overrides", "response_list_keys",
-            "url_overrides", "add_query_params", "keep_query_params",
-            "command_name_overrides", "make_optional", "body_defaults",
-            "param_name_overrides",
+        # Same reasoning as the global keys above, applied to the tag keys: the
+        # command-keyed families are imported, not re-listed. The hand-copied
+        # version had already drifted — it omitted `command_help_notes`, a
+        # family shipping under tag_overrides since 2026-07-29, so a top-level
+        # block declaring one failed this test for no reason. Only the three
+        # NON-command-keyed tag keys are listed literally, because the
+        # generator has no single constant naming them.
+        known_tag_keys = set(COMMAND_KEYED_OVERRIDES) | {
+            "list", "keep_query_params", "command_name_overrides",
         }
         for key, value in data.items():
             if key in known_global_keys or key.startswith("_"):
