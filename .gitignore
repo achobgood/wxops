@@ -98,6 +98,32 @@ tests/*
 # commands. Stdlib + pytest only, no conftest, no network: verified green in a
 # `git archive HEAD` checkout.
 !tests/test_wxcli_gate.py
+# The generator's own tests. Same contract as every guard above, and the
+# sharpest case for it yet: `tools/command_renderer.py` is the file whose
+# defects multiply by the whole generated surface, and all four of these ran
+# on nobody's PR. Audit Phase 4 proved the cost by mutation — deleting every
+# `_render_destructive_gate` call site regenerates cleanly, drops all 24
+# confirmation gates, and reports drift-gate PASS with 415/415 tracked tests
+# green. Stdlib + pytest only; imports `tools.*` (resolved by pyproject's
+# `pythonpath = ["."]`), never `wxcli`; no network, no live API, no dependency
+# on the untracked tests/conftest.py.
+!tests/test_command_renderer.py
+!tests/test_command_renderer_dispatch.py
+!tests/test_generate_commands.py
+!tests/test_generator_regression.py
+# Check 21. Asserts every operation classify_real_semantics flags destructive
+# has a typer.confirm in its rendered body — the assertion 02-drift.md F3
+# found nothing was making.
+!tests/test_drift_check_confirms.py
+# The three files above read these two fixtures. A tracked test with an
+# untracked fixture is a red CI job on a fresh clone, so they ship together.
+# The directory is re-included and then re-excluded so tests/fixtures/
+# axl-responses/ (gitignored, referenced by nothing — 06-machinery.md) stays
+# out: git cannot re-include a file whose parent directory is excluded.
+!tests/fixtures/
+tests/fixtures/*
+!tests/fixtures/mini-openapi.json
+!tests/fixtures/expected_output.py
 tests/migration/**/__pycache__/
 tests/org_health/**/__pycache__/
 
