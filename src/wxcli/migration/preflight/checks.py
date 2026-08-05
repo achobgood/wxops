@@ -873,9 +873,15 @@ def check_bulk_device_job_support(
     try:
         status, err = probe_fn()
     except Exception as exc:  # noqa: BLE001 — probe is best-effort
+        # INCOMPLETE, not WARN. WARN ranks below the gate threshold
+        # (`commands/cucm.py:1771-1774`), so a probe that cannot run at all
+        # reported a colour it had not earned — the same shape as finding F06,
+        # which is exactly what INCOMPLETE was invented for. See
+        # `preflight/CLAUDE.md`: "a definite failure is the more actionable
+        # message, but 'we do not know' must still stop the gate."
         return CheckResult(
             name="Bulk device job support",
-            status=CheckStatus.WARN,
+            status=CheckStatus.INCOMPLETE,
             detail=f"Bulk device job probe failed: {exc}",
             issues=[PreflightIssue("BULK_JOB_PROBE_ERROR", str(exc))],
             data={"bulk_op_count": bulk_op_count},
@@ -899,6 +905,24 @@ def check_bulk_device_job_support(
             status=CheckStatus.FAIL,
             detail=msg,
             issues=[PreflightIssue("BULK_JOB_UNSUPPORTED", msg)],
+            data={"bulk_op_count": bulk_op_count, "probe_status": status},
+        )
+
+    if status in (0, 401):
+        # Same doctrine as the exception branch above, for the two outcomes
+        # that mean "we could not ask": 0 is the probe's own sentinel for a
+        # transport failure, and 401 is an auth problem — neither says
+        # anything about whether the ORG supports bulk device jobs, which is
+        # the only question this check exists to answer. 403 stays FAIL below
+        # because a token authorised for everything else in the plan being
+        # refused *here* is a statement about the org.
+        reason = "transport failure" if status == 0 else "HTTP 401 (auth)"
+        return CheckResult(
+            name="Bulk device job support",
+            status=CheckStatus.INCOMPLETE,
+            detail=f"Bulk device job support could not be verified — {reason}: {err}",
+            issues=[PreflightIssue("BULK_JOB_PROBE_INCOMPLETE",
+                                   f"{reason}: {err}")],
             data={"bulk_op_count": bulk_op_count, "probe_status": status},
         )
 

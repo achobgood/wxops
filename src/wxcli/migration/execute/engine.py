@@ -17,7 +17,11 @@ from typing import Any
 import aiohttp
 
 from wxcli.migration.execute.handlers import HANDLER_REGISTRY, SkippedResult
-from wxcli.migration.execute.runtime import get_next_batch, update_op_status
+from wxcli.migration.execute.runtime import (
+    get_next_batch,
+    mark_ops_in_progress,
+    update_op_status,
+)
 from wxcli.migration.store import MigrationStore
 
 
@@ -916,6 +920,17 @@ async def execute_all_batches(
                     continue
 
                 tasks.append((op, calls))
+
+            # Mark every dispatched op in_progress BEFORE the first request
+            # leaves the process. `reset_in_progress` at the top of the next
+            # run is what turns these back into pending work, and the
+            # "Reset N in-progress ops" line it drives is the only signal an
+            # operator gets that a prior run died mid-flight. Until this
+            # write existed nothing set the status, so that recovery path
+            # could never fire and a killed op was byte-identical to one that
+            # was never attempted.
+            if tasks:
+                mark_ops_in_progress(store, [op["node_id"] for op, _ in tasks])
 
             # Execute all ops in this batch — serialized bulk types run sequentially.
             if tasks:

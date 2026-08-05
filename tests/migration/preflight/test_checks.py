@@ -595,15 +595,52 @@ class TestCheckBulkDeviceJobSupport:
         assert result.status == CheckStatus.WARN
         assert "HTTP 500" in result.detail
 
-    def test_warn_on_probe_exception(self, store):
+    def test_incomplete_on_probe_exception(self, store):
+        """A probe that cannot run must not report a colour it did not earn.
+
+        This asserted WARN until 2026-08-05, and WARN ranks below the gate
+        threshold (`commands/cucm.py:1771-1774`) — so with the probe factory
+        raising `AttributeError` on every invocation, check 10 of 10 had never
+        returned PASS or FAIL and could not stop anything. Same shape as
+        finding F06; INCOMPLETE is the status this repo invented for it.
+        """
         _add_bulk_plan_op(store)
 
         def boom():
             raise ConnectionError("DNS lookup failed")
 
         result = check_bulk_device_job_support(store, probe_fn=boom)
-        assert result.status == CheckStatus.WARN
+        assert result.status == CheckStatus.INCOMPLETE
         assert "DNS lookup failed" in result.detail
+        assert result.issues[0].issue_type == "BULK_JOB_PROBE_ERROR"
+
+    def test_incomplete_on_transport_failure(self, store):
+        """Status 0 is the probe's own sentinel for "never reached Webex"."""
+        _add_bulk_plan_op(store)
+        result = check_bulk_device_job_support(
+            store, probe_fn=lambda: (0, "Connection refused")
+        )
+        assert result.status == CheckStatus.INCOMPLETE
+        assert "transport failure" in result.detail
+
+    def test_incomplete_on_401(self, store):
+        """401 says nothing about whether the ORG supports bulk device jobs."""
+        _add_bulk_plan_op(store)
+        result = check_bulk_device_job_support(
+            store, probe_fn=lambda: (401, "Unauthorized")
+        )
+        assert result.status == CheckStatus.INCOMPLETE
+        assert "auth" in result.detail
+
+    def test_403_stays_fail_not_incomplete(self, store):
+        """A token authorised for the rest of the plan but refused *here* is a
+        statement about the org, so 403 keeps its FAIL verdict and its remedy."""
+        _add_bulk_plan_op(store)
+        result = check_bulk_device_job_support(
+            store, probe_fn=lambda: (403, "Forbidden")
+        )
+        assert result.status == CheckStatus.FAIL
+        assert "bulk_device_threshold=999999" in result.detail
 
     def test_counts_all_bulk_types(self, store):
         # Verify the LIKE 'bulk_%' pattern catches every bulk resource type

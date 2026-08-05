@@ -422,10 +422,13 @@ def test_reconcile_waits_until_the_last_member_exists(store):
 def test_webex_id_survives_completion_in_plan_operations(store):
     """§7.5 — the id is read from plan_operations, so it outlives the run that set it.
 
-    Scope note: this holds across repeated `execute` runs against ONE saved plan.
-    Re-running `wxcli cucm plan` calls save_plan_to_store, which clears
-    plan_operations and resets every op to pending with no webex_id — that is a
-    pre-existing property of plan persistence, not specific to this op.
+    Scope note, corrected 2026-08-05: this used to hold only across repeated
+    `execute` runs against ONE saved plan, because `save_plan_to_store` cleared
+    plan_operations and reset every op to pending with no webex_id. That was
+    recorded here as "a pre-existing property of plan persistence" — it was in
+    fact a defect, and it is fixed: a re-plan now carries the execution record
+    forward for every op that survives into the new plan, and reports the ones
+    that do not. See tests/migration/execute/test_plan_preserves_execution_record.py.
     """
     from wxcli.migration.execute.runtime import update_op_status
 

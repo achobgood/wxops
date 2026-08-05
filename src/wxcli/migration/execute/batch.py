@@ -19,6 +19,7 @@ import json
 import logging
 import math
 from collections import defaultdict
+from typing import Any
 
 import networkx as nx
 
@@ -157,18 +158,76 @@ def format_batch_plan(
     return "\n".join(lines)
 
 
+#: The columns that record what actually happened remotely, as opposed to what
+#: the planner decided. `plan_operations` is the ONLY durable record of what the
+#: migration created in the customer's org, and `execute/` issues no DELETE, so
+#: an id lost here cannot be cleaned up by this tool.
+_EXECUTION_COLUMNS = ("status", "webex_id", "error_message", "completed_at", "attempts")
+
+
 def save_plan_to_store(
     G: nx.DiGraph,
     store: "MigrationStore",
-) -> None:
+) -> dict[str, Any]:
     """Persist the execution plan (operations + edges) to SQLite.
 
-    Writes to plan_operations and plan_edges tables. Clears any
-    existing plan data first (idempotent re-planning).
+    Writes to plan_operations and plan_edges tables. Rebuilds the plan rows
+    from scratch — the graph is the source of truth for tier/batch/deps — but
+    **carries the execution record forward** for every op that survives into the
+    new plan.
+
+    Returns ``{"preserved": N, "orphaned": [ {node_id, resource_type, webex_id,
+    description}, … ]}`` so the caller can disclose both.
+
+    **Why preservation, not a clean wipe (2026-08-05).** Until now this function
+    opened with an unconditional ``DELETE FROM plan_operations``, described as
+    "idempotent re-planning". It is idempotent with respect to the *plan* and
+    destructive with respect to the *execution record*: re-running
+    ``wxcli cucm plan`` after a partial or complete ``execute`` reset every op to
+    ``pending`` and dropped every ``webex_id``. The next ``execute`` then
+    re-issued the entire plan against an org that already had it — producing
+    duplicates for the 13 of 21 create-capable resource types that
+    ``_try_find_existing`` does not cover, or hard 409 failures for the rest.
+    ``rollback-ops`` reads these same rows, so it reported "nothing to roll back"
+    immediately afterwards. Preserving is both safer and more useful: a re-plan
+    now skips work that is already done, which is what re-planning mid-migration
+    is for.
+
+    ``node_id`` is ``canonical_id:op_type`` and is stable across re-plans for the
+    same object, which is what makes the carry-forward well-defined.
+
+    **Orphans are the case that still needs a human.** A completed op carrying a
+    ``webex_id`` whose ``node_id`` is absent from the new graph names a real
+    object in the customer's org that the new plan no longer knows about. Nothing
+    in this tool can delete it. They are returned rather than swallowed.
 
     (from 05-dependency-graph.md lines 300-327 — plan_operations + plan_edges tables)
     """
     conn = store.conn
+
+    # Snapshot the execution record before the rebuild.
+    prior: dict[str, dict[str, Any]] = {}
+    try:
+        cols = ", ".join(_EXECUTION_COLUMNS)
+        for row in conn.execute(
+            f"SELECT node_id, resource_type, description, {cols} "  # noqa: S608
+            "FROM plan_operations"
+        ).fetchall():
+            prior[row["node_id"]] = dict(row)
+    except Exception:  # noqa: BLE001 — a fresh store has no rows to carry
+        prior = {}
+
+    surviving = set(G.nodes())
+    orphaned = [
+        {
+            "node_id": nid,
+            "resource_type": r.get("resource_type"),
+            "webex_id": r.get("webex_id"),
+            "description": r.get("description"),
+        }
+        for nid, r in prior.items()
+        if nid not in surviving and r.get("status") == "completed" and r.get("webex_id")
+    ]
 
     # Clear existing plan (edges first — FK constraint)
     conn.execute("DELETE FROM plan_edges")
@@ -219,11 +278,29 @@ def save_plan_to_store(
             (u, v, dep_type_str, 0),
         )
 
+    # Carry the execution record forward for every op that survived.
+    preserved = 0
+    assignments = ", ".join(f"{c} = ?" for c in _EXECUTION_COLUMNS)
+    for node_id, row in prior.items():
+        if node_id not in surviving:
+            continue
+        if row.get("status") in (None, "pending") and not row.get("webex_id"):
+            continue  # nothing worth carrying
+        conn.execute(
+            f"UPDATE plan_operations SET {assignments} WHERE node_id = ?",  # noqa: S608
+            (*(row.get(c) for c in _EXECUTION_COLUMNS), node_id),
+        )
+        preserved += 1
+
     conn.commit()
 
     total_ops = G.number_of_nodes()
     total_edges = G.number_of_edges()
     logger.info("Saved plan to SQLite: %d operations, %d edges", total_ops, total_edges)
+    if preserved or orphaned:
+        logger.info("Re-plan carried %d execution record(s) forward; %d orphaned",
+                    preserved, len(orphaned))
+    return {"preserved": preserved, "orphaned": orphaned}
 
 
 def load_plan_from_store(store: "MigrationStore") -> nx.DiGraph:

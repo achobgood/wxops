@@ -71,6 +71,18 @@ STAGE_PREREQUISITES: dict[str, str] = {
     "analyze": "map",
     "plan": "analyze",
     "preflight": "plan",
+    # `execute` is the only stage that writes to a live customer org, and until
+    # 2026-08-05 it was the only stage with no prerequisite at all — every read
+    # stage above was gated, and so is `report`, which merely writes an HTML file.
+    # The cucm-migrate skill calls preflight "MANDATORY. No override or bypass";
+    # that sentence lived in a prompt file and nothing in code enforced it.
+    #
+    # Safe against the documented recovery loop, traced before enabling: the
+    # `execute → retry-failed → execute` cycle touches `completed_stages` at no
+    # point, so preflight stays satisfied across every retry pass. The only thing
+    # that clears it is `_invalidate_downstream`, i.e. re-running an earlier
+    # stage — and a re-plan *should* require a fresh preflight.
+    "execute": "preflight",
 }
 
 # Pipeline stages in execution order. `completed_stages` is a subset of this.
@@ -1337,9 +1349,23 @@ def discover(
 @app.command()
 def normalize(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logging"),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help=(
+            "Re-normalize even though operations have already been executed. "
+            "This ERASES the record of what was created in Webex — including "
+            "every webexId and every resolved decision — and cannot be undone."
+        ),
+    ),
     project: Optional[str] = typer.Option(None, "--project", "-p", help="Project name"),
 ):
-    """Run pass 1 normalizers + pass 2 cross-reference builder."""
+    """Run pass 1 normalizers + pass 2 cross-reference builder.
+
+    Rebuilds the canonical store from scratch, so it clears every table —
+    objects, cross-references, decisions, the journal, and the execution plan.
+    Refuses to run once operations have been executed unless --force.
+    """
     if verbose:
         import logging as _logging
         _logging.basicConfig(level=_logging.INFO, format="%(name)s: %(message)s")
@@ -1360,6 +1386,35 @@ def normalize(
 
     config = load_config(project_dir)
     store = _open_store(project_dir)
+
+    # `clear_all()` below empties EVERY table — plan_operations included, which
+    # is the only durable record of what this migration created in the customer's
+    # org, and `execute/` has no DELETE to undo any of it. Unlike `plan`, this
+    # stage cannot preserve that record: it rebuilds `objects` from raw_data, and
+    # every other table hangs off it by foreign key. So the only honest options
+    # are refuse or disclose-and-confirm. Refuse by default.
+    executed = store.conn.execute(
+        "SELECT COUNT(*) AS cnt FROM plan_operations "
+        "WHERE status = 'completed' OR webex_id IS NOT NULL"
+    ).fetchone()["cnt"]
+    if executed and not force:
+        decisions = store.conn.execute(
+            "SELECT COUNT(*) AS cnt FROM decisions WHERE chosen_option IS NOT NULL"
+        ).fetchone()["cnt"]
+        console.print(
+            f"[red]Refusing to re-normalize:[/red] {executed} operation(s) have "
+            f"already been executed against Webex.\n\n"
+            f"Re-normalizing erases the record of what was created — every "
+            f"webexId, and {decisions} resolved decision(s) — and this tool "
+            f"cannot delete what it created, so the objects would be left in the "
+            f"org with nothing referencing them.\n\n"
+            f"  [dim]Review what exists:[/dim]  wxcli cucm execution-status\n"
+            f"  [dim]List what to remove:[/dim] wxcli cucm rollback-ops\n"
+            f"  [dim]Re-plan instead (keeps the record):[/dim] wxcli cucm plan\n\n"
+            f"Pass --force to erase it anyway."
+        )
+        store.close()
+        raise typer.Exit(1)
 
     # Clean slate for re-normalization (all tables have FK chains to objects)
     store.clear_all()
@@ -1675,8 +1730,36 @@ def plan(
         # Step 5: Partition into batches
         batches = partition_into_batches(G)
 
-        # Step 6: Save plan to SQLite
-        save_plan_to_store(G, store)
+        # Step 6: Save plan to SQLite.
+        # Re-planning preserves the execution record for every op that survives
+        # into the new plan (batch.py: save_plan_to_store). Both halves of what
+        # it did are disclosed: what carried forward, and — the case that needs a
+        # human — completed objects the new plan no longer references. `execute/`
+        # issues no DELETE, so nothing here can clean those up.
+        plan_persistence = save_plan_to_store(G, store)
+        if plan_persistence.get("preserved"):
+            console.print(
+                f"  [green]Preserved[/green] {plan_persistence['preserved']} "
+                f"already-executed operation(s) — they will not be re-issued"
+            )
+        orphaned = plan_persistence.get("orphaned") or []
+        if orphaned:
+            console.print(
+                f"\n[yellow]Warning:[/yellow] {len(orphaned)} completed operation(s) "
+                f"are no longer in the plan. These objects exist in Webex and this "
+                f"tool can no longer reference them:"
+            )
+            for op in orphaned[:10]:
+                console.print(
+                    f"    {op['resource_type']}  {op['description'] or op['node_id']}"
+                    f"  (webexId: {op['webex_id']})"
+                )
+            if len(orphaned) > 10:
+                console.print(f"    … and {len(orphaned) - 10} more")
+            console.print(
+                "  [dim]Remove them by hand or with the provision-calling "
+                "teardown procedure before re-running execute.[/dim]"
+            )
 
         # Check pending decisions for state transition
         from wxcli.migration.transform.decisions import pending_decisions as _pending
@@ -1794,7 +1877,17 @@ def preflight(
         # The exit code has to carry the verdict. A caller that gates on $?
         # (the cucm-migrate skill calls preflight MANDATORY, NOT SKIPPABLE)
         # otherwise reads success from a run that printed "Overall: FAIL".
-        if result.overall == CheckStatus.FAIL:
+        #
+        # INCOMPLETE exits non-zero for the same reason, and it has to match
+        # the stage gate 25 lines up, which already excludes it. Until
+        # 2026-08-05 the two disagreed: `gate_ok` refused to mark the stage on
+        # INCOMPLETE while this branch exited 0, so a run that printed
+        # "we could not check" and left ProjectState un-advanced still told
+        # `$?` it had succeeded. INCOMPLETE is the status this repo invented
+        # for "we could not check" (preflight/__init__.py:26-32) and
+        # `preflight/CLAUDE.md` states the doctrine: "'we do not know' must
+        # still stop the gate."
+        if result.overall in (CheckStatus.FAIL, CheckStatus.INCOMPLETE):
             raise typer.Exit(1)
 
     except typer.Exit:
@@ -3156,6 +3249,7 @@ def execute(
 ):
     """Execute the migration plan — bulk async with rate limiting.
 
+    Requires a passing 'wxcli cucm preflight'.
     Processes all pending operations using concurrent API calls.
     Failed operations are recorded and can be retried.
     Run 'wxcli cucm dry-run' first to preview the execution plan.
@@ -3168,6 +3262,7 @@ def execute(
     )
 
     project_dir = _resolve_project_dir(project)
+    _check_prerequisite(project_dir, "execute")
     store = _open_store(project_dir)
 
     token = resolve_token()

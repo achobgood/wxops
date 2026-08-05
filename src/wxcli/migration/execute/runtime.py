@@ -232,6 +232,36 @@ def update_op_status(
     conn.commit()
 
 
+def mark_ops_in_progress(store: MigrationStore, node_ids: list[str]) -> int:
+    """Flip a batch of pending ops to 'in_progress'. Returns rows updated.
+
+    Called by the engine immediately **before** the first request of a batch
+    leaves the process, so that an op whose POST reached Webex but whose
+    ``completed`` commit never landed is distinguishable from one that was
+    never attempted. Without it every op killed mid-flight stays ``pending``
+    and is re-issued verbatim on the next ``wxcli cucm execute`` — and
+    ``execute/`` issues no DELETE, so a duplicate it creates cannot be
+    cleaned up by this tool.
+
+    One statement and one commit for the whole batch: the per-op
+    ``update_op_status(..., "in_progress")`` path commits each time, which at
+    batch sizes in the hundreds is hundreds of fsyncs before any useful work.
+
+    Guarded on ``status = 'pending'`` so a re-entrant call cannot resurrect an
+    op that has already been marked completed/failed/skipped.
+    """
+    if not node_ids:
+        return 0
+    placeholders = ",".join("?" for _ in node_ids)
+    cursor = store.conn.execute(
+        f"UPDATE plan_operations SET status = 'in_progress' "  # noqa: S608
+        f"WHERE status = 'pending' AND node_id IN ({placeholders})",
+        node_ids,
+    )
+    store.conn.commit()
+    return cursor.rowcount
+
+
 def _cascade_skip(
     conn,
     node_id: str,
