@@ -53,7 +53,7 @@ KNOWN_GLOBAL_KEYS = {
 COMMAND_KEYED_OVERRIDES = (
     "table_columns", "add_query_params", "command_type_overrides",
     "url_overrides", "response_list_keys", "make_optional", "body_defaults",
-    "command_help_notes", "param_name_overrides",
+    "command_help_notes", "command_confirms", "param_name_overrides",
 )
 
 

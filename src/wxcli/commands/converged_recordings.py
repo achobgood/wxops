@@ -371,6 +371,7 @@ def delete_recordings_recycle(
     owner_email: str = typer.Option(None, "--owner-email", help="Email address for the recording owner. This parameter is only used if `purgeAll` is set to `true` and the user or application calling the API has the required administrator scope `spark-admin:recordings_write`. The administrator may specify the email of a user from an org they manage and the API..."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -380,6 +381,8 @@ def delete_recordings_recycle(
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_RECORDINGS_RECYCLE), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm("Purge Converged Recordings?", abort=True)
     url = f"https://webexapis.com/v1/convergedRecordings/purge"
     if json_body:
         body = load_json_body(json_body)

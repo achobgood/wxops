@@ -472,6 +472,7 @@ def delete_delegate_emails(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site to query. For individual use, if `siteUrl` is not specified, the query will use the default site of the user. For admin use, if `siteUrl` is not specified, the query will use the default site for the admin's authorization token used to make the call. In the case where the user..."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -481,6 +482,8 @@ def delete_delegate_emails(
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_DELEGATE_EMAILS), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm("Delete Delegate Emails?", abort=True)
     url = f"https://webexapis.com/v1/meetingPreferences/schedulingOptions/delegateEmails/delete"
     params = {}
     if user_email is not None:

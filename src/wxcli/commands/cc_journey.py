@@ -134,6 +134,7 @@ def delete_person_id_workspace_id(
     person_id: str = typer.Argument(help="24-char hex id"),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -141,6 +142,8 @@ def delete_person_id_workspace_id(
     """Remove one/more Identities from a person.\n\n\b\nExample: wxcli cc-journey delete-person-id-workspace-id WORKSPACE_ID PERSON_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
+    if not force:
+        typer.confirm(f"Remove {person_id}?", abort=True)
     url = f"{cc_base_url}/admin/v1/api/person/remove-identities/workspace-id/{workspace_id}/person-id/{person_id}"
     if json_body:
         body = load_json_body(json_body)

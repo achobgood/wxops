@@ -477,6 +477,7 @@ def delete_recordings_recycle(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API purges recordings. If not specified, the API purges recordings from user's preferred site. All available Webex sites and preferred sites of the user can be retrieved by [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -486,6 +487,8 @@ def delete_recordings_recycle(
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_RECORDINGS_RECYCLE), indent=2))
         raise typer.Exit(0)
     api = get_api(debug=debug)
+    if not force:
+        typer.confirm("Purge Recordings?", abort=True)
     url = f"https://webexapis.com/v1/recordings/purge"
     params = {}
     if host_email is not None:
