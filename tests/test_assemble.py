@@ -22,7 +22,14 @@ def test_curated_settings_has_wxcli_perms_only():
     curated = json.loads(
         (REPO_ROOT / "wxcli-dist" / "settings.bundled.json").read_text()
     )
-    assert curated["permissions"]["allow"] == ["Bash(wxcli:*)", "Bash(which:*)"]
+    # `Bash(wxcli:*)` was REMOVED deliberately, and its absence is the assertion.
+    # A blanket allow pre-approves exactly the calls the PreToolUse gate exists
+    # to interpose on; the gate grants permission itself (it returns
+    # permissionDecision "allow" for the playbook agents), so the entry is not
+    # needed to keep the builder unprompted — it only suppressed the gate's
+    # reason for existing. Shipping both is the contradiction this pins shut.
+    assert curated["permissions"]["allow"] == ["Bash(which:*)"]
+    assert "Bash(wxcli:*)" not in curated["permissions"]["allow"]
     assert "env" not in curated
     assert set(curated.keys()) == {"permissions", "hooks"}
 
@@ -31,17 +38,58 @@ def test_curated_settings_has_wxcli_perms_only():
     # meant pulling a clone — customer folders have no clone. Assert the shape
     # rather than the absence, so the retired git path cannot come back.
     hooks = curated["hooks"]
-    assert set(hooks) == {"SessionStart"}, "only SessionStart is expected"
+    assert set(hooks) == {"SessionStart", "PreToolUse"}
     commands = [
         h["command"]
         for entry in hooks["SessionStart"]
         for h in entry["hooks"]
     ]
     assert commands == ["wxcli --no-update-check update --hook"]
-    for command in commands:
+
+    # The gate must be wired to the path assemble() writes it to, or it is a
+    # settings entry pointing at nothing — a no-op gate that reads as a gate.
+    pre = hooks["PreToolUse"]
+    assert [e["matcher"] for e in pre] == ["Bash"]
+    assert [h["command"] for e in pre for h in e["hooks"]] == [
+        'sh "$CLAUDE_PROJECT_DIR/.claude/hooks/wxcli-gate.sh"'
+    ]
+
+    # Applies to EVERY bundled hook command, not just SessionStart: a customer
+    # folder has no clone, so a git-fetching hook could never work there.
+    every = commands + [h["command"] for e in pre for h in e["hooks"]]
+    for command in every:
         assert "git" not in command, (
             f"customer folders have no clone — no git in a bundled hook: {command!r}"
         )
+
+
+def test_curated_hook_ships_and_is_wired(tmp_path):
+    """The gate is bundled, and to the exact path the settings reference."""
+    mod = _load_assemble()
+    bundle = tmp_path / "bundle"
+    mod.assemble(REPO_ROOT, bundle, mod.CURATED_SETTINGS, mod.CURATED_HOOK)
+
+    hook = bundle / ".claude" / "hooks" / "wxcli-gate.sh"
+    assert hook.is_file(), "PreToolUse gate missing from the bundle"
+
+    settings = json.loads((bundle / ".claude" / "settings.json").read_text())
+    referenced = [
+        h["command"]
+        for e in settings["hooks"]["PreToolUse"]
+        for h in e["hooks"]
+    ]
+    assert any(".claude/hooks/wxcli-gate.sh" in c for c in referenced)
+
+    # The DEVELOPMENT copy must not be what ships: it cites repo paths that do
+    # not exist in an installed playbook, which is why a curated copy exists.
+    dev = (REPO_ROOT / ".claude" / "hooks" / "wxcli-gate.sh").read_bytes()
+    assert hook.read_bytes() != dev, "dev hook shipped verbatim"
+    assert hook.read_bytes() == mod.CURATED_HOOK.read_bytes()
+
+    # The link audit exists to catch repo-only references; the shipped gate is
+    # subject to it like every other bundled file.
+    assert not [v for v in mod.audit_bundle(bundle)
+                if v[0].startswith(".claude/hooks/")]
 
 
 def _git(repo, *args):

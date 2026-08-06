@@ -18,6 +18,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BUNDLE_DIR = REPO_ROOT / "src" / "wxcli" / "_playbook"
 CURATED_SETTINGS = Path(__file__).resolve().parent / "settings.bundled.json"
+# The PreToolUse gate ships, but not the development copy: that one cites repo
+# paths an installed playbook does not have. Substituted the same way settings
+# are — keep the POLICY identical between the two, only the guidance differs.
+CURATED_HOOK = Path(__file__).resolve().parent / "wxcli-gate.bundled.sh"
 
 # Enumerate the three .claude subdirs explicitly — `.claude/` wholesale would
 # also sweep the tracked .claude/projects/**/memory path.
@@ -149,8 +153,9 @@ def untracked_sources(repo_root: Path) -> list[str]:
     return [f for f in extra if f not in ignored]
 
 
-def assemble(repo_root: Path, bundle_dir: Path, curated_settings: Path) -> list[str]:
-    """Wipe bundle_dir, copy sources preserving layout, substitute settings."""
+def assemble(repo_root: Path, bundle_dir: Path, curated_settings: Path,
+             curated_hook: Path = CURATED_HOOK) -> list[str]:
+    """Wipe bundle_dir, copy sources preserving layout, substitute settings+hook."""
     if bundle_dir.exists():
         shutil.rmtree(bundle_dir)
     files = enumerate_sources(repo_root)
@@ -161,6 +166,12 @@ def assemble(repo_root: Path, bundle_dir: Path, curated_settings: Path) -> list[
     settings_dest = bundle_dir / ".claude" / "settings.json"
     settings_dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(curated_settings, settings_dest)
+    # settings.bundled.json wires PreToolUse to this path; shipping one without
+    # the other is a silent no-op gate, so they move together.
+    hook_dest = bundle_dir / ".claude" / "hooks" / "wxcli-gate.sh"
+    hook_dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(curated_hook, hook_dest)
+    hook_dest.chmod(0o755)
     return files
 
 
