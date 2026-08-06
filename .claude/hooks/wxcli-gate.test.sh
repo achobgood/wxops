@@ -10,7 +10,12 @@
 # Usage:  sh .claude/hooks/wxcli-gate.test.sh
 # Exit 0 = all cases as expected.
 
-HOOK="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/wxcli-gate.sh"
+# Optional argument: run the same decision table against a different copy of the
+# gate. Used below to hold the SHIPPED copy (wxcli-dist/wxcli-gate.bundled.sh,
+# assembled to src/wxcli/_playbook/.claude/hooks/) to the identical policy. Two
+# copies of one policy with nothing comparing them is how they drift apart.
+HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+HOOK="${1:-$HERE/wxcli-gate.sh}"
 pass=0; fail=0
 
 # check <expected> <agent_type> <command>
@@ -71,6 +76,15 @@ check allow wxc-calling-builder 'wxcli organizations delete Y2lz'
 check allow wxc-calling-builder 'wxcli cleanup run --force'
 check allow migration-advisor   '/opt/homebrew/bin/wxcli locations delete Y2lz'
 
+# The exemption is a fixed two-name list, and nothing here asserted that it is
+# CLOSED. Found by mutation: widening the case to a third agent left the whole
+# table green. An allowlist nobody tests for over-breadth is not an allowlist.
+echo "== every other agent gets no exemption =="
+check deny  some-other-agent    'wxcli locations delete Y2lz'
+check deny  general-purpose     'wxcli cleanup run --force'
+check deny  Explore             'wxcli organizations delete Y2lz'
+check allow some-other-agent    'wxcli people list'
+
 echo "== the Python import side door stays shut =="
 check deny  "" 'python -c "import wxcli"'
 check deny  "" 'python3 -c "from wxcli.commands import organizations"'
@@ -95,4 +109,18 @@ check allow "" 'wxcli locations list | jq -r ".[].id"'
 
 echo
 echo "pass=$pass fail=$fail"
-[ "$fail" -eq 0 ]
+[ "$fail" -eq 0 ] || exit 1
+
+# Same table, shipped copy. Only when invoked with no argument, so the recursive
+# call terminates. The bundled source is authoritative; the assembled copy under
+# _playbook/ is regenerated output and may legitimately be absent in a tree that
+# has not run assemble.py, so a missing one is skipped, not failed.
+if [ -z "${1:-}" ]; then
+  for shipped in "$HERE/../../wxcli-dist/wxcli-gate.bundled.sh" \
+                 "$HERE/../../src/wxcli/_playbook/.claude/hooks/wxcli-gate.sh"; do
+    [ -f "$shipped" ] || continue
+    echo
+    echo "== same table, shipped copy: ${shipped##*/../} =="
+    sh "$0" "$shipped" || exit 1
+  done
+fi
