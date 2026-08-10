@@ -703,35 +703,35 @@
                 "schema": {
                   "properties": {
                     "audience": {
-                      "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                      "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                       "type": "string"
                     },
                     "errorMessage": {
-                      "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                      "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Data Source Id.",
+                      "description": "The data source ID.",
                       "type": "string"
                     },
                     "nonce": {
-                      "description": "Unique nonce used in the encryption of the JWT token.",
+                      "description": "A unique nonce used when encrypting the JWT.",
                       "type": "string"
                     },
                     "schemaId": {
-                      "description": "The schema id used for the data exchange.",
+                      "description": "The schema ID used for the data exchange.",
                       "type": "string"
                     },
                     "status": {
-                      "description": "The status of the Data Source; `active` or `disabled`",
+                      "description": "The data source status: `active` or `disabled`.",
                       "type": "string"
                     },
                     "subject": {
-                      "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                      "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                       "type": "string"
                     },
                     "tokenLifetimeMinutes": {
-                      "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration",
+                      "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data.",
                       "type": "number"
                     },
                     "url": {
@@ -795,7 +795,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Register your data source to the Webex BYODS system. Authentication must happen via a Service App with the scope `spark-admin:datasource_write`.\nThe schema IDs determine what data types are sent from Webex to the DAP and the expected responses. The schemas can be inspected on developer.webex.com.",
+        "description": "Register a data source with the Webex BYODS system. Authenticate using a Service App with the `spark-admin:datasource_write` scope.\nSchema IDs determine the types of data Webex sends to the DAP and the expected responses. Use the Data Source Schemas endpoints to inspect the available schemas.",
         "operationId": "Register a Data Source",
         "requestBody": {
           "content": {
@@ -811,23 +811,23 @@
                 },
                 "properties": {
                   "audience": {
-                    "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                    "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                     "type": "string"
                   },
                   "nonce": {
-                    "description": "Unique nonce used in the encryption of the JWT token.",
+                    "description": "A unique nonce used when encrypting the JWT.",
                     "type": "string"
                   },
                   "schemaId": {
-                    "description": "The schema id used for the data exchange.",
+                    "description": "The schema ID used for the data exchange.",
                     "type": "string"
                   },
                   "subject": {
-                    "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                    "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                     "type": "string"
                   },
                   "tokenLifetimeMinutes": {
-                    "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440.",
+                    "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data. Must be 1440 or less.",
                     "type": "number"
                   },
                   "url": {
@@ -928,7 +928,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Show all data sources registered for this Service App with the scope `spark-admin:datasource_read`.",
+        "description": "Lists all data sources registered by the Service App. Requires the `spark-admin:datasource_read` scope.",
         "operationId": "Retrieve All Data Sources",
         "summary": "Retrieve All Data Sources"
       }
@@ -1018,7 +1018,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Show available schemas. No specific scope is needed to retrieve the dataSource schemas, but a valid API token should be presented.",
+        "description": "Lists the available data source schemas. A valid API access token is required, but no specific scope is needed.",
         "operationId": "Retrieve Data Source Schemas",
         "summary": "Retrieve Data Source Schemas"
       }
@@ -1056,27 +1056,27 @@
                 "schema": {
                   "properties": {
                     "appType": {
-                      "description": "The app type used for this schema",
+                      "description": "The application type used for the schema.",
                       "type": "string"
                     },
                     "createdAt": {
-                      "description": "datetime when the schema was created",
+                      "description": "The date and time when the schema was created.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Schema Id",
+                      "description": "The schema ID.",
                       "type": "string"
                     },
                     "protocol": {
-                      "description": "The connection protocol for this schema",
+                      "description": "The connection protocol used by the schema.",
                       "type": "string"
                     },
                     "serviceType": {
-                      "description": "The service type web or contact center",
+                      "description": "The service type, such as web or contact center.",
                       "type": "string"
                     },
                     "url": {
-                      "description": "the URL location where this schema can be inspected",
+                      "description": "The URL where the schema can be inspected.",
                       "type": "string"
                     }
                   },
@@ -1136,7 +1136,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Retrieve details of a specific data source schema by schema id. No specific scope is needed to retrieve the dataSource schemas, but a valid API token should be presented.",
+        "description": "Retrieves details for a specific data source schema by schema ID. A valid API access token is required, but no specific scope is needed.",
         "operationId": "Retrieve Details of a Specific Data Source Schema",
         "summary": "Retrieve Details of a Specific Data Source Schema"
       }
@@ -1145,7 +1145,7 @@
       "delete": {
         "parameters": [
           {
-            "description": "The unique identifier for the dataSource.",
+            "description": "The unique identifier for the data source.",
             "example": "f29bb291-5db0-411b-834a-e64f8dee0658",
             "in": "path",
             "name": "dataSourceId",
@@ -1209,14 +1209,14 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Delete a Data Source, by Data Source ID.\n\nSpecify the Data Source ID in the `dataSourceId` parameter in the URI.",
+        "description": "Deletes a data source by ID.\n\nSpecify the data source ID in the `dataSourceId` URI parameter.",
         "operationId": "Delete a Data Source",
         "summary": "Delete a Data Source"
       },
       "get": {
         "parameters": [
           {
-            "description": "The unique identifier for the dataSource.",
+            "description": "The unique identifier for the data source.",
             "example": "f29bb291-5db0-411b-834a-e64f8dee0658",
             "in": "path",
             "name": "dataSourceId",
@@ -1248,35 +1248,35 @@
                 "schema": {
                   "properties": {
                     "audience": {
-                      "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                      "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                       "type": "string"
                     },
                     "errorMessage": {
-                      "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                      "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Data Source Id.",
+                      "description": "The data source ID.",
                       "type": "string"
                     },
                     "nonce": {
-                      "description": "Unique nonce used in the encryption of the JWT token.",
+                      "description": "A unique nonce used when encrypting the JWT.",
                       "type": "string"
                     },
                     "schemaId": {
-                      "description": "The schema id used for the data exchange.",
+                      "description": "The schema ID used for the data exchange.",
                       "type": "string"
                     },
                     "status": {
-                      "description": "The status of the Data Source; `active` or `disabled`",
+                      "description": "The data source status: `active` or `disabled`.",
                       "type": "string"
                     },
                     "subject": {
-                      "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                      "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                       "type": "string"
                     },
                     "tokenLifetimeMinutes": {
-                      "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration",
+                      "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data.",
                       "type": "number"
                     },
                     "url": {
@@ -1340,7 +1340,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Show details for a data source, by dataSource id.\nTo see details for a data source, use the Service App token with the `spark-admin:datasource_read` scope.",
+        "description": "Retrieves details for a data source by ID. Use a Service App token with the `spark-admin:datasource_read` scope.",
         "operationId": "Retrieve Data Source Details",
         "summary": "Retrieve Data Source Details"
       },
@@ -1379,35 +1379,35 @@
                 "schema": {
                   "properties": {
                     "audience": {
-                      "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                      "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                       "type": "string"
                     },
                     "errorMessage": {
-                      "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                      "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Data Source Id.",
+                      "description": "The data source ID.",
                       "type": "string"
                     },
                     "nonce": {
-                      "description": "Unique nonce used in the encryption of the JWT token.",
+                      "description": "A unique nonce used when encrypting the JWT.",
                       "type": "string"
                     },
                     "schemaId": {
-                      "description": "The schema id used for the data exchange.",
+                      "description": "The schema ID used for the data exchange.",
                       "type": "string"
                     },
                     "status": {
-                      "description": "The status of the Data Source; `active` or `disabled`",
+                      "description": "The data source status: `active` or `disabled`.",
                       "type": "string"
                     },
                     "subject": {
-                      "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                      "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                       "type": "string"
                     },
                     "tokenLifetimeMinutes": {
-                      "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration",
+                      "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data.",
                       "type": "number"
                     },
                     "url": {
@@ -1471,7 +1471,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Updates a Data Source. The updateable fields are the `audience,` `subject,` `nonce,` `url` and `tokenLifetimeMinutes.`\nYou can update the `status` from `active` to `disabled` only when providing an `errorMessage` that may be shown to the customer admin in Control Hub. \nTokens must be regularly updated before their expiration to maintain system uptime.",
+        "description": "Updates a data source. The fields you can update are `audience`, `subject`, `nonce`, `url`, and `tokenLifetimeMinutes`.\nYou can set `status` from `active` to `disabled` only if you provide an `errorMessage`, which may be shown to the customer administrator in Control Hub.\nUpdate tokens before they expire to prevent service interruption.",
         "operationId": "Update a Data Source",
         "requestBody": {
           "content": {
@@ -1479,37 +1479,37 @@
               "schema": {
                 "properties": {
                   "audience": {
-                    "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                    "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                     "example": "MedDocVirtualAgent",
                     "type": "string"
                   },
                   "errorMessage": {
-                    "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                    "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                     "example": "down for maintenance",
                     "type": "string"
                   },
                   "nonce": {
-                    "description": "Unique nonce used in the encryption of the JWT token.",
+                    "description": "A unique nonce used when encrypting the JWT.",
                     "example": "jeieu38udue83u398",
                     "type": "string"
                   },
                   "schemaId": {
-                    "description": "The schema id used for the data exchange.",
+                    "description": "The schema ID used for the data exchange.",
                     "example": "78efc775-dccb-45ca-9acf-989a4a59f788",
                     "type": "string"
                   },
                   "status": {
-                    "description": "The status of the Data Source; `active` or `disabled`.",
+                    "description": "The data source status: `active` or `disabled`.",
                     "example": "active",
                     "type": "string"
                   },
                   "subject": {
-                    "description": "The subject field in the JWT token. Usually, an indication of the app's function",
+                    "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                     "example": "callAudioData",
                     "type": "string"
                   },
                   "tokenLifetimeMinutes": {
-                    "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440.",
+                    "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data. Must be 1440 or less.",
                     "example": 60,
                     "type": "number"
                   },
@@ -13943,7 +13943,26 @@
                     "location": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
                   },
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
-                    "usage": "location",
+                    "usage": "policy",
+                    "inheritances": [
+                      {
+                        "type": "role",
+                        "value": "id_full_admin",
+                        "nested": false,
+                        "scope": [
+                          "user"
+                        ]
+                      },
+                      {
+                        "type": "location_role",
+                        "value": "location_full_admin",
+                        "nested": false,
+                        "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd",
+                        "scope": [
+                          "user"
+                        ]
+                      }
+                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14057,6 +14076,25 @@
                 ],
                 "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                   "usage": "policy",
+                  "inheritances": [
+                    {
+                      "type": "role",
+                      "value": "id_full_admin",
+                      "nested": false,
+                      "scope": [
+                        "user"
+                      ]
+                    },
+                    {
+                      "type": "location_role",
+                      "value": "location_full_admin",
+                      "nested": false,
+                      "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd",
+                      "scope": [
+                        "user"
+                      ]
+                    }
+                  ],
                   "owners": [
                     {
                       "value": "c5349664-9f3d-410b-8bd3-6c31f181f13d"
@@ -14127,7 +14165,26 @@
                         "location": "https://example.com/v2/Groups/6d26ba8b-8a07-465c-8e1a-c283eea9b4fd"
                       },
                       "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
-                        "usage": "location",
+                        "usage": "policy",
+                        "inheritances": [
+                          {
+                            "type": "role",
+                            "value": "id_full_admin",
+                            "nested": false,
+                            "scope": [
+                              "user"
+                            ]
+                          },
+                          {
+                            "type": "location_role",
+                            "value": "location_full_admin",
+                            "nested": false,
+                            "scope": [
+                              "user"
+                            ],
+                            "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd"
+                          }
+                        ],
                         "owners": [
                           {
                             "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14408,7 +14465,26 @@
                     "location": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
                   },
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
-                    "usage": "location",
+                    "usage": "policy",
+                    "inheritances": [
+                      {
+                        "type": "role",
+                        "value": "id_full_admin",
+                        "nested": false,
+                        "scope": [
+                          "user"
+                        ]
+                      },
+                      {
+                        "type": "location_role",
+                        "value": "location_full_admin",
+                        "nested": false,
+                        "scope": [
+                          "user"
+                        ],
+                        "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd"
+                      }
+                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14558,6 +14634,17 @@
                   ],
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                     "usage": "policy",
+                    "inheritances": [
+                      {
+                        "type": "location_role",
+                        "value": "location_full_admin",
+                        "nested": false,
+                        "scope": [
+                          "user"
+                        ],
+                        "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd"
+                      }
+                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14688,6 +14775,17 @@
                 ],
                 "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
                   "usage": "policy",
+                  "inheritances": [
+                    {
+                      "type": "location_role",
+                      "value": "location_full_admin",
+                      "nested": false,
+                      "scope": [
+                        "user"
+                      ],
+                      "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd"
+                    }
+                  ],
                   "owners": [
                     {
                       "value": "c5349664-9f3d-410b-8bd3-6c31f181f13d"
@@ -14750,7 +14848,26 @@
                     "location": "https://example.com/v2/Groups/e9e30dba-f08f-4109-8486-d5c6a331660a"
                   },
                   "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": {
-                    "usage": "location",
+                    "usage": "policy",
+                    "inheritances": [
+                      {
+                        "type": "role",
+                        "value": "id_full_admin",
+                        "nested": false,
+                        "scope": [
+                          "user"
+                        ]
+                      },
+                      {
+                        "type": "location_role",
+                        "value": "location_full_admin",
+                        "nested": false,
+                        "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd",
+                        "scope": [
+                          "user"
+                        ]
+                      }
+                    ],
                     "owners": [
                       {
                         "value": "bb9e77e5-91c3-4006-87c7-c18d885174c7"
@@ -14866,8 +14983,18 @@
                 "Operations": [
                   {
                     "op": "add",
-                    "path": "displayName",
-                    "value": "new attribute value"
+                    "path": "urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances",
+                    "value": [
+                      {
+                        "type": "location_role",
+                        "value": "location_full_admin",
+                        "nested": false,
+                        "locationId": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd",
+                        "scope": [
+                          "user"
+                        ]
+                      }
+                    ]
                   }
                 ]
               },
@@ -28856,7 +28983,7 @@
                 "description": "ISO-3166 2-Letter Country Code."
               }
             },
-            "description": "The address of the location."
+            "description": "The address of the location. Once PSTN connectivity is set up for a location, please go to the [Update the Emergency Address of a Location](/docs/api/v1/pstn/update-the-emergency-address-of-a-location) API to update the location address."
           }
         }
       },
@@ -31962,6 +32089,10 @@
                 "type": "string",
                 "example": "2026-10-02T00:00:00.000Z",
                 "description": "The end of the planned maintenance period."
+              },
+              "message": {
+                "type": "string",
+                "description": "A custom message describing the planned maintenance."
               }
             }
           }
@@ -34178,6 +34309,13 @@
                 },
                 "description": "The owners of this group."
               },
+              "inheritances": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GroupInheritancesObject"
+                },
+                "description": "An array of inheritances"
+              },
               "managedBy": {
                 "type": "array",
                 "items": {
@@ -34228,8 +34366,10 @@
                   "description": "A string containing an attribute path describing the target of the operation."
                 },
                 "value": {
-                  "type": "string",
-                  "example": "new attribute value",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupInheritancesObject"
+                  },
                   "description": "New value."
                 }
               }
@@ -36394,6 +36534,13 @@
                 },
                 "description": "The owners of this group."
               },
+              "inheritances": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GroupInheritancesObject"
+                },
+                "description": "An array of inheritances"
+              },
               "managedBy": {
                 "type": "array",
                 "items": {
@@ -36510,6 +36657,13 @@
                 "example": "AD",
                 "description": "The identifier of the source."
               },
+              "inheritances": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GroupInheritancesObject"
+                },
+                "description": "An array of inheritances"
+              },
               "meta": {
                 "type": "object",
                 "required": [
@@ -36564,6 +36718,45 @@
               "$ref": "#/components/schemas/GetGroupResponse"
             },
             "description": "An array of group objects."
+          }
+        }
+      },
+      "GroupInheritancesObject": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "role",
+              "location_role"
+            ],
+            "example": "role",
+            "description": "Type of inheritance. Currently, `role` and `location_role` type is supported. Only `policy` usage supports inheritance."
+          },
+          "value": {
+            "type": "string",
+            "example": "id_full_admin",
+            "description": "The value of the inheritance. For the role type, this can be role names such as `id_full_admin`, `id_user_admin`, etc. For the location_role type, the value should be `location_full_admin`."
+          },
+          "nested": {
+            "type": "boolean",
+            "example": false,
+            "description": "Indicates whether this inheritance is nested."
+          },
+          "locationId": {
+            "type": "string",
+            "example": "72e22cec-cc28-45b7-b3dc-eafe0f44a2bd",
+            "description": "The ID of the location group."
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": [
+                "user"
+              ]
+            },
+            "description": "Indicates which types of entities can inherit this property."
           }
         }
       },
