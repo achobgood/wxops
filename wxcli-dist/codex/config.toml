@@ -3,15 +3,27 @@
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
-# Optional "a newer wxcli is on PyPI → run wxcli update" nudge. Repo-local hooks
-# do NOT fire in interactive Codex sessions (openai/codex#17532), so this can only
-# be installed GLOBALLY in ~/.codex/config.toml, not here. The wxcli CLI already
-# prints a one-line PyPI update banner on startup (see update_check.py) — that is
-# the primary path for Codex. Add the hook below only if you also want a
-# session-start nudge:
+# NO SAFETY GATE SHIPS HERE, and that is a known gap, not an oversight.
+# The other playbook variant ships a pre-tool-use hook that routes state-changing
+# wxcli calls through the wxc-calling-builder agent. This variant gets the agents
+# and the skills but no equivalent gate, so the only guard on a destructive
+# command here is the CLI's own confirmation prompt.
 #
-# [[hooks.SessionStart]]
-# [[hooks.SessionStart.hooks]]
-# type = "command"
-# command = "wxcli --no-update-check update --hook"
-# timeout = 15
+# Measured on Codex 0.144.1, 2026-08-10. The machinery exists and the wire format
+# is a near match: events are snake_case in .codex/hooks.json (pre_tool_use,
+# session_start, ...), the payload carries agent_type / tool_name / tool_input,
+# and the reply is hookSpecificOutput.permissionDecision of allow|deny|ask. But a
+# repo-local .codex/hooks.json was DISCOVERED and never EXECUTED: three
+# `codex exec` runs, zero invocations, including a session_start hook (no matcher
+# to get wrong) and absolute command paths (no cwd to get wrong). Whether it
+# fires in an INTERACTIVE session is untested. That open question is the reason
+# nothing is wired here, rather than something unverified.
+#
+# Two things to get right whenever this is finished:
+#   - The shell tool is named `exec`, so a matcher written against a different
+#     tool name silently matches nothing — a gate that looks present and is not.
+#   - Codex persists per-hook trust (a trusted_hash in ~/.codex/config.toml), so
+#     a shipped gate is opt-in on first run rather than simply active.
+#
+# The "newer wxcli on PyPI" nudge needs no hook either way: the CLI prints a
+# one-line update banner on startup (see update_check.py).

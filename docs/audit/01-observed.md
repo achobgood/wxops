@@ -761,7 +761,74 @@ carry synthetic canonical_ids; `save_plan_to_store` already handles this with an
 `INSERT OR IGNORE` placeholder (`batch.py:185-192`), so the pattern exists and does
 not need inventing.
 
-### 7.3 What no attachment point can fix, and the one thing worth adding
+### 7.3 The Codex bundle gets no gate — measured, and left unbuilt on purpose
+
+`[verified 2026-08-10, Codex 0.144.1]` The gate now ships for Claude Code
+(§7.2's decision, landed in `cf5a8f7`). **It does not ship for Codex**, and this
+section records why, because the obvious next step — "have `assemble_codex` emit
+one too" — is not yet safe to take.
+
+**What is true, and it is more encouraging than the repo's own note claimed.**
+`wxcli-dist/codex/config.toml` said repo-local hooks *"do NOT fire in interactive
+Codex sessions (openai/codex#17532)"*. That is stale on both counts: the issue is
+fixed, and hook configuration has moved from TOML to `.codex/hooks.json`.
+Extracted from the shipped binary, Codex 0.144.1 carries a hook system that is
+close to a drop-in match for Claude Code's:
+
+| | Claude Code | Codex 0.144.1 |
+|---|---|---|
+| Config | `.claude/settings.json` | **`.codex/hooks.json`** |
+| Event name | `PreToolUse` | **`pre_tool_use`** (snake_case) |
+| Events | — | `pre_tool_use`, `permission_request`, `post_tool_use`, `pre_compact`, `post_compact`, `session_start`, `user_prompt_submit`, `subagent_start`, `subagent_stop`, `stop` |
+| Payload in | `agent_type`, `tool_input.command` | **same**, plus `session_id`, `turn_id`, `hook_event_name`, `model`, `permission_mode`, `tool_name`, `tool_use_id` |
+| Reply out | `hookSpecificOutput.permissionDecision` | **same**; decisions `allow` / `deny` / `ask` |
+| Handler keys | `command`, `timeout` | `command`, `timeout`, `async`, `statusMessage`; groups take `matcher` |
+
+**The gate script would need no logic change** — it already reads `agent_type`
+and `tool_input.command` and writes `permissionDecision`.
+
+**Why it is not wired anyway.** `[verified]` A repo-local `.codex/hooks.json` was
+**discovered but never executed**. Codex printed its
+`--dangerously-bypass-hook-trust … Enabled hooks may run without review` warning
+**twice** — once per declared hook group, so both were parsed — and then ran the
+`exec` tool without invoking either. Three `codex exec` runs captured **zero**
+payloads. The two obvious explanations were eliminated by construction:
+
+- **Not the matcher.** A `session_start` hook takes no matcher and also did not fire.
+- **Not the working directory.** The rollout confirms the session cwd is the
+  project dir, and the final run used absolute paths for both the hook command
+  and its output file.
+
+`UNKNOWN`, and it is the whole question: **whether hooks fire in an *interactive*
+Codex session.** All three runs were `codex exec` (non-interactive). A prior
+session recorded Codex `SessionStart` hooks firing, which suggests the difference
+is exec-vs-interactive rather than broken-outright — but that was a different
+event in a different mode and is not evidence for this one.
+
+**Two further findings that change the design, whichever way that resolves:**
+
+1. **The shell tool is named `exec`, not `shell` or `bash`** `[verified]` — it
+   arrives as a `custom_tool_call` named `exec` in the session rollout. Any
+   `matcher` written against `Bash` (the Claude Code name) would silently match
+   nothing. This is the single easiest way to ship a gate that looks present and
+   is inert.
+2. **Codex requires explicit per-hook trust** `[verified]` — a `trusted_hash` is
+   persisted per hook in `~/.codex/config.toml`. So a shipped Codex gate is
+   **opt-in on first run**, unlike Claude Code's, which is simply active. That is
+   a real behavioural difference and belongs in the docs when it lands.
+
+**The decision.** Do not emit a `hooks.json` from `assemble_codex` until it is
+shown to fire, and until `agent_type` is confirmed populated for Codex agents.
+The failure mode of guessing here is not a gate that does nothing — it is worse
+than that in both directions. If the hook never fires, we ship a file that reads
+as a control and is not one (the exact defect §7.1 rejects). If it fires but
+`agent_type` is empty for a `.codex/agents/*.toml` agent, the exemption
+`wxc-calling-builder|migration-advisor) allow` never matches and **the gate denies
+the builder itself** — failing closed on the one path Codex users need. The
+remaining work is one interactive Codex session with a logging hook; everything
+else is already established above.
+
+### 7.4 What no attachment point can fix, and the one thing worth adding
 
 §0.4's limit is not a property of the transcripts — it is a property of the CLI. A
 command that exits 0 with a wrong answer is invisible to argv logging, to the hook,
