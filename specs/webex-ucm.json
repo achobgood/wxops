@@ -6225,7 +6225,7 @@
                 "description": "ISO-3166 2-Letter Country Code."
               }
             },
-            "description": "The address of the location."
+            "description": "The address of the location. Once PSTN connectivity is set up for a location, please go to the [Update the Emergency Address of a Location](/docs/api/v1/pstn/update-the-emergency-address-of-a-location) API to update the location address."
           }
         }
       },
@@ -9338,6 +9338,10 @@
                 "type": "string",
                 "example": "2026-10-02T00:00:00.000Z",
                 "description": "The end of the planned maintenance period."
+              },
+              "message": {
+                "type": "string",
+                "description": "A custom message describing the planned maintenance."
               }
             }
           }
