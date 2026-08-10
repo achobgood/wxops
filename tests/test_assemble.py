@@ -359,3 +359,31 @@ def test_audit_codex_flags_claude_isms_but_not_codex_paths(tmp_path):
     assert any(r"\.claude/" in p for p in pats)
     assert not any(rel == ".codex/agents/x.toml" for rel, _, _ in got)          # no false positive
     assert not any(rel == ".codex/skills/query-live/SKILL.md" for rel, _, _ in got)  # path not flagged
+
+
+def test_codex_agent_name_validation_rejects_silently_ignored_names():
+    """Codex silently ignores a profile whose name it considers invalid — no
+    warning, no error, and the user gets a generic agent carrying none of the
+    playbook rules. Measured on 0.144.1, which rejected hyphens. Failing the
+    build is the only place that mistake is visible to us."""
+    mod = _load_assemble()
+
+    for good in ("wxc-calling-builder", "migration-advisor", "a1", "a-b-c"):
+        assert mod._validate_codex_agent_name(good) == good
+
+    # Underscores were what 0.144.1 needed and are NOT in 0.147's rule; the
+    # remaining cases are the ordinary ways a name goes wrong.
+    for bad in ("wxc_calling_builder", "WxcCallingBuilder", "wxc calling",
+                "-leading", "trailing-", "double--hyphen", "dot.name", ""):
+        with pytest.raises(ValueError, match="SILENTLY IGNORED"):
+            mod._validate_codex_agent_name(bad)
+
+
+def test_shipped_agents_pass_codex_name_validation():
+    """The two agents we actually ship must load on Codex."""
+    mod = _load_assemble()
+    names = []
+    for p in sorted((REPO_ROOT / ".claude" / "agents").glob("*.md")):
+        fm, _ = mod._split_frontmatter(p.read_text())
+        names.append(mod._validate_codex_agent_name(fm["name"].strip()))
+    assert "wxc-calling-builder" in names

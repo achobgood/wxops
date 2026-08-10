@@ -303,6 +303,30 @@ def _split_frontmatter(md: str) -> tuple[dict[str, str], str]:
     return fm, body
 
 
+# Codex validates custom-agent names and, when one is invalid, SILENTLY IGNORES
+# the profile — no warning, no error. A user who asks for the agent gets a
+# generic one carrying none of the playbook rules, and nothing says so.
+# Measured 2026-08-10: Codex 0.144.1 rejected hyphenated names, so
+# `wxc-calling-builder` did not load there at all; 0.147.0 accepts them. The rule
+# below is 0.147's ("lowercase ASCII letters, digits, or hyphens").
+#
+# This check exists because the failure is silent at RUNTIME, on the user's
+# machine, in the shipped bundle. Failing the build instead is the only place the
+# mistake is visible to us. Same reasoning as the link audit.
+CODEX_AGENT_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+
+
+def _validate_codex_agent_name(name: str) -> str:
+    if not CODEX_AGENT_NAME_RE.fullmatch(name):
+        raise ValueError(
+            f"agent name {name!r} is not a valid Codex custom-agent name. "
+            f"Codex accepts lowercase ASCII letters, digits and hyphens; an "
+            f"invalid name is SILENTLY IGNORED at runtime, so the agent would "
+            f"ship and never load. Rename the agent in .claude/agents/."
+        )
+    return name
+
+
 def md_agent_to_toml(md: str) -> str:
     """Convert a Claude agent .md (frontmatter + body) to a Codex agent TOML."""
     fm, body = _split_frontmatter(md)
@@ -310,7 +334,7 @@ def md_agent_to_toml(md: str) -> str:
     if "'''" in body:
         raise ValueError("agent body contains ''' — cannot use TOML literal string")
     effort = _EFFORT.get(fm.get("model", "sonnet"), "medium")
-    name = fm["name"].strip()
+    name = _validate_codex_agent_name(fm["name"].strip())
     desc = fm.get("description", "").strip().replace("\\", "\\\\").replace('"', '\\"')
     return (
         f'name = "{name}"\n'
