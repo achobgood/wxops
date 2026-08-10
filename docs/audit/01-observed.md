@@ -845,56 +845,52 @@ rather than a name in every case. **So §7.2's design — trust
 read-only — cannot be ported.** Denying everything breaks every write workflow;
 exempting "any subagent" is no gate at all.
 
-**Two corrections to the paragraph that stood here, both from live tests.**
+**SETTLED on Codex 0.147.0** `[verified 2026-08-10]`, after three wrong turns
+recorded above. All four blockers resolved:
 
-**1. `"ask"` does not work, and it fails OPEN.** `[verified]` I proposed an
-ask-for-writes / allow-for-reads gate as the shape that needs no agent identity.
-A hook returning `permissionDecision: "ask"` produces:
+| Question | Answer |
+|---|---|
+| Do hooks fire? | **Yes.** Event keys are **CamelCase** (`PreToolUse`); snake_case parses silently and matches nothing — that cost seven runs and three retractions. |
+| Shell matcher? | **`^Bash$`**. `exec` is only the `tool_use_id` prefix. |
+| Does `deny` block? | **Yes**, even under `bypassPermissions`. Verified by a marker file that was never created. |
+| Is a named agent identifiable? | **Yes.** A confirmed-loaded profile reports its own name in `agent_type`. |
 
-```
-hook: PreToolUse
-hook: PreToolUse Failed
-exec  /bin/zsh -lc 'echo ASKME'   succeeded in 0ms
-```
+**So §7.2's design IS portable**, and the policy is the same shape as the Claude
+side: `agent_type == "wxc-calling-builder"` → allow; **anything else, including
+absent, → deny**.
 
-The decision is rejected **and the command runs anyway**. So `ask` is not merely
-unsupported on `PreToolUse` — an unrecognised decision degrades to permission
-granted. **Any Codex gate must therefore emit only `allow` or `deny`; a typo in
-the decision string is an open door, not a closed one.** Native approval prompts
-live on `PermissionRequest`, which fires only where Codex would already ask, so it
-is not a universal gate.
+**Three findings that constrain how it must be built:**
 
-**2. The agent-identity finding is weaker than stated above, and the table
-overstates it.** `[corrected]` What is actually observed is that a **default**
-subagent reports `agent_type: "default"`. A *named* profile has never been
-captured: in the one run where Codex reported delegating to `probe-agent`, the
-payload said `"default"` — but that agent ran `pwd` instead of the unique marker
-its `developer_instructions` mandate, so the profile demonstrably did not load
-and the run cannot settle the question. **"The real name never reaches the hook"
-is unproven, not established.** It remains the single question that decides
-whether §7.2's design is portable, and it needs a run where a named profile is
-confirmed loaded *and* its command is seen by the hook.
+1. **An invalid decision fails OPEN.** `[verified]` A hook returning `"ask"` —
+   unsupported on `PreToolUse` — yields `hook: PreToolUse Failed` **and the
+   command runs**. The same is true of a hook that fails for any reason,
+   including a command path that does not resolve. **A Codex gate must emit only
+   `allow` or `deny`, and any way the hook can fail to execute is a silent
+   no-gate.** This is the opposite of the Claude side's failure posture and is
+   the single most important constraint on shipping one.
+2. **`agent_type` is undocumented on `PreToolUse`.** The official hooks docs list
+   it for `SubagentStart`/`SubagentStop` only; 362 generated schema files contain
+   no `PreToolUse` input contract carrying it. It is observed runtime behaviour,
+   not a contract. If a future version drops it, every caller looks anonymous and
+   **the builder itself is denied** — safe, but every write workflow stops. Any
+   deny message must say so, or the failure is unreadable.
+3. **The behaviour is version-dependent, and 0.144.1 is actively broken.**
+   Hyphenated agent names are **rejected on 0.144.1** — silently, with no warning
+   — so `wxc-calling-builder` and `migration-advisor` do not load at all there:
+   a user gets a generic agent with none of the playbook instructions. **0.147.0
+   accepts hyphens** (`agent_type: "probe-agent"` observed), so no rename is
+   needed and both playbook variants keep one name. **`assemble.py` should
+   validate the generated agent name at build time regardless** — shipping a
+   profile the target silently ignores is the same class of defect as a gate that
+   silently does not run.
 
-**Where that leaves it.** A pre-execution **deny** gate is the only shape Codex
-supports — no `ask`, and name-based routing unproven either way. That is strictly
-less than the Claude side, where the builder is recognised and let through: a
-deny-only gate under Codex must either block writes for everyone (breaking the
-builder too) or recognise the builder, which is exactly the open question.
-`UNKNOWN` and load-bearing: **whether `deny` reliably blocks execution** — the run
-testing it hung and captured nothing, and after finding that `ask` fails open, the
-blocking behaviour of `deny` is not something to assume.
-
-**The decision.** Do not emit a `hooks.json` from `assemble_codex` until a hook is
-shown to fire *on this machine at all*, and until `agent_type` is confirmed
-populated for Codex agents.
-The failure mode of guessing here is not a gate that does nothing — it is worse
-than that in both directions. If the hook never fires, we ship a file that reads
-as a control and is not one (the exact defect §7.1 rejects). If it fires but
-`agent_type` is empty for a `.codex/agents/*.toml` agent, the exemption
-`wxc-calling-builder|migration-advisor) allow` never matches and **the gate denies
-the builder itself** — failing closed on the one path Codex users need. The
-remaining work is one interactive Codex session with a logging hook; everything
-else is already established above.
+**Remaining before it can ship**, and it is mechanical rather than open: how the
+hook command resolves its own path. Claude Code supplies `$CLAUDE_PROJECT_DIR`;
+Codex exposes no equivalent (only `CODEX_HOME`), and per finding 1 an unresolved
+path is a silent no-gate rather than an error. Two candidates: a relative path
+(hook cwd is the project dir in every payload observed — needs confirming), or
+routing the hook through the installed binary so no path resolution is involved
+at all. The second is robust by construction and costs a new CLI surface.
 
 ### 7.4 What no attachment point can fix, and the one thing worth adding
 
