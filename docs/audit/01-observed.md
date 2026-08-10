@@ -845,12 +845,44 @@ rather than a name in every case. **So §7.2's design — trust
 read-only — cannot be ported.** Denying everything breaks every write workflow;
 exempting "any subagent" is no gate at all.
 
-**The shape that does work needs no agent identity:** `permissionDecision: "ask"`
-for state-changing commands, `"allow"` for reads. Weaker than routing — it
-interrupts the human instead of handing work to the agent carrying the rules —
-but it stops an unattended destructive command, which is the property that
-matters. `UNKNOWN`: how `"ask"` behaves under non-interactive `codex exec`, where
-there is nobody to ask. It should fail closed; that needs testing before it ships.
+**Two corrections to the paragraph that stood here, both from live tests.**
+
+**1. `"ask"` does not work, and it fails OPEN.** `[verified]` I proposed an
+ask-for-writes / allow-for-reads gate as the shape that needs no agent identity.
+A hook returning `permissionDecision: "ask"` produces:
+
+```
+hook: PreToolUse
+hook: PreToolUse Failed
+exec  /bin/zsh -lc 'echo ASKME'   succeeded in 0ms
+```
+
+The decision is rejected **and the command runs anyway**. So `ask` is not merely
+unsupported on `PreToolUse` — an unrecognised decision degrades to permission
+granted. **Any Codex gate must therefore emit only `allow` or `deny`; a typo in
+the decision string is an open door, not a closed one.** Native approval prompts
+live on `PermissionRequest`, which fires only where Codex would already ask, so it
+is not a universal gate.
+
+**2. The agent-identity finding is weaker than stated above, and the table
+overstates it.** `[corrected]` What is actually observed is that a **default**
+subagent reports `agent_type: "default"`. A *named* profile has never been
+captured: in the one run where Codex reported delegating to `probe-agent`, the
+payload said `"default"` — but that agent ran `pwd` instead of the unique marker
+its `developer_instructions` mandate, so the profile demonstrably did not load
+and the run cannot settle the question. **"The real name never reaches the hook"
+is unproven, not established.** It remains the single question that decides
+whether §7.2's design is portable, and it needs a run where a named profile is
+confirmed loaded *and* its command is seen by the hook.
+
+**Where that leaves it.** A pre-execution **deny** gate is the only shape Codex
+supports — no `ask`, and name-based routing unproven either way. That is strictly
+less than the Claude side, where the builder is recognised and let through: a
+deny-only gate under Codex must either block writes for everyone (breaking the
+builder too) or recognise the builder, which is exactly the open question.
+`UNKNOWN` and load-bearing: **whether `deny` reliably blocks execution** — the run
+testing it hung and captured nothing, and after finding that `ask` fails open, the
+blocking behaviour of `deny` is not something to assume.
 
 **The decision.** Do not emit a `hooks.json` from `assemble_codex` until a hook is
 shown to fire *on this machine at all*, and until `agent_type` is confirmed

@@ -34,11 +34,17 @@ sandbox_mode = "workspace-write"
 # (agent_role) appears in the transcript but never in the hook payload.
 # `agent_id` is no substitute — absent for an interactive main session, present
 # for both `codex exec` and subagents, and a UUID rather than a name.
-# So the other variant's design — trust two agents by name, restrict everyone
-# else to read-only — CANNOT be ported. Denying everything would break every
-# write workflow; exempting "any subagent" would be no gate at all.
-# The viable shape is permissionDecision "ask" for state-changing commands and
-# "allow" for reads, which needs no agent identity. Not yet built.
+# Caveat on that: only a DEFAULT subagent has been observed reporting "default".
+# A named profile has never been captured cleanly, so "the profile name never
+# reaches the hook" is UNPROVEN rather than established. It is the one question
+# that decides whether the other variant's name-based design is portable.
+#
+# One hard constraint for whoever builds this: emit ONLY "allow" or "deny".
+# A hook returning "ask" is rejected with `hook: PreToolUse Failed` AND THE
+# COMMAND STILL RUNS — an unrecognised decision degrades to permission granted,
+# so a typo in the decision string is an open door. Native approval prompts live
+# on PermissionRequest, which fires only where Codex would already ask and is
+# therefore not a universal gate.
 #
 # The "newer wxcli on PyPI" nudge needs no hook either way: the CLI prints a
 # one-line update banner on startup (see update_check.py).
