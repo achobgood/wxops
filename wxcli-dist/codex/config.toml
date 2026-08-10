@@ -13,11 +13,13 @@ sandbox_mode = "workspace-write"
 # is a near match: events are snake_case in .codex/hooks.json (pre_tool_use,
 # session_start, ...), the payload carries agent_type / tool_name / tool_input,
 # and the reply is hookSpecificOutput.permissionDecision of allow|deny|ask. But a
-# repo-local .codex/hooks.json was DISCOVERED and never EXECUTED: three
-# `codex exec` runs, zero invocations, including a session_start hook (no matcher
-# to get wrong) and absolute command paths (no cwd to get wrong). Whether it
-# fires in an INTERACTIVE session is untested. That open question is the reason
-# nothing is wired here, rather than something unverified.
+# hook here never EXECUTED. Seven runs, zero invocations: non-interactive and
+# interactive (one of which spawned an agent), repo-local .codex/hooks.json and
+# global ~/.codex/hooks.json, with and without a matcher, using absolute paths
+# throughout. The config shape is confirmed correct — an unwrapped variant is
+# rejected with "expected `description` or `hooks`", and the wrapped form parses
+# with no warning at all. A config that parses and then does nothing is why
+# nothing is wired here rather than something unverified.
 #
 # Two things to get right whenever this is finished:
 #   - The shell tool is named `exec`, so a matcher written against a different
