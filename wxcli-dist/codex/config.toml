@@ -9,23 +9,36 @@ sandbox_mode = "workspace-write"
 # and the skills but no equivalent gate, so the only guard on a destructive
 # command here is the CLI's own confirmation prompt.
 #
-# Measured on Codex 0.144.1, 2026-08-10. The machinery exists and the wire format
-# is a near match: events are snake_case in .codex/hooks.json (pre_tool_use,
-# session_start, ...), the payload carries agent_type / tool_name / tool_input,
-# and the reply is hookSpecificOutput.permissionDecision of allow|deny|ask. But a
-# hook here never EXECUTED. Seven runs, zero invocations: non-interactive and
-# interactive (one of which spawned an agent), repo-local .codex/hooks.json and
-# global ~/.codex/hooks.json, with and without a matcher, using absolute paths
-# throughout. The config shape is confirmed correct — an unwrapped variant is
-# rejected with "expected `description` or `hooks`", and the wrapped form parses
-# with no warning at all. A config that parses and then does nothing is why
-# nothing is wired here rather than something unverified.
+# HOOKS DO WORK on Codex 0.144.1 — verified 2026-08-10 with live payloads. The
+# blocker is not the mechanism; it is agent identity. See the bottom of this note.
 #
-# Two things to get right whenever this is finished:
-#   - The shell tool is named `exec`, so a matcher written against a different
-#     tool name silently matches nothing — a gate that looks present and is not.
+# Working config, .codex/hooks.json (project-local) or ~/.codex/hooks.json
+# (global) — both are supported:
+#
+#   { "hooks": { "PreToolUse": [ { "matcher": "^Bash$",
+#       "hooks": [ { "type": "command", "command": "sh /abs/path/gate.sh" } ] } ] } }
+#
+#   - Event keys are CamelCase: PreToolUse, SessionStart. NOT snake_case.
+#     snake_case keys PARSE WITHOUT ERROR and then match nothing — the map takes
+#     string keys, so a wrong event name is silently inert. That cost seven runs.
+#   - The shell tool is `Bash`. Not `exec` — `exec` is only the tool_use_id
+#     prefix, which is what an earlier reading of this file got wrong.
+#   - PreToolUse is the command gate and can deny before execution.
+#     PermissionRequest fires only when Codex would already ask, so it is not a
+#     universal gate.
 #   - Codex persists per-hook trust (a trusted_hash in ~/.codex/config.toml), so
 #     a shipped gate is opt-in on first run rather than simply active.
+#
+# WHY NO GATE SHIPS ANYWAY: the payload carries no agent NAME. `agent_type` is
+# "default" for the main session AND for a spawned subagent; the real identity
+# (agent_role) appears in the transcript but never in the hook payload.
+# `agent_id` is no substitute — absent for an interactive main session, present
+# for both `codex exec` and subagents, and a UUID rather than a name.
+# So the other variant's design — trust two agents by name, restrict everyone
+# else to read-only — CANNOT be ported. Denying everything would break every
+# write workflow; exempting "any subagent" would be no gate at all.
+# The viable shape is permissionDecision "ask" for state-changing commands and
+# "allow" for reads, which needs no agent identity. Not yet built.
 #
 # The "newer wxcli on PyPI" nudge needs no hook either way: the CLI prints a
 # one-line update banner on startup (see update_check.py).

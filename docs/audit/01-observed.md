@@ -777,75 +777,80 @@ close to a drop-in match for Claude Code's:
 
 | | Claude Code | Codex 0.144.1 |
 |---|---|---|
-| Config | `.claude/settings.json` | **`.codex/hooks.json`** |
-| Event name | `PreToolUse` | **`pre_tool_use`** (snake_case) |
-| Events | — | `pre_tool_use`, `permission_request`, `post_tool_use`, `pre_compact`, `post_compact`, `session_start`, `user_prompt_submit`, `subagent_start`, `subagent_stop`, `stop` |
-| Payload in | `agent_type`, `tool_input.command` | **same**, plus `session_id`, `turn_id`, `hook_event_name`, `model`, `permission_mode`, `tool_name`, `tool_use_id` |
+| Config | `.claude/settings.json` | **`.codex/hooks.json`** (project) or **`~/.codex/hooks.json`** (global) — both supported |
+| Event key | `PreToolUse` | **`PreToolUse`** — CamelCase, same spelling |
+| Events | — | `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SessionStart`, `UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `Stop` |
+| Shell matcher | `Bash` | **`Bash`** (`^Bash$`) — *not* `exec`, which is only the `tool_use_id` prefix |
+| Payload in | `agent_type`, `tool_input.command` | **same**, plus `session_id`, `turn_id`, `agent_id`, `hook_event_name`, `model`, `permission_mode`, `tool_name`, `tool_use_id`, `transcript_path`, `cwd` |
 | Reply out | `hookSpecificOutput.permissionDecision` | **same**; decisions `allow` / `deny` / `ask` |
 | Handler keys | `command`, `timeout` | `command`, `timeout`, `async`, `statusMessage`; groups take `matcher` |
 
-**The gate script would need no logic change** — it already reads `agent_type`
-and `tool_input.command` and writes `permissionDecision`.
+**The gate script needs no logic change** — it already reads `agent_type` and
+`tool_input.command` and writes `permissionDecision`. What it cannot get is a
+*usable value* in `agent_type`; that is the blocker, and it is below.
 
-**Why it is not wired anyway: the hooks never execute.** `[verified]` Seven runs
-across two modes, two config locations and two schema shapes captured **zero**
-payloads. The eliminations matter more than the count, because each one closes an
-explanation:
+**Why it is not wired anyway — and this section's own first two drafts were
+wrong.** `[verified 2026-08-10]` **Hooks do work in Codex 0.144.1.** I claimed
+twice that they never execute, on the strength of seven runs. All seven used
+**snake_case event keys**, and that is the whole explanation:
 
-| Ruled out | How |
+> The `hooks` object takes **string keys**, so `pre_tool_use` parses without a
+> warning and then matches nothing. The correct keys are **CamelCase** —
+> `PreToolUse`, `SessionStart`. A config that parses cleanly and is inert has no
+> error to find, which is why every diagnostic I reached for came back clean.
+
+Corrected by an independent test with CamelCase keys, first payload captured:
+
+```json
+{"hook_event_name":"PreToolUse","tool_name":"Bash",
+ "tool_input":{"command":"echo CAMELTEST"},
+ "agent_type":"default","agent_id":"019febaf-...","cwd":"...",
+ "tool_use_id":"exec-ef8eabac-..."}
+```
+
+**Everything downstream of that was therefore also wrong**, and is retracted:
+
+| Earlier claim | Corrected |
 |---|---|
-| Wrong matcher | A `session_start` hook takes no matcher and also did not fire |
-| Wrong working directory | Session rollout confirms cwd is the project dir; runs also used absolute paths for the hook command *and* its output file |
-| Wrong schema | See below — the shape is confirmed correct by Codex's own parser |
-| Non-interactive mode only | **Two interactive sessions**, one of which spawned an agent (`spawn_agent`/`wait_agent` in the rollout), captured nothing |
-| Repo-local placement only | A **global** `~/.codex/hooks.json` did not fire either |
-| Hook script broken | It logs and exits 0; verified by piping a payload to it directly |
+| "Hooks never execute; seven runs, zero invocations" | They execute. The seven runs used the wrong key casing. |
+| "A global `~/.codex/hooks.json` does not fire either" | That test used snake_case too, so it proved nothing. **Both** project-local `.codex/hooks.json` and global `~/.codex/hooks.json` are supported. |
+| "The matcher is `exec`, not `Bash`" | **`Bash`.** `exec` is only the `tool_use_id` prefix. Codex said so and was right; I asserted `exec` from rollout transport labels. |
+| "Codex is not registering the hook — chase `allow_managed_hooks_only`" | A dead end built on the same error. There was nothing wrong with registration. |
 
-**The schema is right, and this is the one hard fact worth keeping**, because it
-took a wrong guess to obtain it. Feeding Codex an *unwrapped* `hooks.json` (event
-names at top level) produced the only useful diagnostic in the whole exercise:
+**The working config**, for the record:
 
-```
-warning: failed to parse hooks config …/.codex/hooks.json:
-unknown field `session_start`, expected `description` or `hooks`
+```json
+{ "hooks": { "PreToolUse": [ { "matcher": "^Bash$",
+    "hooks": [ { "type": "command", "command": "sh /abs/path/gate.sh" } ] } ] } }
 ```
 
-So the top level is `{ "description"?, "hooks": { <event>: [ { "matcher"?, "hooks":
-[handler] } ] } }` — the wrapped form — and **that form parses with no warning at
-all.** A config that parses and then does nothing is the exact shape of the
-problem: there is no error to act on.
+`PreToolUse` is the command gate and can deny before execution;
+`PermissionRequest` fires only where Codex would already prompt, so it is not a
+universal gate.
 
-**Correction to this document's own first draft.** I wrote that the hooks were
-*"discovered — Codex printed its warning twice, once per declared hook group."*
-**That was wrong.** The `--dangerously-bypass-hook-trust … Enabled hooks may run
-without review` line is emitted **unconditionally, twice, regardless of how many
-hooks exist** — re-measured with a single declared hook and with none. It is
-evidence that the flag was passed, not that anything was found. Nothing in the
-observable output ever confirmed discovery.
+**The real blocker, and it is not the mechanism: the payload carries no agent
+NAME.** `[verified]` `agent_type` is `"default"` for the main session **and** for
+a spawned subagent. The true identity (`agent_role`) reaches the transcript and
+never the hook. `agent_id` does not substitute:
 
-**The one asymmetry left unexplained, and it is the lead worth following.**
-`~/.codex/config.toml` contains a `trusted_hash` entry for a *different*
-`.codex/hooks.json` — `…/wxcli-hook-test/.codex/hooks.json:session_start:0:0` —
-so a repo-local hook has been registered and trusted on this machine before. No
-such entry was ever created for these probes, and no trust prompt appeared. So
-the failure is upstream of execution: **Codex is not registering the hook, not
-merely declining to run it.** The binary carries an `allow_managed_hooks_only`
-setting and an `enabled`/`trusted` pair on hook state; neither is set in this
-user's config and no `managed_config.toml` exists. **Which of those gates it is,
-is `UNKNOWN`** — and it is where the next hour should go, not into more probe
-variants.
+| Who ran it | `agent_id` | `agent_type` |
+|---|---|---|
+| Interactive main session | absent | absent |
+| `codex exec` main session | present (UUID) | `default` |
+| Spawned subagent | present (UUID) | `default` |
 
-**Two further findings that change the design, whichever way that resolves:**
+Present for both `codex exec` and subagents, absent interactively, and a UUID
+rather than a name in every case. **So §7.2's design — trust
+`wxc-calling-builder` and `migration-advisor` by name, restrict everyone else to
+read-only — cannot be ported.** Denying everything breaks every write workflow;
+exempting "any subagent" is no gate at all.
 
-1. **The shell tool is named `exec`, not `shell` or `bash`** `[verified]` — it
-   arrives as a `custom_tool_call` named `exec` in the session rollout. Any
-   `matcher` written against `Bash` (the Claude Code name) would silently match
-   nothing. This is the single easiest way to ship a gate that looks present and
-   is inert.
-2. **Codex requires explicit per-hook trust** `[verified]` — a `trusted_hash` is
-   persisted per hook in `~/.codex/config.toml`. So a shipped Codex gate is
-   **opt-in on first run**, unlike Claude Code's, which is simply active. That is
-   a real behavioural difference and belongs in the docs when it lands.
+**The shape that does work needs no agent identity:** `permissionDecision: "ask"`
+for state-changing commands, `"allow"` for reads. Weaker than routing — it
+interrupts the human instead of handing work to the agent carrying the rules —
+but it stops an unattended destructive command, which is the property that
+matters. `UNKNOWN`: how `"ask"` behaves under non-interactive `codex exec`, where
+there is nobody to ask. It should fail closed; that needs testing before it ships.
 
 **The decision.** Do not emit a `hooks.json` from `assemble_codex` until a hook is
 shown to fire *on this machine at all*, and until `agent_type` is confirmed
