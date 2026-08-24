@@ -10,6 +10,10 @@
       "name": "Agent Summaries"
     },
     {
+      "name": "Search Metadata",
+      "description": "Discover fields and capabilities supported by the Webex Contact Center Search API."
+    },
+    {
       "name": "Agents"
     },
     {
@@ -53113,7 +53117,7 @@
           "Notification"
         ],
         "summary": "Subscribe Notification",
-        "description": "Access this endpoint when the user has to register for a WebSocket Session. Requires 'cjp:user' scope or roles 'id_full_admin', 'id_readonly_admin', 'atlas-portal.partner.salesadmin', 'cjp.supervisor', 'cjp.admin', 'atlas-portal.partner.provision_admin', 'cloud-contact-center:pod_conv' for authorization",
+        "description": "Access this endpoint when the user has to register for a WebSocket Session. Requires one of the following accepted registration scopes: `cjp:user` or `cloud-contact-center:pod_conv`. The `cjp-hybrid-conn:read` scope is also accepted when CCE authentication is enabled. Tokens with only admin or partner roles and no accepted registration scope are rejected.",
         "operationId": "subscribeNotificationRoute",
         "parameters": [],
         "requestBody": {
@@ -53299,7 +53303,7 @@
           "Realtime"
         ],
         "summary": "Subscribe Realtime Notification",
-        "description": "Access this endpoint when the user has to register for a WebSocket Session to receive realtime events. Requires 'cjp:user' scope or roles 'id_full_admin', 'id_readonly_admin', 'atlas-portal.partner.salesadmin', 'atlas-portal.partner.helpdesk', 'cjp.supervisor', 'cjp.admin', 'atlas-portal.partner.provision_admin' for authorization",
+        "description": "Access this endpoint when the user has to register for a WebSocket Session to receive realtime events. Requires one of the following accepted registration scopes: `cjp:user` or `cloud-contact-center:pod_conv`. The `cjp-hybrid-conn:read` scope is also accepted when CCE authentication is enabled. Tokens with only admin or partner roles and no accepted registration scope are rejected.",
         "operationId": "subscribeRealtimeRoute",
         "parameters": [],
         "requestBody": {
@@ -53481,6 +53485,106 @@
             "description": "Unprocessable Entity",
             "content": {
               "application/json": {}
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is currently unavailable to serve the requests",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/search/v2/meta": {
+      "get": {
+        "tags": [
+          "Search Metadata"
+        ],
+        "summary": "Get Search Metadata",
+        "description": "Returns schema metadata for the Webex Contact Center Search GraphQL API, describing supported queries, fields, nested structures, data types, filters, sorting options, grouping capabilities, and aggregation operations.\n\n**Authentication & Authorization:**\n- **Required Scopes:** `cjp:config` or `cjp:config_read`\n\nAn asterisk (*) in the rendered response schema indicates a required property.",
+        "operationId": "getSearchMetadataV2",
+        "externalDocs": {
+          "description": "Webex Contact Center Search API guide",
+          "url": "https://developer.webex.com/docs/getting-started-with-search-api"
+        },
+        "parameters": [
+          {
+            "name": "X-ORGANIZATION-ID",
+            "in": "header",
+            "description": "Organization ID to use for this operation. If unspecified, inferred from token. Token must have permission to interact with this organization.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+            },
+            "example": "97cdbf45-ebe2-4687-8341-44d5c7abf101"
+          },
+          {
+            "name": "TrackingId",
+            "in": "header",
+            "description": "Tracking ID to use for this operation, for traceability, debugging, and error reporting purposes. ",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "example": "INTEGRATION-9bcdc696-57fa-4e91-b5aa-57a66a347c23"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchMetadataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
@@ -88102,14 +88206,18 @@
           "subscriptionId": {
             "description": "Id used by client to subscribe to interested events.",
             "example": "AgentDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
-            "format": "uuid"
+            "type": "string"
           }
         },
         "required": [
           "webSocketUrl",
           "subscriptionId"
         ],
-        "type": "object"
+        "type": "object",
+        "example": {
+          "webSocketUrl": "wss://api.wxcc-us1.cisco.com/v1/notification/subscription/AgentDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
+          "subscriptionId": "AgentDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391"
+        }
       },
       "QueueApiResponse": {
         "required": [
@@ -88268,14 +88376,18 @@
           "subscriptionId": {
             "description": "Id used by client to subscribe to interested events.",
             "example": "ExtensiveSupervisoryDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
-            "format": "uuid"
+            "type": "string"
           }
         },
         "required": [
           "webSocketUrl",
           "subscriptionId"
         ],
-        "type": "object"
+        "type": "object",
+        "example": {
+          "webSocketUrl": "wss://api.wxcc-us1.cisco.com/v1/realtime/subscription/ExtensiveSupervisoryDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
+          "subscriptionId": "ExtensiveSupervisoryDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391"
+        }
       },
       "SearchRequest": {
         "type": "object",
@@ -88295,6 +88407,282 @@
           }
         },
         "example": null
+      },
+      "SearchMetadataResponse": {
+        "type": "object",
+        "description": "Schema metadata for the GraphQL queries and fields supported by the Search API. An asterisk (*) in the rendered response schema indicates a required property.",
+        "required": [
+          "queries"
+        ],
+        "properties": {
+          "queries": {
+            "type": "array",
+            "description": "Required list of GraphQL query types and their nested fields.",
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/SearchMetadataObject"
+            }
+          }
+        },
+        "example": {
+          "queries": [
+            {
+              "name": "task",
+              "deprecated": false,
+              "type": {
+                "name": "Task",
+                "kind": "OBJECT"
+              },
+              "systemField": false,
+              "description": "Represents the customer workflow for a contact session or a task.",
+              "fields": [
+                {
+                  "name": "id",
+                  "deprecated": false,
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR"
+                  },
+                  "systemField": false,
+                  "sortable": true,
+                  "fieldType": "SUMMARY",
+                  "filter": "filter",
+                  "groupBy": true,
+                  "description": "ID of the task.",
+                  "aggregation": {
+                    "aggregationType": "SUMMARY",
+                    "operations": [
+                      "count",
+                      "cardinality"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "SearchMetadataElement": {
+        "description": "A nested object or leaf field in the Search metadata response.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SearchMetadataObject"
+          },
+          {
+            "$ref": "#/components/schemas/SearchMetadataField"
+          }
+        ]
+      },
+      "SearchMetadataObject": {
+        "type": "object",
+        "required": [
+          "name",
+          "deprecated",
+          "type",
+          "systemField",
+          "description",
+          "fields"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "GraphQL query or nested object field name.",
+            "example": "task"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Indicates whether the field is deprecated.",
+            "example": false
+          },
+          "type": {
+            "$ref": "#/components/schemas/SearchMetadataGraphQLType"
+          },
+          "systemField": {
+            "type": "boolean",
+            "description": "Indicates whether the field is managed by the Search API.",
+            "example": false
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Description from the GraphQL schema.",
+            "example": "Represents the customer workflow for a contact session or a task."
+          },
+          "fields": {
+            "type": "array",
+            "description": "Nested objects and leaf fields.",
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/SearchMetadataElement"
+            }
+          }
+        }
+      },
+      "SearchMetadataField": {
+        "type": "object",
+        "required": [
+          "name",
+          "deprecated",
+          "type",
+          "systemField",
+          "sortable",
+          "fieldType",
+          "filter",
+          "groupBy",
+          "description",
+          "aggregation"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Fully qualified GraphQL field path.",
+            "example": "owner.id"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Indicates whether the field is deprecated.",
+            "example": false
+          },
+          "type": {
+            "$ref": "#/components/schemas/SearchMetadataGraphQLType"
+          },
+          "systemField": {
+            "type": "boolean",
+            "description": "Indicates whether the field is managed by the Search API.",
+            "example": false
+          },
+          "sortable": {
+            "type": "boolean",
+            "description": "Indicates whether the field can be used for sorting.",
+            "example": true
+          },
+          "fieldType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Search data category for the field.",
+            "enum": [
+              "COMMON",
+              "GRANULAR",
+              "SUMMARY"
+            ],
+            "example": "SUMMARY"
+          },
+          "filter": {
+            "type": "string",
+            "nullable": true,
+            "description": "GraphQL filter input supported by the field.",
+            "enum": [
+              "filter",
+              "extFilter"
+            ],
+            "example": "filter"
+          },
+          "groupBy": {
+            "type": "boolean",
+            "description": "Indicates whether the field can be used for grouping.",
+            "example": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description from the GraphQL schema.",
+            "example": "ID of the agent last assigned to this task."
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/SearchMetadataAggregation"
+          }
+        }
+      },
+      "SearchMetadataGraphQLType": {
+        "type": "object",
+        "description": "GraphQL introspection type, including wrapped list and non-null types.",
+        "example": {
+          "name": "String",
+          "kind": "SCALAR"
+        },
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "GraphQL type name when present.",
+            "example": "String"
+          },
+          "kind": {
+            "type": "string",
+            "description": "GraphQL introspection type kind.",
+            "enum": [
+              "SCALAR",
+              "OBJECT",
+              "INTERFACE",
+              "UNION",
+              "ENUM",
+              "INPUT_OBJECT",
+              "LIST",
+              "NON_NULL"
+            ],
+            "example": "SCALAR"
+          },
+          "ofType": {
+            "description": "Wrapped GraphQL type for list and non-null kinds.",
+            "example": {
+              "name": "String",
+              "kind": "SCALAR"
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SearchMetadataGraphQLType"
+              }
+            ]
+          }
+        }
+      },
+      "SearchMetadataAggregation": {
+        "type": "object",
+        "description": "Aggregation capabilities for a Search field.",
+        "example": {
+          "aggregationType": "SUMMARY",
+          "operations": [
+            "count",
+            "cardinality"
+          ]
+        },
+        "required": [
+          "aggregationType",
+          "operations"
+        ],
+        "properties": {
+          "aggregationType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Aggregation data category when aggregation is supported.",
+            "enum": [
+              "SUMMARY",
+              "GRANULAR"
+            ],
+            "example": "SUMMARY"
+          },
+          "operations": {
+            "type": "array",
+            "description": "Supported aggregation operations.",
+            "example": [
+              "count",
+              "cardinality"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "average",
+                "cardinality",
+                "count",
+                "max",
+                "min",
+                "sum"
+              ]
+            }
+          }
+        }
       },
       "SubscriptionApiListResponse": {
         "required": [

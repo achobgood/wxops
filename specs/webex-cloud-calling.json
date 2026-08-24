@@ -28,6 +28,10 @@
     },
     {
       "name": "User Call Settings (3/3)"
+    },
+    {
+      "name": "Webhook Interest Registrations",
+      "description": "Operations for managing client registrations that enable organization-wide emission of Webex Calling webhook events that are not emitted by default."
     }
   ],
   "paths": {
@@ -8583,6 +8587,118 @@
             }
           }
         }
+      }
+    },
+    "/telephony/queues/{queueId}/calls": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CallQueueCall"
+                      }
+                    }
+                  },
+                  "example": {
+                    "items": [
+                      {
+                        "callId": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+                        "origCallId": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MQ",
+                        "callSessionId": "MmFmNThiZjktYWE3Ny00NWE5LThiMDEtYzI4NDMxZWYwNzRm",
+                        "remoteParty": {
+                          "name": "John Smith",
+                          "number": "+12223334444",
+                          "privacyEnabled": false,
+                          "callType": "organization"
+                        },
+                        "addTime": "2016-04-21T17:00:00.000Z",
+                        "queueNumber": "+15559998888",
+                        "queueName": "Support Queue",
+                        "priority": "medium",
+                        "bounced": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "List Call Queue Calls",
+        "operationId": "listcallqueuecalls",
+        "description": "List the calls currently in the specified Call Queue. The returned calls follow the same format as the Call Queue events emitted by Webex Calling and include the caller details, position information (priority), and queue timing for each call currently waiting in the queue.",
+        "tags": [
+          "Call Controls",
+          "External Voicemail"
+        ],
+        "parameters": [
+          {
+            "name": "queueId",
+            "in": "path",
+            "description": "The unique identifier of the Call Queue whose calls are to be listed.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Y2lzY29z..."
+          }
+        ]
       }
     },
     "/telephony/calls/members/{memberId}/dial": {
@@ -52679,7 +52795,7 @@
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNTg0Y2Y0Y2QtZWVhNy00YzhjLTgzZWUtNjdkODhmYzZlYWE1",
                       "name": "5714328359",
-                      "hasCxEssentials": "true",
+                      "hasCxEssentials": true,
                       "locationName": "WXCSIVDKCPAPIC4S1",
                       "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
                       "enabled": true,
@@ -52693,7 +52809,7 @@
                     {
                       "id": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvNmU1NTVjZDAtNjM0MS00MmI4LWEyMWMtZTc1ZjIxNDQ4Mjc0",
                       "name": "bram",
-                      "hasCxEssentials": "true",
+                      "hasCxEssentials": true,
                       "locationName": "Brampton",
                       "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzQwMjgw",
                       "phoneNumber": "+15558675309",
@@ -52751,7 +52867,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Read the List of Call Queues with Customer Assist",
+        "summary": "Read the List of Call Queue or Customer Assist Queues",
         "operationId": "listCallQueues",
         "description": "List all Call Queues for the organization.\n\nCall queues temporarily hold calls in the cloud, when all agents\nassigned to receive calls from the queue are unavailable. Queued calls are routed to \nan available agent, when not on an active call. Each call queue is assigned a lead number, which is a telephone\nnumber that external callers can dial to reach the users assigned to the call queue.\nCall queues are also assigned an internal extension, which can be dialed\ninternally to reach the users assigned to the call queue.\n\nRetrieving this list requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -52834,7 +52950,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Returns only the list of call queues with Customer Assist license when `true`, otherwise returns the list of Customer Experience Basic call queues.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -52843,7 +52959,7 @@
             "name": "digitalInboxEnabled",
             "in": "query",
             "description": "Returns only the list of call queues with digital inbox enabled when `true`, or disabled when `false`. This query parameter is only valid when `hasCxEssentials` is `true`.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -53096,7 +53212,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Create a Call Queue with Customer Assist",
+        "summary": "Create Call Queue or Customer Assist Queue",
         "operationId": "createCallQueue",
         "description": "Create new Call Queues for the given location.\n\nCall queues temporarily hold calls in the cloud, when all agents assigned to receive calls from the queue are unavailable.\nQueued calls are routed to an available agent, when not on an active call. Each call queue is assigned a lead number, which is a telephone\nnumber that external callers can dial to reach the users assigned to the call queue. Call queues are also assigned an internal extension,\nwhich can be dialed internally to reach the users assigned to the call queue.\n\nCreating a call queue requires a full administrator or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -53126,7 +53242,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Creates a Customer Assist call queue, when `true`. This requires Customer Assist licensed agents.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -53545,7 +53661,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get Details for a Call Queue with Customer Assist",
+        "summary": "Get Details for a Call Queue or Customer Assist Queue",
         "operationId": "getCallQueueWithCustomerAssist",
         "description": "Retrieve Call Queue details.\n\nCall queues temporarily hold calls in the cloud, when all agents assigned to receive calls from the queue are unavailable.\nQueued calls are routed to an available agent, when not on an active call. Each call queue is assigned a lead number, which is a telephone\nnumber that external callers can dial to reach the users assigned to the call queue. Call queues are also assigned an internal extension,\nwhich can be dialed internally to reach the users assigned to the call queue.\n\nRetrieving call queue details requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -53585,7 +53701,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Must be set to `true`, to view the details of a call queue with Customer Assist license. This can otherwise be ommited or set to `false`.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -56534,7 +56650,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get List of Supervisors with Customer Assist",
+        "summary": "Get List of Supervisors for Call Queue or Customer Assist",
         "operationId": "listCallQueueSupervisors",
         "description": "Get list of supervisors for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nRequires a full, location, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -56599,7 +56715,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Returns only the list of supervisors with Customer Assist license, when `true`. Otherwise returns the list of supervisors with Customer Experience Basic license.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -56691,7 +56807,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Create a Supervisor with Customer Assist",
+        "summary": "Create a Supervisor for Call Queue or Customer Assist",
         "operationId": "createCallQueueSupervisor",
         "description": "Create a new supervisor. The supervisor must be created with at least one agent.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -56711,7 +56827,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Creates a Customer Assist queue supervisor, when `true`. Customer Assist queue supervisors must have a Customer Assist license.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -56791,7 +56907,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Delete the Call Queue or Customer Assist Supervisors",
+        "summary": "Delete Call Queue or Customer Assist Supervisors",
         "operationId": "deleteBulkCallQueueSupervisors",
         "description": "Delete the Call Queue or Customer Assist supervisors for an organization. Once you remove the supervisor, assigned agents will lose their supervisor assignments.\n\nSupervisors are users who manage agents and who perform functions including monitoring, coaching, and more.\n\nRequires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -57010,7 +57126,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get Supervisor Detail with Customer Assist",
+        "summary": "Get Supervisor Details for Call Queue or Customer Assist",
         "operationId": "getCallQueueSupervisor",
         "description": "Get details of a specific supervisor, which includes the agents associated agents with the supervisor, in an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -57085,7 +57201,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Must be set to `true`, to view the details of a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -57177,7 +57293,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Assign or Unassign Agents to Supervisor with Customer Assist",
+        "summary": "Assign or Unassign Agents to Supervisor for Call Queue or Customer Assist",
         "operationId": "updateCallQueueSupervisorAgents",
         "description": "Assign or unassign agents to the supervisor for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -57207,7 +57323,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Must be set to `true` to modify a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -57333,7 +57449,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "List Available Supervisors with Customer Assist",
+        "summary": "List Available Supervisors for Call Queue or Customer Assist",
         "operationId": "listAvailableCallQueueSupervisors",
         "description": "Get list of available supervisors for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -57398,7 +57514,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Returns only the list of available supervisors with Customer Assist license, when `true`. When ommited or set to 'false', will return the list of available supervisors with Customer Experience Basic license.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -57502,7 +57618,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "List Available Agents with Customer Assist",
+        "summary": "List Available Agents for Call Queue or Customer Assist",
         "operationId": "listAvailableCallQueueAgents",
         "description": "Get list of available agents for an organization.\n\nAgents in a call queue can be associated with a supervisor who can silently monitor, coach, barge in or to take over calls that their assigned agents are currently handling.\n\nThis operation requires a full, user or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.",
         "tags": [
@@ -57567,7 +57683,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Returns only the list of available agents with Customer Assist license, when `true`. When ommited or set to `false`, will return the list of available agents with Customer Experience Basic license.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -57740,7 +57856,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Read the List of Call Queue Agents with Customer Assist",
+        "summary": "Read the List of Agents for Call Queue or Customer Assist",
         "operationId": "listCallQueueAgents",
         "description": "List all Call Queues Agents for the organization.\n\nAgents can be users, workplace or virtual lines assigned to a call queue. Calls from the call queue are routed to agents based on configuration. \nAn agent can be assigned to one or more call queues and can be managed by supervisors.\n\nRetrieving this list requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\n**Note**: The decoded value of the agent's `id`, and the `type` returned in the response, are always returned as `PEOPLE`, even when the agent is a workspace or virtual line. This will be addressed in a future release.",
         "tags": [
@@ -57814,7 +57930,7 @@
             "name": "joinEnabled",
             "in": "query",
             "description": "Returns only the list of call queue agents that match the given `joinEnabled` value.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -57823,7 +57939,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Returns only the list of call queues with Customer Assist license when `true`, otherwise returns the list of Customer Experience Basic call queues.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -57927,7 +58043,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Get Details for a Call Queue Agent with Customer Assist",
+        "summary": "Get Details for an Agent for Call Queue or Customer Assist",
         "operationId": "getCallQueueAgent",
         "description": "Retrieve details of a particular Call queue agent based on the agent ID.\n\nAgents can be users, workplace or virtual lines assigned to a call queue. Calls from the call queue are routed to agents based on configuration. \nAn agent can be assigned to one or more call queues and can be managed by supervisors.\n\nRetrieving a call queue agent's details require a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_read`.\n\n**Note**: The agent's `type` returned in the response and in the decoded value of the agent's `id`, is always of type `PEOPLE`, even if the agent is a workspace or virtual line. This` will be corrected in a future release.",
         "tags": [
@@ -57957,7 +58073,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Must be set to `true` to view the details of an agent with Customer Assist license. This can otherwise be ommited or set to `false`.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -58039,7 +58155,7 @@
             "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
           }
         },
-        "summary": "Update an Agent's Settings of One or More Call Queues with Customer Assist",
+        "summary": "Update an Agent's Settings for One or More Call Queue or Customer Assist Queues",
         "operationId": "updateAgentCallQueueSettings",
         "description": "Modify an agent's call queue settings for an organization.\n\nCalls from the call queue are routed to agents based on configuration. \nAn agent can be assigned to one or more call queues and can be managed by supervisors.\n\nThis operation requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
@@ -58069,7 +58185,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Must be set to `true` to modify an agent that has Customer Assist license. This can otherwise be ommited or set to `false`.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -63204,7 +63320,7 @@
             "name": "hasCxEssentials",
             "in": "query",
             "description": "Returns only the list of available agents with Customer Assist license when `true`, otherwise returns the list of available agents with Customer Experience Basic license.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -112703,6 +112819,276 @@
         ]
       }
     },
+    "/telephony/webhookInterestRegistrations": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Create a Webhook Interest Registration",
+        "operationId": "createWebhookInterestRegistration",
+        "description": "Adds or updates a webhook interest registration associated with the authenticated user and the client derived from the access token. At least one item in `interests` is required and `duration` is optional. The client identifier is not supplied in the request. If a registration does not already exist for the authenticated user and client, it is created; otherwise, it is updated with the incoming registration information.\n\nRegistrations are managed for a specific user and client, but registered interests apply to all applicable webhooks in the organization.\n\nThis API is reserved for administrators and requires the `spark-admin:calls_read` scope.",
+        "tags": [
+          "Webhook Interest Registrations"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "interests": [
+                  {
+                    "resource": "Agent"
+                  },
+                  {
+                    "actor": "Workspaces"
+                  }
+                ],
+                "duration": 30
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "interests"
+                ],
+                "properties": {
+                  "interests": {
+                    "type": "array",
+                    "description": "The collection of webhook interests for this registration. At least one interest is required. Each interest is either resource-based or actor-based (exactly one of `resource` or `actor` is set).",
+                    "items": {
+                      "$ref": "#/components/schemas/Interest"
+                    }
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "example": 30,
+                    "description": "Optional time, in days, after which the registration expires. When omitted, the registration defaults to expire after 60 days."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "interests",
+                    "expiresAt"
+                  ],
+                  "properties": {
+                    "interests": {
+                      "type": "array",
+                      "description": "The collection of webhook interests associated with the registration. Each interest is either resource-based or actor-based. At least one interest is always present in a successful response.",
+                      "items": {
+                        "$ref": "#/components/schemas/Interest"
+                      }
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2026-08-01T00:00:00.000Z",
+                      "description": "The date/time at which the registration expires."
+                    }
+                  },
+                  "example": {
+                    "interests": [
+                      {
+                        "resource": "Agent"
+                      },
+                      {
+                        "actor": "Workspaces"
+                      }
+                    ],
+                    "expiresAt": "2026-08-01T00:00:00.000Z"
+                  }
+                },
+                "example": {
+                  "interests": [
+                    {
+                      "resource": "Agent"
+                    },
+                    {
+                      "actor": "Workspaces"
+                    }
+                  ],
+                  "expiresAt": "2026-08-01T00:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Webhook Interest Registration",
+        "operationId": "getWebhookInterestRegistration",
+        "description": "Returns the webhook interest registration associated with the authenticated user and the client derived from the access token, including the list of interests and the date/time at which the registration expires. The client identifier is not supplied by the caller.\n\nRegistrations are managed for a specific user and client, but registered interests apply to all applicable webhooks in the organization.\n\nThis API is reserved for administrators and requires the `spark-admin:calls_read` scope.",
+        "tags": [
+          "Webhook Interest Registrations"
+        ],
+        "parameters": []
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Delete Webhook Interest Registration",
+        "operationId": "deleteWebhookInterestRegistration",
+        "description": "Deletes the webhook interest registration associated with the authenticated user and the client derived from the access token. The client identifier is not supplied by the caller.\n\nRegistrations are managed for a specific user and client, but registered interests apply to all applicable webhooks in the organization.\n\nThis API is reserved for administrators and requires the `spark-admin:calls_read` scope.",
+        "tags": [
+          "Webhook Interest Registrations"
+        ],
+        "parameters": []
+      }
+    },
     "/workspaces/{workspaceId}/features/callForwarding": {
       "get": {
         "responses": {
@@ -137983,6 +138369,112 @@
             ],
             "description": "Indicates whether to SET or CLEAR the MWI status.",
             "example": "SET"
+          }
+        }
+      },
+      "CallQueueCall": {
+        "type": "object",
+        "required": [
+          "callId",
+          "callSessionId",
+          "remoteParty"
+        ],
+        "properties": {
+          "callId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MA",
+            "description": "The call identifier of the call currently in the queue."
+          },
+          "origCallId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6MQ",
+            "description": "The call identifier of the original call that entered the queue. This differs from `callId` when the call currently in the queue is a new call leg derived from the original call - for example, a Call Queue callback, where `callId` is the new callback call and `origCallId` is the original call that entered the queue. Only present when it differs from the call's `callId`."
+          },
+          "callSessionId": {
+            "type": "string",
+            "example": "MmFmNThiZjktYWE3Ny00NWE5LThiMDEtYzI4NDMxZWYwNzRm",
+            "description": "A unique identifier for the call session the call belongs to. This can be used to correlate multiple calls that are part of the same call session."
+          },
+          "remoteParty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PartyInformation"
+              }
+            ],
+            "description": "The remote party's details for the call waiting in the queue."
+          },
+          "addTime": {
+            "type": "string",
+            "example": "2016-04-21T17:00:00.000Z",
+            "description": "The date and time the call was added to the queue."
+          },
+          "removeTime": {
+            "type": "string",
+            "example": "2016-04-21T17:00:00.000Z",
+            "description": "The date and time the call was removed from the queue. Only present when the call has been removed from the queue."
+          },
+          "mandatoryEntrance": {
+            "type": "boolean",
+            "description": "Indicates whether the call entered the queue as a mandatory entrance."
+          },
+          "bounced": {
+            "type": "boolean",
+            "description": "Indicates whether the call has been bounced from an agent back to the queue."
+          },
+          "reordered": {
+            "type": "boolean",
+            "description": "Indicates whether the call has been reordered within the queue."
+          },
+          "preservedWaitTime": {
+            "type": "integer",
+            "example": 12000,
+            "description": "The wait time, in milliseconds, preserved for the call when it was moved between queues."
+          },
+          "queueNumber": {
+            "type": "string",
+            "example": "+15559998888",
+            "description": "The phone number of the Call Queue the call is waiting in."
+          },
+          "queueName": {
+            "type": "string",
+            "example": "Support Queue",
+            "description": "The name of the Call Queue the call is waiting in."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "highest",
+              "high",
+              "medium",
+              "low"
+            ],
+            "example": "medium",
+            "description": "The priority of the call within the queue. Only present for premium Call Queues that assign a priority."
+          },
+          "answeringAgentId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9hMTlkODJhMi00ZTY5LTU5YWEtOWYyZi1iY2E2MzEwMTNhNjg=",
+            "description": "The identifier of the agent (person, workspace, or virtual line) who is answering, or has answered, the call. The resource type of this identifier is indicated by `answeringAgentType`. Only present when the call is being answered."
+          },
+          "answeringAgentType": {
+            "type": "string",
+            "enum": [
+              "PEOPLE",
+              "PLACE",
+              "VIRTUAL_LINE"
+            ],
+            "example": "PEOPLE",
+            "description": "The type of agent identified by `answeringAgentId`: `PEOPLE` for a user, `PLACE` for a workspace, and `VIRTUAL_LINE` for a virtual line. Only present when the call is being answered."
+          },
+          "answeringCallId": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL0NBTEwvQkNMRC9jYWxsaGFsZi00ODg6Mg",
+            "description": "The call identifier of the answering agent's terminating call. Use this value to correlate the queue call with other call events associated with the agent. Only present when the call is being answered."
+          },
+          "answeringNetworkCallId": {
+            "type": "string",
+            "example": "BW125602794300726-545022669@10.70.16.166",
+            "description": "The SIP Call-ID of the answering call. Only present when the call is being answered."
           }
         }
       },
@@ -176429,6 +176921,34 @@
           "type": "primary",
           "visible": true,
           "environmentType": "production"
+        }
+      },
+      "Interest": {
+        "type": "object",
+        "description": "A single webhook interest that enables event emission for an actor or resource category. Exactly one of `resource` or `actor` is set per interest entry.",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "enum": [
+              "Hook Status",
+              "Agent",
+              "Services",
+              "Agent Monitoring",
+              "Queue",
+              "Queue Monitoring"
+            ],
+            "example": "Agent",
+            "description": "Resource-based interest. Set exactly one of `resource` or `actor` per interest entry.\n\n- `Hook Status` - Enables webhook events for the `telephony_hookstatus` resource.\n- `Agent` - Enables webhook events for the `telephony_agent` resource.\n- `Services` - Enables webhook events for the `telephony_services` resource.\n- `Agent Monitoring` - Enables webhook events for the `telephony_agentMonitoring` resource.\n- `Queue` - Enables webhook events for the `telephony_queue` resource.\n- `Queue Monitoring` - Enables webhook events for the `telephony_queueMonitoring` resource."
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "Workspaces",
+              "Virtual Lines"
+            ],
+            "example": "Workspaces",
+            "description": "Actor-based interest. Set exactly one of `resource` or `actor` per interest entry.\n\n- `Workspaces` - Enables telephony webhook events associated with workspace actors.\n- `Virtual Lines` - Enables telephony webhook events associated with virtual line actors."
+          }
         }
       },
       "CLIDPolicySelection": {
