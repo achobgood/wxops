@@ -81967,7 +81967,8 @@
                     "total": 839,
                     "mobileNumber": 6,
                     "serviceNumber": 1,
-                    "reservedNumber": 1
+                    "reservedNumber": 1,
+                    "elin": 1
                   },
                   "phoneNumbers": [
                     {
@@ -81983,6 +81984,7 @@
                       "routingProfile": "AttRtPf",
                       "tollFreeNumber": false,
                       "isServiceNumber": false,
+                      "elinEnabled": true,
                       "location": {
                         "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4Mjg5NzIyLTFiODAtNDFiNy05Njc4LTBlNzdhZThjMTA5OA",
                         "name": "Banglore"
@@ -81991,7 +81993,8 @@
                         "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS9jODhiZGIwNC1jZjU5LTRjMjMtODQ4OC00NTNhOTE3ZDFlMjk",
                         "type": "PEOPLE",
                         "firstName": "sadiqhussain96",
-                        "lastName": "sadiqhussain96"
+                        "lastName": "sadiqhussain96",
+                        "elinExpiryTime": "2023-12-31T23:59:59.000Z"
                       },
                       "isReservedNumber": false
                     },
@@ -82006,6 +82009,7 @@
                       "includedTelephonyTypes": "PSTN_NUMBER",
                       "tollFreeNumber": false,
                       "isServiceNumber": false,
+                      "elinEnabled": false,
                       "location": {
                         "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2M2MDliOGE1LTAxNmQtNDAwNy1hN2E0LTJhMThiZmZjY2FmNg",
                         "name": "Richardson"
@@ -82026,6 +82030,7 @@
                       "includedTelephonyTypes": "PSTN_NUMBER",
                       "tollFreeNumber": false,
                       "isServiceNumber": true,
+                      "elinEnabled": false,
                       "location": {
                         "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzEwN2EzNTkwLWY3OWMtNGM0OS1iM2I2LWQ1MzhjYTA0YWU1MA",
                         "name": "Washington"
@@ -82138,7 +82143,16 @@
           {
             "name": "available",
             "in": "query",
-            "description": "Search among the available phone numbers. This parameter cannot be used along with `ownerType` parameter when set to `true`.",
+            "description": "Search among the available phone numbers. This parameter cannot be used along with the `numberType` parameter when set to `EXTENSION`.",
+            "example": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "assigned",
+            "in": "query",
+            "description": "Return the list of phone numbers that are assigned to an owner when set to `true`. When set to `false`, returns the list of phone numbers that are unassigned. This parameter cannot be used along with the `numberType` parameter when set to `EXTENSION`.",
             "example": true,
             "schema": {
               "type": "boolean"
@@ -82206,7 +82220,7 @@
           {
             "name": "numberType",
             "in": "query",
-            "description": "Returns the filtered list of phone numbers that contain a given type of number. `available` or `state` query parameters cannot be used when `numberType=EXTENSION`. Possible input values:",
+            "description": "Returns the filtered list of phone numbers that contain a given type of number. `numberType` set to `EXTENSION` cannot be used along with the `available`, `assigned`, or `state` query parameters. Possible input values:",
             "example": "NUMBER",
             "schema": {
               "type": "string",
@@ -82295,6 +82309,15 @@
             "name": "reservedNumber",
             "in": "query",
             "description": "Filters reserved phone numbers. When set to `true`, returns only reserved phone numbers. When set to `false`, returns only non-reserved phone numbers. When omitted, no reserved-number filter is applied. Reserved numbers cannot be assigned to people, features, or services. This parameter cannot be used along with the `available` filter, whether `available` is set to `true` for available numbers or `false` for assigned numbers; using both returns a `400` error. This parameter also cannot be used along with the `assigned` filter; using both returns a `400` error.",
+            "example": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "elinEnabled",
+            "in": "query",
+            "description": "When true, returns the list of phone numbers that are used as an Emergency Location Identification Number (ELIN) in an emergency call scenario. When `false`, returns the list of phone numbers that are not used as an ELIN.",
             "example": true,
             "schema": {
               "type": "boolean"
@@ -88481,6 +88504,12 @@
                 "startStopAnnouncement": {
                   "internalCallsEnabled": true,
                   "pstnCallsEnabled": true
+                },
+                "callRecordingAccessSettings": {
+                  "viewAndPlayRecordingsEnabled": true,
+                  "downloadRecordingsEnabled": true,
+                  "deleteRecordingsEnabled": true,
+                  "shareRecordingsEnabled": true
                 }
               },
               "schema": {
@@ -165384,6 +165413,7 @@
           "includedTelephonyTypes",
           "tollFreeNumber",
           "isServiceNumber",
+          "elinEnabled",
           "isReservedNumber"
         ],
         "properties": {
@@ -165452,6 +165482,11 @@
             "example": true,
             "description": "If `true`, the phone number is a service number; otherwise, it is a standard number."
           },
+          "elinEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "If `true`, the phone number is used as an Emergency Location Identification Number (ELIN) for callback purposes when an emergency call is made."
+          },
           "isReservedNumber": {
             "type": "boolean",
             "example": true,
@@ -165497,6 +165532,11 @@
                 "type": "string",
                 "example": "Zand",
                 "description": "Last name of the phone number's owner."
+              },
+              "elinExpiryTime": {
+                "type": "string",
+                "example": "2025-12-31T23:59:59.000Z",
+                "description": "UTC Timestamp indicating the date and time of expiration of the temporary Emergency Location Identification Number (ELIN) assignment set to this owner when an emergency call is made."
               }
             }
           }
@@ -168528,6 +168568,11 @@
             "type": "integer",
             "example": 1,
             "description": "Count of phone numbers with `includedTelephonyTypes` as `PSTN_NUMBER` and `isServiceNumber` value as `true`."
+          },
+          "elin": {
+            "type": "integer",
+            "example": 5,
+            "description": "Count of phone numbers that are used as Emergency Location Identification Number (ELIN). ELINs are used for callback purposes when an emergency call is made."
           },
           "reservedNumber": {
             "type": "integer",
