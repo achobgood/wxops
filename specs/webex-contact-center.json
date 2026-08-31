@@ -39510,9 +39510,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "List Skill(s)",
-        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
-        "operationId": "getAllConfig_2",
+        "summary": "List Skills",
+        "description": "Retrieve a list of Skills in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead. Deprecated. Use GET /v2/skill instead.",
+        "operationId": "getAllConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -39570,7 +39570,7 @@
           {
             "name": "singleObjectResponse",
             "in": "query",
-            "description": "Specifiy whether to include array fields in the response, This query param should use only if the response contain single record, if we are using for multiple objects response query param not supported and throws an exception.",
+            "description": "Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception.",
             "schema": {
               "type": "boolean",
               "default": false,
@@ -39718,7 +39718,7 @@
             }
           }
         },
-        "deprecated": false
+        "deprecated": true
       },
       "post": {
         "tags": [
@@ -39726,7 +39726,7 @@
         ],
         "summary": "Create a new Skill",
         "description": "Create a new Skill in a given organization.",
-        "operationId": "createConfig_3",
+        "operationId": "createConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -39737,24 +39737,25 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
-          },
-          {
-            "name": "payloadDTO",
-            "in": "query",
-            "description": "Skill configuration data",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/SkillDTO"
-            },
-            "example": {
-              "name": "German Speaking",
-              "description": "Skill to speak fluent German",
-              "serviceLevelThreshold": 0,
-              "active": true,
-              "skillType": "Boolean"
-            }
           }
         ],
+        "requestBody": {
+          "description": "Skill configuration data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillDTO"
+              },
+              "example": {
+                "name": "German Speaking",
+                "description": "Skill to speak fluent German",
+                "serviceLevelThreshold": 0,
+                "active": true,
+                "skillType": "Boolean"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Created",
@@ -39916,8 +39917,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill/bulk": {
@@ -39925,9 +39925,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "Bulk save Skill(s)",
-        "description": "Create, Update or delete Skill(s) in bulk in a given organization.",
-        "operationId": "saveAllConfig_2",
+        "summary": "Bulk save Skills",
+        "description": "Create, Update or delete Skills in bulk in a given organization.",
+        "operationId": "saveAllConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40111,189 +40111,6 @@
               }
             }
           }
-        },
-        "deprecated": false
-      }
-    },
-    "/organization/{orgid}/skill/populate-json-attr/{id}": {
-      "post": {
-        "tags": [
-          "Skill"
-        ],
-        "summary": "Populate json-attributes field for a given skill-id of an organization",
-        "operationId": "populateJsonAttributesByOrgIdAndSkillId",
-        "parameters": [
-          {
-            "name": "orgid",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "400",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "400",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized Operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "401",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "401",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Operation is forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "403",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "403",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Similar entity is already present",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "409",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "409",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "429",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "429",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "An Unexpected Error Occurred",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "500",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "500",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -40302,9 +40119,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "Purge inactive Skill(s)",
-        "description": "Purge inactive Skill(s) older than the configured interval for a given organization.",
-        "operationId": "purgeInactiveConfig_2",
+        "summary": "Purge inactive Skills",
+        "description": "Purge inactive Skills older than the configured interval for a given organization.",
+        "operationId": "purgeInactiveConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40319,7 +40136,7 @@
           {
             "name": "nextStartId",
             "in": "query",
-            "description": "This is the entity ID from which items for the next purge batch with be selected.",
+            "description": "This is the entity ID from which items for the next purge batch will be selected.",
             "required": false,
             "schema": {
               "type": "string",
@@ -40489,8 +40306,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill/{id}": {
@@ -40500,7 +40316,7 @@
         ],
         "summary": "Get specific Skill by ID",
         "description": "Retrieve an existing Skill by ID in a given organization.",
-        "operationId": "getConfig_3",
+        "operationId": "getConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40659,8 +40475,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       },
       "put": {
         "tags": [
@@ -40668,7 +40483,7 @@
         ],
         "summary": "Update specific Skill by ID",
         "description": "Update an existing Skill by ID in a given organization.",
-        "operationId": "updateConfig_3",
+        "operationId": "updateConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40689,24 +40504,25 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
-          },
-          {
-            "name": "payloadDTO",
-            "in": "query",
-            "description": "Skill configuration data for update",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/SkillDTO"
-            },
-            "example": {
-              "name": "German Speaking Updated",
-              "description": "Updated skill to speak fluent German",
-              "serviceLevelThreshold": 5,
-              "active": true,
-              "skillType": "Boolean"
-            }
           }
         ],
+        "requestBody": {
+          "description": "Skill configuration data for update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillDTO"
+              },
+              "example": {
+                "name": "German Speaking Updated",
+                "description": "Updated skill to speak fluent German",
+                "serviceLevelThreshold": 5,
+                "active": true,
+                "skillType": "Boolean"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -40893,8 +40709,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       },
       "delete": {
         "tags": [
@@ -40902,7 +40717,7 @@
         ],
         "summary": "Delete specific Skill by ID",
         "description": "Delete an existing Skill by ID in a given organization.",
-        "operationId": "deleteConfig_3",
+        "operationId": "deleteConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -41079,8 +40894,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill/{id}/incoming-references": {
@@ -41090,7 +40904,7 @@
         ],
         "summary": "List references for a specific Skill",
         "description": "Retrieve a list of all entities that have reference to an existing Skill by ID in a given organization.",
-        "operationId": "getIncomingReferences_2",
+        "operationId": "getIncomingReferencesSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -41281,8 +41095,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/v2/skill": {
@@ -41290,9 +41103,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "List Skill(s)",
-        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
-        "operationId": "getAllConfigWithMetaData_4",
+        "summary": "List Skills",
+        "description": "Retrieve a list of Skills in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
+        "operationId": "getAllConfigWithMetaDataSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -41360,11 +41173,20 @@
           {
             "name": "singleObjectResponse",
             "in": "query",
-            "description": "Specifiy whether to include array fields in the response, This query param should use only if the response contain single record, if we are using for multiple objects response query param not supported and throws an exception.",
+            "description": "Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception.",
             "schema": {
               "type": "boolean",
               "default": false,
               "example": false
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "description": "Fetch array fields on demand only. Supported array fields are enumSkillValues.",
+            "schema": {
+              "type": "string",
+              "example": "userIds"
             }
           }
         ],
@@ -41504,8 +41326,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill-profile": {
@@ -84254,6 +84075,7 @@
       },
       "SkillDTO": {
         "type": "object",
+        "description": "Skill schema.",
         "properties": {
           "organizationId": {
             "type": "string",
@@ -84298,6 +84120,7 @@
           },
           "enumSkillValues": {
             "type": "array",
+            "description": "List of Enum Skill Values.",
             "items": {
               "$ref": "#/components/schemas/EnumSkillValueDTO",
               "description": "If skillType is enum, the skill can take different sub-values which are defined with this field. For instance, a skill named \"tech support\" may have enumSkillValues for \"windows\", \"macOS\" and \"linux\"."
@@ -84325,6 +84148,11 @@
             ],
             "example": "BOOLEAN"
           },
+          "systemDefault": {
+            "type": "boolean",
+            "description": "Indicates whether the created resource is system created or not",
+            "example": false
+          },
           "createdTime": {
             "type": "integer",
             "format": "int64",
@@ -84347,6 +84175,7 @@
       },
       "EnumSkillValueDTO": {
         "type": "object",
+        "description": "Data transfer object representing a possible enumerated value for an enum-type skill",
         "properties": {
           "organizationId": {
             "type": "string",
@@ -84407,12 +84236,14 @@
       },
       "BulkRequestDTOSkillDTO": {
         "type": "object",
+        "description": "Bulk Request Skill schema.",
         "properties": {
           "items": {
             "type": "array",
             "description": "List of items in the bulk request.",
             "items": {
-              "$ref": "#/components/schemas/BulkRequestItemDTOSkillDTO"
+              "$ref": "#/components/schemas/BulkRequestItemDTOSkillDTO",
+              "description": "Item."
             }
           }
         }
@@ -84428,7 +84259,8 @@
             "example": 10
           },
           "item": {
-            "$ref": "#/components/schemas/SkillDTO"
+            "$ref": "#/components/schemas/SkillDTO",
+            "description": "Item."
           },
           "requestAction": {
             "type": "string",
@@ -84439,15 +84271,21 @@
       },
       "ResponseEnvelopeSkillDTO": {
         "type": "object",
+        "description": "Response Envelope Skill schema.",
         "properties": {
           "meta": {
             "type": "object",
-            "additionalProperties": {}
+            "additionalProperties": {
+              "description": "Meta additional property."
+            },
+            "description": "Additional properties for Meta."
           },
           "data": {
             "type": "array",
+            "description": "List of Data.",
             "items": {
-              "$ref": "#/components/schemas/SkillDTO"
+              "$ref": "#/components/schemas/SkillDTO",
+              "description": "Data item."
             }
           }
         }
@@ -89311,7 +89149,7 @@
                 "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-12-23_2025-12-31.csv",
                 "fileSize": 102400,
                 "checksum": "a1b2c3d4e5f67890",
-                "downloadUrl": "https://api.intgus1.ciscoccservice.com/async-api/v1/reports/0f49a30b66f9415382ce2251f2ee194d/download"
+                "downloadUrl": "https://api.wxcc-us1.cisco.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
               }
             ],
             "items": {
@@ -89369,7 +89207,7 @@
           "downloadUrl": {
             "type": "string",
             "description": "Secure download URL for the file. Available only when the file status is completed.",
-            "example": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+            "example": "https://api.wxcc-us1.cisco.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
           }
         }
       },
