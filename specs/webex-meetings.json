@@ -33979,6 +33979,18 @@
           "maxNumberOfLineAppearances": {
             "type": "number",
             "description": "Maximum number of line appearances available on the device."
+          },
+          "lineKeyTypeExcludeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineKeyType"
+            },
+            "description": "List of `lineKeyType` values not supported by the device layout and templates."
+          },
+          "numberOfLineKeyButtonColumns": {
+            "type": "integer",
+            "example": 1,
+            "description": "Number of columns in the device's line key layout. If not specified, it defaults to 2."
           }
         }
       },

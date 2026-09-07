@@ -56932,6 +56932,59 @@
         }
       }
     },
+    "/v1/tasks/{taskId}/conference/participants/{participantId}/drop": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Drop Participant From Conference",
+        "description": "Access this endpoint when the user needs to drop a specific participant from an active conference associated with a task. This operation removes only the targeted participant while keeping the remaining parties in the conference. Requires `cjp:user` scope for  authorization. For a list of possible response messages, see the [Call Control API Guide](/docs/contact-control-apis)",
+        "operationId": "dropConferenceParticipantsRoute",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "The taskId represents the task that the user is currently working on. It will be generated automatically during the creation of a new task.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "UUID"
+            },
+            "example": "315fbb91-2288-427c-9588-ec764cd46ea4"
+          },
+          {
+            "name": "participantId",
+            "in": "path",
+            "description": "The ID of the participant ( Agent / DN / Entry Point DN / Customer) to be dropped from the conference, maximum length 36 characters.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "+1234567890"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The request is accepted for processing"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/accept": {
       "post": {
         "tags": [
@@ -57723,7 +57776,7 @@
           "Flows"
         ],
         "summary": "List Flows or Subflows",
-        "description": "Returns a list of flows in response. Channel-based filtering can be applied with the `searchBy` query parameter (for example, `channelType|telephony`, `channelType|workItem`, `channelType|customMessaging`, `channelType|genericAction`). Channel visibility may be constrained by organization feature flags.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
+        "description": "Returns a list of flows in response. Channel-based filtering can be applied with the `searchBy` query parameter (for example, `channelType|telephony`, `channelType|workItem`, `channelType|customMessaging`, `channelType|genericAction`). Channel visibility may be constrained by organization feature flags. If associatedChannels key is missing or empty, it will be treated as telephony flow.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
         "operationId": "findFlowsUsingGET",
         "parameters": [
           {
@@ -58401,8 +58454,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Validate a Flow",
-        "description": "Dry-run validate a flow definition without persisting it. Use this to check correctness before importing.\n\nNote: validation is more lenient than import. A flow that passes `:validate` can still be rejected by `:import` (for example, a missing start activity), so a successful validation does not guarantee a successful import.\n\nScope: `cjp:config_write`",
+        "summary": "Validate a Flow or Subflow",
+        "description": "Dry-run validate a flow/subflow definition without persisting it. Use this to check correctness before importing. Include `associatedChannels` to preserve the channel metadata that import and export payloads round-trip. Validation requests where `associatedChannels` is missing or empty are treated as telephony flows, and dry-run validation does not derive the effective channel from `associatedChannels`.\n\nNote: validation is more lenient than import. A flow that passes `:validate` can still be rejected by `:import` (for example, a missing start activity), so a successful validation does not guarantee a successful import.\n\nScope: `cjp:config_write`",
         "operationId": "validateFlowV2",
         "parameters": [
           {
@@ -58482,8 +58535,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Import a Flow",
-        "description": "Import a new flow from a flow definition. Creates the flow in draft state and returns the assigned flow metadata, including `flowId`.\n\nScope: `cjp:config_write`",
+        "summary": "Import a Flow or Subflow",
+        "description": "Import a new flow/subflow from a flow definition. Creates the flow/subflow in draft state and returns the assigned flow metadata, including `flowId`. Include `associatedChannels` in the payload when the flow contains channel-specific activities (for example, `customMessaging`) so channel references can be resolved correctly during import. If `associatedChannels` is missing or empty, the import is treated as a telephony flow. For `FLOW` imports, blank or whitespace-only `associatedChannels[].channelType` values are rejected.\n\nScope: `cjp:config_write`",
         "operationId": "importFlowV2",
         "parameters": [
           {
@@ -58530,7 +58583,7 @@
           }
         ],
         "requestBody": {
-          "description": "Flow JSON document to import.",
+          "description": "Flow JSON document to import. For `FLOW` imports, blank or whitespace-only `associatedChannels[].channelType` values are rejected.",
           "content": {
             "application/json": {
               "schema": {
@@ -58605,8 +58658,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Get a Flow",
-        "description": "Retrieve the current draft of a flow as a flow document. To fetch a specific published version, use the `:export` endpoint.\n\nScope: `cjp:config_read`",
+        "summary": "Get a Flow or Subflow",
+        "description": "Retrieve the current draft of a flow/subflow as a flow document. To fetch a specific published version, use the `:export` endpoint. The response includes channel metadata (for example, `associatedChannels`) used by channel-specific activities such as `customMessaging`. If `associatedChannels` is missing or empty, the flow is treated as telephony.\n\nScope: `cjp:config_read`",
         "operationId": "getFlowV2",
         "parameters": [
           {
@@ -58684,8 +58737,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Save a Flow Draft",
-        "description": "Save a complete flow document as the current draft, replacing the existing draft. Pass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
+        "summary": "Save a Flow or Subflow Draft",
+        "description": "Save a complete flow/subflow document as the current draft, replacing the existing draft. Submitted `associatedChannels` values are not persisted on save; the draft preserves the existing stored channel metadata. Omitting `associatedChannels` does not default an existing flow to telephony. Pass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
         "operationId": "saveFlowV2Draft",
         "parameters": [
           {
@@ -58809,8 +58862,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Patch a Flow Draft",
-        "description": "Apply partial updates to an existing flow draft without replacing the entire document. The patch body is a Patch Draft Contract — server-side merge, idempotent, and re-validated after the merge. The patch is rejected if the merged document fails validation, so the draft is never left in a broken state. The body may also include top-level overrides such as `name` and `description`.\n\nPass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
+        "summary": "Patch a Flow or Subflow Draft",
+        "description": "Apply partial updates to an existing flow/subflow draft without replacing the entire document. The patch body is a Patch Draft Contract — server-side merge, idempotent, and re-validated after the merge. The patch is rejected if the merged document fails validation, so the draft is never left in a broken state. The body may also include top-level overrides such as `name` and `description`. Submitted `associatedChannels` values are not persisted on patch; the draft preserves the existing stored channel metadata.\n\nPass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
         "operationId": "patchFlowV2Draft",
         "parameters": [
           {
@@ -58936,8 +58989,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Validate an Existing Flow Draft",
-        "description": "Validate the current draft of an existing flow (read-only operation).\n\nScope: `cjp:config_read`",
+        "summary": "Validate an Existing Flow or Subflow Draft",
+        "description": "Validate the current draft of an existing flow/subflow (read-only operation). Validation reads the draft as stored. Drafts where `associatedChannels` is missing or empty are treated as telephony flows, and validation does not derive the effective channel from `associatedChannels`.\n\nScope: `cjp:config_read`",
         "operationId": "validateExistingFlowV2",
         "parameters": [
           {
@@ -59028,8 +59081,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Export a Flow",
-        "description": "Export a flow as a flow document for backup, migration, or version control.\n\nScope: `cjp:config_read`",
+        "summary": "Export a Flow or Subflow",
+        "description": "Export a flow/subflow as a flow document for backup, migration, or version control. The exported payload includes `associatedChannels` metadata to preserve channel-specific activity behavior (for example, `customMessaging`) during re-import. If `associatedChannels` is missing or empty, the flow is treated as telephony.\n\nScope: `cjp:config_read`",
         "operationId": "exportFlowV2",
         "parameters": [
           {
@@ -63649,6 +63702,17 @@
               "type": "string"
             },
             "example": "SalesCampaign_Prog"
+          },
+          {
+            "name": "interactionId",
+            "in": "query",
+            "description": "The unique identifier of the interaction associated with this request.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "123e4567-e89b-12d3-a456-426614174003"
           },
           {
             "name": "agentId",
@@ -70723,6 +70787,18 @@
           "maxNumberOfLineAppearances": {
             "type": "number",
             "description": "Maximum number of line appearances available on the device."
+          },
+          "lineKeyTypeExcludeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineKeyType"
+            },
+            "description": "List of `lineKeyType` values not supported by the device layout and templates."
+          },
+          "numberOfLineKeyButtonColumns": {
+            "type": "integer",
+            "example": 1,
+            "description": "Number of columns in the device's line key layout. If not specified, it defaults to 2."
           }
         }
       },
@@ -89078,7 +89154,7 @@
         "properties": {
           "reportId": {
             "type": "string",
-            "description": "Unique report ID (UUID without hyphens).",
+            "description": "Unique report ID (UUID without hyphens). Use this ID to get the report status and generated file list. Do not use reportId to download files; use each file's fileId instead.",
             "example": "550e8400e29b41d4a716446655440000"
           },
           "createdTime": {
@@ -89097,7 +89173,7 @@
         "properties": {
           "reportId": {
             "type": "string",
-            "description": "Unique report ID (UUID without hyphens). A single usage report may contain multiple report files.",
+            "description": "Unique report ID (UUID without hyphens). A single usage report may contain multiple report files, especially for long date ranges that are split by calendar month. Use reportId to get or delete the report. Use each report file's fileId to download that file.",
             "example": "550e8400e29b41d4a716446655440000",
             "pattern": "^[0-9a-f]{32}$"
           },
@@ -89149,13 +89225,54 @@
                 "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-12-23_2025-12-31.csv",
                 "fileSize": 102400,
                 "checksum": "a1b2c3d4e5f67890",
-                "downloadUrl": "https://api.wxcc-us1.cisco.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+                "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+              },
+              {
+                "startDate": "2026-01-01",
+                "endDate": "2026-01-22",
+                "status": "completed",
+                "fileId": "782ae11e495b4b6d9c6a9d9a2469e7c4",
+                "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2026-01-01_2026-01-22.csv",
+                "fileSize": 204800,
+                "checksum": "b1c2d3e4f5a67890",
+                "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/782ae11e495b4b6d9c6a9d9a2469e7c4/download"
               }
             ],
             "items": {
               "$ref": "#/components/schemas/CCUsageReportFile"
             }
           }
+        },
+        "example": {
+          "reportId": "550e8400e29b41d4a716446655440000",
+          "resourceType": "ContactSessionRecord",
+          "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+          "status": "completed",
+          "createdTime": "2026-01-22T09:31:04Z",
+          "completedTime": "2026-01-22T10:15:30Z",
+          "expiryTime": "2026-01-29T10:15:30Z",
+          "reportFiles": [
+            {
+              "startDate": "2025-12-23",
+              "endDate": "2025-12-31",
+              "status": "completed",
+              "fileId": "0f49a30b66f9415382ce2251f2ee194d",
+              "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-12-23_2025-12-31.csv",
+              "fileSize": 102400,
+              "checksum": "a1b2c3d4e5f67890",
+              "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+            },
+            {
+              "startDate": "2026-01-01",
+              "endDate": "2026-01-22",
+              "status": "completed",
+              "fileId": "782ae11e495b4b6d9c6a9d9a2469e7c4",
+              "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2026-01-01_2026-01-22.csv",
+              "fileSize": 204800,
+              "checksum": "b1c2d3e4f5a67890",
+              "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/782ae11e495b4b6d9c6a9d9a2469e7c4/download"
+            }
+          ]
         }
       },
       "CCUsageReportFile": {
@@ -89184,7 +89301,7 @@
           },
           "fileId": {
             "type": "string",
-            "description": "Unique file ID (UUID without hyphens).",
+            "description": "Unique file ID (UUID without hyphens). Use this ID with the Download Usage Report File API to download this individual generated file.",
             "example": "0f49a30b66f9415382ce2251f2ee194d",
             "pattern": "^[0-9a-f]{32}$"
           },
@@ -89206,8 +89323,8 @@
           },
           "downloadUrl": {
             "type": "string",
-            "description": "Secure download URL for the file. Available only when the file status is completed.",
-            "example": "https://api.wxcc-us1.cisco.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+            "description": "Customer-facing API Gateway download URL for this individual file. Available only when the file status is completed. The URL contains the fileId, not the reportId, and still requires authorization.",
+            "example": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
           }
         }
       },
@@ -91575,7 +91692,7 @@
         }
       },
       "FlowV2ErrorResponse": {
-        "title": "FlowV2ErrorResponse",
+        "title": "FlowErrorResponse",
         "type": "object",
         "description": "Standard error envelope returned by flow endpoints. For 400 (bad request) and 422 (validation failure), `details[]` carries field-level error information.",
         "additionalProperties": true,
@@ -91611,7 +91728,7 @@
         }
       },
       "FlowV2ValidationError": {
-        "title": "FlowV2ValidationError",
+        "title": "FlowValidationError",
         "type": "object",
         "description": "A single validation error against a flow document.",
         "properties": {
@@ -91993,7 +92110,7 @@
         "properties": {
           "associatedChannels": {
             "type": "array",
-            "description": "Channels associated with the flow.",
+            "description": "Channels associated with the flow. If associatedChannels key is missing or empty, it will be treated as telephony flow.",
             "items": {
               "$ref": "#/components/schemas/AssociatedChannelRes"
             },
@@ -93129,8 +93246,34 @@
           }
         }
       },
+      "FlowV2AssociatedChannel": {
+        "title": "FlowAssociatedChannel",
+        "type": "object",
+        "description": "Represents a channel associated with a Flow document.",
+        "required": [
+          "channelType"
+        ],
+        "properties": {
+          "channelType": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Required non-empty channel type associated with the flow document.",
+            "example": "customMessaging"
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier of the associated channel. For non-telephony channels, provide the channel identifier expected by the referenced activities.",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the associated channel. For non-telephony channels, provide the matching channel name used by the referenced activities.",
+            "example": "Task Queue 1"
+          }
+        }
+      },
       "FlowV2Metadata": {
-        "title": "FlowV2Metadata",
+        "title": "FlowMetadata",
         "type": "object",
         "description": "Result envelope returned for a flow on import, save draft, and patch draft. The persisted flow document is returned under `flow` (the server-assigned flow ID is `flow.id`), alongside any preflight warnings raised during the operation.",
         "additionalProperties": true,
@@ -93178,7 +93321,7 @@
         }
       },
       "FlowV2Summary": {
-        "title": "FlowV2Summary",
+        "title": "FlowSummary",
         "type": "object",
         "description": "Server-side metadata for a persisted flow document.",
         "additionalProperties": true,
@@ -93231,6 +93374,20 @@
             "type": "string",
             "description": "User ID that created the flow.",
             "example": "user@example.com"
+          },
+          "associatedChannels": {
+            "type": "array",
+            "description": "Channels associated with the flow. If associatedChannels key is missing or empty, it will be treated as telephony flow.",
+            "items": {
+              "$ref": "#/components/schemas/FlowV2AssociatedChannel"
+            },
+            "example": [
+              {
+                "channelType": "customMessaging",
+                "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                "name": "Task Queue 1"
+              }
+            ]
           },
           "createdDate": {
             "type": "string",
@@ -93336,7 +93493,7 @@
         }
       },
       "FlowV2ValidationWarning": {
-        "title": "FlowV2ValidationWarning",
+        "title": "FlowValidationWarning",
         "type": "object",
         "description": "A single non-blocking validation warning or recommendation against a flow document.",
         "properties": {
@@ -93362,7 +93519,7 @@
         }
       },
       "FlowV2ValidationResult": {
-        "title": "FlowV2ValidationResult",
+        "title": "FlowValidationResult",
         "type": "object",
         "description": "Result of validating a flow document.",
         "example": {
@@ -93409,12 +93566,12 @@
           "summary": {
             "type": "string",
             "description": "Human-readable summary of the validation outcome.",
-            "example": "FlowV2 looks valid for import/save."
+            "example": "Flow looks valid for import/save."
           }
         }
       },
       "FlowV2DraftValidationEntry": {
-        "title": "FlowV2DraftValidationEntry",
+        "title": "FlowDraftValidationEntry",
         "type": "object",
         "description": "A single result entry returned when validating a stored flow draft.",
         "properties": {
@@ -93456,7 +93613,7 @@
         }
       },
       "FlowV2DraftValidationResult": {
-        "title": "FlowV2DraftValidationResult",
+        "title": "FlowDraftValidationResult",
         "type": "object",
         "description": "Result of validating a stored flow draft. Issues are returned under `results`.",
         "example": {
