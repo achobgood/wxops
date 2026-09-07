@@ -43492,7 +43492,7 @@
         },
         "summary": "Update a RedSky Building Address for a Location",
         "operationId": "Update a RedSky Building Address for a Location",
-        "description": "Update a RedSky building address for a specified location.\n\nThe Enhanced Emergency (E911) Service for Webex Calling provides dynamic location support and a network that routes emergency calls to Public Safety Answering Points (PSAP) around the US, its territories, and Canada. E911 services are provided in conjunction with a RedSky account.\n\nUpdating a building address requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Update a RedSky building address for a specified location. This endpoint is intended for use by online customers who have a single location setup.\n\nThe Enhanced Emergency (E911) Service for Webex Calling provides dynamic location support and a network that routes emergency calls to Public Safety Answering Points (PSAP) around the US, its territories, and Canada. E911 services are provided in conjunction with a RedSky account.\n\nUpdating a building address requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Emergency Services Settings"
         ],
@@ -52799,7 +52799,11 @@
                       "locationName": "WXCSIVDKCPAPIC4S1",
                       "locationId": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
                       "enabled": true,
+                      "phoneNumber": "+15558675309",
                       "extension": "8000",
+                      "routingPrefix": "1234",
+                      "esn": "12348000",
+                      "tollFreeNumber": false,
                       "department": {
                         "id": "Y2lzY29zcGFyazovL3VzL1NDSU1fR1JPVVAvZjA2ZWRiOGMtMjMxNC00ZTcxLWIzNzgtZTdiMmQwNjk3OTliOjk2YWJjMmFhLTNkY2MtMTFlNS1hMTUyLWZlMzQ4MTljZGM5YQ",
                         "name": "HR"
@@ -53600,7 +53604,25 @@
                     }
                   },
                   "allowCallWaitingForAgentsEnabled": false,
-                  "agents": [],
+                  "agents": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NDVkMzMzMC1mNjE3LTExZWItOWQyZS01NzViODE3ZGE1NmE",
+                      "type": "PEOPLE",
+                      "firstName": "Hakim",
+                      "lastName": "Smith",
+                      "phoneNumber": "+12225555309",
+                      "extension": "5309",
+                      "routingPrefix": "8002",
+                      "esn": "80025309",
+                      "skillLevel": 1,
+                      "joinEnabled": true,
+                      "location": {
+                        "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+                        "name": "RCDN"
+                      },
+                      "hasCxEssentials": true
+                    }
+                  ],
                   "department": {
                     "id": "Y2lzY29zcGFyazovL3VzL1NDSU1fR1JPVVAvZjA2ZWRiOGMtMjMxNC00ZTcxLWIzNzgtZTdiMmQwNjk3OTliOjk2YWJjMmFhLTNkY2MtMTFlNS1hMTUyLWZlMzQ4MTljZGM5YQ",
                     "name": "HR"
@@ -63323,6 +63345,184 @@
             "example": true,
             "schema": {
               "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/telephony/config/cxEssentials/agents/availableAgents": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailableAgentListGetObject"
+                },
+                "example": {
+                  "agents": [
+                    {
+                      "id": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80YzFjOWE2YS1jYjZiLTRjYjItOWJkYi02YjkyZTA1ZTI4ZmY",
+                      "lastName": "Smith",
+                      "firstName": "John",
+                      "displayName": "John Smith",
+                      "type": "PEOPLE",
+                      "email": "john.smith@example.com",
+                      "hasCxEssentials": true,
+                      "phoneNumbers": [
+                        {
+                          "external": "+12165553518",
+                          "extension": "5024"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Get Available Agents",
+        "operationId": "getAvailableAgents",
+        "description": "List eligible people who can be assigned as Customer Assist agents.\n\nReturns people with a Webex Calling Professional license across all locations visible to the caller's authorization. Workspaces and virtual lines are not included.\n\nCalls from call queues are routed to assigned agents based on configuration. An agent can be assigned to one or more call queues and can be managed by supervisors.\n\nRetrieving this list requires a full, read-only or location administrator auth token with a scope of `spark-admin:telephony_config_read`.",
+        "tags": [
+          "Features: Customer Assist"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "query",
+            "description": "The location ID of the call queue. Temporary mandatory query parameter, used for performance reasons only and not a filter.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "List available agents for this organization. If omitted, uses the organization associated with the OAuth token.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hasCxEssentials",
+            "in": "query",
+            "description": "Filter agents by Customer Assist license status. When `true`, returns only agents with Customer Assist license. When `false`, returns only agents with Customer Experience Basic license. When omitted, returns all eligible agents regardless of license type.",
+            "example": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "description": "Limit the number of objects returned to this maximum count.",
+            "example": 2000,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000,
+              "default": 2000
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "Start at the zero-based offset in the list of matching objects.",
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9999,
+              "default": 0
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Filter agents by name. Supports partial matching. Multiple values can be provided to search for agents matching any of the specified names.",
+            "example": "John",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "phoneNumbers",
+            "in": "query",
+            "description": "Filter agents by phone number. Supports partial matching. Multiple values can be provided to search for agents matching any of the specified phone numbers.",
+            "example": "+1216555",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort order for the results. Supported fields are `firstName`, `lastName`, `displayName`, and `extension`. Use `asc` or `desc` suffix to specify direction (e.g., `lastName asc`). Default is `lastName asc`.",
+            "example": "lastName asc",
+            "schema": {
+              "type": "string"
             }
           }
         ]
@@ -153834,13 +154034,13 @@
         "properties": {
           "external": {
             "type": "string",
-            "example": "+19075552859",
-            "description": "Phone number of a person, workspace or virtual line."
+            "example": "+12143456103",
+            "description": "Phone number of a person."
           },
           "extension": {
             "type": "string",
-            "example": "8080",
-            "description": "Extension of a person, workspace or virtual line."
+            "example": "23234",
+            "description": "Extension of a person."
           }
         }
       },
@@ -154640,29 +154840,6 @@
           }
         }
       },
-      "CallQueueAudioFilesObject": {
-        "type": "object",
-        "required": [
-          "fileName",
-          "mediaFileType"
-        ],
-        "properties": {
-          "fileName": {
-            "type": "string",
-            "example": "AudioFile1.wav",
-            "description": "Name of the file."
-          },
-          "mediaFileType": {
-            "type": "string",
-            "enum": [
-              "WMA",
-              "WAV",
-              "3GP"
-            ],
-            "description": "Media Type of the audio file.\n * `WMA` - WMA File Extension.\n * `WAV` - WAV File Extension.\n * `3GP` - 3GP File Extension.\n"
-          }
-        }
-      },
       "CallQueueHolidaySchedulesObject": {
         "type": "object",
         "required": [
@@ -154704,379 +154881,6 @@
               "ORGANIZATION"
             ],
             "description": "Indicates whether the schedule in scheduleName is specific to the organization or location.\n * `LOCATION` - Schedule is configured across a location.\n * `ORGANIZATION` - Schedule is configured across an organization.\n"
-          }
-        }
-      },
-      "CallQueueQueueSettingsGetObject": {
-        "type": "object",
-        "required": [
-          "queueSize",
-          "overflow",
-          "useEnterprisePlayToneToAgentSettingsEnabled",
-          "playToneToAgentForBargeInEnabled",
-          "playToneToAgentForSilentMonitoringEnabled",
-          "playToneToAgentForSupervisorCoachingEnabled"
-        ],
-        "properties": {
-          "queueSize": {
-            "type": "number",
-            "example": 50,
-            "description": "The maximum number of calls for this call queue. Once this number is reached, the `overflow` settings are triggered."
-          },
-          "callOfferToneEnabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Play ringing tone to callers when their call is set to an available agent."
-          },
-          "resetCallStatisticsEnabled": {
-            "type": "boolean",
-            "description": "Reset caller statistics upon queue entry."
-          },
-          "overflow": {
-            "type": "object",
-            "required": [
-              "action",
-              "greeting"
-            ],
-            "properties": {
-              "action": {
-                "type": "string",
-                "enum": [
-                  "PERFORM_BUSY_TREATMENT",
-                  "PLAY_RINGING_UNTIL_CALLER_HANGS_UP",
-                  "TRANSFER_TO_PHONE_NUMBER"
-                ],
-                "description": "Indicates how to handle new calls when the queue is full.\n * `PERFORM_BUSY_TREATMENT` - The caller hears a fast-busy tone.\n * `PLAY_RINGING_UNTIL_CALLER_HANGS_UP` - The caller hears ringing until they disconnect.\n * `TRANSFER_TO_PHONE_NUMBER` - Number where you want to transfer overflow calls.\n"
-              },
-              "sendToVoicemail": {
-                "type": "boolean",
-                "description": "When `true`, forwards all calls to a voicemail service of an internal number. This option is ignored when an external `transferNumber` is entered."
-              },
-              "transferNumber": {
-                "type": "string",
-                "example": "+15555551212",
-                "description": "Destination number for overflow calls when `action` is set to `TRANSFER_TO_PHONE_NUMBER`."
-              },
-              "overflowAfterWaitEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "After calls wait for the configured number of seconds and no agent is available, the overflow treatment is triggered."
-              },
-              "overflowAfterWaitTime": {
-                "type": "number",
-                "example": 20,
-                "description": "Number of seconds to wait before the overflow treatment is triggered when no agent is available. The minimum value 0, The maximum value is 7200 seconds."
-              },
-              "playOverflowGreetingEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Indicate overflow audio to be played, otherwise, callers will hear the hold music until the call is answered by a user."
-              },
-              "greeting": {
-                "type": "string",
-                "enum": [
-                  "CUSTOM",
-                  "DEFAULT"
-                ],
-                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
-              },
-              "audioAnnouncementFiles": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
-                },
-                "description": "Array of announcement files to be played as `overflow` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
-              }
-            },
-            "description": "Settings for incoming calls exceed queueSize."
-          },
-          "welcomeMessage": {
-            "type": "object",
-            "required": [
-              "greeting"
-            ],
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "If enabled play entrance message. The default value is `true`."
-              },
-              "alwaysEnabled": {
-                "type": "boolean",
-                "description": "Mandatory entrance message. The default value is `false`."
-              },
-              "greeting": {
-                "type": "string",
-                "enum": [
-                  "CUSTOM",
-                  "DEFAULT"
-                ],
-                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
-              },
-              "audioAnnouncementFiles": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
-                },
-                "description": "Array of announcement files to be played as `welcomeMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
-              }
-            },
-            "description": "Play a message when callers first reach the queue. For example, “Thank you for calling. An agent will be with you shortly.” It can be set as mandatory. If the mandatory option is not selected and a caller reaches the call queue while there is an available agent, the caller will not hear this announcement and is transferred to an agent. The welcome message feature is enabled by default."
-          },
-          "waitMessage": {
-            "type": "object",
-            "required": [
-              "waitMode"
-            ],
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "If enabled play Wait Message."
-              },
-              "waitMode": {
-                "type": "string",
-                "enum": [
-                  "TIME",
-                  "POSITION"
-                ],
-                "description": "Estimated wait message operating mode. Supported values `TIME` and `POSITION`.\n * `TIME` - Announce the waiting time.\n * `POSITION` - Announce queue position.\n"
-              },
-              "handlingTime": {
-                "type": "number",
-                "example": 100,
-                "description": "The number of minutes for which the estimated wait is played. The minimum time is 10 minutes. The maximum time is 100 minutes."
-              },
-              "defaultHandlingTime": {
-                "type": "number",
-                "example": 100,
-                "description": "The default number of call handling minutes. The minimum time is 1 minutes, The maximum time is 100 minutes."
-              },
-              "queuePosition": {
-                "type": "number",
-                "example": 100,
-                "description": "The number of the position for which the estimated wait is played. The minimum positions are 10, The maximum positions are 100."
-              },
-              "highVolumeMessageEnabled": {
-                "type": "boolean",
-                "description": "Play time / Play position High Volume."
-              },
-              "estimatedWaitingTime": {
-                "type": "number",
-                "example": 600,
-                "description": "The number of estimated waiting times in seconds. The minimum time is 10 seconds. The maximum time is 600 seconds."
-              },
-              "callbackOptionEnabled": {
-                "type": "boolean",
-                "description": "Callback options enabled/disabled. Default value is false."
-              },
-              "minimumEstimatedCallbackTime": {
-                "type": "number",
-                "example": 10,
-                "description": "The minimum estimated callback times in minutes. The default value is 30."
-              },
-              "internationalCallbackEnabled": {
-                "type": "boolean",
-                "description": "The international numbers for callback is enabled/disabled. The default value is `false`."
-              },
-              "playUpdatedEstimatedWaitMessage": {
-                "type": "boolean",
-                "example": true,
-                "description": "Play updated estimated wait message."
-              }
-            },
-            "description": "Notify the caller with either their estimated wait time or position in the queue. If this option is enabled, it plays after the welcome message and before the comfort message. By default, it is not enabled."
-          },
-          "comfortMessage": {
-            "type": "object",
-            "required": [
-              "greeting"
-            ],
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "If enabled play periodic comfort message."
-              },
-              "timeBetweenMessages": {
-                "type": "number",
-                "example": 10,
-                "description": "The interval in seconds between each repetition of the comfort message played to queued users. The minimum time is 10 seconds.The maximum time is 600 seconds."
-              },
-              "greeting": {
-                "type": "string",
-                "enum": [
-                  "CUSTOM",
-                  "DEFAULT"
-                ],
-                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
-              },
-              "audioAnnouncementFiles": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
-                },
-                "description": "Array of announcement files to be played as `comfortMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
-              }
-            },
-            "description": "Play a message after the welcome message and before hold music. This is typically a `CUSTOM` announcement that plays information, such as current promotions or information about products and services."
-          },
-          "comfortMessageBypass": {
-            "type": "object",
-            "required": [
-              "greeting"
-            ],
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "If enabled play comfort bypass message."
-              },
-              "callWaitingAgeThreshold": {
-                "type": "number",
-                "example": 10,
-                "description": "The interval in seconds between each repetition of the comfort bypass message played to queued users. The minimum time is 1 seconds. The maximum time is 120 seconds."
-              },
-              "greeting": {
-                "type": "string",
-                "enum": [
-                  "CUSTOM",
-                  "DEFAULT"
-                ],
-                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
-              },
-              "audioAnnouncementFiles": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
-                },
-                "description": "Array of announcement files to be played as `comfortMessageBypass` greetings. These files are from the list of announcements files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
-              }
-            },
-            "description": "Play a shorter comfort message instead of the usual Comfort or Music On Hold announcement to all the calls that should be answered quickly. This feature prevents a caller from hearing a short portion of the standard comfort message that abruptly ends when they are connected to an agent."
-          },
-          "mohMessage": {
-            "type": "object",
-            "required": [
-              "normalSource",
-              "alternateSource"
-            ],
-            "properties": {
-              "normalSource": {
-                "type": "object",
-                "required": [
-                  "greeting"
-                ],
-                "properties": {
-                  "enabled": {
-                    "type": "boolean",
-                    "example": true,
-                    "description": "Enable media on hold for queued calls."
-                  },
-                  "greeting": {
-                    "type": "string",
-                    "enum": [
-                      "CUSTOM",
-                      "DEFAULT"
-                    ],
-                    "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
-                  },
-                  "audioAnnouncementFiles": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/AnnouncementAudioFileGet"
-                    },
-                    "description": "Array of announcement files to be played as `mohMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
-                  },
-                  "audioPlaylistId": {
-                    "type": "string",
-                    "description": "Identifier of the playlist used for this MOH source."
-                  }
-                }
-              },
-              "alternateSource": {
-                "type": "object",
-                "required": [
-                  "greeting"
-                ],
-                "properties": {
-                  "enabled": {
-                    "type": "boolean",
-                    "example": true,
-                    "description": "Enable media on hold for queued calls."
-                  },
-                  "greeting": {
-                    "type": "string",
-                    "enum": [
-                      "CUSTOM",
-                      "DEFAULT"
-                    ],
-                    "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
-                  },
-                  "audioAnnouncementFiles": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/AnnouncementAudioFileGet"
-                    },
-                    "description": "Array of announcement files to be played as `mohMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
-                  },
-                  "audioPlaylistId": {
-                    "type": "string",
-                    "description": "Identifier of the playlist used for this MOH source."
-                  }
-                }
-              }
-            },
-            "description": "Play music after the comforting message in a repetitive loop."
-          },
-          "whisperMessage": {
-            "type": "object",
-            "required": [
-              "greeting"
-            ],
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "If enabled play the Whisper Message."
-              },
-              "greeting": {
-                "type": "string",
-                "enum": [
-                  "CUSTOM",
-                  "DEFAULT"
-                ],
-                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
-              },
-              "audioAnnouncementFiles": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
-                },
-                "description": "Array of announcement files to be played as `whisperMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
-              }
-            },
-            "description": "Play a message to the agent immediately before the incoming call is connected. The message typically announces the identity of the call queue from which the call is coming."
-          },
-          "useEnterprisePlayToneToAgentSettingsEnabled": {
-            "type": "boolean",
-            "example": false,
-            "description": "When `true`, the call queue uses the organization-level play tone settings and ignores the queue-level `playToneToAgent*` values. When `false`, the queue-level `playToneToAgent*` values are used."
-          },
-          "playToneToAgentForBargeInEnabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Queue-specific setting that plays a tone to agents when a supervisor joins an active call using barge in. Applies only when `useEnterprisePlayToneToAgentSettingsEnabled` is `false`."
-          },
-          "playToneToAgentForSilentMonitoringEnabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Queue-specific setting that plays a tone to agents when a supervisor monitors their active call without joining. Applies only when `useEnterprisePlayToneToAgentSettingsEnabled` is `false`."
-          },
-          "playToneToAgentForSupervisorCoachingEnabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Queue-specific setting that plays a tone to agents when a supervisor coaches an agent during an active call. Applies only when `useEnterprisePlayToneToAgentSettingsEnabled` is `false`."
           }
         }
       },
@@ -155512,94 +155316,6 @@
           }
         }
       },
-      "CreateCallQueueObject": {
-        "type": "object",
-        "required": [
-          "name",
-          "callPolicies",
-          "queueSettings",
-          "agents"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "CallQueue-1",
-            "description": "Unique name for the call queue."
-          },
-          "phoneNumber": {
-            "type": "string",
-            "example": "+12225555309",
-            "description": "Primary phone number of the call queue. Either a `phoneNumber` or `extension` is mandatory."
-          },
-          "extension": {
-            "type": "string",
-            "example": "5309",
-            "description": "Primary phone extension of the call queue. Either a `phoneNumber` or extension is mandatory."
-          },
-          "languageCode": {
-            "type": "string",
-            "example": "en-US",
-            "description": "Language code."
-          },
-          "firstName": {
-            "type": "string",
-            "example": "Hakim",
-            "description": "First name to be shown when calls are forwarded out of this call queue. Defaults to \".\"."
-          },
-          "lastName": {
-            "type": "string",
-            "example": "Smith",
-            "description": "Last name to be shown when calls are forwarded out of this call queue. Defaults to `phoneNumber` if set, otherwise defaults to call group name."
-          },
-          "timeZone": {
-            "type": "string",
-            "example": "America/Chicago",
-            "description": "Time zone for the call queue."
-          },
-          "callPolicies": {
-            "$ref": "#/components/schemas/PostCallQueueCallPolicyObject",
-            "description": "Policy controlling how calls are routed to `agents`."
-          },
-          "queueSettings": {
-            "$ref": "#/components/schemas/CallQueueQueueSettingsObject",
-            "description": "Overall call queue settings."
-          },
-          "agents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PostPersonPlaceVirtualLineCallQueueObject"
-            },
-            "description": "People, workspaces and virtual lines that are eligible to receive calls."
-          },
-          "callingLineIdPolicy": {
-            "type": "string",
-            "enum": [
-              "DIRECT_LINE",
-              "LOCATION_NUMBER",
-              "CUSTOM"
-            ],
-            "description": "Which type of Calling Line ID Policy Selected for Call Queue.\n * `DIRECT_LINE` - Calling Line ID Policy will show the caller's direct line number.\n * `LOCATION_NUMBER` - Calling Line ID Policy will show the main number for the location.\n * `CUSTOM` - Calling Line ID Policy will show the value from the `callingLineIdPhoneNumber` field.\n"
-          },
-          "callingLineIdPhoneNumber": {
-            "type": "string",
-            "example": "+12072342368",
-            "description": "Calling line ID Phone number which will be shown if CUSTOM is selected."
-          },
-          "allowCallWaitingForAgentsEnabled": {
-            "type": "boolean",
-            "description": "If `true`, call waiting is enabled for the agents."
-          },
-          "allowAgentJoinEnabled": {
-            "type": "boolean",
-            "description": "Whether or not to allow agents to join or unjoin a queue."
-          },
-          "phoneNumberForOutgoingCallsEnabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "When true, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."
-          }
-        }
-      },
       "CreateForwardingRuleObject": {
         "type": "object",
         "required": [
@@ -155706,93 +155422,6 @@
               }
             },
             "description": "Settings related to the rule matching based on the destination number."
-          }
-        }
-      },
-      "GetCallQueueCallPolicyObject": {
-        "type": "object",
-        "required": [
-          "routingType",
-          "policy",
-          "callBounce",
-          "distinctiveRing"
-        ],
-        "properties": {
-          "routingType": {
-            "$ref": "#/components/schemas/HuntRoutingTypeSelection",
-            "description": "Call routing type to use to dispatch calls to agents."
-          },
-          "policy": {
-            "$ref": "#/components/schemas/HuntPolicySelection",
-            "description": "Call routing policy to use to dispatch calls to agents."
-          },
-          "callBounce": {
-            "type": "object",
-            "required": [
-              "callBounceEnabled",
-              "callBounceMaxRings",
-              "agentUnavailableEnabled",
-              "alertAgentEnabled",
-              "alertAgentMaxSeconds",
-              "callBounceOnHoldEnabled",
-              "callBounceOnHoldMaxSeconds"
-            ],
-            "properties": {
-              "callBounceEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "If enabled, bounce calls after the set number of rings."
-              },
-              "callBounceMaxRings": {
-                "type": "number",
-                "example": 5,
-                "description": "Number of rings after which to bounce call, if call bounce is enabled."
-              },
-              "agentUnavailableEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Bounce if agent becomes unavailable."
-              },
-              "alertAgentEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Alert agent if call on hold more than `alertAgentMaxSeconds`."
-              },
-              "alertAgentMaxSeconds": {
-                "type": "number",
-                "example": 20,
-                "description": "Number of second after which to alert agent if `alertAgentEnabled`."
-              },
-              "callBounceOnHoldEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Bounce if call on hold more than `callBounceMaxSeconds`."
-              },
-              "callBounceOnHoldMaxSeconds": {
-                "type": "number",
-                "example": 20,
-                "description": "Number of second after which to bounce if `callBounceEnabled`."
-              }
-            },
-            "description": "Settings for when the call into the call queue is not answered."
-          },
-          "distinctiveRing": {
-            "type": "object",
-            "required": [
-              "enabled"
-            ],
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Whether or not the distinctive ring is enabled."
-              },
-              "ringPattern": {
-                "$ref": "#/components/schemas/RingPatternObject",
-                "description": "Ring pattern for when this call queue is called. Only available when `distinctiveRing` is enabled for the call queue."
-              }
-            },
-            "description": "Whether or not the call queue has the distinctive ring option enabled."
           }
         }
       },
@@ -156005,148 +155634,6 @@
           }
         }
       },
-      "GetCallQueueObject": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "enabled",
-          "alternateNumberSettings",
-          "callPolicies",
-          "queueSettings",
-          "agents"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0hVTlRfR1JPVVAvYUhaaFpUTjJNRzh5YjBBMk5EazBNVEk1Tnk1cGJuUXhNQzVpWTJ4a0xuZGxZbVY0TG1OdmJRPT0",
-            "description": "A unique identifier for the call queue."
-          },
-          "name": {
-            "type": "string",
-            "example": "CallQueue-1",
-            "description": "Unique name for the call queue."
-          },
-          "enabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Whether or not the call queue is enabled."
-          },
-          "language": {
-            "type": "string",
-            "example": "English",
-            "description": "Language for the call queue."
-          },
-          "languageCode": {
-            "type": "string",
-            "example": "en-US",
-            "description": "Language code."
-          },
-          "firstName": {
-            "type": "string",
-            "example": "Hakim",
-            "description": "First name to be shown when calls are forwarded out of this call queue. Defaults to `.`. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."
-          },
-          "lastName": {
-            "type": "string",
-            "example": "Smith",
-            "description": "Last name to be shown when calls are forwarded out of this call queue. Defaults to the `phoneNumber` if set, otherwise defaults to call group name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."
-          },
-          "timeZone": {
-            "type": "string",
-            "example": "America/Chicago",
-            "description": "Time zone for the call queue."
-          },
-          "phoneNumber": {
-            "type": "string",
-            "example": "+12225555309",
-            "description": "Primary phone number of the call queue."
-          },
-          "extension": {
-            "type": "string",
-            "example": "5309",
-            "description": "Extension of the call queue."
-          },
-          "routingPrefix": {
-            "type": "string",
-            "example": "1234",
-            "description": "Routing prefix of location."
-          },
-          "esn": {
-            "type": "string",
-            "example": "12345309",
-            "description": "Routing prefix + extension of a person or workspace."
-          },
-          "tollFreeNumber": {
-            "type": "boolean",
-            "description": "Indicate if the number is toll free."
-          },
-          "phoneNumberForOutgoingCallsEnabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "When true, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."
-          },
-          "callingLineIdPolicy": {
-            "type": "string",
-            "enum": [
-              "DIRECT_LINE",
-              "LOCATION_NUMBER",
-              "CUSTOM"
-            ],
-            "description": "Which type of Calling Line ID Policy Selected for Call Queue.\n * `DIRECT_LINE` - Calling Line ID Policy will show the caller's direct line number.\n * `LOCATION_NUMBER` - Calling Line ID Policy will show the main number for the location.\n * `CUSTOM` - Calling Line ID Policy will show the value from the `callingLineIdPhoneNumber` field.\n"
-          },
-          "callingLineIdPhoneNumber": {
-            "type": "string",
-            "example": "+12072342368",
-            "description": "Calling line ID Phone number which will be shown if CUSTOM is selected."
-          },
-          "alternateNumberSettings": {
-            "type": "object",
-            "required": [
-              "distinctiveRingEnabled",
-              "alternateNumbers"
-            ],
-            "properties": {
-              "distinctiveRingEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Distinctive Ringing selected for the alternate numbers in the call queue overrides the normal ringing patterns set for the Alternate Numbers."
-              },
-              "alternateNumbers": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/AlternateNumbersWithPattern"
-                },
-                "description": "Allows up to 10 numbers, each with an optional distinctive ring setting override."
-              }
-            },
-            "description": "The alternate numbers feature allows you to assign multiple phone numbers or extensions to a call queue. Each number will reach the same greeting and each menu will function identically to the main number. The alternate numbers option enables you to have up to ten (10) phone numbers ring into the call queue."
-          },
-          "callPolicies": {
-            "$ref": "#/components/schemas/GetCallQueueCallPolicyObject",
-            "description": "Policy controlling how calls are routed to `agents`."
-          },
-          "queueSettings": {
-            "$ref": "#/components/schemas/CallQueueQueueSettingsGetObject",
-            "description": "Overall call queue settings."
-          },
-          "allowCallWaitingForAgentsEnabled": {
-            "type": "boolean",
-            "description": "Flag to indicate whether call waiting is enabled for `agents`."
-          },
-          "agents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GetPersonPlaceVirtualLineCallQueueObject"
-            },
-            "description": "People, workspaces and virtual lines that are eligible to receive calls."
-          },
-          "allowAgentJoinEnabled": {
-            "type": "boolean",
-            "description": "Whether or not to allow agents to join or unjoin a queue."
-          }
-        }
-      },
       "GetCallQueueStrandedCallsObject": {
         "type": "object",
         "required": [
@@ -156349,6 +155836,16 @@
             "example": "5309",
             "description": "Extension of person, workspace or virtual line."
           },
+          "routingPrefix": {
+            "type": "string",
+            "example": "8002",
+            "description": "Routing prefix of location."
+          },
+          "esn": {
+            "type": "string",
+            "example": "80025309",
+            "description": "Routing prefix + extension of a person, workspace or virtual line."
+          },
           "weight": {
             "type": "string",
             "example": "50",
@@ -156367,6 +155864,11 @@
           "location": {
             "$ref": "#/components/schemas/LocationObject",
             "description": "Location of the call queue."
+          },
+          "hasCxEssentials": {
+            "type": "boolean",
+            "example": true,
+            "description": "Person has the CX Essentials license."
           }
         }
       },
@@ -156388,63 +155890,6 @@
           "SKILL_BASED"
         ],
         "description": " * `PRIORITY_BASED` - Default routing type which directly uses the routing policy to dispatch calls to the agents.\n * `SKILL_BASED` - This option uses skill level as the criteria to route calls to agents. When there is more than one agent with the same skill level, the selected `policy` helps dispatch the calls to the agents.\n"
-      },
-      "ListCallQueueObject": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "locationName",
-          "locationId",
-          "enabled"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0NBTExfUVVFVUUvYUhaaFpUTjJNRzh5YjBBMk5EazBNVEk1Tnk1cGJuUXhNQzVpWTJ4a0xuZGxZbVY0TG1OdmJRPT0",
-            "description": "A unique identifier for the call queue."
-          },
-          "name": {
-            "type": "string",
-            "example": "5714328359",
-            "description": "Unique name for the call queue."
-          },
-          "locationName": {
-            "type": "string",
-            "example": "WXCSIVDKCPAPIC4S1",
-            "description": "Name of location for call queue."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzMxMTYx",
-            "description": "ID of location for call queue."
-          },
-          "phoneNumber": {
-            "type": "string",
-            "example": "+12225555309",
-            "description": "Primary phone number of the call queue."
-          },
-          "extension": {
-            "type": "string",
-            "example": "5309",
-            "description": "Primary phone extension of the call queue."
-          },
-          "routingPrefix": {
-            "type": "string",
-            "example": "1234",
-            "description": "Routing prefix of location."
-          },
-          "esn": {
-            "type": "string",
-            "example": "12345309",
-            "description": "Routing prefix + extension of a person or workspace."
-          },
-          "enabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Whether or not the call queue is enabled."
-          }
-        }
       },
       "ModifyCallForwardingObject": {
         "type": "object",
@@ -157088,84 +156533,6 @@
           }
         }
       },
-      "PostCallQueueCallPolicyObject": {
-        "type": "object",
-        "required": [
-          "routingType",
-          "policy",
-          "callBounce",
-          "distinctiveRing"
-        ],
-        "properties": {
-          "routingType": {
-            "$ref": "#/components/schemas/HuntRoutingTypeSelection",
-            "description": "Call routing type to use to dispatch calls to agents. The routing type should be `SKILL_BASED` if you want to assign skill level to `agents`. Only certain `policy` are allowed in `SKILL_BASED` type."
-          },
-          "policy": {
-            "$ref": "#/components/schemas/HuntPolicySelection",
-            "description": "Call routing policy to use to dispatch calls to `agents`."
-          },
-          "callBounce": {
-            "type": "object",
-            "properties": {
-              "callBounceEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "If enabled, bounce calls after the set number of rings."
-              },
-              "callBounceMaxRings": {
-                "type": "number",
-                "example": 5,
-                "description": "Number of rings after which to bounce call, if `callBounce` is enabled."
-              },
-              "agentUnavailableEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Bounce if agent becomes unavailable."
-              },
-              "alertAgentEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Alert agent if call on hold more than `alertAgentMaxSeconds`."
-              },
-              "alertAgentMaxSeconds": {
-                "type": "number",
-                "example": 20,
-                "description": "Number of second after which to alert agent if `alertAgentEnabled`."
-              },
-              "callBounceOnHoldEnabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Bounce if call on hold more than `callBounceMaxSeconds`."
-              },
-              "callBounceOnHoldMaxSeconds": {
-                "type": "number",
-                "example": 20,
-                "description": "Number of second after which to bounce if `callBounceEnabled`."
-              }
-            },
-            "description": "Settings for when the call into the hunt group is not answered."
-          },
-          "distinctiveRing": {
-            "type": "object",
-            "required": [
-              "enabled"
-            ],
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "example": true,
-                "description": "Whether or not the `distinctiveRing` is enabled."
-              },
-              "ringPattern": {
-                "$ref": "#/components/schemas/RingPatternObject",
-                "description": "Ring pattern for when this call queue is called. Only available when `distinctiveRing` is enabled for the call queue."
-              }
-            },
-            "description": "Whether or not the call queue has the `distinctiveRing` option enabled."
-          }
-        }
-      },
       "PostPersonPlaceVirtualLineCallQueueObject": {
         "type": "object",
         "required": [
@@ -157198,6 +156565,22 @@
           "SHORT_LONG_SHORT"
         ],
         "description": " * `NORMAL` - Normal incoming ring pattern.\n * `LONG_LONG` - Incoming ring pattern of two long rings.\n * `SHORT_SHORT_LONG` - Incoming ring pattern of two short rings, followed by a short ring.\n * `SHORT_LONG_SHORT` - Incoming ring pattern of a short ring, followed by a long ring, followed by a short ring.\n"
+      },
+      "DepartmentObject": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "Y2lzY29zcGFyazovL3VzL1NDSU1fR1JPVVAvZjA2ZWRiOGMtMjMxNC00ZTcxLWIzNzgtZTdiMmQwNjk3OTliOjk2YWJjMmFhLTNkY2MtMTFlNS1hMTUyLWZlMzQ4MTljZGM5YQ",
+            "description": "Unique identifier of the department."
+          },
+          "name": {
+            "type": "string",
+            "example": "HR",
+            "description": "Name of the department."
+          }
+        },
+        "description": "The department information."
       },
       "CallQueuePrimaryAvailableNumberListGetObject": {
         "type": "object",
@@ -157430,37 +156813,35 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NDVkMzMzMC1mNjE3LTExZWItOWQyZS01NzViODE3ZGE1NmE",
-            "description": "ID of a person, workspace or virtual line."
+            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80YzFjOWE2YS1jYjZiLTRjYjItOWJkYi02YjkyZTA1ZTI4ZmY",
+            "description": "ID of a person."
           },
           "lastName": {
             "type": "string",
-            "example": "Brown",
-            "description": "Last name of a person, workspace or virtual line."
+            "example": "Smith",
+            "description": "Last name of a person."
           },
           "firstName": {
             "type": "string",
             "example": "John",
-            "description": "First name of a person, workspace or virtual line."
+            "description": "First name of a person."
           },
           "displayName": {
             "type": "string",
-            "example": "johnBrown",
-            "description": "Display name of a person, workspace or virtual line."
+            "example": "John Smith",
+            "description": "Display name of a person."
           },
           "type": {
             "type": "string",
             "enum": [
-              "PEOPLE",
-              "PLACE",
-              "VIRTUAL_LINE"
+              "PEOPLE"
             ],
-            "description": "Type of the person, workspace or virtual line.\n * `PEOPLE` - Object is a user.\n * `PLACE` - Object is a place.\n * `VIRTUAL_LINE` - Object is a virtual line.\n"
+            "description": "Type of the person.\n * `PEOPLE` - Object is a user.\n"
           },
           "email": {
             "type": "string",
-            "example": "john.brown@example.com",
-            "description": "Email of a person, workspace or virtual line."
+            "example": "johnsmith@gmail.com",
+            "description": "Email of a person."
           },
           "hasCxEssentials": {
             "type": "boolean",
@@ -157472,7 +156853,7 @@
             "items": {
               "$ref": "#/components/schemas/GetUserNumberItemObject"
             },
-            "description": "List of phone numbers of a person, workspace or virtual line."
+            "description": "List of phone numbers of a person."
           }
         }
       },
@@ -157931,6 +157312,11 @@
                 "example": "34543",
                 "description": "Primary phone extension of the call queue agent."
               },
+              "routingPrefix": {
+                "type": "string",
+                "example": "1234",
+                "description": "Routing prefix of the location of the call queue agent."
+              },
               "esn": {
                 "type": "string",
                 "example": "34543180",
@@ -157960,6 +157346,18 @@
                 "type": "string",
                 "example": "PEOPLE",
                 "description": "The type of the call queue agent."
+              },
+              "agentACDState": {
+                "type": "string",
+                "example": "AVAILABLE",
+                "enum": [
+                  "SIGN_IN",
+                  "SIGN_OUT",
+                  "AVAILABLE",
+                  "UNAVAILABLE",
+                  "WRAP_UP"
+                ],
+                "description": "The Automatic Call Distribution (ACD) state of the call queue agent.\n * `SIGN_IN` - Agent has signed in.\n * `SIGN_OUT` - Agent has signed out.\n * `AVAILABLE` - Agent is available.\n * `UNAVAILABLE` - Agent is unavailable.\n * `WRAP_UP` - Agent has wrapped up.\n"
               }
             }
           },
@@ -157970,7 +157368,6 @@
               "required": [
                 "id",
                 "name",
-                "routingPrefix",
                 "locationId",
                 "locationName",
                 "joinEnabled"
@@ -157991,10 +157388,20 @@
                   "example": "12144184002",
                   "description": "Primary phone number of the call queue."
                 },
+                "extension": {
+                  "type": "string",
+                  "example": "4002",
+                  "description": "Primary phone extension of the call queue."
+                },
                 "routingPrefix": {
                   "type": "string",
                   "example": "34543",
                   "description": "The routing prefix for the call queue."
+                },
+                "esn": {
+                  "type": "string",
+                  "example": "345434002",
+                  "description": "Routing prefix + extension of the call queue."
                 },
                 "locationId": {
                   "type": "string",
@@ -158051,7 +157458,6 @@
         "required": [
           "id",
           "name",
-          "hasCxEssentials",
           "locationName",
           "locationId",
           "enabled"
@@ -158092,26 +157498,28 @@
             "example": "7781",
             "description": "Primary phone extension of the call queue."
           },
+          "routingPrefix": {
+            "type": "string",
+            "example": "1234",
+            "description": "Routing prefix of location."
+          },
+          "esn": {
+            "type": "string",
+            "example": "12347781",
+            "description": "Routing prefix + extension of the call queue."
+          },
           "enabled": {
             "type": "boolean",
             "example": true,
             "description": "Whether or not the call queue is enabled."
           },
+          "tollFreeNumber": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indicate if the number is toll free."
+          },
           "department": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "example": "Y2lzY29zcGFyazovL3VzL1NDSU1fR1JPVVAvZjA2ZWRiOGMtMjMxNC00ZTcxLWIzNzgtZTdiMmQwNjk3OTliOjk2YWJjMmFhLTNkY2MtMTFlNS1hMTUyLWZlMzQ4MTljZGM5YQ",
-                "description": "Unique identifier of the department."
-              },
-              "name": {
-                "type": "string",
-                "example": "HR",
-                "description": "Name of the department."
-              }
-            },
-            "description": "The department information."
+            "$ref": "#/components/schemas/DepartmentObject"
           },
           "digitalInboxEnabled": {
             "type": "boolean",
@@ -158124,7 +157532,6 @@
         "required": [
           "id",
           "name",
-          "hasCxEssentials",
           "enabled",
           "alternateNumberSettings",
           "callPolicies",
@@ -158165,12 +157572,12 @@
           "firstName": {
             "type": "string",
             "example": "Hakim",
-            "description": "First name to be shown when calls are forwarded out of this call queue. Defaults to \".\"."
+            "description": "First name to be shown when calls are forwarded out of this call queue. Defaults to `.`. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."
           },
           "lastName": {
             "type": "string",
             "example": "Smith",
-            "description": "Last name to be shown when calls are forwarded out of this call queue. Defaults to the phone number if set, otherwise defaults to call group name."
+            "description": "Last name to be shown when calls are forwarded out of this call queue. Defaults to the `phoneNumber` if set, otherwise defaults to call group name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."
           },
           "timeZone": {
             "type": "string",
@@ -158201,6 +157608,39 @@
             "type": "string",
             "example": "7781",
             "description": "Extension of the call queue."
+          },
+          "routingPrefix": {
+            "type": "string",
+            "example": "1234",
+            "description": "Routing prefix of location."
+          },
+          "esn": {
+            "type": "string",
+            "example": "12347781",
+            "description": "Routing prefix + extension of the call queue."
+          },
+          "tollFreeNumber": {
+            "type": "boolean",
+            "description": "Indicate if the number is toll free."
+          },
+          "phoneNumberForOutgoingCallsEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "When true, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."
+          },
+          "callingLineIdPolicy": {
+            "type": "string",
+            "enum": [
+              "DIRECT_LINE",
+              "LOCATION_NUMBER",
+              "CUSTOM"
+            ],
+            "description": "Which type of Calling Line ID Policy Selected for Call Queue.\n * `DIRECT_LINE` - Calling Line ID Policy will show the caller's direct line number.\n * `LOCATION_NUMBER` - Calling Line ID Policy will show the main number for the location.\n * `CUSTOM` - Calling Line ID Policy will show the value from the `callingLineIdPhoneNumber` field.\n"
+          },
+          "callingLineIdPhoneNumber": {
+            "type": "string",
+            "example": "+12072342368",
+            "description": "Calling line ID Phone number which will be shown if CUSTOM is selected."
           },
           "alternateNumberSettings": {
             "type": "object",
@@ -158239,25 +157679,16 @@
           "agents": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/GetPersonPlaceObject"
+              "$ref": "#/components/schemas/GetPersonPlaceVirtualLineCallQueueObject"
             },
-            "description": "People, including workspaces, that are eligible to receive calls."
+            "description": "People, workspaces and virtual lines that are eligible to receive calls."
+          },
+          "allowAgentJoinEnabled": {
+            "type": "boolean",
+            "description": "Whether or not to allow agents to join or unjoin a queue."
           },
           "department": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "example": "Y2lzY29zcGFyazovL3VzL1NDSU1fR1JPVVAvZjA2ZWRiOGMtMjMxNC00ZTcxLWIzNzgtZTdiMmQwNjk3OTliOjk2YWJjMmFhLTNkY2MtMTFlNS1hMTUyLWZlMzQ4MTljZGM5YQ",
-                "description": "Unique identifier of the department."
-              },
-              "name": {
-                "type": "string",
-                "example": "HR",
-                "description": "Name of the department."
-              }
-            },
-            "description": "The department information."
+            "$ref": "#/components/schemas/DepartmentObject"
           },
           "directLineCallerIdName": {
             "$ref": "#/components/schemas/DirectLineCallerIdNameObject",
@@ -158271,44 +157702,6 @@
           "digitalInboxEnabled": {
             "type": "boolean",
             "description": "Digital Inbox enabled for Queue. This field is applicable for queue which has `hasCxEssentials=true`."
-          }
-        }
-      },
-      "GetPersonPlaceObject": {
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS80NDVkMzMzMC1mNjE3LTExZWItOWQyZS01NzViODE3ZGE1NmE",
-            "description": "ID of person or workspace."
-          },
-          "firstName": {
-            "type": "string",
-            "example": "Hakim",
-            "description": "First name of person or workspace."
-          },
-          "lastName": {
-            "type": "string",
-            "example": "Smith",
-            "description": "First name of person or workspace."
-          },
-          "phoneNumber": {
-            "type": "string",
-            "example": "+15555551234",
-            "description": "Phone number of person or workspace."
-          },
-          "extension": {
-            "type": "string",
-            "example": "1234",
-            "description": "Extension of person or workspace."
-          },
-          "weight": {
-            "type": "string",
-            "example": "50",
-            "description": "Weight of person or workspace. Only applied when call policy is `WEIGHTED`."
           }
         }
       },
@@ -158391,6 +157784,10 @@
               }
             },
             "description": "Whether or not the call queue has the distinctive ring option enabled."
+          },
+          "routingType": {
+            "$ref": "#/components/schemas/HuntRoutingTypeSelection",
+            "description": "Call routing type to use to dispatch calls to agents."
           }
         }
       },
@@ -158406,7 +157803,7 @@
             "example": 50,
             "description": "The maximum number of calls for this call queue. Once this number is reached, the overflow settings are triggered."
           },
-          "callOfferToneEnabled `true`": {
+          "callOfferToneEnabled": {
             "type": "boolean",
             "description": "Play ringing tone to callers when their call is set to an available agent."
           },
@@ -158471,6 +157868,286 @@
               }
             },
             "description": "Settings for incoming calls exceed queueSize."
+          },
+          "welcomeMessage": {
+            "type": "object",
+            "required": [
+              "greeting"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "If enabled play entrance message. The default value is `true`."
+              },
+              "alwaysEnabled": {
+                "type": "boolean",
+                "description": "Mandatory entrance message. The default value is `false`."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
+                },
+                "description": "Array of announcement files to be played as `welcomeMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
+              }
+            },
+            "description": "Play a message when callers first reach the queue. For example, “Thank you for calling. An agent will be with you shortly.” It can be set as mandatory. If the mandatory option is not selected and a caller reaches the call queue while there is an available agent, the caller will not hear this announcement and is transferred to an agent. The welcome message feature is enabled by default."
+          },
+          "waitMessage": {
+            "type": "object",
+            "required": [
+              "waitMode"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "If enabled play Wait Message."
+              },
+              "waitMode": {
+                "type": "string",
+                "enum": [
+                  "TIME",
+                  "POSITION"
+                ],
+                "description": "Estimated wait message operating mode. Supported values `TIME` and `POSITION`.\n * `TIME` - Announce the waiting time.\n * `POSITION` - Announce queue position.\n"
+              },
+              "handlingTime": {
+                "type": "number",
+                "example": 100,
+                "description": "The number of minutes for which the estimated wait is played. The minimum time is 10 minutes. The maximum time is 100 minutes."
+              },
+              "defaultHandlingTime": {
+                "type": "number",
+                "example": 100,
+                "description": "The default number of call handling minutes. The minimum time is 1 minutes, The maximum time is 100 minutes."
+              },
+              "queuePosition": {
+                "type": "number",
+                "example": 100,
+                "description": "The number of the position for which the estimated wait is played. The minimum positions are 10, The maximum positions are 100."
+              },
+              "highVolumeMessageEnabled": {
+                "type": "boolean",
+                "description": "Play time / Play position High Volume."
+              },
+              "estimatedWaitingTime": {
+                "type": "number",
+                "example": 600,
+                "description": "The number of estimated waiting times in seconds. The minimum time is 10 seconds. The maximum time is 600 seconds."
+              },
+              "callbackOptionEnabled": {
+                "type": "boolean",
+                "description": "Callback options enabled/disabled. Default value is false."
+              },
+              "minimumEstimatedCallbackTime": {
+                "type": "number",
+                "example": 10,
+                "description": "The minimum estimated callback times in minutes. The default value is 30."
+              },
+              "internationalCallbackEnabled": {
+                "type": "boolean",
+                "description": "The international numbers for callback is enabled/disabled. The default value is `false`."
+              },
+              "playUpdatedEstimatedWaitMessage": {
+                "type": "boolean",
+                "example": true,
+                "description": "Play updated estimated wait message."
+              }
+            },
+            "description": "Notify the caller with either their estimated wait time or position in the queue. If this option is enabled, it plays after the welcome message and before the comfort message. By default, it is not enabled."
+          },
+          "comfortMessage": {
+            "type": "object",
+            "required": [
+              "greeting"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "If enabled play periodic comfort message."
+              },
+              "timeBetweenMessages": {
+                "type": "number",
+                "example": 10,
+                "description": "The interval in seconds between each repetition of the comfort message played to queued users. The minimum time is 10 seconds.The maximum time is 600 seconds."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
+                },
+                "description": "Array of announcement files to be played as `comfortMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
+              }
+            },
+            "description": "Play a message after the welcome message and before hold music. This is typically a `CUSTOM` announcement that plays information, such as current promotions or information about products and services."
+          },
+          "comfortMessageBypass": {
+            "type": "object",
+            "required": [
+              "greeting"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "If enabled play comfort bypass message."
+              },
+              "callWaitingAgeThreshold": {
+                "type": "number",
+                "example": 10,
+                "description": "The interval in seconds between each repetition of the comfort bypass message played to queued users. The minimum time is 1 seconds. The maximum time is 120 seconds."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
+                },
+                "description": "Array of announcement files to be played as `comfortMessageBypass` greetings. These files are from the list of announcements files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
+              }
+            },
+            "description": "Play a shorter comfort message instead of the usual Comfort or Music On Hold announcement to all the calls that should be answered quickly. This feature prevents a caller from hearing a short portion of the standard comfort message that abruptly ends when they are connected to an agent."
+          },
+          "mohMessage": {
+            "type": "object",
+            "required": [
+              "normalSource",
+              "alternateSource"
+            ],
+            "properties": {
+              "normalSource": {
+                "type": "object",
+                "required": [
+                  "greeting"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Enable media on hold for queued calls."
+                  },
+                  "greeting": {
+                    "type": "string",
+                    "enum": [
+                      "CUSTOM",
+                      "DEFAULT"
+                    ],
+                    "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
+                  },
+                  "audioAnnouncementFiles": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/AnnouncementAudioFileGet"
+                    },
+                    "description": "Array of announcement files to be played as `mohMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
+                  }
+                }
+              },
+              "alternateSource": {
+                "type": "object",
+                "required": [
+                  "greeting"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Enable media on hold for queued calls."
+                  },
+                  "greeting": {
+                    "type": "string",
+                    "enum": [
+                      "CUSTOM",
+                      "DEFAULT"
+                    ],
+                    "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
+                  },
+                  "audioAnnouncementFiles": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/AnnouncementAudioFileGet"
+                    },
+                    "description": "Array of announcement files to be played as `mohMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
+                  }
+                }
+              }
+            },
+            "description": "Play music after the comforting message in a repetitive loop."
+          },
+          "whisperMessage": {
+            "type": "object",
+            "required": [
+              "greeting"
+            ],
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "If enabled play the Whisper Message."
+              },
+              "greeting": {
+                "type": "string",
+                "enum": [
+                  "CUSTOM",
+                  "DEFAULT"
+                ],
+                "description": "Indicates how to handle new calls when the queue is full.\n * `CUSTOM` - Play the custom announcement specified by the `fileName` field.\n * `DEFAULT` - Play default announcement.\n"
+              },
+              "audioAnnouncementFiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AnnouncementAudioFileGet"
+                },
+                "description": "Array of announcement files to be played as `whisperMessage` greetings. These files are from the list of announcement files associated with this call queue. For `CUSTOM` announcement, a minimum of 1 file is mandatory, and the maximum is 4."
+              }
+            },
+            "description": "Play a message to the agent immediately before the incoming call is connected. The message typically announces the identity of the call queue from which the call is coming."
+          },
+          "useEnterprisePlayToneToAgentSettingsEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "When `true`, the call queue uses the organization-level play tone settings and ignores the queue-level `playToneToAgent*` values. When `false`, the queue-level `playToneToAgent*` values are used."
+          },
+          "playToneToAgentForBargeInEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Queue-specific setting that plays a tone to agents when a supervisor joins an active call using barge in. Applies only when `useEnterprisePlayToneToAgentSettingsEnabled` is `false`."
+          },
+          "playToneToAgentForSilentMonitoringEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Queue-specific setting that plays a tone to agents when a supervisor monitors their active call without joining. Applies only when `useEnterprisePlayToneToAgentSettingsEnabled` is `false`."
+          },
+          "playToneToAgentForSupervisorCoachingEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Queue-specific setting that plays a tone to agents when a supervisor coaches an agent during an active call. Applies only when `useEnterprisePlayToneToAgentSettingsEnabled` is `false`."
           }
         }
       },
@@ -158557,6 +158234,10 @@
             "type": "string",
             "example": "+12072342368",
             "description": "Calling line ID Phone number which will be shown if CUSTOM is selected."
+          },
+          "allowCallWaitingForAgentsEnabled": {
+            "type": "boolean",
+            "description": "Flag to indicate whether call waiting is enabled for agents."
           },
           "allowAgentJoinEnabled": {
             "type": "boolean",
