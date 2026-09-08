@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-08-04",
+ "captured": "2026-09-08",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -39,8 +39,8 @@
    },
    "DELETE /dataSources/{}": {
     "fields": {
-     "(operation)": "#d847a1",
-     "path:dataSourceId": "!#4d53d7"
+     "(operation)": "#7cf447",
+     "path:dataSourceId": "!#eae853"
     },
     "summary": "Delete a Data Source",
     "tag": "Data Sources"
@@ -272,21 +272,21 @@
    },
    "GET /dataSources": {
     "fields": {
-     "(operation)": "#e25f7e"
+     "(operation)": "#1002d4"
     },
     "summary": "Retrieve All Data Sources",
     "tag": "Data Sources"
    },
    "GET /dataSources/schemas": {
     "fields": {
-     "(operation)": "#090a20"
+     "(operation)": "#555e11%58cb24"
     },
     "summary": "Retrieve Data Source Schemas",
     "tag": "Data Sources"
    },
    "GET /dataSources/schemas/{}": {
     "fields": {
-     "(operation)": "#4bae69",
+     "(operation)": "#886459%58cb24",
      "path:schemaId": "!#9ac479"
     },
     "summary": "Retrieve Details of a Specific Data Source Schema",
@@ -294,8 +294,8 @@
    },
    "GET /dataSources/{}": {
     "fields": {
-     "(operation)": "#7113c0",
-     "path:dataSourceId": "!#4d53d7"
+     "(operation)": "#aaedd7",
+     "path:dataSourceId": "!#eae853"
     },
     "summary": "Retrieve Data Source Details",
     "tag": "Data Sources"
@@ -853,6 +853,11 @@
      "body:Operations[].op": "!#722332=add|remove|replace",
      "body:Operations[].path": "#641cde",
      "body:Operations[].value": "#2956d7",
+     "body:Operations[].value[].locationId": "~id#4f4b57",
+     "body:Operations[].value[].nested": "#841033",
+     "body:Operations[].value[].scope": "#5137c7",
+     "body:Operations[].value[].type": "#d5460a=location_role|role",
+     "body:Operations[].value[].value": "#6219fe",
      "body:schemas": "!#60b554",
      "path:groupId": "!#870270"
     },
@@ -906,6 +911,11 @@
      "body:Operations[].op": "!#722332=add|remove|replace",
      "body:Operations[].path": "#641cde",
      "body:Operations[].value": "#2956d7",
+     "body:Operations[].value[].locationId": "~id#4f4b57",
+     "body:Operations[].value[].nested": "#841033",
+     "body:Operations[].value[].scope": "#5137c7",
+     "body:Operations[].value[].type": "#d5460a=location_role|role",
+     "body:Operations[].value[].value": "#6219fe",
      "body:schemas": "!#60b554",
      "path:groupId": "!#870270",
      "path:orgId": "!~id#4fa0c5"
@@ -1064,12 +1074,12 @@
    },
    "POST /dataSources": {
     "fields": {
-     "(operation)": "#b46c0a%c2cddf",
-     "body:audience": "#fa2854",
-     "body:nonce": "#ec0290",
-     "body:schemaId": "#ea309d",
-     "body:subject": "#5d152c",
-     "body:tokenLifetimeMinutes": "#666dbc%0ef5eb",
+     "(operation)": "#b42ab1",
+     "body:audience": "#4337fe",
+     "body:nonce": "#e46e94",
+     "body:schemaId": "#1acef8",
+     "body:subject": "#95fa6e",
+     "body:tokenLifetimeMinutes": "#16bfaa%35f215",
      "body:url": "#682749"
     },
     "summary": "Register a Data Source",
@@ -1085,6 +1095,12 @@
      "body:members[].value": "~id#c26d14",
      "body:schemas": "!#60b554",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": "#9f820d",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances": "#2c46f4",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].locationId": "~id#4f4b57",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].nested": "#841033",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].scope": "#5137c7",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].type": "#d5460a=location_role|role",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].value": "#6219fe",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy": "#80044f",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy[].id": "~id#d623e4",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy[].orgId": "~id#dc5ad8",
@@ -1199,6 +1215,12 @@
      "body:members[].value": "~id#c26d14",
      "body:schemas": "!#60b554",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": "#9f820d",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances": "#2c46f4",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].locationId": "~id#4f4b57",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].nested": "#841033",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].scope": "#5137c7",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].type": "#d5460a=location_role|role",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].value": "#6219fe",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy": "#80044f",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy[].id": "~id#d623e4",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy[].orgId": "~id#dc5ad8",
@@ -1442,14 +1464,14 @@
    },
    "PUT /dataSources/{}": {
     "fields": {
-     "(operation)": "#712c68%5effc3",
-     "body:audience": "#fa2854",
-     "body:errorMessage": "#964c92",
-     "body:nonce": "#ec0290",
-     "body:schemaId": "#ea309d",
-     "body:status": "#6a7020",
-     "body:subject": "#ae34b6",
-     "body:tokenLifetimeMinutes": "#666dbc%0ef5eb",
+     "(operation)": "#97532d%7cf3b2",
+     "body:audience": "#4337fe",
+     "body:errorMessage": "#7f4c65",
+     "body:nonce": "#e46e94",
+     "body:schemaId": "#1acef8",
+     "body:status": "#4cbb2d",
+     "body:subject": "#95fa6e",
+     "body:tokenLifetimeMinutes": "#16bfaa%35f215",
      "body:url": "#682749",
      "path:dataSourceId": "!#eae853"
     },
@@ -1466,6 +1488,12 @@
      "body:members[].value": "~id#c26d14",
      "body:schemas": "!#60b554",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group": "#9f820d",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances": "#2c46f4",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].locationId": "~id#4f4b57",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].nested": "#841033",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].scope": "#5137c7",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].type": "#d5460a=location_role|role",
+     "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.inheritances[].value": "#6219fe",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy": "#80044f",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy[].id": "~id#d623e4",
      "body:urn:scim:schemas:extension:cisco:webexidentity:2.0:Group.managedBy[].orgId": "~id#dc5ad8",
@@ -2086,46 +2114,46 @@
    },
    "DELETE /telephony/config/locations/{}/dectNetworks/{}/baseStations": {
     "fields": {
-     "(operation)": "#6765b5",
+     "(operation)": "#80fdd4",
      "path:dectNetworkId": "!#1d966b",
      "path:locationId": "!#7133cd",
      "query:orgId": "#294f1f"
     },
-    "summary": "Delete bulk DECT Network Base Stations",
+    "summary": "Delete Bulk DECT Network Base Stations",
     "tag": "DECT Devices Settings"
    },
    "DELETE /telephony/config/locations/{}/dectNetworks/{}/baseStations/{}": {
     "fields": {
-     "(operation)": "#4e0f59",
+     "(operation)": "#10ccb7",
      "path:baseStationId": "!#9ba511",
      "path:dectNetworkId": "!#09ea94",
      "path:locationId": "!#7133cd",
      "query:orgId": "#294f1f"
     },
-    "summary": "Delete a specific DECT Network Base Station",
+    "summary": "Delete a Specific DECT Network Base Station",
     "tag": "DECT Devices Settings"
    },
    "DELETE /telephony/config/locations/{}/dectNetworks/{}/handsets": {
     "fields": {
-     "(operation)": "#cd9b59",
+     "(operation)": "#109e55",
      "body:deleteAll": "#4a0340",
      "body:handsetIds": "!#30861f",
      "path:dectNetworkId": "!#38c1b0",
      "path:locationId": "!#7133cd",
      "query:orgId": "#294f1f"
     },
-    "summary": "Delete multiple handsets",
+    "summary": "Delete Multiple Handsets",
     "tag": "DECT Devices Settings"
    },
    "DELETE /telephony/config/locations/{}/dectNetworks/{}/handsets/{}": {
     "fields": {
-     "(operation)": "#26c4b6",
+     "(operation)": "#151f0b",
      "path:dectNetworkId": "!#38c1b0",
      "path:handsetId": "!#651468",
      "path:locationId": "!#7133cd",
      "query:orgId": "#294f1f"
     },
-    "summary": "Delete specific DECT Network Handset Details",
+    "summary": "Delete Specific DECT Network Handset Details",
     "tag": "DECT Devices Settings"
    },
    "DELETE /telephony/config/locations/{}/huntGroups/{}": {
@@ -2536,7 +2564,7 @@
      "body:supervisorIds": "!#8bbff6",
      "query:orgId": "#93e06f"
     },
-    "summary": "Delete the Call Queue or Customer Assist Supervisors",
+    "summary": "Delete Call Queue or Customer Assist Supervisors",
     "tag": "Features:  Call Queue"
    },
    "DELETE /telephony/config/supervisors/{}": {
@@ -2568,7 +2596,7 @@
    },
    "DELETE /telephony/config/virtualLines/{}": {
     "fields": {
-     "(operation)": "#bb7280",
+     "(operation)": "#888827",
      "path:virtualLineId": "!#1c148e",
      "query:orgId": "#1a4d64"
     },
@@ -2577,7 +2605,7 @@
    },
    "DELETE /telephony/config/virtualLines/{}/outgoingPermission/accessCodes": {
     "fields": {
-     "(operation)": "#feef2d",
+     "(operation)": "#b7925e",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#5993e1"
     },
@@ -2586,16 +2614,16 @@
    },
    "DELETE /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns": {
     "fields": {
-     "(operation)": "#92ab28",
+     "(operation)": "#5cf5b7",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#a07eeb"
     },
-    "summary": "Delete all Digit Patterns for a Virtual Profile",
+    "summary": "Delete All Digit Patterns for a Virtual Profile",
     "tag": "Virtual Line Call Settings"
    },
    "DELETE /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns/{}": {
     "fields": {
-     "(operation)": "#057768",
+     "(operation)": "#b2d8c4",
      "path:digitPatternId": "!#f3eb8b",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#a07eeb"
@@ -2699,6 +2727,13 @@
     },
     "summary": "Delete Message",
     "tag": "User Call Settings (2/2)"
+   },
+   "DELETE /telephony/webhookInterestRegistrations": {
+    "fields": {
+     "(operation)": "#fb9b25"
+    },
+    "summary": "Delete Webhook Interest Registration",
+    "tag": "Webhook Interest Registrations"
    },
    "DELETE /workspaces/{}/features/outgoingPermission/accessCodes": {
     "fields": {
@@ -3411,12 +3446,12 @@
      "(operation)": "#cf07db",
      "query:orgId": "#7c367d"
     },
-    "summary": "Get details for the organization Compliance Announcement Setting",
+    "summary": "Get Details for the Organization Compliance Announcement Setting",
     "tag": "Features: Call Recording"
    },
    "GET /telephony/config/callRecording/regions": {
     "fields": {
-     "(operation)": "#b64f02",
+     "(operation)": "#d00661",
      "query:orgId": "#97eab4"
     },
     "summary": "Get Call Recording Regions",
@@ -3435,7 +3470,7 @@
    },
    "GET /telephony/config/callRecording/vendors": {
     "fields": {
-     "(operation)": "#5c56fa",
+     "(operation)": "#053acc",
      "query:orgId": "#ce12cc"
     },
     "summary": "Get Organization Call Recording Vendors",
@@ -3447,7 +3482,7 @@
      "path:vendorId": "!#ee8b65",
      "query:orgId": "#c05d0d"
     },
-    "summary": "Get Call Recording Terms Of Service Settings",
+    "summary": "Get Call Recording Terms of Service Settings",
     "tag": "Features: Call Recording"
    },
    "GET /telephony/config/callRouting/translationPatterns": {
@@ -3482,6 +3517,21 @@
     },
     "summary": "Get Country Calling Configuration",
     "tag": "User Call Settings (2/2)"
+   },
+   "GET /telephony/config/cxEssentials/agents/availableAgents": {
+    "fields": {
+     "(operation)": "#79674c",
+     "query:hasCxEssentials": "#004485",
+     "query:locationId": "!~id#0a0184",
+     "query:max": "#e7f71a",
+     "query:name": "#29e3b3",
+     "query:order": "#564728",
+     "query:orgId": "#b764e3",
+     "query:phoneNumbers": "#1d4362",
+     "query:start": "#d03bc5"
+    },
+    "summary": "Get Available Agents",
+    "tag": "Features: Customer Assist"
    },
    "GET /telephony/config/cxEssentials/locations/{}/queues/{}/wrapup/settings": {
     "fields": {
@@ -3538,12 +3588,12 @@
      "query:name": "#452e9d",
      "query:orgId": "#f821ca"
     },
-    "summary": "Get the List of DECT Networks for an organization",
+    "summary": "Get the List of DECT Networks for an Organization",
     "tag": "DECT Devices Settings"
    },
    "GET /telephony/config/devices/availableMembers": {
     "fields": {
-     "(operation)": "#f808ce",
+     "(operation)": "#9a8aa2",
      "query:excludeVirtualLine": "#ae4ebc%709cba",
      "query:extension": "#68416c",
      "query:locationId": "#f5a7fb",
@@ -4368,11 +4418,11 @@
    },
    "GET /telephony/config/locations/{}/callRecording/complianceAnnouncement": {
     "fields": {
-     "(operation)": "#2c8b18",
+     "(operation)": "#7f6f1a",
      "path:locationId": "!#8854de",
      "query:orgId": "#7c367d"
     },
-    "summary": "Get details for the Location Compliance Announcement Setting",
+    "summary": "Get Details of Call Recording Compliance Announcement for the Location",
     "tag": "Features: Call Recording"
    },
    "GET /telephony/config/locations/{}/callRecording/vendorUsers": {
@@ -4455,18 +4505,18 @@
      "path:locationId": "!#7133cd",
      "query:orgId": "#294f1f"
     },
-    "summary": "Get a list of DECT Network Base Stations",
+    "summary": "Get a List of DECT Network Base Stations",
     "tag": "DECT Devices Settings"
    },
    "GET /telephony/config/locations/{}/dectNetworks/{}/baseStations/{}": {
     "fields": {
-     "(operation)": "#2dd185",
+     "(operation)": "#561519",
      "path:baseStationId": "!#211c23",
      "path:dectNetworkId": "!#6917a3",
      "path:locationId": "!#7133cd",
      "query:orgId": "#294f1f"
     },
-    "summary": "Get the details of a specific DECT Network Base Station",
+    "summary": "Get the Details of a Specific DECT Network Base Station",
     "tag": "DECT Devices Settings"
    },
    "GET /telephony/config/locations/{}/dectNetworks/{}/handsets": {
@@ -4494,12 +4544,12 @@
    },
    "GET /telephony/config/locations/{}/dectNetworks/{}/serviceabilityPassword": {
     "fields": {
-     "(operation)": "#d6ecb9",
+     "(operation)": "#0c737c",
      "path:dectNetworkId": "!#14bbc1",
      "path:locationId": "!#e90dd3",
      "query:orgId": "#af5565"
     },
-    "summary": "Get DECT Serviceability Password status",
+    "summary": "Get DECT Serviceability Password Status",
     "tag": "DECT Devices Settings"
    },
    "GET /telephony/config/locations/{}/devices/settings": {
@@ -4819,7 +4869,7 @@
      "query:hasCxEssentials": "#85b896%3a25b8",
      "query:orgId": "#3cd503"
     },
-    "summary": "Get Details for a Call Queue with Customer Assist",
+    "summary": "Get Details for a Call Queue or Customer Assist Queue",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/locations/{}/queues/{}/announcements": {
@@ -5151,13 +5201,15 @@
    "GET /telephony/config/numbers": {
     "fields": {
      "(operation)": "#3ee1ea",
-     "query:available": "#a2d083%dcad76",
+     "query:assigned": "#b094a0%24b4ad",
+     "query:available": "#0a7943%24b4ad",
      "query:details": "#92dd26",
+     "query:elinEnabled": "#34c2ae",
      "query:extension": "#f1ddbc",
      "query:includedTelephonyTypes": "#944dc2",
      "query:locationId": "#71baec",
      "query:max": "#1a2534",
-     "query:numberType": "#3574be%df3131=EXTENSION|NUMBER",
+     "query:numberType": "#e23d47%6d8d45=EXTENSION|NUMBER",
      "query:order": "#5f031f",
      "query:orgId": "#bfee00",
      "query:ownerId": "#5f7e9b",
@@ -5938,7 +5990,7 @@
      "path:personId": "!#5b228b",
      "query:orgId": "#f99acc"
     },
-    "summary": "GET List of DECT networks associated with a Person",
+    "summary": "GET List of DECT Networks Associated with a Person",
     "tag": "DECT Devices Settings"
    },
    "GET /telephony/config/people/{}/devices": {
@@ -6604,7 +6656,7 @@
      "query:phoneNumber": "#cbd1f5",
      "query:start": "#d03bc5"
     },
-    "summary": "Read the List of Call Queues with Customer Assist",
+    "summary": "Read the List of Call Queue or Customer Assist Queues",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/queues/agents": {
@@ -6621,7 +6673,7 @@
      "query:queueId": "#4a97eb",
      "query:start": "#d03bc5"
     },
-    "summary": "Read the List of Call Queue Agents with Customer Assist",
+    "summary": "Read the List of Agents for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/queues/agents/availableAgents": {
@@ -6647,7 +6699,7 @@
      "query:orgId": "#b31959",
      "query:start": "!#d03bc5"
     },
-    "summary": "Get Details for a Call Queue Agent with Customer Assist",
+    "summary": "Get Details for an Agent for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/queues/settings": {
@@ -6741,7 +6793,7 @@
      "query:phoneNumber": "#ec0e08",
      "query:start": "#d03bc5"
     },
-    "summary": "Get List of Supervisors with Customer Assist",
+    "summary": "Get List of Supervisors for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/supervisors/availableAgents": {
@@ -6755,7 +6807,7 @@
      "query:phoneNumber": "#c2ed3b",
      "query:start": "#d03bc5"
     },
-    "summary": "List Available Agents with Customer Assist",
+    "summary": "List Available Agents for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/supervisors/availableSupervisors": {
@@ -6769,7 +6821,7 @@
      "query:phoneNumber": "#ec0e08",
      "query:start": "#d03bc5"
     },
-    "summary": "List Available Supervisors with Customer Assist",
+    "summary": "List Available Supervisors for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/supervisors/{}": {
@@ -6784,7 +6836,7 @@
      "query:phoneNumber": "#c136ab",
      "query:start": "#d03bc5"
     },
-    "summary": "Get Supervisor Detail with Customer Assist",
+    "summary": "Get Supervisor Details for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/supportedDevices": {
@@ -6807,7 +6859,8 @@
    },
    "GET /telephony/config/textToSpeech/voices": {
     "fields": {
-     "(operation)": "#8d4789",
+     "(operation)": "#01c7f8",
+     "query:languageCode": "#7eab4a",
      "query:orgId": "#f0e4c3"
     },
     "summary": "List Text-to-Speech Voices",
@@ -6882,7 +6935,7 @@
    },
    "GET /telephony/config/virtualLines": {
     "fields": {
-     "(operation)": "#ceade9",
+     "(operation)": "#e9a52b",
      "query:hasDeviceAssigned": "#3c3a23",
      "query:hasDnAssigned": "#7b088a",
      "query:hasExtensionAssigned": "#e74e6e",
@@ -6913,7 +6966,7 @@
    },
    "GET /telephony/config/virtualLines/{}": {
     "fields": {
-     "(operation)": "#df7299",
+     "(operation)": "#b9b348",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "#f761d5"
     },
@@ -6922,7 +6975,7 @@
    },
    "GET /telephony/config/virtualLines/{}/agent/availableCallerIds": {
     "fields": {
-     "(operation)": "#ddeccf",
+     "(operation)": "#1cd265",
      "path:virtualLineId": "!#afc230",
      "query:orgId": "~id#05e6e7"
     },
@@ -6932,23 +6985,24 @@
    "GET /telephony/config/virtualLines/{}/agent/callerId": {
     "fields": {
      "(operation)": "#e610d2",
-     "path:virtualLineId": "!#afc230"
+     "path:virtualLineId": "!#afc230",
+     "query:orgId": "~id#a07eeb"
     },
     "summary": "Retrieve Agent's Caller ID Information",
     "tag": "Virtual Line Call Settings"
    },
    "GET /telephony/config/virtualLines/{}/bargeIn": {
     "fields": {
-     "(operation)": "#629ebf",
+     "(operation)": "#d988a8",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
-    "summary": "Read Barge In Settings for a Virtual Line",
+    "summary": "Read Barge in Settings for a Virtual Line",
     "tag": "Virtual Line Call Settings"
    },
    "GET /telephony/config/virtualLines/{}/callBridge": {
     "fields": {
-     "(operation)": "#044c74",
+     "(operation)": "#c41b56",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -6957,7 +7011,7 @@
    },
    "GET /telephony/config/virtualLines/{}/callForwarding": {
     "fields": {
-     "(operation)": "#c43835",
+     "(operation)": "#ef2ded",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -6994,7 +7048,7 @@
    },
    "GET /telephony/config/virtualLines/{}/callRecording": {
     "fields": {
-     "(operation)": "#01cf52",
+     "(operation)": "#afe09a",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#a07eeb"
     },
@@ -7003,7 +7057,7 @@
    },
    "GET /telephony/config/virtualLines/{}/callWaiting": {
     "fields": {
-     "(operation)": "#69e673",
+     "(operation)": "#7d96c5",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -7012,7 +7066,7 @@
    },
    "GET /telephony/config/virtualLines/{}/callerId": {
     "fields": {
-     "(operation)": "#5123c0",
+     "(operation)": "#5996d6",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#00689a"
     },
@@ -7021,7 +7075,7 @@
    },
    "GET /telephony/config/virtualLines/{}/dectNetworks": {
     "fields": {
-     "(operation)": "#8bccb7%d636df",
+     "(operation)": "#11175a%d636df",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "#f761d5"
     },
@@ -7030,11 +7084,11 @@
    },
    "GET /telephony/config/virtualLines/{}/devices": {
     "fields": {
-     "(operation)": "#1936bd",
+     "(operation)": "#9fb8f0",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "#f761d5"
     },
-    "summary": "Get List of Devices assigned for a Virtual Line",
+    "summary": "Get List of Devices Assigned for a Virtual Line",
     "tag": "Virtual Line Call Settings"
    },
    "GET /telephony/config/virtualLines/{}/doNotDisturb": {
@@ -7091,7 +7145,7 @@
    },
    "GET /telephony/config/virtualLines/{}/incomingPermission": {
     "fields": {
-     "(operation)": "#e1032c",
+     "(operation)": "#9e00d4",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -7100,7 +7154,7 @@
    },
    "GET /telephony/config/virtualLines/{}/intercept": {
     "fields": {
-     "(operation)": "#52bd84",
+     "(operation)": "#b90cc8",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#0c01d5"
     },
@@ -7109,20 +7163,20 @@
    },
    "GET /telephony/config/virtualLines/{}/musicOnHold": {
     "fields": {
-     "(operation)": "#d597b0",
+     "(operation)": "#65bd64",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
-    "summary": "Retrieve Music On Hold Settings for a Virtual Line",
+    "summary": "Retrieve Music on Hold Settings for a Virtual Line",
     "tag": "Virtual Line Call Settings"
    },
    "GET /telephony/config/virtualLines/{}/number": {
     "fields": {
-     "(operation)": "#8af49c",
+     "(operation)": "#9b464d",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "#f761d5"
     },
-    "summary": "Get Phone Number assigned for a Virtual Line",
+    "summary": "Get Phone Number Assigned for a Virtual Line",
     "tag": "Virtual Line Call Settings"
    },
    "GET /telephony/config/virtualLines/{}/outboundBillingPlan": {
@@ -7135,16 +7189,16 @@
    },
    "GET /telephony/config/virtualLines/{}/outgoingPermission": {
     "fields": {
-     "(operation)": "#ae6a43",
+     "(operation)": "#9e77f0",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#0c01d5"
     },
-    "summary": "Retrieve a virtual line's Outgoing Calling Permissions Settings",
+    "summary": "Retrieve a Virtual Line's Outgoing Calling Permissions Settings",
     "tag": "Virtual Line Call Settings"
    },
    "GET /telephony/config/virtualLines/{}/outgoingPermission/accessCodes": {
     "fields": {
-     "(operation)": "#8a051e",
+     "(operation)": "#fe9d0a",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#5993e1"
     },
@@ -7153,7 +7207,7 @@
    },
    "GET /telephony/config/virtualLines/{}/outgoingPermission/autoTransferNumbers": {
     "fields": {
-     "(operation)": "#725b6b",
+     "(operation)": "#135d11",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#5993e1"
     },
@@ -7162,7 +7216,7 @@
    },
    "GET /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns": {
     "fields": {
-     "(operation)": "#ecce0a",
+     "(operation)": "#df0fa4",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#a07eeb"
     },
@@ -7171,7 +7225,7 @@
    },
    "GET /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns/{}": {
     "fields": {
-     "(operation)": "#a876cd",
+     "(operation)": "#5a464f",
      "path:digitPatternId": "!#f3eb8b",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#a07eeb"
@@ -7181,7 +7235,7 @@
    },
    "GET /telephony/config/virtualLines/{}/privacy": {
     "fields": {
-     "(operation)": "#3b378a",
+     "(operation)": "#271fe2",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -7190,7 +7244,7 @@
    },
    "GET /telephony/config/virtualLines/{}/pushToTalk": {
     "fields": {
-     "(operation)": "#d1bef8",
+     "(operation)": "#8b9f7b",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -7199,7 +7253,7 @@
    },
    "GET /telephony/config/virtualLines/{}/voicemail": {
     "fields": {
-     "(operation)": "#e38dbf",
+     "(operation)": "#6eb1ee",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -7313,11 +7367,11 @@
    },
    "GET /telephony/config/workspaces/{}/dectNetworks": {
     "fields": {
-     "(operation)": "#bb0a0c",
+     "(operation)": "#c2713f",
      "path:workspaceId": "!#c72454",
      "query:orgId": "#fb25bb"
     },
-    "summary": "GET List of DECT networks associated with a workspace",
+    "summary": "GET List of DECT Networks Associated with a Workspace",
     "tag": "DECT Devices Settings"
    },
    "GET /telephony/config/workspaces/{}/devices": {
@@ -7637,6 +7691,14 @@
     "summary": "Retrieve PSTN Connection Options for a Location",
     "tag": "PSTN"
    },
+   "GET /telephony/queues/{}/calls": {
+    "fields": {
+     "(operation)": "#e0ca99",
+     "path:queueId": "!~id#77ca9d"
+    },
+    "summary": "List Call Queue Calls",
+    "tag": "Call Controls"
+   },
    "GET /telephony/voiceMessages": {
     "fields": {
      "(operation)": "#33e013",
@@ -7651,6 +7713,13 @@
     },
     "summary": "Get Message Summary",
     "tag": "User Call Settings (2/2)"
+   },
+   "GET /telephony/webhookInterestRegistrations": {
+    "fields": {
+     "(operation)": "#fe6b21"
+    },
+    "summary": "Get Webhook Interest Registration",
+    "tag": "Webhook Interest Registrations"
    },
    "GET /workspaces/{}/features/callForwarding": {
     "fields": {
@@ -9209,7 +9278,7 @@
    },
    "POST /telephony/config/locations/{}/dectNetworks": {
     "fields": {
-     "(operation)": "#cb9779",
+     "(operation)": "#eef6b8",
      "body:defaultAccessCode": "!#f0ad34",
      "body:defaultAccessCodeEnabled": "!#7f203b",
      "body:displayName": "#6a8622",
@@ -9223,7 +9292,7 @@
    },
    "POST /telephony/config/locations/{}/dectNetworks/{}/baseStations": {
     "fields": {
-     "(operation)": "#aa120d",
+     "(operation)": "#044519",
      "body:baseStationMacs": "!#2cfbeb",
      "path:dectNetworkId": "!#1c42c4",
      "path:locationId": "!#0cd931",
@@ -9234,7 +9303,7 @@
    },
    "POST /telephony/config/locations/{}/dectNetworks/{}/handsets": {
     "fields": {
-     "(operation)": "#d7d6c1",
+     "(operation)": "#bfac84",
      "body:customDisplayName": "!#efc613",
      "body:line1MemberId": "!~id#1e547e",
      "body:line2MemberId": "~id#e5d3e0",
@@ -9247,7 +9316,7 @@
    },
    "POST /telephony/config/locations/{}/dectNetworks/{}/handsets/bulk": {
     "fields": {
-     "(operation)": "#0b605c",
+     "(operation)": "#1131f8",
      "body:items": "!#80cae5",
      "body:items[].customDisplayName": "!#efc613",
      "body:items[].line1MemberId": "!~id#1e547e",
@@ -9261,7 +9330,7 @@
    },
    "POST /telephony/config/locations/{}/dectNetworks/{}/serviceabilityPassword/actions/generate/invoke": {
     "fields": {
-     "(operation)": "#14e76f",
+     "(operation)": "#f8b76d",
      "path:dectNetworkId": "!#14bbc1",
      "path:locationId": "!#e90dd3",
      "query:orgId": "#af5565"
@@ -9422,6 +9491,7 @@
      "body:agents[].skillLevel": "#b91dbb",
      "body:agents[].weight": "#7b8be6",
      "body:allowAgentJoinEnabled": "#a665b5",
+     "body:allowCallWaitingForAgentsEnabled": "#fab83b",
      "body:callPolicies": "!",
      "body:callPolicies.callBounce": "!#0e1f5d",
      "body:callPolicies.callBounce.agentUnavailableEnabled": "#e03b8c",
@@ -9542,7 +9612,7 @@
      "query:hasCxEssentials": "#cca41d",
      "query:orgId": "#b2546d"
     },
-    "summary": "Create a Call Queue with Customer Assist",
+    "summary": "Create Call Queue or Customer Assist Queue",
     "tag": "Features:  Call Queue"
    },
    "POST /telephony/config/locations/{}/queues/{}/callForwarding/actions/switchMode/invoke": {
@@ -10307,13 +10377,13 @@
      "query:hasCxEssentials": "#abf764%17ffbd",
      "query:orgId": "#c9a7f2"
     },
-    "summary": "Create a Supervisor with Customer Assist",
+    "summary": "Create a Supervisor for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "POST /telephony/config/textToSpeech/actions/generate/invoke": {
     "fields": {
      "(operation)": "#a5a498",
-     "body:languageCode": "!#ad94de",
+     "body:languageCode": "!#5281c8",
      "body:text": "!#d6b3d4",
      "body:voice": "!#f68e1a",
      "query:orgId": "#6ed08d"
@@ -10371,7 +10441,7 @@
    },
    "POST /telephony/config/virtualLines": {
     "fields": {
-     "(operation)": "#60c7f6",
+     "(operation)": "#c7a65a",
      "body:callerIdFirstName": "#a91572",
      "body:callerIdLastName": "#9c6563",
      "body:callerIdNumber": "#c07d7f",
@@ -10388,7 +10458,7 @@
    },
    "POST /telephony/config/virtualLines/{}/intercept/actions/announcementUpload/invoke": {
     "fields": {
-     "(operation)": "#19ddd5",
+     "(operation)": "#346230",
      "path:virtualLineId": "!#ce4b82",
      "query:orgId": "~id#0c01d5"
     },
@@ -10397,7 +10467,7 @@
    },
    "POST /telephony/config/virtualLines/{}/outgoingPermission/accessCodes": {
     "fields": {
-     "(operation)": "#089964",
+     "(operation)": "#0395d2",
      "body:code": "!#ad1011",
      "body:description": "!#077304",
      "path:virtualLineId": "!#02c097",
@@ -10408,7 +10478,7 @@
    },
    "POST /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns": {
     "fields": {
-     "(operation)": "#7cd1fc",
+     "(operation)": "#593f13",
      "body:action": "!#74d89d=ALLOW|AUTH_CODE|BLOCK|TRANSFER_NUMBER_1|TRANSFER_NUMBER_2|TRANSFER_NUMBER_3",
      "body:name": "!#d31891",
      "body:pattern": "!#5aad0c",
@@ -10421,7 +10491,7 @@
    },
    "POST /telephony/config/virtualLines/{}/voicemail/actions/resetPin/invoke": {
     "fields": {
-     "(operation)": "#8baf49",
+     "(operation)": "#ad2a51",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -10430,7 +10500,7 @@
    },
    "POST /telephony/config/virtualLines/{}/voicemail/actions/uploadBusyGreeting/invoke": {
     "fields": {
-     "(operation)": "#7f8911",
+     "(operation)": "#144e3a",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -10439,7 +10509,7 @@
    },
    "POST /telephony/config/virtualLines/{}/voicemail/actions/uploadNoAnswerGreeting/invoke": {
     "fields": {
-     "(operation)": "#e3fee4",
+     "(operation)": "#2eae1e",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
@@ -10648,6 +10718,17 @@
     "summary": "Mark As Unread",
     "tag": "User Call Settings (2/2)"
    },
+   "POST /telephony/webhookInterestRegistrations": {
+    "fields": {
+     "(operation)": "#80b5f8%36a1ac",
+     "body:duration": "#89329c",
+     "body:interests": "!#185c6f%cc731a",
+     "body:interests[].actor": "#2c8b89=Virtual Lines|Workspaces",
+     "body:interests[].resource": "#288292=Agent|Agent Monitoring|Hook Status|Queue|Queue Monitoring|Services"
+    },
+    "summary": "Create a Webhook Interest Registration",
+    "tag": "Webhook Interest Registrations"
+   },
    "POST /workspaces/{}/features/outgoingPermission/accessCodes": {
     "fields": {
      "(operation)": "#e26765",
@@ -10662,7 +10743,7 @@
    "PUT /locations/{}": {
     "fields": {
      "(operation)": "#974bcc%a78c0e",
-     "body:address": "#aa52ed",
+     "body:address": "#c55c37",
      "body:address.address1": "#1ff08c",
      "body:address.address2": "#0244aa",
      "body:address.city": "#fc33f7",
@@ -11184,7 +11265,7 @@
      "body:useCustomAnnouncementEnabled": "#cbf186",
      "query:orgId": "#fe17ff"
     },
-    "summary": "Update the organization Compliance Announcement",
+    "summary": "Update the Organization Compliance Announcement",
     "tag": "Features: Call Recording"
    },
    "PUT /telephony/config/callRecording/vendor": {
@@ -11204,7 +11285,7 @@
      "path:vendorId": "!#4443ea",
      "query:orgId": "#e7a60a"
     },
-    "summary": "Update Call Recording Terms Of Service Settings",
+    "summary": "Update Call Recording Terms of Service Settings",
     "tag": "Features: Call Recording"
    },
    "PUT /telephony/config/callRouting/translationPatterns/{}": {
@@ -11933,7 +12014,7 @@
    },
    "PUT /telephony/config/locations/{}/callRecording/complianceAnnouncement": {
     "fields": {
-     "(operation)": "#fabd9a",
+     "(operation)": "#4ea1e4",
      "body:customComplianceAnnouncement": "#3c9f10",
      "body:customComplianceAnnouncement.audioAnnouncementFileId": "#25a17f",
      "body:customComplianceAnnouncement.type": "#1cff82=CUSTOM|DEFAULT",
@@ -11946,7 +12027,7 @@
      "path:locationId": "!#b493f8",
      "query:orgId": "#fe17ff"
     },
-    "summary": "Update the Location Compliance Announcement",
+    "summary": "Update Call Recording Compliance Announcement for the Location",
     "tag": "Features: Call Recording"
    },
    "PUT /telephony/config/locations/{}/callRecording/vendor": {
@@ -12002,7 +12083,7 @@
    },
    "PUT /telephony/config/locations/{}/dectNetworks/{}/handsets/{}": {
     "fields": {
-     "(operation)": "#f088bf",
+     "(operation)": "#1eb4bd",
      "body:customDisplayName": "!#dfc76e",
      "body:line1MemberId": "!~id#1e547e",
      "body:line2MemberId": "~id#e5d3e0",
@@ -12016,13 +12097,13 @@
    },
    "PUT /telephony/config/locations/{}/dectNetworks/{}/serviceabilityPassword": {
     "fields": {
-     "(operation)": "#698a20",
+     "(operation)": "#5c8603",
      "body:enabled": "!#a18a99%e9f7d8",
      "path:dectNetworkId": "!#14bbc1",
      "path:locationId": "!#e90dd3",
      "query:orgId": "#af5565"
     },
-    "summary": "Update DECT Serviceability Password status",
+    "summary": "Update DECT Serviceability Password Status",
     "tag": "DECT Devices Settings"
    },
    "PUT /telephony/config/locations/{}/emergencyCallNotification": {
@@ -12768,7 +12849,7 @@
    },
    "PUT /telephony/config/locations/{}/redSky/building": {
     "fields": {
-     "(operation)": "#d0f3fc",
+     "(operation)": "#cb99b4",
      "body:address": "",
      "body:address.addressLine1": "#c616b3",
      "body:address.addressLine2": "#1022ea",
@@ -14246,7 +14327,7 @@
      "query:hasCxEssentials": "#14767b%069960",
      "query:orgId": "#107305"
     },
-    "summary": "Update an Agent's Settings of One or More Call Queues with Customer Assist",
+    "summary": "Update an Agent's Settings for One or More Call Queue or Customer Assist Queues",
     "tag": "Features:  Call Queue"
    },
    "PUT /telephony/config/queues/settings": {
@@ -14320,7 +14401,7 @@
      "query:hasCxEssentials": "#afa3bf%1fdad3",
      "query:orgId": "#fc7f24"
     },
-    "summary": "Assign or Unassign Agents to Supervisor with Customer Assist",
+    "summary": "Assign or Unassign Agents to Supervisor for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
    },
    "PUT /telephony/config/virtualExtensionRanges/{}": {
@@ -14361,7 +14442,7 @@
    },
    "PUT /telephony/config/virtualLines/{}": {
     "fields": {
-     "(operation)": "#c09a64",
+     "(operation)": "#ef20c5",
      "body:announcementLanguage": "#2a29b8",
      "body:callerIdFirstName": "#a4be3f",
      "body:callerIdLastName": "#a0a54b",
@@ -14380,27 +14461,28 @@
    },
    "PUT /telephony/config/virtualLines/{}/agent/callerId": {
     "fields": {
-     "(operation)": "#7710be",
+     "(operation)": "#038deb",
      "body:selectedCallerId": "!~id#33edb6",
-     "path:virtualLineId": "!#afc230"
+     "path:virtualLineId": "!#afc230",
+     "query:orgId": "~id#a07eeb"
     },
     "summary": "Modify Agent's Caller ID Information",
     "tag": "Virtual Line Call Settings"
    },
    "PUT /telephony/config/virtualLines/{}/bargeIn": {
     "fields": {
-     "(operation)": "#6b80b7",
+     "(operation)": "#d0d66a",
      "body:enabled": "#7768e8",
      "body:toneEnabled": "#2cde5f",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
-    "summary": "Configure Barge In Settings for a Virtual Line",
+    "summary": "Configure Barge in Settings for a Virtual Line",
     "tag": "Virtual Line Call Settings"
    },
    "PUT /telephony/config/virtualLines/{}/callBridge": {
     "fields": {
-     "(operation)": "#5f5345",
+     "(operation)": "#38dfa9",
      "body:warningToneEnabled": "#3a3f2c",
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
@@ -14410,7 +14492,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/callForwarding": {
     "fields": {
-     "(operation)": "#1b7794",
+     "(operation)": "#9a276b",
      "body:businessContinuity": "#9f6c70",
      "body:businessContinuity.destination": "#accaaa",
      "body:businessContinuity.destinationVoicemailEnabled": "#85c42a",
@@ -14438,7 +14520,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/callRecording": {
     "fields": {
-     "(operation)": "#72f13f",
+     "(operation)": "#15ccb6",
      "body:enabled": "#caa420",
      "body:notification": "#e6a7f8",
      "body:notification.enabled": "#23d6b4",
@@ -14464,7 +14546,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/callWaiting": {
     "fields": {
-     "(operation)": "#a84ea3",
+     "(operation)": "#4dd1fd",
      "body:enabled": "!#96c30a",
      "path:virtualLineId": "!#ce4b82",
      "query:orgId": "~id#a07eeb"
@@ -14474,7 +14556,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/callerId": {
     "fields": {
-     "(operation)": "#ea17de",
+     "(operation)": "#55799e",
      "body:additionalExternalCallerIdCustomNumber": "#34b804%d9ed1c",
      "body:additionalExternalCallerIdDirectLineEnabled": "#96d2a3",
      "body:additionalExternalCallerIdLocationNumberEnabled": "#07ea71",
@@ -14498,12 +14580,12 @@
    },
    "PUT /telephony/config/virtualLines/{}/directorySearch": {
     "fields": {
-     "(operation)": "#6fdd47",
+     "(operation)": "#404e45",
      "body:enabled": "!#3acb00",
      "path:virtualLineId": "!#ce4b82",
      "query:orgId": "#dbb7c7"
     },
-    "summary": "Update Directory search for a Virtual Line",
+    "summary": "Update Directory Search for a Virtual Line",
     "tag": "Virtual Line Call Settings"
    },
    "PUT /telephony/config/virtualLines/{}/doNotDisturb": {
@@ -14530,7 +14612,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/incomingPermission": {
     "fields": {
-     "(operation)": "#5ab81a",
+     "(operation)": "#a2bf21",
      "body:collectCallsEnabled": "!#9c1e54",
      "body:externalTransfer": "!#c0f54e=ALLOW_ALL_EXTERNAL|ALLOW_ONLY_TRANSFERRED_EXTERNAL|BLOCK_ALL_EXTERNAL",
      "body:internalCallsEnabled": "!#2d91e8",
@@ -14543,7 +14625,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/intercept": {
     "fields": {
-     "(operation)": "#382edc",
+     "(operation)": "#d54144",
      "body:enabled": "#838842",
      "body:incoming": "#88c3f9",
      "body:incoming.announcements": "#88c3f9",
@@ -14568,7 +14650,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/musicOnHold": {
     "fields": {
-     "(operation)": "#8a948e%b888c8",
+     "(operation)": "#899cf8%b888c8",
      "body:audioAnnouncementFile": "",
      "body:audioAnnouncementFile.fileName": "#c0c468",
      "body:audioAnnouncementFile.id": "#78d8d9",
@@ -14579,7 +14661,7 @@
      "path:virtualLineId": "!#6ea855",
      "query:orgId": "~id#a07eeb"
     },
-    "summary": "Configure Music On Hold Settings for a Virtual Line",
+    "summary": "Configure Music on Hold Settings for a Virtual Line",
     "tag": "Virtual Line Call Settings"
    },
    "PUT /telephony/config/virtualLines/{}/outboundBillingPlan": {
@@ -14592,7 +14674,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/outgoingPermission": {
     "fields": {
-     "(operation)": "#134bca",
+     "(operation)": "#5a1341",
      "body:callingPermissions": "!#116c34",
      "body:callingPermissions[].action": "#418284=ALLOW|AUTH_CODE|BLOCK|TRANSFER_NUMBER_1|TRANSFER_NUMBER_2|TRANSFER_NUMBER_3",
      "body:callingPermissions[].callType": "#76dd5c=CHARGEABLE_DIRECTORY_ASSISTED|INTERNAL_CALL|INTERNATIONAL|NATIONAL|OPERATOR_ASSISTED|PREMIUM_SERVICES_I|PREMIUM_SERVICES_II|SPECIAL_SERVICES_I|SPECIAL_SERVICES_II|TOLL_FREE",
@@ -14602,12 +14684,12 @@
      "path:virtualLineId": "!#ce4b82",
      "query:orgId": "~id#0c01d5"
     },
-    "summary": "Modify a virtual line's Outgoing Calling Permissions Settings",
+    "summary": "Modify a Virtual Line's Outgoing Calling Permissions Settings",
     "tag": "Virtual Line Call Settings"
    },
    "PUT /telephony/config/virtualLines/{}/outgoingPermission/accessCodes": {
     "fields": {
-     "(operation)": "#ab75b6",
+     "(operation)": "#cddc49",
      "body:deleteCodes": "#39996f",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#5993e1"
@@ -14617,7 +14699,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/outgoingPermission/autoTransferNumbers": {
     "fields": {
-     "(operation)": "#49b272",
+     "(operation)": "#fdbd44",
      "body:autoTransferNumber1": "#f596e2",
      "body:autoTransferNumber2": "#f596e2",
      "body:autoTransferNumber3": "#f596e2",
@@ -14630,7 +14712,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns": {
     "fields": {
-     "(operation)": "#39ce08",
+     "(operation)": "#a44b5e",
      "body:useCustomDigitPatterns": "#2858f8",
      "path:virtualLineId": "!#02c097",
      "query:orgId": "~id#a07eeb"
@@ -14640,7 +14722,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns/{}": {
     "fields": {
-     "(operation)": "#b5f9fe",
+     "(operation)": "#a8c6c5",
      "body:action": "#74d89d=ALLOW|AUTH_CODE|BLOCK|TRANSFER_NUMBER_1|TRANSFER_NUMBER_2|TRANSFER_NUMBER_3",
      "body:name": "#d31891",
      "body:pattern": "#5aad0c",
@@ -14654,7 +14736,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/privacy": {
     "fields": {
-     "(operation)": "#de6134",
+     "(operation)": "#0cd573",
      "body:aaExtensionDialingEnabled": "#81c3a1",
      "body:aaNamingDialingEnabled": "#1d480b",
      "body:enablePhoneStatusDirectoryPrivacy": "#0799e3",
@@ -14668,7 +14750,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/pushToTalk": {
     "fields": {
-     "(operation)": "#cc7ac1",
+     "(operation)": "#faab2b",
      "body:accessType": "#043f10=ALLOW_MEMBERS|BLOCK_MEMBERS",
      "body:allowAutoAnswer": "#15d726",
      "body:connectionType": "#34c5c7%00362e=ONE_WAY|TWO_WAY",
@@ -14681,7 +14763,7 @@
    },
    "PUT /telephony/config/virtualLines/{}/voicemail": {
     "fields": {
-     "(operation)": "#317556",
+     "(operation)": "#a78e0e",
      "body:emailCopyOfMessage": "#34260e",
      "body:emailCopyOfMessage.emailId": "#bc2c38",
      "body:emailCopyOfMessage.enabled": "#d2b820",
@@ -14718,12 +14800,12 @@
    },
    "PUT /telephony/config/virtualLines/{}/voicemail/passcode": {
     "fields": {
-     "(operation)": "#a7f521",
+     "(operation)": "#7c6dfe",
      "body:passcode": "!#595ff5",
      "path:virtualLineId": "!#46dd1b",
      "query:orgId": "#d7862b"
     },
-    "summary": "Modify a virtual line's voicemail passcode",
+    "summary": "Modify a Virtual Line's Voicemail Passcode",
     "tag": "Virtual Line Call Settings"
    },
    "PUT /telephony/config/voicemail/rules": {
@@ -15445,8 +15527,8 @@
    },
    "DELETE /dataSources/{}": {
     "fields": {
-     "(operation)": "#d847a1",
-     "path:dataSourceId": "!#4d53d7"
+     "(operation)": "#7cf447",
+     "path:dataSourceId": "!#eae853"
     },
     "summary": "Delete a Data Source",
     "tag": "Data Sources"
@@ -16057,21 +16139,21 @@
    },
    "GET /dataSources": {
     "fields": {
-     "(operation)": "#e25f7e"
+     "(operation)": "#1002d4"
     },
     "summary": "Retrieve All Data Sources",
     "tag": "Data Sources"
    },
    "GET /dataSources/schemas": {
     "fields": {
-     "(operation)": "#090a20"
+     "(operation)": "#555e11%58cb24"
     },
     "summary": "Retrieve Data Source Schemas",
     "tag": "Data Sources"
    },
    "GET /dataSources/schemas/{}": {
     "fields": {
-     "(operation)": "#4bae69",
+     "(operation)": "#886459%58cb24",
      "path:schemaId": "!#9ac479"
     },
     "summary": "Retrieve Details of a Specific Data Source Schema",
@@ -16079,8 +16161,8 @@
    },
    "GET /dataSources/{}": {
     "fields": {
-     "(operation)": "#7113c0",
-     "path:dataSourceId": "!#4d53d7"
+     "(operation)": "#aaedd7",
+     "path:dataSourceId": "!#eae853"
     },
     "summary": "Retrieve Data Source Details",
     "tag": "Data Sources"
@@ -16646,6 +16728,7 @@
      "path:orgId": "!#3b2a12",
      "query:agentId": "!#54bdee",
      "query:campaignId": "!#a3f730",
+     "query:interactionId": "!~id#f5f0e7",
      "query:trackingId": "#75eb07"
     },
     "summary": "Get Valid Campaign Times",
@@ -16883,15 +16966,15 @@
    },
    "GET /organization/{}/skill": {
     "fields": {
-     "(operation)": "#0c852c",
+     "(operation)": "#798437",
      "path:orgid": "!#acc991%9e48cd",
      "query:attributes": "#b34025",
      "query:filter": "#e12522",
      "query:page": "#ce21b6",
      "query:pageSize": "#4b5334",
-     "query:singleObjectResponse": "#0ef406%0ef406"
+     "query:singleObjectResponse": "#966306%3a4c0b"
     },
-    "summary": "List Skill(s)",
+    "summary": "List Skills",
     "tag": "Skill"
    },
    "GET /organization/{}/skill-profile": {
@@ -17520,16 +17603,17 @@
    },
    "GET /organization/{}/v2/skill": {
     "fields": {
-     "(operation)": "#0c852c",
+     "(operation)": "#176323",
      "path:orgid": "!#acc991%9e48cd",
      "query:attributes": "#b34025",
      "query:filter": "#11ec71",
+     "query:include": "#158dd5",
      "query:page": "#ce21b6",
      "query:pageSize": "#4b5334",
      "query:search": "#5a8517",
-     "query:singleObjectResponse": "#0ef406%0ef406"
+     "query:singleObjectResponse": "#966306%3a4c0b"
     },
-    "summary": "List Skill(s)",
+    "summary": "List Skills",
     "tag": "Skill"
    },
    "GET /organization/{}/v2/skill-profile": {
@@ -17750,6 +17834,15 @@
     "summary": "Get Queue Statistics",
     "tag": "Queues"
    },
+   "GET /search/v2/meta": {
+    "fields": {
+     "(operation)": "#3c198e",
+     "header:TrackingId": "#059bfe",
+     "header:X-ORGANIZATION-ID": "#4fc9c8%46adc6"
+    },
+    "summary": "Get Search Metadata",
+    "tag": "Search Metadata"
+   },
    "GET /subscriptions": {
     "fields": {
      "(operation)": "#bbfbb2",
@@ -17852,7 +17945,7 @@
    },
    "GET /{}/project/{}/flows": {
     "fields": {
-     "(operation)": "#1ee685",
+     "(operation)": "#ec1651",
      "path:orgId": "!#9d2154",
      "path:projectId": "!#a79614",
      "query:flowType": "#0f73cb",
@@ -17883,37 +17976,37 @@
    },
    "GET /{}/project/{}/v2/flows/{}": {
     "fields": {
-     "(operation)": "#7938ca",
+     "(operation)": "#fa19de",
      "path:flowId": "!#da62f3",
      "path:orgId": "!#9d2154",
      "path:projectId": "!#a79614",
      "query:flowType": "#0f73cb"
     },
-    "summary": "Get a Flow",
+    "summary": "Get a Flow or Subflow",
     "tag": "Flows"
    },
    "GET /{}/project/{}/v2/flows/{}:export": {
     "fields": {
-     "(operation)": "#e498f2",
+     "(operation)": "#dd682d",
      "path:flowId": "!#da62f3",
      "path:orgId": "!#9d2154",
      "path:projectId": "!#a79614",
      "query:flowType": "#0f73cb",
      "query:version": "#55fed5"
     },
-    "summary": "Export a Flow",
+    "summary": "Export a Flow or Subflow",
     "tag": "Flows"
    },
    "GET /{}/project/{}/v2/flows/{}:validate": {
     "fields": {
-     "(operation)": "#9f8db0",
+     "(operation)": "#67ad3a",
      "path:flowId": "!#da62f3",
      "path:orgId": "!#9d2154",
      "path:projectId": "!#a79614",
      "query:flowType": "#0f73cb",
      "query:versionId": "#2d52fd"
     },
-    "summary": "Validate an Existing Flow Draft",
+    "summary": "Validate an Existing Flow or Subflow Draft",
     "tag": "Flows"
    },
    "PATCH /admin/v1/api/person/add-identities/workspace-id/{}/person-id/{}": {
@@ -18317,7 +18410,7 @@
    },
    "PATCH /{}/project/{}/v2/flows/{}": {
     "fields": {
-     "(operation)": "#314503",
+     "(operation)": "#6f01ab",
      "body:remove_edge_keys": "~id#c1752d",
      "body:remove_node_names": "~name#0ecd00%e58094",
      "body:upsert_edges": "#b618d8",
@@ -18328,7 +18421,7 @@
      "query:expectedVersion": "#1e3956",
      "query:flowType": "#0f73cb"
     },
-    "summary": "Patch a Flow Draft",
+    "summary": "Patch a Flow or Subflow Draft",
     "tag": "Flows"
    },
    "POST /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}": {
@@ -18522,12 +18615,12 @@
    },
    "POST /dataSources": {
     "fields": {
-     "(operation)": "#b46c0a%c2cddf",
-     "body:audience": "#fa2854",
-     "body:nonce": "#ec0290",
-     "body:schemaId": "#ea309d",
-     "body:subject": "#5d152c",
-     "body:tokenLifetimeMinutes": "#666dbc%0ef5eb",
+     "(operation)": "#b42ab1",
+     "body:audience": "#4337fe",
+     "body:nonce": "#e46e94",
+     "body:schemaId": "#1acef8",
+     "body:subject": "#95fa6e",
+     "body:tokenLifetimeMinutes": "#16bfaa%35f215",
      "body:url": "#682749"
     },
     "summary": "Register a Data Source",
@@ -18686,7 +18779,7 @@
    },
    "POST /notification/subscribe": {
     "fields": {
-     "(operation)": "#655d45",
+     "(operation)": "#3288fe",
      "body:allowMultiLogin": "#aec208%f9bc49",
      "body:clientType": "#6f927c",
      "body:force": "#02c71b",
@@ -20036,8 +20129,28 @@
    "POST /organization/{}/skill": {
     "fields": {
      "(operation)": "#2297f1",
-     "path:orgid": "!#acc991%9e48cd",
-     "query:payloadDTO": "!#d47941"
+     "body:active": "!#20815e%53aa9d",
+     "body:createdTime": "#2a5a15",
+     "body:description": "#e2195a",
+     "body:dynamicSkill": "#965662",
+     "body:enumSkillValues": "#d2e013",
+     "body:enumSkillValues[].createdTime": "#2a5a15",
+     "body:enumSkillValues[].description": "#d74d07",
+     "body:enumSkillValues[].id": "~id#063231",
+     "body:enumSkillValues[].lastUpdatedTime": "#876772",
+     "body:enumSkillValues[].name": "!~name#27f605",
+     "body:enumSkillValues[].organizationId": "~id#771c29%e872e9",
+     "body:enumSkillValues[].skillId": "#1c0341",
+     "body:enumSkillValues[].version": "#0f67fd",
+     "body:id": "~id#063231",
+     "body:lastUpdatedTime": "#876772",
+     "body:name": "!~name#fa8e24%9ae2e9",
+     "body:organizationId": "~id#771c29%e872e9",
+     "body:serviceLevelThreshold": "!#d16593%c095fe",
+     "body:skillType": "!#d80061%d80061=Boolean|Proficiency|Text|enum",
+     "body:systemDefault": "#7fd124",
+     "body:version": "#0f67fd",
+     "path:orgid": "!#acc991%9e48cd"
     },
     "summary": "Create a new Skill",
     "tag": "Skill"
@@ -20093,14 +20206,14 @@
    },
    "POST /organization/{}/skill/bulk": {
     "fields": {
-     "(operation)": "#b55e57",
+     "(operation)": "#22d447",
      "body:items": "#b00970",
-     "body:items[].item": "",
+     "body:items[].item": "#cd8634",
      "body:items[].item.active": "!#20815e%53aa9d",
      "body:items[].item.createdTime": "#2a5a15",
      "body:items[].item.description": "#e2195a",
      "body:items[].item.dynamicSkill": "#965662",
-     "body:items[].item.enumSkillValues": "",
+     "body:items[].item.enumSkillValues": "#d2e013",
      "body:items[].item.enumSkillValues[].createdTime": "#2a5a15",
      "body:items[].item.enumSkillValues[].description": "#d74d07",
      "body:items[].item.enumSkillValues[].id": "~id#063231",
@@ -20115,30 +20228,22 @@
      "body:items[].item.organizationId": "~id#771c29%e872e9",
      "body:items[].item.serviceLevelThreshold": "!#d16593%c095fe",
      "body:items[].item.skillType": "!#d80061%d80061=Boolean|Proficiency|Text|enum",
+     "body:items[].item.systemDefault": "#7fd124",
      "body:items[].item.version": "#0f67fd",
      "body:items[].itemIdentifier": "#7380ec",
      "body:items[].requestAction": "#5235d6",
      "path:orgid": "!#acc991%9e48cd"
     },
-    "summary": "Bulk save Skill(s)",
-    "tag": "Skill"
-   },
-   "POST /organization/{}/skill/populate-json-attr/{}": {
-    "fields": {
-     "(operation)": "",
-     "path:id": "!",
-     "path:orgid": "!"
-    },
-    "summary": "Populate json-attributes field for a given skill-id of an organization",
+    "summary": "Bulk save Skills",
     "tag": "Skill"
    },
    "POST /organization/{}/skill/purge-inactive-entities": {
     "fields": {
-     "(operation)": "#c7ca58",
+     "(operation)": "#fd1bbd",
      "path:orgid": "!#acc991%9e48cd",
-     "query:nextStartId": "#67449a"
+     "query:nextStartId": "#21b111"
     },
-    "summary": "Purge inactive Skill(s)",
+    "summary": "Purge inactive Skills",
     "tag": "Skill"
    },
    "POST /organization/{}/team": {
@@ -20517,7 +20622,7 @@
    },
    "POST /realtime/subscribe": {
     "fields": {
-     "(operation)": "#d0facb",
+     "(operation)": "#317cc7",
      "body:allowMultiLogin": "#aec208%f9bc49",
      "body:clientType": "#64828c",
      "body:force": "#02c71b",
@@ -20590,6 +20695,15 @@
      "path:taskId": "!#21a85b"
     },
     "summary": "Exit Conference Task",
+    "tag": "Tasks"
+   },
+   "POST /tasks/{}/conference/participants/{}/drop": {
+    "fields": {
+     "(operation)": "#07e48b",
+     "path:participantId": "!~id#10d905",
+     "path:taskId": "!#21a85b"
+    },
+    "summary": "Drop Participant From Conference",
     "tag": "Tasks"
    },
    "POST /tasks/{}/consult": {
@@ -20881,7 +20995,7 @@
    },
    "POST /{}/project/{}/v2/flows/{}": {
     "fields": {
-     "(operation)": "#63ab0f",
+     "(operation)": "#8e6009",
      "body:contactType": "#e4c8cb",
      "body:description": "#0743df",
      "body:edges": "#ad58a3",
@@ -20937,12 +21051,12 @@
      "query:expectedVersion": "#1e3956",
      "query:flowType": "#0f73cb"
     },
-    "summary": "Save a Flow Draft",
+    "summary": "Save a Flow or Subflow Draft",
     "tag": "Flows"
    },
    "POST /{}/project/{}/v2/flows:import": {
     "fields": {
-     "(operation)": "#60cb7d",
+     "(operation)": "#a4eb96",
      "body:contactType": "#e4c8cb",
      "body:description": "#0743df",
      "body:edges": "#ad58a3",
@@ -20997,12 +21111,12 @@
      "query:flowType": "#0f73cb",
      "query:overwrite": "#116331"
     },
-    "summary": "Import a Flow",
+    "summary": "Import a Flow or Subflow",
     "tag": "Flows"
    },
    "POST /{}/project/{}/v2/flows:validate": {
     "fields": {
-     "(operation)": "#b97c68",
+     "(operation)": "#286f02",
      "body:contactType": "#e4c8cb",
      "body:description": "#0743df",
      "body:edges": "#ad58a3",
@@ -21055,7 +21169,7 @@
      "path:orgId": "!#9d2154",
      "path:projectId": "!#a79614"
     },
-    "summary": "Validate a Flow",
+    "summary": "Validate a Flow or Subflow",
     "tag": "Flows"
    },
    "PUT /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}/action-id/{}": {
@@ -21154,14 +21268,14 @@
    },
    "PUT /dataSources/{}": {
     "fields": {
-     "(operation)": "#712c68%5effc3",
-     "body:audience": "#fa2854",
-     "body:errorMessage": "#964c92",
-     "body:nonce": "#ec0290",
-     "body:schemaId": "#ea309d",
-     "body:status": "#6a7020",
-     "body:subject": "#ae34b6",
-     "body:tokenLifetimeMinutes": "#666dbc%0ef5eb",
+     "(operation)": "#97532d%7cf3b2",
+     "body:audience": "#4337fe",
+     "body:errorMessage": "#7f4c65",
+     "body:nonce": "#e46e94",
+     "body:schemaId": "#1acef8",
+     "body:status": "#4cbb2d",
+     "body:subject": "#95fa6e",
+     "body:tokenLifetimeMinutes": "#16bfaa%35f215",
      "body:url": "#682749",
      "path:dataSourceId": "!#eae853"
     },
@@ -21734,9 +21848,29 @@
    "PUT /organization/{}/skill/{}": {
     "fields": {
      "(operation)": "#86ce88",
+     "body:active": "!#20815e%53aa9d",
+     "body:createdTime": "#2a5a15",
+     "body:description": "#e2195a",
+     "body:dynamicSkill": "#965662",
+     "body:enumSkillValues": "#d2e013",
+     "body:enumSkillValues[].createdTime": "#2a5a15",
+     "body:enumSkillValues[].description": "#d74d07",
+     "body:enumSkillValues[].id": "~id#063231",
+     "body:enumSkillValues[].lastUpdatedTime": "#876772",
+     "body:enumSkillValues[].name": "!~name#27f605",
+     "body:enumSkillValues[].organizationId": "~id#771c29%e872e9",
+     "body:enumSkillValues[].skillId": "#1c0341",
+     "body:enumSkillValues[].version": "#0f67fd",
+     "body:id": "~id#063231",
+     "body:lastUpdatedTime": "#876772",
+     "body:name": "!~name#fa8e24%9ae2e9",
+     "body:organizationId": "~id#771c29%e872e9",
+     "body:serviceLevelThreshold": "!#d16593%c095fe",
+     "body:skillType": "!#d80061%d80061=Boolean|Proficiency|Text|enum",
+     "body:systemDefault": "#7fd124",
+     "body:version": "#0f67fd",
      "path:id": "!~id#da7473",
-     "path:orgid": "!#acc991%9e48cd",
-     "query:payloadDTO": "!#1f4dd5"
+     "path:orgid": "!#acc991%9e48cd"
     },
     "summary": "Update specific Skill by ID",
     "tag": "Skill"
@@ -22435,7 +22569,7 @@
    "PUT /locations/{}": {
     "fields": {
      "(operation)": "#974bcc%a78c0e",
-     "body:address": "#aa52ed",
+     "body:address": "#c55c37",
      "body:address.address1": "#1ff08c",
      "body:address.address2": "#0244aa",
      "body:address.city": "#fc33f7",
@@ -22727,6 +22861,19 @@
      "query:current": "#73a73a"
     },
     "summary": "Get a Meeting By an Admin",
+    "tag": "Meetings"
+   },
+   "GET /group/meetings": {
+    "fields": {
+     "(operation)": "#2bb52e%279697",
+     "header:hostEmail": "#962f94%af891b",
+     "header:timezone": "#384787",
+     "query:current": "#cdaed9",
+     "query:meetingNumber": "#1f3429",
+     "query:personId": "~id#d50fe0%349aa4",
+     "query:webLink": "#002275"
+    },
+    "summary": "List Group Meetings",
     "tag": "Meetings"
    },
    "GET /meeting/qualities": {
@@ -23522,6 +23669,91 @@
     "summary": "Update Meeting Common Settings Configuration",
     "tag": "Site"
    },
+   "PATCH /group/meetings/{}": {
+    "fields": {
+     "(operation)": "#3e6363%582109",
+     "body:agenda": "#2c87b7",
+     "body:allowAnyUserToBeCoHost": "#48f4cc",
+     "body:allowAuthenticatedDevices": "#c63aab",
+     "body:allowFirstUserToBeCoHost": "#903fd4",
+     "body:attendeePrivileges": "#9c5653%3f5477",
+     "body:attendeePrivileges.enabledAnnotate": "#37d391%b0cea7",
+     "body:attendeePrivileges.enabledChatHost": "#69ba4a%b0cea7",
+     "body:attendeePrivileges.enabledChatOtherParticipants": "#e60b25%b0cea7",
+     "body:attendeePrivileges.enabledChatPresenter": "#ab46d5%b0cea7",
+     "body:attendeePrivileges.enabledContactOperatorPrivately": "#f57f19%b0cea7",
+     "body:attendeePrivileges.enabledPrintDocument": "#b59c7a%b0cea7",
+     "body:attendeePrivileges.enabledRemoteControl": "#589059%b0cea7",
+     "body:attendeePrivileges.enabledSaveDocument": "#5a5f23%b0cea7",
+     "body:attendeePrivileges.enabledShareContent": "#1b2c6a",
+     "body:attendeePrivileges.enabledViewAnyDocument": "#b62fdc%b0cea7",
+     "body:attendeePrivileges.enabledViewAnyPage": "#bfbf00%b0cea7",
+     "body:attendeePrivileges.enabledViewParticipantList": "#6f5339",
+     "body:attendeePrivileges.enabledViewThumbnails": "#f46883%b0cea7",
+     "body:audioConnectionOptions": "#4b599d",
+     "body:audioConnectionOptions.allowAttendeeToUnmuteSelf": "#91c24b",
+     "body:audioConnectionOptions.allowHostToUnmuteParticipants": "#90667e",
+     "body:audioConnectionOptions.audioConnectionType": "#6cb04b=VoIP|none|other|webexAudio",
+     "body:audioConnectionOptions.enabledAudienceCallBack": "#637096",
+     "body:audioConnectionOptions.enabledGlobalCallIn": "#cf6ed4",
+     "body:audioConnectionOptions.enabledTollFreeCallIn": "#2cdc8e",
+     "body:audioConnectionOptions.entryAndExitTone": "#d86478=announceName|beep|noTone",
+     "body:audioConnectionOptions.muteAttendeeUponEntry": "#ab1a58",
+     "body:automaticLockMinutes": "#d021f6",
+     "body:enableAutomaticLock": "#324f78",
+     "body:enableConnectAudioBeforeHost": "#d444a8",
+     "body:enabledAudioWatermark": "#b4f18b",
+     "body:enabledAutoRecordMeeting": "#182434",
+     "body:enabledBreakoutSessions": "#f80913%40e1c2",
+     "body:enabledJoinBeforeHost": "#a04460",
+     "body:enabledLiveStream": "#9fbb5d",
+     "body:enabledVisualWatermark": "#a58cf9",
+     "body:enabledWebcastView": "#12a475",
+     "body:end": "#086b33%65ac2e",
+     "body:excludePassword": "#9b114c",
+     "body:integrationTags": "#0c4673%d3d3e9",
+     "body:joinBeforeHostMinutes": "#e29bb6",
+     "body:liveStream": "",
+     "body:liveStream.allowChangeLayoutInMeeting": "#228e03",
+     "body:liveStream.destination": "!#570b68",
+     "body:liveStream.followStageLayoutWhenSynced": "#2fce43",
+     "body:liveStream.layoutWithSharedContent": "#c4f372=focusedContent|focusedContentWithActiveSpeaker|stack",
+     "body:liveStream.layoutWithoutSharedContent": "#647ba9=focus|grid|stack",
+     "body:liveStream.resolution": "#27ef8c",
+     "body:liveStream.rtmpUrl": "!#5fcb86",
+     "body:liveStream.streamUrl": "!#c6e8dd",
+     "body:meetingOptions": "#ab8a00",
+     "body:meetingOptions.enabledChat": "#5eac8b",
+     "body:meetingOptions.enabledFileTransfer": "#065953",
+     "body:meetingOptions.enabledNote": "#a573ec%bdf970",
+     "body:meetingOptions.enabledPolling": "#aa59cf%bdf970",
+     "body:meetingOptions.enabledUCFRichMedia": "#c6c07e%bdf970",
+     "body:meetingOptions.enabledVideo": "#7bd872",
+     "body:meetingOptions.noteType": "#a245e7%e0b69c=allowAll|allowOne",
+     "body:panelistPassword": "#349113%c1df84",
+     "body:password": "#1e7504%c1df84",
+     "body:publicMeeting": "#a419e3",
+     "body:recurrence": "#19cb22%d1802c",
+     "body:reminderTime": "#0d7ee0",
+     "body:requireAttendeeLogin": "#756ea1%9e4d72",
+     "body:restrictToInvitees": "#077732%ebd5bd",
+     "body:sendEmail": "#d97711",
+     "body:sessionTypeId": "#28e9f8%d9d4f3",
+     "body:start": "#3afb91%bd17c3",
+     "body:timezone": "#7c4edf",
+     "body:title": "#ac5d29",
+     "body:trackingCodes": "#b329b2%e90d3c",
+     "body:trackingCodes[].name": "!~name#fc5380%a57568",
+     "body:trackingCodes[].value": "!#558532%d9c6db",
+     "body:unlockedMeetingJoinSecurity": "#3580cf%0c8f36=allowJoin|allowJoinWithLobby|blockFromJoin",
+     "body:visualWatermarkOpacity": "#40cb13%3faaac",
+     "header:hostEmail": "#e25016%af891b",
+     "path:meetingId": "!~id#52f9db%09d6dc",
+     "query:personId": "~id#b779b8%349aa4"
+    },
+    "summary": "Patch a Group Meeting",
+    "tag": "Meetings"
+   },
    "PATCH /meetings/{}": {
     "fields": {
      "(operation)": "#7a22b6%a52a71",
@@ -23646,6 +23878,17 @@
     },
     "summary": "Batch Refresh Personal Meeting Room ID",
     "tag": "Preferences"
+   },
+   "POST /group/meetings/controls": {
+    "fields": {
+     "(operation)": "#d49037%bad3f2",
+     "body:action": "!#5d7d6b=pauseRecording|resumeRecording|startRecording|stopRecording",
+     "body:meetingId": "!#b20537",
+     "header:hostEmail": "#b7761b%af891b",
+     "query:personId": "~id#bdcf72%349aa4"
+    },
+    "summary": "Update Group Meeting Control Status",
+    "tag": "Meetings"
    },
    "POST /meetingInvitees": {
     "fields": {
