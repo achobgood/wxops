@@ -71,7 +71,7 @@ Mock server URLs (public, no auth required — return saved response examples):
   - Only 27 ops across all 9 specs are multi-tagged. Any regen that moves a command-name count beyond those is a red flag; diff names, not just counts.
 - Regenerate one tag: `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"` (the `_registry.py` manifest upserts automatically)
 - Regenerate one spec (all tags): `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all`
-- Regenerate everything (all tracked specs, atomic — pulls specs, regens, updates the manifest, runs the drift gate): `python3.14 tools/spec_sync.py` (`--skip-update` to regen from specs on disk). Land the result as ONE commit. Historical tag-collision order sensitivity is gone (per-spec `cli_name_overrides` for CC Site/Data Sources), but `spec_sync.py` keeps CC-before-admin/meetings order anyway.
+- Regenerate everything (all tracked specs, atomic — pulls specs, regens, refreshes the name lock and the check-19 snapshot, assembles the playbook, repairs published counts, runs the drift gate): `python3.14 tools/spec_sync.py` (`--skip-update` to regen from specs on disk; `--run-dir` for the records, default `.spec-sync/`). Land the result as ONE commit. The lock refresh refuses if a name moved — pin it, then rerun.
 - Dev-only specs: `webex-flow-store.json` regens auto-apply `--dev-only` (guarded block in main.py, never enters the manifest).
 - **CC response data key:** CC v2 list endpoints return `{"data": [...]}` not `{"items": [...]}`. The renderer adds a `"data"` fallback automatically. If adding a new CC list endpoint manually, use `result.get("items", result.get("data", ...))` for extraction.
 - Reinstall after regen: `pip3.14 install -e . -q`
@@ -1194,6 +1194,41 @@ cover the group, and a group the playbook does not cover needs neither a skill
 nor a reference doc — 6 of its 12 rows already give "No reference doc exists" as
 the reason. A group that must be skill-routed *and* deliberately undocumented is
 a different decision and needs its own table; do not stretch a row here.
+
+### Check 22 — the command-name lock (2026-09-08)
+
+**The blind spot.** Check 1 proves every spec operation has *a* command.
+Nothing proved that an existing name still points where it pointed last week.
+Measured by rendering the Meetings tag from the 2026-09-07 spec: upstream
+inserted `/group/meetings*`, which sorts before `/meetings*`, and
+`_derive_command_name` gives the bare verb to the first operation of each type
+it reaches — so `meetings create` moved from `POST /meetings` to
+`POST /group/meetings/controls` with check 1 at 0. Across the last two refresh
+windows **every** added path sorted before an existing one (cloud-calling
+20/20 and 25/25, contact-center 2/2 and 30/31, meetings 3/3), so this is the
+expected weekly outcome, not an edge case.
+
+**The mechanism.** `tools/command_name_lock.json` maps every visible command
+name to the operation(s) it targets, read off the shipped source with
+`CommandFacts` (ast — never by importing wxcli). Check 22 fails when a locked
+name targets something else, vanishes, or when a visible name is unlocked.
+`--refresh-name-lock` is **additive**: it locks new names and refuses (exit 1,
+writes nothing) when a locked name moved. `--force` is the human override for a
+deliberate rename or removal; `tools/sync_guard.py` fails an unattended run
+whose lock diff is not purely additive. `--name-lock-diff DIR` compares a
+render in a temp directory against the lock, which is how a pin is decided
+*before* regenerating into the tree.
+
+**The fix for a move is a pin, not an ack.** Known issue #18 already
+prescribes `tag_overrides -> command_name_overrides`; check 22 is what makes
+the instruction binding when nobody is reading the regen diff. A pin is keyed
+on the *derived* name, so it can only be written once the theft is visible —
+pins are reactive. An operation-keyed pin applied inside the generator would be
+preventive and is the recorded follow-up.
+
+**Rejected:** locking hidden aliases (every deliberate rename would then fail
+twice); making `unlocked` advisory (a name added one week is stealable the next
+with nothing watching — the same reason check 19 has no ack list).
 
 ## Known Issues — Generator / Pipeline Only
 
