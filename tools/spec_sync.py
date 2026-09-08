@@ -45,13 +45,18 @@ def run(cmd: list[str], tee: Path | None = None, **kwargs) -> None:
     if tee is None:
         result = subprocess.run(cmd, cwd=REPO, **kwargs)
     else:
-        result = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, **kwargs)
+        result = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", **kwargs)
         out = (result.stdout or "") + (result.stderr or "")
-        tee.write_text(out)
+        tee.write_text(out, encoding="utf-8")
         print(out, end="", flush=True)
     if result.returncode != 0:
         print(f"spec-sync: step failed (exit {result.returncode}) — aborting "
-              f"before later steps run against inconsistent state", file=sys.stderr)
+              f"before later steps run against inconsistent state. "
+              f"src/wxcli/commands/ may already be regenerated: fix forward "
+              f"(pin the moved name via tag_overrides -> command_name_overrides "
+              f"in tools/field_overrides.yaml and re-run) or roll back with "
+              f"git checkout -- src/wxcli/commands/ specs/", file=sys.stderr)
         sys.exit(result.returncode)
 
 
@@ -115,7 +120,9 @@ def main() -> None:
     # is acknowledged. The refresh is additive and refuses on a move.
     run([PYTHON, "-m", "tools.drift_check", "--refresh-name-lock"],
         tee=run_dir / "name-lock.txt")
-    # The delta is captured to disk before the snapshot is rewritten.
+    # The delta is captured to disk so it outlives the rewrite (capture_output
+    # buffers until the child exits; the tee is written unconditionally, before
+    # the exit-code test).
     run([PYTHON, "-m", "tools.drift_check", "--refresh-spec-snapshot"],
         tee=run_dir / "spec-delta.txt")
     # Repair BEFORE assemble: assemble.py copies the root CLAUDE.md into the
