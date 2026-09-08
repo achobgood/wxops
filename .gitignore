@@ -47,6 +47,12 @@ docs/arch/
 docs/reference/archive/
 docs/webex-api-feedback.html
 docs/webex-api-feedback-for-cisco-collab-bu.md
+# Internal audit deliverable and working docs (local-only, not part of the shipped playbook)
+docs/audit/
+docs/ARCHITECTURE_AUDIT.md
+notebooklm-sources/
+mcp-vs-cli-comparison.md
+presentation-transcript-5min.md
 
 # Tests (dev-only, except the actively-maintained migration/org-health suites
 # and the artifact guards below)
@@ -98,6 +104,74 @@ tests/*
 # commands. Stdlib + pytest only, no conftest, no network: verified green in a
 # `git archive HEAD` checkout.
 !tests/test_wxcli_gate.py
+# The Codex-side counterpart to test_wxcli_gate.py above: unit coverage for
+# codex_gate.py (the `wxcli codex-gate` subcommand the Codex PreToolUse hook
+# calls). Same contract — an untracked test on a safety gate has no way to
+# tell anyone when it goes red. Stdlib + pytest only, no network.
+!tests/test_codex_gate.py
+# The shared runtime's retry contract — the only executable proof of it. Every
+# HTTP call from ~1,887 generated commands goes through `WebexSession._request`,
+# and `auth.py`'s policy was deliberately widened on 2026-07-24 (`bcb1330`, no
+# test) to add the 500/502/503/504 statuses, the jitter and the `Retry-After`
+# guard. This file went red on 2026-07-28 — a lazy-import refactor invalidated
+# ten patch targets — and stayed red for eight days, because an untracked test
+# has no way to tell anyone. It is repaired, and the two cases that were at zero
+# coverage even with every test on this disk (`_request`'s `Retry-After` cap and
+# HTTP-date fallback; `follow_pagination`, the `--all` walker behind 173 list
+# commands) are now covered. Stdlib + pytest + httpx, no network, no live API,
+# no dependency on the untracked tests/conftest.py.
+!tests/test_auth.py
+# Shared-runtime unit tests. `config.py`, `output.py` and `update_check.py` had
+# ZERO tracked importers, which is why the CI statement coverage of
+# src/wxcli/*.py is 50% while the same suite on a developer's disk is 79%
+# (07-testability.md §3.3). These four files are that 29-point gap. Stdlib +
+# pytest only, no CliRunner, no network.
+!tests/test_common.py
+!tests/test_config.py
+!tests/test_config_org.py
+!tests/test_output.py
+!tests/test_output_errors.py
+!tests/test_org_id_injection.py
+# CLI-surface tests. These drive real commands through Typer's CliRunner, so
+# they need tests/conftest.py below — both for its fixtures and for the
+# `WXCLI_NO_UPDATE_CHECK=1` it sets at import time, without which the top-level
+# callback fires a PyPI lookup on every single invoke.
+# test_cli_smoke.py is the slow one (~46s for 122 tests); it is also the only
+# thing that walks the whole command surface, so the minute is the point.
+!tests/test_cli_smoke.py
+!tests/test_cleanup.py
+!tests/test_init_playbook.py
+!tests/test_update.py
+# The startup update-notify path, plus three assertions on the shipped bundle
+# (settings.bundled.json, codex/config.toml, .claude/settings.json) that the
+# git-pull updater stays retired. Red at HEAD when Phase A walked it — one
+# assertion outlived the Codex hook design `e35d8a1` deliberately retracted,
+# and being untracked is why nobody heard about it for the eight days between.
+!tests/test_update_check.py
+# Packaging + release metadata. Same artifact-guard contract as the block
+# above: they assert on files that ship, and read nothing but the repo.
+!tests/test_packaging_metadata.py
+!tests/test_release_workflow.py
+# The OpenAPI parser, whose output every one of the ~1,887 generated commands
+# is derived from. Two files, same basename, different packages — which is why
+# the two empty __init__.py markers ship with them: without the packages,
+# pytest collects two `test_openapi_parser` modules and dies on the basename
+# collision instead of running either. tests/tools/ is re-included and then
+# re-emptied so only these two files come along, same shape as the
+# tests/fixtures/ block below (git cannot re-include a file whose parent
+# directory is excluded).
+!tests/__init__.py
+!tests/test_openapi_parser.py
+!tests/tools/
+tests/tools/*
+!tests/tools/__init__.py
+!tests/tools/test_openapi_parser.py
+# Shared fixtures for everything above. 23 lines, no network, no live API. It
+# is tracked for its import-time side effect as much as its two fixtures: it
+# sets WXCLI_NO_UPDATE_CHECK=1 so the suite cannot reach PyPI. Every guard
+# tracked before this line was written to work WITHOUT it, so adding it can
+# only make CI more hermetic, never less.
+!tests/conftest.py
 # The generator's own tests. Same contract as every guard above, and the
 # sharpest case for it yet: `tools/command_renderer.py` is the file whose
 # defects multiply by the whole generated surface, and all four of these ran
