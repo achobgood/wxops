@@ -12,7 +12,7 @@ from wxcli.common import verify_write
 app = typer.Typer(help="Manage Webex Calling call-queue.")
 
 
-@app.command("list", short_help="Read the List of Call Queues with Customer Assist.")
+@app.command("list", short_help="Read the List of Call Queue or Customer Assist Queues.")
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Returns the list of call queues in this location."),
     name: str = typer.Option(None, "--name", help="Returns only the call queues matching the given name."),
@@ -28,7 +28,7 @@ def cmd_list(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Call Queues with Customer Assist."""
+    """Read the List of Call Queue or Customer Assist Queues."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues"
     params = {}
@@ -148,9 +148,9 @@ def update_org_settings(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'
+_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowCallWaitingForAgentsEnabled":true,"allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'
 
-@app.command("create", short_help="Create a Call Queue with Customer Assist.")
+@app.command("create", short_help="Create Call Queue or Customer Assist Queue.")
 def create(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist call queue, when `true`. This requires Customer Assist licensed agents."),
@@ -163,6 +163,7 @@ def create(
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the call queue."),
     calling_line_id_policy: str = typer.Option(None, "--calling-line-id-policy", help="Choices: DIRECT_LINE, LOCATION_NUMBER, CUSTOM"),
     calling_line_id_phone_number: str = typer.Option(None, "--calling-line-id-phone-number", help="Calling line ID Phone number which will be shown if CUSTOM is selected."),
+    allow_call_waiting_for_agents_enabled: bool = typer.Option(None, "--allow-call-waiting-for-agents-enabled/--no-allow-call-waiting-for-agents-enabled", help="Flag to indicate whether call waiting is enabled for agents."),
     allow_agent_join_enabled: bool = typer.Option(None, "--allow-agent-join-enabled/--no-allow-agent-join-enabled", help="Whether or not to allow agents to join or unjoin a queue."),
     phone_number_for_outgoing_calls_enabled: bool = typer.Option(None, "--phone-number-for-outgoing-calls-enabled/--no-phone-number-for-outgoing-calls-enabled", help="When `true`, indicates that the agent's configuration allows them to use the queue's Caller ID for outgoing calls."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
@@ -173,7 +174,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Queue with Customer Assist.\n\n\b\nExample: wxcli call-queue create LOCATION_ID --json-body '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM"}},"agents":[{"id":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'"""
+    """Create Call Queue or Customer Assist Queue.\n\n\b\nExample: wxcli call-queue create LOCATION_ID --json-body '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM"}},"agents":[{"id":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"routingType":"PRIORITY_BASED","policy":"CIRCULAR","callBounce":{"callBounceEnabled":true,"callBounceMaxRings":0,"agentUnavailableEnabled":true,"alertAgentEnabled":true,"alertAgentMaxSeconds":0,"callBounceOnHoldEnabled":true,"callBounceOnHoldMaxSeconds":0},"distinctiveRing":{"enabled":true,"ringPattern":"NORMAL"}},"queueSettings":{"queueSize":0,"overflow":{"action":"PERFORM_BUSY_TREATMENT","greeting":"CUSTOM","sendToVoicemail":true,"transferNumber":"...","overflowAfterWaitEnabled":true,"overflowAfterWaitTime":0,"playOverflowGreetingEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"callOfferToneEnabled":true,"resetCallStatisticsEnabled":true,"welcomeMessage":{"greeting":"CUSTOM","enabled":true,"alwaysEnabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"waitMessage":{"waitMode":"TIME","enabled":true,"handlingTime":0,"defaultHandlingTime":0,"queuePosition":0,"highVolumeMessageEnabled":true,"estimatedWaitingTime":0,"callbackOptionEnabled":true,"minimumEstimatedCallbackTime":0,"internationalCallbackEnabled":true,"playUpdatedEstimatedWaitMessage":true},"comfortMessage":{"greeting":"CUSTOM","enabled":true,"timeBetweenMessages":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"comfortMessageBypass":{"greeting":"CUSTOM","enabled":true,"callWaitingAgeThreshold":0,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"mohMessage":{"normalSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."},"alternateSource":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}],"audioPlaylistId":"..."}},"whisperMessage":{"greeting":"CUSTOM","enabled":true,"audioAnnouncementFiles":[{"id":"...","name":"...","mediaFileType":"...","level":"LOCATION"}]},"useEnterprisePlayToneToAgentSettingsEnabled":true,"playToneToAgentForBargeInEnabled":true,"playToneToAgentForSilentMonitoringEnabled":true,"playToneToAgentForSupervisorCoachingEnabled":true},"agents":[{"id":"...","weight":"...","skillLevel":0}],"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callingLineIdPolicy":"DIRECT_LINE","callingLineIdPhoneNumber":"...","allowCallWaitingForAgentsEnabled":true,"allowAgentJoinEnabled":true,"phoneNumberForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"...","digitalInboxEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -207,6 +208,8 @@ def create(
             body["callingLineIdPolicy"] = calling_line_id_policy
         if calling_line_id_phone_number is not None:
             body["callingLineIdPhoneNumber"] = calling_line_id_phone_number
+        if allow_call_waiting_for_agents_enabled is not None:
+            body["allowCallWaitingForAgentsEnabled"] = allow_call_waiting_for_agents_enabled
         if allow_agent_join_enabled is not None:
             body["allowAgentJoinEnabled"] = allow_agent_join_enabled
         if phone_number_for_outgoing_calls_enabled is not None:
@@ -238,7 +241,7 @@ def create(
 
 
 @app.command("show-queues", hidden=True)
-@app.command("show", short_help="Get Details for a Call Queue with Customer Assist.")
+@app.command("show", short_help="Get Details for a Call Queue or Customer Assist Queue.")
 def show(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     queue_id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list"),
@@ -247,7 +250,7 @@ def show(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue with Customer Assist.\n\n\b\nExample: wxcli call-queue show LOCATION_ID QUEUE_ID"""
+    """Get Details for a Call Queue or Customer Assist Queue.\n\n\b\nExample: wxcli call-queue show LOCATION_ID QUEUE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/queues/{queue_id}"
     params = {}
@@ -1269,7 +1272,7 @@ def list_available_agents_queues(
 
 
 
-@app.command("list-supervisors", short_help="Get List of Supervisors with Customer Assist.")
+@app.command("list-supervisors", short_help="Get List of Supervisors for Call Queue or Customer Assist.")
 def list_supervisors(
     name: str = typer.Option(None, "--name", help="Only return the supervisors that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
@@ -1282,7 +1285,7 @@ def list_supervisors(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get List of Supervisors with Customer Assist."""
+    """Get List of Supervisors for Call Queue or Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors"
     params = {}
@@ -1319,7 +1322,7 @@ def list_supervisors(
 
 _BODY_SKELETON_CREATE_SUPERVISORS = '{"id":"...","agents":[{"id":"..."}]}'
 
-@app.command("create-supervisors", short_help="Create a Supervisor with Customer Assist.")
+@app.command("create-supervisors", short_help="Create a Supervisor for Call Queue or Customer Assist.")
 def create_supervisors(
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Creates a Customer Assist queue supervisor, when `true`. Customer Assist queue supervisors must have a Customer Assist license."),
     id_param: str = typer.Option(None, "--id", help="(required) A unique identifier for the supervisor."),
@@ -1329,7 +1332,7 @@ def create_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue create-supervisors --json-body '{"id":"...","agents":[{"id":"..."}]}'"""
+    """Create a Supervisor for Call Queue or Customer Assist.\n\n\b\nExample: wxcli call-queue create-supervisors --json-body '{"id":"...","agents":[{"id":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SUPERVISORS), indent=2))
         raise typer.Exit(0)
@@ -1371,7 +1374,7 @@ def create_supervisors(
 
 _BODY_SKELETON_DELETE_SUPERVISORS_CONFIG = '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'
 
-@app.command("delete-supervisors-config", short_help="Delete the Call Queue or Customer Assist Supervisors.")
+@app.command("delete-supervisors-config", short_help="Delete Call Queue or Customer Assist Supervisors.")
 def delete_supervisors_config(
     has_cx_essentials: bool = typer.Option(None, "--has-cx-essentials/--no-has-cx-essentials", help="Delete the Customer Assist supervisors, when `true`. Otherwise delete the Call Queue supervisors. The default value is `false`."),
     delete_all: bool = typer.Option(None, "--delete-all/--no-delete-all", help="If present the `supervisorIds` array is ignored, and all supervisors in the context are deleted. **WARNING**: This will remove all supervisors from the organization."),
@@ -1382,7 +1385,7 @@ def delete_supervisors_config(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete the Call Queue or Customer Assist Supervisors.\n\n\b\nExample: wxcli call-queue delete-supervisors-config --json-body '{"supervisorIds":["..."]}'\n\n\b\nExample --json-body: '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'"""
+    """Delete Call Queue or Customer Assist Supervisors.\n\n\b\nExample: wxcli call-queue delete-supervisors-config --json-body '{"supervisorIds":["..."]}'\n\n\b\nExample --json-body: '{"supervisorIds":["..."],"hasCxEssentials":true,"deleteAll":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_SUPERVISORS_CONFIG), indent=2))
         raise typer.Exit(0)
@@ -1421,7 +1424,7 @@ def delete_supervisors_config(
 
 
 
-@app.command("show-supervisors", short_help="Get Supervisor Detail with Customer Assist.")
+@app.command("show-supervisors", short_help="Get Supervisor Details for Call Queue or Customer Assist.")
 def show_supervisors(
     supervisor_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-supervisors"),
     max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
@@ -1434,7 +1437,7 @@ def show_supervisors(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Supervisor Detail with Customer Assist.\n\n\b\nExample: wxcli call-queue show-supervisors SUPERVISOR_ID"""
+    """Get Supervisor Details for Call Queue or Customer Assist.\n\n\b\nExample: wxcli call-queue show-supervisors SUPERVISOR_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/{supervisor_id}"
     params = {}
@@ -1465,7 +1468,7 @@ def show_supervisors(
 
 _BODY_SKELETON_UPDATE_SUPERVISORS = '{"agents":[{"id":"...","action":"ADD"}]}'
 
-@app.command("update-supervisors", short_help="Assign or Unassign Agents to Supervisor with Customer Assist.")
+@app.command("update-supervisors", short_help="Assign or Unassign Agents to Supervisor for Call Queue or Customer Assist.")
 def update_supervisors(
     supervisor_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-supervisors"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify a supervisor with Customer Assist license. This can otherwise be ommited or set to `false`."),
@@ -1476,7 +1479,7 @@ def update_supervisors(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign Agents to Supervisor with Customer Assist.\n\n\b\nExample: wxcli call-queue update-supervisors SUPERVISOR_ID --json-body '{"agents":[{"id":"...","action":"ADD"}]}'"""
+    """Assign or Unassign Agents to Supervisor for Call Queue or Customer Assist.\n\n\b\nExample: wxcli call-queue update-supervisors SUPERVISOR_ID --json-body '{"agents":[{"id":"...","action":"ADD"}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SUPERVISORS), indent=2))
         raise typer.Exit(0)
@@ -1541,7 +1544,7 @@ def delete_supervisors_config_1(
 
 
 
-@app.command("list-available-supervisors", short_help="List Available Supervisors with Customer Assist.")
+@app.command("list-available-supervisors", short_help="List Available Supervisors for Call Queue or Customer Assist.")
 def list_available_supervisors(
     name: str = typer.Option(None, "--name", help="Only return the supervisors that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Only return the supervisors that match the given phone number, extension, or ESN."),
@@ -1554,7 +1557,7 @@ def list_available_supervisors(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Available Supervisors with Customer Assist."""
+    """List Available Supervisors for Call Queue or Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/availableSupervisors"
     params = {}
@@ -1589,7 +1592,7 @@ def list_available_supervisors(
 
 
 
-@app.command("list-available-agents-supervisors", short_help="List Available Agents with Customer Assist.")
+@app.command("list-available-agents-supervisors", short_help="List Available Agents for Call Queue or Customer Assist.")
 def list_available_agents_supervisors(
     name: str = typer.Option(None, "--name", help="Returns only the agents that match the given name."),
     phone_number: str = typer.Option(None, "--phone-number", help="Returns only the agents that match the phone number, extension, or ESN."),
@@ -1602,7 +1605,7 @@ def list_available_agents_supervisors(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Available Agents with Customer Assist."""
+    """List Available Agents for Call Queue or Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/supervisors/availableAgents"
     params = {}
@@ -1637,7 +1640,7 @@ def list_available_agents_supervisors(
 
 
 
-@app.command("list-agents", short_help="Read the List of Call Queue Agents with Customer Assist.")
+@app.command("list-agents", short_help="Read the List of Agents for Call Queue or Customer Assist.")
 def list_agents(
     location_id: str = typer.Option(None, "--location-id", help="Return only the call queue agents in this location."),
     queue_id: str = typer.Option(None, "--queue-id", help="Only return call queue agents with the matching queue ID."),
@@ -1653,7 +1656,7 @@ def list_agents(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read the List of Call Queue Agents with Customer Assist."""
+    """Read the List of Agents for Call Queue or Customer Assist."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents"
     params = {}
@@ -1693,7 +1696,7 @@ def list_agents(
 
 
 
-@app.command("show-agents", short_help="Get Details for a Call Queue Agent with Customer Assist.")
+@app.command("show-agents", short_help="Get Details for an Agent for Call Queue or Customer Assist.")
 def show_agents(
     id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list-agents"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to view the details of an agent with Customer Assist license. This can otherwise be ommited or set to `false`."),
@@ -1703,7 +1706,7 @@ def show_agents(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for a Call Queue Agent with Customer Assist.\n\n\b\nExample: wxcli call-queue show-agents ID --max MAX --start START"""
+    """Get Details for an Agent for Call Queue or Customer Assist.\n\n\b\nExample: wxcli call-queue show-agents ID --max MAX --start START"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}"
     params = {}
@@ -1728,7 +1731,7 @@ def show_agents(
 
 _BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":true}]}'
 
-@app.command("update-settings-agents", short_help="Update an Agent's Settings of One or More Call Queues with Customer Assist.")
+@app.command("update-settings-agents", short_help="Update an Agent's Settings for One or More Call Queue or Customer Assist Queues.")
 def update_settings_agents(
     id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-agents"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer Assist license. This can otherwise be ommited or set to `false`."),
@@ -1738,7 +1741,7 @@ def update_settings_agents(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Agent's Settings of One or More Call Queues with Customer Assist.\n\n\b\nExample: wxcli call-queue update-settings-agents ID --json-body '{"settings":[{"queueId":"...","joinEnabled":true}]}'"""
+    """Update an Agent's Settings for One or More Call Queue or Customer Assist Queues.\n\n\b\nExample: wxcli call-queue update-settings-agents ID --json-body '{"settings":[{"queueId":"...","joinEnabled":true}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS_AGENTS), indent=2))
         raise typer.Exit(0)

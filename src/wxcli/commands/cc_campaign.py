@@ -114,6 +114,7 @@ def create(
 @app.command("list", short_help="Get Valid Campaign Times.")
 def cmd_list(
     campaign_id: str = typer.Option(..., "--campaign-id", help="The campaign ID for which valid campaign times are being requested."),
+    interaction_id: str = typer.Option(..., "--interaction-id", help="The unique identifier of the interaction associated with this request."),
     agent_id: str = typer.Option(..., "--agent-id", help="The agent ID for whom valid campaign times are being requested."),
     tracking_id: str = typer.Option(None, "--tracking-id", help="Optional tracking identifier for request tracing."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -123,7 +124,7 @@ def cmd_list(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Valid Campaign Times.\n\n\b\nExample: wxcli cc-campaign list --campaign-id CAMPAIGN_ID --agent-id AGENT_ID"""
+    """Get Valid Campaign Times.\n\n\b\nExample: wxcli cc-campaign list --campaign-id CAMPAIGN_ID --interaction-id INTERACTION_ID --agent-id AGENT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -131,6 +132,8 @@ def cmd_list(
     params = {}
     if campaign_id is not None:
         params["campaignId"] = campaign_id
+    if interaction_id is not None:
+        params["interactionId"] = interaction_id
     if agent_id is not None:
         params["agentId"] = agent_id
     if tracking_id is not None:

@@ -197,7 +197,8 @@ def validate_phone_numbers(
 def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Return the list of phone numbers for this location within the given organization. The maximum length is 36."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search for this `phoneNumber`."),
-    available: str = typer.Option(None, "--available", help="Search among the available phone numbers. This parameter cannot be used along with `ownerType` parameter when set to `true`."),
+    available: str = typer.Option(None, "--available", help="Search among the available phone numbers. This parameter cannot be used along with the `numberType` parameter when set to `EXTENSION`."),
+    assigned: str = typer.Option(None, "--assigned", help="Return the list of phone numbers that are assigned to an owner when set to `true`. When set to `false`, returns the list of phone numbers that are unassigned. This parameter cannot be used along with the `numberType` parameter when set to `EXTENSION`."),
     order: str = typer.Option(None, "--order", help="Sort the list of phone numbers based on the following:`lastName`,`dn`,`extension`. Sorted by number and extension in ascending order."),
     owner_name: str = typer.Option(None, "--owner-name", help="Return the list of phone numbers that are owned by the given `ownerName`. Maximum length is 255."),
     owner_id: str = typer.Option(None, "--owner-id", help="Returns only the matched number/extension entries assigned to the feature with the specified UUID or `broadsoftId`."),
@@ -212,6 +213,7 @@ def cmd_list(
     included_telephony_types: str = typer.Option(None, "--included-telephony-types", help="Returns the list of phone numbers that are of given `includedTelephonyTypes`. By default, if this query parameter is not provided, it will list both PSTN and Mobile Numbers. Possible input values are PSTN_NUMBER or MOBILE_NUMBER."),
     service_number: str = typer.Option(None, "--service-number", help="Returns the list of service phone numbers."),
     reserved_number: str = typer.Option(None, "--reserved-number", help="Filters reserved phone numbers. When set to `true`, returns only reserved phone numbers. When set to `false`, returns only non-reserved phone numbers. When omitted, no reserved-number filter is applied. Reserved numbers cannot be assigned to people, features, or services. This parameter cannot be..."),
+    elin_enabled: str = typer.Option(None, "--elin-enabled", help="When true, returns the list of phone numbers that are used as an Emergency Location Identification Number (ELIN) in an emergency call scenario. When `false`, returns the list of phone numbers that are not used as an ELIN."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -229,6 +231,8 @@ def cmd_list(
         params["phoneNumber"] = phone_number
     if available is not None:
         params["available"] = available
+    if assigned is not None:
+        params["assigned"] = assigned
     if order is not None:
         params["order"] = order
     if owner_name is not None:
@@ -257,6 +261,8 @@ def cmd_list(
         params["serviceNumber"] = service_number
     if reserved_number is not None:
         params["reservedNumber"] = reserved_number
+    if elin_enabled is not None:
+        params["elinEnabled"] = elin_enabled
     if limit > 0:
         params["max"] = limit
     if offset > 0:

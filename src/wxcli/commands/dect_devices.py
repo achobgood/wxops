@@ -76,7 +76,7 @@ def create(
 
 
 
-@app.command("list", short_help="Get the List of DECT Networks for an organization.")
+@app.command("list", short_help="Get the List of DECT Networks for an Organization.")
 def cmd_list(
     name: str = typer.Option(None, "--name", help="List of DECT networks with this name."),
     location_id: str = typer.Option(None, "--location-id", help="List of DECT networks at this location."),
@@ -87,7 +87,7 @@ def cmd_list(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the List of DECT Networks for an organization."""
+    """Get the List of DECT Networks for an Organization."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/dectNetworks"
     params = {}
@@ -229,7 +229,7 @@ def delete(
 
 
 
-@app.command("list-base-stations", short_help="Get a list of DECT Network Base Stations.")
+@app.command("list-base-stations", short_help="Get a List of DECT Network Base Stations.")
 def list_base_stations(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -240,7 +240,7 @@ def list_base_stations(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get a list of DECT Network Base Stations.\n\n\b\nExample: wxcli dect-devices list-base-stations LOCATION_ID DECT_NETWORK_ID"""
+    """Get a List of DECT Network Base Stations.\n\n\b\nExample: wxcli dect-devices list-base-stations LOCATION_ID DECT_NETWORK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}/baseStations"
     params = {}
@@ -311,7 +311,7 @@ def create_base_stations(
 
 
 @app.command("delete-base-stations-dect-networks", hidden=True)
-@app.command("delete-base-stations-dect-networks-bulk", short_help="Delete bulk DECT Network Base Stations.")
+@app.command("delete-base-stations-dect-networks-bulk", short_help="Delete Bulk DECT Network Base Stations.")
 def delete_base_stations_dect_networks_bulk(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -320,7 +320,7 @@ def delete_base_stations_dect_networks_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete bulk DECT Network Base Stations.\n\n\b\nExample: wxcli dect-devices delete-base-stations-dect-networks-bulk LOCATION_ID DECT_NETWORK_ID"""
+    """Delete Bulk DECT Network Base Stations.\n\n\b\nExample: wxcli dect-devices delete-base-stations-dect-networks-bulk LOCATION_ID DECT_NETWORK_ID"""
     api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete Base Stations for {dect_network_id}?", abort=True)
@@ -344,7 +344,7 @@ def delete_base_stations_dect_networks_bulk(
 
 
 
-@app.command("show-base-stations", short_help="Get the details of a specific DECT Network Base Station.")
+@app.command("show-base-stations", short_help="Get the Details of a Specific DECT Network Base Station.")
 def show_base_stations(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -353,7 +353,7 @@ def show_base_stations(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get the details of a specific DECT Network Base Station.\n\n\b\nExample: wxcli dect-devices show-base-stations LOCATION_ID DECT_NETWORK_ID BASE_STATION_ID"""
+    """Get the Details of a Specific DECT Network Base Station.\n\n\b\nExample: wxcli dect-devices show-base-stations LOCATION_ID DECT_NETWORK_ID BASE_STATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}/baseStations/{base_station_id}"
     params = {}
@@ -371,7 +371,7 @@ def show_base_stations(
 
 
 @app.command("delete-base-stations-dect-networks-1", hidden=True)
-@app.command("delete-location-base-stations-dect-networks", short_help="Delete a specific DECT Network Base Station.")
+@app.command("delete-location-base-stations-dect-networks", short_help="Delete a Specific DECT Network Base Station.")
 def delete_location_base_stations_dect_networks(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -381,7 +381,7 @@ def delete_location_base_stations_dect_networks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete a specific DECT Network Base Station.\n\n\b\nExample: wxcli dect-devices delete-location-base-stations-dect-networks LOCATION_ID DECT_NETWORK_ID BASE_STATION_ID"""
+    """Delete a Specific DECT Network Base Station.\n\n\b\nExample: wxcli dect-devices delete-location-base-stations-dect-networks LOCATION_ID DECT_NETWORK_ID BASE_STATION_ID"""
     api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {base_station_id}?", abort=True)
@@ -584,7 +584,7 @@ def update_handsets(
 
 
 @app.command("delete-handsets-dect-networks", hidden=True)
-@app.command("delete-location-handsets-dect-networks", short_help="Delete specific DECT Network Handset Details.")
+@app.command("delete-location-handsets-dect-networks", short_help="Delete Specific DECT Network Handset Details.")
 def delete_location_handsets_dect_networks(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -594,7 +594,7 @@ def delete_location_handsets_dect_networks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete specific DECT Network Handset Details.\n\n\b\nExample: wxcli dect-devices delete-location-handsets-dect-networks LOCATION_ID DECT_NETWORK_ID HANDSET_ID"""
+    """Delete Specific DECT Network Handset Details.\n\n\b\nExample: wxcli dect-devices delete-location-handsets-dect-networks LOCATION_ID DECT_NETWORK_ID HANDSET_ID"""
     api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete {handset_id}?", abort=True)
@@ -621,7 +621,7 @@ def delete_location_handsets_dect_networks(
 _BODY_SKELETON_DELETE_HANDSETS_DECT_NETWORKS_BULK = '{"handsetIds":["..."],"deleteAll":true}'
 
 @app.command("delete-handsets-dect-networks-1", hidden=True)
-@app.command("delete-handsets-dect-networks-bulk", short_help="Delete multiple handsets.")
+@app.command("delete-handsets-dect-networks-bulk", short_help="Delete Multiple Handsets.")
 def delete_handsets_dect_networks_bulk(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -633,7 +633,7 @@ def delete_handsets_dect_networks_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete multiple handsets.\n\n\b\nExample: wxcli dect-devices delete-handsets-dect-networks-bulk LOCATION_ID DECT_NETWORK_ID --json-body '{"handsetIds":["..."]}'\n\n\b\nExample --json-body: '{"handsetIds":["..."],"deleteAll":true}'"""
+    """Delete Multiple Handsets.\n\n\b\nExample: wxcli dect-devices delete-handsets-dect-networks-bulk LOCATION_ID DECT_NETWORK_ID --json-body '{"handsetIds":["..."]}'\n\n\b\nExample --json-body: '{"handsetIds":["..."],"deleteAll":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_HANDSETS_DECT_NETWORKS_BULK), indent=2))
         raise typer.Exit(0)
@@ -716,7 +716,7 @@ def create_bulk(
 
 
 
-@app.command("list-dect-networks-people", short_help="GET List of DECT networks associated with a Person.")
+@app.command("list-dect-networks-people", short_help="GET List of DECT Networks Associated with a Person.")
 def list_dect_networks_people(
     person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -726,7 +726,7 @@ def list_dect_networks_people(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """GET List of DECT networks associated with a Person.\n\n\b\nExample: wxcli dect-devices list-dect-networks-people PERSON_ID"""
+    """GET List of DECT Networks Associated with a Person.\n\n\b\nExample: wxcli dect-devices list-dect-networks-people PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/dectNetworks"
     params = {}
@@ -750,7 +750,7 @@ def list_dect_networks_people(
 
 
 
-@app.command("list-dect-networks-workspaces", short_help="GET List of DECT networks associated with a workspace.")
+@app.command("list-dect-networks-workspaces", short_help="GET List of DECT Networks Associated with a Workspace.")
 def list_dect_networks_workspaces(
     workspace_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli workspaces list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -760,7 +760,7 @@ def list_dect_networks_workspaces(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """GET List of DECT networks associated with a workspace.\n\n\b\nExample: wxcli dect-devices list-dect-networks-workspaces WORKSPACE_ID"""
+    """GET List of DECT Networks Associated with a Workspace.\n\n\b\nExample: wxcli dect-devices list-dect-networks-workspaces WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/dectNetworks"
     params = {}
@@ -871,7 +871,7 @@ def generate_and_enable(
 
 
 
-@app.command("show-serviceability-password", short_help="Get DECT Serviceability Password status.")
+@app.command("show-serviceability-password", short_help="Get DECT Serviceability Password Status.")
 def show_serviceability_password(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -879,7 +879,7 @@ def show_serviceability_password(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get DECT Serviceability Password status.\n\n\b\nExample: wxcli dect-devices show-serviceability-password LOCATION_ID DECT_NETWORK_ID"""
+    """Get DECT Serviceability Password Status.\n\n\b\nExample: wxcli dect-devices show-serviceability-password LOCATION_ID DECT_NETWORK_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/dectNetworks/{dect_network_id}/serviceabilityPassword"
     params = {}
@@ -898,7 +898,7 @@ def show_serviceability_password(
 
 _BODY_SKELETON_UPDATE_SERVICEABILITY_PASSWORD = '{"enabled":true}'
 
-@app.command("update-serviceability-password", short_help="Update DECT Serviceability Password status.")
+@app.command("update-serviceability-password", short_help="Update DECT Serviceability Password Status.")
 def update_serviceability_password(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
@@ -910,7 +910,7 @@ def update_serviceability_password(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update DECT Serviceability Password status.\n\n\b\nExample: wxcli dect-devices update-serviceability-password LOCATION_ID DECT_NETWORK_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
+    """Update DECT Serviceability Password Status.\n\n\b\nExample: wxcli dect-devices update-serviceability-password LOCATION_ID DECT_NETWORK_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SERVICEABILITY_PASSWORD), indent=2))
         raise typer.Exit(0)

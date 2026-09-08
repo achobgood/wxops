@@ -562,7 +562,7 @@ _BODY_SKELETON_TTS_GENERATE = '{"voice":"...","text":"...","languageCode":"..."}
 def tts_generate(
     voice: str = typer.Option(None, "--voice", help="The voice ID used to generate the audio prompt. Use the List Text-to-Speech Voices API to retrieve available voices."),
     text: str = typer.Option(None, "--text", help="The text to convert to speech."),
-    language_code: str = typer.Option(None, "--language-code", help="The language code used to generate the audio prompt. Use the Read the List of Announcement Languages API to retrieve supported language codes."),
+    language_code: str = typer.Option(None, "--language-code", help="The language code used to generate the audio prompt. Use the List Text-to-Speech Voices API to retrieve the language code supported by the selected voice."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -651,6 +651,7 @@ def tts_status(
 @app.command("list-voices", hidden=True)
 @app.command("tts-voices", short_help="List Text-to-Speech Voices.")
 def tts_voices(
+    language_code: str = typer.Option(None, "--language-code", help="Language code used to filter the available text-to-speech voices. Use the Read the List of Announcement Languages API to retrieve supported language codes. If not specified, the default language code is `en_us`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -662,6 +663,8 @@ def tts_voices(
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/textToSpeech/voices"
     params = {}
+    if language_code is not None:
+        params["languageCode"] = language_code
     if limit > 0:
         params["max"] = limit
     if offset > 0:

@@ -352,14 +352,14 @@ def delete(
 
 
 
-@app.command("show-number", short_help="Get Phone Number assigned for a Virtual Line.")
+@app.command("show-number", short_help="Get Phone Number Assigned for a Virtual Line.")
 def show_number(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Phone Number assigned for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings show-number VIRTUAL_LINE_ID"""
+    """Get Phone Number Assigned for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings show-number VIRTUAL_LINE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/number"
     params = {}
@@ -378,7 +378,7 @@ def show_number(
 
 _BODY_SKELETON_UPDATE_DIRECTORY_SEARCH = '{"enabled":true}'
 
-@app.command("update-directory-search", short_help="Update Directory search for a Virtual Line.")
+@app.command("update-directory-search", short_help="Update Directory Search for a Virtual Line.")
 def update_directory_search(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Whether or not the directory search for a virtual line is enabled."),
@@ -388,7 +388,7 @@ def update_directory_search(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Directory search for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-directory-search VIRTUAL_LINE_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
+    """Update Directory Search for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-directory-search VIRTUAL_LINE_ID --enabled\n\n\b\nExample --json-body: '{"enabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DIRECTORY_SEARCH), indent=2))
         raise typer.Exit(0)
@@ -419,7 +419,7 @@ def update_directory_search(
 
 
 
-@app.command("list-devices", short_help="Get List of Devices assigned for a Virtual Line.")
+@app.command("list-devices", short_help="Get List of Devices Assigned for a Virtual Line.")
 def list_devices(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -429,7 +429,7 @@ def list_devices(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get List of Devices assigned for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings list-devices VIRTUAL_LINE_ID"""
+    """Get List of Devices Assigned for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings list-devices VIRTUAL_LINE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/devices"
     params = {}
@@ -816,7 +816,7 @@ def update_incoming_permission(
 
 
 
-@app.command("list-outgoing-permission", short_help="Retrieve a virtual line's Outgoing Calling Permissions Settings.")
+@app.command("list-outgoing-permission", short_help="Retrieve a Virtual Line's Outgoing Calling Permissions Settings.")
 def list_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
@@ -826,7 +826,7 @@ def list_outgoing_permission(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve a virtual line's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli virtual-line-settings list-outgoing-permission VIRTUAL_LINE_ID"""
+    """Retrieve a Virtual Line's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli virtual-line-settings list-outgoing-permission VIRTUAL_LINE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/outgoingPermission"
     params = {}
@@ -852,7 +852,7 @@ def list_outgoing_permission(
 
 _BODY_SKELETON_UPDATE_OUTGOING_PERMISSION = '{"callingPermissions":[{"transferEnabled":true,"callType":"INTERNAL_CALL","action":"ALLOW"}],"useCustomEnabled":true,"useCustomPermissions":true}'
 
-@app.command("update-outgoing-permission", short_help="Modify a virtual line's Outgoing Calling Permissions Settings.")
+@app.command("update-outgoing-permission", short_help="Modify a Virtual Line's Outgoing Calling Permissions Settings.")
 def update_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     use_custom_enabled: bool = typer.Option(None, "--use-custom-enabled/--no-use-custom-enabled", help="When true, indicates that this user uses the shared control that applies to all outgoing call settings categories when placing outbound calls."),
@@ -864,7 +864,7 @@ def update_outgoing_permission(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a virtual line's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli virtual-line-settings update-outgoing-permission VIRTUAL_LINE_ID --json-body '{"callingPermissions":[{"transferEnabled":true}]}'\n\n\b\nExample --json-body: '{"callingPermissions":[{"transferEnabled":true,"callType":"INTERNAL_CALL","action":"ALLOW"}],"useCustomEnabled":true,"useCustomPermissions":true}'"""
+    """Modify a Virtual Line's Outgoing Calling Permissions Settings.\n\n\b\nExample: wxcli virtual-line-settings update-outgoing-permission VIRTUAL_LINE_ID --json-body '{"callingPermissions":[{"transferEnabled":true}]}'\n\n\b\nExample --json-body: '{"callingPermissions":[{"transferEnabled":true,"callType":"INTERNAL_CALL","action":"ALLOW"}],"useCustomEnabled":true,"useCustomPermissions":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_OUTGOING_PERMISSION), indent=2))
         raise typer.Exit(0)
@@ -1282,7 +1282,7 @@ def update_digit_patterns_outgoing_permission(
 
 
 
-@app.command("delete-digit-patterns-outgoing-permission", short_help="Delete all Digit Patterns for a Virtual Profile.")
+@app.command("delete-digit-patterns-outgoing-permission", short_help="Delete All Digit Patterns for a Virtual Profile.")
 def delete_digit_patterns_outgoing_permission(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
@@ -1290,7 +1290,7 @@ def delete_digit_patterns_outgoing_permission(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Delete all Digit Patterns for a Virtual Profile.\n\n\b\nExample: wxcli virtual-line-settings delete-digit-patterns-outgoing-permission VIRTUAL_LINE_ID"""
+    """Delete All Digit Patterns for a Virtual Profile.\n\n\b\nExample: wxcli virtual-line-settings delete-digit-patterns-outgoing-permission VIRTUAL_LINE_ID"""
     api = get_api(debug=debug)
     if not force:
         typer.confirm(f"Delete Digit Patterns for {virtual_line_id}?", abort=True)
@@ -1571,8 +1571,12 @@ def show_caller_id(
     """Retrieve Agent's Caller ID Information.\n\n\b\nExample: wxcli virtual-line-settings show-caller-id VIRTUAL_LINE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/agent/callerId"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1600,6 +1604,10 @@ def update_caller_id_agent(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/agent/callerId"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -1607,13 +1615,13 @@ def update_caller_id_agent(
         if selected_caller_id is not None:
             body["selectedCallerId"] = selected_caller_id
     try:
-        result = api.session.rest_put(url, json=body)
+        result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
     if verify:
-        verify_write(api, url, None, body)
+        verify_write(api, url, params, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -1782,7 +1790,7 @@ def reset_voicemail_pin(
 
 _BODY_SKELETON_UPDATE_PASSCODE = '{"passcode":"..."}'
 
-@app.command("update-passcode", short_help="Modify a virtual line's voicemail passcode.")
+@app.command("update-passcode", short_help="Modify a Virtual Line's Voicemail Passcode.")
 def update_passcode(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     passcode: str = typer.Option(None, "--passcode", help="Voicemail access passcode. The minimum length of the passcode is 6 and the maximum length is 30."),
@@ -1792,7 +1800,7 @@ def update_passcode(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a virtual line's voicemail passcode.\n\n\b\nExample: wxcli virtual-line-settings update-passcode VIRTUAL_LINE_ID --passcode PASSCODE\n\n\b\nExample --json-body: '{"passcode":"..."}'"""
+    """Modify a Virtual Line's Voicemail Passcode.\n\n\b\nExample: wxcli virtual-line-settings update-passcode VIRTUAL_LINE_ID --passcode PASSCODE\n\n\b\nExample --json-body: '{"passcode":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PASSCODE), indent=2))
         raise typer.Exit(0)
@@ -1823,14 +1831,14 @@ def update_passcode(
 
 
 
-@app.command("show-music-on-hold", short_help="Retrieve Music On Hold Settings for a Virtual Line.")
+@app.command("show-music-on-hold", short_help="Retrieve Music on Hold Settings for a Virtual Line.")
 def show_music_on_hold(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Retrieve Music On Hold Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings show-music-on-hold VIRTUAL_LINE_ID"""
+    """Retrieve Music on Hold Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings show-music-on-hold VIRTUAL_LINE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/musicOnHold"
     params = {}
@@ -1849,7 +1857,7 @@ def show_music_on_hold(
 
 _BODY_SKELETON_UPDATE_MUSIC_ON_HOLD = '{"mohEnabled":true,"greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}'
 
-@app.command("update-music-on-hold", short_help="Configure Music On Hold Settings for a Virtual Line.")
+@app.command("update-music-on-hold", short_help="Configure Music on Hold Settings for a Virtual Line.")
 def update_music_on_hold(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     moh_enabled: bool = typer.Option(None, "--moh-enabled/--no-moh-enabled", help="Music on hold is enabled or disabled for the workspace."),
@@ -1861,7 +1869,7 @@ def update_music_on_hold(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Music On Hold Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-music-on-hold VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"mohEnabled":true,"greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}'"""
+    """Configure Music on Hold Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-music-on-hold VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"mohEnabled":true,"greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_MUSIC_ON_HOLD), indent=2))
         raise typer.Exit(0)
@@ -2052,14 +2060,14 @@ def update_call_bridge(
 
 
 
-@app.command("show-barge-in", short_help="Read Barge In Settings for a Virtual Line.")
+@app.command("show-barge-in", short_help="Read Barge in Settings for a Virtual Line.")
 def show_barge_in(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Read Barge In Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings show-barge-in VIRTUAL_LINE_ID"""
+    """Read Barge in Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings show-barge-in VIRTUAL_LINE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/virtualLines/{virtual_line_id}/bargeIn"
     params = {}
@@ -2078,7 +2086,7 @@ def show_barge_in(
 
 _BODY_SKELETON_UPDATE_BARGE_IN = '{"enabled":true,"toneEnabled":true}'
 
-@app.command("update-barge-in", short_help="Configure Barge In Settings for a Virtual Line.")
+@app.command("update-barge-in", short_help="Configure Barge in Settings for a Virtual Line.")
 def update_barge_in(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Set to enable or disable the Barge In feature."),
@@ -2090,7 +2098,7 @@ def update_barge_in(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Barge In Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-barge-in VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"enabled":true,"toneEnabled":true}'"""
+    """Configure Barge in Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-barge-in VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"enabled":true,"toneEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_BARGE_IN), indent=2))
         raise typer.Exit(0)
