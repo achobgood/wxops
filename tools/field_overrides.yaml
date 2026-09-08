@@ -909,6 +909,17 @@ tag_op_excludes:
     "External Voicemail":
       - "/telephony/calls"
       - "/telephony/calls/*"
+      # 2026-09-08: the same shape again, one path further out. GET
+      # /telephony/queues/{queueId}/calls carries "External Voicemail" as a
+      # spurious SECONDARY tag; its primary tag is Call Controls, where it
+      # renders as `list-calls-queues`. Measured with
+      # `--name-lock-diff` on a probe render of both tags before regenerating:
+      # external_voicemail gained a bare `list` on
+      # /telephony/queues/{queue_id}/calls (1 new, 0 moved) while call_controls
+      # rendered the identical URL as list-calls-queues. Without this the group
+      # whose only real endpoint is /telephony/externalVoicemail/mwi answers
+      # `list` with queue calls — known issue #22 all over again.
+      - "/telephony/queues/*"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Verb-vs-semantics acks — known issue #20
@@ -1170,6 +1181,12 @@ cli_name_overrides:
     "Captures": "cc-captures"
     "Notification": "cc-notification"
     "Search": "cc-search"
+    # 2026-09-08: new tag in the 2026-09-07 contact-center spec. Chosen before
+    # the first regen, per the 2026-07-26 precedent: the derived name would be
+    # `search-metadata`, which is the only Contact Center group in the CLI not
+    # prefixed cc-* — it would sort away from its 40 siblings and read as a
+    # Calling group. `cc-search` directly above is the tag it belongs beside.
+    "Search Metadata": "cc-search-metadata"
     "Features: Single Number Reach": "single-number-reach"
     "Features: Virtual Extensions": "virtual-extensions"
     "Location Call Settings:  Schedules": "location-schedules"
@@ -1452,6 +1469,21 @@ tag_overrides:
         "update": "update-org-settings"
         "show-queues": "show"
         "update-queues": "update"
+    # 2026-09-08: upstream added an ORG-WIDE availableAgents endpoint beside the
+    # per-location one, and per-tag dedup renamed BOTH off the shipped name —
+    # `--name-lock-diff` on a probe render reported `REMOVED customer_assist
+    # list-available-agents  GET /telephony/config/locations/{}/cxEssentials/
+    # agents/availableAgents` plus two new names, one of them numerically
+    # suffixed. Neither key below is guessed: read off the rendered module,
+    # `list-available-agents-cx-essentials` carries
+    # /telephony/config/locations/{location_id}/cxEssentials/agents/availableAgents
+    # and `…-1` carries /telephony/config/cxEssentials/agents/availableAgents.
+    # The per-location op keeps the shipped name (cited in 5 docs); the org-wide
+    # newcomer is named for its scope, since a `-1` suffix says nothing.
+    "Features: Customer Assist":
+      command_name_overrides:
+        "list-available-agents-cx-essentials": "list-available-agents"
+        "list-available-agents-cx-essentials-1": "list-available-agents-org"
     # Merged tag name — the four "Call Settings For Me*" phase tags fold into
     # this one (see tag_merge). Phase 5 joined 2026-07-29 and its arrival is
     # what these entries exist for.
@@ -1578,6 +1610,32 @@ tag_overrides:
       # (renderer emits it from original_command_name), so nothing scripted
       # breaks. Scope and rejected alternatives: tools/CLAUDE.md.
         "create-delete": "delete-delegate-emails"
+    # 2026-09-08: upstream inserted /group/meetings*, which sorts before
+    # /meetings*, and _derive_command_name hands the bare verb to the first
+    # operation of each type it reaches — so `meetings create` silently became
+    # POST /group/meetings/controls ("Update Group Meeting Control Status") and
+    # `meetings update` became PATCH /group/meetings/{id} ("Patch a Group
+    # Meeting"). Check 22 caught it before the regen; see tools/CLAUDE.md
+    # "Check 22 — the command-name lock". `--name-lock-diff` on a probe render
+    # printed exactly three moves:
+    #   MOVED meetings create          locked POST /meetings     now POST /group/meetings/controls
+    #   MOVED meetings update          locked PUT /meetings/{}    now PATCH /group/meetings/{}
+    #   MOVED meetings update-meetings locked PATCH /meetings/{}  now PUT /meetings/{}
+    # A SWAP, the same shape `Features:  Call Queue` and `My Call Settings` use:
+    # the three incumbents are pinned back to the names they have always
+    # shipped, and the two group-meeting arrivals are named for what they act
+    # on. Every key is the DERIVED name, read off the probe's rendered module
+    # with its `url = ` literal — pins are reactive and cannot be written from
+    # the operation. `list`/`show` did NOT move (both are /admin/meetings*), so
+    # they need no entry; the third arrival renders as `list-meetings-group`
+    # (GET /group/meetings), which steals nothing and is left as derived.
+    "Meetings":
+      command_name_overrides:
+        "create": "update-group-controls"        # POST /group/meetings/controls
+        "create-meetings": "create"              # POST /meetings — shipped name
+        "update": "update-group-meetings"        # PATCH /group/meetings/{id}
+        "update-meetings": "update"              # PUT /meetings/{id} — shipped name
+        "update-meetings-1": "update-meetings"   # PATCH /meetings/{id} — shipped name
   webex-wholesale.json:
     "Wholesale Provisioning":
       command_name_overrides:
