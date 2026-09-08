@@ -10,6 +10,10 @@
       "name": "Agent Summaries"
     },
     {
+      "name": "Search Metadata",
+      "description": "Discover fields and capabilities supported by the Webex Contact Center Search API."
+    },
+    {
       "name": "Agents"
     },
     {
@@ -39506,9 +39510,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "List Skill(s)",
-        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
-        "operationId": "getAllConfig_2",
+        "summary": "List Skills",
+        "description": "Retrieve a list of Skills in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead. Deprecated. Use GET /v2/skill instead.",
+        "operationId": "getAllConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -39566,7 +39570,7 @@
           {
             "name": "singleObjectResponse",
             "in": "query",
-            "description": "Specifiy whether to include array fields in the response, This query param should use only if the response contain single record, if we are using for multiple objects response query param not supported and throws an exception.",
+            "description": "Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception.",
             "schema": {
               "type": "boolean",
               "default": false,
@@ -39714,7 +39718,7 @@
             }
           }
         },
-        "deprecated": false
+        "deprecated": true
       },
       "post": {
         "tags": [
@@ -39722,7 +39726,7 @@
         ],
         "summary": "Create a new Skill",
         "description": "Create a new Skill in a given organization.",
-        "operationId": "createConfig_3",
+        "operationId": "createConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -39733,24 +39737,25 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
-          },
-          {
-            "name": "payloadDTO",
-            "in": "query",
-            "description": "Skill configuration data",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/SkillDTO"
-            },
-            "example": {
-              "name": "German Speaking",
-              "description": "Skill to speak fluent German",
-              "serviceLevelThreshold": 0,
-              "active": true,
-              "skillType": "Boolean"
-            }
           }
         ],
+        "requestBody": {
+          "description": "Skill configuration data",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillDTO"
+              },
+              "example": {
+                "name": "German Speaking",
+                "description": "Skill to speak fluent German",
+                "serviceLevelThreshold": 0,
+                "active": true,
+                "skillType": "Boolean"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Created",
@@ -39912,8 +39917,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill/bulk": {
@@ -39921,9 +39925,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "Bulk save Skill(s)",
-        "description": "Create, Update or delete Skill(s) in bulk in a given organization.",
-        "operationId": "saveAllConfig_2",
+        "summary": "Bulk save Skills",
+        "description": "Create, Update or delete Skills in bulk in a given organization.",
+        "operationId": "saveAllConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40107,189 +40111,6 @@
               }
             }
           }
-        },
-        "deprecated": false
-      }
-    },
-    "/organization/{orgid}/skill/populate-json-attr/{id}": {
-      "post": {
-        "tags": [
-          "Skill"
-        ],
-        "summary": "Populate json-attributes field for a given skill-id of an organization",
-        "operationId": "populateJsonAttributesByOrgIdAndSkillId",
-        "parameters": [
-          {
-            "name": "orgid",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "400",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "400",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized Operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "401",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "401",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Operation is forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "403",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "403",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Similar entity is already present",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "409",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "409",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "429",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "429",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "An Unexpected Error Occurred",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                },
-                "example": {
-                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
-                  "error": {
-                    "key": "500",
-                    "reason": "Test reason",
-                    "message": [
-                      {
-                        "description": "Test error",
-                        "code": "500",
-                        "entity": "cc_user",
-                        "references": []
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
         }
       }
     },
@@ -40298,9 +40119,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "Purge inactive Skill(s)",
-        "description": "Purge inactive Skill(s) older than the configured interval for a given organization.",
-        "operationId": "purgeInactiveConfig_2",
+        "summary": "Purge inactive Skills",
+        "description": "Purge inactive Skills older than the configured interval for a given organization.",
+        "operationId": "purgeInactiveConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40315,7 +40136,7 @@
           {
             "name": "nextStartId",
             "in": "query",
-            "description": "This is the entity ID from which items for the next purge batch with be selected.",
+            "description": "This is the entity ID from which items for the next purge batch will be selected.",
             "required": false,
             "schema": {
               "type": "string",
@@ -40485,8 +40306,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill/{id}": {
@@ -40496,7 +40316,7 @@
         ],
         "summary": "Get specific Skill by ID",
         "description": "Retrieve an existing Skill by ID in a given organization.",
-        "operationId": "getConfig_3",
+        "operationId": "getConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40655,8 +40475,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       },
       "put": {
         "tags": [
@@ -40664,7 +40483,7 @@
         ],
         "summary": "Update specific Skill by ID",
         "description": "Update an existing Skill by ID in a given organization.",
-        "operationId": "updateConfig_3",
+        "operationId": "updateConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -40685,24 +40504,25 @@
               "type": "string"
             },
             "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
-          },
-          {
-            "name": "payloadDTO",
-            "in": "query",
-            "description": "Skill configuration data for update",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/SkillDTO"
-            },
-            "example": {
-              "name": "German Speaking Updated",
-              "description": "Updated skill to speak fluent German",
-              "serviceLevelThreshold": 5,
-              "active": true,
-              "skillType": "Boolean"
-            }
           }
         ],
+        "requestBody": {
+          "description": "Skill configuration data for update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillDTO"
+              },
+              "example": {
+                "name": "German Speaking Updated",
+                "description": "Updated skill to speak fluent German",
+                "serviceLevelThreshold": 5,
+                "active": true,
+                "skillType": "Boolean"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -40889,8 +40709,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       },
       "delete": {
         "tags": [
@@ -40898,7 +40717,7 @@
         ],
         "summary": "Delete specific Skill by ID",
         "description": "Delete an existing Skill by ID in a given organization.",
-        "operationId": "deleteConfig_3",
+        "operationId": "deleteConfigSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -41075,8 +40894,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill/{id}/incoming-references": {
@@ -41086,7 +40904,7 @@
         ],
         "summary": "List references for a specific Skill",
         "description": "Retrieve a list of all entities that have reference to an existing Skill by ID in a given organization.",
-        "operationId": "getIncomingReferences_2",
+        "operationId": "getIncomingReferencesSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -41277,8 +41095,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/v2/skill": {
@@ -41286,9 +41103,9 @@
         "tags": [
           "Skill"
         ],
-        "summary": "List Skill(s)",
-        "description": "Retrieve a list of Skill(s) in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
-        "operationId": "getAllConfigWithMetaData_4",
+        "summary": "List Skills",
+        "description": "Retrieve a list of Skills in a given organization.\n Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
+        "operationId": "getAllConfigWithMetaDataSkill",
         "parameters": [
           {
             "name": "orgid",
@@ -41356,11 +41173,20 @@
           {
             "name": "singleObjectResponse",
             "in": "query",
-            "description": "Specifiy whether to include array fields in the response, This query param should use only if the response contain single record, if we are using for multiple objects response query param not supported and throws an exception.",
+            "description": "Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception.",
             "schema": {
               "type": "boolean",
               "default": false,
               "example": false
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "description": "Fetch array fields on demand only. Supported array fields are enumSkillValues.",
+            "schema": {
+              "type": "string",
+              "example": "userIds"
             }
           }
         ],
@@ -41500,8 +41326,7 @@
               }
             }
           }
-        },
-        "deprecated": false
+        }
       }
     },
     "/organization/{orgid}/skill-profile": {
@@ -52132,35 +51957,35 @@
                 "schema": {
                   "properties": {
                     "audience": {
-                      "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                      "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                       "type": "string"
                     },
                     "errorMessage": {
-                      "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                      "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Data Source Id.",
+                      "description": "The data source ID.",
                       "type": "string"
                     },
                     "nonce": {
-                      "description": "Unique nonce used in the encryption of the JWT token.",
+                      "description": "A unique nonce used when encrypting the JWT.",
                       "type": "string"
                     },
                     "schemaId": {
-                      "description": "The schema id used for the data exchange.",
+                      "description": "The schema ID used for the data exchange.",
                       "type": "string"
                     },
                     "status": {
-                      "description": "The status of the Data Source; `active` or `disabled`",
+                      "description": "The data source status: `active` or `disabled`.",
                       "type": "string"
                     },
                     "subject": {
-                      "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                      "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                       "type": "string"
                     },
                     "tokenLifetimeMinutes": {
-                      "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration",
+                      "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data.",
                       "type": "number"
                     },
                     "url": {
@@ -52224,7 +52049,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Register your data source to the Webex BYODS system. Authentication must happen via a Service App with the scope `spark-admin:datasource_write`.\nThe schema IDs determine what data types are sent from Webex to the DAP and the expected responses. The schemas can be inspected on developer.webex.com.",
+        "description": "Register a data source with the Webex BYODS system. Authenticate using a Service App with the `spark-admin:datasource_write` scope.\nSchema IDs determine the types of data Webex sends to the DAP and the expected responses. Use the Data Source Schemas endpoints to inspect the available schemas.",
         "operationId": "Register a Data Source",
         "requestBody": {
           "content": {
@@ -52240,23 +52065,23 @@
                 },
                 "properties": {
                   "audience": {
-                    "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                    "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                     "type": "string"
                   },
                   "nonce": {
-                    "description": "Unique nonce used in the encryption of the JWT token.",
+                    "description": "A unique nonce used when encrypting the JWT.",
                     "type": "string"
                   },
                   "schemaId": {
-                    "description": "The schema id used for the data exchange.",
+                    "description": "The schema ID used for the data exchange.",
                     "type": "string"
                   },
                   "subject": {
-                    "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                    "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                     "type": "string"
                   },
                   "tokenLifetimeMinutes": {
-                    "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440.",
+                    "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data. Must be 1440 or less.",
                     "type": "number"
                   },
                   "url": {
@@ -52357,7 +52182,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Show all data sources registered for this Service App with the scope `spark-admin:datasource_read`.",
+        "description": "Lists all data sources registered by the Service App. Requires the `spark-admin:datasource_read` scope.",
         "operationId": "Retrieve All Data Sources",
         "summary": "Retrieve All Data Sources"
       }
@@ -52447,7 +52272,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Show available schemas. No specific scope is needed to retrieve the dataSource schemas, but a valid API token should be presented.",
+        "description": "Lists the available data source schemas. A valid API access token is required, but no specific scope is needed.",
         "operationId": "Retrieve Data Source Schemas",
         "summary": "Retrieve Data Source Schemas"
       }
@@ -52485,27 +52310,27 @@
                 "schema": {
                   "properties": {
                     "appType": {
-                      "description": "The app type used for this schema",
+                      "description": "The application type used for the schema.",
                       "type": "string"
                     },
                     "createdAt": {
-                      "description": "datetime when the schema was created",
+                      "description": "The date and time when the schema was created.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Schema Id",
+                      "description": "The schema ID.",
                       "type": "string"
                     },
                     "protocol": {
-                      "description": "The connection protocol for this schema",
+                      "description": "The connection protocol used by the schema.",
                       "type": "string"
                     },
                     "serviceType": {
-                      "description": "The service type web or contact center",
+                      "description": "The service type, such as web or contact center.",
                       "type": "string"
                     },
                     "url": {
-                      "description": "the URL location where this schema can be inspected",
+                      "description": "The URL where the schema can be inspected.",
                       "type": "string"
                     }
                   },
@@ -52565,7 +52390,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Retrieve details of a specific data source schema by schema id. No specific scope is needed to retrieve the dataSource schemas, but a valid API token should be presented.",
+        "description": "Retrieves details for a specific data source schema by schema ID. A valid API access token is required, but no specific scope is needed.",
         "operationId": "Retrieve Details of a Specific Data Source Schema",
         "summary": "Retrieve Details of a Specific Data Source Schema"
       }
@@ -52574,7 +52399,7 @@
       "delete": {
         "parameters": [
           {
-            "description": "The unique identifier for the dataSource.",
+            "description": "The unique identifier for the data source.",
             "example": "f29bb291-5db0-411b-834a-e64f8dee0658",
             "in": "path",
             "name": "dataSourceId",
@@ -52638,14 +52463,14 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Delete a Data Source, by Data Source ID.\n\nSpecify the Data Source ID in the `dataSourceId` parameter in the URI.",
+        "description": "Deletes a data source by ID.\n\nSpecify the data source ID in the `dataSourceId` URI parameter.",
         "operationId": "Delete a Data Source",
         "summary": "Delete a Data Source"
       },
       "get": {
         "parameters": [
           {
-            "description": "The unique identifier for the dataSource.",
+            "description": "The unique identifier for the data source.",
             "example": "f29bb291-5db0-411b-834a-e64f8dee0658",
             "in": "path",
             "name": "dataSourceId",
@@ -52677,35 +52502,35 @@
                 "schema": {
                   "properties": {
                     "audience": {
-                      "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                      "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                       "type": "string"
                     },
                     "errorMessage": {
-                      "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                      "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Data Source Id.",
+                      "description": "The data source ID.",
                       "type": "string"
                     },
                     "nonce": {
-                      "description": "Unique nonce used in the encryption of the JWT token.",
+                      "description": "A unique nonce used when encrypting the JWT.",
                       "type": "string"
                     },
                     "schemaId": {
-                      "description": "The schema id used for the data exchange.",
+                      "description": "The schema ID used for the data exchange.",
                       "type": "string"
                     },
                     "status": {
-                      "description": "The status of the Data Source; `active` or `disabled`",
+                      "description": "The data source status: `active` or `disabled`.",
                       "type": "string"
                     },
                     "subject": {
-                      "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                      "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                       "type": "string"
                     },
                     "tokenLifetimeMinutes": {
-                      "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration",
+                      "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data.",
                       "type": "number"
                     },
                     "url": {
@@ -52769,7 +52594,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Show details for a data source, by dataSource id.\nTo see details for a data source, use the Service App token with the `spark-admin:datasource_read` scope.",
+        "description": "Retrieves details for a data source by ID. Use a Service App token with the `spark-admin:datasource_read` scope.",
         "operationId": "Retrieve Data Source Details",
         "summary": "Retrieve Data Source Details"
       },
@@ -52808,35 +52633,35 @@
                 "schema": {
                   "properties": {
                     "audience": {
-                      "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                      "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                       "type": "string"
                     },
                     "errorMessage": {
-                      "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                      "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                       "type": "string"
                     },
                     "id": {
-                      "description": "The Data Source Id.",
+                      "description": "The data source ID.",
                       "type": "string"
                     },
                     "nonce": {
-                      "description": "Unique nonce used in the encryption of the JWT token.",
+                      "description": "A unique nonce used when encrypting the JWT.",
                       "type": "string"
                     },
                     "schemaId": {
-                      "description": "The schema id used for the data exchange.",
+                      "description": "The schema ID used for the data exchange.",
                       "type": "string"
                     },
                     "status": {
-                      "description": "The status of the Data Source; `active` or `disabled`",
+                      "description": "The data source status: `active` or `disabled`.",
                       "type": "string"
                     },
                     "subject": {
-                      "description": "Rhe subject field in the JWT token. Usually, an indication of the app's function",
+                      "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                       "type": "string"
                     },
                     "tokenLifetimeMinutes": {
-                      "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration",
+                      "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data.",
                       "type": "number"
                     },
                     "url": {
@@ -52900,7 +52725,7 @@
         "tags": [
           "Data Sources"
         ],
-        "description": "Updates a Data Source. The updateable fields are the `audience,` `subject,` `nonce,` `url` and `tokenLifetimeMinutes.`\nYou can update the `status` from `active` to `disabled` only when providing an `errorMessage` that may be shown to the customer admin in Control Hub. \nTokens must be regularly updated before their expiration to maintain system uptime.",
+        "description": "Updates a data source. The fields you can update are `audience`, `subject`, `nonce`, `url`, and `tokenLifetimeMinutes`.\nYou can set `status` from `active` to `disabled` only if you provide an `errorMessage`, which may be shown to the customer administrator in Control Hub.\nUpdate tokens before they expire to prevent service interruption.",
         "operationId": "Update a Data Source",
         "requestBody": {
           "content": {
@@ -52908,37 +52733,37 @@
               "schema": {
                 "properties": {
                   "audience": {
-                    "description": "The audience field in the JWT token. Usually, the DAPs app name.",
+                    "description": "The JWT `aud` (audience) claim. This is usually the DAP application's name.",
                     "example": "MedDocVirtualAgent",
                     "type": "string"
                   },
                   "errorMessage": {
-                    "description": "Error Message shown in Control Hub when status is set to `disabled`.",
+                    "description": "The error message shown in Control Hub when `status` is set to `disabled`.",
                     "example": "down for maintenance",
                     "type": "string"
                   },
                   "nonce": {
-                    "description": "Unique nonce used in the encryption of the JWT token.",
+                    "description": "A unique nonce used when encrypting the JWT.",
                     "example": "jeieu38udue83u398",
                     "type": "string"
                   },
                   "schemaId": {
-                    "description": "The schema id used for the data exchange.",
+                    "description": "The schema ID used for the data exchange.",
                     "example": "78efc775-dccb-45ca-9acf-989a4a59f788",
                     "type": "string"
                   },
                   "status": {
-                    "description": "The status of the Data Source; `active` or `disabled`.",
+                    "description": "The data source status: `active` or `disabled`.",
                     "example": "active",
                     "type": "string"
                   },
                   "subject": {
-                    "description": "The subject field in the JWT token. Usually, an indication of the app's function",
+                    "description": "The JWT `sub` (subject) claim. This usually describes the application's function.",
                     "example": "callAudioData",
                     "type": "string"
                   },
                   "tokenLifetimeMinutes": {
-                    "description": "The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440.",
+                    "description": "The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data. Must be 1440 or less.",
                     "example": 60,
                     "type": "number"
                   },
@@ -53113,7 +52938,7 @@
           "Notification"
         ],
         "summary": "Subscribe Notification",
-        "description": "Access this endpoint when the user has to register for a WebSocket Session. Requires 'cjp:user' scope or roles 'id_full_admin', 'id_readonly_admin', 'atlas-portal.partner.salesadmin', 'cjp.supervisor', 'cjp.admin', 'atlas-portal.partner.provision_admin', 'cloud-contact-center:pod_conv' for authorization",
+        "description": "Access this endpoint when the user has to register for a WebSocket Session. Requires one of the following accepted registration scopes: `cjp:user` or `cloud-contact-center:pod_conv`. The `cjp-hybrid-conn:read` scope is also accepted when CCE authentication is enabled. Tokens with only admin or partner roles and no accepted registration scope are rejected.",
         "operationId": "subscribeNotificationRoute",
         "parameters": [],
         "requestBody": {
@@ -53299,7 +53124,7 @@
           "Realtime"
         ],
         "summary": "Subscribe Realtime Notification",
-        "description": "Access this endpoint when the user has to register for a WebSocket Session to receive realtime events. Requires 'cjp:user' scope or roles 'id_full_admin', 'id_readonly_admin', 'atlas-portal.partner.salesadmin', 'atlas-portal.partner.helpdesk', 'cjp.supervisor', 'cjp.admin', 'atlas-portal.partner.provision_admin' for authorization",
+        "description": "Access this endpoint when the user has to register for a WebSocket Session to receive realtime events. Requires one of the following accepted registration scopes: `cjp:user` or `cloud-contact-center:pod_conv`. The `cjp-hybrid-conn:read` scope is also accepted when CCE authentication is enabled. Tokens with only admin or partner roles and no accepted registration scope are rejected.",
         "operationId": "subscribeRealtimeRoute",
         "parameters": [],
         "requestBody": {
@@ -53481,6 +53306,106 @@
             "description": "Unprocessable Entity",
             "content": {
               "application/json": {}
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is currently unavailable to serve the requests",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/search/v2/meta": {
+      "get": {
+        "tags": [
+          "Search Metadata"
+        ],
+        "summary": "Get Search Metadata",
+        "description": "Returns schema metadata for the Webex Contact Center Search GraphQL API, describing supported queries, fields, nested structures, data types, filters, sorting options, grouping capabilities, and aggregation operations.\n\n**Authentication & Authorization:**\n- **Required Scopes:** `cjp:config` or `cjp:config_read`\n\nAn asterisk (*) in the rendered response schema indicates a required property.",
+        "operationId": "getSearchMetadataV2",
+        "externalDocs": {
+          "description": "Webex Contact Center Search API guide",
+          "url": "https://developer.webex.com/docs/getting-started-with-search-api"
+        },
+        "parameters": [
+          {
+            "name": "X-ORGANIZATION-ID",
+            "in": "header",
+            "description": "Organization ID to use for this operation. If unspecified, inferred from token. Token must have permission to interact with this organization.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36,
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+            },
+            "example": "97cdbf45-ebe2-4687-8341-44d5c7abf101"
+          },
+          {
+            "name": "TrackingId",
+            "in": "header",
+            "description": "Tracking ID to use for this operation, for traceability, debugging, and error reporting purposes. ",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "example": "INTEGRATION-9bcdc696-57fa-4e91-b5aa-57a66a347c23"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchMetadataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
             }
           },
           "500": {
@@ -57007,6 +56932,59 @@
         }
       }
     },
+    "/v1/tasks/{taskId}/conference/participants/{participantId}/drop": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Drop Participant From Conference",
+        "description": "Access this endpoint when the user needs to drop a specific participant from an active conference associated with a task. This operation removes only the targeted participant while keeping the remaining parties in the conference. Requires `cjp:user` scope for  authorization. For a list of possible response messages, see the [Call Control API Guide](/docs/contact-control-apis)",
+        "operationId": "dropConferenceParticipantsRoute",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "The taskId represents the task that the user is currently working on. It will be generated automatically during the creation of a new task.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "UUID"
+            },
+            "example": "315fbb91-2288-427c-9588-ec764cd46ea4"
+          },
+          {
+            "name": "participantId",
+            "in": "path",
+            "description": "The ID of the participant ( Agent / DN / Entry Point DN / Customer) to be dropped from the conference, maximum length 36 characters.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "+1234567890"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The request is accepted for processing"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/accept": {
       "post": {
         "tags": [
@@ -57798,7 +57776,7 @@
           "Flows"
         ],
         "summary": "List Flows or Subflows",
-        "description": "Returns a list of flows in response. Channel-based filtering can be applied with the `searchBy` query parameter (for example, `channelType|telephony`, `channelType|workItem`, `channelType|customMessaging`, `channelType|genericAction`). Channel visibility may be constrained by organization feature flags.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
+        "description": "Returns a list of flows in response. Channel-based filtering can be applied with the `searchBy` query parameter (for example, `channelType|telephony`, `channelType|workItem`, `channelType|customMessaging`, `channelType|genericAction`). Channel visibility may be constrained by organization feature flags. If associatedChannels key is missing or empty, it will be treated as telephony flow.\n\nScope: `cjp:config_read`. Roles: [`Organizational Full Admin`, `Supervisor`, `Contact Center Service Admin`, `User Admin`]",
         "operationId": "findFlowsUsingGET",
         "parameters": [
           {
@@ -58476,8 +58454,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Validate a Flow",
-        "description": "Dry-run validate a flow definition without persisting it. Use this to check correctness before importing.\n\nNote: validation is more lenient than import. A flow that passes `:validate` can still be rejected by `:import` (for example, a missing start activity), so a successful validation does not guarantee a successful import.\n\nScope: `cjp:config_write`",
+        "summary": "Validate a Flow or Subflow",
+        "description": "Dry-run validate a flow/subflow definition without persisting it. Use this to check correctness before importing. Include `associatedChannels` to preserve the channel metadata that import and export payloads round-trip. Validation requests where `associatedChannels` is missing or empty are treated as telephony flows, and dry-run validation does not derive the effective channel from `associatedChannels`.\n\nNote: validation is more lenient than import. A flow that passes `:validate` can still be rejected by `:import` (for example, a missing start activity), so a successful validation does not guarantee a successful import.\n\nScope: `cjp:config_write`",
         "operationId": "validateFlowV2",
         "parameters": [
           {
@@ -58557,8 +58535,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Import a Flow",
-        "description": "Import a new flow from a flow definition. Creates the flow in draft state and returns the assigned flow metadata, including `flowId`.\n\nScope: `cjp:config_write`",
+        "summary": "Import a Flow or Subflow",
+        "description": "Import a new flow/subflow from a flow definition. Creates the flow/subflow in draft state and returns the assigned flow metadata, including `flowId`. Include `associatedChannels` in the payload when the flow contains channel-specific activities (for example, `customMessaging`) so channel references can be resolved correctly during import. If `associatedChannels` is missing or empty, the import is treated as a telephony flow. For `FLOW` imports, blank or whitespace-only `associatedChannels[].channelType` values are rejected.\n\nScope: `cjp:config_write`",
         "operationId": "importFlowV2",
         "parameters": [
           {
@@ -58605,7 +58583,7 @@
           }
         ],
         "requestBody": {
-          "description": "Flow JSON document to import.",
+          "description": "Flow JSON document to import. For `FLOW` imports, blank or whitespace-only `associatedChannels[].channelType` values are rejected.",
           "content": {
             "application/json": {
               "schema": {
@@ -58680,8 +58658,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Get a Flow",
-        "description": "Retrieve the current draft of a flow as a flow document. To fetch a specific published version, use the `:export` endpoint.\n\nScope: `cjp:config_read`",
+        "summary": "Get a Flow or Subflow",
+        "description": "Retrieve the current draft of a flow/subflow as a flow document. To fetch a specific published version, use the `:export` endpoint. The response includes channel metadata (for example, `associatedChannels`) used by channel-specific activities such as `customMessaging`. If `associatedChannels` is missing or empty, the flow is treated as telephony.\n\nScope: `cjp:config_read`",
         "operationId": "getFlowV2",
         "parameters": [
           {
@@ -58759,8 +58737,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Save a Flow Draft",
-        "description": "Save a complete flow document as the current draft, replacing the existing draft. Pass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
+        "summary": "Save a Flow or Subflow Draft",
+        "description": "Save a complete flow/subflow document as the current draft, replacing the existing draft. Submitted `associatedChannels` values are not persisted on save; the draft preserves the existing stored channel metadata. Omitting `associatedChannels` does not default an existing flow to telephony. Pass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
         "operationId": "saveFlowV2Draft",
         "parameters": [
           {
@@ -58884,8 +58862,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Patch a Flow Draft",
-        "description": "Apply partial updates to an existing flow draft without replacing the entire document. The patch body is a Patch Draft Contract — server-side merge, idempotent, and re-validated after the merge. The patch is rejected if the merged document fails validation, so the draft is never left in a broken state. The body may also include top-level overrides such as `name` and `description`.\n\nPass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
+        "summary": "Patch a Flow or Subflow Draft",
+        "description": "Apply partial updates to an existing flow/subflow draft without replacing the entire document. The patch body is a Patch Draft Contract — server-side merge, idempotent, and re-validated after the merge. The patch is rejected if the merged document fails validation, so the draft is never left in a broken state. The body may also include top-level overrides such as `name` and `description`. Submitted `associatedChannels` values are not persisted on patch; the draft preserves the existing stored channel metadata.\n\nPass `expectedVersion` as a query parameter to enable optimistic locking; the request fails with `409 Conflict` if the server-side version does not match. Omit `expectedVersion` to skip the check.\n\nScope: `cjp:config_write`",
         "operationId": "patchFlowV2Draft",
         "parameters": [
           {
@@ -59011,8 +58989,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Validate an Existing Flow Draft",
-        "description": "Validate the current draft of an existing flow (read-only operation).\n\nScope: `cjp:config_read`",
+        "summary": "Validate an Existing Flow or Subflow Draft",
+        "description": "Validate the current draft of an existing flow/subflow (read-only operation). Validation reads the draft as stored. Drafts where `associatedChannels` is missing or empty are treated as telephony flows, and validation does not derive the effective channel from `associatedChannels`.\n\nScope: `cjp:config_read`",
         "operationId": "validateExistingFlowV2",
         "parameters": [
           {
@@ -59103,8 +59081,8 @@
         "tags": [
           "Flows"
         ],
-        "summary": "Export a Flow",
-        "description": "Export a flow as a flow document for backup, migration, or version control.\n\nScope: `cjp:config_read`",
+        "summary": "Export a Flow or Subflow",
+        "description": "Export a flow/subflow as a flow document for backup, migration, or version control. The exported payload includes `associatedChannels` metadata to preserve channel-specific activity behavior (for example, `customMessaging`) during re-import. If `associatedChannels` is missing or empty, the flow is treated as telephony.\n\nScope: `cjp:config_read`",
         "operationId": "exportFlowV2",
         "parameters": [
           {
@@ -63724,6 +63702,17 @@
               "type": "string"
             },
             "example": "SalesCampaign_Prog"
+          },
+          {
+            "name": "interactionId",
+            "in": "query",
+            "description": "The unique identifier of the interaction associated with this request.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "123e4567-e89b-12d3-a456-426614174003"
           },
           {
             "name": "agentId",
@@ -70798,6 +70787,18 @@
           "maxNumberOfLineAppearances": {
             "type": "number",
             "description": "Maximum number of line appearances available on the device."
+          },
+          "lineKeyTypeExcludeList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineKeyType"
+            },
+            "description": "List of `lineKeyType` values not supported by the device layout and templates."
+          },
+          "numberOfLineKeyButtonColumns": {
+            "type": "integer",
+            "example": 1,
+            "description": "Number of columns in the device's line key layout. If not specified, it defaults to 2."
           }
         }
       },
@@ -71580,7 +71581,7 @@
                 "description": "ISO-3166 2-Letter Country Code."
               }
             },
-            "description": "The address of the location."
+            "description": "The address of the location. Once PSTN connectivity is set up for a location, please go to the [Update the Emergency Address of a Location](/docs/api/v1/pstn/update-the-emergency-address-of-a-location) API to update the location address."
           }
         }
       },
@@ -74693,6 +74694,10 @@
                 "type": "string",
                 "example": "2026-10-02T00:00:00.000Z",
                 "description": "The end of the planned maintenance period."
+              },
+              "message": {
+                "type": "string",
+                "description": "A custom message describing the planned maintenance."
               }
             }
           }
@@ -84146,6 +84151,7 @@
       },
       "SkillDTO": {
         "type": "object",
+        "description": "Skill schema.",
         "properties": {
           "organizationId": {
             "type": "string",
@@ -84190,6 +84196,7 @@
           },
           "enumSkillValues": {
             "type": "array",
+            "description": "List of Enum Skill Values.",
             "items": {
               "$ref": "#/components/schemas/EnumSkillValueDTO",
               "description": "If skillType is enum, the skill can take different sub-values which are defined with this field. For instance, a skill named \"tech support\" may have enumSkillValues for \"windows\", \"macOS\" and \"linux\"."
@@ -84217,6 +84224,11 @@
             ],
             "example": "BOOLEAN"
           },
+          "systemDefault": {
+            "type": "boolean",
+            "description": "Indicates whether the created resource is system created or not",
+            "example": false
+          },
           "createdTime": {
             "type": "integer",
             "format": "int64",
@@ -84239,6 +84251,7 @@
       },
       "EnumSkillValueDTO": {
         "type": "object",
+        "description": "Data transfer object representing a possible enumerated value for an enum-type skill",
         "properties": {
           "organizationId": {
             "type": "string",
@@ -84299,12 +84312,14 @@
       },
       "BulkRequestDTOSkillDTO": {
         "type": "object",
+        "description": "Bulk Request Skill schema.",
         "properties": {
           "items": {
             "type": "array",
             "description": "List of items in the bulk request.",
             "items": {
-              "$ref": "#/components/schemas/BulkRequestItemDTOSkillDTO"
+              "$ref": "#/components/schemas/BulkRequestItemDTOSkillDTO",
+              "description": "Item."
             }
           }
         }
@@ -84320,7 +84335,8 @@
             "example": 10
           },
           "item": {
-            "$ref": "#/components/schemas/SkillDTO"
+            "$ref": "#/components/schemas/SkillDTO",
+            "description": "Item."
           },
           "requestAction": {
             "type": "string",
@@ -84331,15 +84347,21 @@
       },
       "ResponseEnvelopeSkillDTO": {
         "type": "object",
+        "description": "Response Envelope Skill schema.",
         "properties": {
           "meta": {
             "type": "object",
-            "additionalProperties": {}
+            "additionalProperties": {
+              "description": "Meta additional property."
+            },
+            "description": "Additional properties for Meta."
           },
           "data": {
             "type": "array",
+            "description": "List of Data.",
             "items": {
-              "$ref": "#/components/schemas/SkillDTO"
+              "$ref": "#/components/schemas/SkillDTO",
+              "description": "Data item."
             }
           }
         }
@@ -88098,14 +88120,18 @@
           "subscriptionId": {
             "description": "Id used by client to subscribe to interested events.",
             "example": "AgentDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
-            "format": "uuid"
+            "type": "string"
           }
         },
         "required": [
           "webSocketUrl",
           "subscriptionId"
         ],
-        "type": "object"
+        "type": "object",
+        "example": {
+          "webSocketUrl": "wss://api.wxcc-us1.cisco.com/v1/notification/subscription/AgentDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
+          "subscriptionId": "AgentDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391"
+        }
       },
       "QueueApiResponse": {
         "required": [
@@ -88264,14 +88290,18 @@
           "subscriptionId": {
             "description": "Id used by client to subscribe to interested events.",
             "example": "ExtensiveSupervisoryDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
-            "format": "uuid"
+            "type": "string"
           }
         },
         "required": [
           "webSocketUrl",
           "subscriptionId"
         ],
-        "type": "object"
+        "type": "object",
+        "example": {
+          "webSocketUrl": "wss://api.wxcc-us1.cisco.com/v1/realtime/subscription/ExtensiveSupervisoryDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391",
+          "subscriptionId": "ExtensiveSupervisoryDesktop-ffffffac0f-39fa-4122-80d8-f2c2266e6391"
+        }
       },
       "SearchRequest": {
         "type": "object",
@@ -88291,6 +88321,282 @@
           }
         },
         "example": null
+      },
+      "SearchMetadataResponse": {
+        "type": "object",
+        "description": "Schema metadata for the GraphQL queries and fields supported by the Search API. An asterisk (*) in the rendered response schema indicates a required property.",
+        "required": [
+          "queries"
+        ],
+        "properties": {
+          "queries": {
+            "type": "array",
+            "description": "Required list of GraphQL query types and their nested fields.",
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/SearchMetadataObject"
+            }
+          }
+        },
+        "example": {
+          "queries": [
+            {
+              "name": "task",
+              "deprecated": false,
+              "type": {
+                "name": "Task",
+                "kind": "OBJECT"
+              },
+              "systemField": false,
+              "description": "Represents the customer workflow for a contact session or a task.",
+              "fields": [
+                {
+                  "name": "id",
+                  "deprecated": false,
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR"
+                  },
+                  "systemField": false,
+                  "sortable": true,
+                  "fieldType": "SUMMARY",
+                  "filter": "filter",
+                  "groupBy": true,
+                  "description": "ID of the task.",
+                  "aggregation": {
+                    "aggregationType": "SUMMARY",
+                    "operations": [
+                      "count",
+                      "cardinality"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "SearchMetadataElement": {
+        "description": "A nested object or leaf field in the Search metadata response.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SearchMetadataObject"
+          },
+          {
+            "$ref": "#/components/schemas/SearchMetadataField"
+          }
+        ]
+      },
+      "SearchMetadataObject": {
+        "type": "object",
+        "required": [
+          "name",
+          "deprecated",
+          "type",
+          "systemField",
+          "description",
+          "fields"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "GraphQL query or nested object field name.",
+            "example": "task"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Indicates whether the field is deprecated.",
+            "example": false
+          },
+          "type": {
+            "$ref": "#/components/schemas/SearchMetadataGraphQLType"
+          },
+          "systemField": {
+            "type": "boolean",
+            "description": "Indicates whether the field is managed by the Search API.",
+            "example": false
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Description from the GraphQL schema.",
+            "example": "Represents the customer workflow for a contact session or a task."
+          },
+          "fields": {
+            "type": "array",
+            "description": "Nested objects and leaf fields.",
+            "example": [],
+            "items": {
+              "$ref": "#/components/schemas/SearchMetadataElement"
+            }
+          }
+        }
+      },
+      "SearchMetadataField": {
+        "type": "object",
+        "required": [
+          "name",
+          "deprecated",
+          "type",
+          "systemField",
+          "sortable",
+          "fieldType",
+          "filter",
+          "groupBy",
+          "description",
+          "aggregation"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Fully qualified GraphQL field path.",
+            "example": "owner.id"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Indicates whether the field is deprecated.",
+            "example": false
+          },
+          "type": {
+            "$ref": "#/components/schemas/SearchMetadataGraphQLType"
+          },
+          "systemField": {
+            "type": "boolean",
+            "description": "Indicates whether the field is managed by the Search API.",
+            "example": false
+          },
+          "sortable": {
+            "type": "boolean",
+            "description": "Indicates whether the field can be used for sorting.",
+            "example": true
+          },
+          "fieldType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Search data category for the field.",
+            "enum": [
+              "COMMON",
+              "GRANULAR",
+              "SUMMARY"
+            ],
+            "example": "SUMMARY"
+          },
+          "filter": {
+            "type": "string",
+            "nullable": true,
+            "description": "GraphQL filter input supported by the field.",
+            "enum": [
+              "filter",
+              "extFilter"
+            ],
+            "example": "filter"
+          },
+          "groupBy": {
+            "type": "boolean",
+            "description": "Indicates whether the field can be used for grouping.",
+            "example": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Description from the GraphQL schema.",
+            "example": "ID of the agent last assigned to this task."
+          },
+          "aggregation": {
+            "$ref": "#/components/schemas/SearchMetadataAggregation"
+          }
+        }
+      },
+      "SearchMetadataGraphQLType": {
+        "type": "object",
+        "description": "GraphQL introspection type, including wrapped list and non-null types.",
+        "example": {
+          "name": "String",
+          "kind": "SCALAR"
+        },
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "GraphQL type name when present.",
+            "example": "String"
+          },
+          "kind": {
+            "type": "string",
+            "description": "GraphQL introspection type kind.",
+            "enum": [
+              "SCALAR",
+              "OBJECT",
+              "INTERFACE",
+              "UNION",
+              "ENUM",
+              "INPUT_OBJECT",
+              "LIST",
+              "NON_NULL"
+            ],
+            "example": "SCALAR"
+          },
+          "ofType": {
+            "description": "Wrapped GraphQL type for list and non-null kinds.",
+            "example": {
+              "name": "String",
+              "kind": "SCALAR"
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SearchMetadataGraphQLType"
+              }
+            ]
+          }
+        }
+      },
+      "SearchMetadataAggregation": {
+        "type": "object",
+        "description": "Aggregation capabilities for a Search field.",
+        "example": {
+          "aggregationType": "SUMMARY",
+          "operations": [
+            "count",
+            "cardinality"
+          ]
+        },
+        "required": [
+          "aggregationType",
+          "operations"
+        ],
+        "properties": {
+          "aggregationType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Aggregation data category when aggregation is supported.",
+            "enum": [
+              "SUMMARY",
+              "GRANULAR"
+            ],
+            "example": "SUMMARY"
+          },
+          "operations": {
+            "type": "array",
+            "description": "Supported aggregation operations.",
+            "example": [
+              "count",
+              "cardinality"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "average",
+                "cardinality",
+                "count",
+                "max",
+                "min",
+                "sum"
+              ]
+            }
+          }
+        }
       },
       "SubscriptionApiListResponse": {
         "required": [
@@ -88848,7 +89154,7 @@
         "properties": {
           "reportId": {
             "type": "string",
-            "description": "Unique report ID (UUID without hyphens).",
+            "description": "Unique report ID (UUID without hyphens). Use this ID to get the report status and generated file list. Do not use reportId to download files; use each file's fileId instead.",
             "example": "550e8400e29b41d4a716446655440000"
           },
           "createdTime": {
@@ -88867,7 +89173,7 @@
         "properties": {
           "reportId": {
             "type": "string",
-            "description": "Unique report ID (UUID without hyphens). A single usage report may contain multiple report files.",
+            "description": "Unique report ID (UUID without hyphens). A single usage report may contain multiple report files, especially for long date ranges that are split by calendar month. Use reportId to get or delete the report. Use each report file's fileId to download that file.",
             "example": "550e8400e29b41d4a716446655440000",
             "pattern": "^[0-9a-f]{32}$"
           },
@@ -88919,13 +89225,54 @@
                 "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-12-23_2025-12-31.csv",
                 "fileSize": 102400,
                 "checksum": "a1b2c3d4e5f67890",
-                "downloadUrl": "https://api.intgus1.ciscoccservice.com/async-api/v1/reports/0f49a30b66f9415382ce2251f2ee194d/download"
+                "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+              },
+              {
+                "startDate": "2026-01-01",
+                "endDate": "2026-01-22",
+                "status": "completed",
+                "fileId": "782ae11e495b4b6d9c6a9d9a2469e7c4",
+                "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2026-01-01_2026-01-22.csv",
+                "fileSize": 204800,
+                "checksum": "b1c2d3e4f5a67890",
+                "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/782ae11e495b4b6d9c6a9d9a2469e7c4/download"
               }
             ],
             "items": {
               "$ref": "#/components/schemas/CCUsageReportFile"
             }
           }
+        },
+        "example": {
+          "reportId": "550e8400e29b41d4a716446655440000",
+          "resourceType": "ContactSessionRecord",
+          "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+          "status": "completed",
+          "createdTime": "2026-01-22T09:31:04Z",
+          "completedTime": "2026-01-22T10:15:30Z",
+          "expiryTime": "2026-01-29T10:15:30Z",
+          "reportFiles": [
+            {
+              "startDate": "2025-12-23",
+              "endDate": "2025-12-31",
+              "status": "completed",
+              "fileId": "0f49a30b66f9415382ce2251f2ee194d",
+              "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-12-23_2025-12-31.csv",
+              "fileSize": 102400,
+              "checksum": "a1b2c3d4e5f67890",
+              "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+            },
+            {
+              "startDate": "2026-01-01",
+              "endDate": "2026-01-22",
+              "status": "completed",
+              "fileId": "782ae11e495b4b6d9c6a9d9a2469e7c4",
+              "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2026-01-01_2026-01-22.csv",
+              "fileSize": 204800,
+              "checksum": "b1c2d3e4f5a67890",
+              "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/782ae11e495b4b6d9c6a9d9a2469e7c4/download"
+            }
+          ]
         }
       },
       "CCUsageReportFile": {
@@ -88954,7 +89301,7 @@
           },
           "fileId": {
             "type": "string",
-            "description": "Unique file ID (UUID without hyphens).",
+            "description": "Unique file ID (UUID without hyphens). Use this ID with the Download Usage Report File API to download this individual generated file.",
             "example": "0f49a30b66f9415382ce2251f2ee194d",
             "pattern": "^[0-9a-f]{32}$"
           },
@@ -88976,7 +89323,7 @@
           },
           "downloadUrl": {
             "type": "string",
-            "description": "Secure download URL for the file. Available only when the file status is completed.",
+            "description": "Customer-facing API Gateway download URL for this individual file. Available only when the file status is completed. The URL contains the fileId, not the reportId, and still requires authorization.",
             "example": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
           }
         }
@@ -91345,7 +91692,7 @@
         }
       },
       "FlowV2ErrorResponse": {
-        "title": "FlowV2ErrorResponse",
+        "title": "FlowErrorResponse",
         "type": "object",
         "description": "Standard error envelope returned by flow endpoints. For 400 (bad request) and 422 (validation failure), `details[]` carries field-level error information.",
         "additionalProperties": true,
@@ -91381,7 +91728,7 @@
         }
       },
       "FlowV2ValidationError": {
-        "title": "FlowV2ValidationError",
+        "title": "FlowValidationError",
         "type": "object",
         "description": "A single validation error against a flow document.",
         "properties": {
@@ -91763,7 +92110,7 @@
         "properties": {
           "associatedChannels": {
             "type": "array",
-            "description": "Channels associated with the flow.",
+            "description": "Channels associated with the flow. If associatedChannels key is missing or empty, it will be treated as telephony flow.",
             "items": {
               "$ref": "#/components/schemas/AssociatedChannelRes"
             },
@@ -92899,8 +93246,34 @@
           }
         }
       },
+      "FlowV2AssociatedChannel": {
+        "title": "FlowAssociatedChannel",
+        "type": "object",
+        "description": "Represents a channel associated with a Flow document.",
+        "required": [
+          "channelType"
+        ],
+        "properties": {
+          "channelType": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Required non-empty channel type associated with the flow document.",
+            "example": "customMessaging"
+          },
+          "id": {
+            "type": "string",
+            "description": "Identifier of the associated channel. For non-telephony channels, provide the channel identifier expected by the referenced activities.",
+            "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the associated channel. For non-telephony channels, provide the matching channel name used by the referenced activities.",
+            "example": "Task Queue 1"
+          }
+        }
+      },
       "FlowV2Metadata": {
-        "title": "FlowV2Metadata",
+        "title": "FlowMetadata",
         "type": "object",
         "description": "Result envelope returned for a flow on import, save draft, and patch draft. The persisted flow document is returned under `flow` (the server-assigned flow ID is `flow.id`), alongside any preflight warnings raised during the operation.",
         "additionalProperties": true,
@@ -92948,7 +93321,7 @@
         }
       },
       "FlowV2Summary": {
-        "title": "FlowV2Summary",
+        "title": "FlowSummary",
         "type": "object",
         "description": "Server-side metadata for a persisted flow document.",
         "additionalProperties": true,
@@ -93001,6 +93374,20 @@
             "type": "string",
             "description": "User ID that created the flow.",
             "example": "user@example.com"
+          },
+          "associatedChannels": {
+            "type": "array",
+            "description": "Channels associated with the flow. If associatedChannels key is missing or empty, it will be treated as telephony flow.",
+            "items": {
+              "$ref": "#/components/schemas/FlowV2AssociatedChannel"
+            },
+            "example": [
+              {
+                "channelType": "customMessaging",
+                "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                "name": "Task Queue 1"
+              }
+            ]
           },
           "createdDate": {
             "type": "string",
@@ -93106,7 +93493,7 @@
         }
       },
       "FlowV2ValidationWarning": {
-        "title": "FlowV2ValidationWarning",
+        "title": "FlowValidationWarning",
         "type": "object",
         "description": "A single non-blocking validation warning or recommendation against a flow document.",
         "properties": {
@@ -93132,7 +93519,7 @@
         }
       },
       "FlowV2ValidationResult": {
-        "title": "FlowV2ValidationResult",
+        "title": "FlowValidationResult",
         "type": "object",
         "description": "Result of validating a flow document.",
         "example": {
@@ -93179,12 +93566,12 @@
           "summary": {
             "type": "string",
             "description": "Human-readable summary of the validation outcome.",
-            "example": "FlowV2 looks valid for import/save."
+            "example": "Flow looks valid for import/save."
           }
         }
       },
       "FlowV2DraftValidationEntry": {
-        "title": "FlowV2DraftValidationEntry",
+        "title": "FlowDraftValidationEntry",
         "type": "object",
         "description": "A single result entry returned when validating a stored flow draft.",
         "properties": {
@@ -93226,7 +93613,7 @@
         }
       },
       "FlowV2DraftValidationResult": {
-        "title": "FlowV2DraftValidationResult",
+        "title": "FlowDraftValidationResult",
         "type": "object",
         "description": "Result of validating a stored flow draft. Issues are returned under `results`.",
         "example": {
