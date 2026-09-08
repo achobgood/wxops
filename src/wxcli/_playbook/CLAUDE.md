@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 178 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 180 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -416,7 +416,7 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 ## CLI Status & Known Issues
 
-**178 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+**180 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
 ### Common Flags (`--fields`, `--output`, `--json-body`, `--all`, `--verify`)
 

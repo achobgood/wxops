@@ -476,6 +476,9 @@
    "list-calls-members": [
     "GET /telephony/calls/members/{}/calls"
    ],
+   "list-calls-queues": [
+    "GET /telephony/queues/{}/calls"
+   ],
    "list-history": [
     "GET /telephony/calls/history"
    ],
@@ -1981,6 +1984,11 @@
     "POST /search"
    ]
   },
+  "cc_search_metadata": {
+   "list": [
+    "GET /search/v2/meta"
+   ]
+  },
   "cc_site": {
    "create": [
     "POST /organization/{}/site"
@@ -2019,9 +2027,6 @@
    ],
    "create-bulk": [
     "POST /organization/{}/skill/bulk"
-   ],
-   "create-populate-json-attr": [
-    "POST /organization/{}/skill/populate-json-attr/{}"
    ],
    "delete": [
     "DELETE /organization/{}/skill/{}"
@@ -2141,6 +2146,9 @@
    ],
    "create-consult": [
     "POST /tasks/{}/consult"
+   ],
+   "create-drop": [
+    "POST /tasks/{}/conference/participants/{}/drop"
    ],
    "create-end-consult": [
     "POST /tasks/{}/consult/end"
@@ -2460,6 +2468,9 @@
    ],
    "list-available-agents": [
     "GET /telephony/config/locations/{}/cxEssentials/agents/availableAgents"
+   ],
+   "list-available-agents-org": [
+    "GET /telephony/config/cxEssentials/agents/availableAgents"
    ],
    "list-available-queues": [
     "GET /telephony/config/cxEssentials/wrapup/reasons/{}/availableQueues"
@@ -3687,6 +3698,9 @@
    "list-breakout-sessions": [
     "GET /meetings/{}/breakoutSessions"
    ],
+   "list-group-meetings": [
+    "GET /group/meetings"
+   ],
    "list-interpreters": [
     "GET /meetings/{}/interpreters"
    ],
@@ -3746,6 +3760,12 @@
    ],
    "update-controls": [
     "PUT /meetings/controls"
+   ],
+   "update-group-controls": [
+    "POST /group/meetings/controls"
+   ],
+   "update-group-meetings": [
+    "PATCH /group/meetings/{}"
    ],
    "update-interpreters": [
     "PUT /meetings/{}/interpreters/{}"
@@ -5498,6 +5518,17 @@
    ],
    "update-voicemail": [
     "PUT /telephony/config/virtualLines/{}/voicemail"
+   ]
+  },
+  "webhook_interest_registrations": {
+   "create": [
+    "POST /telephony/webhookInterestRegistrations"
+   ],
+   "delete": [
+    "DELETE /telephony/webhookInterestRegistrations"
+   ],
+   "list": [
+    "GET /telephony/webhookInterestRegistrations"
    ]
   },
   "webhooks": {

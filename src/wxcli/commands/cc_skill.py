@@ -12,13 +12,13 @@ from wxcli.common import verify_write
 app = typer.Typer(help="Manage Webex Contact Center cc-skill.")
 
 
-@app.command("list", short_help="List Skill(s).")
+@app.command("list", short_help="List Skills.")
 def cmd_list(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. Supported filterable fields: id. The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (enumSkillValues)"),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, This query param should use only if the response contain single record, if we are using for multiple objects response query param not supported and throws an exception."),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -26,7 +26,7 @@ def cmd_list(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Skill(s)."""
+    """List Skills."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -62,28 +62,70 @@ def cmd_list(
 
 
 
+_BODY_SKELETON_CREATE = '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
+
 @app.command("create", short_help="Create a new Skill.")
 def create(
-    payload_dto: str = typer.Option(..., "--payload-dto", help="Skill configuration data"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the skill. Once created, name cannot be modified."),
+    description: str = typer.Option(None, "--description", help="Indicates the description of the skill."),
+    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help="(required) Allows to set the time that a customer request can be in a queue before the system flags it as outside the service level. If the agent completes a customer service request within this time interval, the system considers it within the service level. It is required only for a create or an update..."),
+    active: bool = typer.Option(None, "--active/--no-active", help="(required) Indicates the status of the skill whether it is active(when true) or not active(when false). It is required only during a create or an update operation."),
+    dynamic_skill: bool = typer.Option(None, "--dynamic-skill/--no-dynamic-skill", help="Indicates whether the skill is a dynamic skill or not. Default value is false."),
+    skill_type: str = typer.Option(None, "--skill-type", help="(required) Choices: Proficiency, Boolean, Text, enum"),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Skill.\n\n\b\nExample: wxcli cc-skill create --payload-dto PAYLOAD_DTO"""
+    """Create a new Skill.\n\n\b\nExample: wxcli cc-skill create --name NAME --service-level-threshold SERVICE_LEVEL_THRESHOLD --active --skill-type Proficiency\n\n\b\nExample --json-body: '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill"
-    params = {}
-    if payload_dto is not None:
-        params["payloadDTO"] = payload_dto
     if json_body:
         body = load_json_body(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if service_level_threshold is not None:
+            body["serviceLevelThreshold"] = service_level_threshold
+        if active is not None:
+            body["active"] = active
+        if dynamic_skill is not None:
+            body["dynamicSkill"] = dynamic_skill
+        if skill_type is not None:
+            body["skillType"] = skill_type
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'serviceLevelThreshold', 'active', 'skillType'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -100,9 +142,9 @@ def create(
 
 
 
-_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
 
-@app.command("create-bulk", short_help="Bulk save Skill(s).")
+@app.command("create-bulk", short_help="Bulk save Skills.")
 def create_bulk(
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -110,7 +152,7 @@ def create_bulk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Bulk save Skill(s).\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
+    """Bulk save Skills.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"systemDefault":true,"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
         raise typer.Exit(0)
@@ -140,52 +182,17 @@ def create_bulk(
 
 
 
-@app.command("create-populate-json-attr", short_help="Populate json-attributes field for a given skill-id of an organization.")
-def create_populate_json_attr(
-    id: str = typer.Argument(help="id"),
-    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
-    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
-    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    debug: bool = typer.Option(False, "--debug"),
-):
-    """Populate json-attributes field for a given skill-id of an organization.\n\n\b\nExample: wxcli cc-skill create-populate-json-attr ID"""
-    api = get_api(debug=debug)
-    cc_base_url = get_cc_base_url()
-    orgid = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/organization/{orgid}/skill/populate-json-attr/{id}"
-    if json_body:
-        body = load_json_body(json_body)
-    else:
-        body = {}
-    try:
-        result = api.session.rest_post(url, json=body)
-    except WebexError as e:
-        handle_rest_error(e)
-    except httpx.HTTPError as e:
-        handle_network_error(e)
-    if output == "id":
-        if isinstance(result, dict) and "id" in result:
-            typer.echo(f"Created: {result['id']}")
-        elif not result or result == {}:
-            typer.echo("Created.")
-        else:
-            print_json(result)
-    else:
-        emit(result, output=output, fields=fields)
-
-
-
 @app.command("create-purge-inactive-entities", hidden=True)
-@app.command("delete-purge-inactive-entities", short_help="Purge inactive Skill(s).")
+@app.command("delete-purge-inactive-entities", short_help="Purge inactive Skills.")
 def delete_purge_inactive_entities(
-    next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch with be selected."),
+    next_start_id: str = typer.Option(None, "--next-start-id", help="This is the entity ID from which items for the next purge batch will be selected."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Purge inactive Skill(s)."""
+    """Purge inactive Skills."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -234,36 +241,74 @@ def show(
 
 
 
+_BODY_SKELETON_UPDATE = '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
+
 @app.command("update", short_help="Update specific Skill by ID.")
 def update(
     id: str = typer.Argument(help="UUID, from: wxcli cc-skill list"),
-    payload_dto: str = typer.Option(..., "--payload-dto", help="Skill configuration data for update"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="Indicates the name of the skill. Once created, name cannot be modified."),
+    description: str = typer.Option(None, "--description", help="Indicates the description of the skill."),
+    service_level_threshold: str = typer.Option(None, "--service-level-threshold", help="Allows to set the time that a customer request can be in a queue before the system flags it as outside the service level. If the agent completes a customer service request within this time interval, the system considers it within the service level. It is required only for a create or an update..."),
+    active: bool = typer.Option(None, "--active/--no-active", help="Indicates the status of the skill whether it is active(when true) or not active(when false). It is required only during a create or an update operation."),
+    dynamic_skill: bool = typer.Option(None, "--dynamic-skill/--no-dynamic-skill", help="Indicates whether the skill is a dynamic skill or not. Default value is false."),
+    skill_type: str = typer.Option(None, "--skill-type", help="Choices: Proficiency, Boolean, Text, enum"),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Skill by ID.\n\n\b\nExample: wxcli cc-skill update ID --payload-dto PAYLOAD_DTO"""
+    """Update specific Skill by ID.\n\n\b\nExample: wxcli cc-skill update ID --name NAME --service-level-threshold SERVICE_LEVEL_THRESHOLD --active --skill-type Proficiency\n\n\b\nExample --json-body: '{"name":"...","serviceLevelThreshold":0,"active":true,"skillType":"Proficiency","organizationId":"...","id":"...","version":0,"description":"...","enumSkillValues":[{"name":"...","organizationId":"...","id":"...","version":0,"description":"...","skillId":"...","createdTime":0,"lastUpdatedTime":0}],"dynamicSkill":true,"systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill/{id}"
-    params = {}
-    if payload_dto is not None:
-        params["payloadDTO"] = payload_dto
     if json_body:
         body = load_json_body(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if service_level_threshold is not None:
+            body["serviceLevelThreshold"] = service_level_threshold
+        if active is not None:
+            body["active"] = active
+        if dynamic_skill is not None:
+            body["dynamicSkill"] = dynamic_skill
+        if skill_type is not None:
+            body["skillType"] = skill_type
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
-        result = api.session.rest_put(url, json=body, params=params)
+        result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
     if verify:
-        verify_write(api, url, params, body)
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:
@@ -348,14 +393,15 @@ def list_incoming_references(
 
 
 
-@app.command("list-skill", short_help="List Skill(s).")
+@app.command("list-skill", short_help="List Skills.")
 def list_skill(
     filter_param: str = typer.Option(None, "--filter", help="Specify a filter based on which the results will be fetched. All the fields are supported except: organizationId, enumSkillValues, createdTime, lastUpdatedTime The examples below show some search queries - id==\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" - id!=\"57efb0e6-5af0-4245-a67d-d3c5045cdb6e\" -..."),
     attributes: str = typer.Option(None, "--attributes", help="Specify the attributes to be returned. By default, all attributes are returned along with the specified columns. All attributes are supported. except (enumSkillValues)"),
     search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\");value==\"Cisco\""),
     page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
-    single_object_response: str = typer.Option(None, "--single-object-response", help="Specifiy whether to include array fields in the response, This query param should use only if the response contain single record, if we are using for multiple objects response query param not supported and throws an exception."),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception."),
+    include: str = typer.Option(None, "--include", help="Fetch array fields on demand only. Supported array fields are enumSkillValues."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -363,7 +409,7 @@ def list_skill(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List Skill(s)."""
+    """List Skills."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
@@ -381,6 +427,8 @@ def list_skill(
         params["pageSize"] = page_size
     if single_object_response is not None:
         params["singleObjectResponse"] = single_object_response
+    if include is not None:
+        params["include"] = include
     if limit > 0:
         params["max"] = limit
     if offset > 0:

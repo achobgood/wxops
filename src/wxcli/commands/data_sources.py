@@ -15,11 +15,11 @@ _BODY_SKELETON_CREATE = '{"audience":"...","nonce":"...","schemaId":"...","subje
 
 @app.command("create", short_help="Register a Data Source. (Admin)")
 def create(
-    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
-    nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
-    schema_id: str = typer.Option(None, "--schema-id", help="The schema id used for the data exchange."),
-    subject: str = typer.Option(None, "--subject", help="Rhe subject field in the JWT token. Usually, an indication of the app's function"),
-    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440."),
+    audience: str = typer.Option(None, "--audience", help="The JWT `aud` (audience) claim. This is usually the DAP application's name."),
+    nonce: str = typer.Option(None, "--nonce", help="A unique nonce used when encrypting the JWT."),
+    schema_id: str = typer.Option(None, "--schema-id", help="The schema ID used for the data exchange."),
+    subject: str = typer.Option(None, "--subject", help="The JWT `sub` (subject) claim. This usually describes the application's function."),
+    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data. Must be 1440 or less."),
     url: str = typer.Option(None, "--url", help="The URL of the endpoint where Webex will send the data."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -172,13 +172,13 @@ _BODY_SKELETON_UPDATE = '{"audience":"...","errorMessage":"...","nonce":"...","s
 @app.command("update", short_help="Update a Data Source. (Admin)")
 def update(
     data_source_id: str = typer.Argument(help="UUID, from: wxcli cc-data-sources list"),
-    audience: str = typer.Option(None, "--audience", help="The audience field in the JWT token. Usually, the DAPs app name."),
-    error_message: str = typer.Option(None, "--error-message", help="Error Message shown in Control Hub when status is set to `disabled`."),
-    nonce: str = typer.Option(None, "--nonce", help="Unique nonce used in the encryption of the JWT token."),
-    schema_id: str = typer.Option(None, "--schema-id", help="The schema id used for the data exchange."),
-    status: str = typer.Option(None, "--status", help="The status of the Data Source; `active` or `disabled`."),
-    subject: str = typer.Option(None, "--subject", help="The subject field in the JWT token. Usually, an indication of the app's function"),
-    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The validity of the created token in minutes. Before the token expiration time, a new token must be provided, or Webex will stop delivering data after the token expiration. Must be equal or less to 1440."),
+    audience: str = typer.Option(None, "--audience", help="The JWT `aud` (audience) claim. This is usually the DAP application's name."),
+    error_message: str = typer.Option(None, "--error-message", help="The error message shown in Control Hub when `status` is set to `disabled`."),
+    nonce: str = typer.Option(None, "--nonce", help="A unique nonce used when encrypting the JWT."),
+    schema_id: str = typer.Option(None, "--schema-id", help="The schema ID used for the data exchange."),
+    status: str = typer.Option(None, "--status", help="The data source status: `active` or `disabled`."),
+    subject: str = typer.Option(None, "--subject", help="The JWT `sub` (subject) claim. This usually describes the application's function."),
+    token_lifetime_minutes: str = typer.Option(None, "--token-lifetime-minutes", help="The JWT lifetime, in minutes. Before the token expires, provide a new token or Webex will stop delivering data. Must be 1440 or less."),
     url: str = typer.Option(None, "--url", help="The URL of the endpoint where Webex will send the data."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),

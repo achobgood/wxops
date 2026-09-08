@@ -80,14 +80,14 @@ def update(
 
 
 
-@app.command("show-terms-of-service", short_help="Get Call Recording Terms Of Service Settings.")
+@app.command("show-terms-of-service", short_help="Get Call Recording Terms of Service Settings.")
 def show_terms_of_service(
     vendor_id: str = typer.Argument(help="Webex RECORDING_VENDOR id"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Call Recording Terms Of Service Settings.\n\n\b\nExample: wxcli call-recording show-terms-of-service VENDOR_ID"""
+    """Get Call Recording Terms of Service Settings.\n\n\b\nExample: wxcli call-recording show-terms-of-service VENDOR_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/vendors/{vendor_id}/termsOfService"
     params = {}
@@ -106,7 +106,7 @@ def show_terms_of_service(
 
 _BODY_SKELETON_UPDATE_TERMS_OF_SERVICE = '{"termsOfServiceEnabled":true}'
 
-@app.command("update-terms-of-service", short_help="Update Call Recording Terms Of Service Settings.")
+@app.command("update-terms-of-service", short_help="Update Call Recording Terms of Service Settings.")
 def update_terms_of_service(
     vendor_id: str = typer.Argument(help="Webex RECORDING_VENDOR id"),
     terms_of_service_enabled: bool = typer.Option(None, "--terms-of-service-enabled/--no-terms-of-service-enabled", help="Whether or not the call recording terms of service are enabled."),
@@ -117,7 +117,7 @@ def update_terms_of_service(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Call Recording Terms Of Service Settings.\n\n\b\nExample: wxcli call-recording update-terms-of-service VENDOR_ID --terms-of-service-enabled\n\n\b\nExample --json-body: '{"termsOfServiceEnabled":true}'"""
+    """Update Call Recording Terms of Service Settings.\n\n\b\nExample: wxcli call-recording update-terms-of-service VENDOR_ID --terms-of-service-enabled\n\n\b\nExample --json-body: '{"termsOfServiceEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_TERMS_OF_SERVICE), indent=2))
         raise typer.Exit(0)
@@ -150,13 +150,13 @@ def update_terms_of_service(
 
 
 
-@app.command("show-compliance-announcement-call-recording", short_help="Get details for the organization Compliance Announcement Setting.")
+@app.command("show-compliance-announcement-call-recording", short_help="Get Details for the Organization Compliance Announcement Setting.")
 def show_compliance_announcement_call_recording(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get details for the organization Compliance Announcement Setting."""
+    """Get Details for the Organization Compliance Announcement Setting."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/callRecording/complianceAnnouncement"
     params = {}
@@ -175,7 +175,7 @@ def show_compliance_announcement_call_recording(
 
 _BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING = '{"inboundPSTNCallsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useCustomAnnouncementEnabled":true,"audioAnnouncementFileId":"..."}'
 
-@app.command("update-compliance-announcement-call-recording", short_help="Update the organization Compliance Announcement.")
+@app.command("update-compliance-announcement-call-recording", short_help="Update the Organization Compliance Announcement.")
 def update_compliance_announcement_call_recording(
     inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP announcement is played to an inbound caller."),
     outbound_pstn_calls_enabled: bool = typer.Option(None, "--outbound-pstn-calls-enabled/--no-outbound-pstn-calls-enabled", help="Flag to indicate whether the call recording START/STOP announcement is played to an outbound caller."),
@@ -190,7 +190,7 @@ def update_compliance_announcement_call_recording(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the organization Compliance Announcement.\n\n\b\nExample --json-body: '{"inboundPSTNCallsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useCustomAnnouncementEnabled":true,"audioAnnouncementFileId":"..."}'"""
+    """Update the Organization Compliance Announcement.\n\n\b\nExample --json-body: '{"inboundPSTNCallsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useCustomAnnouncementEnabled":true,"audioAnnouncementFileId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING), indent=2))
         raise typer.Exit(0)
@@ -233,14 +233,14 @@ def update_compliance_announcement_call_recording(
 
 
 
-@app.command("show-compliance-announcement-call-recording-1", short_help="Get details for the Location Compliance Announcement Setting.")
+@app.command("show-compliance-announcement-call-recording-1", short_help="Get Details of Call Recording Compliance Announcement for the Location.")
 def show_compliance_announcement_call_recording_1(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get details for the Location Compliance Announcement Setting.\n\n\b\nExample: wxcli call-recording show-compliance-announcement-call-recording-1 LOCATION_ID"""
+    """Get Details of Call Recording Compliance Announcement for the Location.\n\n\b\nExample: wxcli call-recording show-compliance-announcement-call-recording-1 LOCATION_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/callRecording/complianceAnnouncement"
     params = {}
@@ -259,7 +259,7 @@ def show_compliance_announcement_call_recording_1(
 
 _BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING_1 = '{"inboundPSTNCallsEnabled":true,"useOrgSettingsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useOrgLevelAnnouncementEnabled":true,"customComplianceAnnouncement":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'
 
-@app.command("update-compliance-announcement-call-recording-1", short_help="Update the Location Compliance Announcement.")
+@app.command("update-compliance-announcement-call-recording-1", short_help="Update Call Recording Compliance Announcement for the Location.")
 def update_compliance_announcement_call_recording_1(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     inbound_pstn_calls_enabled: bool = typer.Option(None, "--inbound-pstn-calls-enabled/--no-inbound-pstn-calls-enabled", help="Flag to indicate whether the Call Recording START/STOP announcement is played to an inbound caller."),
@@ -275,7 +275,7 @@ def update_compliance_announcement_call_recording_1(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the Location Compliance Announcement.\n\n\b\nExample: wxcli call-recording update-compliance-announcement-call-recording-1 LOCATION_ID\n\n\b\nExample --json-body: '{"inboundPSTNCallsEnabled":true,"useOrgSettingsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useOrgLevelAnnouncementEnabled":true,"customComplianceAnnouncement":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'"""
+    """Update Call Recording Compliance Announcement for the Location.\n\n\b\nExample: wxcli call-recording update-compliance-announcement-call-recording-1 LOCATION_ID\n\n\b\nExample --json-body: '{"inboundPSTNCallsEnabled":true,"useOrgSettingsEnabled":true,"outboundPSTNCallsEnabled":true,"outboundPSTNCallsDelayEnabled":true,"delayInSeconds":0,"useOrgLevelAnnouncementEnabled":true,"customComplianceAnnouncement":{"type":"CUSTOM","audioAnnouncementFileId":"..."}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_COMPLIANCE_ANNOUNCEMENT_CALL_RECORDING_1), indent=2))
         raise typer.Exit(0)

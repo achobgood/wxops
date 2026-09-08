@@ -415,6 +415,7 @@ def update_screen_pop(
 
 
 
+@app.command("list-available-agents-cx-essentials", hidden=True)
 @app.command("list-available-agents", short_help="List Available Agents.")
 def list_available_agents(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
@@ -442,6 +443,58 @@ def list_available_agents(
     result = None
     try:
         result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("agents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Type', 'type')], limit=limit)
+
+
+
+@app.command("list-available-agents-cx-essentials-1", hidden=True)
+@app.command("list-available-agents-org", short_help="Get Available Agents.")
+def list_available_agents_org(
+    location_id: str = typer.Option(..., "--location-id", help="The location ID of the call queue. Temporary mandatory query parameter, used for performance reasons only and not a filter."),
+    has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Filter agents by Customer Assist license status. When `true`, returns only agents with Customer Assist license. When `false`, returns only agents with Customer Experience Basic license. When omitted, returns all eligible agents regardless of license type."),
+    name: str = typer.Option(None, "--name", help="Filter agents by name. Supports partial matching. Multiple values can be provided to search for agents matching any of the specified names."),
+    phone_numbers: str = typer.Option(None, "--phone-numbers", help="Filter agents by phone number. Supports partial matching. Multiple values can be provided to search for agents matching any of the specified phone numbers."),
+    order: str = typer.Option(None, "--order", help="Sort order for the results. Supported fields are `firstName`, `lastName`, `displayName`, and `extension`. Use `asc` or `desc` suffix to specify direction (e.g., `lastName asc`). Default is `lastName asc`."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Available Agents.\n\n\b\nExample: wxcli customer-assist list-available-agents-org --location-id LOCATION_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/cxEssentials/agents/availableAgents"
+    params = {}
+    if location_id is not None:
+        params["locationId"] = location_id
+    if has_cx_essentials is not None:
+        params["hasCxEssentials"] = has_cx_essentials
+    if name is not None:
+        params["name"] = name
+    if phone_numbers is not None:
+        params["phoneNumbers"] = phone_numbers
+    if order is not None:
+        params["order"] = order
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        if all_pages:
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="agents"))
+        else:
+            result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

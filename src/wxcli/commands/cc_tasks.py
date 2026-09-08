@@ -846,6 +846,41 @@ def create_exit(
 
 
 
+@app.command("create-drop", short_help="Drop Participant From Conference.")
+def create_drop(
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
+    participant_id: str = typer.Argument(help="participantId"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Drop Participant From Conference.\n\n\b\nExample: wxcli cc-tasks create-drop TASK_ID PARTICIPANT_ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/tasks/{task_id}/conference/participants/{participant_id}/drop"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
 @app.command("create-accept-preview-task", short_help="Accept Preview Task.")
 def create_accept_preview_task(
     task_id: str = typer.Argument(help="UUID"),
