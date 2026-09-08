@@ -118,9 +118,13 @@ def main() -> None:
     # The delta is captured to disk before the snapshot is rewritten.
     run([PYTHON, "-m", "tools.drift_check", "--refresh-spec-snapshot"],
         tee=run_dir / "spec-delta.txt")
-    run([PYTHON, "wxcli-dist/assemble.py"])
+    # Repair BEFORE assemble: assemble.py copies the root CLAUDE.md into the
+    # bundled playbook and generates AGENTS.md from it, so a count repaired
+    # after the copy leaves the bundle stale and fails the pass bar's
+    # "assemble.py leaves no diff" item.
     for path in repair_published_counts():
         print(f"repaired published count in {path}")
+    run([PYTHON, "wxcli-dist/assemble.py"])
     # Report, not enforce: the pass bar is the caller's step. Captured so the
     # run record shows what the gate said at the end of the mechanical steps.
     run([PYTHON, "-m", "tools.drift_check", "--write-gaps"], tee=run_dir / "gate.txt")
