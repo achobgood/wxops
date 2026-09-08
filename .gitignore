@@ -167,6 +167,10 @@ tests/*
 tests/tools/*
 !tests/tools/__init__.py
 !tests/tools/test_openapi_parser.py
+# tools/update-specs.py's exit code. Fetch errors were counted and printed but
+# never reached it, so a 6-of-7-failed run read as success and the next step
+# regenerated against mixed-vintage specs. Stdlib + pytest only, no network.
+!tests/test_update_specs.py
 # Shared fixtures for everything above. 23 lines, no network, no live API. It
 # is tracked for its import-time side effect as much as its two fixtures: it
 # sets WXCLI_NO_UPDATE_CHECK=1 so the suite cannot reach PyPI. Every guard
