@@ -8,6 +8,7 @@ thing that makes it auditable is that the delta lands in the run record.
 so check 3 cannot fail after a regen for want of a hand edit.
 """
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -55,6 +56,28 @@ def test_run_dir_receives_the_three_records(monkeypatch, tmp_path):
     monkeypatch.setattr("sys.argv", ["spec_sync.py", "--skip-update", "--run-dir", str(tmp_path)])
     spec_sync.main()
     assert sorted(p.name for p in tmp_path.iterdir()) == ["gate.txt", "name-lock.txt", "spec-delta.txt"]
+
+
+def test_run_tee_writes_output_before_aborting(tmp_path, capsys):
+    """A REFUSED step's output must survive the abort — that is the §5.4 record.
+
+    The other step tests mock `run` out entirely, so this is the only case that
+    drives the real subprocess/tee/exit path.
+    """
+    tee = tmp_path / "step.txt"
+    with pytest.raises(SystemExit) as e:
+        spec_sync.run(
+            [sys.executable, "-c",
+             "import sys; print('captured line'); "
+             "print('err line', file=sys.stderr); sys.exit(3)"],
+            tee=tee,
+        )
+    assert e.value.code == 3
+    assert tee.exists()
+    written = tee.read_text()
+    assert "captured line" in written
+    assert "err line" in written
+    assert "captured line" in capsys.readouterr().out
 
 
 def test_repair_counts_rewrites_only_the_number(tmp_path, monkeypatch):
