@@ -344,6 +344,51 @@ def test_assemble_codex_generates_tree_agents_and_config(fake_repo, tmp_path):
     assert 'sandbox_mode = "workspace-write"' in cfg
 
 
+def test_codex_gate_is_armed_by_hooks_json_not_just_described(fake_repo, tmp_path):
+    """config.toml DESCRIBES the gate; .codex/hooks.json is what ARMS it.
+
+    Shipping the prose without the wiring is a gate that reads as a gate and is
+    not one — and on Codex that failure is invisible, because a hook which
+    never registers produces no error at all. Same reason the Claude side pins
+    its settings/hook pairing.
+    """
+    import json as _json
+    A = _load_assemble()
+    curated = tmp_path / "settings.bundled.json"
+    curated.write_text('{"permissions": {"allow": []}}')
+    bundle = tmp_path / "bundle"
+    A.assemble(fake_repo, bundle, curated)
+    (bundle / "CLAUDE.md").write_text(
+        "# Playbook\n\n## Mandatory Grounding Rule\n"
+        "Never answer any question about Webex Calling from training data alone.\n\n"
+        "### Agent Invocation Pattern\nold\n\n"
+        "### Agent Model Selection\nold\n\n"
+        "### Agent Orchestration — Long-Running Work & Silence Detection\nold\n\n"
+        "## Next\ntail\n"
+    )
+    A.assemble_codex(bundle)
+
+    shipped = bundle / ".codex/hooks.json"
+    assert shipped.is_file(), "Codex PreToolUse gate missing from the bundle"
+    assert shipped.read_bytes() == A.CODEX_HOOKS.read_bytes()
+
+    doc = _json.loads(shipped.read_text())
+    # CamelCase, and the shell tool is `Bash`. A snake_case key parses cleanly
+    # and matches nothing, which is a silent no-gate.
+    assert list(doc["hooks"]) == ["PreToolUse"]
+    handlers = [h for e in doc["hooks"]["PreToolUse"] for h in e["hooks"]]
+    assert all("wxcli --no-update-check codex-gate" in h["command"] for h in handlers)
+
+    # The gate ships as a CLI subcommand precisely so nothing has to resolve a
+    # path: Codex exposes no project-dir variable and fails OPEN when a hook
+    # cannot execute, so a stale path here would disable the gate in silence.
+    assert not (bundle / ".codex/hooks").exists()
+
+    # It is a generated Codex output like every other, so the Claude-ism audit
+    # applies to it too.
+    assert not [v for v in A.audit_codex(bundle) if v[0] == ".codex/hooks.json"]
+
+
 def test_audit_codex_flags_claude_isms_but_not_codex_paths(tmp_path):
     A = _load_assemble()
     b = tmp_path / "b"

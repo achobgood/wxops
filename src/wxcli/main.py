@@ -194,6 +194,20 @@ def set_cc_region(
     typer.echo(f"CC region set: {region} ({CC_REGIONS[region]})")
 
 
+@app.command("codex-gate", hidden=True)
+def codex_gate():
+    """Evaluate a Codex PreToolUse hook payload read from stdin.
+
+    Wired by .codex/hooks.json, not meant to be typed. It lives here rather
+    than in a shell script because Codex gives a hook no project-dir variable
+    and FAILS OPEN when a hook cannot execute, so an unresolved script path
+    would be a silent no-gate; resolving `wxcli` on PATH removes that class of
+    failure. Hidden because it is a harness seam, not an operator command.
+    """
+    from wxcli.codex_gate import main as run_gate
+    raise typer.Exit(run_gate())
+
+
 from wxcli.commands.init_playbook import init as init_command
 app.command(name="init")(init_command)
 

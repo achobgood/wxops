@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "i=$(cat); printf '%s' \"$i\" | wxcli --no-update-check codex-gate 2>/dev/null || case \"$i\" in *wxcli*) printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"The wxcli safety gate could not run: the `wxcli` command is not on PATH for the Codex hook process, so this call could not be evaluated. Rather than allow an unchecked wxcli invocation it is refused; unrelated commands are unaffected. REQUIRED ACTION: make wxcli reachable on the login PATH (Codex runs a hook under $SHELL -lc), or ask Codex to run this work through the wxc-calling-builder agent.\"}}';; esac",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

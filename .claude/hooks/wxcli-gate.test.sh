@@ -16,14 +16,40 @@
 # copies of one policy with nothing comparing them is how they drift apart.
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 HOOK="${1:-$HERE/wxcli-gate.sh}"
+
+# Second argument selects the gate FAMILY, because the Codex gate is not a
+# script and does not speak the same output protocol:
+#   shell  $HOOK is a path, invoked as `sh <path>`; permit is a JSON "allow".
+#   codex  $HOOK is a COMMAND STRING (the wxcli subcommand .codex/hooks.json
+#          wires); permit is SILENCE. Measured on Codex 0.147.0: PreToolUse
+#          rejects permissionDecision "allow" as unsupported and falls OPEN, so
+#          the only shapes it honours are deny-with-reason and no output.
+# Both families are normalised to allow/deny below so ONE table judges both.
+# Two gates with nothing comparing them is how they drift apart.
+KIND="${2:-shell}"
 pass=0; fail=0
+
+# Reads a hook payload on stdin, prints allow|deny (or a marker that fails).
+decision() {
+  if [ "$KIND" != codex ]; then
+    sh "$HOOK" | jq -r '.hookSpecificOutput.permissionDecision'
+    return
+  fi
+  out=$(eval "$HOOK" 2>/dev/null)
+  [ -n "$out" ] || { echo allow; return; }
+  # Codex refuses a deny carrying an empty reason ("PreToolUse hook returned
+  # permissionDecision:deny without a non-empty permissionDecisionReason") and
+  # falls OPEN, so a reasonless deny is a FAILURE, not a deny.
+  reason=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')
+  [ -n "$reason" ] || { echo deny-without-reason; return; }
+  printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "no-decision"'
+}
 
 # check <expected> <agent_type> <command>
 check() {
   exp=$1; agent=$2; cmd=$3
   got=$(jq -nc --arg a "$agent" --arg c "$cmd" \
-        '{agent_type:$a,tool_input:{command:$c}}' \
-        | sh "$HOOK" | jq -r '.hookSpecificOutput.permissionDecision')
+        '{agent_type:$a,tool_input:{command:$c}}' | decision)
   if [ "$got" = "$exp" ]; then
     pass=$((pass+1)); printf '  ok   %-6s %s\n' "$got" "$cmd"
   else
@@ -66,6 +92,19 @@ echo "== bare group mutates state =="
 check deny  "" 'wxcli configure'
 check deny  "" 'wxcli switch-org'
 check deny  "" 'wxcli clear-org'
+
+# Found 2026-08-10 while porting the gate to Codex. The old rule treated any
+# token beginning with a dash as inert, so the FIRST global option became the
+# "group" and a real org delete was allowed. Every wxcli global option is a
+# boolean flag, so the gate now skips them and judges the command behind them.
+echo "== a global option before the group is not a free pass =="
+check deny  "" 'wxcli --no-update-check organizations delete Y2lz'
+check deny  "" 'wxcli --no-update-check cleanup run --force'
+check deny  "" '/opt/homebrew/bin/wxcli --no-update-check locations delete Y2lz'
+check deny  "" 'wxcli --no-update-check configure'
+check allow "" 'wxcli --no-update-check people list'
+check allow "" 'wxcli --no-update-check'
+check allow "" 'wxcli --no-update-check people show Y2lz'
 
 echo "== get* is NOT a read (all four issue rest_post) =="
 check deny  "" 'wxcli devices get-customer-device Y2lz'
@@ -123,4 +162,20 @@ if [ -z "${1:-}" ]; then
     echo "== same table, shipped copy: ${shipped##*/../} =="
     sh "$0" "$shipped" || exit 1
   done
+
+  # Same table, CODEX gate. It is a wxcli subcommand rather than a script,
+  # because Codex hands a hook no project-dir variable and FAILS OPEN when a
+  # hook cannot execute — an unresolved script path there is a silent no-gate,
+  # so resolution is a safety property and PATH lookup of the installed binary
+  # is the one form that has no path to get wrong.
+  echo
+  if command -v wxcli >/dev/null 2>&1; then
+    echo "== same table, Codex gate: wxcli codex-gate =="
+    sh "$0" "wxcli --no-update-check codex-gate" codex || exit 1
+  else
+    echo "== Codex gate NOT EXERCISED: wxcli is not on PATH =="
+    echo "The shell gates passed; the Codex gate was not tested. Install wxcli"
+    echo "(pip install -e .) and re-run before trusting this result."
+    exit 1
+  fi
 fi
