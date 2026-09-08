@@ -123,10 +123,20 @@ def main():
         if args.dry_run:
             print("(dry-run — no files written)")
         else:
-            print("Run `make regen` or regenerate affected command groups.")
+            print("Next: python3.14 tools/spec_sync.py --skip-update  "
+                  "(regenerates every tracked spec, refreshes the lock and snapshot)")
+
+    if errors:
+        # Exit 2, not 1: --check already uses 1 for "specs are stale", which is
+        # the OPPOSITE of "could not tell". A partial refresh is not a refresh;
+        # spec_sync.py aborts on this before regenerating against mixed vintages.
+        print(f"update-specs: {len(errors)} download(s) failed — partial refresh "
+              f"is not a refresh; nothing downstream should run", file=sys.stderr)
+        sys.exit(2)
 
     if args.check and total_changed:
         sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
