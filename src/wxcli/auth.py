@@ -221,8 +221,8 @@ class WebexSession:
     def _request(self, method: str, url: str, json=None, params=None,
                  content_type: str | None = None) -> httpx.Response:
         """Single HTTP path for all verbs: bounded retry on RETRY_STATUSES
-        (Retry-After honored on 429, exponential backoff otherwise) + one
-        connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
+        (Retry-After honored on ALL of them, capped at 30s; jittered backoff
+        otherwise) + one connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
         import httpx  # deferred — see module docstring note above the imports
 
         enabled = _retry_enabled()
