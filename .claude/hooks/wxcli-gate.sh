@@ -116,9 +116,19 @@ verdict=$(printf '%s' "$cmd" | awk '
       help = 0
       for (k = idx+1; k <= m; k++) if (clean(tok[k]) == "--help" || clean(tok[k]) == "-h") help = 1
       if (help) continue
-      g = (idx+1 <= m) ? clean(tok[idx+1]) : ""
-      s = (idx+2 <= m) ? clean(tok[idx+2]) : ""
-      if (g == "" || substr(g,1,1) == "-" || g == "whoami") continue   # wxcli / --version / whoami
+      # Skip LEADING GLOBAL OPTIONS before judging the group.  Treating "starts
+      # with a dash" as inert fell open on `wxcli --no-update-check
+      # organizations delete Y2lz`: the gate read --no-update-check as the group
+      # and waved a real org delete through.  All four top-level options
+      # (--version, --no-update-check, --install-completion, --show-completion)
+      # are boolean flags, so none consumes a following value and skipping is
+      # unambiguous.  A trailing-only flag run (`wxcli --version`) leaves g
+      # empty and is still inert.
+      p = idx + 1
+      while (p <= m && (clean(tok[p]) == "" || substr(clean(tok[p]),1,1) == "-")) p++
+      g = (p <= m) ? clean(tok[p]) : ""
+      s = (p+1 <= m) ? clean(tok[p+1]) : ""
+      if (g == "" || g == "whoami") continue   # wxcli / --version / whoami
       if (s == "") { print "DENY"; continue }  # bare `wxcli configure` mutates state
       verb = s; sub(/-.*$/,"",verb)            # show-call-forwarding -> show
       if (verb != "list" && verb != "show") print "DENY"

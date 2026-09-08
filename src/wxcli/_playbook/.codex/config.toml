@@ -3,35 +3,67 @@
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
-# NO SAFETY GATE SHIPS HERE YET. The other playbook variant ships a pre-tool-use
-# hook that routes state-changing wxcli calls through the wxc-calling-builder
-# agent; here, the only guard on a destructive command is the CLI's own
-# confirmation prompt.
+# THE SAFETY GATE SHIPS. It is armed by .codex/hooks.json, which registers a
+# PreToolUse handler on the Bash tool. Policy, identical to the other playbook
+# variant: the wxc-calling-builder and migration-advisor agents may run any
+# wxcli command; everyone else gets read-only wxcli (list*/show*/whoami/--help)
+# and every state-changing call is refused and redirected to the builder.
 #
-# Verified on Codex 0.147.0 (2026-08-10): the design IS portable. Working config
-# in .codex/hooks.json (project) or ~/.codex/hooks.json (global):
+# READ THIS BEFORE RELYING ON IT -- THE GATE COVERS THE MAIN SESSION ONLY.
+# Measured on 0.147.0 with a catch-all logging handler, from BOTH project and
+# global config: PreToolUse fires for the main session (Bash, and the
+# collaboration spawn/wait tools) and NOT for tool calls made inside a spawned
+# subagent. A control confirmed the subagent really did run its command. So a
+# subagent is ungated here, which is narrower than the other playbook variant,
+# where subagent tool calls do reach the hook. The spawn boundary IS visible --
+# the parent sees the target agent in the spawn payload -- but refusing spawns
+# is deliberately not done: it would block ordinary delegation, and delegating
+# to the builder is exactly what every deny message asks for.
 #
-#   { "hooks": { "PreToolUse": [ { "matcher": "^Bash$",
-#       "hooks": [ { "type": "command", "command": "sh <abs path>/gate.sh" } ] } ] } }
+# Consequence: the trusted-agent branch is forward-looking, not load-bearing.
+# The builder runs unrestricted because the hook never sees it, not because the
+# gate allows it.
 #
+# The handler calls `wxcli codex-gate` rather than a script, because Codex hands
+# a hook NO project-dir variable and a hook that cannot execute FAILS OPEN. An
+# unresolved script path would therefore be a silent no-gate, so resolution is a
+# safety property: a PATH lookup of the binary the playbook already requires is
+# the one form with no path to get wrong. If wxcli is off PATH entirely, an
+# inline fallback in the handler refuses anything mentioning wxcli and passes
+# every other command through.
+#
+# Measured on Codex 0.147.0 (2026-08-10):
 #   - Event keys are CamelCase. snake_case PARSES WITHOUT ERROR and matches
 #     nothing, which is a silent no-gate.
 #   - The shell tool is `Bash`; `exec` is only the tool_use_id prefix.
-#   - `deny` does block execution, even under bypassPermissions.
-#   - A loaded custom agent reports its own name in `agent_type`, so the policy
-#     is: agent_type == "wxc-calling-builder" -> allow, anything else -> deny.
+#   - `deny` blocks execution, even under bypassPermissions, and REQUIRES a
+#     non-empty reason.
+#   - A hook command runs under `$SHELL -lc` -- a LOGIN shell, so it inherits
+#     the PATH wxcli was installed into, and the command string gets FULL shell
+#     interpretation (quoting and `||` both work, which is what lets the
+#     fallback live inline).
+#   - The hook's working directory is the project directory. The design does
+#     not depend on that, deliberately.
+#   - A top-level `agent_type` was NOT observed on any PreToolUse payload. The
+#     spawned agent's name appears only as `tool_input.agent_type` on the
+#     collaboration spawn call.
+#   - Global hooks are read from `$CODEX_HOME/hooks.json`, not
+#     `$CODEX_HOME/hooks/hooks.json`.
 #
-# THREE CONSTRAINTS, all measured, before anyone builds this:
-#   1. FAILURE IS FAIL-OPEN. An unsupported decision ("ask") yields
-#      `hook: PreToolUse Failed` AND THE COMMAND RUNS. So does any hook that
-#      cannot execute -- including a command path that does not resolve. Emit
-#      only "allow" or "deny", and treat path resolution as a safety property.
+# THREE CONSTRAINTS the build honours, all measured:
+#   1. FAILURE IS FAIL-OPEN. Any hook that cannot execute yields
+#      `hook: PreToolUse Failed` AND THE COMMAND RUNS. So does an unsupported
+#      decision -- and on 0.147.0 that includes "allow", which is rejected the
+#      same way "ask" is. The permit path therefore emits NOTHING, which is the
+#      only shape that yields `hook: PreToolUse Completed` and so keeps `Failed`
+#      meaning "the gate did not run" instead of being the normal case.
 #   2. `agent_type` is NOT documented for PreToolUse (only for Subagent*). It is
 #      observed runtime behaviour. If a future version drops it, every caller
 #      looks anonymous and the BUILDER is denied too -- safe, but every write
-#      workflow stops, so the deny reason must say so.
+#      workflow stops, so the deny reason says exactly that.
 #   3. Version-dependent. Codex 0.144.1 silently REJECTS hyphenated agent names,
-#      so wxc-calling-builder does not load there at all. 0.147.0 accepts them.
+#      so wxc-calling-builder does not load there at all and the gate would deny
+#      the builder along with everyone else. 0.147.0 accepts them.
 #
 # The "newer wxcli on PyPI" nudge needs no hook either way: the CLI prints a
 # one-line update banner on startup (see update_check.py).

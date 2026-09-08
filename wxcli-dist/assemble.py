@@ -57,6 +57,13 @@ SOURCE_CITATION_PREFIXES = (
 # The Codex shape (.codex/ + AGENTS.md) is GENERATED from the assembled Claude
 # bundle; canonical .claude/ is never touched.
 CODEX_OVERLAY = Path(__file__).resolve().parent / "codex"
+# The Codex PreToolUse gate is wired here, and unlike the Claude side it ships
+# no script: the handler calls `wxcli codex-gate`. Codex hands a hook no
+# project-dir variable and FAILS OPEN when a hook cannot execute, so a script
+# path that does not resolve is a silent no-gate rather than an error —
+# resolving the installed binary on PATH is the only form with no path to get
+# wrong. The inline fallback in the handler covers wxcli being off PATH.
+CODEX_HOOKS = CODEX_OVERLAY / "hooks.json"
 GROUNDING_MARKER = "Never answer any question about Webex Calling from training data alone"
 _EFFORT = {"opus": "high", "sonnet": "medium", "haiku": "low"}
 
@@ -396,6 +403,11 @@ def assemble_codex(bundle_dir: Path) -> None:
     cfg_dest = bundle_dir / ".codex/config.toml"
     cfg_dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(CODEX_OVERLAY / "config.toml", cfg_dest)
+    # config.toml documents the gate; hooks.json is what actually arms it.
+    # Shipping the prose without the wiring is a gate that reads as a gate and
+    # is not one — the same defect the Claude side pins with its settings/hook
+    # pairing, so they move together here too.
+    shutil.copy2(CODEX_HOOKS, bundle_dir / ".codex/hooks.json")
 
 
 def audit_codex(bundle_dir: Path) -> list[tuple[str, int, str]]:
