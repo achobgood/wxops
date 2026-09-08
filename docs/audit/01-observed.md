@@ -761,7 +761,7 @@ carry synthetic canonical_ids; `save_plan_to_store` already handles this with an
 `INSERT OR IGNORE` placeholder (`batch.py:185-192`), so the pattern exists and does
 not need inventing.
 
-### 7.3 The Codex bundle gets no gate — measured, and left unbuilt on purpose
+### 7.3 The Codex gate — recorded here as unbuilt, SHIPPED 2026-08-10 (see the addendum at the end of this section)
 
 `[verified 2026-08-10, Codex 0.144.1]` The gate now ships for Claude Code
 (§7.2's decision, landed in `cf5a8f7`). **It does not ship for Codex**, and this
@@ -891,6 +891,62 @@ path is a silent no-gate rather than an error. Two candidates: a relative path
 (hook cwd is the project dir in every payload observed — needs confirming), or
 routing the hook through the installed binary so no path resolution is involved
 at all. The second is robust by construction and costs a new CLI surface.
+
+#### 7.3 ADDENDUM — built 2026-08-10, and four things above are wrong
+
+The gate ships: `src/wxcli/codex_gate.py` (policy), `wxcli codex-gate` (hidden
+subcommand), `wxcli-dist/codex/hooks.json` (wiring, copied into the bundle by
+`assemble_codex`). `.claude/hooks/wxcli-gate.test.sh` now runs **one** decision
+table (62 cases) across all four copies of the policy — dev shell, bundled
+shell, assembled shell, and the Python gate — and every mutation tried against
+it, in both the too-permissive and too-restrictive directions, was caught.
+
+**How the hook resolves its own path, the question left open above:** it does
+not. The handler calls `wxcli --no-update-check codex-gate`, so the only
+resolution is a PATH lookup of the binary the playbook already requires. The
+relative-path option was *confirmed workable* — the hook's cwd is the project
+directory — and still not used, because cwd is a property of how the session was
+started and an unresolved path here is a silent no-gate. An inline fallback in
+the handler covers wxcli being off PATH: it refuses anything mentioning wxcli
+and passes every other command through, needing no binary and no file.
+
+**Four corrections to the measurements above.**
+
+| Claim above | Corrected, measured on 0.147.0 |
+|---|---|
+| "Emit only `allow` or `deny`" | **`allow` is itself unsupported on PreToolUse.** The binary carries `PreToolUse hook returned unsupported permissionDecision:allow` beside the `:ask` one, and a probe emitting a well-formed allow produced the same `hook: PreToolUse Failed` as a broken hook. Only `deny` does anything, and it **requires a non-empty reason**. The permit path must emit **nothing** — the only shape that yields `Completed`, which is what keeps `Failed` meaning "the gate did not run". |
+| "A confirmed-loaded profile reports its own name in `agent_type`" | **Not reproduced.** A top-level `agent_type` was absent from *every* PreToolUse payload captured. The spawned agent's name appears only as `tool_input.agent_type` on the `collaborationspawn_agent` call. |
+| §7.2's design "IS portable" | **Only for the main session.** See below. |
+| "`codex exec` detects the hook but does not run it" (from the 0.144.1 note) | It runs it. The missing piece was **project trust**, not exec mode. |
+
+**The finding that most changes what this gate is worth: PreToolUse never fires
+inside a subagent.** Measured twice with a catch-all `matcher: ".*"` logging
+handler — once from project `.codex/hooks.json`, once from global
+`$CODEX_HOME/hooks.json` (that path, not `hooks/hooks.json`) — the parent's
+`Bash`, `collaborationspawn_agent` and `collaborationwait_agent` calls were all
+captured and **the subagent's own `Bash` call produced no hook invocation at
+all**, while a control confirmed the subagent really did run its command. Two
+consequences:
+
+- **A subagent is ungated on Codex.** This is narrower than the Claude Code
+  twin, where subagent tool calls do reach the hook — and it is the harness, not
+  the gate, that decides this. Worth weighing against §5: the 2026-07-28
+  near-miss was itself a subagent.
+- **The trusted-agent branch is forward-looking, not load-bearing.** The builder
+  runs unrestricted because the hook never sees it, not because the gate allows
+  it. The branch is kept because it is already correct if a release starts
+  delivering the field.
+
+The spawn boundary *is* visible to the parent, so refusing spawns of untrusted
+agents is technically available. It was **not** built: it would block ordinary
+delegation for non-wxcli work, and delegating to the builder is precisely what
+every deny message asks for. That is a product decision, not a technical one.
+
+**Found while porting, and fixed in both gates:** the shell gate treated any
+token starting with `-` as an inert group, so the first global option was read
+*as* the group — `wxcli --no-update-check organizations delete Y2lz` was
+**allowed**. Every wxcli global option is a boolean flag, so both gates now skip
+leading options and judge the command behind them. Four table cases pin it.
 
 ### 7.4 What no attachment point can fix, and the one thing worth adding
 

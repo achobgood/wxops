@@ -445,8 +445,22 @@ patching `httpx.request` itself works, because the method re-resolves it on ever
 call. Confirm 24/24 green, then add `!tests/test_auth.py` beside the other
 re-includes in `.gitignore`. **Then add the two cases Phase 7 measured are still
 missing after the repair**: one driving `_request`'s retry loop (`:226-260`) and
-one over `follow_pagination` (`:298-311`) — repairing alone leaves both at zero
-coverage, so the step is *"repair, track, and add"*, not *"repair and track."*
+one over `follow_pagination` (`:298-311`). The step is *"repair, track, and
+add"*, not *"repair and track."*
+
+*Correction, measured while executing this step `[verified]`:* the sentence that
+stood here said repairing alone leaves **both** at zero coverage. That is right
+for `follow_pagination` and wrong for the retry loop. Traced immediately after
+the repair and before any new test, `:226-260` runs **31 of its 35 statements** —
+the 18 repaired tests drive it. The residue is exactly two statements, the
+`except ValueError` at `:252-253`, plus one branch that executes without being
+exercised: the `min(…, MAX_RETRY_AFTER_SECONDS)` clamp at `:251`, which only ever
+saw `Retry-After: 0` and `7`, both under the 30s cap. Those two are not
+arbitrary leftovers — they are two of the six rows in §2 #2's disagreement table,
+so aim the new `_request` case at *them* rather than at the loop at large.
+`§3.3`'s "zero statement coverage" table is not what was wrong: it was measured
+with this file red, and was correct then. The error was extrapolating it past the
+repair.
 *Blast radius:* none on shipped code. Tracking before repairing turns CI red.
 *How to pin first:* this step **is** the pin — it restores the only executable
 proof of the behaviour every later step is measured against. Until it lands,
@@ -783,6 +797,7 @@ measurement.
 | "779 ungated POST/PUT/PATCH commands" | `00-facts.md` Q10 | **755** since 2026-08-04 |
 | "`--verify` on 328 update commands" | `CLAUDE.md` | **332**, counted twice independently. 328 of them sit on ungated writes — the coincidence is arithmetic, not agreement |
 | The working tree carries 28 uncommitted files / `docs/audit/` is untracked | `FINAL-REPORT-HANDOFF.md`; `PHASE-8-HANDOFF.md` | **Stale.** Tree is clean at `05739b5`; `docs/audit/` is tracked (21 files); `docs/arch/` is not (0 files) |
+| `_request` honours `Retry-After` on 429 only, with exponential backoff on the other four statuses | `auth.py:223-225`'s own docstring, quoted at `00-facts.md:252` and restated independently at `00-facts-independent.md:479` | **It honours it on all five `RETRY_STATUSES`.** `:247` reads the header with no status check; a 503 carrying `Retry-After: 5` sleeps 5, not a backoff draw (pinned by `test_retry_after_is_honored_on_5xx_not_just_429`). The **code** is right — RFC 9110 §10.2.3 defines the field for 503 — so the docstring was corrected to match it, not the reverse. Both artifacts inherited the error from the docstring, which is why two "independent" sources agree |
 | The two tests pinning the 2026-08-05 fixes are untracked | `07-testability.md` measurement window note | **Tracked**, along with the two pinning the `plan`/`normalize` and preflight-gate fixes `[verified this session]` |
 
 ### 5.2 Everything else
