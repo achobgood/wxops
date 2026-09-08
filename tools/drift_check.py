@@ -195,6 +195,26 @@ Checks (docs/arch/target-architecture.md §A6):
       counts as coverage for the set it mounts (call-features-additional.md
       documents `customer-assist` under `cx-essentials`).
 
+  21. Confirmation gates: every generated command whose real semantics are
+      destructive (DELETE, or a PUT/POST the verb classifier calls a delete)
+      carries the confirm prompt the renderer emits for destructive ops.
+
+  22. Command-name lock: every VISIBLE command name in
+      tools/command_name_lock.json still targets the operation(s) it was
+      locked to, still exists, and every visible name is locked. Check 1
+      proves every spec operation has SOME command; nothing proved an
+      existing name still points where it pointed last week. Measured
+      2026-09-08: upstream inserted /group/meetings before /meetings, and
+      because the bare verb goes to the first operation reached,
+      `meetings create` moved from POST /meetings to
+      POST /group/meetings/controls with check 1 at 0. A stable name with a
+      changed meaning is the quietest break the CLI can ship — exit 0, wrong
+      endpoint, live org. The lock is refreshed ADDITIVELY
+      (--refresh-name-lock refuses when a locked name moved), so an
+      unattended run can lock new names but cannot acknowledge a
+      repurposing; --force is the human's override and sync_guard.py fails
+      a run whose lock diff is not purely additive.
+
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
 skip an operation whose declaring specs disagree rather than unioning them —
@@ -2295,8 +2315,9 @@ class CommandFacts:
         return None
 
 
-def parse_module_facts(module: str, group: str) -> list[CommandFacts]:
-    path = COMMANDS_DIR / f"{module}.py"
+def parse_module_facts(module: str, group: str,
+                       commands_dir: Path = COMMANDS_DIR) -> list[CommandFacts]:
+    path = commands_dir / f"{module}.py"
     if not path.exists():
         return []
     text = path.read_text()
@@ -3681,6 +3702,142 @@ def check_confirm_gates(surface: dict, spec_ops: dict,
     return findings
 
 
+# ----------------------------------------------------------------- check 22
+
+NAME_LOCK = REPO / "tools" / "command_name_lock.json"
+
+
+def build_name_lock(commands_dir: Path = COMMANDS_DIR,
+                    modules: list[str] | None = None) -> dict[str, dict[str, list[str]]]:
+    """{module: {visible command: ["METHOD /path", ...]}}.
+
+    Read off the SHIPPED source with CommandFacts (ast) — never by importing
+    wxcli, never by re-modelling the generator. Hidden aliases are excluded on
+    purpose: they are compatibility shims for a rename, not names an operator
+    is taught, and locking them would make every deliberate rename fail twice.
+    A command with no URL literal (hand-written seams) locks as [] and is
+    compared as [] — equal to itself, so it can never fire spuriously.
+
+    `modules` defaults to the countable registered modules; a caller rendering
+    to a temp directory passes the stems it rendered (that directory has its
+    own _registry.py, which command_sets() does not read).
+    """
+    if modules is None:
+        modules = sorted(command_sets())
+    lock: dict[str, dict[str, list[str]]] = {}
+    for module in modules:
+        cmds = {}
+        for fact in parse_module_facts(module, module, commands_dir):
+            cmds[fact.command] = sorted(f"{m} {p}" for m, p in fact.urls)
+        lock[module] = dict(sorted(cmds.items()))
+    return lock
+
+
+def load_name_lock(path: Path | None = None) -> dict:
+    path = NAME_LOCK if path is None else path
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())
+
+
+def check_name_lock(current: dict | None = None,
+                    locked: dict | None = None) -> dict:
+    """Check 22 — a locked command name still targets the operation it was
+    locked to, still exists, and every visible name is locked.
+
+    Four buckets, all gated. `unlocked` (a visible name not in the lock) is
+    gated for the same reason check 19 has no ack list: the lock must be a
+    complete mirror, or a name added last week is stealable next week with
+    nothing watching. The refresh is additive, so keeping it complete costs
+    the operator nothing when nothing moved.
+    """
+    if current is None:
+        current = build_name_lock()
+    if locked is None:
+        locked = load_name_lock().get("modules") or {}
+    out = {"retargeted": [], "removed": [], "removed_modules": [], "unlocked": []}
+    for module, cmds in sorted(locked.items()):
+        if module not in current:
+            out["removed_modules"].append({"module": module, "commands": sorted(cmds)})
+            continue
+        for name, ops in sorted(cmds.items()):
+            if name not in current[module]:
+                out["removed"].append({"module": module, "command": name, "ops": ops})
+            elif current[module][name] != ops:
+                holder = next((n for n, o in current[module].items()
+                               if o == ops and n != name), None)
+                out["retargeted"].append({"module": module, "command": name,
+                                          "locked": ops, "now": current[module][name],
+                                          "now_held_by": holder})
+    for module, cmds in sorted(current.items()):
+        for name in sorted(cmds):
+            if name not in (locked.get(module) or {}):
+                out["unlocked"].append({"module": module, "command": name,
+                                        "ops": cmds[name]})
+    return out
+
+
+def refresh_name_lock(path: Path | None = None, force: bool = False,
+                      commands_dir: Path = COMMANDS_DIR,
+                      modules: list[str] | None = None) -> int:
+    """Rewrite the lock from the tree. ADDITIVE unless --force.
+
+    Refuses — writes nothing, exits 1 — if any locked name moved or vanished.
+    That refusal is the whole design: the unattended agent may run this every
+    week to lock new names, and cannot use it to acknowledge a repurposing.
+    A human accepting a deliberate rename or removal passes --force and says
+    why in the commit message; sync_guard.py (Phase C) fails a run whose lock
+    diff is not purely additive.
+    """
+    path = NAME_LOCK if path is None else path
+    current = build_name_lock(commands_dir, modules)
+    r = check_name_lock(current, load_name_lock(path).get("modules") or {})
+    for a in r["unlocked"]:
+        print(f"  LOCK      {a['module']} {a['command']}  {', '.join(a['ops']) or '(no url)'}")
+    blocking = r["retargeted"] or r["removed"] or r["removed_modules"]
+    if blocking:
+        for x in r["retargeted"]:
+            print(f"  MOVED     {x['module']} {x['command']}  locked {', '.join(x['locked'])}"
+                  f"  now {', '.join(x['now'])}"
+                  + (f"  (locked op now held by `{x['now_held_by']}`)" if x["now_held_by"] else ""))
+        for x in r["removed"]:
+            print(f"  REMOVED   {x['module']} {x['command']}  {', '.join(x['ops'])}")
+        for x in r["removed_modules"]:
+            print(f"  GONE      {x['module']}  ({len(x['commands'])} commands)")
+        if not force:
+            print("name-lock refresh REFUSED: a locked name moved or vanished. Pin it "
+                  "back via tag_overrides -> command_name_overrides and regenerate, or "
+                  "pass --force to accept a deliberate rename/removal (say why in the "
+                  "commit).", file=sys.stderr)
+            return 1
+    path.write_text(json.dumps({
+        "_about": "Drift gate check 22. Every visible command name -> the operations "
+                  "it targets. Regenerate with `python -m tools.drift_check "
+                  "--refresh-name-lock`; never hand-edit. The refresh is additive and "
+                  "refuses when a locked name moves; --force accepts a deliberate change.",
+        "modules": current,
+    }, indent=1, sort_keys=True) + "\n")
+    shown = path.relative_to(REPO) if path.is_relative_to(REPO) else path
+    print(f"wrote {shown} ({len(r['unlocked'])} locked, {len(r['retargeted'])} moved, "
+          f"{len(r['removed']) + len(r['removed_modules'])} removed"
+          f"{' — FORCED' if blocking else ''})")
+    return 0
+
+
+def _print_name_lock_findings(r: dict, limit: int = 20) -> None:
+    for x in r["retargeted"][:limit]:
+        print(f"      MOVED    {x['module']} {x['command']}  locked {', '.join(x['locked'])}"
+              f"  now {', '.join(x['now'])}"
+              + (f"  (locked op now held by `{x['now_held_by']}`)" if x["now_held_by"] else ""))
+    for x in r["removed"][:limit]:
+        print(f"      REMOVED  {x['module']} {x['command']}  {', '.join(x['ops'])}")
+    for x in r["removed_modules"][:limit]:
+        print(f"      GONE     {x['module']}  ({len(x['commands'])} commands)")
+    for x in r["unlocked"][:limit]:
+        print(f"      UNLOCKED {x['module']} {x['command']}  — run "
+              f"python -m tools.drift_check --refresh-name-lock")
+
+
 # --------------------------------------------------------------------- main
 
 def main() -> int:
@@ -3693,10 +3850,30 @@ def main() -> int:
     parser.add_argument("--refresh-spec-snapshot", action="store_true",
                         help="rewrite tools/spec_semantics.json (check 19) and "
                              "print the delta it acknowledges")
+    parser.add_argument("--refresh-name-lock", action="store_true",
+                        help="rewrite tools/command_name_lock.json (check 22); "
+                             "additive — refuses if a locked name moved")
+    parser.add_argument("--force", action="store_true",
+                        help="with --refresh-name-lock: accept moved/removed names")
+    parser.add_argument("--name-lock-diff", metavar="DIR",
+                        help="compare a rendered commands directory against the lock "
+                             "and print what moved; exits 1 if anything did")
     args = parser.parse_args()
 
     if args.refresh_spec_snapshot:
         return refresh_spec_snapshot()
+    if args.refresh_name_lock:
+        return refresh_name_lock(force=args.force)
+    if args.name_lock_diff:
+        d = Path(args.name_lock_diff)
+        stems = sorted(p.stem for p in d.glob("*.py") if not p.stem.startswith("_"))
+        r = check_name_lock(build_name_lock(d, stems),
+                            {m: c for m, c in (load_name_lock().get("modules") or {}).items()
+                             if m in stems})
+        print(f"name-lock diff vs {d}: {len(r['retargeted'])} moved, "
+              f"{len(r['removed'])} removed, {len(r['unlocked'])} new")
+        _print_name_lock_findings(r, limit=200)
+        return 1 if (r["retargeted"] or r["removed"]) else 0
 
     overrides = load_overrides()
     spec_ops, skipped_ops = load_spec_ops(overrides["skip_tags"])
@@ -3738,6 +3915,9 @@ def main() -> int:
     spec_structural, spec_flips, spec_prose = check_spec_semantics()
     undocumented_groups = check_reference_doc_coverage()
     ungated_destructive = check_confirm_gates(surface, spec_ops)
+    name_lock_file = load_name_lock()
+    name_lock = check_name_lock(locked=name_lock_file.get("modules") or {})
+    name_lock_missing = not name_lock_file.get("modules")
 
     results = {
         "1_spec_cli_parity": parity,
@@ -3776,6 +3956,11 @@ def main() -> int:
         "19_spec_prose_advisory": spec_prose,
         "20_groups_without_a_reference_doc": undocumented_groups,
         "21_destructive_commands_without_a_confirm": ungated_destructive,
+        "22_name_lock_retargeted": name_lock["retargeted"],
+        "22_name_lock_removed": name_lock["removed"],
+        "22_name_lock_removed_modules": name_lock["removed_modules"],
+        "22_name_lock_unlocked": name_lock["unlocked"],
+        "22_name_lock_missing": name_lock_missing,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -3788,7 +3973,9 @@ def main() -> int:
                   or inert_paging or stale_paging_acks
                   or registry_counts or doc_shape
                   or spec_structural or spec_flips or undocumented_groups
-                  or ungated_destructive)
+                  or ungated_destructive
+                  or name_lock_missing or name_lock["retargeted"] or name_lock["removed"]
+                  or name_lock["removed_modules"] or name_lock["unlocked"])
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -4019,6 +4206,12 @@ def main() -> int:
                   f"{f['command']}  (real_semantics={f['verb']!r})")
         if len(ungated_destructive) > 15:
             print(f"      ... and {len(ungated_destructive) - 15} more")
+        print(f"[22] command names that moved, vanished, or are unlocked: "
+              f"{len(name_lock['retargeted'])} moved, {len(name_lock['removed'])} removed, "
+              f"{len(name_lock['removed_modules'])} groups gone, "
+              f"{len(name_lock['unlocked'])} unlocked"
+              + ("   (NO LOCK FILE — run --refresh-name-lock)" if name_lock_missing else ""))
+        _print_name_lock_findings(name_lock)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
