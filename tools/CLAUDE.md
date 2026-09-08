@@ -71,7 +71,7 @@ Mock server URLs (public, no auth required — return saved response examples):
   - Only 27 ops across all 9 specs are multi-tagged. Any regen that moves a command-name count beyond those is a red flag; diff names, not just counts.
 - Regenerate one tag: `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --tag "Tag Name"` (the `_registry.py` manifest upserts automatically)
 - Regenerate one spec (all tags): `PYTHONPATH=. python3.14 tools/generate_commands.py --spec specs/webex-cloud-calling.json --all`
-- Regenerate everything (all tracked specs, atomic — pulls specs, regens, refreshes the name lock and the check-19 snapshot, assembles the playbook, repairs published counts, runs the drift gate): `python3.14 tools/spec_sync.py` (`--skip-update` to regen from specs on disk; `--run-dir` for the records, default `.spec-sync/`). Land the result as ONE commit. The lock refresh refuses if a name moved — pin it, then rerun.
+- Regenerate everything (all tracked specs, atomic — pulls specs, regens, refreshes the name lock and the check-19 snapshot, repairs published counts, assembles the playbook, runs the drift gate): `python3.14 tools/spec_sync.py` (`--skip-update` to regen from specs on disk; `--run-dir` for the records, default `.spec-sync/`). Land the result as ONE commit. The lock refresh refuses if a name moved — pin it, then rerun.
 - Dev-only specs: `webex-flow-store.json` regens auto-apply `--dev-only` (guarded block in main.py, never enters the manifest).
 - **CC response data key:** CC v2 list endpoints return `{"data": [...]}` not `{"items": [...]}`. The renderer adds a `"data"` fallback automatically. If adding a new CC list endpoint manually, use `result.get("items", result.get("data", ...))` for extraction.
 - Reinstall after regen: `pip3.14 install -e . -q`
@@ -1210,12 +1210,16 @@ expected weekly outcome, not an edge case.
 
 **The mechanism.** `tools/command_name_lock.json` maps every visible command
 name to the operation(s) it targets, read off the shipped source with
-`CommandFacts` (ast — never by importing wxcli). Check 22 fails when a locked
+`CommandFacts` (ast — never by importing wxcli). Scope is every module
+`command_sets()` returns — every module a regen can write; hand-written seams
+mounted outside the registry (`converged_recordings_export`, `init_playbook`)
+and the callback-only `configure`/`update` modules lock as empty or not at all
+and are regen-immune by construction. Check 22 fails when a locked
 name targets something else, vanishes, or when a visible name is unlocked.
 `--refresh-name-lock` is **additive**: it locks new names and refuses (exit 1,
 writes nothing) when a locked name moved. `--force` is the human override for a
-deliberate rename or removal; `tools/sync_guard.py` fails an unattended run
-whose lock diff is not purely additive. `--name-lock-diff DIR` compares a
+deliberate rename or removal; `tools/sync_guard.py` (Phase C) fails an
+unattended run whose lock diff is not purely additive. `--name-lock-diff DIR` compares a
 render in a temp directory against the lock, which is how a pin is decided
 *before* regenerating into the tree.
 

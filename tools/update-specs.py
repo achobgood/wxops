@@ -6,6 +6,9 @@ Usage:
     python3.14 tools/update-specs.py           # update + report
     python3.14 tools/update-specs.py --dry-run # report only, no writes
     python3.14 tools/update-specs.py --check   # exit 1 if any spec is out of date
+
+Exit codes: 0 = up to date / refreshed; 1 = --check found stale specs; 2 = one
+or more downloads failed (partial refresh; nothing downstream should run).
 """
 
 import argparse
@@ -117,6 +120,14 @@ def main():
     total_changed = len(changed) + len(added)
     print(f"\n{total_changed} spec(s) updated, {len(errors)} error(s)")
 
+    if errors:
+        # Exit 2, not 1: --check already uses 1 for "specs are stale", which is
+        # the OPPOSITE of "could not tell". A partial refresh is not a refresh;
+        # spec_sync.py aborts on this before regenerating against mixed vintages.
+        print(f"update-specs: {len(errors)} download(s) failed — partial refresh "
+              f"is not a refresh; nothing downstream should run", file=sys.stderr)
+        sys.exit(2)
+
     if total_changed:
         files = ", ".join(changed + added)
         print(f"Files: {files}")
@@ -125,14 +136,6 @@ def main():
         else:
             print("Next: python3.14 tools/spec_sync.py --skip-update  "
                   "(regenerates every tracked spec, refreshes the lock and snapshot)")
-
-    if errors:
-        # Exit 2, not 1: --check already uses 1 for "specs are stale", which is
-        # the OPPOSITE of "could not tell". A partial refresh is not a refresh;
-        # spec_sync.py aborts on this before regenerating against mixed vintages.
-        print(f"update-specs: {len(errors)} download(s) failed — partial refresh "
-              f"is not a refresh; nothing downstream should run", file=sys.stderr)
-        sys.exit(2)
 
     if args.check and total_changed:
         sys.exit(1)

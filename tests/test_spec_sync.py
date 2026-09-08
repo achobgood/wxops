@@ -62,22 +62,25 @@ def test_run_tee_writes_output_before_aborting(tmp_path, capsys):
     """A REFUSED step's output must survive the abort — that is the §5.4 record.
 
     The other step tests mock `run` out entirely, so this is the only case that
-    drives the real subprocess/tee/exit path.
+    drives the real subprocess/tee/exit path. The child prints a sentinel it
+    assembles at runtime, so the string never appears in its own argv — `run`
+    echoes the command line as a `>>>` header, which would otherwise satisfy
+    the echo assertion without any child output being captured at all.
     """
     tee = tmp_path / "step.txt"
     with pytest.raises(SystemExit) as e:
         spec_sync.run(
             [sys.executable, "-c",
-             "import sys; print('captured line'); "
+             "import sys; print('ECHO' + 'ED_STDOUT'); "
              "print('err line', file=sys.stderr); sys.exit(3)"],
             tee=tee,
         )
     assert e.value.code == 3
     assert tee.exists()
     written = tee.read_text()
-    assert "captured line" in written
+    assert "ECHOED_STDOUT" in written
     assert "err line" in written
-    assert "captured line" in capsys.readouterr().out
+    assert "ECHOED_STDOUT" in capsys.readouterr().out
 
 
 def test_repair_counts_rewrites_only_the_number(tmp_path, monkeypatch):

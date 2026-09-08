@@ -212,8 +212,8 @@ Checks (docs/arch/target-architecture.md §A6):
       endpoint, live org. The lock is refreshed ADDITIVELY
       (--refresh-name-lock refuses when a locked name moved), so an
       unattended run can lock new names but cannot acknowledge a
-      repurposing; --force is the human's override and sync_guard.py fails
-      a run whose lock diff is not purely additive.
+      repurposing; --force is the human's override and sync_guard.py
+      (Phase C) fails a run whose lock diff is not purely additive.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -3716,7 +3716,13 @@ def build_name_lock(commands_dir: Path = COMMANDS_DIR,
     purpose: they are compatibility shims for a rename, not names an operator
     is taught, and locking them would make every deliberate rename fail twice.
     A command with no URL literal (hand-written seams) locks as [] and is
-    compared as [] — equal to itself, so it can never fire spuriously.
+    compared as [] — equal to itself, so it can never fire spuriously. The lock
+    covers every module `command_sets()` returns, i.e. every module a
+    regeneration can write; hand-written seams mounted outside the registry
+    (`converged_recordings_export`, `init_playbook`) and callback-only modules
+    (`configure`, `update`, which register a bare callback in `main.py` rather
+    than `@app.command`) lock as empty or not at all, and are regen-immune by
+    construction.
 
     `modules` defaults to the countable registered modules; a caller rendering
     to a temp directory passes the stems it rendered (that directory has its
