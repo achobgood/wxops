@@ -1623,12 +1623,15 @@ tag_overrides:
     #   MOVED meetings update-meetings locked PATCH /meetings/{}  now PUT /meetings/{}
     # A SWAP, the same shape `Features:  Call Queue` and `My Call Settings` use:
     # the three incumbents are pinned back to the names they have always
-    # shipped, and the two group-meeting arrivals are named for what they act
+    # shipped, and the three group-meeting arrivals are named for what they act
     # on. Every key is the DERIVED name, read off the probe's rendered module
     # with its `url = ` literal — pins are reactive and cannot be written from
     # the operation. `list`/`show` did NOT move (both are /admin/meetings*), so
-    # they need no entry; the third arrival renders as `list-meetings-group`
-    # (GET /group/meetings), which steals nothing and is left as derived.
+    # they need no entry. The third arrival steals nothing — it derived as
+    # `list-meetings-group` — but it is renamed anyway, resource-first like its
+    # two siblings above, because a group of three that disagrees about word
+    # order teaches nothing. Decided here rather than after Task 6 refreshes the
+    # lock, where the same edit would read as a MOVED line needing --force.
     "Meetings":
       command_name_overrides:
         "create": "update-group-controls"        # POST /group/meetings/controls
@@ -1636,6 +1639,7 @@ tag_overrides:
         "update": "update-group-meetings"        # PATCH /group/meetings/{id}
         "update-meetings": "update"              # PUT /meetings/{id} — shipped name
         "update-meetings-1": "update-meetings"   # PATCH /meetings/{id} — shipped name
+        "list-meetings-group": "list-group-meetings"   # GET /group/meetings
   webex-wholesale.json:
     "Wholesale Provisioning":
       command_name_overrides:
