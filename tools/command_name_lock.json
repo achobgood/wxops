@@ -1,0 +1,5960 @@
+{
+ "_about": "Drift gate check 22. Every visible command name -> the operations it targets. Regenerate with `python -m tools.drift_check --refresh-name-lock`; never hand-edit. The refresh is additive and refuses when a locked name moves; --force accepts a deliberate change.",
+ "modules": {
+  "activation_email": {
+   "create": [
+    "POST /identity/organizations/{}/jobs/sendActivationEmails"
+   ],
+   "list": [
+    "GET /identity/organizations/{}/jobs/sendActivationEmails/{}/status"
+   ],
+   "list-errors": [
+    "GET /identity/organizations/{}/jobs/sendActivationEmails/{}/errors"
+   ]
+  },
+  "admin_recordings": {
+   "create": [
+    "POST /recordings/query"
+   ],
+   "create-access-list-recordings": [
+    "POST /recordings/{}/accessList"
+   ],
+   "create-access-list-recordings-1": [
+    "POST /recordings/accessList"
+   ],
+   "create-query": [
+    "POST /admin/recordings/query"
+   ],
+   "create-restore": [
+    "POST /recordings/restore"
+   ],
+   "create-soft-delete": [
+    "POST /recordings/softDelete"
+   ],
+   "delete": [
+    "DELETE /admin/recordings/{}"
+   ],
+   "delete-recordings": [
+    "DELETE /recordings/{}"
+   ],
+   "delete-recordings-recycle": [
+    "POST /recordings/purge"
+   ],
+   "list": [
+    "GET /recordings"
+   ],
+   "list-recordings-admin": [
+    "GET /admin/recordings"
+   ],
+   "list-recordings-group": [
+    "GET /group/recordings"
+   ],
+   "show": [
+    "GET /recordings/{}"
+   ],
+   "show-recordings": [
+    "GET /group/recordings/{}"
+   ]
+  },
+  "ai_receptionist": {
+   "create": [
+    "POST /telephony/config/locations/{}/aiReceptionists"
+   ],
+   "create-documents": [
+    "POST /telephony/config/knowledgeBases/{}/documents"
+   ],
+   "create-intents": [
+    "POST /telephony/config/locations/{}/aiReceptionists/{}/intents"
+   ],
+   "create-knowledge-bases": [
+    "POST /telephony/config/knowledgeBases"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/aiReceptionists/{}"
+   ],
+   "delete-documents": [
+    "DELETE /telephony/config/knowledgeBases/{}/documents/{}"
+   ],
+   "delete-intents": [
+    "DELETE /telephony/config/locations/{}/aiReceptionists/{}/intents/{}"
+   ],
+   "delete-knowledge-bases": [
+    "DELETE /telephony/config/knowledgeBases/{}"
+   ],
+   "download-documents": [
+    "POST /telephony/config/knowledgeBases/{}/documents/{}/actions/download/invoke"
+   ],
+   "list": [
+    "GET /telephony/config/aiReceptionists"
+   ],
+   "list-available-numbers": [
+    "GET /telephony/config/locations/{}/aiReceptionists/availableNumbers"
+   ],
+   "list-documents": [
+    "GET /telephony/config/knowledgeBases/{}/documents"
+   ],
+   "list-intents": [
+    "GET /telephony/config/locations/{}/aiReceptionists/{}/intents"
+   ],
+   "list-knowledge-bases": [
+    "GET /telephony/config/knowledgeBases"
+   ],
+   "list-templates": [
+    "GET /telephony/config/aiReceptionists/templates"
+   ],
+   "list-voices": [
+    "GET /telephony/config/locations/{}/aiReceptionists/voices"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/aiReceptionists/{}"
+   ],
+   "show-documents": [
+    "GET /telephony/config/knowledgeBases/{}/documents/{}"
+   ],
+   "show-intents": [
+    "GET /telephony/config/locations/{}/aiReceptionists/{}/intents/{}"
+   ],
+   "show-knowledge-bases": [
+    "GET /telephony/config/knowledgeBases/{}"
+   ],
+   "show-template": [
+    "GET /telephony/config/aiReceptionists/templates/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/aiReceptionists/{}"
+   ],
+   "update-documents": [
+    "PUT /telephony/config/knowledgeBases/{}/documents/{}"
+   ],
+   "update-intents": [
+    "PUT /telephony/config/locations/{}/aiReceptionists/{}/intents/{}"
+   ],
+   "update-knowledge-bases": [
+    "PUT /telephony/config/knowledgeBases/{}"
+   ],
+   "validate-ai-receptionist": [
+    "POST /telephony/config/locations/{}/aiReceptionists/actions/validate/invoke"
+   ],
+   "validate-country": [
+    "POST /telephony/config/aiReceptionists/actions/validateCountry/invoke"
+   ]
+  },
+  "analytics": {
+   "show": [
+    "GET /analytics/messagingMetrics/dailyTotals"
+   ],
+   "show-aggregates": [
+    "GET /analytics/meetingsMetrics/aggregates"
+   ],
+   "show-daily-totals": [
+    "GET /analytics/roomDeviceMetrics/dailyTotals"
+   ]
+  },
+  "announcement_playlists": {
+   "create": [
+    "POST /telephony/config/announcements/playlists"
+   ],
+   "delete": [
+    "DELETE /telephony/config/announcements/playlists/{}"
+   ],
+   "list": [
+    "GET /telephony/config/announcements/playlists"
+   ],
+   "list-playlists": [
+    "GET /telephony/config/announcements/playlists/{}/locations"
+   ],
+   "show": [
+    "GET /telephony/config/announcements/playlists/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/announcements/playlists/{}"
+   ],
+   "update-playlists": [
+    "PUT /telephony/config/announcements/playlists/{}/locations"
+   ]
+  },
+  "announcements": {
+   "create": [
+    "POST /telephony/config/announcements"
+   ],
+   "create-announcements": [
+    "POST /telephony/config/locations/{}/announcements"
+   ],
+   "delete": [
+    "DELETE /telephony/config/announcements/{}"
+   ],
+   "delete-announcements": [
+    "DELETE /telephony/config/locations/{}/announcements/{}"
+   ],
+   "generate-upload-url": [
+    "POST /telephony/config/announcements/uploadUrls/actions/generate/invoke"
+   ],
+   "list": [
+    "GET /telephony/config/announcements"
+   ],
+   "show": [
+    "GET /telephony/config/announcements/usage"
+   ],
+   "show-announcements-config": [
+    "GET /telephony/config/announcements/{}"
+   ],
+   "show-announcements-locations": [
+    "GET /telephony/config/locations/{}/announcements/{}"
+   ],
+   "show-file-uri-announcements": [
+    "GET /telephony/config/announcements/{}/fileUri"
+   ],
+   "show-file-uri-announcements-1": [
+    "GET /telephony/config/locations/{}/announcements/{}/fileUri"
+   ],
+   "show-urls": [
+    "GET /telephony/config/media/urls/{}"
+   ],
+   "show-usage-announcements": [
+    "GET /telephony/config/locations/{}/announcements/usage"
+   ],
+   "tts-generate": [
+    "POST /telephony/config/textToSpeech/actions/generate/invoke"
+   ],
+   "tts-status": [
+    "GET /telephony/config/textToSpeech/{}"
+   ],
+   "tts-usage": [
+    "GET /telephony/config/textToSpeech/usage"
+   ],
+   "tts-voices": [
+    "GET /telephony/config/textToSpeech/voices"
+   ],
+   "update": [
+    "PUT /telephony/config/announcements/{}"
+   ],
+   "update-announcements": [
+    "PUT /telephony/config/locations/{}/announcements/{}"
+   ]
+  },
+  "archive_users": {
+   "list": [
+    "GET /identity/organizations/{}/v1/ArchivedUser"
+   ]
+  },
+  "attachment_actions": {
+   "create-an-attachment": [
+    "POST /attachment/actions"
+   ],
+   "show": [
+    "GET /attachment/actions/{}"
+   ]
+  },
+  "audit_events": {
+   "list": [
+    "GET /adminAudit/events"
+   ],
+   "list-event-categories": [
+    "GET /adminAudit/eventCategories"
+   ]
+  },
+  "authorizations": {
+   "delete": [
+    "DELETE /authorizations"
+   ],
+   "delete-authorizations": [
+    "DELETE /authorizations/{}"
+   ],
+   "list": [
+    "GET /authorizations"
+   ],
+   "show": [
+    "GET /authorizations/tokenExpiry"
+   ]
+  },
+  "auto_attendant": {
+   "create": [
+    "POST /telephony/config/locations/{}/autoAttendants"
+   ],
+   "create-selective-rules": [
+    "POST /telephony/config/locations/{}/autoAttendants/{}/callForwarding/selectiveRules"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/autoAttendants/{}"
+   ],
+   "delete-announcements": [
+    "DELETE /telephony/config/locations/{}/autoAttendants/{}/announcements/{}"
+   ],
+   "delete-selective-rules": [
+    "DELETE /telephony/config/locations/{}/autoAttendants/{}/callForwarding/selectiveRules/{}"
+   ],
+   "list": [
+    "GET /telephony/config/autoAttendants"
+   ],
+   "list-announcements": [
+    "GET /telephony/config/locations/{}/autoAttendants/{}/announcements"
+   ],
+   "list-available-numbers-alternate": [
+    "GET /telephony/config/locations/{}/autoAttendants/alternate/availableNumbers"
+   ],
+   "list-available-numbers-auto-attendants": [
+    "GET /telephony/config/locations/{}/autoAttendants/availableNumbers"
+   ],
+   "list-available-numbers-call-forwarding": [
+    "GET /telephony/config/locations/{}/autoAttendants/callForwarding/availableNumbers"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/autoAttendants/{}"
+   ],
+   "show-call-forwarding": [
+    "GET /telephony/config/locations/{}/autoAttendants/{}/callForwarding"
+   ],
+   "show-selective-rules": [
+    "GET /telephony/config/locations/{}/autoAttendants/{}/callForwarding/selectiveRules/{}"
+   ],
+   "switch-mode-for": [
+    "POST /telephony/config/locations/{}/autoAttendants/{}/callForwarding/actions/switchMode/invoke"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/autoAttendants/{}"
+   ],
+   "update-call-forwarding": [
+    "PUT /telephony/config/locations/{}/autoAttendants/{}/callForwarding"
+   ],
+   "update-selective-rules": [
+    "PUT /telephony/config/locations/{}/autoAttendants/{}/callForwarding/selectiveRules/{}"
+   ]
+  },
+  "broadworks_billing_reports": {
+   "create": [
+    "POST /broadworks/billing/reports"
+   ],
+   "delete": [
+    "DELETE /broadworks/billing/reports/{}"
+   ],
+   "list": [
+    "GET /broadworks/billing/reports"
+   ],
+   "show": [
+    "GET /broadworks/billing/reports/{}"
+   ]
+  },
+  "broadworks_enterprises": {
+   "create": [
+    "POST /broadworks/enterprises/{}/broadworksDirectorySync"
+   ],
+   "create-external-user": [
+    "POST /broadworks/enterprises/{}/broadworksDirectorySync/externalUser"
+   ],
+   "show": [
+    "GET /broadworks/enterprises"
+   ],
+   "show-broadworks-directory-sync": [
+    "GET /broadworks/enterprises/{}/broadworksDirectorySync"
+   ],
+   "update": [
+    "PUT /broadworks/enterprises/{}/broadworksDirectorySync"
+   ]
+  },
+  "broadworks_subscribers": {
+   "create": [
+    "POST /broadworks/subscribers"
+   ],
+   "create-consent-move": [
+    "POST /subscribers/{}/emails/consentMove"
+   ],
+   "create-validate": [
+    "POST /broadworks/subscribers/validate"
+   ],
+   "delete": [
+    "DELETE /broadworks/subscribers/{}"
+   ],
+   "list": [
+    "GET /broadworks/subscribers"
+   ],
+   "show": [
+    "GET /broadworks/subscribers/{}"
+   ],
+   "update": [
+    "PUT /broadworks/subscribers/{}"
+   ]
+  },
+  "broadworks_workspaces": {
+   "create": [
+    "POST /broadworks/workspaces"
+   ],
+   "delete": [
+    "DELETE /broadworks/workspaces/{}"
+   ],
+   "update": [
+    "PUT /broadworks/workspaces/{}"
+   ]
+  },
+  "call_controls": {
+   "create": [
+    "POST /telephony/calls/dial"
+   ],
+   "create-answer-calls": [
+    "POST /telephony/calls/answer"
+   ],
+   "create-answer-me": [
+    "POST /telephony/calls/members/me/answer"
+   ],
+   "create-answer-members": [
+    "POST /telephony/calls/members/{}/answer"
+   ],
+   "create-barge-in": [
+    "POST /telephony/calls/bargeIn"
+   ],
+   "create-dial-me": [
+    "POST /telephony/calls/members/me/dial"
+   ],
+   "create-dial-members": [
+    "POST /telephony/calls/members/{}/dial"
+   ],
+   "create-divert": [
+    "POST /telephony/calls/divert"
+   ],
+   "create-hangup-calls": [
+    "POST /telephony/calls/hangup"
+   ],
+   "create-hangup-me": [
+    "POST /telephony/calls/members/me/hangup"
+   ],
+   "create-hangup-members": [
+    "POST /telephony/calls/members/{}/hangup"
+   ],
+   "create-hold": [
+    "POST /telephony/calls/hold"
+   ],
+   "create-mute": [
+    "POST /telephony/calls/mute"
+   ],
+   "create-park": [
+    "POST /telephony/calls/park"
+   ],
+   "create-pause-recording": [
+    "POST /telephony/calls/pauseRecording"
+   ],
+   "create-pickup": [
+    "POST /telephony/calls/pickup"
+   ],
+   "create-pull": [
+    "POST /telephony/calls/pull"
+   ],
+   "create-push": [
+    "POST /telephony/calls/push"
+   ],
+   "create-reject": [
+    "POST /telephony/calls/reject"
+   ],
+   "create-resume": [
+    "POST /telephony/calls/resume"
+   ],
+   "create-resume-recording": [
+    "POST /telephony/calls/resumeRecording"
+   ],
+   "create-retrieve": [
+    "POST /telephony/calls/retrieve"
+   ],
+   "create-start-recording": [
+    "POST /telephony/calls/startRecording"
+   ],
+   "create-stop-recording": [
+    "POST /telephony/calls/stopRecording"
+   ],
+   "create-transfer": [
+    "POST /telephony/calls/transfer"
+   ],
+   "create-transmit-dtmf": [
+    "POST /telephony/calls/transmitDtmf"
+   ],
+   "create-unmute": [
+    "POST /telephony/calls/unmute"
+   ],
+   "list": [
+    "GET /telephony/calls"
+   ],
+   "list-calls-me": [
+    "GET /telephony/calls/members/me/calls"
+   ],
+   "list-calls-members": [
+    "GET /telephony/calls/members/{}/calls"
+   ],
+   "list-history": [
+    "GET /telephony/calls/history"
+   ],
+   "show": [
+    "GET /telephony/calls/{}"
+   ],
+   "show-calls-me": [
+    "GET /telephony/calls/members/me/calls/{}"
+   ],
+   "show-calls-members": [
+    "GET /telephony/calls/members/{}/calls/{}"
+   ]
+  },
+  "call_park": {
+   "create": [
+    "POST /telephony/config/locations/{}/callParks"
+   ],
+   "create-call-park-extensions": [
+    "POST /telephony/config/locations/{}/callParkExtensions"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/callParks/{}"
+   ],
+   "delete-call-park-extensions": [
+    "DELETE /telephony/config/locations/{}/callParkExtensions/{}"
+   ],
+   "list": [
+    "GET /telephony/config/locations/{}/callParks"
+   ],
+   "list-available-recall-hunt-groups": [
+    "GET /telephony/config/locations/{}/callParks/availableRecallHuntGroups"
+   ],
+   "list-available-users": [
+    "GET /telephony/config/locations/{}/callParks/availableUsers"
+   ],
+   "list-call-park-extensions": [
+    "GET /telephony/config/callParkExtensions"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/callParks/{}"
+   ],
+   "show-call-park-extensions": [
+    "GET /telephony/config/locations/{}/callParkExtensions/{}"
+   ],
+   "show-settings": [
+    "GET /telephony/config/locations/{}/callParks/settings"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/callParks/{}"
+   ],
+   "update-call-park-extensions": [
+    "PUT /telephony/config/locations/{}/callParkExtensions/{}"
+   ],
+   "update-settings": [
+    "PUT /telephony/config/locations/{}/callParks/settings"
+   ]
+  },
+  "call_pickup": {
+   "create": [
+    "POST /telephony/config/locations/{}/callPickups"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/callPickups/{}"
+   ],
+   "list": [
+    "GET /telephony/config/locations/{}/callPickups"
+   ],
+   "list-available-users": [
+    "GET /telephony/config/locations/{}/callPickups/availableUsers"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/callPickups/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/callPickups/{}"
+   ]
+  },
+  "call_queue": {
+   "create": [
+    "POST /telephony/config/locations/{}/queues"
+   ],
+   "create-dnis": [
+    "POST /telephony/config/locations/{}/queues/{}/dnis"
+   ],
+   "create-selective-rules": [
+    "POST /telephony/config/locations/{}/queues/{}/callForwarding/selectiveRules"
+   ],
+   "create-supervisors": [
+    "POST /telephony/config/supervisors"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/queues/{}"
+   ],
+   "delete-announcements": [
+    "DELETE /telephony/config/locations/{}/queues/{}/announcements/{}"
+   ],
+   "delete-dnis-queues": [
+    "DELETE /telephony/config/locations/{}/queues/{}/dnis"
+   ],
+   "delete-dnis-queues-1": [
+    "DELETE /telephony/config/locations/{}/queues/{}/dnis/{}"
+   ],
+   "delete-selective-rules": [
+    "DELETE /telephony/config/locations/{}/queues/{}/callForwarding/selectiveRules/{}"
+   ],
+   "delete-supervisors-config": [
+    "DELETE /telephony/config/supervisors"
+   ],
+   "delete-supervisors-config-1": [
+    "DELETE /telephony/config/supervisors/{}"
+   ],
+   "list": [
+    "GET /telephony/config/queues"
+   ],
+   "list-agents": [
+    "GET /telephony/config/queues/agents"
+   ],
+   "list-announcements": [
+    "GET /telephony/config/locations/{}/queues/{}/announcements"
+   ],
+   "list-available-agents-queues": [
+    "GET /telephony/config/queues/agents/availableAgents"
+   ],
+   "list-available-agents-supervisors": [
+    "GET /telephony/config/supervisors/availableAgents"
+   ],
+   "list-available-numbers-alternate": [
+    "GET /telephony/config/locations/{}/queues/alternate/availableNumbers"
+   ],
+   "list-available-numbers-call-forwarding": [
+    "GET /telephony/config/locations/{}/queues/callForwarding/availableNumbers"
+   ],
+   "list-available-numbers-dnis": [
+    "GET /telephony/config/locations/{}/queues/dnis/availableNumbers"
+   ],
+   "list-available-numbers-queues": [
+    "GET /telephony/config/locations/{}/queues/availableNumbers"
+   ],
+   "list-available-supervisors": [
+    "GET /telephony/config/supervisors/availableSupervisors"
+   ],
+   "list-dnis": [
+    "GET /telephony/config/locations/{}/queues/{}/dnis"
+   ],
+   "list-forced-forward": [
+    "GET /telephony/config/locations/{}/queues/{}/forcedForward"
+   ],
+   "list-holiday-service": [
+    "GET /telephony/config/locations/{}/queues/{}/holidayService"
+   ],
+   "list-night-service": [
+    "GET /telephony/config/locations/{}/queues/{}/nightService"
+   ],
+   "list-stranded-calls": [
+    "GET /telephony/config/locations/{}/queues/{}/strandedCalls"
+   ],
+   "list-supervisors": [
+    "GET /telephony/config/supervisors"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/queues/{}"
+   ],
+   "show-agents": [
+    "GET /telephony/config/queues/agents/{}"
+   ],
+   "show-announcements": [
+    "GET /telephony/config/locations/{}/queues/{}/dnis/{}/announcements"
+   ],
+   "show-call-forwarding": [
+    "GET /telephony/config/locations/{}/queues/{}/callForwarding"
+   ],
+   "show-dnis": [
+    "GET /telephony/config/locations/{}/queues/{}/dnis/{}"
+   ],
+   "show-org-settings": [
+    "GET /telephony/config/queues/settings"
+   ],
+   "show-selective-rules": [
+    "GET /telephony/config/locations/{}/queues/{}/callForwarding/selectiveRules/{}"
+   ],
+   "show-settings": [
+    "GET /telephony/config/locations/{}/queues/{}/dnis/settings"
+   ],
+   "show-supervisors": [
+    "GET /telephony/config/supervisors/{}"
+   ],
+   "switch-mode-for": [
+    "POST /telephony/config/locations/{}/queues/{}/callForwarding/actions/switchMode/invoke"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/queues/{}"
+   ],
+   "update-announcements": [
+    "PUT /telephony/config/locations/{}/queues/{}/dnis/{}/announcements"
+   ],
+   "update-call-forwarding": [
+    "PUT /telephony/config/locations/{}/queues/{}/callForwarding"
+   ],
+   "update-dnis": [
+    "PUT /telephony/config/locations/{}/queues/{}/dnis/{}"
+   ],
+   "update-forced-forward": [
+    "PUT /telephony/config/locations/{}/queues/{}/forcedForward"
+   ],
+   "update-holiday-service": [
+    "PUT /telephony/config/locations/{}/queues/{}/holidayService"
+   ],
+   "update-night-service": [
+    "PUT /telephony/config/locations/{}/queues/{}/nightService"
+   ],
+   "update-org-settings": [
+    "PUT /telephony/config/queues/settings"
+   ],
+   "update-selective-rules": [
+    "PUT /telephony/config/locations/{}/queues/{}/callForwarding/selectiveRules/{}"
+   ],
+   "update-settings-agents": [
+    "PUT /telephony/config/queues/agents/{}/settings"
+   ],
+   "update-settings-dnis": [
+    "PUT /telephony/config/locations/{}/queues/{}/dnis/settings"
+   ],
+   "update-stranded-calls": [
+    "PUT /telephony/config/locations/{}/queues/{}/strandedCalls"
+   ],
+   "update-supervisors": [
+    "PUT /telephony/config/supervisors/{}"
+   ]
+  },
+  "call_recording": {
+   "list": [
+    "GET /telephony/config/callRecording/regions"
+   ],
+   "list-call-recording": [
+    "GET /telephony/config/jobs/callRecording"
+   ],
+   "list-errors": [
+    "GET /telephony/config/jobs/callRecording/{}/errors"
+   ],
+   "list-vendor-users-call-recording": [
+    "GET /telephony/config/callRecording/vendorUsers"
+   ],
+   "list-vendor-users-call-recording-1": [
+    "GET /telephony/config/locations/{}/callRecording/vendorUsers"
+   ],
+   "list-vendors": [
+    "GET /telephony/config/locations/{}/callRecording/vendors"
+   ],
+   "show": [
+    "GET /telephony/config/callRecording"
+   ],
+   "show-announcements-call-recording": [
+    "GET /telephony/config/callRecording/announcements"
+   ],
+   "show-announcements-call-recording-1": [
+    "GET /telephony/config/locations/{}/callRecording/announcements"
+   ],
+   "show-call-recording": [
+    "GET /telephony/config/jobs/callRecording/{}"
+   ],
+   "show-compliance-announcement-call-recording": [
+    "GET /telephony/config/callRecording/complianceAnnouncement"
+   ],
+   "show-compliance-announcement-call-recording-1": [
+    "GET /telephony/config/locations/{}/callRecording/complianceAnnouncement"
+   ],
+   "show-terms-of-service": [
+    "GET /telephony/config/callRecording/vendors/{}/termsOfService"
+   ],
+   "show-vendors": [
+    "GET /telephony/config/callRecording/vendors"
+   ],
+   "update": [
+    "PUT /telephony/config/callRecording"
+   ],
+   "update-announcements-call-recording": [
+    "PUT /telephony/config/callRecording/announcements"
+   ],
+   "update-announcements-call-recording-1": [
+    "PUT /telephony/config/locations/{}/callRecording/announcements"
+   ],
+   "update-compliance-announcement-call-recording": [
+    "PUT /telephony/config/callRecording/complianceAnnouncement"
+   ],
+   "update-compliance-announcement-call-recording-1": [
+    "PUT /telephony/config/locations/{}/callRecording/complianceAnnouncement"
+   ],
+   "update-terms-of-service": [
+    "PUT /telephony/config/callRecording/vendors/{}/termsOfService"
+   ],
+   "update-vendor-call-recording": [
+    "PUT /telephony/config/locations/{}/callRecording/vendor"
+   ],
+   "update-vendor-call-recording-1": [
+    "PUT /telephony/config/callRecording/vendor"
+   ]
+  },
+  "call_routing": {
+   "create": [
+    "POST /telephony/config/premisePstn/dialPlans"
+   ],
+   "create-route-groups": [
+    "POST /telephony/config/premisePstn/routeGroups"
+   ],
+   "create-route-lists": [
+    "POST /telephony/config/premisePstn/routeLists"
+   ],
+   "create-translation-patterns-call-routing": [
+    "POST /telephony/config/callRouting/translationPatterns"
+   ],
+   "create-translation-patterns-call-routing-1": [
+    "POST /telephony/config/locations/{}/callRouting/translationPatterns"
+   ],
+   "create-trunks": [
+    "POST /telephony/config/premisePstn/trunks"
+   ],
+   "delete": [
+    "DELETE /telephony/config/premisePstn/dialPlans/{}"
+   ],
+   "delete-route-groups": [
+    "DELETE /telephony/config/premisePstn/routeGroups/{}"
+   ],
+   "delete-route-lists": [
+    "DELETE /telephony/config/premisePstn/routeLists/{}"
+   ],
+   "delete-translation-patterns-call-routing": [
+    "DELETE /telephony/config/callRouting/translationPatterns/{}"
+   ],
+   "delete-translation-patterns-call-routing-1": [
+    "DELETE /telephony/config/locations/{}/callRouting/translationPatterns/{}"
+   ],
+   "delete-trunks": [
+    "DELETE /telephony/config/premisePstn/trunks/{}"
+   ],
+   "list": [
+    "GET /telephony/config/premisePstn/trunks/{}/usageDialPlan"
+   ],
+   "list-dial-plans": [
+    "GET /telephony/config/premisePstn/dialPlans"
+   ],
+   "list-numbers": [
+    "GET /telephony/config/premisePstn/routeLists/{}/numbers"
+   ],
+   "list-route-groups": [
+    "GET /telephony/config/premisePstn/routeGroups"
+   ],
+   "list-route-lists": [
+    "GET /telephony/config/premisePstn/routeLists"
+   ],
+   "list-translation-patterns": [
+    "GET /telephony/config/callRouting/translationPatterns"
+   ],
+   "list-trunk-types": [
+    "GET /telephony/config/premisePstn/trunks/trunkTypes"
+   ],
+   "list-trunks": [
+    "GET /telephony/config/premisePstn/trunks"
+   ],
+   "list-usage-call-to-extension-route-groups": [
+    "GET /telephony/config/premisePstn/routeGroups/{}/usageCallToExtension"
+   ],
+   "list-usage-call-to-extension-trunks": [
+    "GET /telephony/config/premisePstn/trunks/{}/usageCallToExtension"
+   ],
+   "list-usage-dial-plan": [
+    "GET /telephony/config/premisePstn/routeGroups/{}/usageDialPlan"
+   ],
+   "list-usage-pstn-connection-route-groups": [
+    "GET /telephony/config/premisePstn/routeGroups/{}/usagePstnConnection"
+   ],
+   "list-usage-pstn-connection-trunks": [
+    "GET /telephony/config/premisePstn/trunks/{}/usagePstnConnection"
+   ],
+   "list-usage-route-group": [
+    "GET /telephony/config/premisePstn/trunks/{}/usageRouteGroup"
+   ],
+   "list-usage-route-list": [
+    "GET /telephony/config/premisePstn/routeGroups/{}/usageRouteList"
+   ],
+   "show": [
+    "GET /telephony/config/premisePstn/trunks/{}/usage"
+   ],
+   "show-dial-plans": [
+    "GET /telephony/config/premisePstn/dialPlans/{}"
+   ],
+   "show-route-groups": [
+    "GET /telephony/config/premisePstn/routeGroups/{}"
+   ],
+   "show-route-lists": [
+    "GET /telephony/config/premisePstn/routeLists/{}"
+   ],
+   "show-translation-patterns-call-routing": [
+    "GET /telephony/config/callRouting/translationPatterns/{}"
+   ],
+   "show-translation-patterns-call-routing-1": [
+    "GET /telephony/config/locations/{}/callRouting/translationPatterns/{}"
+   ],
+   "show-trunks": [
+    "GET /telephony/config/premisePstn/trunks/{}"
+   ],
+   "show-usage": [
+    "GET /telephony/config/premisePstn/routeGroups/{}/usage"
+   ],
+   "test-call-routing": [
+    "POST /telephony/config/actions/testCallRouting/invoke"
+   ],
+   "update": [
+    "PUT /telephony/config/premisePstn/dialPlans/{}/dialPatterns"
+   ],
+   "update-dial-plans": [
+    "PUT /telephony/config/premisePstn/dialPlans/{}"
+   ],
+   "update-numbers": [
+    "PUT /telephony/config/premisePstn/routeLists/{}/numbers"
+   ],
+   "update-route-groups": [
+    "PUT /telephony/config/premisePstn/routeGroups/{}"
+   ],
+   "update-route-lists": [
+    "PUT /telephony/config/premisePstn/routeLists/{}"
+   ],
+   "update-translation-patterns-call-routing": [
+    "PUT /telephony/config/callRouting/translationPatterns/{}"
+   ],
+   "update-translation-patterns-call-routing-1": [
+    "PUT /telephony/config/locations/{}/callRouting/translationPatterns/{}"
+   ],
+   "update-trunks": [
+    "PUT /telephony/config/premisePstn/trunks/{}"
+   ],
+   "validate-a-dial": [
+    "POST /telephony/config/premisePstn/actions/validateDialPatterns/invoke"
+   ],
+   "validate-local-gateway": [
+    "POST /telephony/config/premisePstn/trunks/actions/fqdnValidation/invoke"
+   ]
+  },
+  "caller_reputation": {
+   "list": [
+    "GET /telephony/config/serviceSettings/callerReputationProvider/providers"
+   ],
+   "show": [
+    "GET /telephony/config/serviceSettings/callerReputationProvider"
+   ],
+   "show-status": [
+    "GET /telephony/config/serviceSettings/callerReputationProvider/status"
+   ],
+   "unlock-caller-reputation": [
+    "POST /telephony/config/serviceSettings/callerReputationProvider/actions/unlock/invoke"
+   ],
+   "update": [
+    "PUT /telephony/config/serviceSettings/callerReputationProvider"
+   ]
+  },
+  "calling_service": {
+   "list": [
+    "GET /telephony/config/announcementLanguages"
+   ],
+   "show": [
+    "GET /telephony/config/voicemail/settings"
+   ],
+   "show-call-captions": [
+    "GET /telephony/config/callCaptions"
+   ],
+   "show-large-org-status": [
+    "GET /telephony/config/largeOrgStatus"
+   ],
+   "show-rules": [
+    "GET /telephony/config/voicemail/rules"
+   ],
+   "show-settings": [
+    "GET /telephony/config/moh/settings"
+   ],
+   "update": [
+    "PUT /telephony/config/voicemail/settings"
+   ],
+   "update-call-captions": [
+    "PUT /telephony/config/callCaptions"
+   ],
+   "update-rules": [
+    "PUT /telephony/config/voicemail/rules"
+   ],
+   "update-settings": [
+    "PUT /telephony/config/moh/settings"
+   ]
+  },
+  "cc_address_book": {
+   "create": [
+    "POST /organization/{}/address-book"
+   ],
+   "create-address-book": [
+    "POST /organization/{}/v3/address-book"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/address-book/{}/entry/bulk"
+   ],
+   "create-entry": [
+    "POST /organization/{}/address-book/{}/entry"
+   ],
+   "delete": [
+    "DELETE /organization/{}/address-book/{}/entry/{}"
+   ],
+   "delete-address-book-organization": [
+    "DELETE /organization/{}/address-book/{}"
+   ],
+   "delete-address-book-v3": [
+    "DELETE /organization/{}/v3/address-book/{}"
+   ],
+   "list": [
+    "GET /organization/{}/address-book"
+   ],
+   "list-address-book-v2": [
+    "GET /organization/{}/v2/address-book"
+   ],
+   "list-address-book-v3": [
+    "GET /organization/{}/v3/address-book"
+   ],
+   "list-bulk-export": [
+    "GET /organization/{}/address-book/bulk-export"
+   ],
+   "list-entry": [
+    "GET /organization/{}/v2/address-book/{}/entry"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/address-book/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/address-book/{}/entry/{}"
+   ],
+   "show-address-book-organization": [
+    "GET /organization/{}/address-book/{}"
+   ],
+   "show-address-book-v3": [
+    "GET /organization/{}/v3/address-book/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/address-book/{}/entry/{}"
+   ],
+   "update-address-book-organization": [
+    "PUT /organization/{}/address-book/{}"
+   ],
+   "update-address-book-v3": [
+    "PUT /organization/{}/v3/address-book/{}"
+   ]
+  },
+  "cc_agent_greetings": {
+   "delete": [
+    "DELETE /organization/{}/agent-personal-greeting/{}"
+   ],
+   "delete-agent-personal-greeting": [
+    "DELETE /organization/{}/v2/agent-personal-greeting/{}"
+   ],
+   "delete-references-agent": [
+    "POST /organization/{}/agent-personal-greeting/delete-reference"
+   ],
+   "list": [
+    "GET /organization/{}/v2/agent-personal-greeting"
+   ],
+   "list-agent-personal-greeting": [
+    "GET /organization/{}/v3/agent-personal-greeting"
+   ],
+   "show": [
+    "GET /organization/{}/agent-personal-greeting/{}"
+   ],
+   "show-agent-personal-greeting": [
+    "GET /organization/{}/v2/agent-personal-greeting/{}"
+   ]
+  },
+  "cc_agent_summaries": {
+   "create": [
+    "POST /generated-summaries/search"
+   ]
+  },
+  "cc_agent_wellbeing": {
+   "create": [
+    "POST /agentburnout/subscribe"
+   ],
+   "create-action": [
+    "POST /agentburnout/action"
+   ],
+   "list": [
+    "GET /organization/{}/v2/agent-burnout"
+   ],
+   "show": [
+    "GET /organization/{}/agent-burnout/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/agent-burnout/{}"
+   ]
+  },
+  "cc_agents": {
+   "create": [
+    "POST /agents/login"
+   ],
+   "create-buddy-list": [
+    "POST /agents/buddyList"
+   ],
+   "create-login": [
+    "POST /v2/agents/login"
+   ],
+   "create-reload-agents": [
+    "POST /agents/reload"
+   ],
+   "create-reload-agents-1": [
+    "POST /v2/agents/reload"
+   ],
+   "list-activities": [
+    "GET /agents/activities"
+   ],
+   "list-statistics": [
+    "GET /agents/statistics"
+   ],
+   "update": [
+    "PUT /agents/logout"
+   ],
+   "update-logout": [
+    "PUT /v2/agents/logout"
+   ],
+   "update-state-session": [
+    "PUT /agents/session/state"
+   ],
+   "update-state-session-1": [
+    "PUT /v2/agents/session/state"
+   ]
+  },
+  "cc_ai_assistant": {
+   "create": [
+    "POST /event"
+   ]
+  },
+  "cc_ai_feature": {
+   "create": [
+    "POST /organization/{}/ai-feature/auto-csat/question"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/ai-feature/auto-csat/question/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/ai-feature/auto-csat/question/{}"
+   ],
+   "list": [
+    "GET /organization/{}/v2/ai-feature"
+   ],
+   "list-question": [
+    "GET /organization/{}/v2/ai-feature/auto-csat/question"
+   ],
+   "show": [
+    "GET /organization/{}/ai-feature/auto-csat/question/{}"
+   ],
+   "show-ai-feature": [
+    "GET /organization/{}/ai-feature/{}"
+   ],
+   "update": [
+    "PATCH /organization/{}/ai-feature/{}"
+   ]
+  },
+  "cc_audio_files": {
+   "delete": [
+    "DELETE /organization/{}/audio-file/{}"
+   ],
+   "list": [
+    "GET /organization/{}/audio-file/{}/incoming-references"
+   ],
+   "list-audio-file": [
+    "GET /organization/{}/v2/audio-file"
+   ],
+   "show": [
+    "GET /organization/{}/audio-file/{}"
+   ]
+  },
+  "cc_auto_csat": {
+   "create": [
+    "POST /organization/{}/auto-csat/{}/question"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/auto-csat/{}/question/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/auto-csat/{}/question/{}"
+   ],
+   "list": [
+    "GET /organization/{}/v2/auto-csat"
+   ],
+   "list-question": [
+    "GET /organization/{}/v2/auto-csat/{}/question"
+   ],
+   "show": [
+    "GET /organization/{}/auto-csat/{}/question/{}"
+   ],
+   "show-auto-csat": [
+    "GET /organization/{}/auto-csat/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/auto-csat/{}"
+   ]
+  },
+  "cc_aux_code": {
+   "create": [
+    "POST /organization/{}/auxiliary-code"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/auxiliary-code/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/auxiliary-code/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/auxiliary-code/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/auxiliary-code"
+   ],
+   "list-auxiliary-code": [
+    "GET /organization/{}/v2/auxiliary-code"
+   ],
+   "list-bulk-export": [
+    "GET /organization/{}/auxiliary-code/bulk-export"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/auxiliary-code/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/auxiliary-code/{}"
+   ],
+   "update": [
+    "PATCH /organization/{}/auxiliary-code/bulk"
+   ],
+   "update-auxiliary-code": [
+    "PUT /organization/{}/auxiliary-code/{}"
+   ]
+  },
+  "cc_business_hour": {
+   "create": [
+    "POST /organization/{}/business-hours"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/business-hours/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/business-hours/{}"
+   ],
+   "list": [
+    "GET /organization/{}/business-hours"
+   ],
+   "list-business-hours": [
+    "GET /organization/{}/v2/business-hours"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/business-hours/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/business-hours/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/business-hours/{}"
+   ]
+  },
+  "cc_call_monitoring": {
+   "create": [
+    "POST /monitor"
+   ],
+   "create-barge-in": [
+    "POST /monitor/{}/bargeIn"
+   ],
+   "create-end": [
+    "POST /monitor/{}/end"
+   ],
+   "create-hold": [
+    "POST /monitor/{}/hold"
+   ],
+   "create-unhold": [
+    "POST /monitor/{}/unhold"
+   ],
+   "delete": [
+    "DELETE /monitor/{}"
+   ],
+   "list": [
+    "GET /monitor/sessions"
+   ]
+  },
+  "cc_callbacks": {
+   "create": [
+    "POST /callbacks/organization/{}/scheduled-callback"
+   ],
+   "delete": [
+    "DELETE /callbacks/organization/{}/scheduled-callback/{}"
+   ],
+   "list": [
+    "GET /callbacks/organization/{}/scheduled-callback"
+   ],
+   "show": [
+    "GET /callbacks/organization/{}/scheduled-callback/{}"
+   ],
+   "update": [
+    "PUT /callbacks/organization/{}/scheduled-callback/{}"
+   ]
+  },
+  "cc_campaign": {
+   "create": [
+    "POST /dialer/campaign"
+   ],
+   "delete": [
+    "DELETE /dialer/campaign/{}"
+   ],
+   "list": [
+    "GET /organization/{}/getValidCampaignTimes"
+   ],
+   "update": [
+    "PUT /dialer/campaign/{}"
+   ]
+  },
+  "cc_campaign_group": {
+   "list": [
+    "GET /v3/campaign-management/campaign-groups/{}/campaigns"
+   ]
+  },
+  "cc_captures": {
+   "create": [
+    "POST /captures/query"
+   ]
+  },
+  "cc_contact_list": {
+   "create": [
+    "POST /v3/campaign-management/campaigns/{}/contact-list"
+   ],
+   "create-contacts": [
+    "POST /v3/campaign-management/campaigns/{}/contact-list/{}/contacts"
+   ],
+   "list": [
+    "GET /v3/campaign-management/campaigns/{}/contact-lists"
+   ],
+   "list-contact-lists": [
+    "GET /v4/campaign-management/campaigns/{}/contact-lists"
+   ],
+   "update": [
+    "PATCH /v3/campaign-management/campaigns/{}/contact-list/{}/contacts/{}"
+   ],
+   "update-contacts": [
+    "PATCH /v3/campaign-management/campaigns/{}/contacts/{}"
+   ],
+   "update-status": [
+    "PATCH /v3/campaign-management/campaigns/{}/contact-list/{}/status"
+   ]
+  },
+  "cc_contact_number": {
+   "create": [
+    "POST /organization/{}/contact-number"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/contact-number/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/contact-number/{}"
+   ],
+   "list": [
+    "GET /organization/{}/contact-number/all-numbers"
+   ],
+   "list-bulk-export": [
+    "GET /organization/{}/contact-number/bulk-export"
+   ],
+   "list-contact-number": [
+    "GET /organization/{}/v2/contact-number"
+   ],
+   "show": [
+    "GET /organization/{}/contact-number/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/contact-number/{}"
+   ]
+  },
+  "cc_data_sources": {
+   "create": [
+    "POST /dataSources"
+   ],
+   "delete": [
+    "DELETE /dataSources/{}"
+   ],
+   "list": [
+    "GET /dataSources"
+   ],
+   "list-schemas": [
+    "GET /dataSources/schemas"
+   ],
+   "show": [
+    "GET /dataSources/schemas/{}"
+   ],
+   "show-data-sources": [
+    "GET /dataSources/{}"
+   ],
+   "update": [
+    "PUT /dataSources/{}"
+   ]
+  },
+  "cc_desktop_layout": {
+   "create": [
+    "POST /organization/{}/desktop-layout"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/desktop-layout/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/desktop-layout/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/desktop-layout/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/desktop-layout/{}/incoming-references"
+   ],
+   "list-desktop-layout": [
+    "GET /organization/{}/v2/desktop-layout"
+   ],
+   "show": [
+    "GET /organization/{}/desktop-layout/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/desktop-layout/{}"
+   ]
+  },
+  "cc_desktop_profile": {
+   "create": [
+    "POST /organization/{}/agent-profile"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/agent-profile/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/agent-profile/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/agent-profile/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/agent-profile"
+   ],
+   "list-agent-profile": [
+    "GET /organization/{}/v2/agent-profile"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/agent-profile/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/agent-profile/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/agent-profile/{}"
+   ]
+  },
+  "cc_dial_number": {
+   "create": [
+    "POST /organization/{}/dial-number"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/dial-number/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/dial-number"
+   ],
+   "delete-dial-number": [
+    "DELETE /organization/{}/dial-number/{}"
+   ],
+   "list": [
+    "GET /organization/{}/dial-number"
+   ],
+   "list-bulk-export": [
+    "GET /organization/{}/dial-number/bulk-export"
+   ],
+   "list-dial-number-v2": [
+    "GET /organization/{}/v2/dial-number"
+   ],
+   "list-dial-number-v3": [
+    "GET /organization/{}/v3/dial-number"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/dial-number/{}/incoming-references"
+   ],
+   "list-numbers-only": [
+    "GET /organization/{}/dial-number/numbers-only"
+   ],
+   "show": [
+    "GET /organization/{}/dial-number/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/dial-number/{}"
+   ]
+  },
+  "cc_dial_plan": {
+   "create": [
+    "POST /organization/{}/dial-plan"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/dial-plan/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/dial-plan/{}"
+   ],
+   "list": [
+    "GET /organization/{}/dial-plan"
+   ],
+   "list-dial-plan": [
+    "GET /organization/{}/v2/dial-plan"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/dial-plan/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/dial-plan/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/dial-plan/{}"
+   ]
+  },
+  "cc_dnc": {
+   "create": [
+    "POST /v3/campaign-management/dncList/{}/phoneNumber"
+   ],
+   "delete": [
+    "DELETE /v3/campaign-management/dncList/{}/phoneNumber/{}"
+   ],
+   "show": [
+    "GET /v3/campaign-management/dncList/{}/phoneNumber/{}"
+   ]
+  },
+  "cc_entry_point": {
+   "create": [
+    "POST /organization/{}/entry-point"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/entry-point/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/entry-point/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/entry-point/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/entry-point"
+   ],
+   "list-bulk-export": [
+    "GET /organization/{}/entry-point/bulk-export"
+   ],
+   "list-entry-point": [
+    "GET /organization/{}/v2/entry-point"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/entry-point/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/entry-point/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/entry-point/{}"
+   ]
+  },
+  "cc_ewt": {
+   "show": [
+    "GET /ewt"
+   ]
+  },
+  "cc_flow": {
+   "create-flows": [
+    "POST /{}/project/{}/v2/flows/{}"
+   ],
+   "create-import": [
+    "POST /{}/project/{}/v2/flows:import"
+   ],
+   "create-lock": [
+    "POST /{}/project/{}/flows/{}:lock"
+   ],
+   "create-unlock": [
+    "POST /{}/project/{}/flows/{}:unlock"
+   ],
+   "create-validate": [
+    "POST /{}/project/{}/v2/flows:validate"
+   ],
+   "delete": [
+    "DELETE /{}/project/{}/flows/{}"
+   ],
+   "export": [
+    "GET /{}/project/{}/v2/flows/{}:export"
+   ],
+   "list": [
+    "GET /{}/project/{}/flows"
+   ],
+   "list-search": [
+    "GET /{}/project/{}/flows:search"
+   ],
+   "list-validate": [
+    "GET /{}/project/{}/v2/flows/{}:validate"
+   ],
+   "publish": [
+    "POST /{}/project/{}/flows/{}:publish"
+   ],
+   "show": [
+    "GET /{}/project/{}/v2/flows/{}"
+   ],
+   "update": [
+    "PATCH /{}/project/{}/v2/flows/{}"
+   ]
+  },
+  "cc_global_vars": {
+   "create": [
+    "POST /organization/{}/cad-variable"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/cad-variable/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/cad-variable/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/cad-variable/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/cad-variable/bulk-export"
+   ],
+   "list-cad-variable": [
+    "GET /organization/{}/v2/cad-variable"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/cad-variable/{}/incoming-references"
+   ],
+   "list-reportable-count": [
+    "GET /organization/{}/cad-variable/reportable-count"
+   ],
+   "show": [
+    "GET /organization/{}/cad-variable/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/cad-variable/{}"
+   ]
+  },
+  "cc_holiday_list": {
+   "create": [
+    "POST /organization/{}/holiday-list"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/holiday-list/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/holiday-list/{}"
+   ],
+   "list": [
+    "GET /organization/{}/holiday-list"
+   ],
+   "list-holiday-list": [
+    "GET /organization/{}/v2/holiday-list"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/holiday-list/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/holiday-list/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/holiday-list/{}"
+   ]
+  },
+  "cc_journey": {
+   "create": [
+    "POST /admin/v1/api/person/workspace-id/{}"
+   ],
+   "create-event": [
+    "POST /publish/v1/api/event"
+   ],
+   "create-primary-person-id": [
+    "POST /admin/v1/api/person/merge/workspace-id/{}/primary-person-id/{}"
+   ],
+   "create-template-id": [
+    "POST /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}"
+   ],
+   "create-workspace": [
+    "POST /admin/v1/api/workspace"
+   ],
+   "create-workspace-id-merge-identities": [
+    "POST /admin/v1/api/person/merge-identities/workspace-id/{}"
+   ],
+   "create-workspace-id-profile-view-template": [
+    "POST /admin/v1/api/profile-view-template/workspace-id/{}"
+   ],
+   "create-workspace-id-wxcc-subscription": [
+    "POST /admin/v1/api/wxcc-subscription/workspace-id/{}"
+   ],
+   "delete-action-id": [
+    "DELETE /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}/action-id/{}"
+   ],
+   "delete-person-id": [
+    "DELETE /admin/v1/api/person/workspace-id/{}/person-id/{}"
+   ],
+   "delete-person-id-workspace-id": [
+    "PATCH /admin/v1/api/person/remove-identities/workspace-id/{}/person-id/{}"
+   ],
+   "delete-template-id": [
+    "DELETE /admin/v1/api/profile-view-template/workspace-id/{}/template-id/{}"
+   ],
+   "delete-workspace-id-api": [
+    "DELETE /admin/v1/api/workspace/workspace-id/{}"
+   ],
+   "delete-workspace-id-wxcc-subscription": [
+    "DELETE /admin/v1/api/wxcc-subscription/workspace-id/{}"
+   ],
+   "list": [
+    "GET /admin/v1/api/workspace"
+   ],
+   "show": [
+    "GET /admin/v1/api/person/workspace-id/{}"
+   ],
+   "show-action-id": [
+    "GET /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}/action-id/{}"
+   ],
+   "show-action-name": [
+    "GET /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}/action-name/{}"
+   ],
+   "show-aliases": [
+    "GET /admin/v1/api/person/workspace-id/{}/aliases/{}"
+   ],
+   "show-identity": [
+    "GET /api/events/stream/workspace-id/{}/identity/{}"
+   ],
+   "show-template-id-identity": [
+    "GET /api/progressive-profile-view/workspace-id/{}/identity/{}/template-id/{}"
+   ],
+   "show-template-id-identity-1": [
+    "GET /api/progressive-profile-view/stream/workspace-id/{}/identity/{}/template-id/{}"
+   ],
+   "show-template-id-person-id": [
+    "GET /api/progressive-profile-view/workspace-id/{}/person-id/{}/template-id/{}"
+   ],
+   "show-template-id-workspace-id": [
+    "GET /admin/v1/api/profile-view-template/workspace-id/{}/template-id/{}"
+   ],
+   "show-template-id-workspace-id-1": [
+    "GET /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}"
+   ],
+   "show-template-name-identity": [
+    "GET /api/progressive-profile-view/workspace-id/{}/identity/{}/template-name/{}"
+   ],
+   "show-template-name-identity-1": [
+    "GET /api/progressive-profile-view/stream/workspace-id/{}/identity/{}/template-name/{}"
+   ],
+   "show-template-name-person-id": [
+    "GET /api/progressive-profile-view/workspace-id/{}/person-id/{}/template-name/{}"
+   ],
+   "show-template-name-workspace-id": [
+    "GET /admin/v1/api/profile-view-template/workspace-id/{}/template-name/{}"
+   ],
+   "show-workspace-id-api": [
+    "GET /admin/v1/api/workspace/workspace-id/{}"
+   ],
+   "show-workspace-id-events": [
+    "GET /api/events/workspace-id/{}"
+   ],
+   "show-workspace-id-journey-actions": [
+    "GET /admin/v1/api/journey-actions/workspace-id/{}"
+   ],
+   "show-workspace-id-profile-view-template": [
+    "GET /admin/v1/api/profile-view-template/workspace-id/{}"
+   ],
+   "show-workspace-id-wxcc-subscription": [
+    "GET /admin/v1/api/wxcc-subscription/workspace-id/{}"
+   ],
+   "update": [
+    "PATCH /admin/v1/api/person/workspace-id/{}/person-id/{}"
+   ],
+   "update-action-id": [
+    "PUT /admin/v1/api/journey-actions/workspace-id/{}/template-id/{}/action-id/{}"
+   ],
+   "update-person-id-workspace-id": [
+    "PATCH /admin/v1/api/person/add-identities/workspace-id/{}/person-id/{}"
+   ],
+   "update-template-id": [
+    "PUT /admin/v1/api/profile-view-template/workspace-id/{}/template-id/{}"
+   ],
+   "update-workspace-id": [
+    "PUT /admin/v1/api/workspace/workspace-id/{}"
+   ]
+  },
+  "cc_legacy_flows": {
+   "list": [
+    "GET /flow-store/{}/project/{}/flows/{}:export"
+   ]
+  },
+  "cc_multimedia_profile": {
+   "create": [
+    "POST /organization/{}/multimedia-profile"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/multimedia-profile/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/multimedia-profile/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/multimedia-profile/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/multimedia-profile"
+   ],
+   "list-bulk-export": [
+    "GET /organization/{}/multimedia-profile/bulk-export"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/multimedia-profile/{}/incoming-references"
+   ],
+   "list-multimedia-profile": [
+    "GET /organization/{}/v2/multimedia-profile"
+   ],
+   "show": [
+    "GET /organization/{}/multimedia-profile/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/multimedia-profile/{}"
+   ]
+  },
+  "cc_notification": {
+   "create": [
+    "POST /notification/subscribe"
+   ]
+  },
+  "cc_outdial_ani": {
+   "create": [
+    "POST /organization/{}/outdial-ani"
+   ],
+   "create-bulk-entry": [
+    "POST /organization/{}/outdial-ani/{}/entry/bulk"
+   ],
+   "create-bulk-outdial-ani": [
+    "POST /organization/{}/outdial-ani/bulk"
+   ],
+   "create-entry": [
+    "POST /organization/{}/outdial-ani/{}/entry"
+   ],
+   "delete": [
+    "DELETE /organization/{}/outdial-ani/{}"
+   ],
+   "delete-entry": [
+    "DELETE /organization/{}/outdial-ani/{}/entry/{}"
+   ],
+   "list": [
+    "GET /organization/{}/outdial-ani"
+   ],
+   "list-entry-outdial-ani": [
+    "GET /organization/{}/outdial-ani/entry"
+   ],
+   "list-entry-outdial-ani-1": [
+    "GET /organization/{}/v2/outdial-ani/{}/entry"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/outdial-ani/{}/incoming-references"
+   ],
+   "list-outdial-ani": [
+    "GET /organization/{}/v2/outdial-ani"
+   ],
+   "show": [
+    "GET /organization/{}/outdial-ani/{}"
+   ],
+   "show-entry": [
+    "GET /organization/{}/outdial-ani/{}/entry/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/outdial-ani/{}"
+   ],
+   "update-entry": [
+    "PUT /organization/{}/outdial-ani/{}/entry/{}"
+   ]
+  },
+  "cc_overrides": {
+   "create": [
+    "POST /organization/{}/overrides"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/overrides/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/overrides/{}"
+   ],
+   "list": [
+    "GET /organization/{}/overrides"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/overrides/{}/incoming-references"
+   ],
+   "list-overrides": [
+    "GET /organization/{}/v2/overrides"
+   ],
+   "show": [
+    "GET /organization/{}/overrides/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/overrides/{}"
+   ]
+  },
+  "cc_queue": {
+   "create": [
+    "POST /organization/{}/contact-service-queue/bulk"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/contact-service-queue/v2/bulk"
+   ],
+   "create-contact-service-queue": [
+    "POST /organization/{}/v2/contact-service-queue"
+   ],
+   "create-fetch-by-dynamic-skills-and-skill-profile": [
+    "POST /organization/{}/contact-service-queue/fetch-by-dynamic-skills-and-skillProfile"
+   ],
+   "create-fetch-by-grouped-assistant-skill": [
+    "POST /organization/{}/v2/contact-service-queue/fetch-by-grouped-assistant-skill"
+   ],
+   "create-fetch-by-user-id-skill-profile-id": [
+    "POST /organization/{}/contact-service-queue/fetch-by-userId-skillProfileId"
+   ],
+   "create-fetch-manually-assignable-queues": [
+    "POST /organization/{}/contact-service-queue/fetch-manually-assignable-queues"
+   ],
+   "create-reassign-agents": [
+    "POST /organization/{}/v2/contact-service-queue/{}/reassign-agents"
+   ],
+   "delete": [
+    "DELETE /organization/{}/contact-service-queue/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/contact-service-queue/purge-inactive-entities"
+   ],
+   "delete-reference": [
+    "POST /organization/{}/contact-service-queue/delete-reference"
+   ],
+   "list": [
+    "GET /organization/{}/contact-service-queue"
+   ],
+   "list-agent-based-queues": [
+    "GET /organization/{}/v2/contact-service-queue/by-user-id/{}/agent-based-queues"
+   ],
+   "list-contact-service-queue-v2": [
+    "GET /organization/{}/v2/contact-service-queue"
+   ],
+   "list-contact-service-queue-v3": [
+    "GET /organization/{}/v3/contact-service-queue"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/contact-service-queue/{}/incoming-references"
+   ],
+   "list-skill-based-queues": [
+    "GET /organization/{}/v2/contact-service-queue/by-user-id/{}/skill-based-queues"
+   ],
+   "list-team-based-queues": [
+    "GET /organization/{}/v2/contact-service-queue/by-user-id/{}/team-based-queues"
+   ],
+   "show": [
+    "GET /organization/{}/contact-service-queue/by-skill-profile-id/{}"
+   ],
+   "show-contact-service-queue-organization": [
+    "GET /organization/{}/contact-service-queue/{}"
+   ],
+   "show-contact-service-queue-v2": [
+    "GET /organization/{}/v2/contact-service-queue/{}"
+   ],
+   "update": [
+    "PATCH /organization/{}/contact-service-queue/bulk"
+   ],
+   "update-contact-service-queue": [
+    "PUT /organization/{}/v2/contact-service-queue/{}"
+   ]
+  },
+  "cc_queue_stats": {
+   "list": [
+    "GET /queues/statistics"
+   ]
+  },
+  "cc_realtime": {
+   "create": [
+    "POST /realtime/subscribe"
+   ]
+  },
+  "cc_resource_collection": {
+   "create": [
+    "POST /organization/{}/resource-collection"
+   ],
+   "create-update-resource": [
+    "POST /organization/{}/resource-collection/update-resource"
+   ],
+   "delete": [
+    "DELETE /organization/{}/resource-collection/{}"
+   ],
+   "list": [
+    "GET /organization/{}/resource-collection/{}/incoming-references"
+   ],
+   "list-resource-collection": [
+    "GET /organization/{}/v2/resource-collection"
+   ],
+   "show": [
+    "GET /organization/{}/resource-collection/{}"
+   ],
+   "update": [
+    "PATCH /organization/{}/resource-collection/bulk"
+   ],
+   "update-resource-collection": [
+    "PUT /organization/{}/resource-collection/{}"
+   ]
+  },
+  "cc_search": {
+   "create": [
+    "POST /search"
+   ]
+  },
+  "cc_site": {
+   "create": [
+    "POST /organization/{}/site"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/site/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/site/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/site/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/site"
+   ],
+   "list-bulk-export": [
+    "GET /organization/{}/site/bulk-export"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/site/{}/incoming-references"
+   ],
+   "list-site": [
+    "GET /organization/{}/v2/site"
+   ],
+   "show": [
+    "GET /organization/{}/site/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/site/{}"
+   ]
+  },
+  "cc_skill": {
+   "create": [
+    "POST /organization/{}/skill"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/skill/bulk"
+   ],
+   "create-populate-json-attr": [
+    "POST /organization/{}/skill/populate-json-attr/{}"
+   ],
+   "delete": [
+    "DELETE /organization/{}/skill/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/skill/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/skill"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/skill/{}/incoming-references"
+   ],
+   "list-skill": [
+    "GET /organization/{}/v2/skill"
+   ],
+   "show": [
+    "GET /organization/{}/skill/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/skill/{}"
+   ]
+  },
+  "cc_skill_profile": {
+   "create": [
+    "POST /organization/{}/skill-profile"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/skill-profile/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/skill-profile/{}"
+   ],
+   "list": [
+    "GET /organization/{}/skill-profile"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/skill-profile/{}/incoming-references"
+   ],
+   "list-skill-profile": [
+    "GET /organization/{}/v2/skill-profile"
+   ],
+   "show": [
+    "GET /organization/{}/skill-profile/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/skill-profile/{}"
+   ]
+  },
+  "cc_subscriptions": {
+   "create": [
+    "POST /subscriptions"
+   ],
+   "create-subscriptions": [
+    "POST /v2/subscriptions"
+   ],
+   "delete": [
+    "DELETE /subscriptions/{}"
+   ],
+   "delete-subscriptions": [
+    "DELETE /v2/subscriptions/{}"
+   ],
+   "list": [
+    "GET /subscriptions"
+   ],
+   "list-event-types-v1": [
+    "GET /event-types"
+   ],
+   "list-event-types-v2": [
+    "GET /v2/event-types"
+   ],
+   "list-subscriptions": [
+    "GET /v2/subscriptions"
+   ],
+   "show": [
+    "GET /subscriptions/{}"
+   ],
+   "show-subscriptions": [
+    "GET /v2/subscriptions/{}"
+   ],
+   "update": [
+    "PATCH /subscriptions/{}"
+   ],
+   "update-subscriptions": [
+    "PATCH /v2/subscriptions/{}"
+   ]
+  },
+  "cc_summaries": {
+   "list": [
+    "GET /organization/{}/v2/generated-summaries"
+   ],
+   "show": [
+    "GET /organization/{}/generated-summaries/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/generated-summaries/{}"
+   ]
+  },
+  "cc_tasks": {
+   "create": [
+    "POST /tasks"
+   ],
+   "create-accept-consult": [
+    "POST /tasks/{}/consult/accept"
+   ],
+   "create-accept-preview-task": [
+    "POST /dialer/campaign/{}/preview-task/{}/accept"
+   ],
+   "create-accept-tasks": [
+    "POST /tasks/{}/accept"
+   ],
+   "create-assign": [
+    "POST /tasks/{}/assign"
+   ],
+   "create-conference": [
+    "POST /tasks/{}/consult/conference"
+   ],
+   "create-consult": [
+    "POST /tasks/{}/consult"
+   ],
+   "create-end-consult": [
+    "POST /tasks/{}/consult/end"
+   ],
+   "create-end-tasks": [
+    "POST /tasks/{}/end"
+   ],
+   "create-exit": [
+    "POST /tasks/{}/conference/exit"
+   ],
+   "create-hold": [
+    "POST /tasks/{}/hold"
+   ],
+   "create-messages": [
+    "POST /v2/tasks/{}/messages"
+   ],
+   "create-pause": [
+    "POST /tasks/{}/record/pause"
+   ],
+   "create-reject": [
+    "POST /tasks/{}/reject"
+   ],
+   "create-resume": [
+    "POST /tasks/{}/record/resume"
+   ],
+   "create-skip": [
+    "POST /dialer/campaign/{}/preview-task/{}/skip"
+   ],
+   "create-tasks": [
+    "POST /v2/tasks"
+   ],
+   "create-transfer-consult": [
+    "POST /tasks/{}/consult/transfer"
+   ],
+   "create-transfer-tasks": [
+    "POST /tasks/{}/transfer"
+   ],
+   "create-unhold": [
+    "POST /tasks/{}/unhold"
+   ],
+   "create-wrapup": [
+    "POST /tasks/{}/wrapup"
+   ],
+   "delete-preview-task": [
+    "POST /dialer/campaign/{}/preview-task/{}/remove"
+   ],
+   "list": [
+    "GET /tasks"
+   ],
+   "update": [
+    "PATCH /tasks/{}"
+   ]
+  },
+  "cc_team": {
+   "create": [
+    "POST /organization/{}/team"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/team/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/team/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/team/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/team"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/team/{}/incoming-references"
+   ],
+   "list-team": [
+    "GET /organization/{}/v2/team"
+   ],
+   "show": [
+    "GET /organization/{}/team/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/team/{}"
+   ]
+  },
+  "cc_user_profiles": {
+   "create": [
+    "POST /organization/{}/v3/user-profile"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/v3/user-profile/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/v3/user-profile/{}"
+   ],
+   "list": [
+    "GET /organization/{}/user-profile/{}/incoming-references"
+   ],
+   "list-acl": [
+    "GET /organization/{}/v3/user-profile/{}/acl"
+   ],
+   "list-user-profile": [
+    "GET /organization/{}/v3/user-profile"
+   ],
+   "show": [
+    "GET /organization/{}/v3/user-profile/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/v3/user-profile/{}"
+   ]
+  },
+  "cc_users": {
+   "create": [
+    "POST /organization/{}/user/fetch-by-skill-requirements"
+   ],
+   "create-fetch-user-details-by-ids": [
+    "POST /organization/{}/user/fetch-user-details-by-ids"
+   ],
+   "list": [
+    "GET /organization/{}/user"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/user/{}/incoming-references"
+   ],
+   "list-user": [
+    "GET /organization/{}/v2/user"
+   ],
+   "list-with-user-profile": [
+    "GET /organization/{}/user/with-user-profile"
+   ],
+   "show": [
+    "GET /organization/{}/user/by-call-monitoring-id/{}"
+   ],
+   "show-by-ci-user-id-organization": [
+    "GET /organization/{}/user/by-ci-user-id/{}"
+   ],
+   "show-by-ci-user-id-v2": [
+    "GET /organization/{}/v2/user/by-ci-user-id/{}"
+   ],
+   "show-by-dynamic-skill-id": [
+    "GET /organization/{}/user/by-dynamic-skill-id/{}"
+   ],
+   "show-user": [
+    "GET /organization/{}/user/{}"
+   ],
+   "show-with-user-profile": [
+    "GET /organization/{}/user/with-user-profile/{}"
+   ],
+   "update": [
+    "PATCH /organization/{}/user/bulk"
+   ],
+   "update-dynamic-skill": [
+    "PATCH /organization/{}/user/bulk/update-dynamic-skill/{}"
+   ],
+   "update-reskill": [
+    "PATCH /organization/{}/user/{}/reskill"
+   ],
+   "update-user": [
+    "PUT /organization/{}/user/{}"
+   ]
+  },
+  "cc_work_types": {
+   "create": [
+    "POST /organization/{}/work-type"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/work-type/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/work-type/{}"
+   ],
+   "delete-purge-inactive-entities": [
+    "POST /organization/{}/work-type/purge-inactive-entities"
+   ],
+   "list": [
+    "GET /organization/{}/work-type/bulk-export"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/work-type/{}/incoming-references"
+   ],
+   "list-work-type": [
+    "GET /organization/{}/v2/work-type"
+   ],
+   "show": [
+    "GET /organization/{}/work-type/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/work-type/{}"
+   ]
+  },
+  "cdr": {
+   "list": [
+    "GET /cdr_feed"
+   ],
+   "list-cdr_stream": [
+    "GET /cdr_stream"
+   ]
+  },
+  "classifications": {
+   "list": [
+    "GET /classifications"
+   ]
+  },
+  "cleanup": {
+   "run": []
+  },
+  "client_settings": {
+   "list": [
+    "GET /telephony/config/settings/msTeams"
+   ],
+   "update": [
+    "PUT /telephony/config/settings/msTeams"
+   ]
+  },
+  "conference": {
+   "create": [
+    "POST /telephony/conference"
+   ],
+   "create-add-participant": [
+    "POST /telephony/conference/addParticipant"
+   ],
+   "create-deafen": [
+    "POST /telephony/conference/deafen"
+   ],
+   "create-hold": [
+    "POST /telephony/conference/hold"
+   ],
+   "create-mute": [
+    "POST /telephony/conference/mute"
+   ],
+   "create-resume": [
+    "POST /telephony/conference/resume"
+   ],
+   "create-undeafen": [
+    "POST /telephony/conference/undeafen"
+   ],
+   "create-unmute": [
+    "POST /telephony/conference/unmute"
+   ],
+   "delete": [
+    "DELETE /telephony/conference"
+   ],
+   "list": [
+    "GET /telephony/conference"
+   ]
+  },
+  "configure": {},
+  "converged_recordings": {
+   "create": [
+    "POST /convergedRecordings/reassign"
+   ],
+   "create-restore": [
+    "POST /convergedRecordings/restore"
+   ],
+   "create-soft-delete": [
+    "POST /convergedRecordings/softDelete"
+   ],
+   "delete": [
+    "DELETE /convergedRecordings/{}"
+   ],
+   "delete-recordings-recycle": [
+    "POST /convergedRecordings/purge"
+   ],
+   "list": [
+    "GET /convergedRecordings"
+   ],
+   "list-converged-recordings": [
+    "GET /admin/convergedRecordings"
+   ],
+   "show": [
+    "GET /convergedRecordings/{}"
+   ],
+   "show-metadata": [
+    "GET /convergedRecordings/{}/metadata"
+   ]
+  },
+  "cq_playlists": {
+   "list": [
+    "GET /telephony/config/announcements/playlists/{}/usage"
+   ]
+  },
+  "cucm": {
+   "analyze": [],
+   "decide": [],
+   "decisions": [],
+   "discover": [],
+   "dry-run": [],
+   "execute": [],
+   "execution-status": [],
+   "export": [],
+   "import-locations": [],
+   "init": [],
+   "inventory": [],
+   "map": [],
+   "mark-complete": [],
+   "mark-failed": [],
+   "next-batch": [],
+   "normalize": [],
+   "plan": [],
+   "preflight": [],
+   "report": [],
+   "reset": [],
+   "retry-failed": [],
+   "rollback-ops": [],
+   "set": [],
+   "show": [],
+   "status": [],
+   "user-diff": [],
+   "user-notice": []
+  },
+  "customer_assist": {
+   "create": [
+    "POST /telephony/config/cxEssentials/wrapup/reasons"
+   ],
+   "delete": [
+    "DELETE /telephony/config/cxEssentials/wrapup/reasons/{}"
+   ],
+   "list": [
+    "GET /telephony/config/cxEssentials/wrapup/reasons"
+   ],
+   "list-available-agents": [
+    "GET /telephony/config/locations/{}/cxEssentials/agents/availableAgents"
+   ],
+   "list-available-queues": [
+    "GET /telephony/config/cxEssentials/wrapup/reasons/{}/availableQueues"
+   ],
+   "list-settings": [
+    "GET /telephony/config/cxEssentials/locations/{}/queues/{}/wrapup/settings"
+   ],
+   "show": [
+    "GET /telephony/config/cxEssentials/wrapup/reasons/{}"
+   ],
+   "show-call-recordings": [
+    "GET /telephony/config/locations/{}/queues/{}/cxEssentials/callRecordings"
+   ],
+   "show-screen-pop": [
+    "GET /telephony/config/locations/{}/queues/{}/cxEssentials/screenPop"
+   ],
+   "update": [
+    "PUT /telephony/config/cxEssentials/wrapup/reasons/{}"
+   ],
+   "update-call-recordings": [
+    "PUT /telephony/config/locations/{}/queues/{}/cxEssentials/callRecordings"
+   ],
+   "update-screen-pop": [
+    "PUT /telephony/config/locations/{}/queues/{}/cxEssentials/screenPop"
+   ],
+   "update-settings": [
+    "PUT /telephony/config/cxEssentials/locations/{}/queues/{}/wrapup/settings"
+   ],
+   "validate-wrap-up": [
+    "POST /telephony/config/cxEssentials/wrapup/reasons/actions/validateName/invoke"
+   ]
+  },
+  "data_policies": {
+   "list": [
+    "GET /telephony/config/dataPolicies/regions"
+   ],
+   "show": [
+    "GET /telephony/config/dataPolicies"
+   ],
+   "show-data-policies": [
+    "GET /telephony/config/locations/{}/dataPolicies"
+   ],
+   "update": [
+    "PUT /telephony/config/dataPolicies"
+   ],
+   "update-data-policies": [
+    "PUT /telephony/config/locations/{}/dataPolicies"
+   ]
+  },
+  "data_sources": {
+   "create": [
+    "POST /dataSources"
+   ],
+   "delete": [
+    "DELETE /dataSources/{}"
+   ],
+   "list": [
+    "GET /dataSources"
+   ],
+   "list-schemas": [
+    "GET /dataSources/schemas"
+   ],
+   "show": [
+    "GET /dataSources/schemas/{}"
+   ],
+   "show-data-sources": [
+    "GET /dataSources/{}"
+   ],
+   "update": [
+    "PUT /dataSources/{}"
+   ]
+  },
+  "dect_devices": {
+   "create": [
+    "POST /telephony/config/locations/{}/dectNetworks"
+   ],
+   "create-base-stations": [
+    "POST /telephony/config/locations/{}/dectNetworks/{}/baseStations"
+   ],
+   "create-bulk": [
+    "POST /telephony/config/locations/{}/dectNetworks/{}/handsets/bulk"
+   ],
+   "create-handsets": [
+    "POST /telephony/config/locations/{}/dectNetworks/{}/handsets"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/dectNetworks/{}"
+   ],
+   "delete-base-stations-dect-networks-bulk": [
+    "DELETE /telephony/config/locations/{}/dectNetworks/{}/baseStations"
+   ],
+   "delete-handsets-dect-networks-bulk": [
+    "DELETE /telephony/config/locations/{}/dectNetworks/{}/handsets"
+   ],
+   "delete-location-base-stations-dect-networks": [
+    "DELETE /telephony/config/locations/{}/dectNetworks/{}/baseStations/{}"
+   ],
+   "delete-location-handsets-dect-networks": [
+    "DELETE /telephony/config/locations/{}/dectNetworks/{}/handsets/{}"
+   ],
+   "generate-and-enable": [
+    "POST /telephony/config/locations/{}/dectNetworks/{}/serviceabilityPassword/actions/generate/invoke"
+   ],
+   "list": [
+    "GET /telephony/config/dectNetworks"
+   ],
+   "list-available-members": [
+    "GET /telephony/config/devices/availableMembers"
+   ],
+   "list-base-stations": [
+    "GET /telephony/config/locations/{}/dectNetworks/{}/baseStations"
+   ],
+   "list-dect-networks-people": [
+    "GET /telephony/config/people/{}/dectNetworks"
+   ],
+   "list-dect-networks-workspaces": [
+    "GET /telephony/config/workspaces/{}/dectNetworks"
+   ],
+   "list-handsets": [
+    "GET /telephony/config/locations/{}/dectNetworks/{}/handsets"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/dectNetworks/{}"
+   ],
+   "show-base-stations": [
+    "GET /telephony/config/locations/{}/dectNetworks/{}/baseStations/{}"
+   ],
+   "show-handsets": [
+    "GET /telephony/config/locations/{}/dectNetworks/{}/handsets/{}"
+   ],
+   "show-serviceability-password": [
+    "GET /telephony/config/locations/{}/dectNetworks/{}/serviceabilityPassword"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/dectNetworks/{}"
+   ],
+   "update-handsets": [
+    "PUT /telephony/config/locations/{}/dectNetworks/{}/handsets/{}"
+   ],
+   "update-serviceability-password": [
+    "PUT /telephony/config/locations/{}/dectNetworks/{}/serviceabilityPassword"
+   ]
+  },
+  "device_configurations": {
+   "show": [
+    "GET /deviceConfigurations"
+   ],
+   "update": [
+    "PATCH /deviceConfigurations"
+   ]
+  },
+  "device_dynamic_settings": {
+   "create": [
+    "POST /telephony/config/jobs/devices/dynamicDeviceSettings"
+   ],
+   "get-customer-device": [
+    "POST /telephony/config/lists/devices/dynamicSettings/actions/getSettings/invoke"
+   ],
+   "get-device-dynamic": [
+    "POST /telephony/config/lists/devices/{}/dynamicSettings/actions/getSettings/invoke"
+   ],
+   "get-location-device": [
+    "POST /telephony/config/lists/locations/{}/devices/dynamicSettings/actions/getSettings/invoke"
+   ],
+   "list": [
+    "GET /telephony/config/supportedDevices"
+   ],
+   "list-dynamic-device-settings": [
+    "GET /telephony/config/jobs/devices/dynamicDeviceSettings"
+   ],
+   "list-errors": [
+    "GET /telephony/config/jobs/devices/dynamicDeviceSettings/{}/errors"
+   ],
+   "list-settings-groups": [
+    "GET /telephony/config/devices/dynamicSettings/settingsGroups"
+   ],
+   "show": [
+    "GET /telephony/config/jobs/devices/dynamicDeviceSettings/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/devices/{}/dynamicSettings"
+   ]
+  },
+  "device_settings": {
+   "apply-changes-for": [
+    "POST /telephony/config/devices/{}/actions/applyChanges/invoke"
+   ],
+   "create": [
+    "POST /telephony/config/devices/lineKeyTemplates"
+   ],
+   "create-apply-line-key-template": [
+    "POST /telephony/config/jobs/devices/applyLineKeyTemplate"
+   ],
+   "create-call-device-settings": [
+    "POST /telephony/config/jobs/devices/callDeviceSettings"
+   ],
+   "create-rebuild-phones": [
+    "POST /telephony/config/jobs/devices/rebuildPhones"
+   ],
+   "delete": [
+    "DELETE /telephony/config/devices/lineKeyTemplates/{}"
+   ],
+   "delete-background-images": [
+    "DELETE /telephony/config/devices/backgroundImages"
+   ],
+   "list": [
+    "GET /telephony/config/devices/{}/members"
+   ],
+   "list-apply-line-key-template": [
+    "GET /telephony/config/jobs/devices/applyLineKeyTemplate"
+   ],
+   "list-available-members": [
+    "GET /telephony/config/devices/{}/availableMembers"
+   ],
+   "list-background-images": [
+    "GET /telephony/config/devices/backgroundImages"
+   ],
+   "list-call-device-settings": [
+    "GET /telephony/config/jobs/devices/callDeviceSettings"
+   ],
+   "list-devices-people": [
+    "GET /telephony/config/people/{}/devices"
+   ],
+   "list-devices-workspaces": [
+    "GET /telephony/config/workspaces/{}/devices"
+   ],
+   "list-errors-call-device-settings": [
+    "GET /telephony/config/jobs/devices/callDeviceSettings/{}/errors"
+   ],
+   "list-errors-rebuild-phones": [
+    "GET /telephony/config/jobs/devices/rebuildPhones/{}/errors"
+   ],
+   "list-layout": [
+    "GET /telephony/config/devices/{}/layout"
+   ],
+   "list-line-key-templates": [
+    "GET /telephony/config/devices/lineKeyTemplates"
+   ],
+   "list-rebuild-phones": [
+    "GET /telephony/config/jobs/devices/rebuildPhones"
+   ],
+   "list-supported-devices-dect-networks": [
+    "GET /telephony/config/devices/dectNetworks/supportedDevices"
+   ],
+   "list-supported-devices-dects": [
+    "GET /telephony/config/devices/dects/supportedDevices"
+   ],
+   "preview-apply-line": [
+    "POST /telephony/config/devices/actions/previewApplyLineKeyTemplate/invoke"
+   ],
+   "show": [
+    "GET /telephony/config/devices/{}/availableMembers/count"
+   ],
+   "show-apply-line-key-template": [
+    "GET /telephony/config/jobs/devices/applyLineKeyTemplate/{}"
+   ],
+   "show-call-device-settings": [
+    "GET /telephony/config/jobs/devices/callDeviceSettings/{}"
+   ],
+   "show-count-available-members": [
+    "GET /telephony/config/devices/availableMembers/count"
+   ],
+   "show-count-devices": [
+    "GET /telephony/config/people/{}/devices/count"
+   ],
+   "show-devices": [
+    "GET /telephony/config/devices/{}"
+   ],
+   "show-errors": [
+    "GET /telephony/config/jobs/devices/applyLineKeyTemplate/{}/errors"
+   ],
+   "show-line-key-templates": [
+    "GET /telephony/config/devices/lineKeyTemplates/{}"
+   ],
+   "show-rebuild-phones": [
+    "GET /telephony/config/jobs/devices/rebuildPhones/{}"
+   ],
+   "show-settings-devices": [
+    "GET /telephony/config/devices/{}/settings"
+   ],
+   "show-settings-devices-1": [
+    "GET /telephony/config/locations/{}/devices/settings"
+   ],
+   "show-settings-devices-2": [
+    "GET /telephony/config/devices/settings"
+   ],
+   "show-settings-devices-3": [
+    "GET /telephony/config/people/{}/devices/settings"
+   ],
+   "show-settings-devices-4": [
+    "GET /telephony/config/workspaces/{}/devices/settings"
+   ],
+   "update": [
+    "PUT /telephony/config/devices/{}/members"
+   ],
+   "update-devices-config": [
+    "PUT /telephony/config/devices/{}"
+   ],
+   "update-devices-workspaces": [
+    "PUT /telephony/config/workspaces/{}/devices"
+   ],
+   "update-hoteling": [
+    "PUT /telephony/config/people/{}/devices/settings/hoteling"
+   ],
+   "update-layout": [
+    "PUT /telephony/config/devices/{}/layout"
+   ],
+   "update-line-key-templates": [
+    "PUT /telephony/config/devices/lineKeyTemplates/{}"
+   ],
+   "update-settings-devices": [
+    "PUT /telephony/config/devices/{}/settings"
+   ],
+   "update-settings-devices-1": [
+    "PUT /telephony/config/people/{}/devices/settings"
+   ],
+   "update-settings-devices-2": [
+    "PUT /telephony/config/workspaces/{}/devices/settings"
+   ],
+   "validate-a-list": [
+    "POST /telephony/config/devices/actions/validateMacs/invoke"
+   ]
+  },
+  "devices": {
+   "create": [
+    "POST /devices"
+   ],
+   "create-activation-code": [
+    "POST /devices/activationCode"
+   ],
+   "delete": [
+    "DELETE /devices/{}"
+   ],
+   "list": [
+    "GET /devices"
+   ],
+   "show": [
+    "GET /devices/{}"
+   ],
+   "update": [
+    "PATCH /devices/{}"
+   ]
+  },
+  "domains": {
+   "claim-domain": [
+    "POST /identity/organizations/{}/actions/claimDomain"
+   ],
+   "get-domain-verification": [
+    "POST /identity/organizations/{}/actions/getDomainVerificationToken"
+   ],
+   "unclaim-domain": [
+    "POST /identity/organizations/{}/actions/unclaimDomain"
+   ],
+   "unverify-domain": [
+    "POST /identity/organizations/{}/actions/unverifyDomain"
+   ],
+   "verify-domain": [
+    "POST /identity/organizations/{}/actions/verifyDomain"
+   ]
+  },
+  "ecm": {
+   "create": [
+    "POST /room/linkedFolders"
+   ],
+   "delete": [
+    "DELETE /room/linkedFolders/{}"
+   ],
+   "list": [
+    "GET /room/linkedFolders"
+   ],
+   "show": [
+    "GET /room/linkedFolders/{}"
+   ],
+   "update": [
+    "PUT /room/linkedFolders/{}"
+   ]
+  },
+  "emergency_services": {
+   "create": [
+    "POST /telephony/config/redSky"
+   ],
+   "create-building": [
+    "POST /telephony/config/locations/{}/redSky/building"
+   ],
+   "login-to-a": [
+    "POST /telephony/config/redSky/actions/login/invoke"
+   ],
+   "show": [
+    "GET /telephony/config/redSky"
+   ],
+   "show-compliance-status": [
+    "GET /telephony/config/redSky/complianceStatus"
+   ],
+   "show-dependencies-emergency-callback-number": [
+    "GET /telephony/config/huntGroups/{}/emergencyCallbackNumber/dependencies"
+   ],
+   "show-dependencies-emergency-callback-number-1": [
+    "GET /telephony/config/people/{}/emergencyCallbackNumber/dependencies"
+   ],
+   "show-dependencies-emergency-callback-number-2": [
+    "GET /telephony/config/workspaces/{}/emergencyCallbackNumber/dependencies"
+   ],
+   "show-dependencies-emergency-callback-number-3": [
+    "GET /telephony/config/virtualLines/{}/emergencyCallbackNumber/dependencies"
+   ],
+   "show-emergency-call-notification-config": [
+    "GET /telephony/config/emergencyCallNotification"
+   ],
+   "show-emergency-call-notification-locations": [
+    "GET /telephony/config/locations/{}/emergencyCallNotification"
+   ],
+   "show-emergency-callback-number-people": [
+    "GET /telephony/config/people/{}/emergencyCallbackNumber"
+   ],
+   "show-emergency-callback-number-virtual-lines": [
+    "GET /telephony/config/virtualLines/{}/emergencyCallbackNumber"
+   ],
+   "show-emergency-callback-number-workspaces": [
+    "GET /telephony/config/workspaces/{}/emergencyCallbackNumber"
+   ],
+   "show-red-sky": [
+    "GET /telephony/config/locations/{}/redSky"
+   ],
+   "show-status-red-sky": [
+    "GET /telephony/config/redSky/status"
+   ],
+   "show-status-red-sky-1": [
+    "GET /telephony/config/locations/{}/redSky/status"
+   ],
+   "update": [
+    "PUT /telephony/config/redSky/serviceSettings"
+   ],
+   "update-building": [
+    "PUT /telephony/config/locations/{}/redSky/building"
+   ],
+   "update-emergency-call-notification-config": [
+    "PUT /telephony/config/emergencyCallNotification"
+   ],
+   "update-emergency-call-notification-locations": [
+    "PUT /telephony/config/locations/{}/emergencyCallNotification"
+   ],
+   "update-emergency-callback-number-people": [
+    "PUT /telephony/config/people/{}/emergencyCallbackNumber"
+   ],
+   "update-emergency-callback-number-virtual-lines": [
+    "PUT /telephony/config/virtualLines/{}/emergencyCallbackNumber"
+   ],
+   "update-emergency-callback-number-workspaces": [
+    "PUT /telephony/config/workspaces/{}/emergencyCallbackNumber"
+   ],
+   "update-status-red-sky": [
+    "PUT /telephony/config/redSky/status"
+   ],
+   "update-status-red-sky-1": [
+    "PUT /telephony/config/locations/{}/redSky/status"
+   ]
+  },
+  "events": {
+   "list": [
+    "GET /events"
+   ],
+   "show": [
+    "GET /events/{}"
+   ]
+  },
+  "external_voicemail": {
+   "create": [
+    "POST /telephony/externalVoicemail/mwi"
+   ]
+  },
+  "groups": {
+   "create": [
+    "POST /groups"
+   ],
+   "delete": [
+    "DELETE /groups/{}"
+   ],
+   "list": [
+    "GET /groups"
+   ],
+   "list-members": [
+    "GET /groups/{}/members"
+   ],
+   "show": [
+    "GET /groups/{}"
+   ],
+   "update": [
+    "PATCH /groups/{}"
+   ]
+  },
+  "guest_management": {
+   "create": [
+    "POST /guests/token"
+   ],
+   "list": [
+    "GET /guests/count"
+   ]
+  },
+  "hds": {
+   "list-alarms": [
+    "GET /hds/nodes/{}/alarms"
+   ],
+   "list-availability": [
+    "GET /hds/clusters/{}/availability"
+   ],
+   "list-clusters": [
+    "GET /hds/organizations/{}/clusters"
+   ],
+   "list-network-test": [
+    "GET /hds/testResults/nodes/{}/networkTest"
+   ],
+   "list-nodes": [
+    "GET /hds/clusters/{}/nodes"
+   ],
+   "list-resource-usage": [
+    "GET /hds/nodes/{}/resourceUsage"
+   ],
+   "list-tenants": [
+    "GET /hds/organizations/{}/tenants"
+   ],
+   "show": [
+    "GET /hds/organizations/{}"
+   ],
+   "show-clusters": [
+    "GET /hds/clusters/{}"
+   ],
+   "show-database": [
+    "GET /hds/organizations/{}/database"
+   ],
+   "show-nodes": [
+    "GET /hds/nodes/{}"
+   ]
+  },
+  "hot_desk": {
+   "delete": [
+    "DELETE /hotdesk/sessions/{}"
+   ],
+   "list": [
+    "GET /hotdesk/sessions"
+   ]
+  },
+  "hot_desking_members": {
+   "list": [
+    "GET /telephony/config/people/{}/features/hotDesking/availableMembers"
+   ],
+   "list-members": [
+    "GET /telephony/config/people/{}/features/hotDesking/members"
+   ],
+   "update": [
+    "PUT /telephony/config/people/{}/features/hotDesking/members"
+   ]
+  },
+  "hot_desking_portal": {
+   "show": [
+    "GET /telephony/config/locations/{}/features/hotDesking"
+   ],
+   "show-guest": [
+    "GET /telephony/config/people/{}/features/hotDesking/guest"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/features/hotDesking"
+   ],
+   "update-guest": [
+    "PUT /telephony/config/people/{}/features/hotDesking/guest"
+   ]
+  },
+  "hunt_group": {
+   "create": [
+    "POST /telephony/config/locations/{}/huntGroups"
+   ],
+   "create-selective-rules": [
+    "POST /telephony/config/locations/{}/huntGroups/{}/callForwarding/selectiveRules"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/huntGroups/{}"
+   ],
+   "delete-selective-rules": [
+    "DELETE /telephony/config/locations/{}/huntGroups/{}/callForwarding/selectiveRules/{}"
+   ],
+   "list": [
+    "GET /telephony/config/huntGroups"
+   ],
+   "list-available-numbers-alternate": [
+    "GET /telephony/config/locations/{}/huntGroups/alternate/availableNumbers"
+   ],
+   "list-available-numbers-call-forwarding": [
+    "GET /telephony/config/locations/{}/huntGroups/callForwarding/availableNumbers"
+   ],
+   "list-available-numbers-hunt-groups": [
+    "GET /telephony/config/locations/{}/huntGroups/availableNumbers"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/huntGroups/{}"
+   ],
+   "show-call-forwarding": [
+    "GET /telephony/config/locations/{}/huntGroups/{}/callForwarding"
+   ],
+   "show-selective-rules": [
+    "GET /telephony/config/locations/{}/huntGroups/{}/callForwarding/selectiveRules/{}"
+   ],
+   "switch-mode-for": [
+    "POST /telephony/config/locations/{}/huntGroups/{}/callForwarding/actions/switchMode/invoke"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/huntGroups/{}"
+   ],
+   "update-call-forwarding": [
+    "PUT /telephony/config/locations/{}/huntGroups/{}/callForwarding"
+   ],
+   "update-selective-rules": [
+    "PUT /telephony/config/locations/{}/huntGroups/{}/callForwarding/selectiveRules/{}"
+   ]
+  },
+  "hybrid_clusters": {
+   "list": [
+    "GET /hybrid/clusters"
+   ],
+   "show": [
+    "GET /hybrid/clusters/{}"
+   ]
+  },
+  "hybrid_connectors": {
+   "list": [
+    "GET /hybrid/connectors"
+   ],
+   "show": [
+    "GET /hybrid/connectors/{}"
+   ]
+  },
+  "identity_org": {
+   "generate-otp": [
+    "POST /identity/organizations/{}/users/{}/actions/generateOtp"
+   ],
+   "show": [
+    "GET /identity/organizations/{}"
+   ],
+   "update": [
+    "PATCH /identity/organizations/{}"
+   ],
+   "update-authentication-config": [
+    "PATCH /identity/organizations/{}/authenticationConfig"
+   ],
+   "update-password-policy": [
+    "PATCH /identity/organizations/{}/passwordPolicy"
+   ]
+  },
+  "licenses": {
+   "list": [
+    "GET /licenses"
+   ],
+   "show": [
+    "GET /licenses/{}"
+   ],
+   "update": [
+    "PATCH /licenses/users"
+   ]
+  },
+  "live_monitoring": {
+   "create": [
+    "POST /livemonitoring/liveMeetingsByCountry"
+   ]
+  },
+  "location_call_handling": {
+   "create": [
+    "POST /telephony/config/locations/{}/outgoingPermission/accessCodes"
+   ],
+   "create-digit-patterns": [
+    "POST /telephony/config/locations/{}/outgoingPermission/digitPatterns"
+   ],
+   "delete-access-codes-all": [
+    "DELETE /telephony/config/locations/{}/outgoingPermission/accessCodes"
+   ],
+   "delete-digit-patterns-outgoing-permission": [
+    "DELETE /telephony/config/locations/{}/outgoingPermission/digitPatterns"
+   ],
+   "delete-digit-patterns-outgoing-permission-1": [
+    "DELETE /telephony/config/locations/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "generate-example-password": [
+    "POST /telephony/config/locations/{}/actions/generatePassword/invoke"
+   ],
+   "list": [
+    "GET /telephony/config/locations/{}/outgoingPermission"
+   ],
+   "list-digit-patterns": [
+    "GET /telephony/config/locations/{}/outgoingPermission/digitPatterns"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/internalDialing"
+   ],
+   "show-access-codes": [
+    "GET /telephony/config/locations/{}/outgoingPermission/accessCodes"
+   ],
+   "show-auto-transfer-numbers": [
+    "GET /telephony/config/locations/{}/outgoingPermission/autoTransferNumbers"
+   ],
+   "show-digit-patterns": [
+    "GET /telephony/config/locations/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "show-intercept": [
+    "GET /telephony/config/locations/{}/intercept"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/internalDialing"
+   ],
+   "update-access-codes": [
+    "PUT /telephony/config/locations/{}/outgoingPermission/accessCodes"
+   ],
+   "update-auto-transfer-numbers": [
+    "PUT /telephony/config/locations/{}/outgoingPermission/autoTransferNumbers"
+   ],
+   "update-digit-patterns": [
+    "PUT /telephony/config/locations/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "update-intercept": [
+    "PUT /telephony/config/locations/{}/intercept"
+   ],
+   "update-outgoing-permission": [
+    "PUT /telephony/config/locations/{}/outgoingPermission"
+   ]
+  },
+  "location_schedules": {
+   "create": [
+    "POST /telephony/config/locations/{}/schedules"
+   ],
+   "create-events": [
+    "POST /telephony/config/locations/{}/schedules/{}/{}/events"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/schedules/{}/{}"
+   ],
+   "delete-events": [
+    "DELETE /telephony/config/locations/{}/schedules/{}/{}/events/{}"
+   ],
+   "list": [
+    "GET /telephony/config/locations/{}/schedules"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/schedules/{}/{}"
+   ],
+   "show-events": [
+    "GET /telephony/config/locations/{}/schedules/{}/{}/events/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/schedules/{}/{}"
+   ],
+   "update-events": [
+    "PUT /telephony/config/locations/{}/schedules/{}/{}/events/{}"
+   ]
+  },
+  "location_settings": {
+   "change-announcement-language": [
+    "POST /telephony/config/locations/{}/actions/modifyAnnouncementLanguage/invoke"
+   ],
+   "create": [
+    "POST /telephony/config/locations"
+   ],
+   "create-delete-calling-location": [
+    "POST /telephony/config/jobs/locations/deleteCallingLocation"
+   ],
+   "create-directories": [
+    "POST /telephony/config/locations/{}/receptionistContacts/directories"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/receptionistContacts/directories/{}"
+   ],
+   "list-available-numbers-call-intercept": [
+    "GET /telephony/config/locations/{}/callIntercept/availableNumbers"
+   ],
+   "list-available-numbers-charge-number": [
+    "GET /telephony/config/locations/{}/chargeNumber/availableNumbers"
+   ],
+   "list-available-numbers-emergency-callback-number": [
+    "GET /telephony/config/locations/{}/emergencyCallbackNumber/availableNumbers"
+   ],
+   "list-available-numbers-external-caller-id": [
+    "GET /telephony/config/locations/{}/externalCallerId/availableNumbers"
+   ],
+   "list-available-numbers-locations": [
+    "GET /telephony/config/locations/{}/availableNumbers"
+   ],
+   "list-available-numbers-webex-go": [
+    "GET /telephony/config/locations/{}/webexGo/availableNumbers"
+   ],
+   "list-calling-details": [
+    "GET /telephony/config/locations"
+   ],
+   "list-delete-calling-location": [
+    "GET /telephony/config/jobs/locations/deleteCallingLocation"
+   ],
+   "list-dial-patterns": [
+    "GET /telephony/config/premisePstn/dialPlans/{}/dialPatterns"
+   ],
+   "list-directories": [
+    "GET /telephony/config/locations/{}/receptionistContacts/directories"
+   ],
+   "list-errors": [
+    "GET /telephony/config/jobs/locations/deleteCallingLocation/{}/errors"
+   ],
+   "list-route-choices": [
+    "GET /telephony/config/routeChoices"
+   ],
+   "list-update-routing-prefix": [
+    "GET /telephony/config/jobs/updateRoutingPrefix"
+   ],
+   "pause-a-disable": [
+    "POST /telephony/config/jobs/locations/deleteCallingLocation/{}/actions/pause/invoke"
+   ],
+   "resume-a-paused": [
+    "POST /telephony/config/jobs/locations/deleteCallingLocation/{}/actions/resume/invoke"
+   ],
+   "safe-delete-check": [
+    "POST /telephony/config/locations/{}/actions/precheckForDeletion/invoke"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}"
+   ],
+   "show-call-captions": [
+    "GET /telephony/config/locations/{}/callCaptions"
+   ],
+   "show-delete-calling-location": [
+    "GET /telephony/config/jobs/locations/deleteCallingLocation/{}"
+   ],
+   "show-directories": [
+    "GET /telephony/config/locations/{}/receptionistContacts/directories/{}"
+   ],
+   "show-emergency-callback-number": [
+    "GET /telephony/config/locations/{}/features/emergencyCallbackNumber"
+   ],
+   "show-errors": [
+    "GET /telephony/config/jobs/updateRoutingPrefix/{}/errors"
+   ],
+   "show-music-on-hold": [
+    "GET /telephony/config/locations/{}/musicOnHold"
+   ],
+   "show-private-network-connect": [
+    "GET /telephony/config/locations/{}/privateNetworkConnect"
+   ],
+   "show-update-routing-prefix": [
+    "GET /telephony/config/jobs/updateRoutingPrefix/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}"
+   ],
+   "update-call-captions": [
+    "PUT /telephony/config/locations/{}/callCaptions"
+   ],
+   "update-directories": [
+    "PUT /telephony/config/locations/{}/receptionistContacts/directories/{}"
+   ],
+   "update-emergency-callback-number": [
+    "PUT /telephony/config/locations/{}/features/emergencyCallbackNumber"
+   ],
+   "update-music-on-hold": [
+    "PUT /telephony/config/locations/{}/musicOnHold"
+   ],
+   "update-private-network-connect": [
+    "PUT /telephony/config/locations/{}/privateNetworkConnect"
+   ],
+   "validate-extensions": [
+    "POST /telephony/config/locations/{}/actions/validateExtensions/invoke"
+   ],
+   "validate-the-list": [
+    "POST /telephony/config/actions/validateExtensions/invoke"
+   ]
+  },
+  "location_voicemail": {
+   "create": [
+    "POST /telephony/config/locations/{}/voicemailGroups"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/voicemailGroups/{}"
+   ],
+   "list": [
+    "GET /telephony/config/voicemailGroups"
+   ],
+   "list-available-numbers-fax-message": [
+    "GET /telephony/config/locations/{}/voicemailGroups/faxMessage/availableNumbers"
+   ],
+   "list-available-numbers-voice-portal": [
+    "GET /telephony/config/locations/{}/voicePortal/availableNumbers"
+   ],
+   "list-available-numbers-voicemail-groups": [
+    "GET /telephony/config/locations/{}/voicemailGroups/availableNumbers"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/voicemail"
+   ],
+   "show-passcode-rules": [
+    "GET /telephony/config/locations/{}/voicePortal/passcodeRules"
+   ],
+   "show-voice-portal": [
+    "GET /telephony/config/locations/{}/voicePortal"
+   ],
+   "show-voicemail-groups": [
+    "GET /telephony/config/locations/{}/voicemailGroups/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/voicemail"
+   ],
+   "update-voice-portal": [
+    "PUT /telephony/config/locations/{}/voicePortal"
+   ],
+   "update-voicemail-groups": [
+    "PUT /telephony/config/locations/{}/voicemailGroups/{}"
+   ]
+  },
+  "locations": {
+   "create": [
+    "POST /locations"
+   ],
+   "create-floors": [
+    "POST /locations/{}/floors"
+   ],
+   "delete": [
+    "DELETE /locations/{}"
+   ],
+   "delete-floors": [
+    "DELETE /locations/{}/floors/{}"
+   ],
+   "list": [
+    "GET /locations"
+   ],
+   "list-floors": [
+    "GET /locations/{}/floors"
+   ],
+   "show": [
+    "GET /locations/{}"
+   ],
+   "show-floors": [
+    "GET /locations/{}/floors/{}"
+   ],
+   "update": [
+    "PUT /locations/{}"
+   ],
+   "update-floors": [
+    "PUT /locations/{}/floors/{}"
+   ]
+  },
+  "meeting_captions": {
+   "list": [
+    "GET /meetingClosedCaptions"
+   ],
+   "list-download": [
+    "GET /meetingClosedCaptions/{}/download"
+   ],
+   "list-snippets": [
+    "GET /meetingClosedCaptions/{}/snippets"
+   ]
+  },
+  "meeting_chats": {
+   "delete": [
+    "DELETE /meetings/postMeetingChats"
+   ],
+   "list": [
+    "GET /meetings/postMeetingChats"
+   ]
+  },
+  "meeting_invitees": {
+   "create": [
+    "POST /meetingInvitees"
+   ],
+   "create-bulk-insert": [
+    "POST /meetingInvitees/bulkInsert"
+   ],
+   "delete": [
+    "DELETE /meetingInvitees/{}"
+   ],
+   "list": [
+    "GET /meetingInvitees"
+   ],
+   "show": [
+    "GET /meetingInvitees/{}"
+   ],
+   "update": [
+    "PUT /meetingInvitees/{}"
+   ]
+  },
+  "meeting_messages": {
+   "delete": [
+    "DELETE /meeting/messages/{}"
+   ]
+  },
+  "meeting_participants": {
+   "create": [
+    "POST /meetingParticipants/query"
+   ],
+   "create-admit": [
+    "POST /meetingParticipants/admit"
+   ],
+   "create-callout": [
+    "POST /meetingParticipants/callout"
+   ],
+   "create-cancel-callout": [
+    "POST /meetingParticipants/cancelCallout"
+   ],
+   "list": [
+    "GET /meetingParticipants"
+   ],
+   "show": [
+    "GET /meetingParticipants/{}"
+   ],
+   "update": [
+    "PUT /meetingParticipants/{}"
+   ]
+  },
+  "meeting_polls": {
+   "list": [
+    "GET /meetings/polls"
+   ],
+   "list-poll-results": [
+    "GET /meetings/pollResults"
+   ],
+   "list-respondents": [
+    "GET /meetings/polls/{}/questions/{}/respondents"
+   ]
+  },
+  "meeting_preferences": {
+   "create": [
+    "POST /meetingPreferences/schedulingOptions/delegateEmails/insert"
+   ],
+   "create-refresh-id": [
+    "POST /admin/meetingPreferences/personalMeetingRoom/refreshId"
+   ],
+   "delete-delegate-emails": [
+    "POST /meetingPreferences/schedulingOptions/delegateEmails/delete"
+   ],
+   "list": [
+    "GET /meetingPreferences"
+   ],
+   "list-personal-meeting-room": [
+    "GET /meetingPreferences/personalMeetingRoom"
+   ],
+   "list-scheduling-options": [
+    "GET /meetingPreferences/schedulingOptions"
+   ],
+   "list-sites": [
+    "GET /meetingPreferences/sites"
+   ],
+   "list-video": [
+    "GET /meetingPreferences/video"
+   ],
+   "show": [
+    "GET /meetingPreferences/audio"
+   ],
+   "update": [
+    "PUT /meetingPreferences/personalMeetingRoom"
+   ],
+   "update-audio": [
+    "PUT /meetingPreferences/audio"
+   ],
+   "update-scheduling-options": [
+    "PUT /meetingPreferences/schedulingOptions"
+   ],
+   "update-sites": [
+    "PUT /meetingPreferences/sites"
+   ],
+   "update-video": [
+    "PUT /meetingPreferences/video"
+   ]
+  },
+  "meeting_qa": {
+   "list": [
+    "GET /meetings/q_and_a"
+   ],
+   "list-answers": [
+    "GET /meetings/q_and_a/{}/answers"
+   ]
+  },
+  "meeting_qualities": {
+   "list": [
+    "GET /meeting/qualities"
+   ]
+  },
+  "meeting_reports": {
+   "list": [
+    "GET /meetingReports/usage"
+   ],
+   "list-attendees": [
+    "GET /meetingReports/attendees"
+   ]
+  },
+  "meeting_session_types": {
+   "list": [
+    "GET /admin/meeting/config/sessionTypes"
+   ],
+   "list-session-types": [
+    "GET /admin/meeting/userconfig/sessionTypes"
+   ],
+   "update": [
+    "PUT /admin/meeting/userconfig/sessionTypes"
+   ]
+  },
+  "meeting_site": {
+   "show": [
+    "GET /admin/meeting/config/commonSettings"
+   ],
+   "update": [
+    "PATCH /admin/meeting/config/commonSettings"
+   ]
+  },
+  "meeting_slido": {
+   "list": [
+    "GET /slido/compliance/events"
+   ]
+  },
+  "meeting_summaries": {
+   "delete": [
+    "DELETE /meetingSummaries/{}"
+   ],
+   "list": [
+    "GET /meetingSummaries"
+   ],
+   "list-meeting-summaries": [
+    "GET /admin/meetingSummaries"
+   ]
+  },
+  "meeting_tracking_codes": {
+   "create": [
+    "POST /admin/meeting/config/trackingCodes"
+   ],
+   "delete": [
+    "DELETE /admin/meeting/config/trackingCodes/{}"
+   ],
+   "list": [
+    "GET /admin/meeting/config/trackingCodes"
+   ],
+   "list-tracking-codes": [
+    "GET /admin/meeting/userconfig/trackingCodes"
+   ],
+   "show": [
+    "GET /admin/meeting/config/trackingCodes/{}"
+   ],
+   "update": [
+    "PUT /admin/meeting/config/trackingCodes/{}"
+   ],
+   "update-tracking-codes": [
+    "PUT /admin/meeting/userconfig/trackingCodes"
+   ]
+  },
+  "meeting_transcripts": {
+   "delete": [
+    "DELETE /meetingTranscripts/{}"
+   ],
+   "list": [
+    "GET /meetingTranscripts"
+   ],
+   "list-download": [
+    "GET /meetingTranscripts/{}/download"
+   ],
+   "list-meeting-transcripts": [
+    "GET /admin/meetingTranscripts"
+   ],
+   "list-snippets": [
+    "GET /meetingTranscripts/{}/snippets"
+   ],
+   "show": [
+    "GET /meetingTranscripts/{}/snippets/{}"
+   ],
+   "update": [
+    "PUT /meetingTranscripts/{}/snippets/{}"
+   ]
+  },
+  "meetings": {
+   "create": [
+    "POST /meetings"
+   ],
+   "create-approve": [
+    "POST /meetings/{}/registrants/approve"
+   ],
+   "create-bulk-delete": [
+    "POST /meetings/{}/registrants/bulkDelete"
+   ],
+   "create-bulk-insert": [
+    "POST /meetings/{}/registrants/bulkInsert"
+   ],
+   "create-cancel": [
+    "POST /meetings/{}/registrants/cancel"
+   ],
+   "create-end": [
+    "POST /meetings/{}/end"
+   ],
+   "create-interpreters": [
+    "POST /meetings/{}/interpreters"
+   ],
+   "create-invitation-sources": [
+    "POST /meetings/{}/invitationSources"
+   ],
+   "create-join": [
+    "POST /meetings/join"
+   ],
+   "create-query": [
+    "POST /meetings/{}/registrants/query"
+   ],
+   "create-reassign-host": [
+    "POST /meetings/reassignHost"
+   ],
+   "create-registrants": [
+    "POST /meetings/{}/registrants"
+   ],
+   "create-reject": [
+    "POST /meetings/{}/registrants/reject"
+   ],
+   "create-survey-links": [
+    "POST /meetings/{}/surveyLinks"
+   ],
+   "delete": [
+    "DELETE /meetings/{}"
+   ],
+   "delete-breakout-sessions": [
+    "DELETE /meetings/{}/breakoutSessions"
+   ],
+   "delete-interpreters": [
+    "DELETE /meetings/{}/interpreters/{}"
+   ],
+   "delete-registrants": [
+    "DELETE /meetings/{}/registrants/{}"
+   ],
+   "delete-registration": [
+    "DELETE /meetings/{}/registration"
+   ],
+   "list": [
+    "GET /admin/meetings"
+   ],
+   "list-breakout-sessions": [
+    "GET /meetings/{}/breakoutSessions"
+   ],
+   "list-interpreters": [
+    "GET /meetings/{}/interpreters"
+   ],
+   "list-invitation-sources": [
+    "GET /meetings/{}/invitationSources"
+   ],
+   "list-meetings": [
+    "GET /meetings"
+   ],
+   "list-registrants": [
+    "GET /meetings/{}/registrants"
+   ],
+   "list-registration": [
+    "GET /meetings/{}/registration"
+   ],
+   "list-session-types": [
+    "GET /meetings/sessionTypes"
+   ],
+   "list-survey": [
+    "GET /meetings/{}/survey"
+   ],
+   "list-survey-results": [
+    "GET /meetings/{}/surveyResults"
+   ],
+   "list-templates": [
+    "GET /meetings/templates"
+   ],
+   "list-tracking-codes": [
+    "GET /meetings/trackingCodes"
+   ],
+   "show": [
+    "GET /admin/meetings/{}"
+   ],
+   "show-controls": [
+    "GET /meetings/controls"
+   ],
+   "show-interpreters": [
+    "GET /meetings/{}/interpreters/{}"
+   ],
+   "show-meetings": [
+    "GET /meetings/{}"
+   ],
+   "show-registrants": [
+    "GET /meetings/{}/registrants/{}"
+   ],
+   "show-session-types": [
+    "GET /meetings/sessionTypes/{}"
+   ],
+   "show-templates": [
+    "GET /meetings/templates/{}"
+   ],
+   "update": [
+    "PUT /meetings/{}"
+   ],
+   "update-breakout-sessions": [
+    "PUT /meetings/{}/breakoutSessions"
+   ],
+   "update-controls": [
+    "PUT /meetings/controls"
+   ],
+   "update-interpreters": [
+    "PUT /meetings/{}/interpreters/{}"
+   ],
+   "update-meetings": [
+    "PATCH /meetings/{}"
+   ],
+   "update-registration": [
+    "PUT /meetings/{}/registration"
+   ],
+   "update-simultaneous-interpretation": [
+    "PUT /meetings/{}/simultaneousInterpretation"
+   ]
+  },
+  "memberships": {
+   "create": [
+    "POST /memberships"
+   ],
+   "delete": [
+    "DELETE /memberships/{}"
+   ],
+   "list": [
+    "GET /memberships"
+   ],
+   "show": [
+    "GET /memberships/{}"
+   ],
+   "update": [
+    "PUT /memberships/{}"
+   ]
+  },
+  "messages": {
+   "create": [
+    "POST /messages"
+   ],
+   "delete": [
+    "DELETE /messages/{}"
+   ],
+   "list": [
+    "GET /messages"
+   ],
+   "list-direct": [
+    "GET /messages/direct"
+   ],
+   "show": [
+    "GET /messages/{}"
+   ],
+   "update": [
+    "PUT /messages/{}"
+   ]
+  },
+  "mode_management": {
+   "extend-current-operating": [
+    "POST /telephony/config/people/me/settings/modeManagement/features/{}/actions/extendMode/invoke"
+   ],
+   "list": [
+    "GET /telephony/config/people/me/settings/modeManagement/features"
+   ],
+   "list-common-modes": [
+    "GET /telephony/config/people/me/settings/modeManagement/features/commonModes"
+   ],
+   "show": [
+    "GET /telephony/config/people/me/settings/modeManagement/features/{}"
+   ],
+   "show-modes": [
+    "GET /telephony/config/people/me/settings/modeManagement/features/{}/modes/{}"
+   ],
+   "show-normal-operation-mode": [
+    "GET /telephony/config/people/me/settings/modeManagement/features/{}/normalOperationMode"
+   ],
+   "switch-mode-for-invoke": [
+    "POST /telephony/config/people/me/settings/modeManagement/features/actions/switchMode/invoke"
+   ],
+   "switch-mode-for-invoke-1": [
+    "POST /telephony/config/people/me/settings/modeManagement/features/{}/actions/switchMode/invoke"
+   ],
+   "switch-to-normal": [
+    "POST /telephony/config/people/me/settings/modeManagement/features/{}/actions/switchToNormalOperation/invoke"
+   ]
+  },
+  "my_call_settings": {
+   "create": [
+    "POST /telephony/config/people/me/settings/singleNumberReach/numbers"
+   ],
+   "create-criteria-call-notify": [
+    "POST /telephony/config/people/me/settings/callNotify/criteria"
+   ],
+   "create-criteria-priority-alert": [
+    "POST /telephony/config/people/me/settings/priorityAlert/criteria"
+   ],
+   "create-criteria-selective-accept": [
+    "POST /telephony/config/people/me/settings/selectiveAccept/criteria"
+   ],
+   "create-criteria-selective-forward": [
+    "POST /telephony/config/people/me/settings/selectiveForward/criteria"
+   ],
+   "create-criteria-selective-reject": [
+    "POST /telephony/config/people/me/settings/selectiveReject/criteria"
+   ],
+   "create-criteria-sequential-ring": [
+    "POST /telephony/config/people/me/settings/sequentialRing/criteria"
+   ],
+   "create-criteria-simultaneous-ring": [
+    "POST /telephony/config/people/me/settings/simultaneousRing/criteria"
+   ],
+   "create-events": [
+    "POST /telephony/config/people/me/schedules/{}/{}/events"
+   ],
+   "create-numbers": [
+    "POST /telephony/config/people/me/settings/callBlock/numbers"
+   ],
+   "create-schedules": [
+    "POST /telephony/config/people/me/schedules"
+   ],
+   "delete": [
+    "DELETE /telephony/config/people/me/settings/singleNumberReach/numbers/{}"
+   ],
+   "delete-criteria-call-notify": [
+    "DELETE /telephony/config/people/me/settings/callNotify/criteria/{}"
+   ],
+   "delete-criteria-priority-alert": [
+    "DELETE /telephony/config/people/me/settings/priorityAlert/criteria/{}"
+   ],
+   "delete-criteria-selective-accept": [
+    "DELETE /telephony/config/people/me/settings/selectiveAccept/criteria/{}"
+   ],
+   "delete-criteria-selective-forward": [
+    "DELETE /telephony/config/people/me/settings/selectiveForward/criteria/{}"
+   ],
+   "delete-criteria-selective-reject": [
+    "DELETE /telephony/config/people/me/settings/selectiveReject/criteria/{}"
+   ],
+   "delete-criteria-sequential-ring": [
+    "DELETE /telephony/config/people/me/settings/sequentialRing/criteria/{}"
+   ],
+   "delete-criteria-simultaneous-ring": [
+    "DELETE /telephony/config/people/me/settings/simultaneousRing/criteria/{}"
+   ],
+   "delete-events": [
+    "DELETE /telephony/config/people/me/schedules/{}/{}/events/{}"
+   ],
+   "delete-numbers": [
+    "DELETE /telephony/config/people/me/settings/callBlock/numbers/{}"
+   ],
+   "delete-schedules": [
+    "DELETE /telephony/config/people/me/schedules/{}/{}"
+   ],
+   "list": [
+    "GET /telephony/config/people/me/settings/availablePreferredAnswerEndpoints"
+   ],
+   "list-assigned-assistants": [
+    "GET /telephony/config/people/me/settings/executive/assignedAssistants"
+   ],
+   "list-assigned-numbers": [
+    "GET /telephony/config/people/me/location/assignedNumbers"
+   ],
+   "list-assistant": [
+    "GET /telephony/config/people/me/settings/executive/assistant"
+   ],
+   "list-available-assistants": [
+    "GET /telephony/config/people/me/settings/executive/availableAssistants"
+   ],
+   "list-available-caller-ids-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/availableCallerIds"
+   ],
+   "list-available-caller-ids-settings": [
+    "GET /telephony/config/people/me/settings/availableCallerIds"
+   ],
+   "list-available-hosts": [
+    "GET /telephony/config/people/me/settings/hoteling/availableHosts"
+   ],
+   "list-available-members": [
+    "GET /telephony/config/people/me/settings/speedDials/availableMembers"
+   ],
+   "list-available-preferred-answer-endpoints": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/availablePreferredAnswerEndpoints"
+   ],
+   "list-call-block": [
+    "GET /telephony/config/people/me/settings/callBlock"
+   ],
+   "list-call-notify": [
+    "GET /telephony/config/people/me/settings/callNotify"
+   ],
+   "list-call-park-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/callPark"
+   ],
+   "list-call-park-settings": [
+    "GET /telephony/config/people/me/settings/callPark"
+   ],
+   "list-call-pickup-group-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/callPickupGroup"
+   ],
+   "list-call-pickup-group-settings": [
+    "GET /telephony/config/people/me/settings/callPickupGroup"
+   ],
+   "list-endpoints": [
+    "GET /telephony/config/people/me/endpoints"
+   ],
+   "list-feature-access-code-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/featureAccessCode"
+   ],
+   "list-feature-access-code-settings": [
+    "GET /telephony/config/people/me/settings/featureAccessCode"
+   ],
+   "list-monitoring": [
+    "GET /telephony/config/people/me/settings/monitoring"
+   ],
+   "list-numbers": [
+    "GET /telephony/config/people/me/settings/guestCalling/numbers"
+   ],
+   "list-organization": [
+    "GET /telephony/config/people/me/organization/locations"
+   ],
+   "list-priority-alert": [
+    "GET /telephony/config/people/me/settings/priorityAlert"
+   ],
+   "list-queues-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/queues"
+   ],
+   "list-queues-settings": [
+    "GET /telephony/config/people/me/settings/queues"
+   ],
+   "list-schedules": [
+    "GET /telephony/config/people/me/schedules"
+   ],
+   "list-selective-accept": [
+    "GET /telephony/config/people/me/settings/selectiveAccept"
+   ],
+   "list-selective-forward": [
+    "GET /telephony/config/people/me/settings/selectiveForward"
+   ],
+   "list-selective-reject": [
+    "GET /telephony/config/people/me/settings/selectiveReject"
+   ],
+   "list-sequential-ring": [
+    "GET /telephony/config/people/me/settings/sequentialRing"
+   ],
+   "list-services-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/services"
+   ],
+   "list-services-settings": [
+    "GET /telephony/config/people/me/settings/services"
+   ],
+   "list-simultaneous-ring": [
+    "GET /telephony/config/people/me/settings/simultaneousRing"
+   ],
+   "list-single-number-reach": [
+    "GET /telephony/config/people/me/settings/singleNumberReach"
+   ],
+   "list-speed-dials": [
+    "GET /telephony/config/people/me/settings/speedDials"
+   ],
+   "show": [
+    "GET /telephony/config/people/me/settings/preferredAnswerEndpoint"
+   ],
+   "show-anonymous-call-reject": [
+    "GET /telephony/config/people/me/settings/anonymousCallReject"
+   ],
+   "show-call-captions": [
+    "GET /telephony/config/people/me/settings/callCaptions"
+   ],
+   "show-call-forwarding-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/callForwarding"
+   ],
+   "show-call-forwarding-settings": [
+    "GET /telephony/config/people/me/settings/callForwarding"
+   ],
+   "show-call-recording-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/callRecording"
+   ],
+   "show-call-recording-settings": [
+    "GET /telephony/config/people/me/settings/callRecording"
+   ],
+   "show-call-waiting": [
+    "GET /telephony/config/people/me/settings/callWaiting"
+   ],
+   "show-caller-id-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/callerId"
+   ],
+   "show-caller-id-settings": [
+    "GET /telephony/config/people/me/settings/callerId"
+   ],
+   "show-criteria-call-notify": [
+    "GET /telephony/config/people/me/settings/callNotify/criteria/{}"
+   ],
+   "show-criteria-priority-alert": [
+    "GET /telephony/config/people/me/settings/priorityAlert/criteria/{}"
+   ],
+   "show-criteria-selective-accept": [
+    "GET /telephony/config/people/me/settings/selectiveAccept/criteria/{}"
+   ],
+   "show-criteria-selective-forward": [
+    "GET /telephony/config/people/me/settings/selectiveForward/criteria/{}"
+   ],
+   "show-criteria-selective-reject": [
+    "GET /telephony/config/people/me/settings/selectiveReject/criteria/{}"
+   ],
+   "show-criteria-sequential-ring": [
+    "GET /telephony/config/people/me/settings/sequentialRing/criteria/{}"
+   ],
+   "show-criteria-simultaneous-ring": [
+    "GET /telephony/config/people/me/settings/simultaneousRing/criteria/{}"
+   ],
+   "show-endpoints": [
+    "GET /telephony/config/people/me/endpoints/{}"
+   ],
+   "show-events": [
+    "GET /telephony/config/people/me/schedules/{}/{}/events/{}"
+   ],
+   "show-hoteling-guest": [
+    "GET /telephony/config/people/me/settings/hoteling/guest"
+   ],
+   "show-large-org-status": [
+    "GET /telephony/config/people/me/organization/largeOrgStatus"
+   ],
+   "show-me": [
+    "GET /telephony/config/people/me"
+   ],
+   "show-numbers": [
+    "GET /telephony/config/people/me/settings/callBlock/numbers/{}"
+   ],
+   "show-personal-assistant": [
+    "GET /telephony/config/people/me/settings/personalAssistant"
+   ],
+   "show-preferred-answer-endpoint": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/preferredAnswerEndpoint"
+   ],
+   "show-schedules-locations": [
+    "GET /telephony/config/people/me/locations/schedules/{}/{}"
+   ],
+   "show-schedules-me": [
+    "GET /telephony/config/people/me/schedules/{}/{}"
+   ],
+   "show-selected-caller-id-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/selectedCallerId"
+   ],
+   "show-selected-caller-id-settings": [
+    "GET /telephony/config/people/me/settings/selectedCallerId"
+   ],
+   "show-voicemail-rules": [
+    "GET /telephony/config/people/me/voicemail/rules"
+   ],
+   "show-voicemail-secondary-lines": [
+    "GET /telephony/config/people/me/settings/secondaryLines/{}/voicemail"
+   ],
+   "show-voicemail-settings": [
+    "GET /telephony/config/people/me/settings/voicemail"
+   ],
+   "show-webex-go-override": [
+    "GET /telephony/config/people/me/settings/webexGoOverride"
+   ],
+   "update": [
+    "PUT /telephony/config/people/me/settings/preferredAnswerEndpoint"
+   ],
+   "update-anonymous-call-reject": [
+    "PUT /telephony/config/people/me/settings/anonymousCallReject"
+   ],
+   "update-assigned-assistants": [
+    "PUT /telephony/config/people/me/settings/executive/assignedAssistants"
+   ],
+   "update-assistant": [
+    "PUT /telephony/config/people/me/settings/executive/assistant"
+   ],
+   "update-call-forwarding-secondary-lines": [
+    "PUT /telephony/config/people/me/settings/secondaryLines/{}/callForwarding"
+   ],
+   "update-call-forwarding-settings": [
+    "PUT /telephony/config/people/me/settings/callForwarding"
+   ],
+   "update-call-notify": [
+    "PUT /telephony/config/people/me/settings/callNotify"
+   ],
+   "update-call-waiting": [
+    "PUT /telephony/config/people/me/settings/callWaiting"
+   ],
+   "update-caller-id-secondary-lines": [
+    "PUT /telephony/config/people/me/settings/secondaryLines/{}/callerId"
+   ],
+   "update-caller-id-settings": [
+    "PUT /telephony/config/people/me/settings/callerId"
+   ],
+   "update-criteria-call-notify": [
+    "PUT /telephony/config/people/me/settings/callNotify/criteria/{}"
+   ],
+   "update-criteria-priority-alert": [
+    "PUT /telephony/config/people/me/settings/priorityAlert/criteria/{}"
+   ],
+   "update-criteria-selective-accept": [
+    "PUT /telephony/config/people/me/settings/selectiveAccept/criteria/{}"
+   ],
+   "update-criteria-selective-forward": [
+    "PUT /telephony/config/people/me/settings/selectiveForward/criteria/{}"
+   ],
+   "update-criteria-selective-reject": [
+    "PUT /telephony/config/people/me/settings/selectiveReject/criteria/{}"
+   ],
+   "update-criteria-sequential-ring": [
+    "PUT /telephony/config/people/me/settings/sequentialRing/criteria/{}"
+   ],
+   "update-criteria-simultaneous-ring": [
+    "PUT /telephony/config/people/me/settings/simultaneousRing/criteria/{}"
+   ],
+   "update-endpoints": [
+    "PUT /telephony/config/people/me/endpoints/{}"
+   ],
+   "update-events": [
+    "PUT /telephony/config/people/me/schedules/{}/{}/events/{}"
+   ],
+   "update-hoteling-guest": [
+    "PUT /telephony/config/people/me/settings/hoteling/guest"
+   ],
+   "update-numbers": [
+    "PUT /telephony/config/people/me/settings/singleNumberReach/numbers/{}"
+   ],
+   "update-personal-assistant": [
+    "PUT /telephony/config/people/me/settings/personalAssistant"
+   ],
+   "update-preferred-answer-endpoint": [
+    "PUT /telephony/config/people/me/settings/secondaryLines/{}/preferredAnswerEndpoint"
+   ],
+   "update-priority-alert": [
+    "PUT /telephony/config/people/me/settings/priorityAlert"
+   ],
+   "update-queues-secondary-lines": [
+    "PUT /telephony/config/people/me/settings/secondaryLines/{}/queues"
+   ],
+   "update-queues-settings": [
+    "PUT /telephony/config/people/me/settings/queues"
+   ],
+   "update-schedules": [
+    "PUT /telephony/config/people/me/schedules/{}/{}"
+   ],
+   "update-selected-caller-id-secondary-lines": [
+    "PUT /telephony/config/people/me/settings/secondaryLines/{}/selectedCallerId"
+   ],
+   "update-selected-caller-id-settings": [
+    "PUT /telephony/config/people/me/settings/selectedCallerId"
+   ],
+   "update-selective-accept": [
+    "PUT /telephony/config/people/me/settings/selectiveAccept"
+   ],
+   "update-selective-forward": [
+    "PUT /telephony/config/people/me/settings/selectiveForward"
+   ],
+   "update-selective-reject": [
+    "PUT /telephony/config/people/me/settings/selectiveReject"
+   ],
+   "update-sequential-ring": [
+    "PUT /telephony/config/people/me/settings/sequentialRing"
+   ],
+   "update-simultaneous-ring": [
+    "PUT /telephony/config/people/me/settings/simultaneousRing"
+   ],
+   "update-single-number-reach": [
+    "PUT /telephony/config/people/me/settings/singleNumberReach"
+   ],
+   "update-speed-dials": [
+    "PUT /telephony/config/people/me/settings/speedDials"
+   ],
+   "update-voicemail-pin": [
+    "PUT /telephony/config/people/me/voicemail/pin"
+   ],
+   "update-voicemail-secondary-lines": [
+    "PUT /telephony/config/people/me/settings/secondaryLines/{}/voicemail"
+   ],
+   "update-voicemail-settings": [
+    "PUT /telephony/config/people/me/settings/voicemail"
+   ],
+   "update-webex-go-override": [
+    "PUT /telephony/config/people/me/settings/webexGoOverride"
+   ]
+  },
+  "numbers": {
+   "create": [
+    "POST /telephony/config/locations/{}/numbers"
+   ],
+   "create-manage-numbers": [
+    "POST /telephony/config/jobs/numbers/manageNumbers"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/numbers"
+   ],
+   "list": [
+    "GET /telephony/config/numbers"
+   ],
+   "list-errors": [
+    "GET /telephony/config/jobs/numbers/manageNumbers/{}/errors"
+   ],
+   "list-manage-numbers": [
+    "GET /telephony/config/jobs/numbers/manageNumbers"
+   ],
+   "pause-the-manage": [
+    "POST /telephony/config/jobs/numbers/manageNumbers/{}/actions/pause/invoke"
+   ],
+   "resume-the-manage": [
+    "POST /telephony/config/jobs/numbers/manageNumbers/{}/actions/resume/invoke"
+   ],
+   "show": [
+    "GET /telephony/config/jobs/numbers/manageNumbers/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/numbers"
+   ],
+   "validate-phone-numbers": [
+    "POST /telephony/config/actions/validateNumbers/invoke"
+   ]
+  },
+  "operating_modes": {
+   "create": [
+    "POST /telephony/config/operatingModes"
+   ],
+   "create-holidays": [
+    "POST /telephony/config/operatingModes/{}/holidays"
+   ],
+   "delete": [
+    "DELETE /telephony/config/operatingModes/{}"
+   ],
+   "delete-holidays": [
+    "DELETE /telephony/config/operatingModes/{}/holidays/{}"
+   ],
+   "list": [
+    "GET /telephony/config/operatingModes"
+   ],
+   "list-available-numbers": [
+    "GET /telephony/config/locations/{}/operatingModes/callForwarding/availableNumbers"
+   ],
+   "list-available-operating-modes": [
+    "GET /telephony/config/locations/{}/operatingModes/availableOperatingModes"
+   ],
+   "show": [
+    "GET /telephony/config/operatingModes/{}"
+   ],
+   "show-holidays": [
+    "GET /telephony/config/operatingModes/{}/holidays/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/operatingModes/{}"
+   ],
+   "update-holidays": [
+    "PUT /telephony/config/operatingModes/{}/holidays/{}"
+   ]
+  },
+  "org_contacts": {
+   "create": [
+    "POST /contacts/organizations/{}/contacts"
+   ],
+   "create-bulk": [
+    "POST /contacts/organizations/{}/contacts/bulk"
+   ],
+   "create-delete": [
+    "POST /contacts/organizations/{}/contacts/bulk/delete"
+   ],
+   "delete": [
+    "DELETE /contacts/organizations/{}/contacts/{}"
+   ],
+   "list": [
+    "GET /contacts/organizations/{}/contacts/search"
+   ],
+   "show": [
+    "GET /contacts/organizations/{}/contacts/{}"
+   ],
+   "update": [
+    "PATCH /contacts/organizations/{}/contacts/{}"
+   ]
+  },
+  "org_health_cli": {
+   "analyze": [],
+   "report": []
+  },
+  "org_settings": {
+   "create": [
+    "POST /settings/organizations/{}/settings"
+   ],
+   "show": [
+    "GET /settings/organizations/{}/settings/{}"
+   ]
+  },
+  "organizations": {
+   "delete": [
+    "DELETE /organizations/{}"
+   ],
+   "list": [
+    "GET /organizations"
+   ],
+   "show": [
+    "GET /organizations/{}"
+   ]
+  },
+  "paging_group": {
+   "create": [
+    "POST /telephony/config/locations/{}/paging"
+   ],
+   "delete": [
+    "DELETE /telephony/config/locations/{}/paging/{}"
+   ],
+   "list": [
+    "GET /telephony/config/paging"
+   ],
+   "list-available-numbers": [
+    "GET /telephony/config/locations/{}/paging/availableNumbers"
+   ],
+   "show": [
+    "GET /telephony/config/locations/{}/paging/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/locations/{}/paging/{}"
+   ]
+  },
+  "partner_admins": {
+   "create": [
+    "POST /partner/organizations/{}/partnerAdmin/{}/assign"
+   ],
+   "delete": [
+    "DELETE /partner/organizations/{}/partnerAdmin/{}/unassign"
+   ],
+   "delete-partner-admin": [
+    "DELETE /partner/organizations/partnerAdmin/{}"
+   ],
+   "list": [
+    "GET /partner/organizations"
+   ],
+   "list-partner-admins": [
+    "GET /partner/organizations/{}/partnerAdmins"
+   ]
+  },
+  "partner_reports": {
+   "create": [
+    "POST /partner/reports"
+   ],
+   "delete": [
+    "DELETE /partner/reports/{}"
+   ],
+   "list": [
+    "GET /partner/reports"
+   ],
+   "list-templates": [
+    "GET /partner/reports/templates"
+   ],
+   "show": [
+    "GET /partner/reports/{}"
+   ]
+  },
+  "partner_tags": {
+   "create": [
+    "POST /partner/tags/organizations/{}/assignTags"
+   ],
+   "create-assign-tags": [
+    "POST /partner/tags/organizations/{}/subscriptions/{}/assignTags"
+   ],
+   "list": [
+    "GET /partner/tags"
+   ],
+   "list-organizations": [
+    "GET /partner/tags/organizations"
+   ],
+   "list-subscriptions": [
+    "GET /partner/tags/subscriptions"
+   ],
+   "show": [
+    "GET /partner/tags/organizations/{}"
+   ],
+   "show-subscriptions": [
+    "GET /partner/tags/organizations/{}/subscriptions/{}"
+   ]
+  },
+  "people": {
+   "create": [
+    "POST /people"
+   ],
+   "delete": [
+    "DELETE /people/{}"
+   ],
+   "list": [
+    "GET /people"
+   ],
+   "show": [
+    "GET /people/{}"
+   ],
+   "show-me": [
+    "GET /people/me"
+   ],
+   "update": [
+    "PUT /people/{}"
+   ]
+  },
+  "person_call_settings": {
+   "list": [
+    "GET /people/{}/features/monitoring"
+   ],
+   "update": [
+    "PUT /people/{}/features/monitoring"
+   ]
+  },
+  "pstn": {
+   "create": [
+    "POST /telephony/pstn/locations/{}/emergencyAddress/lookup"
+   ],
+   "create-emergency-address": [
+    "POST /telephony/pstn/locations/{}/emergencyAddress"
+   ],
+   "list": [
+    "GET /telephony/pstn/locations/{}/connectionOptions"
+   ],
+   "list-connection": [
+    "GET /telephony/pstn/locations/{}/connection"
+   ],
+   "update": [
+    "PUT /telephony/pstn/locations/{}/connection"
+   ],
+   "update-emergency-address": [
+    "PUT /telephony/pstn/numbers/{}/emergencyAddress"
+   ],
+   "update-emergency-addresses": [
+    "PUT /telephony/pstn/locations/{}/emergencyAddresses/{}"
+   ]
+  },
+  "recording_report": {
+   "list": [
+    "GET /recordingReport/accessSummary"
+   ],
+   "list-access-detail": [
+    "GET /recordingReport/accessDetail"
+   ],
+   "list-meeting-archive-summaries": [
+    "GET /recordingReport/meetingArchiveSummaries"
+   ],
+   "show": [
+    "GET /recordingReport/meetingArchives/{}"
+   ]
+  },
+  "report_templates": {
+   "list": [
+    "GET /report/templates"
+   ]
+  },
+  "reports": {
+   "create": [
+    "POST /reports"
+   ],
+   "delete": [
+    "DELETE /reports/{}"
+   ],
+   "list": [
+    "GET /reports"
+   ],
+   "show": [
+    "GET /reports/{}"
+   ]
+  },
+  "resource_group_memberships": {
+   "list": [
+    "GET /resourceGroup/memberships"
+   ],
+   "list-v2": [
+    "GET /resourceGroup/memberships/v2"
+   ],
+   "show": [
+    "GET /resourceGroup/memberships/{}"
+   ],
+   "update": [
+    "PUT /resourceGroup/memberships/{}"
+   ]
+  },
+  "resource_groups": {
+   "list": [
+    "GET /resourceGroups"
+   ],
+   "show": [
+    "GET /resourceGroups/{}"
+   ]
+  },
+  "roles": {
+   "list": [
+    "GET /roles"
+   ],
+   "show": [
+    "GET /roles/{}"
+   ]
+  },
+  "room_tabs": {
+   "create": [
+    "POST /room/tabs"
+   ],
+   "delete": [
+    "DELETE /room/tabs/{}"
+   ],
+   "list": [
+    "GET /room/tabs"
+   ],
+   "show": [
+    "GET /room/tabs/{}"
+   ],
+   "update": [
+    "PUT /room/tabs/{}"
+   ]
+  },
+  "rooms": {
+   "create": [
+    "POST /rooms"
+   ],
+   "delete": [
+    "DELETE /rooms/{}"
+   ],
+   "list": [
+    "GET /rooms"
+   ],
+   "show": [
+    "GET /rooms/{}"
+   ],
+   "show-meeting-info": [
+    "GET /rooms/{}/meetingInfo"
+   ],
+   "update": [
+    "PUT /rooms/{}"
+   ]
+  },
+  "scim_bulk": {
+   "create": [
+    "POST /identity/scim/{}/v2/Bulk"
+   ]
+  },
+  "scim_groups": {
+   "create": [
+    "POST /identity/scim/{}/v2/Groups"
+   ],
+   "delete": [
+    "DELETE /identity/scim/{}/v2/Groups/{}"
+   ],
+   "list": [
+    "GET /identity/scim/{}/v2/Groups"
+   ],
+   "list-members": [
+    "GET /identity/scim/{}/v2/Groups/{}/Members"
+   ],
+   "show": [
+    "GET /identity/scim/{}/v2/Groups/{}"
+   ],
+   "update": [
+    "PUT /identity/scim/{}/v2/Groups/{}"
+   ],
+   "update-groups": [
+    "PATCH /identity/scim/{}/v2/Groups/{}"
+   ]
+  },
+  "scim_schemas": {
+   "show": [
+    "GET /Schemas/SCIM2/Group"
+   ],
+   "show-scim2": [
+    "GET /Schemas/SCIM2/{}"
+   ],
+   "show-user": [
+    "GET /Schemas/SCIM2/User"
+   ]
+  },
+  "scim_users": {
+   "create": [
+    "POST /identity/scim/{}/v2/Users"
+   ],
+   "delete": [
+    "DELETE /identity/scim/{}/v2/Users/{}"
+   ],
+   "list": [
+    "GET /identity/scim/{}/v2/Users"
+   ],
+   "show": [
+    "GET /identity/scim/{}/v2/Users/{}"
+   ],
+   "show-me": [
+    "GET /identity/scim/v2/Users/me"
+   ],
+   "update": [
+    "PUT /identity/scim/{}/v2/Users/{}"
+   ],
+   "update-users": [
+    "PATCH /identity/scim/{}/v2/Users/{}"
+   ]
+  },
+  "security_audit": {
+   "list": [
+    "GET /admin/securityAudit/events"
+   ]
+  },
+  "service_apps": {
+   "create": [
+    "POST /applications/{}/token"
+   ]
+  },
+  "single_number_reach": {
+   "create": [
+    "POST /telephony/config/people/{}/singleNumberReach/numbers"
+   ],
+   "delete": [
+    "DELETE /telephony/config/people/{}/singleNumberReach/numbers/{}"
+   ],
+   "list": [
+    "GET /telephony/config/locations/{}/singleNumberReach/availableNumbers"
+   ],
+   "list-single-number-reach": [
+    "GET /telephony/config/people/{}/singleNumberReach"
+   ],
+   "update": [
+    "PUT /telephony/config/people/{}/singleNumberReach"
+   ],
+   "update-numbers": [
+    "PUT /telephony/config/people/{}/singleNumberReach/numbers/{}"
+   ]
+  },
+  "team_memberships": {
+   "create": [
+    "POST /team/memberships"
+   ],
+   "delete": [
+    "DELETE /team/memberships/{}"
+   ],
+   "list": [
+    "GET /team/memberships"
+   ],
+   "show": [
+    "GET /team/memberships/{}"
+   ],
+   "update": [
+    "PUT /team/memberships/{}"
+   ]
+  },
+  "teams": {
+   "create": [
+    "POST /teams"
+   ],
+   "delete": [
+    "DELETE /teams/{}"
+   ],
+   "list": [
+    "GET /teams"
+   ],
+   "show": [
+    "GET /teams/{}"
+   ],
+   "update": [
+    "PUT /teams/{}"
+   ]
+  },
+  "ucm_profile": {
+   "list": [
+    "GET /telephony/config/callingProfiles"
+   ]
+  },
+  "update": {},
+  "user_settings": {
+   "configure-busy-voicemail": [
+    "POST /people/{}/features/voicemail/actions/uploadBusyGreeting/invoke"
+   ],
+   "configure-call-intercept": [
+    "POST /people/{}/features/intercept/actions/announcementUpload/invoke"
+   ],
+   "configure-no-answer": [
+    "POST /people/{}/features/voicemail/actions/uploadNoAnswerGreeting/invoke"
+   ],
+   "create": [
+    "POST /people/{}/features/schedules"
+   ],
+   "create-access-codes": [
+    "POST /telephony/config/people/{}/outgoingPermission/accessCodes"
+   ],
+   "create-criteria-call-filtering": [
+    "POST /telephony/config/people/{}/executive/callFiltering/criteria"
+   ],
+   "create-criteria-selective-accept": [
+    "POST /telephony/config/people/{}/selectiveAccept/criteria"
+   ],
+   "create-criteria-selective-forward": [
+    "POST /telephony/config/people/{}/selectiveForward/criteria"
+   ],
+   "create-criteria-selective-reject": [
+    "POST /telephony/config/people/{}/selectiveReject/criteria"
+   ],
+   "create-criteria-simultaneous-ring": [
+    "POST /telephony/config/people/{}/simultaneousRing/criteria"
+   ],
+   "create-digit-patterns": [
+    "POST /telephony/config/people/{}/outgoingPermission/digitPatterns"
+   ],
+   "create-events": [
+    "POST /people/{}/features/schedules/{}/{}/events"
+   ],
+   "create-mark-as-read": [
+    "POST /telephony/voiceMessages/markAsRead"
+   ],
+   "create-mark-as-unread": [
+    "POST /telephony/voiceMessages/markAsUnread"
+   ],
+   "create-move-location": [
+    "POST /telephony/config/jobs/person/moveLocation"
+   ],
+   "delete": [
+    "DELETE /people/{}/features/schedules/{}/{}"
+   ],
+   "delete-access-codes": [
+    "DELETE /telephony/config/people/{}/outgoingPermission/accessCodes"
+   ],
+   "delete-criteria-call-filtering": [
+    "DELETE /telephony/config/people/{}/executive/callFiltering/criteria/{}"
+   ],
+   "delete-criteria-selective-accept": [
+    "DELETE /telephony/config/people/{}/selectiveAccept/criteria/{}"
+   ],
+   "delete-criteria-selective-forward": [
+    "DELETE /telephony/config/people/{}/selectiveForward/criteria/{}"
+   ],
+   "delete-criteria-selective-reject": [
+    "DELETE /telephony/config/people/{}/selectiveReject/criteria/{}"
+   ],
+   "delete-criteria-simultaneous-ring": [
+    "DELETE /telephony/config/people/{}/simultaneousRing/criteria/{}"
+   ],
+   "delete-digit-patterns-outgoing-permission": [
+    "DELETE /telephony/config/people/{}/outgoingPermission/digitPatterns"
+   ],
+   "delete-digit-patterns-outgoing-permission-1": [
+    "DELETE /telephony/config/people/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "delete-events": [
+    "DELETE /people/{}/features/schedules/{}/{}/events/{}"
+   ],
+   "delete-voice-messages": [
+    "DELETE /telephony/voiceMessages/{}"
+   ],
+   "list": [
+    "GET /people/{}/features/callerId"
+   ],
+   "list-access-codes": [
+    "GET /telephony/config/people/{}/outgoingPermission/accessCodes"
+   ],
+   "list-assigned-assistants": [
+    "GET /telephony/config/people/{}/executive/assignedAssistants"
+   ],
+   "list-assistant": [
+    "GET /telephony/config/people/{}/executive/assistant"
+   ],
+   "list-available-assistants": [
+    "GET /telephony/config/people/{}/executive/availableAssistants"
+   ],
+   "list-available-caller-ids": [
+    "GET /telephony/config/people/{}/agent/availableCallerIds"
+   ],
+   "list-available-features": [
+    "GET /telephony/config/people/{}/modeManagement/availableFeatures"
+   ],
+   "list-available-members-applications": [
+    "GET /telephony/config/people/{}/applications/{}/availableMembers"
+   ],
+   "list-available-members-applications-1": [
+    "GET /telephony/config/people/{}/applications/availableMembers"
+   ],
+   "list-available-members-hot-desking": [
+    "GET /telephony/config/people/{}/features/hotDesking/availableMembers"
+   ],
+   "list-available-members-monitoring": [
+    "GET /telephony/config/people/{}/monitoring/availableMembers"
+   ],
+   "list-available-members-speed-dials": [
+    "GET /telephony/config/people/{}/monitoring/speedDials/availableMembers"
+   ],
+   "list-available-numbers-call-forwarding": [
+    "GET /telephony/config/people/{}/callForwarding/availableNumbers"
+   ],
+   "list-available-numbers-call-intercept": [
+    "GET /telephony/config/people/{}/callIntercept/availableNumbers"
+   ],
+   "list-available-numbers-emergency-callback-number": [
+    "GET /telephony/config/people/{}/emergencyCallbackNumber/availableNumbers"
+   ],
+   "list-available-numbers-fax-message": [
+    "GET /telephony/config/people/{}/faxMessage/availableNumbers"
+   ],
+   "list-available-numbers-primary": [
+    "GET /telephony/config/people/primary/availableNumbers"
+   ],
+   "list-available-numbers-secondary": [
+    "GET /telephony/config/people/{}/secondary/availableNumbers"
+   ],
+   "list-call-filtering": [
+    "GET /telephony/config/people/{}/executive/callFiltering"
+   ],
+   "list-digit-patterns": [
+    "GET /telephony/config/people/{}/outgoingPermission/digitPatterns"
+   ],
+   "list-errors": [
+    "GET /telephony/config/jobs/person/moveLocation/{}/errors"
+   ],
+   "list-members-applications": [
+    "GET /telephony/config/people/{}/applications/{}/members"
+   ],
+   "list-members-applications-1": [
+    "GET /telephony/config/people/{}/applications/members"
+   ],
+   "list-members-hot-desking": [
+    "GET /telephony/config/people/{}/features/hotDesking/members"
+   ],
+   "list-mode-management": [
+    "GET /telephony/config/people/{}/modeManagement/features"
+   ],
+   "list-move-location": [
+    "GET /telephony/config/jobs/person/moveLocation"
+   ],
+   "list-ms-teams": [
+    "GET /telephony/config/people/{}/settings/msTeams"
+   ],
+   "list-numbers": [
+    "GET /people/{}/features/numbers"
+   ],
+   "list-outbound-billing-plan": [
+    "GET /telephony/config/people/{}/outboundBillingPlan"
+   ],
+   "list-outgoing-permission": [
+    "GET /people/{}/features/outgoingPermission"
+   ],
+   "list-preferred-answer-endpoint": [
+    "GET /telephony/config/people/{}/preferredAnswerEndpoint"
+   ],
+   "list-privacy": [
+    "GET /people/{}/features/privacy"
+   ],
+   "list-push-to-talk": [
+    "GET /people/{}/features/pushToTalk"
+   ],
+   "list-reception": [
+    "GET /people/{}/features/reception"
+   ],
+   "list-schedules": [
+    "GET /people/{}/features/schedules"
+   ],
+   "list-selective-accept": [
+    "GET /telephony/config/people/{}/selectiveAccept"
+   ],
+   "list-selective-forward": [
+    "GET /telephony/config/people/{}/selectiveForward"
+   ],
+   "list-selective-reject": [
+    "GET /telephony/config/people/{}/selectiveReject"
+   ],
+   "list-services": [
+    "GET /telephony/config/people/{}/services"
+   ],
+   "list-simultaneous-ring": [
+    "GET /telephony/config/people/{}/simultaneousRing"
+   ],
+   "list-voice-messages": [
+    "GET /telephony/voiceMessages"
+   ],
+   "pause-the-move": [
+    "POST /telephony/config/jobs/person/moveLocation/{}/actions/pause/invoke"
+   ],
+   "reset-voicemail-pin": [
+    "POST /people/{}/features/voicemail/actions/resetPin/invoke"
+   ],
+   "resume-the-move": [
+    "POST /telephony/config/jobs/person/moveLocation/{}/actions/resume/invoke"
+   ],
+   "show": [
+    "GET /people/{}/features/applications"
+   ],
+   "show-alert": [
+    "GET /telephony/config/people/{}/executive/alert"
+   ],
+   "show-anonymous-call-reject": [
+    "GET /telephony/config/people/{}/anonymousCallReject"
+   ],
+   "show-auto-transfer-numbers": [
+    "GET /telephony/config/people/{}/outgoingPermission/autoTransferNumbers"
+   ],
+   "show-barge-in": [
+    "GET /people/{}/features/bargeIn"
+   ],
+   "show-call-bridge": [
+    "GET /telephony/config/people/{}/features/callBridge"
+   ],
+   "show-call-captions": [
+    "GET /telephony/config/people/{}/callCaptions"
+   ],
+   "show-call-forwarding": [
+    "GET /people/{}/features/callForwarding"
+   ],
+   "show-call-recording": [
+    "GET /people/{}/features/callRecording"
+   ],
+   "show-call-waiting": [
+    "GET /people/{}/features/callWaiting"
+   ],
+   "show-caller-id": [
+    "GET /telephony/config/people/{}/agent/callerId"
+   ],
+   "show-calling-behavior": [
+    "GET /people/{}/features/callingBehavior"
+   ],
+   "show-count": [
+    "GET /telephony/config/people/{}/applications/availableMembers/count"
+   ],
+   "show-countries": [
+    "GET /telephony/config/countries/{}"
+   ],
+   "show-criteria-call-filtering": [
+    "GET /telephony/config/people/{}/executive/callFiltering/criteria/{}"
+   ],
+   "show-criteria-selective-accept": [
+    "GET /telephony/config/people/{}/selectiveAccept/criteria/{}"
+   ],
+   "show-criteria-selective-forward": [
+    "GET /telephony/config/people/{}/selectiveForward/criteria/{}"
+   ],
+   "show-criteria-selective-reject": [
+    "GET /telephony/config/people/{}/selectiveReject/criteria/{}"
+   ],
+   "show-criteria-simultaneous-ring": [
+    "GET /telephony/config/people/{}/simultaneousRing/criteria/{}"
+   ],
+   "show-digit-patterns": [
+    "GET /telephony/config/people/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "show-do-not-disturb": [
+    "GET /people/{}/features/doNotDisturb"
+   ],
+   "show-events": [
+    "GET /people/{}/features/schedules/{}/{}/events/{}"
+   ],
+   "show-executive-assistant": [
+    "GET /people/{}/features/executiveAssistant"
+   ],
+   "show-hoteling": [
+    "GET /people/{}/features/hoteling"
+   ],
+   "show-incoming-permission": [
+    "GET /people/{}/features/incomingPermission"
+   ],
+   "show-intercept": [
+    "GET /people/{}/features/intercept"
+   ],
+   "show-move-location": [
+    "GET /telephony/config/jobs/person/moveLocation/{}"
+   ],
+   "show-music-on-hold": [
+    "GET /telephony/config/people/{}/musicOnHold"
+   ],
+   "show-people": [
+    "GET /telephony/config/people/{}"
+   ],
+   "show-personal-assistant": [
+    "GET /telephony/config/people/{}/features/personalAssistant"
+   ],
+   "show-schedules": [
+    "GET /people/{}/features/schedules/{}/{}"
+   ],
+   "show-screening": [
+    "GET /telephony/config/people/{}/executive/screening"
+   ],
+   "show-summary": [
+    "GET /telephony/voiceMessages/summary"
+   ],
+   "show-voicemail": [
+    "GET /people/{}/features/voicemail"
+   ],
+   "update": [
+    "PUT /people/{}/features/applications"
+   ],
+   "update-access-codes": [
+    "PUT /telephony/config/people/{}/outgoingPermission/accessCodes"
+   ],
+   "update-alert": [
+    "PUT /telephony/config/people/{}/executive/alert"
+   ],
+   "update-anonymous-call-reject": [
+    "PUT /telephony/config/people/{}/anonymousCallReject"
+   ],
+   "update-assigned-assistants": [
+    "PUT /telephony/config/people/{}/executive/assignedAssistants"
+   ],
+   "update-assistant": [
+    "PUT /telephony/config/people/{}/executive/assistant"
+   ],
+   "update-auto-transfer-numbers": [
+    "PUT /telephony/config/people/{}/outgoingPermission/autoTransferNumbers"
+   ],
+   "update-barge-in": [
+    "PUT /people/{}/features/bargeIn"
+   ],
+   "update-call-bridge": [
+    "PUT /telephony/config/people/{}/features/callBridge"
+   ],
+   "update-call-captions": [
+    "PUT /telephony/config/people/{}/callCaptions"
+   ],
+   "update-call-filtering": [
+    "PUT /telephony/config/people/{}/executive/callFiltering"
+   ],
+   "update-call-forwarding": [
+    "PUT /people/{}/features/callForwarding"
+   ],
+   "update-call-recording": [
+    "PUT /people/{}/features/callRecording"
+   ],
+   "update-call-waiting": [
+    "PUT /people/{}/features/callWaiting"
+   ],
+   "update-caller-id-agent": [
+    "PUT /telephony/config/people/{}/agent/callerId"
+   ],
+   "update-caller-id-features": [
+    "PUT /people/{}/features/callerId"
+   ],
+   "update-calling-behavior": [
+    "PUT /people/{}/features/callingBehavior"
+   ],
+   "update-criteria-call-filtering": [
+    "PUT /telephony/config/people/{}/executive/callFiltering/criteria/{}"
+   ],
+   "update-criteria-selective-accept": [
+    "PUT /telephony/config/people/{}/selectiveAccept/criteria/{}"
+   ],
+   "update-criteria-selective-forward": [
+    "PUT /telephony/config/people/{}/selectiveForward/criteria/{}"
+   ],
+   "update-criteria-selective-reject": [
+    "PUT /telephony/config/people/{}/selectiveReject/criteria/{}"
+   ],
+   "update-criteria-simultaneous-ring": [
+    "PUT /telephony/config/people/{}/simultaneousRing/criteria/{}"
+   ],
+   "update-digit-patterns-outgoing-permission": [
+    "PUT /telephony/config/people/{}/outgoingPermission/digitPatterns"
+   ],
+   "update-digit-patterns-outgoing-permission-1": [
+    "PUT /telephony/config/people/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "update-do-not-disturb": [
+    "PUT /people/{}/features/doNotDisturb"
+   ],
+   "update-events": [
+    "PUT /people/{}/features/schedules/{}/{}/events/{}"
+   ],
+   "update-executive-assistant": [
+    "PUT /people/{}/features/executiveAssistant"
+   ],
+   "update-hoteling": [
+    "PUT /people/{}/features/hoteling"
+   ],
+   "update-incoming-permission": [
+    "PUT /people/{}/features/incomingPermission"
+   ],
+   "update-intercept": [
+    "PUT /people/{}/features/intercept"
+   ],
+   "update-members-applications": [
+    "PUT /telephony/config/people/{}/applications/{}/members"
+   ],
+   "update-members-applications-1": [
+    "PUT /telephony/config/people/{}/applications/members"
+   ],
+   "update-members-hot-desking": [
+    "PUT /telephony/config/people/{}/features/hotDesking/members"
+   ],
+   "update-mode-management": [
+    "PUT /telephony/config/people/{}/modeManagement/features"
+   ],
+   "update-ms-teams": [
+    "PUT /telephony/config/people/{}/settings/msTeams"
+   ],
+   "update-music-on-hold": [
+    "PUT /telephony/config/people/{}/musicOnHold"
+   ],
+   "update-numbers": [
+    "PUT /telephony/config/people/{}/numbers"
+   ],
+   "update-outbound-billing-plan": [
+    "PUT /telephony/config/people/{}/outboundBillingPlan"
+   ],
+   "update-outgoing-permission": [
+    "PUT /people/{}/features/outgoingPermission"
+   ],
+   "update-passcode": [
+    "PUT /telephony/config/people/{}/voicemail/passcode"
+   ],
+   "update-people": [
+    "PUT /telephony/config/people/{}"
+   ],
+   "update-personal-assistant": [
+    "PUT /telephony/config/people/{}/features/personalAssistant"
+   ],
+   "update-preferred-answer-endpoint": [
+    "PUT /telephony/config/people/{}/preferredAnswerEndpoint"
+   ],
+   "update-privacy": [
+    "PUT /people/{}/features/privacy"
+   ],
+   "update-push-to-talk": [
+    "PUT /people/{}/features/pushToTalk"
+   ],
+   "update-reception": [
+    "PUT /people/{}/features/reception"
+   ],
+   "update-schedules": [
+    "PUT /people/{}/features/schedules/{}/{}"
+   ],
+   "update-screening": [
+    "PUT /telephony/config/people/{}/executive/screening"
+   ],
+   "update-selective-accept": [
+    "PUT /telephony/config/people/{}/selectiveAccept"
+   ],
+   "update-selective-forward": [
+    "PUT /telephony/config/people/{}/selectiveForward"
+   ],
+   "update-selective-reject": [
+    "PUT /telephony/config/people/{}/selectiveReject"
+   ],
+   "update-simultaneous-ring": [
+    "PUT /telephony/config/people/{}/simultaneousRing"
+   ],
+   "update-voicemail": [
+    "PUT /people/{}/features/voicemail"
+   ]
+  },
+  "video_mesh": {
+   "create": [
+    "POST /videoMesh/triggerTest/clusters/{}"
+   ],
+   "create-nodes": [
+    "POST /videoMesh/triggerTest/nodes/{}"
+   ],
+   "create-reset": [
+    "POST /videoMesh/eventThresholds/reset"
+   ],
+   "list": [
+    "GET /videoMesh/clusters/availability"
+   ],
+   "list-availability": [
+    "GET /videoMesh/nodes/availability"
+   ],
+   "list-call-redirects-clusters": [
+    "GET /videoMesh/clusters/callRedirects"
+   ],
+   "list-call-redirects-video-mesh": [
+    "GET /videoMesh/callRedirects"
+   ],
+   "list-client-type-distribution": [
+    "GET /videoMesh/clientTypeDistribution"
+   ],
+   "list-cloud-overflow": [
+    "GET /videoMesh/cloudOverflow"
+   ],
+   "list-clusters-client-type-distribution": [
+    "GET /videoMesh/clientTypeDistribution/clusters"
+   ],
+   "list-clusters-media-health-monitor-test": [
+    "GET /videoMesh/testResults/mediaHealthMonitorTest/clusters"
+   ],
+   "list-clusters-network-test": [
+    "GET /videoMesh/testResults/networkTest/clusters"
+   ],
+   "list-clusters-reachability-test": [
+    "GET /videoMesh/testResults/reachabilityTest/clusters"
+   ],
+   "list-clusters-video-mesh": [
+    "GET /videoMesh/clusters"
+   ],
+   "list-event-thresholds": [
+    "GET /videoMesh/eventThresholds"
+   ],
+   "list-media-health-monitor-test": [
+    "GET /videoMesh/testResults/mediaHealthMonitorTest"
+   ],
+   "list-network-test": [
+    "GET /videoMesh/testResults/networkTest"
+   ],
+   "list-nodes-media-health-monitor-test": [
+    "GET /videoMesh/testResults/mediaHealthMonitorTest/nodes"
+   ],
+   "list-nodes-network-test": [
+    "GET /videoMesh/testResults/networkTest/nodes"
+   ],
+   "list-nodes-reachability-test": [
+    "GET /videoMesh/testResults/reachabilityTest/nodes"
+   ],
+   "list-reachability-test": [
+    "GET /videoMesh/testResults/reachabilityTest"
+   ],
+   "list-test-results": [
+    "GET /videoMesh/testResults"
+   ],
+   "list-test-status": [
+    "GET /videoMesh/testStatus"
+   ],
+   "list-utilization-clusters": [
+    "GET /videoMesh/clusters/utilization"
+   ],
+   "list-utilization-video-mesh": [
+    "GET /videoMesh/utilization"
+   ],
+   "show": [
+    "GET /videoMesh/clusters/availability/{}"
+   ],
+   "show-availability": [
+    "GET /videoMesh/nodes/availability/{}"
+   ],
+   "show-clusters": [
+    "GET /videoMesh/clusters/{}"
+   ],
+   "show-event-thresholds": [
+    "GET /videoMesh/eventThresholds/{}"
+   ],
+   "update": [
+    "PATCH /videoMesh/eventThresholds"
+   ]
+  },
+  "virtual_extensions": {
+   "create": [
+    "POST /telephony/config/virtualExtensions"
+   ],
+   "create-virtual-extension-ranges": [
+    "POST /telephony/config/virtualExtensionRanges"
+   ],
+   "delete": [
+    "DELETE /telephony/config/virtualExtensions/{}"
+   ],
+   "delete-virtual-extension-ranges": [
+    "DELETE /telephony/config/virtualExtensionRanges/{}"
+   ],
+   "list": [
+    "GET /telephony/config/virtualExtensions"
+   ],
+   "list-virtual-extension-ranges": [
+    "GET /telephony/config/virtualExtensionRanges"
+   ],
+   "show": [
+    "GET /telephony/config/virtualExtensions/{}"
+   ],
+   "show-settings": [
+    "GET /telephony/config/virtualExtensions/settings"
+   ],
+   "show-virtual-extension-ranges": [
+    "GET /telephony/config/virtualExtensionRanges/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/virtualExtensions/{}"
+   ],
+   "update-settings": [
+    "PUT /telephony/config/virtualExtensions/settings"
+   ],
+   "update-virtual-extension-ranges": [
+    "PUT /telephony/config/virtualExtensionRanges/{}"
+   ],
+   "validate-an-external": [
+    "POST /telephony/config/virtualExtensions/actions/validateNumbers/invoke"
+   ],
+   "validate-the-prefix": [
+    "POST /telephony/config/virtualExtensionRanges/actions/validate/invoke"
+   ]
+  },
+  "virtual_line_settings": {
+   "configure-busy-voicemail": [
+    "POST /telephony/config/virtualLines/{}/voicemail/actions/uploadBusyGreeting/invoke"
+   ],
+   "configure-call-intercept": [
+    "POST /telephony/config/virtualLines/{}/intercept/actions/announcementUpload/invoke"
+   ],
+   "configure-no-answer": [
+    "POST /telephony/config/virtualLines/{}/voicemail/actions/uploadNoAnswerGreeting/invoke"
+   ],
+   "create": [
+    "POST /telephony/config/virtualLines"
+   ],
+   "create-access-codes": [
+    "POST /telephony/config/virtualLines/{}/outgoingPermission/accessCodes"
+   ],
+   "create-digit-patterns": [
+    "POST /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns"
+   ],
+   "delete": [
+    "DELETE /telephony/config/virtualLines/{}"
+   ],
+   "delete-access-codes": [
+    "DELETE /telephony/config/virtualLines/{}/outgoingPermission/accessCodes"
+   ],
+   "delete-digit-patterns-outgoing-permission": [
+    "DELETE /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns"
+   ],
+   "delete-digit-patterns-outgoing-permission-1": [
+    "DELETE /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "list": [
+    "GET /telephony/config/virtualLines"
+   ],
+   "list-access-codes": [
+    "GET /telephony/config/virtualLines/{}/outgoingPermission/accessCodes"
+   ],
+   "list-available-caller-ids": [
+    "GET /telephony/config/virtualLines/{}/agent/availableCallerIds"
+   ],
+   "list-available-numbers-call-forwarding": [
+    "GET /telephony/config/virtualLines/{}/callForwarding/availableNumbers"
+   ],
+   "list-available-numbers-call-intercept": [
+    "GET /telephony/config/virtualLines/{}/callIntercept/availableNumbers"
+   ],
+   "list-available-numbers-emergency-callback-number": [
+    "GET /telephony/config/virtualLines/{}/emergencyCallbackNumber/availableNumbers"
+   ],
+   "list-available-numbers-fax-message": [
+    "GET /telephony/config/virtualLines/{}/faxMessage/availableNumbers"
+   ],
+   "list-available-numbers-virtual-lines": [
+    "GET /telephony/config/virtualLines/availableNumbers"
+   ],
+   "list-caller-id": [
+    "GET /telephony/config/virtualLines/{}/callerId"
+   ],
+   "list-dect-networks": [
+    "GET /telephony/config/virtualLines/{}/dectNetworks"
+   ],
+   "list-devices": [
+    "GET /telephony/config/virtualLines/{}/devices"
+   ],
+   "list-digit-patterns": [
+    "GET /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns"
+   ],
+   "list-outbound-billing-plan": [
+    "GET /telephony/config/virtualLines/{}/outboundBillingPlan"
+   ],
+   "list-outgoing-permission": [
+    "GET /telephony/config/virtualLines/{}/outgoingPermission"
+   ],
+   "list-privacy": [
+    "GET /telephony/config/virtualLines/{}/privacy"
+   ],
+   "list-push-to-talk": [
+    "GET /telephony/config/virtualLines/{}/pushToTalk"
+   ],
+   "reset-voicemail-pin": [
+    "POST /telephony/config/virtualLines/{}/voicemail/actions/resetPin/invoke"
+   ],
+   "show": [
+    "GET /telephony/config/virtualLines/{}/callRecording"
+   ],
+   "show-auto-transfer-numbers": [
+    "GET /telephony/config/virtualLines/{}/outgoingPermission/autoTransferNumbers"
+   ],
+   "show-barge-in": [
+    "GET /telephony/config/virtualLines/{}/bargeIn"
+   ],
+   "show-call-bridge": [
+    "GET /telephony/config/virtualLines/{}/callBridge"
+   ],
+   "show-call-forwarding": [
+    "GET /telephony/config/virtualLines/{}/callForwarding"
+   ],
+   "show-call-waiting": [
+    "GET /telephony/config/virtualLines/{}/callWaiting"
+   ],
+   "show-caller-id": [
+    "GET /telephony/config/virtualLines/{}/agent/callerId"
+   ],
+   "show-digit-patterns": [
+    "GET /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "show-do-not-disturb": [
+    "GET /telephony/config/virtualLines/{}/doNotDisturb"
+   ],
+   "show-incoming-permission": [
+    "GET /telephony/config/virtualLines/{}/incomingPermission"
+   ],
+   "show-intercept": [
+    "GET /telephony/config/virtualLines/{}/intercept"
+   ],
+   "show-music-on-hold": [
+    "GET /telephony/config/virtualLines/{}/musicOnHold"
+   ],
+   "show-number": [
+    "GET /telephony/config/virtualLines/{}/number"
+   ],
+   "show-virtual-lines": [
+    "GET /telephony/config/virtualLines/{}"
+   ],
+   "show-voicemail": [
+    "GET /telephony/config/virtualLines/{}/voicemail"
+   ],
+   "update": [
+    "PUT /telephony/config/virtualLines/{}/callRecording"
+   ],
+   "update-access-codes": [
+    "PUT /telephony/config/virtualLines/{}/outgoingPermission/accessCodes"
+   ],
+   "update-auto-transfer-numbers": [
+    "PUT /telephony/config/virtualLines/{}/outgoingPermission/autoTransferNumbers"
+   ],
+   "update-barge-in": [
+    "PUT /telephony/config/virtualLines/{}/bargeIn"
+   ],
+   "update-call-bridge": [
+    "PUT /telephony/config/virtualLines/{}/callBridge"
+   ],
+   "update-call-forwarding": [
+    "PUT /telephony/config/virtualLines/{}/callForwarding"
+   ],
+   "update-call-waiting": [
+    "PUT /telephony/config/virtualLines/{}/callWaiting"
+   ],
+   "update-caller-id-agent": [
+    "PUT /telephony/config/virtualLines/{}/agent/callerId"
+   ],
+   "update-caller-id-virtual-lines": [
+    "PUT /telephony/config/virtualLines/{}/callerId"
+   ],
+   "update-digit-patterns-outgoing-permission": [
+    "PUT /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns"
+   ],
+   "update-digit-patterns-outgoing-permission-1": [
+    "PUT /telephony/config/virtualLines/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "update-directory-search": [
+    "PUT /telephony/config/virtualLines/{}/directorySearch"
+   ],
+   "update-do-not-disturb": [
+    "PUT /telephony/config/virtualLines/{}/doNotDisturb"
+   ],
+   "update-incoming-permission": [
+    "PUT /telephony/config/virtualLines/{}/incomingPermission"
+   ],
+   "update-intercept": [
+    "PUT /telephony/config/virtualLines/{}/intercept"
+   ],
+   "update-music-on-hold": [
+    "PUT /telephony/config/virtualLines/{}/musicOnHold"
+   ],
+   "update-outbound-billing-plan": [
+    "PUT /telephony/config/virtualLines/{}/outboundBillingPlan"
+   ],
+   "update-outgoing-permission": [
+    "PUT /telephony/config/virtualLines/{}/outgoingPermission"
+   ],
+   "update-passcode": [
+    "PUT /telephony/config/virtualLines/{}/voicemail/passcode"
+   ],
+   "update-privacy": [
+    "PUT /telephony/config/virtualLines/{}/privacy"
+   ],
+   "update-push-to-talk": [
+    "PUT /telephony/config/virtualLines/{}/pushToTalk"
+   ],
+   "update-virtual-lines": [
+    "PUT /telephony/config/virtualLines/{}"
+   ],
+   "update-voicemail": [
+    "PUT /telephony/config/virtualLines/{}/voicemail"
+   ]
+  },
+  "webhooks": {
+   "create": [
+    "POST /webhooks"
+   ],
+   "delete": [
+    "DELETE /webhooks/{}"
+   ],
+   "list": [
+    "GET /webhooks"
+   ],
+   "show": [
+    "GET /webhooks/{}"
+   ],
+   "update": [
+    "PUT /webhooks/{}"
+   ]
+  },
+  "wholesale_billing_reports": {
+   "create": [
+    "POST /wholesale/billing/reports"
+   ],
+   "delete": [
+    "DELETE /wholesale/billing/reports/{}"
+   ],
+   "list": [
+    "GET /wholesale/billing/reports"
+   ],
+   "show": [
+    "GET /wholesale/billing/reports/{}"
+   ]
+  },
+  "wholesale_provisioning": {
+   "create": [
+    "POST /wholesale/customers"
+   ],
+   "create-consent-move": [
+    "POST /subscribers/{}/emails/consentMove"
+   ],
+   "create-subscribers": [
+    "POST /wholesale/subscribers"
+   ],
+   "create-validate-customers": [
+    "POST /wholesale/customers/validate"
+   ],
+   "create-validate-subscribers": [
+    "POST /wholesale/subscribers/validate"
+   ],
+   "delete-customers": [
+    "DELETE /wholesale/customers/{}"
+   ],
+   "delete-subscribers": [
+    "DELETE /wholesale/subscribers/{}"
+   ],
+   "list": [
+    "GET /wholesale/customers"
+   ],
+   "list-sub-partners": [
+    "GET /wholesale/subPartners"
+   ],
+   "list-subscribers": [
+    "GET /wholesale/subscribers"
+   ],
+   "show": [
+    "GET /wholesale/customers/{}"
+   ],
+   "show-subscribers": [
+    "GET /wholesale/subscribers/{}"
+   ],
+   "update": [
+    "PUT /wholesale/customers/{}"
+   ],
+   "update-subscribers": [
+    "PUT /wholesale/subscribers/{}"
+   ]
+  },
+  "workspace_locations": {
+   "create": [
+    "POST /workspaceLocations"
+   ],
+   "create-floors": [
+    "POST /workspaceLocations/{}/floors"
+   ],
+   "delete": [
+    "DELETE /workspaceLocations/{}"
+   ],
+   "delete-floors": [
+    "DELETE /workspaceLocations/{}/floors/{}"
+   ],
+   "list": [
+    "GET /workspaceLocations"
+   ],
+   "list-floors": [
+    "GET /workspaceLocations/{}/floors"
+   ],
+   "show": [
+    "GET /workspaceLocations/{}"
+   ],
+   "show-floors": [
+    "GET /workspaceLocations/{}/floors/{}"
+   ],
+   "update": [
+    "PUT /workspaceLocations/{}"
+   ],
+   "update-floors": [
+    "PUT /workspaceLocations/{}/floors/{}"
+   ]
+  },
+  "workspace_metrics": {
+   "list": [
+    "GET /workspaceMetrics"
+   ],
+   "list-workspace-duration-metrics": [
+    "GET /workspaceDurationMetrics"
+   ]
+  },
+  "workspace_personalization": {
+   "create": [
+    "POST /workspaces/{}/personalize"
+   ],
+   "show": [
+    "GET /workspaces/{}/personalizationTask"
+   ]
+  },
+  "workspace_settings": {
+   "configure-busy-voicemail": [
+    "POST /telephony/config/workspaces/{}/voicemail/actions/uploadBusyGreeting/invoke"
+   ],
+   "configure-no-answer": [
+    "POST /telephony/config/workspaces/{}/voicemail/actions/uploadNoAnswerGreeting/invoke"
+   ],
+   "create": [
+    "POST /workspaces/{}/features/outgoingPermission/accessCodes"
+   ],
+   "create-criteria-priority-alert": [
+    "POST /telephony/config/workspaces/{}/priorityAlert/criteria"
+   ],
+   "create-criteria-selective-accept": [
+    "POST /telephony/config/workspaces/{}/selectiveAccept/criteria"
+   ],
+   "create-criteria-selective-forward": [
+    "POST /telephony/config/workspaces/{}/selectiveForward/criteria"
+   ],
+   "create-criteria-selective-reject": [
+    "POST /telephony/config/workspaces/{}/selectiveReject/criteria"
+   ],
+   "create-criteria-sequential-ring": [
+    "POST /telephony/config/workspaces/{}/sequentialRing/criteria"
+   ],
+   "create-criteria-simultaneous-ring": [
+    "POST /telephony/config/workspaces/{}/simultaneousRing/criteria"
+   ],
+   "create-digit-patterns": [
+    "POST /telephony/config/workspaces/{}/outgoingPermission/digitPatterns"
+   ],
+   "delete-access-codes": [
+    "DELETE /telephony/config/workspaces/{}/features/accessCodes/{}"
+   ],
+   "delete-access-codes-all": [
+    "DELETE /workspaces/{}/features/outgoingPermission/accessCodes"
+   ],
+   "delete-criteria-priority-alert": [
+    "DELETE /telephony/config/workspaces/{}/priorityAlert/criteria/{}"
+   ],
+   "delete-criteria-selective-accept": [
+    "DELETE /telephony/config/workspaces/{}/selectiveAccept/criteria/{}"
+   ],
+   "delete-criteria-selective-forward": [
+    "DELETE /telephony/config/workspaces/{}/selectiveForward/criteria/{}"
+   ],
+   "delete-criteria-selective-reject": [
+    "DELETE /telephony/config/workspaces/{}/selectiveReject/criteria/{}"
+   ],
+   "delete-criteria-sequential-ring": [
+    "DELETE /telephony/config/workspaces/{}/sequentialRing/criteria/{}"
+   ],
+   "delete-criteria-simultaneous-ring": [
+    "DELETE /telephony/config/workspaces/{}/simultaneousRing/criteria/{}"
+   ],
+   "delete-digit-patterns-outgoing-permission": [
+    "DELETE /telephony/config/workspaces/{}/outgoingPermission/digitPatterns"
+   ],
+   "delete-digit-patterns-outgoing-permission-1": [
+    "DELETE /telephony/config/workspaces/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "list": [
+    "GET /workspaces/{}/features/callerId"
+   ],
+   "list-access-codes": [
+    "GET /workspaces/{}/features/outgoingPermission/accessCodes"
+   ],
+   "list-available-members-monitoring": [
+    "GET /telephony/config/workspaces/{}/monitoring/availableMembers"
+   ],
+   "list-available-members-speed-dials": [
+    "GET /telephony/config/workspaces/{}/monitoring/speedDials/availableMembers"
+   ],
+   "list-available-numbers-call-forwarding": [
+    "GET /telephony/config/workspaces/{}/callForwarding/availableNumbers"
+   ],
+   "list-available-numbers-call-intercept": [
+    "GET /telephony/config/workspaces/{}/callIntercept/availableNumbers"
+   ],
+   "list-available-numbers-emergency-callback-number": [
+    "GET /telephony/config/workspaces/{}/emergencyCallbackNumber/availableNumbers"
+   ],
+   "list-available-numbers-fax-message": [
+    "GET /telephony/config/workspaces/{}/faxMessage/availableNumbers"
+   ],
+   "list-available-numbers-secondary": [
+    "GET /telephony/config/workspaces/{}/secondary/availableNumbers"
+   ],
+   "list-available-numbers-workspaces": [
+    "GET /telephony/config/workspaces/availableNumbers"
+   ],
+   "list-digit-patterns": [
+    "GET /telephony/config/workspaces/{}/outgoingPermission/digitPatterns"
+   ],
+   "list-monitoring": [
+    "GET /workspaces/{}/features/monitoring"
+   ],
+   "list-numbers": [
+    "GET /workspaces/{}/features/numbers"
+   ],
+   "list-outbound-billing-plan": [
+    "GET /telephony/config/workspaces/{}/outboundBillingPlan"
+   ],
+   "list-outgoing-permission": [
+    "GET /workspaces/{}/features/outgoingPermission"
+   ],
+   "list-priority-alert": [
+    "GET /telephony/config/workspaces/{}/priorityAlert"
+   ],
+   "list-privacy": [
+    "GET /telephony/config/workspaces/{}/privacy"
+   ],
+   "list-push-to-talk": [
+    "GET /telephony/config/workspaces/{}/pushToTalk"
+   ],
+   "list-selective-accept": [
+    "GET /telephony/config/workspaces/{}/selectiveAccept"
+   ],
+   "list-selective-forward": [
+    "GET /telephony/config/workspaces/{}/selectiveForward"
+   ],
+   "list-selective-reject": [
+    "GET /telephony/config/workspaces/{}/selectiveReject"
+   ],
+   "list-sequential-ring": [
+    "GET /telephony/config/workspaces/{}/sequentialRing"
+   ],
+   "list-simultaneous-ring": [
+    "GET /telephony/config/workspaces/{}/simultaneousRing"
+   ],
+   "show": [
+    "GET /workspaces/{}/features/callForwarding"
+   ],
+   "show-anonymous-call-reject": [
+    "GET /telephony/config/workspaces/{}/anonymousCallReject"
+   ],
+   "show-auto-transfer-numbers": [
+    "GET /workspaces/{}/features/outgoingPermission/autoTransferNumbers"
+   ],
+   "show-barge-in": [
+    "GET /telephony/config/workspaces/{}/bargeIn"
+   ],
+   "show-call-bridge": [
+    "GET /telephony/config/workspaces/{}/callBridge"
+   ],
+   "show-call-policies": [
+    "GET /telephony/config/workspaces/{}/callPolicies"
+   ],
+   "show-call-recordings": [
+    "GET /telephony/config/workspaces/{}/features/callRecordings"
+   ],
+   "show-call-waiting": [
+    "GET /workspaces/{}/features/callWaiting"
+   ],
+   "show-criteria-priority-alert": [
+    "GET /telephony/config/workspaces/{}/priorityAlert/criteria/{}"
+   ],
+   "show-criteria-selective-accept": [
+    "GET /telephony/config/workspaces/{}/selectiveAccept/criteria/{}"
+   ],
+   "show-criteria-selective-forward": [
+    "GET /telephony/config/workspaces/{}/selectiveForward/criteria/{}"
+   ],
+   "show-criteria-selective-reject": [
+    "GET /telephony/config/workspaces/{}/selectiveReject/criteria/{}"
+   ],
+   "show-criteria-sequential-ring": [
+    "GET /telephony/config/workspaces/{}/sequentialRing/criteria/{}"
+   ],
+   "show-criteria-simultaneous-ring": [
+    "GET /telephony/config/workspaces/{}/simultaneousRing/criteria/{}"
+   ],
+   "show-digit-patterns": [
+    "GET /telephony/config/workspaces/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "show-do-not-disturb": [
+    "GET /telephony/config/workspaces/{}/doNotDisturb"
+   ],
+   "show-incoming-permission": [
+    "GET /workspaces/{}/features/incomingPermission"
+   ],
+   "show-intercept": [
+    "GET /workspaces/{}/features/intercept"
+   ],
+   "show-music-on-hold": [
+    "GET /telephony/config/workspaces/{}/musicOnHold"
+   ],
+   "show-voicemail": [
+    "GET /telephony/config/workspaces/{}/voicemail"
+   ],
+   "update": [
+    "PUT /workspaces/{}/features/callForwarding"
+   ],
+   "update-access-codes": [
+    "PUT /workspaces/{}/features/outgoingPermission/accessCodes"
+   ],
+   "update-anonymous-call-reject": [
+    "PUT /telephony/config/workspaces/{}/anonymousCallReject"
+   ],
+   "update-auto-transfer-numbers": [
+    "PUT /workspaces/{}/features/outgoingPermission/autoTransferNumbers"
+   ],
+   "update-barge-in": [
+    "PUT /telephony/config/workspaces/{}/bargeIn"
+   ],
+   "update-call-bridge": [
+    "PUT /telephony/config/workspaces/{}/callBridge"
+   ],
+   "update-call-policies": [
+    "PUT /telephony/config/workspaces/{}/callPolicies"
+   ],
+   "update-call-recordings": [
+    "PUT /telephony/config/workspaces/{}/features/callRecordings"
+   ],
+   "update-call-waiting": [
+    "PUT /workspaces/{}/features/callWaiting"
+   ],
+   "update-caller-id": [
+    "PUT /workspaces/{}/features/callerId"
+   ],
+   "update-criteria-priority-alert": [
+    "PUT /telephony/config/workspaces/{}/priorityAlert/criteria/{}"
+   ],
+   "update-criteria-selective-accept": [
+    "PUT /telephony/config/workspaces/{}/selectiveAccept/criteria/{}"
+   ],
+   "update-criteria-selective-forward": [
+    "PUT /telephony/config/workspaces/{}/selectiveForward/criteria/{}"
+   ],
+   "update-criteria-selective-reject": [
+    "PUT /telephony/config/workspaces/{}/selectiveReject/criteria/{}"
+   ],
+   "update-criteria-sequential-ring": [
+    "PUT /telephony/config/workspaces/{}/sequentialRing/criteria/{}"
+   ],
+   "update-criteria-simultaneous-ring": [
+    "PUT /telephony/config/workspaces/{}/simultaneousRing/criteria/{}"
+   ],
+   "update-digit-patterns-outgoing-permission": [
+    "PUT /telephony/config/workspaces/{}/outgoingPermission/digitPatterns"
+   ],
+   "update-digit-patterns-outgoing-permission-1": [
+    "PUT /telephony/config/workspaces/{}/outgoingPermission/digitPatterns/{}"
+   ],
+   "update-do-not-disturb": [
+    "PUT /telephony/config/workspaces/{}/doNotDisturb"
+   ],
+   "update-incoming-permission": [
+    "PUT /workspaces/{}/features/incomingPermission"
+   ],
+   "update-intercept": [
+    "PUT /workspaces/{}/features/intercept"
+   ],
+   "update-monitoring": [
+    "PUT /workspaces/{}/features/monitoring"
+   ],
+   "update-music-on-hold": [
+    "PUT /telephony/config/workspaces/{}/musicOnHold"
+   ],
+   "update-numbers": [
+    "PUT /telephony/config/workspaces/{}/numbers"
+   ],
+   "update-outbound-billing-plan": [
+    "PUT /telephony/config/workspaces/{}/outboundBillingPlan"
+   ],
+   "update-outgoing-permission": [
+    "PUT /workspaces/{}/features/outgoingPermission"
+   ],
+   "update-passcode": [
+    "PUT /telephony/config/workspaces/{}/voicemail/passcode"
+   ],
+   "update-priority-alert": [
+    "PUT /telephony/config/workspaces/{}/priorityAlert"
+   ],
+   "update-privacy": [
+    "PUT /telephony/config/workspaces/{}/privacy"
+   ],
+   "update-push-to-talk": [
+    "PUT /telephony/config/workspaces/{}/pushToTalk"
+   ],
+   "update-selective-accept": [
+    "PUT /telephony/config/workspaces/{}/selectiveAccept"
+   ],
+   "update-selective-forward": [
+    "PUT /telephony/config/workspaces/{}/selectiveForward"
+   ],
+   "update-selective-reject": [
+    "PUT /telephony/config/workspaces/{}/selectiveReject"
+   ],
+   "update-sequential-ring": [
+    "PUT /telephony/config/workspaces/{}/sequentialRing"
+   ],
+   "update-simultaneous-ring": [
+    "PUT /telephony/config/workspaces/{}/simultaneousRing"
+   ],
+   "update-voicemail": [
+    "PUT /telephony/config/workspaces/{}/voicemail"
+   ],
+   "upload-call-intercept": [
+    "POST /telephony/config/workspaces/{}/features/intercept/actions/announcementUpload/invoke"
+   ]
+  },
+  "workspaces": {
+   "create": [
+    "POST /workspaces"
+   ],
+   "delete": [
+    "DELETE /workspaces/{}"
+   ],
+   "list": [
+    "GET /workspaces"
+   ],
+   "show": [
+    "GET /workspaces/{}"
+   ],
+   "show-capabilities": [
+    "GET /workspaces/{}/capabilities"
+   ],
+   "update": [
+    "PUT /workspaces/{}"
+   ]
+  },
+  "xapi": {
+   "create": [
+    "POST /xapi/command/{}"
+   ],
+   "list": [
+    "GET /xapi/schema"
+   ],
+   "show": [
+    "GET /xapi/status"
+   ]
+  }
+ }
+}
