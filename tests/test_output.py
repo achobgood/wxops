@@ -147,7 +147,16 @@ def test_tty_table_rendering_is_byte_for_byte_unchanged(monkeypatch):
     the exact byte string produced by the pre-fix code for a real terminal
     (captured from git HEAD before this change) — pinned so any future
     change to the TTY path fails loudly here.
+
+    TERM is pinned, not inherited: this assertion includes the ANSI bold
+    codes rich emits for a header, and rich consults TERM (not just
+    isatty) to decide whether to emit them at all. CI runs the suite under
+    TERM=dumb — deliberately, so `--help` assertions see plain text — which
+    makes rich drop every escape and the pinned bytes stop matching. A test
+    that pins exact bytes has to pin every input that produces them, so the
+    ambient terminal cannot decide whether it passes.
     """
+    monkeypatch.setenv("TERM", "xterm-256color")
     text = _render(monkeypatch, tty=True)
     assert text == (
         "┏━━━━┳━━━━━━━┓\n"
