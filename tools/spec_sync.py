@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+if str(REPO) not in sys.path:  # script form puts tools/ first, not the repo root
+    sys.path.insert(0, str(REPO))
 PYTHON = sys.executable
 
 # CC before admin/meetings kept for historical tag-collision safety; the

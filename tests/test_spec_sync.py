@@ -8,6 +8,7 @@ thing that makes it auditable is that the delta lands in the run record.
 so check 3 cannot fail after a regen for want of a hand edit.
 """
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -101,3 +102,25 @@ def test_repair_counts_is_a_noop_when_correct(tmp_path, monkeypatch):
     (tmp_path / "README.md").write_text("178 command groups\n")
     monkeypatch.setattr(dc, "REPO", tmp_path)
     assert spec_sync.repair_published_counts(measured=178) == []
+
+
+def test_script_form_can_import_the_gate(tmp_path):
+    """`python tools/spec_sync.py` must resolve `from tools import drift_check`.
+
+    Script form puts tools/ at sys.path[0], not the repo root; -I -P keeps
+    the cwd and PYTHONPATH off the path so only the module's own fix can
+    make the import succeed. Task 6 (2026-09-08) hit this live: the sync
+    crashed at repair_published_counts after the regen had already run.
+    """
+    script = REPO / "tools" / "spec_sync.py"
+    code = (
+        "import runpy, sys\n"
+        f"sys.path[:0] = [{str(script.parent)!r}]\n"   # what script form does
+        f"runpy.run_path({str(script)!r}, run_name='spec_sync_under_test')\n"
+        "import tools.drift_check\n"
+        "print('ok')\n"
+    )
+    r = subprocess.run([sys.executable, "-I", "-P", "-c", code],
+                       cwd=tmp_path, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "ok"
