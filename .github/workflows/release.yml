@@ -19,6 +19,36 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Require green CI on the exact SHA being released
+        # The backstop that would have blocked v1.6.0 (published 2026-09-08
+        # from a tree whose drift gate had been red for five weeks). This is
+        # independent of the spec-sync agent on purpose: it catches a human
+        # cutting a release from the web UI just as well. Fail closed on
+        # anything but a completed+success NEWEST run — "no run found" is not
+        # evidence of anything and must not pass.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA="$(git rev-parse HEAD)"
+          echo "release sha=$SHA (tag ${{ github.event.release.tag_name }})"
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&per_page=10" \
+                    --jq '[.workflow_runs[] | {id, status, conclusion, created_at}]')"
+          echo "ci runs on this sha: $RUNS"
+          COUNT="$(echo "$RUNS" | jq 'length')"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::error::No CI run found for $SHA — absence of evidence is not a pass. Push the commit, let CI finish, then re-publish."
+            exit 1
+          fi
+          # The API lists runs newest first; judge the newest only, so a re-run
+          # that went green counts and a re-run that went red counts too.
+          STATUS="$(echo "$RUNS" | jq -r '.[0].status')"
+          CONCLUSION="$(echo "$RUNS" | jq -r '.[0].conclusion')"
+          if [ "$STATUS" != "completed" ] || [ "$CONCLUSION" != "success" ]; then
+            echo "::error::Newest CI run on $SHA is $STATUS/$CONCLUSION, not completed/success — refusing to publish."
+            exit 1
+          fi
+          echo "CI is green on $SHA"
+
       - name: Playbook bundle freshness guard
         run: |
           python wxcli-dist/assemble.py

@@ -42,3 +42,31 @@ def test_has_version_guard_and_trusted_publish_and_asset_upload():
 def test_builds_on_python_311():
     text = WORKFLOW.read_text()
     assert "3.11" in text
+
+
+def _steps():
+    wf = _load()
+    return wf["jobs"]["publish"]["steps"]
+
+
+def test_ci_gate_runs_before_anything_is_built():
+    """The gate must be the first `run:` step: a failed build step would
+    otherwise mask a missing-CI failure with a different red X."""
+    steps = _steps()
+    names = [s.get("name", s.get("uses", "")) for s in steps]
+    gate = next(i for i, n in enumerate(names) if "green CI" in n)
+    assert all("run" not in s for s in steps[:gate]), "only checkout/setup may precede the gate"
+    assert gate < names.index("Playbook bundle freshness guard")
+
+
+def test_ci_gate_fails_closed_on_no_run_and_on_non_success():
+    text = WORKFLOW.read_text()
+    assert "actions/workflows/ci.yml/runs?head_sha=" in text, "must query CI runs for the release SHA"
+    assert "No CI run found" in text, "absence of evidence must fail, not pass"
+    assert '"completed"' in text and '"success"' in text
+    assert "newest" in text.lower() and ".[0]" in text, "judge the NEWEST run, so a re-run that went green counts and a re-run that went red counts too"
+
+
+def test_ci_gate_uses_the_checked_out_sha_not_the_event_payload():
+    text = WORKFLOW.read_text()
+    assert "git rev-parse HEAD" in text
