@@ -11,6 +11,8 @@ jobs:
       id-token: write      # OIDC for PyPI Trusted Publishing
       contents: write      # upload assets to the Release
       actions: read        # the CI gate reads this SHA's workflow runs
+    env:
+      TAG: ${{ github.event.release.tag_name }}   # never interpolate the tag into a run: body
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,7 +33,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           SHA="$(git rev-parse HEAD)"
-          echo "release sha=$SHA (tag ${{ github.event.release.tag_name }})"
+          echo "release sha=$SHA (tag $TAG)"
           RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&per_page=10" \
                     --jq '[.workflow_runs[] | {id, status, conclusion, created_at}]')"
           echo "ci runs on this sha: $RUNS"
@@ -69,7 +71,6 @@ jobs:
 
       - name: Version guard (never publish a dirty version)
         run: |
-          TAG="${{ github.event.release.tag_name }}"
           EXPECTED="${TAG#v}"
           BUILT=$(ls dist/*.whl | sed -E 's#.*/wxcli-([^-]+)-py3-none-any\.whl#\1#')
           echo "tag=$TAG expected=$EXPECTED built=$BUILT"
@@ -86,4 +87,4 @@ jobs:
       - name: Attach artifacts to the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/*
+        run: gh release upload "$TAG" dist/*

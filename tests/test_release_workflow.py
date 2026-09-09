@@ -72,6 +72,22 @@ def test_ci_gate_uses_the_checked_out_sha_not_the_event_payload():
     assert "git rev-parse HEAD" in text
 
 
+def test_no_expression_is_interpolated_into_a_run_body():
+    """`${{ }}` is substituted textually before bash parses the script, so a
+    release tag carrying `;`/`$(...)`/backticks executes — in the one job holding
+    `id-token: write`, before the CI gate has concluded anything. The tag reaches
+    every shell line through a job-level `env:` var instead; `$TAG` expands to a
+    value and command substitution inside a value is not re-evaluated."""
+    for step in _steps():
+        run = step.get("run")
+        if run is None:
+            continue
+        assert "${{" not in run, (
+            f"step {step.get('name', step.get('uses'))!r} interpolates an expression "
+            "into its run: body — pass it through env: instead"
+        )
+
+
 def test_publish_job_grants_actions_read_for_the_ci_gate():
     """An explicit `permissions:` block sets every unlisted scope to none, so the
     gate's `gh api .../actions/workflows/ci.yml/runs` 403s without `actions: read`.
