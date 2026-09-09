@@ -35,6 +35,10 @@ INCLUDE_PATHS = [
     # travel with `wxcli init`, not just live in a source checkout.
     "docs/knowledge-base/migration",
     "docs/runbooks/cucm-migration",
+    # The builder agent reads deployment-plan.md and execution-report.md at
+    # runtime (.claude/agents/wxc-calling-builder.md lines 322 and 502). That
+    # agent file has always shipped; the templates it points at never did.
+    "docs/templates",
 ]
 EXCLUDE_FILES = {
     # Dev-facing spec-authoring template (19 src/ refs); its only shipping
@@ -42,6 +46,10 @@ EXCLUDE_FILES = {
     "docs/reference/migration-spec-template.md",
     # Internal review notes, not operator-facing playbook material.
     "docs/runbooks/cucm-migration/self-review-findings.md",
+    # Maintainer-only local context for authoring reference docs: cites tests/,
+    # the drift gate and the Sync Protocol, none of which an installed playbook
+    # has. Nothing an end user reads points at it.
+    "docs/reference/CLAUDE.md",
 }
 EXCLUDE_BASENAMES = {"TODO.md", ".DS_Store"}
 AUDIT_TOKENS = ("src/", "tools/", "python3.14 -m", "field_overrides")
@@ -52,6 +60,63 @@ SOURCE_CITATION_PREFIXES = (
     "docs/knowledge-base/migration/",
     "docs/runbooks/cucm-migration/",
 )
+
+# ── Existence gate: references that name a shipped file which never shipped ──
+# AUDIT_TOKENS is a DENYLIST. It can only catch a repo-only prefix that leaked
+# IN; it has no way to notice a file that is MISSING. That is exactly how
+# docs/templates/{deployment-plan,execution-report}.md — read at runtime by
+# .claude/agents/wxc-calling-builder.md — stayed out of INCLUDE_PATHS for
+# months while this audit, the unit tests and the wheel smoke test all passed,
+# and how dangling docs/plans/ and docs/superpowers/ citations survived beside
+# them. This is the complementary direction: a reference that CLAIMS to name a
+# file inside the shipped tree must resolve inside the shipped tree.
+#
+# Deliberately scoped to docs/, .claude/ and .codex/. src/ and tools/ are the
+# already-solved provenance case: audit_bundle owns them and
+# SOURCE_CITATION_PREFIXES already rules on where a src/ citation is intended.
+# Re-judging them here would either duplicate that ruling or contradict it. A
+# docs/→docs/ reference has no such ambiguity — both sides claim to be
+# shipped-tree paths, so it should always resolve.
+REF_PREFIXES = ("docs/", ".claude/", ".codex/")
+
+# A reference carrying any of these is a PATTERN, not a filename — a glob, a
+# fill-in-the-blank, or a date stamp. Checking it for existence is meaningless
+# (`docs/reference/*.md`, `docs/knowledge-base/migration/<doc>.md`).
+REF_PLACEHOLDER_RE = re.compile(r"[*?<>{}\[\]|]|YYYY|MM-DD")
+
+# Paths a shipped file names on purpose even though the bundle does not, and
+# must not, contain them. EXACT matches, never prefixes, and each entry states
+# why. A `docs/plans/` prefix rule was tried first and rejected: it also
+# swallowed `docs/plans/cucm-pipeline/02b-cucm-extraction.md`, one of the two
+# real dangling citations this gate exists to catch. Exempting the write-target
+# itself keeps the surrounding tree audited.
+REF_EXEMPT = {
+    "docs/plans":
+        "WRITE-target directory, not a read. The builder agent CREATES the "
+        "deployment plan here inside the customer's own folder "
+        "(.claude/agents/wxc-calling-builder.md lines 84, 511, 738). Nothing "
+        "reads it out of the bundle, so its absence at build time is correct.",
+    "docs/plans/session-state.md":
+        "WRITE-target. The builder agent's compaction-recovery state file, "
+        "written per run (.claude/agents/wxc-calling-builder.md line 631).",
+    "docs/demo/2026-04-22-acme":
+        "WRITE-target. The worked example of --output-dir for the cucm-migrate "
+        "customer deliverables bundle (.claude/skills/cucm-migrate/SKILL.md).",
+    "docs/spec-sync-contract.md":
+        "Repo-only by design, and CLAUDE.md's file-map row already says so "
+        "inline: '(repo-only — present in a source checkout, not in an "
+        "installed playbook)'. Kept as a pointer for whoever reads the source.",
+}
+
+_REF_BACKTICK_RE = re.compile(r"`([^`\n]+)`")
+_REF_MDLINK_RE = re.compile(r"\]\(([^)\s]+)\)")
+# Bare prose mentions (113 of them in the bundle) — no backticks, no link.
+_REF_BARE_RE = re.compile(
+    r"(?<![`\w/(])((?:docs|\.claude|\.codex)/[^\s`)\]]*\.(?:md|json|py|sh|ya?ml))"
+)
+# `.claude/agents/migration-advisor.md:136` and `…:188-200` cite a line range,
+# not a file named "…md:136".
+_REF_LINE_CITE_RE = re.compile(r":\d+(?:-\d+)?$")
 
 # ── Codex playbook transform ──────────────────────────────────────────────
 # The Codex shape (.codex/ + AGENTS.md) is GENERATED from the assembled Claude
@@ -210,6 +275,78 @@ def audit_bundle(bundle_dir: Path) -> list[tuple[str, int, str]]:
     return violations
 
 
+def _normalize_ref(raw: str) -> str | None:
+    """Reduce one cited reference to a path, or None if it is not checkable.
+
+    Handles the four citation shapes the docs actually use: `path`,
+    `path#anchor`, `path:120` / `path:188-200`, and `path § Some Section`.
+    """
+    raw = raw.strip()
+    if not raw:
+        return None
+    ref = raw.split()[0].split("#", 1)[0]
+    ref = _REF_LINE_CITE_RE.sub("", ref)
+    ref = ref.rstrip(".,;:)").rstrip("/")
+    if not ref or REF_PLACEHOLDER_RE.search(ref):
+        return None
+    return ref
+
+
+def _line_refs(line: str) -> list[tuple[str, bool]]:
+    """(raw reference, resolve-relative-to-the-citing-file) pairs on one line."""
+    found: list[tuple[str, bool]] = []
+    for m in _REF_MDLINK_RE.finditer(line):
+        target = m.group(1)
+        if not target.startswith(("http://", "https://", "mailto:", "#")):
+            found.append((target, True))
+    for m in _REF_BACKTICK_RE.finditer(line):
+        span = m.group(1).strip()
+        if span.startswith(REF_PREFIXES):
+            found.append((span, False))
+    for m in _REF_BARE_RE.finditer(line):
+        found.append((m.group(1), False))
+    return found
+
+
+def audit_missing_references(bundle_dir: Path) -> list[tuple[str, int, str]]:
+    """Every (relpath, lineno, reference) naming a shipped-tree file that is
+    not in the bundle. The missing-file direction audit_bundle cannot see."""
+    violations: list[tuple[str, int, str]] = []
+    seen: set[tuple[str, int, str]] = set()
+    root = bundle_dir.resolve()
+
+    for path in sorted(bundle_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(bundle_dir).as_posix()
+        try:
+            lines = path.read_text().splitlines()
+        except UnicodeDecodeError:
+            continue
+        for i, line in enumerate(lines, 1):
+            for raw, file_relative in _line_refs(line):
+                ref = _normalize_ref(raw)
+                if ref is None:
+                    continue
+                base = path.parent if file_relative else root
+                resolved = (base / ref).resolve()
+                try:
+                    target = resolved.relative_to(root).as_posix()
+                except ValueError:
+                    # Escapes the bundle entirely — an installed playbook has
+                    # no parent tree to climb into, so this can never resolve.
+                    target = None
+                if target in REF_EXEMPT:
+                    continue
+                if resolved.exists():
+                    continue
+                key = (rel, i, ref)
+                if key not in seen:
+                    seen.add(key)
+                    violations.append(key)
+    return violations
+
+
 def main() -> int:
     # Before assembling, not after: the run must not report a file count that
     # silently excludes work sitting in the working tree.
@@ -227,13 +364,19 @@ def main() -> int:
     assemble_codex(BUNDLE_DIR)
     violations = audit_bundle(BUNDLE_DIR)
     codex_violations = audit_codex(BUNDLE_DIR)
-    if violations or codex_violations:
+    missing = audit_missing_references(BUNDLE_DIR)
+    if violations or codex_violations or missing:
         for rel, lineno, tok in violations:
             print(f"LINK-AUDIT {rel}:{lineno}: residual '{tok}'", file=sys.stderr)
         for rel, lineno, tok in codex_violations:
             print(f"CODEX-AUDIT {rel}:{lineno}: residual Claude-ism /{tok}/", file=sys.stderr)
-        print(f"FAILED: {len(violations) + len(codex_violations)} bad reference(s) in the bundle.",
-              file=sys.stderr)
+        for rel, lineno, ref in missing:
+            print(f"REF-AUDIT {rel}:{lineno}: cites '{ref}', which is not in the "
+                  f"bundle. Add its source dir to INCLUDE_PATHS, fix the "
+                  f"reference, or exempt it in REF_EXEMPT with a reason.",
+                  file=sys.stderr)
+        print(f"FAILED: {len(violations) + len(codex_violations) + len(missing)} "
+              f"bad reference(s) in the bundle.", file=sys.stderr)
         return 1
     print(f"Assembled Claude+Codex playbook ({len(files) + 1} Claude file(s) + "
           f"generated .codex/ + AGENTS.md) into {BUNDLE_DIR.relative_to(REPO_ROOT)}")

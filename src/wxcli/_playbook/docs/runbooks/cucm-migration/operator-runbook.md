@@ -131,7 +131,7 @@ Meet all of these before running `wxcli cucm init`.
 - Network reachability from your workstation to the **CUCM publisher** on **TCP 8443** (the AXL SOAP/HTTPS port). Subscriber nodes do not expose AXL by default — always target the publisher.
 - AXL must be enabled on the cluster: CUCM Administration → System → Service Parameters → Publisher → Cisco AXL Web Service → Enabled.
 
-→ AXL role and port requirements: `src/wxcli/migration/cucm/connection.py` (connection setup) and `docs/plans/cucm-pipeline/02b-cucm-extraction.md` §AXL setup.
+→ AXL role and port requirements are implemented in `src/wxcli/migration/cucm/connection.py` (connection setup), which builds the AXL WSDL URL as `https://<cucm-publisher>:8443/axl/AXLAPIService?wsdl`.
 
 ### Webex OAuth Credentials
 

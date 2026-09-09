@@ -155,7 +155,7 @@ See §[Auto-Rule Reference](#auto-rule-reference) below for the full treatment �
 ### bulk-device-threshold
 
 **Default:** `100` (from `src/wxcli/commands/cucm_config.py`)
-**What it controls:** Device count at/above which the planner's post-expansion `_optimize_for_bulk()` pass replaces per-device `device:configure_settings`, `device_layout:configure`, and `softkey_config:configure` operations with Webex bulk job submissions (`callDeviceSettings`, `applyLineKeyTemplate`, `dynamicDeviceSettings`) plus a trailing `rebuildPhones` job per location. `device:create` is never replaced — there is no bulk device-create API. Full design in `docs/superpowers/specs/2026-04-10-bulk-operations.md`.
+**What it controls:** Device count at/above which the planner's post-expansion `_optimize_for_bulk()` pass replaces per-device `device:configure_settings`, `device_layout:configure`, and `softkey_config:configure` operations with Webex bulk job submissions (`callDeviceSettings`, `applyLineKeyTemplate`, `dynamicDeviceSettings`) plus a trailing `rebuildPhones` job per location. `device:create` is never replaced — there is no bulk device-create API.
 **When to change:** Set to `0` to force bulk optimization for every migration regardless of size. Set to a very large value (`999999`) to disable bulk entirely — required for Webex for Government tenants because `rebuildPhones` is not supported on FedRAMP. Most migrations should leave it at `100`, which is the device count at which per-device operations stop finishing in under ten minutes and bulk jobs start paying back their polling overhead.
 **Example non-default:**
 ```json

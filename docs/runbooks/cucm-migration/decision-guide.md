@@ -346,7 +346,7 @@ Custom voicemail greetings stored in Unity Connection cannot be extracted for mi
 - **Skip** — Operator will design DECT networks manually in Control Hub after migration.
 **Override criteria:** Accept when the operator confirms the auto-selected model (DBS-110 for ≤30 handsets, DBS-210 for >30) is correct and will add base station MACs via Control Hub post-migration. Escalate to manual when exact base station placement matters (multi-cell coverage, floor-plan constraints) or when the zone/location ambiguity requires site survey data.
 **Cascade impact:** None — DECT network design decisions are independent of user/device/location decisions.
-**See also:** [`dect-handset-assignment`](#dect-handset-assignment), spec §7a in `docs/superpowers/specs/2026-04-10-dect-migration.md`.
+**See also:** [`dect-handset-assignment`](#dect-handset-assignment).
 
 ### dect-handset-assignment
 
