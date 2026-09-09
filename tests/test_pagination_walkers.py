@@ -200,10 +200,22 @@ class TestDefaultsUnchanged:
     # specs/webex-cloud-calling.json, which is exactly what puts an endpoint in
     # the `paginates` branch where `--limit 0` already walks. So they behave like
     # the other 53 for the same declared reason, and the move is correct.
+    #
+    # 55 -> 56 on 2026-09-08, deliberately. The 2026-09-07 spec sync regen
+    # brought `meetings` in line with a spec it had drifted behind: all three
+    # /group/meetings operations were already declared in
+    # specs/webex-meetings.json at the previous tip yet generated no command at
+    # all (that gap is what check [1] spec->CLI missing counts), and the regen
+    # added them. Only the list lands in this branch — `list-group-meetings`
+    # (GET /group/meetings, operationId listGroupMeetings; named by an override
+    # so it reads resource-first like its two siblings). Checked the cause
+    # rather than the count: its 200 declares a `Link` response header, the same
+    # declaration its sibling GET /meetings carries, so it reaches the
+    # `paginates` branch for the established reason and the move is correct.
     # If this number changes again, confirm the new commands' 200 really
     # declares `Link` before touching it — a command reaching this branch
     # WITHOUT that header would be the actual defect this guard exists to catch.
-    DEFAULT_WALK_ALL_COMMANDS = 55
+    DEFAULT_WALK_ALL_COMMANDS = 56
 
     def test_the_default_walk_all_branch_did_not_grow(self):
         after = self._count(r"if limit > 0 and not all_pages:")
