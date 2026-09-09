@@ -83,6 +83,7 @@ tests/*
 !tests/test_spec_sync.py
 !tests/test_sync_guard.py
 !tests/test_sync_classify.py
+!tests/test_sync_version.py
 # Checks 19/20. This one also carries the three real 2026-08-03 spec changes
 # that reached the CLI while the gate said PASS — inlined from the spec diff,
 # not read out of git, so a shallow CI checkout still proves the gate sees them.
