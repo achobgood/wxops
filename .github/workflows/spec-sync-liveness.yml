@@ -28,6 +28,14 @@ jobs:
           import json, datetime, pathlib
           p = pathlib.Path("docs/spec-sync/last-run.json")
           MAX_AGE_DAYS = 10
+          # `last-run.json` is written by the unattended agent, so every field of
+          # it is untrusted input. Collapse each one to a single line before it
+          # reaches $GITHUB_OUTPUT: a newline would malform the output file, fail
+          # this step, and skip the issue — the silence this workflow exists to
+          # catch. The issue step reads the value from an env var, never from a
+          # workflow-expression substitution inside a run: body.
+          def one_line(v):
+              return " ".join(str(v).split())
           if not p.exists():
               print("stale=true"); print("since=never"); raise SystemExit
           # Fail closed: a record we cannot parse is indistinguishable from a
@@ -39,20 +47,21 @@ jobs:
               age = (datetime.date.today() - datetime.date.fromisoformat(rec["date"])).days
               ok = rec.get("outcome") in ("released", "specs-only", "noop")
               print(f"stale={'true' if (age > MAX_AGE_DAYS or not ok) else 'false'}")
-              print(f"since={rec['date']} ({rec.get('outcome')}, {age} days ago)")
+              print(f"since={one_line(rec['date'])} ({one_line(rec.get('outcome'))}, {age} days ago)")
           except Exception as e:
-              print("stale=true"); print(f"since=unreadable record ({e})")
+              print("stale=true"); print(f"since=unreadable record ({one_line(e)})")
           PY
 
       - name: Open an issue if stale and none is open
         if: steps.judge.outputs.stale == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          SINCE: ${{ steps.judge.outputs.since }}
         run: |
           if [ -n "$(gh issue list --label spec-sync --state open --limit 1 --json number --jq '.[0].number')" ]; then
             echo "an open spec-sync issue already exists — not duplicating"; exit 0
           fi
           gh label create spec-sync --description "weekly spec sync pipeline" --force
           gh issue create --label spec-sync \
-            --title "spec-sync: no successful run recorded since ${{ steps.judge.outputs.since }}" \
+            --title "spec-sync: no successful run recorded since $SINCE" \
             --body "The weekly spec-sync routine has not recorded a successful run (docs/spec-sync/last-run.json) in over 10 days. Check the routine at https://claude.ai/code/routines and the contract at docs/spec-sync-contract.md. This issue was opened by .github/workflows/spec-sync-liveness.yml."

@@ -77,7 +77,23 @@ def test_judge_script_fails_closed_on_stale_missing_and_corrupt_records(tmp_path
     assert "stale=true" in r.stdout, r.stdout
     assert "since=unreadable record" in r.stdout, r.stdout
 
-    # 4. No record at all — the routine has never run, or the file was lost.
+    # 4. An outcome outside the ok-set is stale even when the date is today, and
+    #    the record is untrusted input: it must never reach $GITHUB_OUTPUT (or,
+    #    through it, a shell line) as more than one line.
+    rec.write_text(json.dumps({
+        "date": datetime.date.today().isoformat(),
+        "outcome": "failed\nsecond line $(id)",
+    }))
+    r = _run_judge(script, tmp_path)
+    assert r.returncode == 0, r.stderr
+    lines = r.stdout.splitlines()
+    assert len(lines) == 2, r.stdout
+    assert "stale=true" in lines[0], r.stdout
+    since = next(ln for ln in lines if ln.startswith("since="))
+    assert "failed second line $(id)" in since, since
+    assert "\n" not in since
+
+    # 5. No record at all — the routine has never run, or the file was lost.
     rec.unlink()
     r = _run_judge(script, tmp_path)
     assert r.returncode == 0, r.stderr
