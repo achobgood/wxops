@@ -69,9 +69,12 @@ def changed_paths(base: str, repo: Path = REPO) -> list[str]:
     """Tracked paths that differ from BASE (working tree, not just index) plus untracked files."""
     # --no-renames: rename detection would report only the NEW path, so moving a
     # forbidden file (or a test out of tests/) would otherwise pass the guard clean.
-    tracked = _git(["diff", "--no-renames", "--name-only", base], repo).split()
-    untracked = [line[3:] for line in _git(["status", "--porcelain", "--untracked-files=all"], repo).splitlines()
-                 if line.startswith("?? ")]
+    # -z on both reads: git then emits raw NUL-separated paths. Without it a path
+    # containing a space fragments under .split() and porcelain wraps it in quotes,
+    # so a forbidden edit produced zero findings and exit 0 — the one fail-open path.
+    tracked = [p for p in _git(["diff", "--no-renames", "--name-only", "-z", base], repo).split("\0") if p]
+    untracked = [e[3:] for e in _git(["status", "--porcelain", "-z", "--untracked-files=all"], repo).split("\0")
+                 if e.startswith("?? ")]
     return sorted(set(tracked) | set(untracked))
 
 

@@ -137,6 +137,39 @@ def _repo_with_drift_check(root):
     return subprocess
 
 
+def test_changed_paths_handles_a_space_in_the_path(tmp_path):
+    """A space-bearing path must survive both git reads intact.
+
+    `.split()` fragmented `git diff --name-only` output and `line[3:]` on
+    `--porcelain` kept git's surrounding quotes, so a forbidden edit under the
+    `tools/sync_*.py` glob produced ZERO findings and exit 0 — the only
+    fail-open path in the guard. `-z` on both reads emits raw, unquoted paths.
+    """
+    import subprocess
+    r = tmp_path / "spacey"
+    r.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=r, check=True)
+    (r / "tools").mkdir(); (r / "docs").mkdir()
+    (r / "tools" / "sync_evil tool.py").write_text("# forbidden\n")
+    (r / "docs" / "x.md").write_text("hi\n")
+    subprocess.run(["git", "add", "-A"], cwd=r, check=True)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base"],
+                   cwd=r, check=True)
+
+    # (a) tracked, modified
+    (r / "tools" / "sync_evil tool.py").write_text("# forbidden, edited\n")
+    assert sg.changed_paths("HEAD", r) == ["tools/sync_evil tool.py"]
+    findings = sg.guard("HEAD", r)
+    assert any("tools/sync_evil tool.py" in f for f in findings), findings
+
+    # (b) untracked, new — porcelain quotes it; the guard must see it unquoted
+    (r / "tools" / "sync_new tool.py").write_text("# also forbidden\n")
+    paths = sg.changed_paths("HEAD", r)
+    assert "tools/sync_new tool.py" in paths, paths
+    findings = sg.guard("HEAD", r)
+    assert any("tools/sync_new tool.py" in f for f in findings), findings
+
+
 def test_a_renamed_forbidden_file_still_fires(tmp_path):
     """git's rename detection would show only the NEW path, hiding the forbidden one."""
     r = tmp_path / "renamed"
