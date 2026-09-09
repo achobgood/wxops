@@ -201,8 +201,12 @@ class TestDefaultsUnchanged:
     # the `paginates` branch where `--limit 0` already walks. So they behave like
     # the other 53 for the same declared reason, and the move is correct.
     #
-    # 55 -> 56 on 2026-09-08, deliberately. The 2026-09-07 spec sync regen
-    # brought `meetings` in line with a spec it had drifted behind: all three
+    # 55 -> 56 on 2026-09-08, deliberately, by the rule tools/CLAUDE.md states
+    # under "`--all` is only as good as the spec's paging declaration": the
+    # branch is chosen by what the spec DECLARES, in `_pagination_style`
+    # (openapi_parser.py) and the `ep.paginates` fork in `_render_list_command`.
+    # The 2026-09-07 spec sync regen (commit dfeb449) brought `meetings` in line
+    # with a spec it had drifted behind: all three
     # /group/meetings operations were already declared in
     # specs/webex-meetings.json at the previous tip yet generated no command at
     # all (that gap is what check [1] spec->CLI missing counts), and the regen
