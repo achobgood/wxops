@@ -1,0 +1,58 @@
+name: Spec-sync liveness
+
+# Row 33 of the spec-sync design: the weekly routine silently stopping is the
+# one failure that produces NO signal. This job is deliberately a GitHub
+# Action, independent of the Claude cloud routine, so it cannot die with it.
+# It reads the run record the routine commits on every run (including no-op
+# weeks) and opens an issue when that record goes stale.
+on:
+  schedule:
+    - cron: "0 16 * * 3"    # Wednesday 16:00 UTC; the routine runs Monday 14:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Judge the run record
+        id: judge
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, datetime, pathlib
+          p = pathlib.Path("docs/spec-sync/last-run.json")
+          MAX_AGE_DAYS = 10
+          if not p.exists():
+              print("stale=true"); print("since=never"); raise SystemExit
+          # Fail closed: a record we cannot parse is indistinguishable from a
+          # routine that stopped writing one. Letting the exception escape would
+          # leave `stale` unset, skip the issue step, and produce exactly the
+          # silence this workflow exists to break.
+          try:
+              rec = json.loads(p.read_text())
+              age = (datetime.date.today() - datetime.date.fromisoformat(rec["date"])).days
+              ok = rec.get("outcome") in ("released", "specs-only", "noop")
+              print(f"stale={'true' if (age > MAX_AGE_DAYS or not ok) else 'false'}")
+              print(f"since={rec['date']} ({rec.get('outcome')}, {age} days ago)")
+          except Exception as e:
+              print("stale=true"); print(f"since=unreadable record ({e})")
+          PY
+
+      - name: Open an issue if stale and none is open
+        if: steps.judge.outputs.stale == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "$(gh issue list --label spec-sync --state open --limit 1 --json number --jq '.[0].number')" ]; then
+            echo "an open spec-sync issue already exists — not duplicating"; exit 0
+          fi
+          gh label create spec-sync --description "weekly spec sync pipeline" --force
+          gh issue create --label spec-sync \
+            --title "spec-sync: no successful run recorded since ${{ steps.judge.outputs.since }}" \
+            --body "The weekly spec-sync routine has not recorded a successful run (docs/spec-sync/last-run.json) in over 10 days. Check the routine at https://claude.ai/code/routines and the contract at docs/spec-sync-contract.md. This issue was opened by .github/workflows/spec-sync-liveness.yml."
