@@ -23,7 +23,8 @@ Webex webhooks deliver real-time notifications to your application when resource
 11. [Service App Webhooks](#11-service-app-webhooks)
 12. [callSessionId Correlation Pattern](#12-callsessionid-correlation-pattern)
 13. [Scale Patterns](#13-scale-patterns)
-14. [wxcli Command Reference](#14-wxcli-command-reference)
+14. [Webhook Interest Registrations](#14-webhook-interest-registrations)
+15. [wxcli Command Reference](#15-wxcli-command-reference)
 
 ---
 
@@ -1198,7 +1199,119 @@ def on_timer_fire(call_id: str):
 
 ---
 
-## 14. wxcli Command Reference
+## 14. Webhook Interest Registrations
+
+CLI group: `wxcli webhook-interest-registrations` (3 commands)
+
+A webhook interest registration is **not a webhook**. It is a separate declaration that a
+telephony webhook should be emitted for a category of events at all; the webhook itself — its
+name, target URL, resource, event and secret — is §1. Creating a webhook without the matching
+registration leaves the webhook in place and, for the six gated resources below, produces no
+deliveries. Creating a registration without a webhook gives Webex nothing to deliver to. Both are
+required, and neither references the other by ID.
+
+Each entry in `interests` sets **exactly one** of `resource` or `actor`:
+
+| `resource` | Enables webhook events for |
+|-----------|---------------------------|
+| `Hook Status` | `telephony_hookstatus` |
+| `Agent` | `telephony_agent` |
+| `Services` | `telephony_services` |
+| `Agent Monitoring` | `telephony_agentMonitoring` |
+| `Queue` | `telephony_queue` |
+| `Queue Monitoring` | `telephony_queueMonitoring` |
+
+| `actor` | Enables telephony webhook events associated with |
+|--------|--------------------------------------------------|
+| `Workspaces` | workspace actors |
+| `Virtual Lines` | virtual line actors |
+
+`telephony_calls` is absent from both tables — the ordinary call-event webhook in §1 and §6 needs
+no registration.
+
+The registration is scoped to the **authenticated user plus the client derived from the access
+token**. The client identifier is never supplied by the caller, so a token from a different
+integration addresses a different registration. Registered interests, however, apply to *all*
+applicable webhooks in the organization. Registrations expire — 60 days by default, or after
+`duration` days when supplied. Every operation requires the `spark-admin:calls_read` scope and is
+administrator-only.
+
+### CLI Examples
+
+None of the three commands takes a positional argument or a required flag. `create` nonetheless
+needs `--json-body` in practice — see gotcha 2.
+
+```bash
+# Show the current registration for this user + client, and when it expires
+wxcli webhook-interest-registrations list -o json
+
+# Print the request-body skeleton without authenticating
+wxcli webhook-interest-registrations create --generate-json-body
+
+# Register interest in queue events and workspace-actor events, expiring in 30 days
+wxcli webhook-interest-registrations create --json-body '{"interests":[{"resource":"Queue"},{"actor":"Workspaces"}],"duration":30}'
+
+# Change only the expiry — interests must be resent, because POST replaces the whole array
+wxcli webhook-interest-registrations create --json-body '{"interests":[{"resource":"Queue"},{"actor":"Workspaces"}],"duration":90}'
+
+# Remove the registration entirely (prompts; --force skips)
+wxcli webhook-interest-registrations delete --force
+```
+
+### Raw HTTP
+
+```bash
+# Get the registration for this user + client
+curl "https://webexapis.com/v1/telephony/webhookInterestRegistrations" \
+  -H "Authorization: Bearer $TOKEN"
+# Returns: {"interests":[{"resource":"Agent"},{"actor":"Workspaces"}],
+#           "expiresAt":"2026-08-01T00:00:00.000Z"}
+
+# Create or update it — POST is an upsert, and returns 204 with no body
+curl -X POST "https://webexapis.com/v1/telephony/webhookInterestRegistrations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"interests":[{"resource":"Queue"},{"actor":"Workspaces"}],"duration":30}'
+
+# Delete it — no ID in the path
+curl -X DELETE "https://webexapis.com/v1/telephony/webhookInterestRegistrations" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Gotchas
+
+1. **`delete` takes no ID and removes the whole registration for this user and client.** Every
+   other `delete` in the CLI names its target; this one is a collection DELETE on
+   `/telephony/webhookInterestRegistrations` with nothing to scope it, so there is no way to drop
+   a single interest. The confirmation prompt reads `Delete this resource?`, which understates
+   what is about to happen — "this resource" is the caller's entire interest set, and every
+   webhook whose deliveries depended on it stops being fed. To remove one interest, `create`
+   again with the interests you want to keep: POST is an upsert that replaces the whole
+   `interests` array, not a merge. **Unverified:** read from the spec and the generated module;
+   no live call was made against this endpoint.
+
+2. **`create` needs `--json-body`; its `--duration` flag cannot stand alone.** `interests` is a
+   nested array, so the generator emits no flag for it (Known Issue #2) — the only typed flag on
+   `create` is `--duration`. But the spec marks `interests` required, so
+   `create --duration 90` sends `{"duration": "90"}` with no interests and is rejected. Note the
+   quotes: `--duration` is typed as a string and the spec declares an integer, which is a second
+   reason to prefer `--json-body`, where the value stays a JSON number. Start from
+   `--generate-json-body`.
+
+3. **`create` is create-or-update, and returns 204 with no ID.** The spec calls it "Adds or
+   updates". There is one registration per user-and-client, so a second POST silently replaces
+   the first rather than adding a second — and because the response carries no body, `-o id`
+   prints `Created.` with nothing to record. Read the result back with `list` to confirm which
+   interests took and when they now expire.
+
+4. **A registration expires and takes deliveries with it.** The default is 60 days from the last
+   POST. Nothing warns as the date approaches, and an expired registration looks exactly like a
+   webhook that has simply gone quiet. Check `expiresAt` from `list` when telephony events stop
+   arriving for one of the six gated resources.
+
+---
+
+## 15. wxcli Command Reference
 
 All webhook management is via the `wxcli webhooks` command group.
 
@@ -1346,3 +1459,5 @@ wxcli webhooks delete "Y2lzY29zcGFyazov..." --force
 - **[call-control.md](call-control.md)** — Call control actions and the `TelephonyCall` data model. `TelephonyEventData` inherits from `TelephonyCall`, so the `remoteParty`, `state`, `personality`, and other call fields documented there apply directly to webhook event data.
 - **[authentication.md](authentication.md)** — Scope definitions and OAuth token management. Creating a `telephony_calls` webhook requires `spark:calls_read` scope; a firehose requires `spark:all`.
 - **[admin-apps-data.md](admin-apps-data.md)** — Service App registration, authorization, and token lifecycle. Cross-reference §11 for Service App webhook creation.
+- **[call-features-major.md](call-features-major.md)** — Call queues and their agents. The `Queue`, `Queue Monitoring`, `Agent` and `Agent Monitoring` interests in §14 gate events about exactly these entities, so this is where you confirm the queue or agent a registration is meant to report on actually exists.
+- **[devices-workspaces.md](devices-workspaces.md)** — Workspaces as calling entities. §14's `Workspaces` actor interest is what makes telephony events fire for a workspace rather than a person, and workspace calling has its own licensing constraints that decide whether those events can exist at all.

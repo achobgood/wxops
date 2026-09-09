@@ -284,6 +284,8 @@ When multiple skills could match, use this lookup. (Basic skill-vs-skill routing
 | Operating modes / mode management (`mode-management`, user-token only per Known Issue #3) | `manage-call-settings` | `configure-features` (`operating-modes` location/feature side stays there) |
 | Org/admin recordings retrieval (`admin-recordings`) | `reporting` | `manage-meetings` |
 | Org profile, settings, roles (`identity-org`, `org-settings`, `roles`) | `manage-identity` | `audit-compliance` |
+| Register interest in telephony webhook events (`webhook-interest-registrations`) | `call-control` | `messaging-bots` (that's messaging webhooks; this is the Calling-side registration that gates which telephony events a webhook receives) |
+| Discover which fields the Contact Center search API accepts (`cc-search-metadata`) | `reporting-cc` | `contact-center` (metadata describes the search surface; it provisions nothing) |
 | Person-level hot-desking members (`hot-desking-members`) | `manage-call-settings` (person settings) | `manage-devices` (workspace/device-level hot-desk stays there) |
 
 ### Multi-Skill Workflows

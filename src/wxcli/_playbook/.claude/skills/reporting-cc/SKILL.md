@@ -52,6 +52,7 @@ Available regions: us1, eu1, eu2, anz1, ca1, jp1, sg1.
 | Current estimated wait time | `cc-ewt` | `show` |
 | AI-generated interaction summaries | `cc-agent-summaries` | `create`, `create-list` |
 | Historical task/contact search | `cc-search` | `create` |
+| Which fields a search may filter, sort, group or aggregate on | `cc-search-metadata` | `list` |
 | Real-time queue/agent state | `cc-realtime` | `create` |
 | Call monitoring | `cc-call-monitoring` | 7 commands |
 

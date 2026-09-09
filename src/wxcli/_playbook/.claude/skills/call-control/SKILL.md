@@ -88,6 +88,7 @@ Present this decision matrix if the user is unsure which approach fits their nee
 | Get notified when calls start/end/change state (push model) | **Webhooks** | `wxcli webhooks` or raw HTTP |
 | Multi-party conference management | **Conference Controls** | `wxcli conference` |
 | Poll for active calls or call history | **Call Control API (GET)** | `wxcli call-controls list` / `list-history` |
+| Register interest in telephony events (before creating a telephony webhook) | **Webhook Interest Registrations** | `wxcli webhook-interest-registrations` — `list`, `create`, `delete` |
 
 **Key distinctions:**
 - **Call Control API** = REST API on `api.webex.com`, requires user token, works for 3rd-party call control apps
@@ -346,6 +347,28 @@ wxcli webhooks create \
 # Verify it was created
 wxcli webhooks list --output json
 ```
+
+##### Register interest first for the six gated telephony resources
+
+Each interest, in the spec's own words, *enables* webhook events for one telephony resource:
+`telephony_hookstatus`, `telephony_agent`, `telephony_services`, `telephony_agentMonitoring`,
+`telephony_queue`, `telephony_queueMonitoring`. `telephony_calls` is not among them, so the
+webhook created above needs no registration. The registration is per authenticated-user-plus-client
+rather than per webhook, and expires after 60 days unless `duration` says otherwise. Requires the
+`spark-admin:calls_read` scope. Unverified live — whether an unregistered resource is silent or
+merely reduced has not been observed here.
+
+```bash
+# See the current registration and when it expires
+wxcli webhook-interest-registrations list -o json
+
+# Print the request-body skeleton, then register (POST is an upsert — it replaces the interest set)
+wxcli webhook-interest-registrations create --generate-json-body
+wxcli webhook-interest-registrations create --json-body '{"interests":[{"resource":"Queue"},{"actor":"Workspaces"}],"duration":30}'
+```
+
+Do not reach for `delete` to drop one interest — it removes the whole registration for this
+user and client. Re-`create` with the interests you want to keep instead.
 
 ##### Via raw HTTP (for programmatic HMAC verification or complex webhook management)
 

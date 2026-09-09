@@ -791,12 +791,10 @@ Skills are attributes assigned to agents for skill-based routing. Each skill has
 | PUT | `/organization/{orgid}/skill/{id}` | `update` | Update |
 | GET | `/organization/{orgid}/skill/{id}/incoming-references` | `list-incoming-references` | List references |
 | GET | `/organization/{orgid}/v2/skill` | `list-skill` | List (v2) |
-| POST | `/organization/{orgid}/skill/populate-json-attr/{id}` | `create-populate-json-attr` | Populate JSON attributes for a skill |
 
 ### Key Parameters
 
 - **Create:** Requires `name`, `serviceLevel`, `skillType` (TEXT, PROFICIENCY, BOOLEAN, ENUM)
-- **Populate JSON attributes:** Takes skill ID as path parameter. Populates the `jsonAttr` field for the specified skill. Useful for initializing skill metadata after creation.
 - **PROFICIENCY type:** Values 0-10, used for competency-based routing
 - **BOOLEAN type:** True/false, used for capability flags (e.g., "speaks_spanish")
 - **ENUM type:** Requires `enumValues` array defining the allowed values
@@ -836,8 +834,9 @@ wxcli cc-skill show "skill-uuid"
 # Delete a skill
 wxcli cc-skill delete "skill-uuid"
 
-# Populate JSON attributes for a skill
-wxcli cc-skill create-populate-json-attr "skill-uuid"
+# Deactivate a skill (PUT replaces the resource, so resend name, type and threshold)
+wxcli cc-skill update "skill-uuid" --name "Product Knowledge" --skill-type "Proficiency" \
+  --service-level-threshold 60 --no-active
 ```
 
 ### Raw HTTP
