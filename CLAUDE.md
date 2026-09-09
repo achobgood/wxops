@@ -371,7 +371,7 @@ Common admin goals that span multiple skills. When the user states one of these 
 
 ### Migration (KB, Runbooks, Tool)
 
-Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-loaded when touching migration paths). Contains: knowledge base file map (8 KB docs for the Opus advisor), operator runbooks (3 docs for pipeline walkthrough, decision guide, tuning), migration tool pipeline commands, advisory workflow, report/diff/notice generation commands, and the phase-by-phase agent invocation example.
+Detailed migration context lives in `.claude/rules/cucm-migration.md` (the file ships; its `paths:` globs auto-load it only in a source checkout — read it explicitly in an installed playbook). Contains: knowledge base file map (8 KB docs for the Opus advisor), operator runbooks (3 docs for pipeline walkthrough, decision guide, tuning), migration tool pipeline commands, advisory workflow, report/diff/notice generation commands, and the phase-by-phase agent invocation example.
 
 **Read the rule when:** handling any CUCM migration question, running `/cucm-migrate`, or working with the migration advisor agent — even if not editing migration source files directly.
 
@@ -382,13 +382,13 @@ Detailed migration context lives in `.claude/rules/cucm-migration.md` (auto-load
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
 | `wxcli <group> <command> --help` | Shows options for a command |
-| `docs/spec-sync-contract.md` | The weekly spec-sync's definition of done; the cloud routine's prompt points here |
+| `docs/spec-sync-contract.md` | (repo-only — present in a source checkout, not in an installed playbook) The weekly spec-sync's definition of done; the cloud routine's prompt points here |
 
 ### Org Health Assessment
 
-Detailed context in `.claude/rules/org-health.md` (auto-loaded when touching org health paths). Contains: file map (models, collector, checks, analyze, report), run instructions, and check category breakdown (Security Posture, Routing Hygiene, Feature Utilization, Device Health).
+Detailed context in `.claude/rules/org-health.md` (the file ships; its `paths:` glob targets this repo's own source, so it auto-loads only in a source checkout). Contains: a one-paragraph overview, run instructions, and check category counts (Security Posture, Routing Hygiene, Feature Utilization, Device Health).
 
-**Read the rule when:** running an org health audit, modifying checks, or working on the report generator.
+**Read the rule when:** modifying the checks or the report generator. To *run* an audit, the `org-health` skill is the entry point and is self-contained — it already carries the three phases, the collection commands, and all 18 checks.
 
 ### CUCM→Webex Migration Tool
 
@@ -513,7 +513,7 @@ When you hit one of these errors, jump to the matching known issue:
 
 ### Cleanup Command
 
-Detailed context in `.claude/rules/cleanup.md` (auto-loaded when touching `cleanup.py`). Contains: all flags, 13-layer deletion order, and known behaviors (virtual line workaround, location disable propagation, workspace ordering).
+Detailed context in `.claude/rules/cleanup.md` (the file ships; its `paths:` glob targets `cleanup.py`, so it auto-loads only in a source checkout). Contains: all flags, 13-layer deletion order, and known behaviors (virtual line workaround, location disable propagation, workspace ordering).
 
-**Read the rule when:** running `wxcli cleanup`, modifying cleanup logic, or debugging deletion failures.
+**Read the rule when:** running `wxcli cleanup`, modifying cleanup logic, or debugging deletion failures. Do not wait for it to auto-load — read the file. The `teardown` skill already instructs this as its step 1.
 

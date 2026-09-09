@@ -253,6 +253,158 @@ def test_audit_allows_source_citations_only_in_shipped_migration_docs(tmp_path):
     assert ("docs/reference/x.md", 1, "src/") in A.audit_bundle(bundle)
 
 
+# ── Existence gate: a reference to a file that never shipped ───────────────
+
+def _write(bundle, rel, text):
+    p = bundle / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+    return p
+
+
+def test_ref_audit_catches_a_file_that_was_never_bundled(tmp_path):
+    """THE defect this gate exists for. docs/templates/{deployment-plan,
+    execution-report}.md are read at runtime by the builder agent and were
+    missing from INCLUDE_PATHS for months. audit_bundle is a DENYLIST — it can
+    only see a repo-only prefix that leaked in, never a file that is absent —
+    so it passed, and so did the tests and the wheel smoke test."""
+    A = _load_assemble()
+    bundle = tmp_path / "b"
+    _write(bundle, ".claude/agents/wxc-calling-builder.md",
+           "Use the template at `docs/templates/deployment-plan.md`.\n")
+
+    assert A.audit_bundle(bundle) == []                  # the denylist is blind
+    got = A.audit_missing_references(bundle)
+    assert (".claude/agents/wxc-calling-builder.md", 1,
+            "docs/templates/deployment-plan.md") in got
+
+    _write(bundle, "docs/templates/deployment-plan.md", "# Plan\n")
+    assert A.audit_missing_references(bundle) == []      # ships → clean
+
+
+def test_ref_audit_catches_the_two_real_dangling_citations(tmp_path):
+    """The exact pair found by hand in the bug-fix pass, as fixtures. Both were
+    live in the bundle and survived audit_bundle, 20 tests and the smoke test."""
+    A = _load_assemble()
+    bundle = tmp_path / "b"
+    _write(bundle, "docs/runbooks/cucm-migration/operator-runbook.md",
+           "ok\nSee `docs/plans/cucm-pipeline/02b-cucm-extraction.md`.\n")
+    _write(bundle, "docs/reference/devices-workspaces.md",
+           "Spec: `docs/superpowers/specs/2026-04-10-workspace-call-settings.md`\n")
+    got = A.audit_missing_references(bundle)
+    assert ("docs/runbooks/cucm-migration/operator-runbook.md", 2,
+            "docs/plans/cucm-pipeline/02b-cucm-extraction.md") in got
+    assert ("docs/reference/devices-workspaces.md", 1,
+            "docs/superpowers/specs/2026-04-10-workspace-call-settings.md") in got
+
+
+def test_ref_audit_exempts_write_targets_but_still_audits_around_them(tmp_path):
+    """docs/plans/ is where the builder WRITES the deployment plan in the
+    customer's folder — describing an output, not a broken link.
+
+    The exemption is EXACT, not a prefix, and that distinction is the test: a
+    `docs/plans/` prefix rule was tried first and it swallowed the real
+    docs/plans/cucm-pipeline/... citation above. Exempting the write-target
+    itself keeps the rest of the tree audited."""
+    A = _load_assemble()
+    bundle = tmp_path / "b"
+    _write(bundle, ".claude/agents/wxc-calling-builder.md",
+           "Check `docs/plans/` for existing plans.\n"
+           "State lives at `docs/plans/session-state.md`.\n"
+           "But `docs/plans/some-real-doc.md` is a READ that must resolve.\n")
+    got = A.audit_missing_references(bundle)
+    assert [ref for _, _, ref in got] == ["docs/plans/some-real-doc.md"]
+
+    # Every exemption must carry a reason — that is what makes the list
+    # reviewable rather than a way to quiet the gate.
+    for path, reason in A.REF_EXEMPT.items():
+        assert reason.strip(), f"exemption {path!r} has no stated reason"
+
+
+def test_ref_audit_ignores_non_path_backticks_and_placeholders(tmp_path):
+    """Not every backtick span is a path. Commands, flags, field names, API
+    routes and MIME types must not be dragged through an existence check, and
+    a glob or fill-in-the-blank has no file to check."""
+    A = _load_assemble()
+    bundle = tmp_path / "b"
+    _write(bundle, "docs/reference/x.md",
+           "Run `wxcli people list --calling-data true` with `--verify`.\n"
+           "The `callForwarding` field on `/telephony/config/people/{id}/`.\n"
+           "Send `application/json`; see `@webex/contact-center`.\n"
+           "Globs: `docs/reference/*.md`, `docs/reference/**`, "
+           "`docs/knowledge-base/migration/<doc>.md`.\n"
+           "Stamps: `docs/plans/YYYY-MM-DD-{descriptive-name}.md`.\n")
+    assert A.audit_missing_references(bundle) == []
+
+
+def test_ref_audit_normalizes_anchors_line_cites_and_sections(tmp_path):
+    """The four citation shapes the docs actually use. A `file.md:188-200` line
+    cite is not a file named 'file.md:188-200'."""
+    A = _load_assemble()
+    bundle = tmp_path / "b"
+    _write(bundle, ".claude/agents/migration-advisor.md", "advisor\n")
+    _write(bundle, "docs/knowledge-base/migration/kb-webex-limits.md", "limits\n")
+    _write(bundle, "docs/runbooks/cucm-migration/decision-guide.md",
+           "See `.claude/agents/migration-advisor.md:188-200` and "
+           "`.claude/agents/migration-advisor.md:136`.\n"
+           "See `docs/knowledge-base/migration/kb-webex-limits.md#dt-limits-001`.\n"
+           "See `docs/knowledge-base/migration/kb-webex-limits.md § Limits`.\n")
+    assert A.audit_missing_references(bundle) == []
+
+    # The normalizers must not become a way to pass a genuinely absent file.
+    _write(bundle, "docs/runbooks/cucm-migration/decision-guide.md",
+           "See `docs/knowledge-base/migration/kb-gone.md#anchor`.\n")
+    assert [ref for _, _, ref in A.audit_missing_references(bundle)] == [
+        "docs/knowledge-base/migration/kb-gone.md"]
+
+
+def test_ref_audit_resolves_relative_markdown_links(tmp_path):
+    """427 relative links ship in the bundle; they resolve against the CITING
+    file, not the bundle root. One that climbs out of the bundle can never
+    resolve in an installed playbook, so it is a violation too."""
+    A = _load_assemble()
+    bundle = tmp_path / "b"
+    _write(bundle, "docs/reference/authentication.md", "auth\n")
+    _write(bundle, ".claude/skills/cucm-migrate/SKILL.md",
+           "[auth](../../../docs/reference/authentication.md)\n"
+           "[gone](../../../docs/reference/nope.md)\n"
+           "[out](../../../../outside.md)\n"
+           "[web](https://example.com/x.md) and [anchor](#section)\n")
+    got = [ref for _, _, ref in A.audit_missing_references(bundle)]
+    assert "../../../docs/reference/nope.md" in got
+    assert "../../../../outside.md" in got          # escapes the bundle
+    assert not any("example.com" in r for r in got)
+    assert len(got) == 2
+
+
+def test_ref_audit_does_not_second_guess_source_citations(tmp_path):
+    """src/ and tools/ are audit_bundle's territory, and
+    SOURCE_CITATION_PREFIXES already rules on where a src/ citation is
+    intentional provenance. Re-judging them here would contradict that
+    ruling — the existence gate deliberately only sees shipped-tree prefixes."""
+    A = _load_assemble()
+    bundle = tmp_path / "b"
+    _write(bundle, "docs/runbooks/cucm-migration/operator-runbook.md",
+           "Implementation: `src/wxcli/migration/recommendation_rules.py`\n"
+           "Generator: `tools/generate_commands.py`\n")
+    # Neither line is the existence gate's business, even though the src/ one
+    # names a file the bundle genuinely does not contain.
+    assert A.audit_missing_references(bundle) == []
+    # The old rule still owns them, and still splits them: src/ is exempt in
+    # this dir as provenance, tools/ is not exempt anywhere.
+    assert A.audit_bundle(bundle) == [
+        ("docs/runbooks/cucm-migration/operator-runbook.md", 2, "tools/")]
+
+
+def test_shipped_bundle_has_no_dangling_references(tmp_path):
+    """End-to-end on the REAL tree: every path a shipped file cites resolves."""
+    A = _load_assemble()
+    bundle = tmp_path / "bundle"
+    A.assemble(REPO_ROOT, bundle, A.CURATED_SETTINGS, A.CURATED_HOOK)
+    A.assemble_codex(bundle)
+    assert A.audit_missing_references(bundle) == []
+
+
 # ── Codex transform ────────────────────────────────────────────────────────
 
 def test_phrase_map_rewrites_claude_isms_ordered():
