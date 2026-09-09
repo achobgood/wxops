@@ -84,6 +84,7 @@ tests/*
 !tests/test_sync_guard.py
 !tests/test_sync_classify.py
 !tests/test_sync_version.py
+!tests/test_spec_sync_liveness.py
 # Checks 19/20. This one also carries the three real 2026-08-03 spec changes
 # that reached the CLI while the gate said PASS — inlined from the spec diff,
 # not read out of git, so a shallow CI checkout still proves the gate sees them.
@@ -228,6 +229,7 @@ tests/migration/cucm/validate_live_cucm.py
 .github/workflows/*
 !.github/workflows/release.yml
 !.github/workflows/ci.yml
+!.github/workflows/spec-sync-liveness.yml
 
 # Coverage
 .coverage
