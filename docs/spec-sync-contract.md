@@ -109,4 +109,6 @@ One-time read-only routine `spec-sync-environment-probe` (session `cse_01PK6oxsa
 | Upstream specs (`raw.githubusercontent.com/webex/webex-openapi-specs`) | yes | HTTP 200 |
 | GitHub Actions API, unauthenticated read | yes (measured from outside the sandbox, same public repo) | `…/actions/workflows/ci.yml/runs?head_sha=4a0d649…` → `completed/success`, `x-ratelimit-remaining: 58` |
 
+Release gate, negative proofs (both refused with `No CI run found for <sha>`, nothing built or published, probe tags deleted): 2026-09-09 via `gh release create` on `v0.0.0-gate-probe` (run 34307687281, the `release: published` trigger); 2026-09-09 via annotated tag push `v0.0.0-gate-probe-2` (run 34309266293, the `push: tags` trigger that replaced it). Positive proof of the tag-push path is the next real release — expect exactly one Release run per tag.
+
 Consequences applied above: every command is `python3`; the interpreter check does not import `wxcli`; §4 signals failure by pushing a `spec-sync/failed-<date>` branch instead of `gh issue create`; §5.5 waits for CI with `curl`+`jq` instead of `gh run watch`; §5.6 releases by annotated tag push instead of `gh release create` (`release.yml` triggers on `push: tags` since 2026-09-09 and creates the GitHub Release itself).
