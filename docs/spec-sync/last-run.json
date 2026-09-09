@@ -1,10 +1,10 @@
 {
  "date": "2026-09-09",
- "outcome": "released",
- "sha": "4a0d6493d4623958b7448c1cbffc5be7542d66fb",
- "version": "v1.7.0",
+ "outcome": "noop",
+ "sha": "dd04eca80901fffbb12e5430f4ab64a3bc7784bc",
+ "version": null,
  "groups": 180,
  "commands": 1980,
  "issue": null,
- "notes": "v1.7.0 cut by hand through the new release gate (Phase D Task 17)"
+ "notes": "no-op week: update-specs.py returned OK on all 7 specs, 0 updated, so nothing was regenerated; sha is the unchanged main this run verified (drift_check --enforce PASS). Counts carried forward from v1.7.0 — the tree is byte-identical."
 }
