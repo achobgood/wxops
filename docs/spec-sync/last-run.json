@@ -1,10 +1,10 @@
 {
- "date": "2026-09-08",
- "outcome": "specs-only",
- "sha": "fb8931eab03a2c48b03480d36918d355e416bb0f",
- "version": null,
+ "date": "2026-09-09",
+ "outcome": "released",
+ "sha": "4a0d6493d4623958b7448c1cbffc5be7542d66fb",
+ "version": "v1.7.0",
  "groups": 180,
  "commands": 1980,
  "issue": null,
- "notes": "Phase 0 by hand: regen at the 2026-09-07 specs; main back to green; no release (v1.7.0 cut in Phase D after the release gate lands)"
+ "notes": "v1.7.0 cut by hand through the new release gate (Phase D Task 17)"
 }
