@@ -93,6 +93,10 @@ def test_forbidden_paths_fire_by_prefix():
     assert sg.path_findings(["docs/spec-sync-contract.md"])
     assert sg.path_findings(["src/wxcli/commands/meetings.py", "docs/reference/x.md",
                              "tools/field_overrides.yaml", "tools/command_name_lock.json"]) == []
+    # The master plan forbids `tools/sync_*.py` as a glob, not just the three we can name today.
+    assert sg.path_findings(["tools/sync_future.py"])
+    assert sg.path_findings(["tools/sync_guard.py"])
+    assert sg.path_findings(["tools/synchronize.py"]) == []
 
 
 def test_kill_switch():
@@ -118,3 +122,35 @@ def test_guard_against_a_real_git_base(tmp_path):
     (r / "tools" / "field_overrides.yaml").write_text(YAML_OLD.replace('- "Beta *"', '- "Beta *"\n    - "Zeta *"'))
     findings = sg.guard("HEAD", r)
     assert findings and "skip_tags" in findings[0]
+
+
+def _repo_with_drift_check(root):
+    """A throwaway repo whose only tracked file is a forbidden path, committed."""
+    import subprocess
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=root, check=True)
+    (root / "tools").mkdir()
+    (root / "tools" / "drift_check.py").write_text("# the gate\n")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base"],
+                   cwd=root, check=True)
+    return subprocess
+
+
+def test_a_renamed_forbidden_file_still_fires(tmp_path):
+    """git's rename detection would show only the NEW path, hiding the forbidden one."""
+    r = tmp_path / "renamed"
+    subprocess = _repo_with_drift_check(r)
+    subprocess.run(["git", "mv", "tools/drift_check.py", "tools/dc.py"], cwd=r, check=True)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "rename"],
+                   cwd=r, check=True)
+    findings = sg.guard("HEAD~1", r)
+    assert any("tools/drift_check.py" in f for f in findings), findings
+
+    d = tmp_path / "deleted"
+    subprocess = _repo_with_drift_check(d)
+    subprocess.run(["git", "rm", "-q", "tools/drift_check.py"], cwd=d, check=True)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "delete"],
+                   cwd=d, check=True)
+    findings = sg.guard("HEAD~1", d)
+    assert any("tools/drift_check.py" in f for f in findings), findings
