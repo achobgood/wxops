@@ -69,12 +69,12 @@ git commit -m "spec-sync $(date -u +%F): failed — <one-line reason>"
 git push origin HEAD:refs/heads/spec-sync/failed-$(date -u +%F)
 ```
 
-Then exit non-zero. The run record goes **to that branch only** (not `main`). The GitHub Actions liveness workflow opens the `spec-sync` issue from the branch (Phase E of the spec-sync plan — a local, untracked plan file, like every `docs/superpowers/` document); until that lands, its 10-day staleness alarm on `main` is the signal.
+Then exit non-zero. The run record goes **to that branch only** (not `main`). The GitHub Actions liveness workflow (`.github/workflows/spec-sync-liveness.yml`, Wednesdays 16:00 UTC) opens the `spec-sync` issue from that branch, quoting `failure.txt`. A human deletes the branch when the cause is fixed.
 
 ## 5. Land and release
 
-1. `python3 -m tools.sync_version --level <patch|minor from step 3>` → `vX.Y.Z`. Exit 2 (PyPI unreachable) = §4; exit 1 (no version found anywhere, or a collision) = §4. **Release-path prerequisite, `patch`/`minor` only:** `grep -qE '^\s+tags:' .github/workflows/release.yml` must succeed — the sandbox has no `gh`, so a release is a tag push and `release.yml` must publish on one. If the grep fails the release path is not wired: §4 with reason `release-on-tag not wired`, before anything touches `main`.
-2. Write `docs/spec-sync/last-run.json`: `{"date","outcome","sha","version","groups","commands","issue","notes"}` (`sha` = the commit you are about to push, filled after commit with `git rev-parse HEAD`; for `noop`/`specs-only` set `version: null`).
+1. `python3 -m tools.sync_version --level <patch|minor from step 3>` → `vX.Y.Z`. Exit 2 (PyPI unreachable) = §4; exit 1 (no version found anywhere, or a collision) = §4.
+2. Write `docs/spec-sync/last-run.json`: `{"date","outcome","sha","version","groups","commands","issue","notes"}`. `date` = `date -u +%F`. `sha` = `git rev-parse origin/main` as fetched in §0 — the tree this run verified and built on (the record's own commit is the one that contains it, and a tag names a released commit; no amend needed). `groups` and `commands` = the two numbers on the **first line** of `python3 -m tools.drift_check --enforce` output — `drift-check: <groups> command sets (…), <commands> commands, …` — and nowhere else (the same line is the first line of `.spec-sync/gate.txt` after step 2; on a `noop` week run the gate once to read it). For `noop`/`specs-only` set `version: null`; `issue` is always `null` (you cannot open one).
 3. One commit: `chore(specs): sync + regen (<date>) — <verdict>, <N> groups / <M> commands`. Stage by path: `git add -u specs src/wxcli/commands src/wxcli/_playbook tools/spec_semantics.json tools/command_name_lock.json tools/field_overrides.yaml docs/arch/deliberate-gaps.md docs/spec-sync/last-run.json CLAUDE.md README.md docs/reference .claude/skills`. Never `git add -A`.
 4. `git push origin HEAD:main`. If rejected (non-fast-forward): `git rebase origin/main`, re-run §4, push again. **Never `--force`.**
 5. **Wait for CI on that SHA** — the repo is public, so the Actions API answers unauthenticated reads (60/hour; this uses at most 21). Poll every 60 s, at most 20 times, then judge the newest run once:
@@ -84,7 +84,7 @@ Then exit non-zero. The run record goes **to that branch only** (not `main`). Th
    curl -sS -m 20 "https://api.github.com/repos/achobgood/wxops/actions/workflows/ci.yml/runs?head_sha=$(git rev-parse HEAD)&per_page=1" | jq -e '.workflow_runs[0].conclusion == "success"'
    ```
 
-   Exit 0 = green. Anything else (red, still running after 20 min, no run at all) = §4, no release; `main` stays as pushed.
+   Exit 0 = green. Anything else (red, still running after 20 min, no run at all) = §4, no release; `main` stays as pushed. **Run this loop as one ordinary foreground Bash call and wait for it** — never background it, hand it to a monitor, or end your turn while it runs: the session ends when you stop, nothing resumes it, and a release week would end with `main` pushed and no tag. On a `noop`/`specs-only` week nothing depends on CI, so skip the wait after pushing.
 6. Verdict `patch`/`minor` only: `python3 -m tools.sync_classify --base <sha-before-push> --notes .spec-sync --version vX.Y.Z > .spec-sync/notes.md` then `git tag -a vX.Y.Z -F .spec-sync/notes.md && git push origin vX.Y.Z`. `release.yml` runs on the tag push, re-checks CI on the SHA, publishes to PyPI and creates the GitHub Release from the tag message. Confirm with the same poll as step 5 against `workflows/release.yml/runs?head_sha=…` (a run appears within a minute; wait for `completed`, require `success`); a failed publish = §4 (the tag is burned; next week's `sync_version` skips it automatically).
 
 ## 6. What must reach a human (each is an issue with label `spec-sync`, opened by the liveness workflow — never by you, the sandbox has no `gh`)
@@ -109,4 +109,4 @@ One-time read-only routine `spec-sync-environment-probe` (session `cse_01PK6oxsa
 | Upstream specs (`raw.githubusercontent.com/webex/webex-openapi-specs`) | yes | HTTP 200 |
 | GitHub Actions API, unauthenticated read | yes (measured from outside the sandbox, same public repo) | `…/actions/workflows/ci.yml/runs?head_sha=4a0d649…` → `completed/success`, `x-ratelimit-remaining: 58` |
 
-Consequences applied above: every command is `python3`; the interpreter check does not import `wxcli`; §4 signals failure by pushing a `spec-sync/failed-<date>` branch instead of `gh issue create`; §5.5 waits for CI with `curl`+`jq` instead of `gh run watch`; §5.6 releases by annotated tag push instead of `gh release create`, guarded by the release-path prerequisite in §5.1 until `release.yml` triggers on tags.
+Consequences applied above: every command is `python3`; the interpreter check does not import `wxcli`; §4 signals failure by pushing a `spec-sync/failed-<date>` branch instead of `gh issue create`; §5.5 waits for CI with `curl`+`jq` instead of `gh run watch`; §5.6 releases by annotated tag push instead of `gh release create` (`release.yml` triggers on `push: tags` since 2026-09-09 and creates the GitHub Release itself).
