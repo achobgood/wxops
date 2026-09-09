@@ -70,3 +70,13 @@ def test_ci_gate_fails_closed_on_no_run_and_on_non_success():
 def test_ci_gate_uses_the_checked_out_sha_not_the_event_payload():
     text = WORKFLOW.read_text()
     assert "git rev-parse HEAD" in text
+
+
+def test_publish_job_grants_actions_read_for_the_ci_gate():
+    """An explicit `permissions:` block sets every unlisted scope to none, so the
+    gate's `gh api .../actions/workflows/ci.yml/runs` 403s without `actions: read`.
+    Asserted on the parsed job so the scope cannot be dropped silently later."""
+    permissions = _load()["jobs"]["publish"]["permissions"]
+    assert permissions.get("actions") == "read", (
+        "the CI gate reads workflow runs; without actions:read every release 403s"
+    )
