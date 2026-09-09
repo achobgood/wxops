@@ -19,6 +19,7 @@ definition of what passes.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import re
 import subprocess
@@ -44,7 +45,10 @@ FORBIDDEN_PATHS: tuple[str, ...] = (
     ".github/workflows/",
     "docs/spec-sync-contract.md",
     "tests/",
+    "tools/sync_*.py",
 )
+# The check is deny-by-default off ALLOWED_YAML_KEYS: every top-level key NOT in
+# ALLOWED is forbidden. This tuple names the ones the spec calls out, for the contract to cite.
 FORBIDDEN_YAML_KEYS: tuple[str, ...] = (
     "skip_tags", "keep_endpoints", "naming_ack", "verb_semantics_ack",
     "inert_tag_ack", "undeclared_paging_ack", "spec_authority",
@@ -63,7 +67,9 @@ def _git(args: list[str], repo: Path) -> str:
 
 def changed_paths(base: str, repo: Path = REPO) -> list[str]:
     """Tracked paths that differ from BASE (working tree, not just index) plus untracked files."""
-    tracked = _git(["diff", "--name-only", base], repo).split()
+    # --no-renames: rename detection would report only the NEW path, so moving a
+    # forbidden file (or a test out of tests/) would otherwise pass the guard clean.
+    tracked = _git(["diff", "--no-renames", "--name-only", base], repo).split()
     untracked = [line[3:] for line in _git(["status", "--porcelain", "--untracked-files=all"], repo).splitlines()
                  if line.startswith("?? ")]
     return sorted(set(tracked) | set(untracked))
@@ -78,7 +84,9 @@ def _show(base: str, path: str, repo: Path) -> str:
 
 def path_findings(paths: list[str]) -> list[str]:
     return [f"forbidden path edited: {p}" for p in paths
-            if any(p == f or (f.endswith("/") and p.startswith(f)) for f in FORBIDDEN_PATHS)]
+            if any(p == f or (f.endswith("/") and p.startswith(f))
+                   or ("*" in f and fnmatch.fnmatch(p, f))
+                   for f in FORBIDDEN_PATHS)]
 
 
 def yaml_key_findings(old_text: str, new_text: str) -> list[str]:
