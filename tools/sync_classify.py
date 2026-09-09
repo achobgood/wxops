@@ -14,6 +14,12 @@ of the spec. Rows are ordered; the first match wins:
 
     python -m tools.sync_classify --base origin/main [--json] [--fail-on-human]
     python -m tools.sync_classify --base origin/main --notes .spec-sync --version v1.7.0
+
+Exit codes: 0 = classified; 1 = human, under --fail-on-human only;
+2 = input unreadable, nothing classified. Spec §7 rules 1 and 4: what cannot be
+read counts as failed, and a tool that cannot read its input refuses rather than
+guessing. An unreadable base lock is NOT an empty one — classifying against `{}`
+reports every shipping command as new, which reads as a regen that never happened.
 """
 from __future__ import annotations
 
@@ -30,15 +36,41 @@ LOCK = REPO / "tools" / "command_name_lock.json"
 BLAST_RADIUS_MAX_COMMANDS = 40
 
 
-def _lock_at(base: str) -> dict:
+def _lock_at(base: str) -> dict | None:
+    """The committed lock at `base`, or None if it cannot be read.
+
+    None means "unreadable" — a bad ref, a path absent at that ref, or malformed
+    JSON. An empty file returns {}, which is a readable lock declaring no modules.
+    """
     out = subprocess.run(["git", "show", f"{base}:tools/command_name_lock.json"],
                          cwd=REPO, capture_output=True, text=True)
-    return json.loads(out.stdout) if out.returncode == 0 and out.stdout.strip() else {}
+    if out.returncode != 0:
+        return None
+    if not out.stdout.strip():
+        return {}
+    try:
+        return json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return None
 
 
-def _commands_changed(base: str) -> bool:
-    r = subprocess.run(["git", "diff", "--quiet", base, "--", "src/wxcli/commands/"], cwd=REPO)
-    return r.returncode != 0
+def _commands_changed(base: str) -> bool | None:
+    """Whether src/wxcli/commands/ differs from `base`, or None if git errored.
+
+    `git diff --quiet` exits 0 (same) or 1 (differs); anything else — 128 for a
+    bad ref — is an error, not an answer, so it must not read as "changed".
+    """
+    r = subprocess.run(["git", "diff", "--quiet", base, "--", "src/wxcli/commands/"],
+                       cwd=REPO, capture_output=True, text=True)
+    if r.returncode not in (0, 1):
+        return None
+    return r.returncode == 1
+
+
+def _refuse(what: str, base: str) -> int:
+    print(f"sync_classify: cannot read {what} at {base} — refusing to classify (fail closed)",
+          file=sys.stderr)
+    return 2
 
 
 def classify(old_lock: dict, new_lock: dict, commands_changed: bool) -> dict:
@@ -106,8 +138,19 @@ def main() -> int:
     p.add_argument("--notes", metavar="RUN_DIR", help="print release notes built from RUN_DIR")
     p.add_argument("--version", default="vNEXT")
     a = p.parse_args()
-    new = json.loads(LOCK.read_text()) if LOCK.exists() else {}
-    v = classify(_lock_at(a.base), new, _commands_changed(a.base))
+    if not LOCK.exists():
+        return _refuse(f"the working lock ({LOCK.name})", a.base)
+    try:
+        new = json.loads(LOCK.read_text())
+    except json.JSONDecodeError:
+        return _refuse(f"the working lock ({LOCK.name})", a.base)
+    old = _lock_at(a.base)
+    if old is None:
+        return _refuse("the base lock (tools/command_name_lock.json)", a.base)
+    commands_changed = _commands_changed(a.base)
+    if commands_changed is None:
+        return _refuse("the regenerated-modules diff (src/wxcli/commands/)", a.base)
+    v = classify(old, new, commands_changed)
     if a.notes:
         print(release_notes(v, Path(a.notes), a.version))
     elif a.json:

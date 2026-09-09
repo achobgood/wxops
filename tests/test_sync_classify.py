@@ -4,9 +4,13 @@ adversarial review showed the pending regen — two silent repurposings and a
 removal — would have shipped as routine. Every row is pinned here, and the
 blast-radius cap (row 31) sits above 'green'.
 """
+import subprocess
+import sys
 from pathlib import Path
 
 from tools import sync_classify as sc
+
+REPO = Path(__file__).resolve().parent.parent
 
 OLD = {"modules": {"meetings": {"create": ["POST /meetings"], "list": ["GET /meetings"]},
                    "cc_skill": {"create": ["POST /organization/{}/skill"]}}}
@@ -62,3 +66,31 @@ def test_release_notes_carry_the_spec_delta_and_routing(tmp_path):
     assert "v1.7.0" in notes and "minor" in notes
     assert "cc_search_metadata" in notes and "reporting-cc" in notes
     assert "1 ID-kind flip" in notes and "STRUCTURAL" in notes
+
+
+# Spec §7 rules 1 and 4: what cannot be evaluated counts as failed, and a tool that
+# cannot read its input refuses rather than guessing. Before this, a bad --base read
+# as an EMPTY old lock, so all 180 shipping modules looked new and the tool reported
+# `blast radius: 1896 command names changed` — a misdiagnosis naming a regen that
+# never happened; with the working lock also absent it collapsed to a routine
+# patch/none at exit 0. Exit 2 is its own code because exit 1 already means `human`.
+
+
+def test_lock_at_returns_none_for_an_unreadable_base():
+    assert sc._lock_at("no-such-ref-xyz") is None
+
+
+def test_lock_at_reads_a_real_base():
+    assert isinstance(sc._lock_at("HEAD"), dict)
+
+
+def test_commands_changed_returns_none_for_an_unreadable_base():
+    assert sc._commands_changed("no-such-ref-xyz") is None
+
+
+def test_main_refuses_when_base_is_unreadable():
+    r = subprocess.run([sys.executable, "-m", "tools.sync_classify", "--base", "no-such-ref-xyz"],
+                       cwd=REPO, capture_output=True, text=True)
+    assert r.returncode == 2, r.stderr
+    assert "refusing to classify" in r.stderr
+    assert r.stdout == ""
