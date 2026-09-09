@@ -349,6 +349,7 @@ Detailed migration context lives in `.codex/rules/cucm-migration.md` (auto-loade
 | `wxcli --help` | Shows all command groups |
 | `wxcli <group> --help` | Shows commands within a group |
 | `wxcli <group> <command> --help` | Shows options for a command |
+| `docs/spec-sync-contract.md` | The weekly spec-sync's definition of done; the cloud routine's prompt points here |
 
 ### Org Health Assessment
 
