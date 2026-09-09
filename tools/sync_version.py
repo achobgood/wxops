@@ -60,7 +60,7 @@ def main() -> int:
         else:
             with urllib.request.urlopen(PYPI_URL, timeout=20) as r:
                 meta = json.load(r)
-        pypi = list(meta.get("releases", {}))
+        pypi = list(meta["releases"])
     except Exception as e:
         print(f"sync_version: cannot read PyPI ({e}) — refusing to choose a version blind", file=sys.stderr)
         return 2
