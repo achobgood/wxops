@@ -747,7 +747,9 @@ wxcli cc-search-metadata list -o json
 wxcli cc-search-metadata list --fields '[].name' -o json
 
 # Which fields of the task query can be filtered on
-wxcli cc-search-metadata list --fields "[?name=='task'].fields[?filter!=null].name" -o json
+# (flatten with `fields[] |` first — a filter projection applied straight to another
+#  filter projection tests each nested LIST, never its items, and always yields [])
+wxcli cc-search-metadata list --fields "[?name=='task'].fields[] | [?filter!=null].name" -o json
 
 # Which fields can be grouped by, with their aggregation operations
 wxcli cc-search-metadata list --fields '[].fields[?groupBy].{field:name,ops:aggregation.operations}' -o json
@@ -874,7 +876,7 @@ Authorization: Bearer {cc_token}
 
 ## Raw HTTP Endpoint Table
 
-All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
+All 83 endpoints tabulated below, across 13 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
 
 ### AI Assistant (1)
 

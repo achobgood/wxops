@@ -264,6 +264,12 @@ DELETE /v1/webhooks/{webhookId}
 | `controlHubAlerts` | Control Hub alert events | Yes |
 | `all` | Firehose: all resources | No |
 
+§14's registration vocabulary names six further `telephony_*` resources (`telephony_hookstatus`,
+`telephony_agent`, `telephony_services`, `telephony_agentMonitoring`, `telephony_queue`,
+`telephony_queueMonitoring`) that are deliberately **absent from this table**: they appear nowhere in
+the spec's `Webhook.resource` enum, so it is unverified whether a webhook can be created against
+them at all. See the labelled note in §14.
+
 ### Event Types (All Available)
 
 The `event` field on webhook creation determines which lifecycle events trigger delivery. Different resources use different event types.
@@ -1205,10 +1211,10 @@ CLI group: `wxcli webhook-interest-registrations` (3 commands)
 
 A webhook interest registration is **not a webhook**. It is a separate declaration that a
 telephony webhook should be emitted for a category of events at all; the webhook itself — its
-name, target URL, resource, event and secret — is §1. Creating a webhook without the matching
-registration leaves the webhook in place and, for the six gated resources below, produces no
-deliveries. Creating a registration without a webhook gives Webex nothing to deliver to. Both are
-required, and neither references the other by ID.
+name, target URL, resource, event and secret — is §1. Each interest, in the spec's own wording,
+*enables* webhook events for one telephony resource, which reads as meaning a webhook for a gated
+resource delivers nothing until a registration covers it. Creating a registration without a webhook
+gives Webex nothing to deliver to. Neither references the other by ID.
 
 Each entry in `interests` sets **exactly one** of `resource` or `actor`:
 
@@ -1228,6 +1234,17 @@ Each entry in `interests` sets **exactly one** of `resource` or `actor`:
 
 `telephony_calls` is absent from both tables — the ordinary call-event webhook in §1 and §6 needs
 no registration.
+
+> **Unverified:** none of the six `telephony_*` names in the first table appears in the spec's
+> `Webhook.resource` enum, which is what §3 lists and what `webhooks create --resource` accepts.
+> In `specs/webex-cloud-calling.json` those six occur in exactly one place — the prose description
+> of `Interest.resource` reproduced above — and the enum itself runs
+> `attachmentActions, dataSources, memberships, messages, rooms, meetings, recordings,
+> convergedRecordings, meetingParticipants, meetingTranscripts, telephony_calls,
+> telephony_conference, telephony_mwi, uc_counters, serviceApp, adminBatchJobs`. So it is **not
+> established** that `wxcli webhooks create --resource telephony_queue` is accepted at all, nor
+> what a registration does for a resource you cannot name on a webhook. Treat this table as the
+> registration vocabulary, not as a list of creatable webhook resources, until someone runs it.
 
 The registration is scoped to the **authenticated user plus the client derived from the access
 token**. The client identifier is never supplied by the caller, so a token from a different
