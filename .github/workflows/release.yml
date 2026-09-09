@@ -1,8 +1,11 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['v*']   # ONE trigger. The spec-sync sandbox has no gh (probed 2026-09-09), so the
+                   # unattended release is `git tag -a vX.Y.Z -F notes && git push origin vX.Y.Z`.
+                   # A human `gh release create vX.Y.Z` also creates the tag and lands here too;
+                   # a second `release:` trigger would publish twice.
 
 jobs:
   publish:
@@ -12,7 +15,7 @@ jobs:
       contents: write      # upload assets to the Release
       actions: read        # the CI gate reads this SHA's workflow runs
     env:
-      TAG: ${{ github.event.release.tag_name }}   # never interpolate the tag into a run: body
+      TAG: ${{ github.ref_name }}   # never interpolate the tag into a run: body
     steps:
       - uses: actions/checkout@v4
         with:
@@ -83,6 +86,16 @@ jobs:
 
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Create the GitHub Release from the tag
+        # After PyPI on purpose: a Release with no package behind it would be a lie,
+        # and a failed publish leaves the tag burned (sync_version skips it) with no
+        # Release to clean up. `gh release view ||` makes a human's gh release create
+        # — which already made the Release before the tag push fired — a no-op.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-from-tag --verify-tag
 
       - name: Attach artifacts to the GitHub Release
         env:
