@@ -11,6 +11,7 @@ Documentation hub for the Webex Calling Playbook project. Subdirectories each ha
 | `prompts/` | Design and build execution prompts that drive Claude Code sessions |
 | `templates/` | Report templates (deployment plan, execution report) used by the builder agent |
 | `superpowers/` | Superpowers plans and specs (separate from CUCM migration work) |
+| `spec-sync/` | `last-run.json` — one record per weekly spec-sync run; the liveness workflow's oracle |
 
 ## How They Work Together
 
@@ -35,3 +36,4 @@ reference/  ──informs──>  plans/  ──informs──>  prompts/
 ## Root Files
 
 - `wxc-pipeline-visual.html` — Interactive pipeline visualization
+- `spec-sync-contract.md` — The weekly spec-sync's definition of done (kill switch on line 3); the cloud routine's prompt points here
