@@ -1,0 +1,10 @@
+{
+ "date": "2026-09-08",
+ "outcome": "specs-only",
+ "sha": "fb8931eab03a2c48b03480d36918d355e416bb0f",
+ "version": null,
+ "groups": 180,
+ "commands": 1980,
+ "issue": null,
+ "notes": "Phase 0 by hand: regen at the 2026-09-07 specs; main back to green; no release (v1.7.0 cut in Phase D after the release gate lands)"
+}
