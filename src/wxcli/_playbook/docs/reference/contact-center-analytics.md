@@ -675,7 +675,7 @@ Content-Type: application/json
 
 ## 12. Search
 
-CLI group: `wxcli cc-search` (1 command)
+CLI groups: `wxcli cc-search` (1 command), `wxcli cc-search-metadata` (1 command)
 
 Search for tasks using POST with query criteria in the request body (not GET with
 query parameters).
@@ -716,6 +716,52 @@ Content-Type: application/json
   }
 }
 ```
+
+### Search Metadata
+
+CLI group: `wxcli cc-search-metadata` (1 command)
+
+Returns the schema behind the Search GraphQL API: which query types exist, which fields each
+one carries, their data types, and per field whether it is sortable, filterable, groupable, and
+which aggregation operations it accepts. It is a **description of the search surface, not a
+search** — it returns no tasks, contacts or statistics, and it provisions nothing. Reach for it
+when you need to know whether a field can be filtered on before writing a `cc-search create`
+query; reach for `cc-search` to get the records themselves.
+
+#### Commands
+
+| CLI Command | HTTP | Description |
+|-------------|------|-------------|
+| `list` | GET `/search/v2/meta` | Get search metadata |
+
+The response is keyed on `queries`, one entry per GraphQL query type (`task`, and its siblings),
+each carrying a nested `fields` array. There are no required flags and no positional arguments.
+
+#### CLI Examples
+
+```bash
+# Every query type and its fields
+wxcli cc-search-metadata list -o json
+
+# Just the query type names
+wxcli cc-search-metadata list --fields '[].name' -o json
+
+# Which fields of the task query can be filtered on
+wxcli cc-search-metadata list --fields "[?name=='task'].fields[?filter!=null].name" -o json
+
+# Which fields can be grouped by, with their aggregation operations
+wxcli cc-search-metadata list --fields '[].fields[?groupBy].{field:name,ops:aggregation.operations}' -o json
+```
+
+#### Raw HTTP
+
+```
+GET https://api.wxcc-us1.cisco.com/search/v2/meta
+Authorization: Bearer {cc_token}
+```
+
+Requires `cjp:config` or `cjp:config_read`. An asterisk (`*`) in the rendered response schema
+marks a required property.
 
 ---
 
@@ -950,6 +996,12 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 |--------|------|-------------|
 | POST | `/search` | Search tasks |
 
+### Search Metadata (1)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/search/v2/meta` | Get search metadata |
+
 ### Address Book (19)
 
 | Method | Path | Description |
@@ -1026,6 +1078,16 @@ All 122 endpoints across the 13 CLI groups. Regional base URL: `https://api.wxcc
 16. **Queue Statistics and Agent Statistics REST APIs reach EOL March 31, 2027.** Both are deprecated in favor of the GraphQL Search API. Same auth scopes apply (`cjp:config` or `cjp:config_read`). Migrate before the EOL date.
 
 17. **Bulk export APIs deprecated April 2026.** The `/bulk-export` GET endpoints across 19 config resources (Address Book, Auxiliary Code, Business Hours, Desktop Layout, Skills, Teams, Users, and others) are deprecated. Use the corresponding list endpoints (`/v2/` or `/v3/` variants) instead. The `list-bulk-export` CLI commands for these resources will stop working after removal.
+
+18. **`cc-search-metadata` answers "which fields", `cc-search` answers "which records".** They sit on
+    adjacent paths (`GET /search/v2/meta` and `POST /search`) and both belong to the Search API, but
+    only one returns data. `cc-search-metadata list` is a GET with no body and no required flags that
+    describes the schema; `cc-search create` is a POST whose body carries the GraphQL query and
+    mandatory `from`/`to` epoch bounds. If a search returns an error about an unknown or
+    non-filterable field, check the metadata before rewriting the query — the metadata states per
+    field whether it is `sortable`, has a `filter`, allows `groupBy`, and which `aggregation`
+    operations it accepts. **Unverified:** read from the spec's schema and descriptions; no live call
+    was made against `/search/v2/meta`.
 
 ---
 
