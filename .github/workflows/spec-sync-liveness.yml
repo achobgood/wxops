@@ -52,16 +52,56 @@ jobs:
               print("stale=true"); print(f"since=unreadable record ({one_line(e)})")
           PY
 
-      - name: Open an issue if stale and none is open
-        if: steps.judge.outputs.stale == 'true'
+      - name: Look for a failed-run branch
+        id: failed
+        # Contract §4: the routine's sandbox has no gh, so a fail-closed run pushes
+        # spec-sync/failed-<date> carrying the run record and failure.txt. Every
+        # byte of that is agent-written: the name is matched against a strict
+        # pattern, the files are read into /tmp and reach gh only via --body-file.
+        env:
+          STALE: ${{ steps.judge.outputs.stale }}
+        run: |
+          BRANCH="$(git ls-remote --heads origin 'spec-sync/failed-*' | awk '{print $2}' | sed 's#^refs/heads/##' | grep -E '^spec-sync/failed-[0-9]{4}-[0-9]{2}-[0-9]{2}$' | sort | tail -1)"
+          if [ -n "$BRANCH" ] && [ "$STALE" = "false" ]; then
+            # A fresh ok record on main that is NEWER than the branch means a later run
+            # succeeded; the branch is history, not an alarm. Same-day or newer branches still alarm.
+            MAIN_DATE="$(python3 -c 'import json; print(json.load(open("docs/spec-sync/last-run.json"))["date"])' 2>/dev/null || echo 0000-00-00)"
+            if [ "${BRANCH#spec-sync/failed-}" \< "$MAIN_DATE" ]; then
+              echo "ignoring $BRANCH: main's record ($MAIN_DATE) is newer and ok"; BRANCH=""
+            fi
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          if [ -n "$BRANCH" ]; then
+            git fetch --depth 1 origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+            git show "origin/$BRANCH:docs/spec-sync/failure.txt" 2>/dev/null | head -c 60000 > /tmp/failure.txt || true
+            [ -s /tmp/failure.txt ] || echo "(no docs/spec-sync/failure.txt on the branch)" > /tmp/failure.txt
+            git show "origin/$BRANCH:docs/spec-sync/last-run.json" 2>/dev/null \
+              | python3 -c 'import json,sys; r=json.load(sys.stdin); print(" ".join(str(r.get("notes","")).split())[:300])' > /tmp/reason.txt \
+              || echo "(unreadable run record on the branch)" > /tmp/reason.txt
+          fi
+
+      - name: Open an issue if stale or a run failed closed, and none is open
+        if: steps.judge.outputs.stale == 'true' || steps.failed.outputs.branch != ''
         env:
           GH_TOKEN: ${{ github.token }}
           SINCE: ${{ steps.judge.outputs.since }}
+          BRANCH: ${{ steps.failed.outputs.branch }}
         run: |
           if [ -n "$(gh issue list --label spec-sync --state open --limit 1 --json number --jq '.[0].number')" ]; then
             echo "an open spec-sync issue already exists — not duplicating"; exit 0
           fi
           gh label create spec-sync --description "weekly spec sync pipeline" --force
-          gh issue create --label spec-sync \
-            --title "spec-sync: no successful run recorded since $SINCE" \
-            --body "The weekly spec-sync routine has not recorded a successful run (docs/spec-sync/last-run.json) in over 10 days. Check the routine at https://claude.ai/code/routines and the contract at docs/spec-sync-contract.md. This issue was opened by .github/workflows/spec-sync-liveness.yml."
+          if [ -n "$BRANCH" ]; then
+            {
+              echo "The weekly spec-sync routine failed closed and pushed branch \`$BRANCH\` (docs/spec-sync-contract.md §4)."
+              echo; echo "Reason (from the branch's run record): $(cat /tmp/reason.txt)"
+              echo; echo "Failing output (docs/spec-sync/failure.txt on that branch, first 60 kB):"
+              echo; echo '```'; cat /tmp/failure.txt; echo '```'
+              echo; echo "When the cause is fixed, delete the branch (git push origin --delete $BRANCH); otherwise the next weekly check re-opens this. Opened by .github/workflows/spec-sync-liveness.yml."
+            } > /tmp/body.md
+            gh issue create --label spec-sync --title "spec-sync: run failed closed ($BRANCH)" --body-file /tmp/body.md
+          else
+            gh issue create --label spec-sync \
+              --title "spec-sync: no successful run recorded since $SINCE" \
+              --body "The weekly spec-sync routine has not recorded a successful run (docs/spec-sync/last-run.json) in over 10 days. Check the routine at https://claude.ai/code/routines and the contract at docs/spec-sync-contract.md. This issue was opened by .github/workflows/spec-sync-liveness.yml."
+          fi

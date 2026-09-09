@@ -99,3 +99,27 @@ def test_judge_script_fails_closed_on_stale_missing_and_corrupt_records(tmp_path
     assert r.returncode == 0, r.stderr
     assert "stale=true" in r.stdout, r.stdout
     assert "since=never" in r.stdout, r.stdout
+
+
+def test_reads_failed_branches_and_never_interpolates_agent_content():
+    """Contract §4 (the sandbox has no gh): a fail-closed run pushes
+    spec-sync/failed-<date> with the record and failure.txt; this workflow —
+    not the agent — turns that into the issue. Branch name, record and output
+    are all agent-written: pattern-match the name, read the files, never
+    interpolate any of it into a shell line."""
+    wf = yaml.safe_load(WF.read_text())
+    steps = wf["jobs"]["check"]["steps"]
+    names = [s.get("name") for s in steps]
+    assert names.index("Look for a failed-run branch") > names.index("Judge the run record"), \
+        "the branch judge needs stale= from the record judge to ignore superseded branches"
+    failed = steps[names.index("Look for a failed-run branch")]
+    assert failed.get("id") == "failed"
+    assert "spec-sync/failed-" in failed["run"]
+    assert "[0-9]{4}-[0-9]{2}-[0-9]{2}" in failed["run"], "branch names are agent-chosen: pattern-match them"
+    assert "docs/spec-sync/failure.txt" in failed["run"] and "docs/spec-sync/last-run.json" in failed["run"]
+    issue = steps[names.index("Open an issue if stale or a run failed closed, and none is open")]
+    assert "steps.failed.outputs.branch" in issue["if"] and "steps.judge.outputs.stale" in issue["if"]
+    assert "--body-file" in issue["run"], "the failing output is data — a file, never an argument"
+    assert "gh issue list" in issue["run"], "still no duplicate while one is open"
+    for s in steps:
+        assert "${{" not in (s.get("run") or ""), s.get("name")
