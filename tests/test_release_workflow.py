@@ -14,10 +14,36 @@ def test_workflow_exists():
     assert WORKFLOW.exists()
 
 
-def test_triggers_on_release_published():
+def test_triggers_on_tag_push_only():
+    """The spec-sync sandbox has no `gh` (probed 2026-09-09), so the unattended
+    release is an annotated tag push. ONE trigger: a human `gh release create`
+    also creates the tag, so a second `release:` trigger would run the job twice."""
     wf = _load()
     trigger = wf.get("on", wf.get(True))  # 'on' may parse as the boolean True
-    assert trigger["release"]["types"] == ["published"]
+    assert trigger["push"]["tags"] == ["v*"]
+    assert "release" not in trigger, "two triggers = two publishes for one gh release create"
+
+
+def test_tag_is_the_pushed_ref():
+    env = _load()["jobs"]["publish"]["env"]
+    assert env["TAG"] == "${{ github.ref_name }}"
+
+
+def test_release_is_created_after_pypi_and_before_upload_and_is_idempotent():
+    """PyPI first: a GitHub Release with no package behind it would be a lie;
+    if the publish fails the tag is burned (sync_version skips it) and no
+    Release exists. `gh release view ||` makes a human's gh release create
+    (which already made the Release) a no-op instead of a red X."""
+    steps = _steps()
+    names = [s.get("name", s.get("uses", "")) for s in steps]
+    create = names.index("Create the GitHub Release from the tag")
+    publish = next(i for i, s in enumerate(steps) if "pypi-publish" in str(s.get("uses", "")))
+    upload = names.index("Attach artifacts to the GitHub Release")
+    assert publish < create < upload
+    run = steps[create]["run"]
+    assert "gh release view" in run and "||" in run, "must be idempotent"
+    assert "--notes-from-tag" in run and "--verify-tag" in run
+    assert "${{" not in run
 
 
 def test_declares_oidc_and_contents_permissions():
