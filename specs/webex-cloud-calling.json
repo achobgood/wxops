@@ -85784,6 +85784,197 @@
         }
       }
     },
+    "/telephony/pstn/locations/{locationId}/numbers/availableNumbers": {
+      "get": {
+        "summary": "Get Modifiable Numbers",
+        "operationId": "getModifiableNumbers",
+        "description": "Retrieve modifiable numbers for a location based on action type.\n\nThe required `action` query parameter specifies the operation used to identify eligible numbers.\n\nThis endpoint does not support pagination. Up to a configurable server-side maximum of candidate numbers (default 2000) are retrieved and filtered for eligibility, and all eligible numbers within that candidate window are returned in a single response.\n\nA phone number's usage type determines how it is used within a Webex Calling location. `STANDARD` numbers support regular calling and can be assigned to people, workspaces, or features. `SERVICE` numbers support services such as Auto Attendant, Call Queue, Hunt Groups, and Webex Contact Center. `ELIN` (Emergency Location Identification Number) numbers provide emergency services with accurate caller information and support callbacks to the person or workspace that initiated the emergency call, including people with extension-only lines.\n\nViewing number availability requires an administrator auth token with a scope of `spark-admin:telephony_pstn_read`.",
+        "tags": [
+          "PSTN"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "Location identifier in Webex format.",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzM2ZTFlM2Y1LWJhODEtNDRiNC05ZGQ1LWIyMmVlNGY1MDIyZA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "description": "Action type for modifiable numbers.",
+            "schema": {
+              "$ref": "#/components/schemas/ModifyNumberAction"
+            },
+            "example": "modifyElin"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "required": false,
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModifyNumbersGetResponse"
+                },
+                "example": {
+                  "phoneNumbers": [
+                    {
+                      "phoneNumber": "+14155551234",
+                      "state": "ACTIVE",
+                      "isServiceNumber": false,
+                      "tollFreeNumber": false,
+                      "mainNumber": false,
+                      "isELIN": true,
+                      "isReservedNumber": false,
+                      "telephonyType": "PSTN_NUMBER"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: Invalid or missing action value."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: Location not found or feature not enabled."
+          },
+          "429": {
+            "description": "Too Many Requests: The request was rate-limited."
+          },
+          "500": {
+            "description": "Internal Server Error: Unexpected server-side failure."
+          }
+        }
+      }
+    },
+    "/telephony/pstn/locations/{locationId}/numbers": {
+      "post": {
+        "summary": "Perform Numbers Action",
+        "operationId": "performNumbersAction",
+        "description": "Perform number usage action for the specified list of numbers. The required `action` query parameter specifies the operation to apply to the numbers in the request body. The API supports modifying number usage between STANDARD/SERVICE/ELIN.\n\nA phone number's usage type determines how it is used within a Webex Calling location. `STANDARD` numbers support regular calling and can be assigned to people, workspaces, or features. `SERVICE` numbers support services such as Auto Attendant, Call Queue, Hunt Groups, and Webex Contact Center. `ELIN` (Emergency Location Identification Number) numbers provide emergency services with accurate caller information and support callbacks to the person or workspace that initiated the emergency call, including people with extension-only lines.\n\nExecuting number actions requires an administrator auth token with a scope of `spark-admin:telephony_pstn_write`.",
+        "tags": [
+          "PSTN"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "Location identifier in Webex format.",
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzM2ZTFlM2Y1LWJhODEtNDRiNC05ZGQ1LWIyMmVlNGY1MDIyZA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "description": "Action to execute.",
+            "schema": {
+              "$ref": "#/components/schemas/ModifyNumberAction"
+            },
+            "example": "modifyElin"
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "required": false,
+            "description": "Organization ID. If not specified, uses the organization from the OAuth token.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyNumbersActionRequest"
+              },
+              "example": {
+                "numbers": [
+                  "+14155551234",
+                  "+14155555678"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModifyNumbersActionResponse"
+                },
+                "example": {
+                  "orders": [
+                    {
+                      "orderId": "Y2lzY29zcGFyazovL3VzL09SREVSL2E2NGM5OWM0LTk4MDItNGY0YS04ZWMwLTUzMjIwZDhmZWFiYw",
+                      "status": "PROVISIONED",
+                      "numbers": [
+                        {
+                          "number": "+14155551234",
+                          "status": "SUCCESS",
+                          "usage": "ELIN"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: Invalid action or invalid number payload."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: Location not found or feature not enabled."
+          },
+          "429": {
+            "description": "Too Many Requests: The request was rate-limited."
+          },
+          "500": {
+            "description": "Internal Server Error: Unexpected server-side failure."
+          }
+        }
+      }
+    },
     "/telephony/pstn/locations/{locationId}/emergencyAddress": {
       "post": {
         "responses": {
@@ -168692,6 +168883,253 @@
             "type": "string",
             "description": "Detailed error message.",
             "example": "The street address provided is invalid."
+          }
+        }
+      },
+      "ModifyNumberAction": {
+        "type": "string",
+        "enum": [
+          "modifyElin",
+          "modifyStandard",
+          "modifyService"
+        ],
+        "description": "Supported number usage actions.\n\n- `modifyElin` — Change the number usage to ELIN (Emergency Location Identification Number).\n- `modifyStandard` — Change the number usage to standard, which supports regular calling.\n- `modifyService` — Change the number usage to service, which is intended for calling features such as Auto Attendant, Call Queue, Hunt Groups, or Webex Contact Center."
+      },
+      "ModifyNumbersActionRequest": {
+        "type": "object",
+        "required": [
+          "numbers"
+        ],
+        "properties": {
+          "numbers": {
+            "type": "array",
+            "description": "Phone numbers to process.",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "example": "+14155551234"
+            }
+          }
+        }
+      },
+      "ModifyNumbersActionResponse": {
+        "type": "object",
+        "required": [
+          "orders"
+        ],
+        "properties": {
+          "orders": {
+            "type": "array",
+            "description": "Number action orders created by the request.",
+            "items": {
+              "$ref": "#/components/schemas/ModifyNumbersActionOrder"
+            }
+          }
+        },
+        "example": {
+          "orders": [
+            {
+              "orderId": "Y2lzY29zcGFyazovL3VzL09SREVSL2E2NGM5OWM0LTk4MDItNGY0YS04ZWMwLTUzMjIwZDhmZWFiYw",
+              "status": "PROVISIONED",
+              "numbers": [
+                {
+                  "number": "+14155551234",
+                  "status": "SUCCESS",
+                  "usage": "ELIN"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "ModifyNumbersActionOrder": {
+        "type": "object",
+        "required": [
+          "orderId",
+          "status",
+          "numbers"
+        ],
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "description": "Order identifier in Webex format.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SREVSL2E2NGM5OWM0LTk4MDItNGY0YS04ZWMwLTUzMjIwZDhmZWFiYw"
+          },
+          "status": {
+            "type": "string",
+            "description": "Order status.\n\n- `PENDING` — The order is waiting to be processed.\n- `PARTIAL` — The order completed with only some number actions succeeding.\n- `COMPLETE` — The order completed successfully.\n- `PROVISIONED` — The requested number changes were successfully provisioned.\n- `ERROR` — The order failed.",
+            "enum": [
+              "PENDING",
+              "PARTIAL",
+              "COMPLETE",
+              "PROVISIONED",
+              "ERROR"
+            ]
+          },
+          "numbers": {
+            "type": "array",
+            "description": "Results for the phone numbers included in the order.",
+            "items": {
+              "$ref": "#/components/schemas/ModifyNumbersActionOrderNumber"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "description": "Validation or provisioning errors associated with the order.",
+            "items": {
+              "$ref": "#/components/schemas/ModifyNumbersActionError"
+            }
+          }
+        }
+      },
+      "ModifyNumbersActionOrderNumber": {
+        "type": "object",
+        "required": [
+          "number",
+          "status",
+          "usage"
+        ],
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Phone number."
+          },
+          "status": {
+            "type": "string",
+            "description": "Number-level action status.\n\n- `SUCCESS` — The action completed successfully for the number.\n- `FAILED` — The action failed for the number.\n- `PENDING` — The action is still being processed for the number.",
+            "enum": [
+              "SUCCESS",
+              "FAILED",
+              "PENDING"
+            ]
+          },
+          "usage": {
+            "type": "string",
+            "description": "Final number usage type.\n\n- `NONE` — Standard number usage.\n- `SERVICE` — Service number usage.\n- `ELIN` — Emergency Location Identification Number usage.",
+            "enum": [
+              "NONE",
+              "SERVICE",
+              "ELIN"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "description": "Validation or execution errors for this number.",
+            "items": {
+              "$ref": "#/components/schemas/ModifyNumbersActionError"
+            }
+          }
+        }
+      },
+      "ModifyNumbersActionError": {
+        "type": "object",
+        "required": [
+          "errorCode"
+        ],
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "Phone number associated with the error."
+          },
+          "errorType": {
+            "type": "string",
+            "description": "Category of the error, such as `VERIFICATION` or `FAILED`."
+          },
+          "errorCode": {
+            "type": "string",
+            "description": "Stable machine-readable error code, such as `ERR.V.TRM.TMN60045`."
+          },
+          "errorTitle": {
+            "type": "string",
+            "description": "Stable symbolic title associated with the error code, such as `NUMBER_HAS_BUSINESS_TEXTING`."
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Human-readable explanation of the error. Defaults to the message associated with `errorCode` and may contain more specific runtime detail."
+          }
+        }
+      },
+      "ModifyNumbersGetResponse": {
+        "type": "object",
+        "required": [
+          "phoneNumbers"
+        ],
+        "properties": {
+          "phoneNumbers": {
+            "type": "array",
+            "description": "All eligible modifiable numbers within the server-side candidate window, returned in a single non-paginated response.",
+            "items": {
+              "$ref": "#/components/schemas/ModifiableNumber"
+            }
+          }
+        },
+        "example": {
+          "phoneNumbers": [
+            {
+              "phoneNumber": "+14155551234",
+              "state": "ACTIVE",
+              "isServiceNumber": false,
+              "tollFreeNumber": false,
+              "mainNumber": false,
+              "isELIN": true,
+              "isReservedNumber": false,
+              "telephonyType": "PSTN_NUMBER"
+            }
+          ]
+        }
+      },
+      "ModifiableNumber": {
+        "type": "object",
+        "required": [
+          "phoneNumber",
+          "isServiceNumber",
+          "tollFreeNumber",
+          "mainNumber",
+          "isELIN",
+          "isReservedNumber",
+          "telephonyType"
+        ],
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "description": "Phone number in E.164 format."
+          },
+          "state": {
+            "type": "string",
+            "nullable": true,
+            "description": "Phone number state.\n\n- `ACTIVE` — The phone number is active.\n- `INACTIVE` — The phone number is inactive.",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "isServiceNumber": {
+            "type": "boolean",
+            "description": "Indicates whether this is a service number."
+          },
+          "tollFreeNumber": {
+            "type": "boolean",
+            "description": "Indicates whether this is a toll-free number."
+          },
+          "mainNumber": {
+            "type": "boolean",
+            "description": "Indicates whether this is the location main number."
+          },
+          "isELIN": {
+            "type": "boolean",
+            "description": "Indicates whether this number is currently an ELIN."
+          },
+          "isReservedNumber": {
+            "type": "boolean",
+            "description": "Indicates whether this is a reserved number."
+          },
+          "telephonyType": {
+            "type": "string",
+            "description": "Telephony type.\n\n- `PSTN_NUMBER` — A standard PSTN number.\n- `MOBILE_NUMBER` — A mobile telephone number.",
+            "enum": [
+              "PSTN_NUMBER",
+              "MOBILE_NUMBER"
+            ]
           }
         }
       },

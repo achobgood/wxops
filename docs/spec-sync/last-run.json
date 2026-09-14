@@ -1,10 +1,10 @@
 {
- "date": "2026-09-09",
- "outcome": "noop",
- "sha": "dd04eca80901fffbb12e5430f4ab64a3bc7784bc",
- "version": null,
+ "date": "2026-09-14",
+ "outcome": "released",
+ "sha": "ed2a8aa5423e0771dab102cb4726baafea7a8ee0",
+ "version": "v1.7.6",
  "groups": 180,
- "commands": 1980,
+ "commands": 1983,
  "issue": null,
- "notes": "no-op week: update-specs.py returned OK on all 7 specs, 0 updated, so nothing was regenerated; sha is the unchanged main this run verified (drift_check --enforce PASS). Counts carried forward from v1.7.0 — the tree is byte-identical."
+ "notes": "2 specs updated (webex-cloud-calling +2 paths, webex-contact-center +1); verdict patch, 3 new commands in existing groups (pstn create-numbers, pstn list-available-numbers, cc-call-monitoring create-coach), 0 groups added or removed, so no routing or reference-doc decision was required. One repair: tools/spec_sync.py crashed writing docs/arch/deliberate-gaps.md because docs/arch/ did not exist in the tree (the gaps doc had never been written — the 2026-09-09 run was a no-op, so step 2 never ran); created the directory and re-ran, gate PASS. Note for a human: bare `pytest` on PATH resolves to a uv-managed tool install without the repo's deps and dies in conftest with ModuleNotFoundError: typer; `python3 -m pytest` is the same pytest 9.1.1 on the right interpreter and ran the bar clean (4420 passed, 6 skipped)."
 }

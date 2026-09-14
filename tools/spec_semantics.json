@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-09-08",
+ "captured": "2026-09-14",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -7691,6 +7691,16 @@
     "summary": "Retrieve PSTN Connection Options for a Location",
     "tag": "PSTN"
    },
+   "GET /telephony/pstn/locations/{}/numbers/availableNumbers": {
+    "fields": {
+     "(operation)": "#680f6c",
+     "path:locationId": "!#9b1d2b",
+     "query:action": "!#f4c79e=modifyElin|modifyService|modifyStandard",
+     "query:orgId": "#112b9c"
+    },
+    "summary": "Get Modifiable Numbers",
+    "tag": "PSTN"
+   },
    "GET /telephony/queues/{}/calls": {
     "fields": {
      "(operation)": "#e0ca99",
@@ -10698,6 +10708,17 @@
      "query:orgId": "#df8dfc"
     },
     "summary": "Emergency Address Lookup to Verify if Address is Valid",
+    "tag": "PSTN"
+   },
+   "POST /telephony/pstn/locations/{}/numbers": {
+    "fields": {
+     "(operation)": "#983465",
+     "body:numbers": "!#415250",
+     "path:locationId": "!#9b1d2b",
+     "query:action": "!#7b8e67=modifyElin|modifyService|modifyStandard",
+     "query:orgId": "#112b9c"
+    },
+    "summary": "Perform Numbers Action",
     "tag": "PSTN"
    },
    "POST /telephony/voiceMessages/markAsRead": {
@@ -18751,6 +18772,14 @@
      "path:taskId": "!#92d0f6"
     },
     "summary": "BargeIn Request",
+    "tag": "Call Monitoring"
+   },
+   "POST /monitor/{}/coach": {
+    "fields": {
+     "(operation)": "#eee131",
+     "path:interactionId": "!#993c95"
+    },
+    "summary": "Whisper Coach Request",
     "tag": "Call Monitoring"
    },
    "POST /monitor/{}/end": {

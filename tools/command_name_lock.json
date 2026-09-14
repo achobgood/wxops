@@ -1243,6 +1243,9 @@
    "create-barge-in": [
     "POST /monitor/{}/bargeIn"
    ],
+   "create-coach": [
+    "POST /monitor/{}/coach"
+   ],
    "create-end": [
     "POST /monitor/{}/end"
    ],
@@ -4466,8 +4469,14 @@
    "create-emergency-address": [
     "POST /telephony/pstn/locations/{}/emergencyAddress"
    ],
+   "create-numbers": [
+    "POST /telephony/pstn/locations/{}/numbers"
+   ],
    "list": [
     "GET /telephony/pstn/locations/{}/connectionOptions"
+   ],
+   "list-available-numbers": [
+    "GET /telephony/pstn/locations/{}/numbers/availableNumbers"
    ],
    "list-connection": [
     "GET /telephony/pstn/locations/{}/connection"
