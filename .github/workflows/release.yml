@@ -2,10 +2,14 @@ name: Release
 
 on:
   push:
-    tags: ['v*']   # ONE trigger. The spec-sync sandbox has no gh (probed 2026-09-09), so the
-                   # unattended release is `git tag -a vX.Y.Z -F notes && git push origin vX.Y.Z`.
-                   # A human `gh release create vX.Y.Z` also creates the tag and lands here too;
-                   # a second `release:` trigger would publish twice.
+    # ONE event, two refs. A second `release:` trigger would publish twice: a human
+    # `gh release create vX.Y.Z` also creates the tag and lands on `tags` too.
+    tags: ['v*']              # humans: git tag -a vX.Y.Z -F notes && git push origin vX.Y.Z
+    branches: ['release/v*']  # the spec-sync routine. Its sandbox git proxy refuses refs/tags
+                              # (HTTP 403 x3, run 2026-09-14) but accepts branches, so it pushes
+                              # release/vX.Y.Z at the commit to release and this job makes the tag.
+                              # A tag pushed with github.token starts no workflow run, so the tag
+                              # this job pushes does not come back in on `tags`.
 
 jobs:
   publish:
@@ -15,7 +19,8 @@ jobs:
       contents: write      # upload assets to the Release
       actions: read        # the CI gate reads this SHA's workflow runs
     env:
-      TAG: ${{ github.ref_name }}   # never interpolate the tag into a run: body
+      REF_NAME: ${{ github.ref_name }}   # the tag, or release/vX.Y.Z; never interpolate it into a run: body
+      REF_TYPE: ${{ github.ref_type }}   # tag | branch. TAG is set only by "Resolve the release tag"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +41,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           SHA="$(git rev-parse HEAD)"
-          echo "release sha=$SHA (tag $TAG)"
+          echo "release sha=$SHA ($REF_TYPE $REF_NAME)"
           RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&per_page=10" \
                     --jq '[.workflow_runs[] | {id, status, conclusion, created_at}]')"
           echo "ci runs on this sha: $RUNS"
@@ -54,6 +59,37 @@ jobs:
             exit 1
           fi
           echo "CI is green on $SHA"
+
+      - name: Resolve the release tag
+        # A tag push names the tag itself. A release/vX.Y.Z branch push must carry
+        # everything a human tag would have: a strict version, notes written for THIS
+        # version, a commit main already has, and no existing tag. The annotated tag is
+        # made locally here so setuptools-scm stamps the build; it reaches origin only
+        # in "Push the tag", just before PyPI.
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then
+            echo "TAG=$REF_NAME" >> "$GITHUB_ENV"; exit 0
+          fi
+          TAG="${REF_NAME#release/}"
+          if ! printf '%s' "$TAG" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "::error::Branch $REF_NAME does not name a vX.Y.Z version"; exit 1
+          fi
+          NOTES=docs/spec-sync/release-notes.md
+          case "$(head -1 "$NOTES" 2>/dev/null)" in
+            "# $TAG "*) ;;
+            *) echo "::error::$NOTES is missing or was not written for $TAG — refusing to reuse another release's notes"; exit 1;;
+          esac
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::$(git rev-parse HEAD) is not on main — a release branch may only point at a commit main already has"; exit 1
+          fi
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$TAG")" ]; then
+            echo "::error::Tag $TAG already exists on origin — that version is burned; use the next one"; exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a --cleanup=verbatim "$TAG" -F "$NOTES"   # default cleanup strips every `#` line = every Markdown heading (measured)
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Playbook bundle freshness guard
         run: |
@@ -84,6 +120,12 @@ jobs:
             *.dev*|*+*) echo "::error::Dirty version $BUILT"; exit 1;;
           esac
 
+      - name: Push the tag (release branch only)
+        # Just before PyPI, so both paths reach PyPI with the tag already on origin: a
+        # publish that fails after this leaves the tag burned, and sync_version skips it.
+        if: github.ref_type == 'branch'
+        run: git push origin "refs/tags/$TAG"
+
       - name: Publish to PyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
 
@@ -101,3 +143,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" dist/*
+
+      - name: Delete the release branch
+        # The tag names the release now; the branch was only the sandbox's way to ask for it.
+        if: github.ref_type == 'branch'
+        run: git push origin --delete "refs/heads/$REF_NAME"
