@@ -31,7 +31,7 @@ def cmd_list(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback"
+    url = f"{cc_base_url}/v1/callbacks/organization/{org_id}/scheduled-callback"
     params = {}
     if callback_number is not None:
         params["callbackNumber"] = callback_number
@@ -92,7 +92,7 @@ def create(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback"
+    url = f"{cc_base_url}/v1/callbacks/organization/{org_id}/scheduled-callback"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -150,7 +150,7 @@ def show(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback/{id}"
+    url = f"{cc_base_url}/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
@@ -191,7 +191,7 @@ def update(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback/{id}"
+    url = f"{cc_base_url}/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -249,7 +249,7 @@ def delete(
     org_id = get_cc_org_id(api.session)
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    url = f"{cc_base_url}/callbacks/organization/{org_id}/scheduled-callback/{id}"
+    url = f"{cc_base_url}/v1/callbacks/organization/{org_id}/scheduled-callback/{id}"
     try:
         result = api.session.rest_delete(url)
     except WebexError as e:

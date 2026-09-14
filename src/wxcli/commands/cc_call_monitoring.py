@@ -32,7 +32,7 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/monitor"
+    url = f"{cc_base_url}/v1/monitor"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -80,7 +80,7 @@ def create_barge_in(
     """BargeIn Request.\n\n\b\nExample: wxcli cc-call-monitoring create-barge-in TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/monitor/{task_id}/bargeIn"
+    url = f"{cc_base_url}/v1/monitor/{task_id}/bargeIn"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -114,7 +114,7 @@ def create_coach(
     """Whisper Coach Request.\n\n\b\nExample: wxcli cc-call-monitoring create-coach INTERACTION_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/monitor/{interaction_id}/coach"
+    url = f"{cc_base_url}/v1/monitor/{interaction_id}/coach"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -148,7 +148,7 @@ def create_end(
     """End Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create-end TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/monitor/{task_id}/end"
+    url = f"{cc_base_url}/v1/monitor/{task_id}/end"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -182,7 +182,7 @@ def create_hold(
     """Hold Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create-hold TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/monitor/{task_id}/hold"
+    url = f"{cc_base_url}/v1/monitor/{task_id}/hold"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -216,7 +216,7 @@ def create_unhold(
     """Unhold Monitoring Request.\n\n\b\nExample: wxcli cc-call-monitoring create-unhold TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/monitor/{task_id}/unhold"
+    url = f"{cc_base_url}/v1/monitor/{task_id}/unhold"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -251,7 +251,7 @@ def cmd_list(
     """Fetch Monitoring Sessions."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/monitor/sessions"
+    url = f"{cc_base_url}/v1/monitor/sessions"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -283,7 +283,7 @@ def delete(
     cc_base_url = get_cc_base_url()
     if not force:
         typer.confirm(f"Delete {request_id}?", abort=True)
-    url = f"{cc_base_url}/monitor/{request_id}"
+    url = f"{cc_base_url}/v1/monitor/{request_id}"
     try:
         result = api.session.rest_delete(url)
     except WebexError as e:

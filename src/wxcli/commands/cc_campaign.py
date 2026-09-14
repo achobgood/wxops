@@ -46,7 +46,7 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dialer/campaign"
+    url = f"{cc_base_url}/v1/dialer/campaign"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -128,7 +128,7 @@ def cmd_list(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
-    url = f"{cc_base_url}/organization/{org_id}/getValidCampaignTimes"
+    url = f"{cc_base_url}/v1/organization/{org_id}/getValidCampaignTimes"
     params = {}
     if campaign_id is not None:
         params["campaignId"] = campaign_id
@@ -182,7 +182,7 @@ def update(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
+    url = f"{cc_base_url}/v1/dialer/campaign/{campaign_id}"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -235,7 +235,7 @@ def delete(
     cc_base_url = get_cc_base_url()
     if not force:
         typer.confirm(f"Delete {campaign_id}?", abort=True)
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}"
+    url = f"{cc_base_url}/v1/dialer/campaign/{campaign_id}"
     try:
         result = api.session.rest_delete(url)
     except WebexError as e:

@@ -27,7 +27,7 @@ def cmd_list(
     """Get Tasks.\n\n\b\nExample: wxcli cc-tasks list --from FROM_PARAM"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks"
+    url = f"{cc_base_url}/v1/tasks"
     params = {}
     if channel_types is not None:
         params["channelTypes"] = channel_types
@@ -81,7 +81,7 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks"
+    url = f"{cc_base_url}/v1/tasks"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -135,7 +135,7 @@ def update(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}"
+    url = f"{cc_base_url}/v1/tasks/{task_id}"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -166,7 +166,7 @@ def create_accept_tasks(
     """Accept Task.\n\n\b\nExample: wxcli cc-tasks create-accept-tasks TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/accept"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/accept"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -200,7 +200,7 @@ def create_end_tasks(
     """End Task.\n\n\b\nExample: wxcli cc-tasks create-end-tasks TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/end"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/end"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -242,7 +242,7 @@ def create_wrapup(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/wrapup"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/wrapup"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -291,7 +291,7 @@ def create_hold(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/hold"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/hold"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -338,7 +338,7 @@ def create_unhold(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/unhold"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/unhold"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -385,7 +385,7 @@ def create_reject(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/reject"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/reject"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -425,7 +425,7 @@ def create_pause(
     """Pause Recording Task.\n\n\b\nExample: wxcli cc-tasks create-pause TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/record/pause"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/record/pause"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -466,7 +466,7 @@ def create_resume(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/record/resume"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/record/resume"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -514,7 +514,7 @@ def create_transfer_tasks(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/transfer"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/transfer"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -565,7 +565,7 @@ def create_consult(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/consult"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/consult"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -618,7 +618,7 @@ def create_conference(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/consult/conference"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/consult/conference"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -670,7 +670,7 @@ def create_transfer_consult(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/consult/transfer"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/consult/transfer"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -712,7 +712,7 @@ def create_accept_consult(
     """Consult Accept Task.\n\n\b\nExample: wxcli cc-tasks create-accept-consult TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/consult/accept"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/consult/accept"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -746,7 +746,7 @@ def create_assign(
     """Assign Task.\n\n\b\nExample: wxcli cc-tasks create-assign TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/assign"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/assign"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -787,7 +787,7 @@ def create_end_consult(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/consult/end"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/consult/end"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -823,7 +823,7 @@ def create_exit(
     """Exit Conference Task.\n\n\b\nExample: wxcli cc-tasks create-exit TASK_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/conference/exit"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/conference/exit"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -858,7 +858,7 @@ def create_drop(
     """Drop Participant From Conference.\n\n\b\nExample: wxcli cc-tasks create-drop TASK_ID PARTICIPANT_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/tasks/{task_id}/conference/participants/{participant_id}/drop"
+    url = f"{cc_base_url}/v1/tasks/{task_id}/conference/participants/{participant_id}/drop"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -893,7 +893,7 @@ def create_accept_preview_task(
     """Accept Preview Task.\n\n\b\nExample: wxcli cc-tasks create-accept-preview-task TASK_ID CAMPAIGN_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/accept"
+    url = f"{cc_base_url}/v1/dialer/campaign/{campaign_id}/preview-task/{task_id}/accept"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -928,7 +928,7 @@ def create_skip(
     """Skip Preview Task.\n\n\b\nExample: wxcli cc-tasks create-skip TASK_ID CAMPAIGN_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/skip"
+    url = f"{cc_base_url}/v1/dialer/campaign/{campaign_id}/preview-task/{task_id}/skip"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -967,7 +967,7 @@ def delete_preview_task(
     cc_base_url = get_cc_base_url()
     if not force:
         typer.confirm(f"Remove Preview Task for {campaign_id}?", abort=True)
-    url = f"{cc_base_url}/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
+    url = f"{cc_base_url}/v1/dialer/campaign/{campaign_id}/preview-task/{task_id}/remove"
     if json_body:
         body = load_json_body(json_body)
     else:

@@ -329,17 +329,19 @@ canceling. Uses the runtime path family (`/v1/callbacks/`) rather than the confi
 ### CLI Examples
 
 ```bash
-# List all scheduled callbacks
-wxcli cc-callbacks list
+# List scheduled callbacks -- at least one of --callback-number / --assignee-agent is required
+wxcli cc-callbacks list --callback-number +15551234567 -o json
 
 # Get a specific callback
 wxcli cc-callbacks show <callback-id>
 
-# Schedule a new callback
-wxcli cc-callbacks create --json-body '{"callbackNumber":"+15551234567","queueId":"queue-id","scheduledTime":"2026-04-01T10:00:00Z"}'
+# Schedule a new callback (all seven flags are required; see gotcha 12 for the entry-point prerequisite)
+wxcli cc-callbacks create --customer-name "Pat Doe" --callback-number +15551234567 \
+  --timezone America/New_York --schedule-date 2026-09-20 --start-time 10:00:00 \
+  --end-time 11:00:00 --queue-id <queue-id>
 
-# Update a scheduled callback
-wxcli cc-callbacks update <callback-id> --json-body '{"scheduledTime":"2026-04-01T14:00:00Z"}'
+# Update a scheduled callback (PUT -- send the full object, same required fields as create)
+wxcli cc-callbacks update <callback-id> --json-body '{"id":"<callback-id>","customerName":"Pat Doe","callbackNumber":"+15551234567","timezone":"America/New_York","scheduleDate":"2026-09-20","startTime":"14:00:00","endTime":"15:00:00","queueId":"<queue-id>"}'
 
 # Cancel a callback
 wxcli cc-callbacks delete <callback-id>
@@ -349,13 +351,13 @@ wxcli cc-callbacks delete <callback-id>
 
 ```bash
 # List scheduled callbacks
-GET https://api.wxcc-us1.cisco.com/v1/callbacks/organization/{orgId}/scheduled-callback
+GET https://api.wxcc-us1.cisco.com/v1/callbacks/organization/{orgId}/scheduled-callback?callbackNumber=%2B15551234567
 Authorization: Bearer {cc_token}
 
 # Schedule a callback
 POST https://api.wxcc-us1.cisco.com/v1/callbacks/organization/{orgId}/scheduled-callback
 Content-Type: application/json
-{"callbackNumber":"+15551234567","queueId":"queue-id","scheduledTime":"2026-04-01T10:00:00Z"}
+{"customerName":"Pat Doe","callbackNumber":"+15551234567","timezone":"America/New_York","scheduleDate":"2026-09-20","startTime":"10:00:00","endTime":"11:00:00","queueId":"queue-id"}
 ```
 
 ---
@@ -1136,6 +1138,12 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
     - `/v3/campaign-management/...` -- Campaign management API
     - `/flow-store/{orgId}/...` -- Flow store API
     - `/dataSources/...` -- Data sources API
+
+12. **`cc-callbacks create` fails until an entry point has callbacks enabled.** Verified live 2026-09-14: create returns HTTP 400 `Callback default Entry Point is not configured` on an org where no entry point has `callbackEnabled: true`, even with every required field valid. Enable callbacks on an entry point first (`wxcli cc-entry-point` — see `contact-center-core.md`), then retry. `cc-callbacks list` is unaffected and returns 200 with `totalRecords: 0`.
+
+13. **`cc-callbacks list` requires a filter.** At least one of `--callback-number` or `--assignee-agent` must be passed; there is no org-wide "list every callback" call.
+
+14. **Before wxcli 1.7.6.1, every `/v1/` Contact Center command called the wrong URL (404).** The generator stripped the spec's `/v1` prefix for all paths because the Webex Calling base URL already ends in `/v1` — but the CC base URL (`https://api.wxcc-{region}.cisco.com`) does not. Affected: `cc-callbacks`, `cc-tasks`, `cc-agents`, `cc-call-monitoring`, `cc-subscriptions`, `cc-journey` (progressive-profile/events), `cc-campaign` (dialer), `cc-agent-wellbeing`, `cc-captures`, `cc-ewt`, `cc-notification`, `cc-queue-stats`, `cc-realtime`. Unversioned config paths (`/organization/{orgid}/...`) were never affected. If an older wxcli returns 404 on one of these, upgrade.
 
 12. **CC APIs require CC-scoped OAuth.** Standard Webex admin tokens will not work. You need tokens with `cjp:config_read` and/or `cjp:config_write` scopes. If you get a 403, run `wxcli set-cc-region <region>` and verify your token has CC scopes.
 

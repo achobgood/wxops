@@ -669,7 +669,7 @@ def show_template_name_person_id(
     """Historic Progressive Profile View by Template Name.\n\n\b\nExample: wxcli cc-journey show-template-name-person-id WORKSPACE_ID PERSON_ID insurance-template"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
+    url = f"{cc_base_url}/v1/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
@@ -692,7 +692,7 @@ def show_template_id_person_id(
     """Historic Progressive Profile View.\n\n\b\nExample: wxcli cc-journey show-template-id-person-id WORKSPACE_ID PERSON_ID TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-id/{template_id}"
+    url = f"{cc_base_url}/v1/api/progressive-profile-view/workspace-id/{workspace_id}/person-id/{person_id}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
@@ -715,7 +715,7 @@ def show_template_name_identity(
     """Historic Progressive Profile View By Template Name.\n\n\b\nExample: wxcli cc-journey show-template-name-identity WORKSPACE_ID IDENTITY insurance-template"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
+    url = f"{cc_base_url}/v1/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
@@ -738,7 +738,7 @@ def show_template_id_identity(
     """Historic Progressive Profile View By Template Id.\n\n\b\nExample: wxcli cc-journey show-template-id-identity WORKSPACE_ID IDENTITY TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
+    url = f"{cc_base_url}/v1/api/progressive-profile-view/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
@@ -761,7 +761,7 @@ def show_template_name_identity_1(
     """Stream Progressive profile Views By Template Name.\n\n\b\nExample: wxcli cc-journey show-template-name-identity-1 WORKSPACE_ID IDENTITY insurance-template"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
+    url = f"{cc_base_url}/v1/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
@@ -784,7 +784,7 @@ def show_template_id_identity_1(
     """Stream Progressive profile Views By Template Id.\n\n\b\nExample: wxcli cc-journey show-template-id-identity-1 WORKSPACE_ID IDENTITY TEMPLATE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
+    url = f"{cc_base_url}/v1/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}"
     try:
         result = api.session.rest_get(url)
     except WebexError as e:
@@ -812,7 +812,7 @@ def show_workspace_id_events(
     """Historic Journey Events.\n\n\b\nExample: wxcli cc-journey show-workspace-id-events WORKSPACE_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/events/workspace-id/{workspace_id}"
+    url = f"{cc_base_url}/v1/api/events/workspace-id/{workspace_id}"
     params = {}
     if identity is not None:
         params["identity"] = identity
@@ -851,7 +851,7 @@ def show_identity(
     """Stream Events By Identity.\n\n\b\nExample: wxcli cc-journey show-identity WORKSPACE_ID IDENTITY"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/api/events/stream/workspace-id/{workspace_id}/identity/{identity}"
+    url = f"{cc_base_url}/v1/api/events/stream/workspace-id/{workspace_id}/identity/{identity}"
     params = {}
     if filter_param is not None:
         params["filter"] = filter_param

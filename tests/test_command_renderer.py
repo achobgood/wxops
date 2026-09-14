@@ -729,6 +729,58 @@ class TestUrlRendering:
         url = _render_url_expr("cdr_feed/records", [])
         assert "analytics-calling.webexapis.com" in url
 
+    def test_cc_v1_spec_path_keeps_v1(self, monkeypatch):
+        """The CC base URL has no /v1, so a /v1/ spec path must keep it.
+        Regression: cc-callbacks rendered {cc_base_url}/callbacks/... -> 404."""
+        import tools.command_renderer as cr
+        monkeypatch.setattr(cr, "_active_base_url_override", cr.BASE_URL_CC)
+        url = _render_url_expr(
+            "callbacks/organization/{orgId}/scheduled-callback", ["orgId"],
+            spec_v1=True)
+        assert url == "{cc_base_url}/v1/callbacks/organization/{org_id}/scheduled-callback"
+
+    def test_cc_unversioned_config_path_unchanged(self, monkeypatch):
+        import tools.command_renderer as cr
+        monkeypatch.setattr(cr, "_active_base_url_override", cr.BASE_URL_CC)
+        url = _render_url_expr("organization/{orgid}/queue", ["orgid"])
+        assert url == "{cc_base_url}/organization/{orgid}/queue"
+
+    def test_calling_v1_spec_path_not_doubled(self):
+        url = _render_url_expr("things", [], spec_v1=True)
+        assert url == "https://webexapis.com/v1/things"
+
+
+class TestCcV1PathsEndToEnd:
+    """Every /v1/ operation in the real CC spec renders a URL containing /v1/."""
+
+    def test_cc_callbacks_urls_include_v1(self):
+        spec = json.loads((Path(__file__).parent.parent / "specs"
+                           / "webex-contact-center.json").read_text())
+        endpoints, _ = parse_tag("Callbacks", spec)
+        assert endpoints, "Callbacks tag produced no endpoints"
+        code = render_command_file("Callbacks", endpoints, {},
+                                   base_url_override="{cc_base_url}")
+        urls = [ln.strip() for ln in code.splitlines() if ln.strip().startswith("url = ")]
+        assert len(urls) == 5
+        for u in urls:
+            assert u.startswith('url = f"{cc_base_url}/v1/callbacks/organization/'), u
+
+    def test_shipped_cc_modules_have_no_stripped_v1(self):
+        spec = json.loads((Path(__file__).parent.parent / "specs"
+                           / "webex-contact-center.json").read_text())
+        first = {p.split("/")[2] for p in spec["paths"] if p.startswith("/v1/")}
+        first -= {"{orgId}", "organization"}  # also used by unversioned config paths
+        cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
+        bad = []
+        for f in sorted(cmd_dir.glob("cc_*.py")):
+            for ln in f.read_text().splitlines():
+                s = ln.strip()
+                if s.startswith('url = f"{cc_base_url}/'):
+                    seg = s[len('url = f"{cc_base_url}/'):].split("/")[0].rstrip('"')
+                    if seg in first:
+                        bad.append(f"{f.name}: {s}")
+        assert not bad, "CC /v1 paths rendered without /v1:\n" + "\n".join(bad)
+
 
 # ── folder_name_to_module ───────────────────────────────────────────────────
 

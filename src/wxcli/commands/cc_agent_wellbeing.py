@@ -33,7 +33,7 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agentburnout/subscribe"
+    url = f"{cc_base_url}/v1/agentburnout/subscribe"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -90,7 +90,7 @@ def create_action(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agentburnout/action"
+    url = f"{cc_base_url}/v1/agentburnout/action"
     if json_body:
         body = load_json_body(json_body)
     else:

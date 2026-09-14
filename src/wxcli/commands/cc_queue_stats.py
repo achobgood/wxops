@@ -27,7 +27,7 @@ def cmd_list(
     """Get Queue Statistics.\n\n\b\nExample: wxcli cc-queue-stats list --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/queues/statistics"
+    url = f"{cc_base_url}/v1/queues/statistics"
     params = {}
     if from_param is not None:
         params["from"] = from_param
