@@ -2555,6 +2555,7 @@ def write_gaps_doc(skipped_ops: dict, overrides: dict) -> None:
         lines.append("")
     lines.insert(7, f"**{total} skipped operations across {len(by_spec_tag)} spec/tag pairs.**")
     lines.insert(8, "")
+    GAPS_DOC.parent.mkdir(parents=True, exist_ok=True)   # docs/arch/ is gitignored: absent in a fresh clone
     GAPS_DOC.write_text("\n".join(lines))
     print(f"wrote {GAPS_DOC.relative_to(REPO)} ({total} ops)")
 
