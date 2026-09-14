@@ -103,6 +103,40 @@ def create_barge_in(
 
 
 
+@app.command("create-coach", short_help="Whisper Coach Request.")
+def create_coach(
+    interaction_id: str = typer.Argument(help="UUID"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Whisper Coach Request.\n\n\b\nExample: wxcli cc-call-monitoring create-coach INTERACTION_ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/monitor/{interaction_id}/coach"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
 @app.command("create-end", short_help="End Monitoring Request.")
 def create_end(
     task_id: str = typer.Argument(help="UUID"),

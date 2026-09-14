@@ -226,6 +226,89 @@ def create(
 
 
 
+@app.command("list-available-numbers", short_help="Get Modifiable Numbers.")
+def list_available_numbers(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
+    action: str = typer.Option(..., "--action", help="Action type for modifiable numbers."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Modifiable Numbers.\n\n\b\nExample: wxcli pstn list-available-numbers LOCATION_ID --action ACTION"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/numbers/availableNumbers"
+    params = {}
+    if action is not None:
+        params["action"] = action
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Service Number', 'isServiceNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Main Number', 'mainNumber')], limit=limit)
+
+
+
+_BODY_SKELETON_CREATE_NUMBERS = '{"numbers":["..."]}'
+
+@app.command("create-numbers", short_help="Perform Numbers Action.")
+def create_numbers(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
+    action: str = typer.Option(..., "--action", help="Action to execute."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Perform Numbers Action.\n\n\b\nExample: wxcli pstn create-numbers LOCATION_ID --action ACTION --json-body '{"numbers":["..."]}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_NUMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/numbers"
+    params = {}
+    if action is not None:
+        params["action"] = action
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
 _BODY_SKELETON_CREATE_EMERGENCY_ADDRESS = '{"address1":"...","address2":"...","city":"...","state":"...","postalCode":"...","country":"..."}'
 
 @app.command("create-emergency-address", short_help="Add an Emergency Address to a Location.")

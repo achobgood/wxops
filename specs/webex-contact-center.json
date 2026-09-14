@@ -55311,6 +55311,48 @@
         }
       }
     },
+    "/v1/monitor/{interactionId}/coach": {
+      "post": {
+        "tags": [
+          "Call Monitoring"
+        ],
+        "summary": "Whisper Coach Request",
+        "description": "This feature is currently in Beta. Contact your Cisco team if you want access to this feature.\n\nCreate a Whisper Coach request for the supervisor to coach the agent on a call that is being monitored already. Requires scope 'cloud-contact-center:pod_conv' and 'cjp.supervisor'.",
+        "operationId": "coachRoute",
+        "parameters": [
+          {
+            "name": "interactionId",
+            "in": "path",
+            "description": "The unique ID representing the monitored interaction that the supervisor needs to coach.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "UUID",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            "example": "315fbb91-2288-427c-9588-ec764cd46ea4"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The Whisper Coach request was accepted for processing"
+          },
+          "401": {
+            "description": "Unauthorized, Token is Invalid"
+          },
+          "403": {
+            "description": "Forbidden Request - feature unavailable, non-supervisor, or insufficient Whisper Coach permissions"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/monitor/{taskId}/end": {
       "post": {
         "tags": [
@@ -89872,7 +89914,9 @@
               "type": "string"
             },
             "description": "If the call is routed to an agent and the agent is assigned to a queue, the queueId can be entered here to initiate a successful call monitoring request for that particular queue, maximum length of each queue is 36 characters and maximum number of queueIds 250.",
-            "example": "[fbed39e1-4ed8-4179-828b-075e3788649c]"
+            "example": [
+              "fbed39e1-4ed8-4179-828b-075e3788649c"
+            ]
           },
           "teams": {
             "type": "array",
@@ -89880,7 +89924,9 @@
               "type": "string"
             },
             "description": "If the call is routed to an agent and the agent is assigned to a team, the teamId can be entered here to initiate a successful monitoring request for that particular team, maximum length of each team is 36 characters and maximum number of teams 100.",
-            "example": "[510d198d-7aa7-4b75-a5ff-e61759f4f313]"
+            "example": [
+              "510d198d-7aa7-4b75-a5ff-e61759f4f313"
+            ]
           },
           "sites": {
             "type": "array",
@@ -89888,7 +89934,9 @@
               "type": "string"
             },
             "description": "If the call is routed to an agent and the agent is assigned to a site, the siteId can be entered here to initiate a successful monitoring request for that particular site, maximum length of each site is 36 characters and the maximum number of sites 20.",
-            "example": "[67c5b4c8-9c78-4400-8148-8254dc550c49]"
+            "example": [
+              "67c5b4c8-9c78-4400-8148-8254dc550c49"
+            ]
           },
           "agents": {
             "type": "array",
@@ -89896,7 +89944,9 @@
               "type": "string"
             },
             "description": "Enter the agentId to monitor a particular agent to whom the call is being assigned, maximum length of each agent is 36 characters and the maximum number of agents is 500.",
-            "example": "[fbed39e1-4ed8-4179-828b-075e3788649c]"
+            "example": [
+              "fbed39e1-4ed8-4179-828b-075e3788649c"
+            ]
           },
           "trackingId": {
             "type": "string",
@@ -89907,7 +89957,7 @@
           "invisibleMode": {
             "type": "boolean",
             "description": "This allows the supervisor to obfuscate their details from Team Performance Widget panel. Set ```true``` inorder to activate this mode",
-            "example": "false"
+            "example": false
           }
         }
       },
