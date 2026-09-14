@@ -32,7 +32,7 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agents/login"
+    url = f"{cc_base_url}/v1/agents/login"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -87,7 +87,7 @@ def update(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agents/logout"
+    url = f"{cc_base_url}/v1/agents/logout"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -131,7 +131,7 @@ def update_state_session(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agents/session/state"
+    url = f"{cc_base_url}/v1/agents/session/state"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -169,7 +169,7 @@ def create_reload_agents(
     """Reload."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agents/reload"
+    url = f"{cc_base_url}/v1/agents/reload"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -211,7 +211,7 @@ def create_buddy_list(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agents/buddyList"
+    url = f"{cc_base_url}/v1/agents/buddyList"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -264,7 +264,7 @@ def list_activities(
     """Get Agent Activities.\n\n\b\nExample: wxcli cc-agents list-activities --from FROM_PARAM"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agents/activities"
+    url = f"{cc_base_url}/v1/agents/activities"
     params = {}
     if agent_ids is not None:
         params["agentIds"] = agent_ids
@@ -319,7 +319,7 @@ def list_statistics(
     """Get Agent Statistics.\n\n\b\nExample: wxcli cc-agents list-statistics --from FROM_PARAM --to TO"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/agents/statistics"
+    url = f"{cc_base_url}/v1/agents/statistics"
     params = {}
     if from_param is not None:
         params["from"] = from_param

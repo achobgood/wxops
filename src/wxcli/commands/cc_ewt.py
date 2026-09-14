@@ -24,7 +24,7 @@ def show(
     """Get Estimated Wait Time.\n\n\b\nExample: wxcli cc-ewt show --queue-id QUEUE_ID --lookback-minutes LOOKBACK_MINUTES"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/ewt"
+    url = f"{cc_base_url}/v1/ewt"
     params = {}
     if queue_id is not None:
         params["queueId"] = queue_id

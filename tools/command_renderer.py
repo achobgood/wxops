@@ -279,10 +279,18 @@ from wxcli.common import emit, load_json_body
     return lines
 
 
-def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = None) -> str:
+def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = None,
+                     spec_v1: bool = False) -> str:
     # Module-level override takes precedence (set by render_command_file for CC spec)
     if _active_base_url_override:
         base = _active_base_url_override
+        # The parser strips a leading 'v1/' because BASE_URL ends in /v1. The
+        # CC/FS bases do not ("https://api.wxcc-us1.cisco.com"), so a spec path
+        # that really is /v1/... must keep it. Before this, all 68 CC /v1 ops
+        # (cc-callbacks, cc-tasks, cc-agents, ...) hit /callbacks/... -> 404,
+        # while the unversioned config paths (/organization/...) were correct.
+        if spec_v1:
+            url_path = f"v1/{url_path}"
     elif any(url_path.startswith(p) for p in ANALYTICS_PREFIXES):
         base = BASE_URL_ANALYTICS
     elif any(url_path.startswith(p) for p in NO_V1_PREFIXES):
@@ -1272,7 +1280,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     params.append('    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),')
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,
+                                spec_v1=ep.raw_path[:1] == ["v1"])
 
     param_build = []
     param_build.append("    params = {}")
@@ -1400,7 +1409,8 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,
+                                spec_v1=ep.raw_path[:1] == ["v1"])
 
     # Show/settings-get commands: support --output for table rendering. The
     # dict-in-table auto-detect behaviour is preserved inside emit() (Task 1's
@@ -1528,7 +1538,8 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(_render_output_options("id"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,
+                                spec_v1=ep.raw_path[:1] == ["v1"])
 
     generate_json_body_check = []
     if ep.json_body_example:
@@ -1639,7 +1650,8 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         )
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,
+                                spec_v1=ep.raw_path[:1] == ["v1"])
 
     generate_json_body_check = []
     if ep.json_body_example:
@@ -1911,7 +1923,8 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,
+                                spec_v1=ep.raw_path[:1] == ["v1"])
 
     if ep.path_vars:
         id_var = _path_var_to_param(ep.path_vars[-1])
@@ -2019,7 +2032,8 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
-    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method)
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,
+                                spec_v1=ep.raw_path[:1] == ["v1"])
 
     generate_json_body_check = []
     if ep.json_body_example:

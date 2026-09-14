@@ -1790,7 +1790,7 @@ naming_ack:
     severity: HIGH
   # numeric suffix: the -N carries no meaning
   #   does: Stream Progressive profile Views By Template Id.
-  "numeric-suffix GET {cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}":
+  "numeric-suffix GET {cc_base_url}/v1/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-id/{template_id}":
     command: cc-journey show-template-id-identity-1
     severity: HIGH
   # numeric suffix: the -N carries no meaning
@@ -1800,7 +1800,7 @@ naming_ack:
     severity: HIGH
   # numeric suffix: the -N carries no meaning
   #   does: Stream Progressive profile Views By Template Name.
-  "numeric-suffix GET {cc_base_url}/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}":
+  "numeric-suffix GET {cc_base_url}/v1/api/progressive-profile-view/stream/workspace-id/{workspace_id}/identity/{identity}/template-name/{template_name}":
     command: cc-journey show-template-name-identity-1
     severity: HIGH
   # numeric suffix: the -N carries no meaning
@@ -2032,7 +2032,7 @@ naming_ack:
   # bare 'create' in group 'cc-agent-wellbeing' targets 'subscribe' — the name
   # gives the caller no hint that the resource differs from the group
   #   does: Subscribe for realtime burnout events.
-  "resource-mismatch POST {cc_base_url}/agentburnout/subscribe":
+  "resource-mismatch POST {cc_base_url}/v1/agentburnout/subscribe":
     command: cc-agent-wellbeing create
     severity: HIGH
   # The 'cc-agents list' ack that sat here was DELETED on 2026-07-29: the command
@@ -2092,7 +2092,7 @@ naming_ack:
   # bare 'list' in group 'cc-call-monitoring' targets 'sessions' — the name
   # gives the caller no hint that the resource differs from the group
   #   does: Fetch Monitoring Sessions.
-  "resource-mismatch GET {cc_base_url}/monitor/sessions":
+  "resource-mismatch GET {cc_base_url}/v1/monitor/sessions":
     command: cc-call-monitoring list
     severity: HIGH
   # bare 'show' in group 'cc-data-sources' targets 'schemas' — the name gives
@@ -2168,7 +2168,7 @@ naming_ack:
   # command in this group addresses 'cc-notification' itself — the headline
   # resource is UNREACHABLE, so the wrong answer is silent
   #   does: Subscribe Notification.
-  "resource-mismatch POST {cc_base_url}/notification/subscribe":
+  "resource-mismatch POST {cc_base_url}/v1/notification/subscribe":
     command: cc-notification create
     severity: HIGH
   # bare 'show' in group 'cc-queue' targets 'by-skill-profile-id' — the name
@@ -2182,7 +2182,7 @@ naming_ack:
   # command in this group addresses 'cc-realtime' itself — the headline
   # resource is UNREACHABLE, so the wrong answer is silent
   #   does: Subscribe Realtime Notification.
-  "resource-mismatch POST {cc_base_url}/realtime/subscribe":
+  "resource-mismatch POST {cc_base_url}/v1/realtime/subscribe":
     command: cc-realtime create
     severity: HIGH
   # bare 'list' in group 'cc-resource-collection' targets 'incoming-

@@ -24,7 +24,7 @@ def cmd_list(
     """List Subscriptions."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/subscriptions"
+    url = f"{cc_base_url}/v1/subscriptions"
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -67,7 +67,7 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/subscriptions"
+    url = f"{cc_base_url}/v1/subscriptions"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -114,7 +114,7 @@ def show(
     """Get Subscription.\n\n\b\nExample: wxcli cc-subscriptions show ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/subscriptions/{id}"
+    url = f"{cc_base_url}/v1/subscriptions/{id}"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -152,7 +152,7 @@ def update(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/subscriptions/{id}"
+    url = f"{cc_base_url}/v1/subscriptions/{id}"
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -197,7 +197,7 @@ def delete(
     cc_base_url = get_cc_base_url()
     if not force:
         typer.confirm(f"Delete {id}?", abort=True)
-    url = f"{cc_base_url}/subscriptions/{id}"
+    url = f"{cc_base_url}/v1/subscriptions/{id}"
     params = {}
     org_id = get_org_id()
     if org_id is not None:
@@ -229,7 +229,7 @@ def list_event_types_v1(
     """List Event Types."""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
-    url = f"{cc_base_url}/event-types"
+    url = f"{cc_base_url}/v1/event-types"
     params = {}
     if limit > 0:
         params["max"] = limit
