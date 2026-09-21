@@ -14651,6 +14651,1656 @@
         }
       }
     },
+    "/organization/{orgid}/asset": {
+      "post": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "Create a new Asset",
+        "description": "Create a new Asset in a given organization. Supports work item assets with the specified channel and data schema.",
+        "operationId": "createConfigAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Similar entity is already present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "409",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "409",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/asset/bulk": {
+      "post": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "Bulk save Assets",
+        "description": "Create, Update or delete Assets in bulk in a given organization. Supports CREATE, UPDATE, and DELETE actions in a single request.",
+        "operationId": "saveAllConfigAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRequestDTOAssetDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "207": {
+            "description": "Multi-Status",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Similar entity is already present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "409",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "409",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/asset/{id}": {
+      "get": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "Get specific Asset by ID",
+        "description": "Retrieve an existing Asset by ID in a given organization. Set includeChannelName to true to include the channel name in the response.",
+        "operationId": "getConfigAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Asset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          },
+          {
+            "name": "includeChannelName",
+            "in": "query",
+            "description": "Include channel name in the response.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDTO"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "Update specific Asset by ID",
+        "description": "Update an existing Asset by ID in a given organization. Supported for WORK_ITEM assets. For CUSTOM_MESSAGING assets, use PATCH instead.",
+        "operationId": "updateConfigAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Asset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resource referred in other entity(s). Please get all the reference entities info by invoking Get incoming-references api.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "412",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "412",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "Delete specific Asset by ID",
+        "description": "Delete an existing Asset by ID in a given organization. Validates whether the asset is associated with any flow before deletion.",
+        "operationId": "deleteConfigAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Asset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resource referred in other entity(s). Please get all the reference entities info by invoking Get incoming-references api.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "412",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "412",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "Partially update Asset by ID",
+        "description": "Partially update Asset by ID in a given organization. Supported only for CUSTOM_MESSAGING assets. Send only the fields to change; absent fields retain their current values. webhookConfig is optional; omit it to keep the existing credentials. For WORK_ITEM assets, use PUT instead.",
+        "operationId": "patchConfigAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Asset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonValue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/asset/{id}/incoming-references": {
+      "get": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "List references for a specific Asset",
+        "description": "Retrieve a list of all entities that have reference to an existing Asset by ID in a given organization. For example, Entry Points.",
+        "operationId": "getIncomingReferencesAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of this contact center resource.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "af9eecc5-0472-4549-9a83-2afdae0d4ba0"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Entity type of the other entity that has a reference to this specific entity.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "type_text"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Defines the number of displayed page. The page number starts from 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "example": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "example": 100
+            },
+            "example": 100
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityReferenceInfoDTO"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/v2/asset": {
+      "get": {
+        "tags": [
+          "Asset"
+        ],
+        "summary": "List Assets",
+        "description": "Retrieve a list of Assets in a given organization. Supports pagination metadata. Set includeChannelName to true to include the channel name in the response. Set excludeEPAssociated to true to return only assets that are not associated with any Entry Point.",
+        "operationId": "getAllConfigWithMetaDataAsset",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filter expression",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "id==\"af9eecc5-0472-4549-9a83-2afdae0d4ba0\""
+          },
+          {
+            "name": "attributes",
+            "in": "query",
+            "description": "Supported attributes",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "example": "id"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Filter data based on the search keyword.Supported search columns(name)\n\nThe examples below show some search queries\n- \"Cisco\"\n- field==\"name\";value==\"Cisco\"\n- fields=in=(\"name\");value==\"Cisco\"\n",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "contact center"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Defines the number of displayed page. The page number starts from 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "example": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "example": 100
+            },
+            "example": 100
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sortable properties",
+            "schema": {
+              "type": "string",
+              "default": "name",
+              "example": "name"
+            },
+            "example": "name"
+          },
+          {
+            "name": "includeCount",
+            "in": "query",
+            "description": "Include count",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          },
+          {
+            "name": "singleObjectResponse",
+            "in": "query",
+            "description": "Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          },
+          {
+            "name": "includeChannelName",
+            "in": "query",
+            "description": "Include channel name in the response.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          },
+          {
+            "name": "excludeEPAssociated",
+            "in": "query",
+            "description": "When true, return only assets that are not associated with any Entry Point.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelopeAssetDTO"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/organization/{orgid}/audio-file": {
       "post": {
         "tags": [
@@ -16772,6 +18422,1711 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/channel": {
+      "post": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "Create a new Channel",
+        "description": "Create a new Channel in a given organization. Supports custom channels for work items.",
+        "operationId": "createConfigChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logoFileInfo": {
+                    "$ref": "#/components/schemas/ChannelDTO"
+                  },
+                  "logoFile": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Logo file. Required when logoType is URL."
+                  }
+                },
+                "required": [
+                  "logoFileInfo"
+                ]
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logoFileInfo": {
+                    "$ref": "#/components/schemas/ChannelDTO"
+                  },
+                  "logoFile": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Logo file. Required when logoType is URL."
+                  }
+                },
+                "required": [
+                  "logoFileInfo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Similar entity is already present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "409",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "409",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/channel/bulk": {
+      "post": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "Bulk save Channels",
+        "description": "Create, Update or delete Channels in bulk in a given organization.",
+        "operationId": "saveAllConfigChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRequestDTOChannelDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "207": {
+            "description": "Multi-Status",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Similar entity is already present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "409",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "409",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/channel/{id}": {
+      "get": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "Get specific Channel by ID",
+        "description": "Retrieve an existing Channel by ID in a given organization. Set includeLogoUrlVersioned to true to include logoUrlVersioned in the response.",
+        "operationId": "getConfigChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Channel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          },
+          {
+            "name": "includeLogoUrlVersioned",
+            "in": "query",
+            "description": "Include logoUrlVersioned in the response.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDTO"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "Update specific Channel by ID",
+        "description": "Update an existing Channel by ID in a given organization.",
+        "operationId": "updateConfigChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Channel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logoFileInfo": {
+                    "$ref": "#/components/schemas/ChannelDTO"
+                  },
+                  "logoFile": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Logo file. Required when logoType is URL."
+                  }
+                },
+                "required": [
+                  "logoFileInfo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resource referred in other entity(s). Please get all the reference entities info by invoking Get incoming-references api.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "412",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "412",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "Delete specific Channel by ID",
+        "description": "Delete an existing Channel by ID in a given organization.",
+        "operationId": "deleteConfigChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Channel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Resource referred in other entity(s). Please get all the reference entities info by invoking Get incoming-references api.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "412",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "412",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "Partially update Channel by ID",
+        "description": "Partially update a channel by ID. Only the supplied fields are changed; absent fields retain their current values. Patchable fields: name, description, logoType (MOMENTUM only), logoIconName. logoUrl and logoUrlVersioned cannot be changed by using PATCH; use PUT to update the logo image. channelType cannot be changed after creation. in a given organization.",
+        "operationId": "patchConfigChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource ID of the Channel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba2"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChannelPatchDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChannelDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was invalid and cannot be served. An accompanying error message will explain further",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "400",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "400",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/channel/{id}/incoming-references": {
+      "get": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "List references for a specific Channel",
+        "description": "Retrieve a list of all entities that have reference to an existing Channel by ID in a given organization. Includes Asset and Entry Point entities that reference the channel.",
+        "operationId": "getIncomingReferencesChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID of this contact center resource.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "af9eecc5-0472-4549-9a83-2afdae0d4ba0"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Entity type of the other entity that has a reference to this specific entity.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "type_text"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Defines the number of displayed page. The page number starts from 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "example": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "example": 100
+            },
+            "example": 100
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityReferenceInfoDTO"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organization/{orgid}/v2/channel": {
+      "get": {
+        "tags": [
+          "Channel"
+        ],
+        "summary": "List Channels",
+        "description": "Retrieve a list of Channels in a given organization. Supports pagination metadata. Set includeLogoUrlVersioned to true to include logoUrlVersioned in the response. Note: Returning array fields in the List (Get All) API response is deprecated. To retrieve the complete resource with all fields, please use the Get-by-ID API instead.",
+        "operationId": "getAllConfigWithMetaDataChannel",
+        "parameters": [
+          {
+            "name": "orgid",
+            "in": "path",
+            "description": "Organization ID to be used for this operation. The specified security token must have permission to interact with the organization.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2f9eecc5-0472-4549-9a83-2afdae0d4ba1"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "Filter expression",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "id==\"af9eecc5-0472-4549-9a83-2afdae0d4ba0\""
+          },
+          {
+            "name": "attributes",
+            "in": "query",
+            "description": "Supported attributes",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "example": "id"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Filter data based on the search keyword.Supported search columns(name)\n\nThe examples below show some search queries\n- \"Cisco\"\n- field==\"name\";value==\"Cisco\"\n- fields=in=(\"name\");value==\"Cisco\"\n",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "contact center"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Defines the number of displayed page. The page number starts from 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "example": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size.",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "example": 100
+            },
+            "example": 100
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sortable properties",
+            "schema": {
+              "type": "string",
+              "default": "name",
+              "example": "name"
+            },
+            "example": "name"
+          },
+          {
+            "name": "includeCount",
+            "in": "query",
+            "description": "If set to true, the API response includes the asset count.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          },
+          {
+            "name": "singleObjectResponse",
+            "in": "query",
+            "description": "Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          },
+          {
+            "name": "includeLogoUrlVersioned",
+            "in": "query",
+            "description": "Include logoUrlVersioned in the response.",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "example": false
+            },
+            "example": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseEnvelopeChannelDTOList"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "logoIconName": "momentumIconName",
+                      "logoUrlVersioned": "https://wxcc-config-resource-nonprod-cdn.ciscoccservice.com/org-id/channel-logo/versioned/uuid.png",
+                      "description": "Channel Desc",
+                      "channelType": "WORK_ITEM",
+                      "version": 1,
+                      "logoUrl": "https://wxcc-config-resource-nonprod-cdn.ciscoccservice.com/org-id/channel-logo/uuid.png",
+                      "organizationId": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+                      "numberOfAsset": 5,
+                      "name": "Agent-Profile(Auto WrapUp)",
+                      "createdTime": 123456789,
+                      "lastUpdatedTime": 123456789,
+                      "id": "93912f11-6017-404b-bf14-5331890b1797",
+                      "logoType": "MOMENTUM"
+                    }
+                  ],
+                  "meta": {
+                    "additionalProp2": "string",
+                    "additionalProp3": "string",
+                    "additionalProp1": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized Operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "401",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "401",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Operation is forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "403",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "403",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found or URI is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "404",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "404",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests have been sent in a given amount of time and the request has been rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "429",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "429",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An Unexpected Error Occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "trackingId": "ccconfig_af9eecc5-0472-4549-9a83-2afdae0d4ba0",
+                  "error": {
+                    "key": "500",
+                    "reason": "Test reason",
+                    "message": [
+                      {
+                        "description": "Test error",
+                        "code": "500",
+                        "entity": "cc_user",
+                        "references": []
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -54475,6 +57830,407 @@
         }
       }
     },
+    "/v1/usage-reports/resource-types": {
+      "get": {
+        "tags": [
+          "Usage Reports"
+        ],
+        "summary": "Get available resource types",
+        "description": "Returns the list of available resource types that can be used for report generation, along with available data dates.",
+        "operationId": "listResourceTypes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CCUsageReportResourceType"
+                  },
+                  "example": [
+                    {
+                      "resourceType": "ContactSessionRecord",
+                      "displayName": "Contact Session Record",
+                      "description": "Detailed records of all contact sessions including call details, queue times, and outcomes.",
+                      "dataStartDate": "2023-01-01",
+                      "dataEndDate": "2025-01-31"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server"
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/v1/usage-reports": {
+      "post": {
+        "tags": [
+          "Usage Reports"
+        ],
+        "summary": "Create usage report",
+        "description": "Creates a new usage report for the specified organization, resource type,\nand date range. The report is generated asynchronously in the background.\n\nA single **usage report (reportId)** is always created for each request.\nDepending on the requested date range, the report may contain **one or more\nreport files**, each representing a sub-range of the overall time period.\n\nWhen the requested date range spans **more than 30 days**, the overall range\nis **automatically split by natural calendar months**, and **multiple report\nfiles** are generated under the same report.\n\n**Examples:**\n\n- Requested range: `2025-12-23` ~ `2026-03-20`\n  - Generated result:\n    - Report ID: single report\n    - Report files:\n      - `2025-12-23` ~ `2025-12-31`\n      - `2026-01-01` ~ `2026-01-31`\n      - `2026-02-01` ~ `2026-02-28`\n      - `2026-03-01` ~ `2026-03-20`\n\n- Requested range: `2025-12-23` ~ `2026-01-21`\n  - Generated result:\n    - Report ID: single report\n    - Report files:\n      - `2025-12-23` ~ `2026-01-21`\n\n**Important Notes:**\n- Only one usage report can be processed at a time for the same organization.\n  If there is an ongoing report, new report creation requests will be rejected.\n",
+        "operationId": "createReport",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CCUsageReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CreateCCUsageReportResponse"
+                  },
+                  "example": [
+                    {
+                      "reportId": "550e8400e29b41d4a716446655440000",
+                      "createdTime": "2026-02-01T09:31:04Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further"
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "429": {
+            "description": "Too Many Requests: There is already a running report for this organization"
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server"
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Usage Reports"
+        ],
+        "summary": "List usage reports",
+        "description": "Retrieves a list of usage reports for the organization. Supports optional filtering by resource type and creation date range.\n\nEach report has a `reportId` and may contain one or more generated files in `reportFiles[]`. For long date ranges, the service can split results by calendar month to avoid creating a single very large download. For example, a 12-month report can return up to 12 report files, and a 36-month report can return up to 36 report files.\n\nUse `reportId` to retrieve the overall report status, list the generated files, or delete the report. Use each file's `fileId` or `downloadUrl` to download that specific file. The download API does not accept `reportId`.",
+        "operationId": "listReports",
+        "parameters": [
+          {
+            "name": "resourceType",
+            "in": "query",
+            "description": "Filter by resource type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by resource type",
+              "example": "ContactSessionRecord"
+            },
+            "example": "ContactSessionRecord"
+          },
+          {
+            "name": "createdAfter",
+            "in": "query",
+            "description": "Filter reports created after this timestamp (ISO 8601 format)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Filter reports created after this timestamp (ISO 8601 format)",
+              "example": "2025-01-01T00:00:00.000Z"
+            },
+            "example": "2025-01-01T00:00:00.000Z"
+          },
+          {
+            "name": "createdBefore",
+            "in": "query",
+            "description": "Filter reports created before this timestamp (ISO 8601 format)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Filter reports created before this timestamp (ISO 8601 format)",
+              "example": "2025-01-31T23:59:59.999Z"
+            },
+            "example": "2025-01-31T23:59:59.999Z"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CCUsageReport"
+                  },
+                  "example": [
+                    {
+                      "reportId": "550e8400e29b41d4a716446655440000",
+                      "resourceType": "ContactSessionRecord",
+                      "orgId": "1eb65fdf-9643-417f-9974-ad72cae0e10f",
+                      "status": "completed",
+                      "createdTime": "2026-01-22T09:31:04Z",
+                      "completedTime": "2026-01-22T10:15:30Z",
+                      "expiryTime": "2026-01-29T10:15:30Z",
+                      "reportFiles": [
+                        {
+                          "startDate": "2025-12-23",
+                          "endDate": "2025-12-31",
+                          "status": "completed",
+                          "fileId": "0f49a30b66f9415382ce2251f2ee194d",
+                          "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2025-12-23_2025-12-31.csv",
+                          "fileSize": 102400,
+                          "checksum": "a1b2c3d4e5f67890",
+                          "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/0f49a30b66f9415382ce2251f2ee194d/download"
+                        },
+                        {
+                          "startDate": "2026-01-01",
+                          "endDate": "2026-01-22",
+                          "status": "completed",
+                          "fileId": "782ae11e495b4b6d9c6a9d9a2469e7c4",
+                          "fileName": "ContactSessionRecord_550e8400e29b41d4a716446655440000_1eb65fdf-9643-417f-9974-ad72cae0e10f_2026-01-01_2026-01-22.csv",
+                          "fileSize": 204800,
+                          "checksum": "b1c2d3e4f5a67890",
+                          "downloadUrl": "https://api.intgus1.ciscoccservice.com/v1/usage-reports/782ae11e495b4b6d9c6a9d9a2469e7c4/download"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further"
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server"
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/v1/usage-reports/{reportId}": {
+      "get": {
+        "tags": [
+          "Usage Reports"
+        ],
+        "summary": "Get usage report details",
+        "description": "Retrieves detailed information for a specific usage report.",
+        "operationId": "getReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "description": "Usage report ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Usage report ID",
+              "example": "550e8400e29b41d4a716446655440000"
+            },
+            "example": "550e8400e29b41d4a716446655440000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CCUsageReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further"
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "404": {
+            "description": "The URI requested is invalid or the resource requested, such as a report does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server"
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Usage Reports"
+        ],
+        "summary": "Delete usage report",
+        "description": "Deletes the specified usage report and its associated file. This operation cannot be undone.",
+        "operationId": "deleteReport",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "description": "Usage report ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Usage report ID",
+              "example": "550e8400e29b41d4a716446655440000"
+            },
+            "example": "550e8400e29b41d4a716446655440000"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further"
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server"
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
+    "/v1/usage-reports/{fileId}/download": {
+      "get": {
+        "tags": [
+          "Usage Reports"
+        ],
+        "summary": "Download usage report file",
+        "description": "Downloads one completed report file as a binary stream.\n\nUse the `fileId` returned in the report's `reportFiles` array. A `reportId` identifies the overall report and cannot be used with this endpoint. Usage Reports can cover up to 36 months of raw data, so large date ranges may be split into one file per calendar month. This keeps individual compressed files more manageable and avoids requiring customers to download a single very large file. If a report contains multiple files, call this endpoint once for each `fileId`.\n\nPassing a `reportId` to this endpoint returns `404` because the path parameter expects a file-level identifier.\n\nThe Developer Portal may not handle binary downloads reliably. Use Postman, curl, or a programmatic API client to download the file.\n\n**Note:** Both file and download URLs expire 7 days after report completion.\n",
+        "operationId": "downloadReport",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "description": "ID of the specific report file to download. Use fileId, not reportId.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "ID of the specific report file to download. Use fileId, not reportId.",
+              "example": "0f49a30b66f9415382ce2251f2ee194d"
+            },
+            "example": "0f49a30b66f9415382ce2251f2ee194d"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Binary stream containing the generated CSV report file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "example": "<binary file content>"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further"
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "The URI requested is invalid or the resource requested, such as a report does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many download times"
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server"
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
     "/v1/agents/login": {
       "post": {
         "tags": [
@@ -56393,7 +60149,7 @@
         "tags": [
           "Tasks"
         ],
-        "summary": "Resume Task",
+        "summary": "Unhold Task",
         "description": "Access this endpoint when the user has to resume a call from hold. When an user is done consulting, the previously held interaction with the customer should be resumed. It is not applicable for chats and emails. Requires one of the following scopes 'cjp:user','cloud-contact-center:pod_conv' for authorization. For a list of possible response messages, see the [Call Control API Guide](/docs/contact-control-apis).",
         "operationId": "agentUnHoldRoute",
         "parameters": [
@@ -56431,6 +60187,98 @@
           },
           "403": {
             "description": "Forbidden Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tasks/{taskId}/pause": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Pause Task",
+        "description": "Access this endpoint when users such as administrators, supervisors, or agents with an agent license need to pause a task that cannot be handled immediately. This API is supported only for non-real-time digital channels, such as email, social, etc. Authorization requires the `cjp:user` scope. For a list of potential response messages, refer to the [Call Control API Guide](/docs/contact-control-apis).",
+        "operationId": "pauseTaskRoute",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "The unique ID represents the interaction or task that the user wants to pause.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "UUID"
+            },
+            "example": "315fbb91-2288-427c-9588-ec764cd46ea4"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The request is accepted for processing"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/tasks/{taskId}/resume": {
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Resume Task",
+        "description": "Access this endpoint when users such as administrators, supervisors, or agents with an agent license need to resume a previously paused task. This API is supported only for non-real-time digital channels, such as email, social, etc. Authorization requires the `cjp:user` scope. For a list of potential response messages, refer to the [Call Control API Guide](/docs/contact-control-apis).",
+        "operationId": "resumeTaskRoute",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "description": "The unique ID represents the interaction or task that the user wants to resume.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "UUID"
+            },
+            "example": "315fbb91-2288-427c-9588-ec764cd46ea4"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The request is accepted for processing"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "429": {
+            "description": "Too many requests"
           },
           "500": {
             "description": "Internal Server Error"
@@ -78368,6 +82216,253 @@
           }
         }
       },
+      "AssetDTO": {
+        "type": "object",
+        "description": "Asset details",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+            "maxLength": 36,
+            "minLength": 32,
+            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
+            "example": "93912f11-6017-404b-bf14-5331890b1797"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Enter a name for the agent profile.",
+            "example": "Asset-1",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\._\\s\\-\\(\\)]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "Asset description",
+            "example": "Asset Desc",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "channelType": {
+            "type": "string",
+            "description": "Type of channel (WORK_ITEM or CUSTOM_MESSAGING)",
+            "enum": [
+              "TELEPHONY",
+              "EMAIL",
+              "FAX",
+              "CHAT",
+              "VIDEO",
+              "OTHERS",
+              "SOCIAL_CHANNEL",
+              "WORK_ITEM",
+              "CUSTOM_MESSAGING"
+            ],
+            "example": "WORK_ITEM"
+          },
+          "channelName": {
+            "type": "string",
+            "description": "Channel name (read-only, included when includeChannelName=true)",
+            "example": "channel1",
+            "readOnly": true
+          },
+          "channelId": {
+            "type": "string",
+            "description": "Channel ID reference",
+            "example": "2b88dfbf-bee2-48df-918b-00ae75683ec4",
+            "minLength": 1
+          },
+          "businessAddress": {
+            "type": "string",
+            "description": "Business address (immutable after creation, max 200 chars, no special JSON chars)",
+            "example": "businessAddress",
+            "maxLength": 200,
+            "minLength": 0,
+            "pattern": "^[^,\"\\[\\]{}]*$"
+          },
+          "dataSchema": {
+            "type": "array",
+            "description": "List of data schema items for the asset. Required for WORK_ITEM channel type. At least one item must have isViewable=true and one must have isRequired=true. Maximum size enforced by config-limit framework (default 50 items).",
+            "items": {
+              "$ref": "#/components/schemas/DataSchemaItemDTO",
+              "description": "Data Schema item."
+            }
+          },
+          "webhookConfig": {
+            "$ref": "#/components/schemas/WebhookConfigDTO",
+            "description": "Webhook configuration for CUSTOM_MESSAGING assets. Required on CREATE. Optional on UPDATE (omit to keep existing credentials). webhookUrl must use HTTPS. webhookSecret is write-only — not returned in GET responses."
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the created time of the entity.",
+            "example": 123456789
+          },
+          "lastUpdatedTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
+          }
+        },
+        "required": [
+          "businessAddress",
+          "channelId",
+          "channelType",
+          "name"
+        ]
+      },
+      "DataSchemaItemDTO": {
+        "type": "object",
+        "description": "Data schema field definition for Asset",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the data schema item (auto-generated)",
+            "example": "12345-abcde",
+            "readOnly": true
+          },
+          "fieldKey": {
+            "type": "string",
+            "description": "Unique field identifier key within the asset",
+            "example": "customerName",
+            "maxLength": 100,
+            "minLength": 0,
+            "pattern": "^[a-zA-Z0-9_-]+(\\s?[a-zA-Z0-9_-]+)*$"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Human-readable display name for the field",
+            "example": "Customer Name",
+            "maxLength": 80,
+            "minLength": 0,
+            "pattern": "^[a-zA-Z0-9_-]+(\\s?[a-zA-Z0-9_-]+)*$"
+          },
+          "isViewable": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indicates if the field is viewable by agents",
+            "example": true
+          },
+          "isRequired": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indicates if the field is required for submission",
+            "example": false
+          }
+        },
+        "required": [
+          "displayName",
+          "fieldKey"
+        ]
+      },
+      "WebhookConfigDTO": {
+        "type": "object",
+        "description": "Webhook configuration for CUSTOM_MESSAGING assets",
+        "properties": {
+          "webhookUrl": {
+            "type": "string",
+            "description": "HTTPS webhook URL for receiving events (max 2000 chars, must start with https://). Required on CREATE. On UPDATE, omit to keep existing URL.",
+            "example": "https://example.com/webhook",
+            "maxLength": 2000,
+            "minLength": 0
+          },
+          "webhookSecret": {
+            "type": "string",
+            "description": "Secret token for webhook authentication (min 32, max 256 chars). Required on CREATE. On UPDATE, omit to keep existing secret. Write-only — never returned in responses.",
+            "example": "s3cr3t-webhook-signing-key-1234567890",
+            "maxLength": 256,
+            "minLength": 32,
+            "writeOnly": true
+          }
+        }
+      },
+      "BulkRequestDTOAssetDTO": {
+        "type": "object",
+        "description": "Bulk Request Asset schema.",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "List of items in the bulk request.",
+            "items": {
+              "$ref": "#/components/schemas/BulkRequestItemDTOAssetDTO",
+              "description": "Item."
+            }
+          }
+        }
+      },
+      "BulkRequestItemDTOAssetDTO": {
+        "type": "object",
+        "description": "List of items in the bulk request.",
+        "properties": {
+          "itemIdentifier": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Unique item identifier for a bulk operation.",
+            "example": 10
+          },
+          "item": {
+            "$ref": "#/components/schemas/AssetDTO",
+            "description": "Item."
+          },
+          "requestAction": {
+            "type": "string",
+            "description": "Identifier for action type. Possible values are `SAVE` and `DELETE`.",
+            "example": "SAVE"
+          }
+        }
+      },
+      "JsonValue": {
+        "type": "object",
+        "description": "Json Value schema.",
+        "properties": {
+          "valueType": {
+            "type": "string",
+            "description": "Value Type.",
+            "enum": [
+              "ARRAY",
+              "OBJECT",
+              "STRING",
+              "NUMBER",
+              "TRUE",
+              "FALSE",
+              "NULL"
+            ]
+          }
+        }
+      },
+      "ResponseEnvelopeAssetDTO": {
+        "type": "object",
+        "description": "Response Envelope Asset schema.",
+        "properties": {
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "description": "Meta additional property."
+            },
+            "description": "Additional properties for Meta."
+          },
+          "data": {
+            "type": "array",
+            "description": "List of Data.",
+            "items": {
+              "$ref": "#/components/schemas/AssetDTO",
+              "description": "Data item."
+            }
+          }
+        }
+      },
       "AudioFileInfoDTO": {
         "required": [
           "contentType",
@@ -78681,6 +82776,429 @@
             "type": "string",
             "description": "Indicates the work type associated with this code.",
             "example": "WRAP_UP_CODE"
+          }
+        }
+      },
+      "ChannelDTO": {
+        "type": "object",
+        "description": "Channel details in JSON format",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+            "maxLength": 36,
+            "minLength": 32,
+            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
+            "example": "93912f11-6017-404b-bf14-5331890b1797"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Enter a name for the agent profile.",
+            "example": "Agent-Profile(Auto WrapUp)",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\._\\s\\-\\(\\)]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "Channel description",
+            "example": "Channel Desc",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "channelType": {
+            "type": "string",
+            "description": "Type of channel",
+            "enum": [
+              "TELEPHONY",
+              "EMAIL",
+              "FAX",
+              "CHAT",
+              "VIDEO",
+              "OTHERS",
+              "SOCIAL_CHANNEL",
+              "WORK_ITEM",
+              "CUSTOM_MESSAGING"
+            ],
+            "example": "WORK_ITEM"
+          },
+          "logoType": {
+            "type": "string",
+            "description": "Type of logo. Use MOMENTUM to reference a Momentum icon by name, or LOGO_URL to upload a binary image file.",
+            "enum": [
+              "MOMENTUM",
+              "LOGO_URL"
+            ],
+            "example": "MOMENTUM"
+          },
+          "logoIconName": {
+            "type": "string",
+            "description": "Momentum icon name (required when logoType is MOMENTUM)",
+            "example": "momentumIconName",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Public CDN URL of the uploaded logo image (read-only — populated by the server after upload when logoType is LOGO_URL). Do not supply this field on create/update; send the binary image as the 'logoFile' multipart part instead.",
+            "example": "https://wxcc-config-resource-nonprod-cdn.ciscoccservice.com/org-id/channel-logo/uuid.png",
+            "readOnly": true
+          },
+          "logoUrlVersioned": {
+            "type": "string",
+            "description": "Versioned CDN URL of the uploaded logo image — stored without Cache-Control so CloudFront always fetches the latest binary immediately (read-only, populated by the server alongside logoUrl).",
+            "example": "https://wxcc-config-resource-nonprod-cdn.ciscoccservice.com/org-id/channel-logo/versioned/uuid.png",
+            "readOnly": true
+          },
+          "numberOfAsset": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of assets using this channel",
+            "example": 5
+          },
+          "messagingPolicy": {
+            "$ref": "#/components/schemas/MessagingPolicyDTO",
+            "description": "Messaging policy configuration (required when channelType is CUSTOM_MESSAGING)"
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the created time of the entity.",
+            "example": 123456789
+          },
+          "lastUpdatedTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
+          }
+        },
+        "required": [
+          "channelType",
+          "logoType",
+          "name"
+        ]
+      },
+      "MessagingPolicyDTO": {
+        "type": "object",
+        "description": "Messaging policy configuration for CUSTOM_MESSAGING channels",
+        "properties": {
+          "maxMessageCharacters": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum number of characters per message (1-20000)",
+            "example": 5000,
+            "minimum": 1
+          },
+          "allowFileAttachments": {
+            "type": "boolean",
+            "description": "Whether file attachments are allowed",
+            "example": true
+          },
+          "maxNumberOfAttachments": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum number of attachments per message",
+            "example": 5,
+            "minimum": 1
+          },
+          "maxTotalAttachmentSizeMegabytes": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum total attachment size in MB",
+            "example": 10,
+            "minimum": 1
+          },
+          "maxSingleAttachmentSizeMegabytes": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum single attachment size in MB",
+            "example": 5,
+            "minimum": 1
+          },
+          "allowedFileTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "List of Allowed File Types additional property.",
+              "items": {
+                "type": "string",
+                "description": "Allowed File Types additional property item.",
+                "enum": [
+                  "jpg",
+                  "jpeg",
+                  "gif",
+                  "png",
+                  "bmp",
+                  "webp",
+                  "tiff",
+                  "tif",
+                  "mp4",
+                  "avi",
+                  "mov",
+                  "mkv",
+                  "flv",
+                  "m4v",
+                  "3gp",
+                  "mp3",
+                  "wav",
+                  "amr",
+                  "pdf",
+                  "pdfxml",
+                  "doc",
+                  "docx",
+                  "dot",
+                  "dotx",
+                  "dotm",
+                  "dothtml",
+                  "xls",
+                  "xlsx",
+                  "xlsm",
+                  "xlt",
+                  "xltx",
+                  "xltm",
+                  "xlam",
+                  "xlsb",
+                  "xlshtml",
+                  "xlthtml",
+                  "csv",
+                  "ppt",
+                  "pptx",
+                  "pps",
+                  "ppsx",
+                  "pptm",
+                  "ppsm",
+                  "ppam",
+                  "pot",
+                  "potx",
+                  "potm",
+                  "pothtml",
+                  "ppthtml",
+                  "pptmhtml",
+                  "pptxml",
+                  "odt",
+                  "ods",
+                  "rtf",
+                  "txt",
+                  "eml",
+                  "msg",
+                  "pub",
+                  "pubhtml",
+                  "pubmhtml",
+                  "html",
+                  "mhtml",
+                  "mht",
+                  "shtml",
+                  "xhtml",
+                  "xml",
+                  "xps",
+                  "zip"
+                ]
+              }
+            },
+            "description": "Allowed file types mapped by file type. Valid file types: 'images', 'videos', 'audio', 'documents', 'others'. Each file type has a predefined list of allowed extensions. Example: {\"documents\": [\"pdf\", \"docx\"], \"images\": [\"jpg\", \"png\"]}"
+          }
+        },
+        "required": [
+          "allowFileAttachments",
+          "maxMessageCharacters"
+        ]
+      },
+      "BulkRequestDTOChannelDTO": {
+        "type": "object",
+        "description": "Bulk Request Channel schema.",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "List of items in the bulk request.",
+            "items": {
+              "$ref": "#/components/schemas/BulkRequestItemDTOChannelDTO",
+              "description": "Item."
+            }
+          }
+        }
+      },
+      "BulkRequestItemDTOChannelDTO": {
+        "type": "object",
+        "description": "List of items in the bulk request.",
+        "properties": {
+          "itemIdentifier": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Unique item identifier for a bulk operation.",
+            "example": 10
+          },
+          "item": {
+            "$ref": "#/components/schemas/ChannelDTO",
+            "description": "Item."
+          },
+          "requestAction": {
+            "type": "string",
+            "description": "Identifier for action type. Possible values are `SAVE` and `DELETE`.",
+            "example": "SAVE"
+          }
+        }
+      },
+      "ChannelPatchDTO": {
+        "type": "object",
+        "description": "Channel fields to update. Include only the fields to change. logoUrl and logoUrlVersioned cannot be changed by using PATCH.",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Channel description",
+            "example": "Updated channel description",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "logoType": {
+            "type": "string",
+            "description": "Type of logo. Only MOMENTUM is accepted via PATCH. Setting logoType to LOGO_URL is rejected with 400 — use PUT with a logoFile part to upload a logo image and switch to LOGO_URL.",
+            "enum": [
+              "MOMENTUM"
+            ],
+            "example": "MOMENTUM"
+          },
+          "logoIconName": {
+            "type": "string",
+            "description": "Momentum icon name — required when logoType is MOMENTUM; ignored / null when logoType is LOGO_URL.",
+            "example": "chat-regular",
+            "maxLength": 100,
+            "minLength": 0
+          }
+        }
+      },
+      "ResponseEnvelopeChannelDTOList": {
+        "type": "object",
+        "description": "Response Envelope Channel schema.",
+        "properties": {
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "description": "Meta additional property."
+            },
+            "description": "Additional properties for Meta."
+          },
+          "data": {
+            "type": "array",
+            "description": "List of Data.",
+            "items": {
+              "$ref": "#/components/schemas/ChannelDTOList"
+            }
+          }
+        }
+      },
+      "ChannelDTOList": {
+        "type": "object",
+        "description": "Channel details in JSON format",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the contact center organization. This field is required for all bulk save operations.",
+            "example": "f53c8b54-46ca-43f6-ba05-08426a46e23d",
+            "maxLength": 36,
+            "minLength": 32,
+            "pattern": "^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$"
+          },
+          "id": {
+            "type": "string",
+            "description": "ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource.",
+            "example": "93912f11-6017-404b-bf14-5331890b1797"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The version of this resource. For a newly created resource, it will be 0 unless specified otherwise.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Enter a name for the agent profile.",
+            "example": "Agent-Profile(Auto WrapUp)",
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\._\\s\\-\\(\\)]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "Channel description",
+            "example": "Channel Desc",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "channelType": {
+            "type": "string",
+            "description": "Type of channel",
+            "enum": [
+              "TELEPHONY",
+              "EMAIL",
+              "FAX",
+              "CHAT",
+              "VIDEO",
+              "OTHERS",
+              "SOCIAL_CHANNEL",
+              "WORK_ITEM",
+              "CUSTOM_MESSAGING"
+            ],
+            "example": "WORK_ITEM"
+          },
+          "logoType": {
+            "type": "string",
+            "description": "Type of logo. Use MOMENTUM to reference a Momentum icon by name, or LOGO_URL to upload a binary image file.",
+            "enum": [
+              "MOMENTUM",
+              "LOGO_URL"
+            ],
+            "example": "MOMENTUM"
+          },
+          "logoIconName": {
+            "type": "string",
+            "description": "Momentum icon name (required when logoType is MOMENTUM)",
+            "example": "momentumIconName",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Public CDN URL of the uploaded logo image (read-only — populated by the server after upload when logoType is LOGO_URL). Do not supply this field on create/update; send the binary image as the 'logoFile' multipart part instead.",
+            "example": "https://wxcc-config-resource-nonprod-cdn.ciscoccservice.com/org-id/channel-logo/uuid.png",
+            "readOnly": true
+          },
+          "logoUrlVersioned": {
+            "type": "string",
+            "description": "Versioned CDN URL of the uploaded logo image — stored without Cache-Control so CloudFront always fetches the latest binary immediately (read-only, populated by the server alongside logoUrl).",
+            "example": "https://wxcc-config-resource-nonprod-cdn.ciscoccservice.com/org-id/channel-logo/versioned/uuid.png",
+            "readOnly": true
+          },
+          "numberOfAsset": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of assets using this channel",
+            "example": 5
+          },
+          "createdTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the created time of the entity.",
+            "example": 123456789
+          },
+          "lastUpdatedTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "This is the updated time of the entity.",
+            "example": 123456789
           }
         }
       },
@@ -87841,25 +92359,6 @@
               "$ref": "#/components/schemas/UserDetailsResponseDTO",
               "description": "Data item."
             }
-          }
-        }
-      },
-      "JsonValue": {
-        "type": "object",
-        "description": "Json Value schema.",
-        "properties": {
-          "valueType": {
-            "type": "string",
-            "description": "Value Type.",
-            "enum": [
-              "ARRAY",
-              "OBJECT",
-              "STRING",
-              "NUMBER",
-              "TRUE",
-              "FALSE",
-              "NULL"
-            ]
           }
         }
       },
@@ -98789,6 +103288,12 @@
       }
     },
     "securitySchemes": {
+      "bearer-key": {
+        "type": "http",
+        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
       "oauth2": {
         "flows": {
           "authorizationCode": {
@@ -98798,12 +103303,6 @@
           }
         },
         "type": "oauth2"
-      },
-      "bearer-key": {
-        "type": "http",
-        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
       },
       "BEARER_TOKEN_FROM_CI": {
         "type": "http",

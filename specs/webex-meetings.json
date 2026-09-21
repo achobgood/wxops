@@ -51733,6 +51733,12 @@
       }
     },
     "securitySchemes": {
+      "bearer-key": {
+        "type": "http",
+        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
       "oauth2": {
         "flows": {
           "authorizationCode": {
@@ -51742,12 +51748,6 @@
           }
         },
         "type": "oauth2"
-      },
-      "bearer-key": {
-        "type": "http",
-        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
       }
     },
     "parameters": {},

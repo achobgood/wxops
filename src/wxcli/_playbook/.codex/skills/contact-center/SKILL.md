@@ -145,6 +145,8 @@ Ask the user what they want to configure. Present this decision matrix if they a
 | Skills | Skill definitions (routing attributes) | `cc-skill` |
 | Skill profiles | Skill profile assignments | `cc-skill-profile` |
 | Teams | CC team CRUD, agent assignment | `cc-team` |
+| Channels | The medium a contact arrives on (telephony/email/chat/social/work-item) + its branding | `channel` |
+| Assets | A configured instance of a channel (mailbox, chat widget, custom-messaging endpoint) | `asset` |
 
 ### Flows & Automation
 
@@ -666,6 +668,45 @@ wxcli cc-multimedia-profile create --json-body '{
 ```bash
 wxcli cc-multimedia-profile list-multimedia-profile -o json
 ```
+
+---
+
+### Channels & Assets
+
+A **channel** is the medium a contact arrives on; an **asset** is one configured instance of a
+channel. Create the channel first — an asset must name an existing `channelId`. Neither group is
+prefixed `cc-`: they register as `channel` and `asset`.
+
+**List channels and assets:**
+
+```bash
+wxcli channel list-channel --all --fields '[].{id:id,name:name}' -o json
+wxcli asset list-asset --all --include-channel-name true -o json
+```
+
+**Create a channel — `create` is the BULK endpoint, so the body needs an `items` array:**
+
+```bash
+wxcli channel create --json-body '{"items":[{"requestAction":"CREATE","name":"Web Chat","description":"Public website chat","channelType":"CHAT"}]}'
+```
+
+**Create an asset against that channel:**
+
+```bash
+wxcli asset create --name "Tier 2 Work Items" --channel-type WORK_ITEM --channel-id CHANNEL_ID --business-address "600 Congress Ave, Austin TX"
+```
+
+**Before changing or deleting either, check what references it:**
+
+```bash
+wxcli channel list-incoming-references CHANNEL_ID
+wxcli asset list-incoming-references ASSET_ID
+```
+
+Two traps, both in `docs/reference/contact-center-routing.md` §§ 15-16: `asset update` (PUT) is for
+**WORK_ITEM** assets and `asset update-asset` (PATCH) is for **CUSTOM_MESSAGING** assets — the
+wrong one is a 4xx, so check `channelType` with `asset show` first. And single channel create /
+full channel update are multipart (logo upload) and have **no** CLI command; use raw HTTP for those.
 
 ---
 

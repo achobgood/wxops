@@ -17,12 +17,13 @@ CDR feed, report templates, report generation/download, and call quality/queue/A
 - [1. Detailed Call History (CDR) API](#1-detailed-call-history-cdr-api)
 - [2. Report Templates API](#2-report-templates-api)
 - [3. Reports API](#3-reports-api)
-- [4. Complete Workflow: Generate and Download a Report](#4-complete-workflow-generate-and-download-a-report)
-- [5. CDR Feed vs. Reports API — When to Use Which](#5-cdr-feed-vs-reports-api--when-to-use-which)
-- [6. Use Cases](#6-use-cases)
-- [7. Known API Documentation Bugs](#7-known-api-documentation-bugs)
-- [8. Gotchas](#8-gotchas)
-- [9. Raw HTTP Endpoints](#9-raw-http-endpoints)
+- [4. Call Quality Statistics (calling-metrics)](#4-call-quality-statistics-calling-metrics)
+- [5. Complete Workflow: Generate and Download a Report](#5-complete-workflow-generate-and-download-a-report)
+- [6. CDR Feed vs. Reports API — When to Use Which](#6-cdr-feed-vs-reports-api--when-to-use-which)
+- [7. Use Cases](#7-use-cases)
+- [8. Known API Documentation Bugs](#8-known-api-documentation-bugs)
+- [9. Gotchas](#9-gotchas)
+- [10. Raw HTTP Endpoints](#10-raw-http-endpoints)
 - [See Also](#see-also)
 
 ---
@@ -532,7 +533,80 @@ Downloading a report requires:
 
 ---
 
-## 4. Complete Workflow: Generate and Download a Report
+## 4. Call Quality Statistics (calling-metrics)
+
+CLI group: `wxcli calling-metrics` (1 command, read-only)
+
+A single aggregate read: `GET /v1/analytics/callQualityStats` returns Webex Calling media-quality
+figures (the packet-loss / jitter / latency family) for a time window, optionally narrowed to one
+location. It is **not** CDR — it returns aggregated quality, not one row per call, so it cannot tell
+you who called whom, and no `correlationId` links it back to an individual call leg. It is also not
+the Contact Center quality surface (`reporting-cc`), not meeting quality
+(`reporting-meetings` / `meetings-infrastructure.md`), and not a report you generate and download:
+the answer comes back inline on the one GET.
+
+This is a Webex Calling endpoint on `https://webexapis.com/v1`, even though the same path was added
+to both `webex-admin.json` and `webex-cloud-calling.json` in the 2026-09-21 spec refresh. It does
+not use a Contact Center regional base URL.
+
+**Unverified:** read from the 2026-09-21 spec refresh and from the generated module. No live call
+was made, so the response fields and the scope this endpoint actually enforces are spec-derived.
+
+### Commands
+
+| CLI Command | HTTP | Description |
+|-------------|------|-------------|
+| `wxcli calling-metrics show` | GET /v1/analytics/callQualityStats | Webex Calling call quality stats for a window |
+
+### Key Parameters
+
+- `--from` — inclusive UTC start, `yyyy-MM-ddTHH:mm:ssZ`. Omitted with `--to` given, it defaults to seven days before `to`; omitted with both absent, seven days before now.
+- `--to` — exclusive UTC end, same format. A value later than now is clamped to now.
+- `--location` — an exact Webex Calling location **name**. Omit it (or pass empty) for all locations.
+- `-o` — defaults to `json` on this command, not `table`.
+
+### CLI Examples
+
+```bash
+# Default window: the last seven days, all locations
+wxcli calling-metrics show
+
+# An explicit window
+wxcli calling-metrics show --from 2026-09-01T00:00:00Z --to 2026-09-08T00:00:00Z
+
+# One location, by its exact name
+wxcli calling-metrics show --location "Austin HQ" --from 2026-09-01T00:00:00Z --to 2026-09-08T00:00:00Z
+
+# Render as a table instead of the default JSON
+wxcli calling-metrics show -o table
+```
+
+### Raw HTTP
+
+```bash
+GET https://webexapis.com/v1/analytics/callQualityStats?from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z&location=Austin%20HQ
+Authorization: Bearer {access_token}
+```
+
+### Gotcha
+
+**`--location` takes the location NAME, not a location id, and passing an id returns a successful
+empty result rather than an error.** Every other location-scoped command in this CLI takes a
+base64 `ciscospark://.../LOCATION/...` id from `wxcli locations list`, so reaching for one here is
+the natural mistake; the spec is explicit that this parameter is an *"Exact Webex Calling location
+name"*, and the same doc's CDR section already warns that location filtering there is by name too
+(and needs the `spark-admin:locations_read` scope). Worse, the spec also says an omitted or empty
+value means *all* locations — so a wrong value silently narrows to nothing while an empty one
+silently widens to everything, and both exit 0. Get the exact string from
+`wxcli locations list --fields '[].name' -o text` and pass it verbatim, quoted.
+
+See also section 1 above (CDR): when the question is about a *specific* call rather than the
+aggregate health of a window, this command cannot answer it and the CDR feed is the surface that
+can, because it returns one record per call leg with the identifiers to join on.
+
+---
+
+## 5. Complete Workflow: Generate and Download a Report
 
 ### CLI Workflow
 
@@ -558,7 +632,7 @@ wxcli reports delete REPORT_ID --force
 
 ---
 
-## 5. CDR Feed vs. Reports API — When to Use Which
+## 6. CDR Feed vs. Reports API — When to Use Which
 
 | Criteria | CDR Feed API | Reports API |
 |----------|-------------|-------------|
@@ -573,7 +647,7 @@ wxcli reports delete REPORT_ID --force
 
 ---
 
-## 6. Use Cases
+## 7. Use Cases
 
 ### Call Quality Monitoring
 
@@ -655,7 +729,7 @@ wxcli recording-report list \
 
 ---
 
-## 7. Known API Documentation Bugs
+## 8. Known API Documentation Bugs
 
 The following are known discrepancies between Webex API documentation and actual behavior:
 
@@ -670,7 +744,7 @@ The following are known discrepancies between Webex API documentation and actual
 
 ---
 
-## 8. Gotchas
+## 9. Gotchas
 
 - **Regional routing:** If the CDR endpoint returns HTTP 451, parse the response body for the correct regional endpoint URL and retry.
 - **12-hour window limit:** CDR Feed requests cannot span more than 12 hours. For longer ranges, issue multiple sequential requests.
@@ -687,7 +761,7 @@ The following are known discrepancies between Webex API documentation and actual
 
 ---
 
-## 9. Raw HTTP Endpoints
+## 10. Raw HTTP Endpoints
 <!-- Updated by playbook session 2026-03-18 -->
 
 All endpoints below use the `api.session.rest_*` methods. URLs confirmed from working CLI implementations.

@@ -55,6 +55,7 @@ Available regions: us1, eu1, eu2, anz1, ca1, jp1, sg1.
 | Which fields a search may filter, sort, group or aggregate on | `cc-search-metadata` | `list` |
 | Real-time queue/agent state | `cc-realtime` | `create` |
 | Call monitoring | `cc-call-monitoring` | 7 commands |
+| Consumption/billing extract for a resource type over a date range | `usage-reports` | `list-resource-types`, `create`, `show`, `list-download` |
 
 ## Step 4: Execute and analyze
 
@@ -171,6 +172,33 @@ else:
         print(f\"{q.get('queueName', '?')}: {q.get('estimatedWaitTime', q.get('ewt', 'N/A'))}s\")
 "
 ```
+
+### Usage Reports
+
+Consumption extracts, not live analytics: you request a report, it is generated asynchronously, and
+you download the resulting **file(s)**. One request can yield several files — a long range is split
+by calendar month — so read the ids out of `show` rather than assuming one.
+
+#### Recipe CC-U1 — Generate and download a usage report
+Question: "How much of resource X did we consume last month?"
+```bash
+# 1. What can be reported on, and for which dates is there data?
+wxcli usage-reports list-resource-types
+
+# 2. Request the report (asynchronous; returns the reportId)
+wxcli usage-reports create --resource-type RESOURCE_TYPE --start-date 2026-08-01 --end-date 2026-09-01
+
+# 3. Read the file ids off the report once it has generated
+wxcli usage-reports show REPORT_ID --fields 'reportFiles[].fileId' -o text
+
+# 4. Download each FILE by fileId -- a reportId will not work here
+wxcli usage-reports list-download FILE_ID
+```
+
+`list-download` takes a `fileId`, never a `reportId`. `list-resource-types` is the real name of the
+resource-type read — `list` is a hidden alias kept for compatibility and returns types, not reports;
+the report collection is `list-usage-reports`. Full detail:
+`docs/reference/contact-center-analytics.md` § 14.
 
 ### Agent Summaries
 

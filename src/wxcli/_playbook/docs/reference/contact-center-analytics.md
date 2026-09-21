@@ -1,7 +1,7 @@
 # Contact Center: AI, Analytics, Monitoring, and Events
 
 Reference for Webex Contact Center AI features, customer journey analytics, call monitoring,
-event subscriptions, and task management. Covers 13 CLI groups with 123 commands generated
+event subscriptions, and task management. Covers 14 CLI groups with 131 commands generated
 from the Contact Center OpenAPI spec.
 
 > **Regional base URL:** `https://api.wxcc-{region}.cisco.com`
@@ -29,9 +29,10 @@ from the Contact Center OpenAPI spec.
 11. [Notifications](#11-notifications)
 12. [Search](#12-search)
 13. [Address Book](#13-address-book)
-14. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
-15. [Gotchas](#gotchas)
-16. [See Also](#see-also)
+14. [Usage Reports](#14-usage-reports)
+15. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
+16. [Gotchas](#gotchas)
+17. [See Also](#see-also)
 
 ---
 
@@ -512,7 +513,7 @@ Authorization: Bearer {cc_token}
 
 ## 10. Tasks
 
-CLI group: `wxcli cc-tasks` (24 commands)
+CLI group: `wxcli cc-tasks` (26 commands)
 
 The Tasks API is the primary agent interaction API — it handles the full contact/call
 lifecycle from creation through wrap-up. Agents accept, hold, transfer, consult, conference,
@@ -535,8 +536,10 @@ and wrap up tasks. The API also handles preview dialer tasks and recording contr
 | `create-transfer-consult` | POST `/v1/tasks/{taskId}/consult/transfer` | Consult transfer |
 | `create-end-tasks` | POST `/v1/tasks/{taskId}/end` | End task |
 | `create-hold` | POST `/v1/tasks/{taskId}/hold` | Hold task |
-| `create-pause` | POST `/v1/tasks/{taskId}/record/pause` | Pause recording |
-| `create-resume` | POST `/v1/tasks/{taskId}/record/resume` | Resume recording |
+| `create-pause` | POST `/v1/tasks/{taskId}/record/pause` | Pause **recording** |
+| `create-resume` | POST `/v1/tasks/{taskId}/record/resume` | Resume **recording** |
+| `create-pause-tasks` | POST `/v1/tasks/{taskId}/pause` | Pause the **task** (added 2026-09-21) |
+| `create-resume-tasks` | POST `/v1/tasks/{taskId}/resume` | Resume the **task** (added 2026-09-21) |
 | `create-reject` | POST `/v1/tasks/{taskId}/reject` | Reject task |
 | `create-transfer-tasks` | POST `/v1/tasks/{taskId}/transfer` | Transfer task |
 | `create-unhold` | POST `/v1/tasks/{taskId}/unhold` | Resume (unhold) |
@@ -874,9 +877,109 @@ Authorization: Bearer {cc_token}
 
 ---
 
+## 14. Usage Reports
+
+CLI group: `wxcli usage-reports` (6 commands)
+
+Usage Reports generate and retrieve **billing-style consumption extracts** — how much of a given
+resource type the org consumed over a date range — as asynchronously produced downloadable files.
+This is not real-time analytics and not the queue/agent statistics in `reporting-cc`: nothing here
+answers "what is happening right now", and the numbers arrive as a file you download rather than as
+JSON rows you filter. It is also unrelated to Webex Calling CDR (`wxcli cdr`, see
+`reporting-analytics.md`) and to meetings usage reports.
+
+**Unverified:** this section is derived from `specs/webex-contact-center.json` (2026-09-21 refresh)
+and the generated module. No live call was made, so report lifecycle timings and file formats are
+spec-stated, not measured.
+
+### Commands
+
+| CLI Command | HTTP | Description |
+|-------------|------|-------------|
+| `list-resource-types` | GET `/v1/usage-reports/resource-types` | Resource types a report can be generated for, with the dates data exists for |
+| `create` | POST `/v1/usage-reports` | Create a usage report (generated asynchronously) |
+| `list-usage-reports` | GET `/v1/usage-reports` | List usage reports in the org |
+| `show` | GET `/v1/usage-reports/{reportId}` | Get one report's details, including `reportFiles[]` |
+| `list-download` | GET `/v1/usage-reports/{fileId}/download` | Download one completed report FILE as a binary stream |
+| `delete` | DELETE `/v1/usage-reports/{reportId}` | Delete a report and its file — cannot be undone |
+
+`list` is a hidden alias of `list-resource-types` and exists only so an older invocation keeps
+working. Prefer the explicit name: the bare `list` in this group returns resource *types*, not
+reports, which is the trap the rename removes.
+
+### Key Parameters
+
+- `--resource-type` — which resource the report covers; take the value from `list-resource-types`, not from memory.
+- `--start-date` / `--end-date` — `yyyy-MM-dd`. Start is inclusive, **end is exclusive**.
+- `report_id` (positional) — for `show` and `delete`.
+- `file_id` (positional) — for `list-download`, and it is **not** a report id (see the gotcha).
+
+### CLI Examples
+
+```bash
+# What can be reported on, and for which dates does data exist?
+wxcli usage-reports list-resource-types
+
+# Request a report (returns the reportId; generation is asynchronous)
+wxcli usage-reports create --resource-type <resource-type> --start-date 2026-08-01 --end-date 2026-09-01
+
+# List reports that already exist
+wxcli usage-reports list-usage-reports --all
+
+# Get one report's details and the file ids it produced
+wxcli usage-reports show <report-id>
+
+# Pull just the file ids out of that report
+wxcli usage-reports show <report-id> --fields 'reportFiles[].fileId' -o text
+
+# Download ONE file, by fileId (not reportId) -- binary stream
+wxcli usage-reports list-download <file-id>
+
+# Delete a report and its file (irreversible)
+wxcli usage-reports delete <report-id>
+```
+
+### Raw HTTP
+
+```bash
+# Available resource types
+GET https://api.wxcc-us1.cisco.com/v1/usage-reports/resource-types
+Authorization: Bearer {cc_token}
+
+# Create a usage report
+POST https://api.wxcc-us1.cisco.com/v1/usage-reports
+Content-Type: application/json
+{"resourceType":"{resourceType}","startDate":"2026-08-01","endDate":"2026-09-01"}
+
+# Report details (carries reportFiles[])
+GET https://api.wxcc-us1.cisco.com/v1/usage-reports/{reportId}
+
+# Download one file
+GET https://api.wxcc-us1.cisco.com/v1/usage-reports/{fileId}/download
+```
+
+### Gotcha
+
+**`list-download` takes a `fileId`, and a `reportId` in that position will not work — even though
+the two ids sit in the same response and the path looks like every other item route in this group.**
+The spec says it outright: *"Use the `fileId` returned in the report's `reportFiles` array. A
+`reportId` identifies the overall report and cannot be used with this endpoint."* One request can
+produce **several** files, because a report covering a long range (up to 36 months of raw data) is
+split by calendar month, so `reportFiles[]` is routinely longer than one entry and there is no
+single "the" file for a report. Read the ids out of `show` first —
+`wxcli usage-reports show <report-id> --fields 'reportFiles[].fileId' -o text` — and download each.
+Note also that `create` returns exactly one `reportId` regardless of how many files it will yield,
+so a successful create tells you nothing about how many downloads follow.
+
+See also `reporting-analytics.md` for the Webex **Calling** side of usage measurement (CDR, queue
+and auto-attendant statistics): if the question is about calls rather than Contact Center resource
+consumption, this group is the wrong one and that doc is where to go.
+
+---
+
 ## Raw HTTP Endpoint Table
 
-All 83 endpoints tabulated below, across 13 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
+All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
 
 ### AI Assistant (1)
 
@@ -957,7 +1060,7 @@ All 83 endpoints tabulated below, across 13 CLI groups. Regional base URL: `http
 | DELETE | `/v2/subscriptions/{id}` | Delete (v2) |
 | PATCH | `/v2/subscriptions/{id}` | Update (v2) |
 
-### Tasks (24)
+### Tasks (26)
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -976,6 +1079,8 @@ All 83 endpoints tabulated below, across 13 CLI groups. Regional base URL: `http
 | POST | `/v1/tasks/{taskId}/hold` | Hold |
 | POST | `/v1/tasks/{taskId}/record/pause` | Pause recording |
 | POST | `/v1/tasks/{taskId}/record/resume` | Resume recording |
+| POST | `/v1/tasks/{taskId}/pause` | Pause the task itself |
+| POST | `/v1/tasks/{taskId}/resume` | Resume the task itself |
 | POST | `/v1/tasks/{taskId}/reject` | Reject |
 | POST | `/v1/tasks/{taskId}/transfer` | Transfer |
 | POST | `/v1/tasks/{taskId}/unhold` | Resume (unhold) |
@@ -1027,6 +1132,17 @@ All 83 endpoints tabulated below, across 13 CLI groups. Regional base URL: `http
 | GET | `/organization/{orgid}/v3/address-book/{id}` | Get (v3) |
 | PUT | `/organization/{orgid}/v3/address-book/{id}` | Update (v3) |
 | DELETE | `/organization/{orgid}/v3/address-book/{id}` | Delete (v3) |
+
+### Usage Reports (6)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/v1/usage-reports/resource-types` | Available resource types + data dates |
+| POST | `/v1/usage-reports` | Create usage report (asynchronous) |
+| GET | `/v1/usage-reports` | List usage reports |
+| GET | `/v1/usage-reports/{reportId}` | Report details, incl. `reportFiles[]` |
+| GET | `/v1/usage-reports/{fileId}/download` | Download one report file |
+| DELETE | `/v1/usage-reports/{reportId}` | Delete report and file |
 
 ---
 
@@ -1090,6 +1206,18 @@ All 83 endpoints tabulated below, across 13 CLI groups. Regional base URL: `http
     field whether it is `sortable`, has a `filter`, allows `groupBy`, and which `aggregation`
     operations it accepts. **Unverified:** read from the spec's schema and descriptions; no live call
     was made against `/search/v2/meta`.
+
+19. **`cc-tasks create-pause` pauses the RECORDING; `create-pause-tasks` pauses the TASK.** Upstream
+    added `POST /v1/tasks/{taskId}/pause` and `/resume` on 2026-09-21, beside the recording controls
+    that have shipped for months on `/v1/tasks/{taskId}/record/pause` and `/record/resume`. The two
+    pairs do different things to a live contact, and the shorter-looking name is the recording one,
+    which is the opposite of what the spelling suggests. `create-pause`/`create-resume` were pinned
+    to the recording endpoints at the 2026-09-21 spec sync so they did not silently move to the new
+    task-level routes — the same class of silent retarget as known issue #18. The names to reach
+    for: `create-pause`/`create-resume` when you mean recording (these mirror `task.pauseRecording()`
+    in the agent SDK), `create-pause-tasks`/`create-resume-tasks` when you mean the task itself.
+    **Unverified:** the task-level pair is read from the 2026-09-21 spec refresh; no live call was
+    made against either route.
 
 ---
 
