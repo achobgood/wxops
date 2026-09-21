@@ -484,6 +484,58 @@ def delete(
 
 
 
+_BODY_SKELETON_VALIDATE_A_TRUNK = '{"fqdnAddress":"...","fqdnDomain":"...","fqdnPort":0,"trunkType":"REGISTERING","isRestrictedToDedicatedInstance":true,"peerIdentity":"..."}'
+
+@app.command("validate-a-trunk", short_help="Validate a Trunk.")
+def validate_a_trunk(
+    fqdn_address: str = typer.Option(None, "--fqdn-address", help="FQDN or SRV address of the trunk."),
+    fqdn_domain: str = typer.Option(None, "--fqdn-domain", help="Domain name of the trunk."),
+    fqdn_port: str = typer.Option(None, "--fqdn-port", help="FQDN port of the trunk."),
+    trunk_type: str = typer.Option(None, "--trunk-type", help="Choices: REGISTERING, CERTIFICATE_BASED"),
+    is_restricted_to_dedicated_instance: str = typer.Option(None, "--is-restricted-to-dedicated-instance", help="Flag to indicate if the trunk is restricted to a dedicated instance."),
+    peer_identity: str = typer.Option(None, "--peer-identity", help="Peer identity for certificate-based trunks. Used for TLS peer verification."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Validate a Trunk.\n\n\b\nExample --json-body: '{"fqdnAddress":"...","fqdnDomain":"...","fqdnPort":0,"trunkType":"REGISTERING","isRestrictedToDedicatedInstance":true,"peerIdentity":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_A_TRUNK), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/premisePstn/trunks/actions/validate/invoke"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if fqdn_address is not None:
+            body["fqdnAddress"] = fqdn_address
+        if fqdn_domain is not None:
+            body["fqdnDomain"] = fqdn_domain
+        if fqdn_port is not None:
+            body["fqdnPort"] = fqdn_port
+        if trunk_type is not None:
+            body["trunkType"] = trunk_type
+        if is_restricted_to_dedicated_instance is not None:
+            body["isRestrictedToDedicatedInstance"] = is_restricted_to_dedicated_instance
+        if peer_identity is not None:
+            body["peerIdentity"] = peer_identity
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
 _BODY_SKELETON_VALIDATE_LOCAL_GATEWAY = '{"address":"...","domain":"...","port":0}'
 
 @app.command("validate-local-gateway", short_help="Validate Local Gateway FQDN and Domain for a Trunk.")
@@ -575,7 +627,7 @@ def list_trunks(
 
 
 
-_BODY_SKELETON_CREATE_TRUNKS = '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"pChargeInfoSupportPolicy":"DISABLED"}'
+_BODY_SKELETON_CREATE_TRUNKS = '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"peerIdentity":"...","pChargeInfoSupportPolicy":"DISABLED"}'
 
 @app.command("create-trunks", short_help="Create a Trunk.")
 def create_trunks(
@@ -589,6 +641,7 @@ def create_trunks(
     domain: str = typer.Option(None, "--domain", help="Domain name. Required to create a static certificate based trunk."),
     port: str = typer.Option(None, "--port", help="FQDN port. Required to create a static certificate-based trunk."),
     max_concurrent_calls: str = typer.Option(None, "--max-concurrent-calls", help="Max Concurrent call. Required to create a static certificate based trunk."),
+    peer_identity: str = typer.Option(None, "--peer-identity", help="Peer identity for certificate-based trunks. Used for TLS peer verification."),
     p_charge_info_support_policy: str = typer.Option(None, "--p-charge-info-support-policy", help="Choices: DISABLED, ASSERTED_IDENTITY, CONFIGURABLE_CHARGE_NUMBER"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -596,7 +649,7 @@ def create_trunks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Trunk.\n\n\b\nExample: wxcli call-routing create-trunks --name NAME --location-id LOCATION_ID --password PASSWORD --trunk-type REGISTERING\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"pChargeInfoSupportPolicy":"DISABLED"}'"""
+    """Create a Trunk.\n\n\b\nExample: wxcli call-routing create-trunks --name NAME --location-id LOCATION_ID --password PASSWORD --trunk-type REGISTERING\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"peerIdentity":"...","pChargeInfoSupportPolicy":"DISABLED"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRUNKS), indent=2))
         raise typer.Exit(0)
@@ -630,6 +683,8 @@ def create_trunks(
             body["port"] = port
         if max_concurrent_calls is not None:
             body["maxConcurrentCalls"] = max_concurrent_calls
+        if peer_identity is not None:
+            body["peerIdentity"] = peer_identity
         if p_charge_info_support_policy is not None:
             body["pChargeInfoSupportPolicy"] = p_charge_info_support_policy
         _missing = [f for f in ['name', 'locationId', 'password', 'trunkType'] if f not in body or body[f] is None]

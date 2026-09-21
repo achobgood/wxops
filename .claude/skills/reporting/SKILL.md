@@ -70,7 +70,8 @@ Ask the user what they want to analyze. Present this decision matrix if they are
 | Call queue performance (wait times, abandonment, volume) | **Call Queue Stats report** | `wxcli reports` + `wxcli report-templates` |
 | Per-agent queue performance (handle time, calls handled) | **Call Queue Agent Stats report** | `wxcli reports` + `wxcli report-templates` |
 | Auto attendant call volumes and menu usage | **AA Stats report** | `wxcli reports` + `wxcli report-templates` |
-| Call quality (jitter, latency, packet loss) | **Calling Quality / Media Quality report** | `wxcli reports` + `wxcli report-templates` |
+| Call quality (jitter, latency, packet loss) — a full report you generate and download | **Calling Quality / Media Quality report** | `wxcli reports` + `wxcli report-templates` |
+| Call quality for a window, answered inline right now (aggregate, optionally one location) | **Call Quality Stats** | `wxcli calling-metrics show` |
 | **Call** recordings — a phone call was recorded (list, download, manage) | **Converged Recordings** | `wxcli converged-recordings` |
 | **Meeting** recordings — org-wide/compliance listing, recycle bin, sharing | **Admin Recordings** | `wxcli admin-recordings` |
 | Recording access audit | **Recording Reports** | `wxcli recording-report` |
@@ -411,6 +412,27 @@ wxcli admin-recordings show-recordings RECORDING_ID --person-id PERSON_ID -o jso
 ```
 
 See `docs/reference/admin-apps-data.md` § 3 (Recordings (Admin)) for the full command list and sharing commands (`create-access-list-recordings`, `create-access-list-recordings-1`).
+
+### 6e. Call quality statistics (inline — no report job)
+
+One read, answered on the spot: `wxcli calling-metrics show` is `GET /v1/analytics/callQualityStats`
+and returns aggregate Webex Calling media quality for a window. Use it when the user wants a
+quality number now; use the Calling Quality **report** (6b) when they want the full downloadable
+dataset. It is aggregate only — it cannot identify an individual call, so a "which call was bad"
+question goes to CDR (6a).
+
+```bash
+# Default window is the last seven days, all locations
+wxcli calling-metrics show
+
+# Explicit window, one location
+wxcli calling-metrics show --from 2026-09-01T00:00:00Z --to 2026-09-08T00:00:00Z --location "Austin HQ"
+```
+
+`--location` is the exact location **name**, not a location id — a location id returns an empty
+result with exit 0 rather than an error. Get the string from
+`wxcli locations list --fields '[].name' -o text`. Detail and the full parameter semantics:
+`docs/reference/reporting-analytics.md` § 4.
 
 ## Step 7: Session Pattern — Pull Once, Query Many
 

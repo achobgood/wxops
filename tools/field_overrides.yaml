@@ -1543,6 +1543,30 @@ tag_overrides:
     "Agents":
       command_name_overrides:
         "list": "list-activities"
+    # Asset / Channel / Usage Reports arrived 2026-09-21. In all three the
+    # generator handed the bare `list` to an operation that is NOT the group's
+    # headline collection — the same defect shape as `Agents` directly above
+    # (its `list` returned activities) and `location-settings list` (dial
+    # patterns). Each is renamed for what it actually returns; the old name
+    # survives as the automatic hidden alias.
+    "Asset":
+      command_name_overrides:
+        # GET /organization/{}/asset/{}/incoming-references returns the
+        # ENTITIES REFERENCING this asset (entry points, flows), not assets.
+        # The asset collection itself is `list-asset` (GET /v2/asset).
+        "list": "list-incoming-references"
+    "Channel":
+      command_name_overrides:
+        # GET /organization/{}/channel/{}/incoming-references returns the
+        # assets and entry points that reference this channel, not channels.
+        # The channel collection itself is `list-channel` (GET /v2/channel).
+        "list": "list-incoming-references"
+    "Usage Reports":
+      command_name_overrides:
+        # GET /usage-reports/resource-types returns the resource TYPES a report
+        # can be generated for, not reports. The report collection is
+        # `list-usage-reports` (GET /usage-reports).
+        "list": "list-resource-types"
     "Auxiliary Code":
       command_name_overrides:
         "create-purge-inactive-entities": "delete-purge-inactive-entities"
@@ -1580,6 +1604,19 @@ tag_overrides:
     "Tasks":
       command_name_overrides:
         "create-remove": "delete-preview-task"
+        # 2026-09-21 spec sync: upstream added "Pause Task"/"Resume Task"
+        # (POST /tasks/{}/pause, /tasks/{}/resume) alongside the existing
+        # "Pause Recording Task"/"Resume Recording Task"
+        # (POST /tasks/{}/record/pause, /record/resume). The collision made
+        # _dedup_command_names suffix BOTH sides, so the shipped
+        # create-pause/create-resume (recording) became create-pause-record /
+        # create-resume-record — check 22 caught the move. Pinned back here.
+        # The new task-level ops keep their derived create-pause-tasks /
+        # create-resume-tasks, which is already this tag's convention for a
+        # bare /tasks/{}/<verb> path (create-end-tasks, create-accept-tasks,
+        # create-transfer-tasks) and collides with nothing.
+        "create-pause-record": "create-pause"
+        "create-resume-record": "create-resume"
     "Team":
       command_name_overrides:
         "create-purge-inactive-entities": "delete-purge-inactive-entities"

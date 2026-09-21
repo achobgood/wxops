@@ -1,7 +1,7 @@
 # Contact Center: Routing, Campaigns, Flows, and Media
 
 Reference for Webex Contact Center routing configuration, campaign management, flow automation,
-and media resources. Covers 15 CLI groups with 98 commands generated from the Contact Center OpenAPI spec.
+and media resources. Covers 17 CLI groups with 112 commands generated from the Contact Center OpenAPI spec.
 
 All commands use the regional base URL `https://api.wxcc-{region}.cisco.com` and require
 CC-specific OAuth scopes (`cjp:config_read`, `cjp:config_write`). The `orgId` path parameter
@@ -30,9 +30,11 @@ is auto-injected from saved config. Set the region with `wxcli set-cc-region <re
 12. [Audio Files (cc-audio-files)](#12-audio-files-cc-audio-files)
 13. [Data Sources (cc-data-sources)](#13-data-sources-cc-data-sources)
 14. [Resource Collections (cc-resource-collection)](#14-resource-collections-cc-resource-collection)
-15. [Consolidated Endpoint Reference](#15-consolidated-endpoint-reference)
-16. [Gotchas](#16-gotchas)
-17. [See Also](#17-see-also)
+15. [Channels (channel)](#15-channels-channel)
+16. [Assets (asset)](#16-assets-asset)
+17. [Consolidated Endpoint Reference](#17-consolidated-endpoint-reference)
+18. [Gotchas](#18-gotchas)
+19. [See Also](#19-see-also)
 
 ---
 
@@ -929,9 +931,207 @@ Content-Type: application/json
 
 ---
 
-## 15. Consolidated Endpoint Reference
+## 15. Channels (channel)
 
-All 98 endpoints across 15 CLI groups, grouped by resource.
+A channel is the **medium** a contact arrives on -- telephony, email, chat, social, or a custom
+work-item type -- together with the branding (name, description, logo) the Agent Desktop shows for
+it. Channels are *not* entry points and carry no routing logic: an entry point decides where a
+contact goes, a channel only describes what it arrived through. They are also not the messaging
+`channel` concept in Webex spaces, and nothing here touches Webex Calling. Assets (section 16)
+reference a channel by `channelId`, so channels are created first. 6 commands.
+
+**Unverified:** every statement in this section is read from `specs/webex-contact-center.json`
+(2026-09-21 refresh) and from the generated module. No live call was made against a Contact Center
+org, so treat response shapes and error behaviour as spec-derived, not measured.
+
+### Commands
+
+| CLI Command | HTTP | Description |
+|---|---|---|
+| `wxcli channel list-channel` | GET /organization/{orgid}/v2/channel | List Channels (v2, paginated) |
+| `wxcli channel show` | GET /organization/{orgid}/channel/{id} | Get specific Channel by ID |
+| `wxcli channel create` | POST /organization/{orgid}/channel/bulk | Bulk save Channels (create/update/delete in one call) |
+| `wxcli channel update` | PATCH /organization/{orgid}/channel/{id} | Partially update Channel by ID |
+| `wxcli channel delete` | DELETE /organization/{orgid}/channel/{id} | Delete specific Channel by ID |
+| `wxcli channel list-incoming-references` | GET /organization/{orgid}/channel/{id}/incoming-references | List the assets and entry points that reference this channel |
+
+Two spec operations have **no** CLI command: `POST /organization/{orgid}/channel` (single create)
+and `PUT /organization/{orgid}/channel/{id}` (full update). Both are `multipart/form-data` because
+they carry the channel logo image, which the generator cannot render, so they are recorded as a
+deliberate gap in the CLI rather than as a bug. Use the Raw HTTP forms below for those two.
+
+### Key Parameters
+
+- `id` (argument) -- Channel ID, from `wxcli channel list-channel`. Required by show/update/delete/list-incoming-references.
+- `--include-logo-url-versioned` -- on `show` and `list-channel`, adds `logoUrlVersioned` to the response.
+- `--json-body` -- full JSON body; required shape for `create`, which is the *bulk* endpoint.
+
+### CLI Examples
+
+```bash
+# List every channel in the org (walks all pages)
+wxcli channel list-channel --all
+
+# Just the id/name pairs, for scripting
+wxcli channel list-channel --all --fields '[].{id:id,name:name}' -o json
+
+# Get one channel, including its versioned logo URL
+wxcli channel show <channel-id> --include-logo-url-versioned true
+
+# Create a channel via the bulk endpoint (note: `create` is POST .../channel/bulk)
+wxcli channel create --json-body '{"items":[{"requestAction":"CREATE","name":"Web Chat","description":"Public website chat","channelType":"CHAT"}]}'
+
+# Rename a channel (PATCH -- only the fields you send change)
+wxcli channel update <channel-id> --json-body '{"name":"Web Chat EU"}' --verify
+
+# Find out what breaks if you delete it, BEFORE deleting it
+wxcli channel list-incoming-references <channel-id>
+
+# Delete a channel
+wxcli channel delete <channel-id>
+```
+
+### Raw HTTP
+
+```bash
+# List channels (v2)
+GET https://api.wxcc-us1.cisco.com/organization/{orgId}/v2/channel
+Authorization: Bearer {cc_token}
+
+# Partially update a channel
+PATCH https://api.wxcc-us1.cisco.com/organization/{orgId}/channel/{id}
+Content-Type: application/json
+{"name":"Web Chat EU"}
+
+# Single create -- multipart, no CLI command exists for this
+POST https://api.wxcc-us1.cisco.com/organization/{orgId}/channel
+Content-Type: multipart/form-data
+(form fields: name, description, channelType; file field: logo)
+
+# Full update incl. replacing the logo image -- multipart, no CLI command
+PUT https://api.wxcc-us1.cisco.com/organization/{orgId}/channel/{id}
+Content-Type: multipart/form-data
+```
+
+### Gotcha
+
+**`wxcli channel create` is the BULK endpoint, not a single create, and it needs an `items` array.**
+The single-create operation is multipart and therefore unrenderable, so the generator gave the bare
+`create` name to `POST .../channel/bulk`. A body shaped like one channel (`{"name":"Web Chat"}`)
+is the natural thing to type and is the wrong shape -- each element goes inside `items[]` with its
+own `requestAction` (`CREATE`, `UPDATE`, or `DELETE`). The same call can therefore delete channels,
+which a command named `create` gives no hint of. Run
+`wxcli channel create --generate-json-body` to print the real skeleton before composing one.
+
+See also section 16 below (Assets), because an asset is invalid without a `channelId` naming a
+channel that already exists -- create the channel first or the asset create fails.
+
+---
+
+## 16. Assets (asset)
+
+An asset is a **configured instance** of a channel: the concrete mailbox, chat widget, or
+custom-messaging endpoint that a channel type is realised as, plus the business address and data
+schema attached to it. An asset is not a channel (the channel is the medium; the asset is one
+deployment of it), not an entry point (entry points reference assets, not the other way round), and
+has nothing to do with Webex Calling devices or Webex messaging attachments. 8 commands.
+
+**Unverified:** as with section 15, everything here is derived from the 2026-09-21 spec refresh and
+the generated module, not from a live Contact Center org.
+
+### Commands
+
+| CLI Command | HTTP | Description |
+|---|---|---|
+| `wxcli asset list-asset` | GET /organization/{orgid}/v2/asset | List Assets (v2, paginated) |
+| `wxcli asset show` | GET /organization/{orgid}/asset/{id} | Get specific Asset by ID |
+| `wxcli asset create` | POST /organization/{orgid}/asset | Create a new Asset |
+| `wxcli asset create-bulk` | POST /organization/{orgid}/asset/bulk | Bulk save Assets (CREATE/UPDATE/DELETE in one call) |
+| `wxcli asset update` | PUT /organization/{orgid}/asset/{id} | Full update -- WORK_ITEM assets only |
+| `wxcli asset update-asset` | PATCH /organization/{orgid}/asset/{id} | Partial update -- CUSTOM_MESSAGING assets only |
+| `wxcli asset delete` | DELETE /organization/{orgid}/asset/{id} | Delete specific Asset by ID |
+| `wxcli asset list-incoming-references` | GET /organization/{orgid}/asset/{id}/incoming-references | List the entities (e.g. entry points) that reference this asset |
+
+### Key Parameters
+
+- `id` (argument) -- Asset ID, from `wxcli asset list-asset`.
+- `--name`, `--channel-type`, `--channel-id`, `--business-address` -- the four fields the spec marks required on create.
+- `--channel-type` -- one of `TELEPHONY`, `EMAIL`, `FAX`, `CHAT`, `VIDEO`, `OTHERS`, `SOCIAL_CHANNEL`, `WORK_ITEM`, `CUSTOM_MESSAGING`.
+- `--include-channel-name` -- on `show` and `list-asset`, resolves `channelId` to a readable channel name in the response.
+- `--exclude-ep-associated` -- on `list-asset`, returns only assets **not** attached to an entry point.
+
+### CLI Examples
+
+```bash
+# List every asset, with the channel name resolved rather than a bare channelId
+wxcli asset list-asset --all --include-channel-name true
+
+# Find assets nothing routes to yet -- the orphan check before a cleanup
+wxcli asset list-asset --all --exclude-ep-associated true --fields '[].{id:id,name:name}' -o json
+
+# Get one asset
+wxcli asset show <asset-id> --include-channel-name true
+
+# Create a work-item asset against an existing channel
+wxcli asset create --name "Tier 2 Work Items" --channel-type WORK_ITEM --channel-id <channel-id> --business-address "600 Congress Ave, Austin TX"
+
+# Full update -- WORK_ITEM assets only
+wxcli asset update <asset-id> --json-body '{"name":"Tier 2 Work Items (EU)"}' --verify
+
+# Partial update -- CUSTOM_MESSAGING assets only
+wxcli asset update-asset <asset-id> --json-body '{"description":"Migrated 2026-09"}'
+
+# Check what references an asset before removing it
+wxcli asset list-incoming-references <asset-id>
+
+# Delete an asset
+wxcli asset delete <asset-id>
+```
+
+### Raw HTTP
+
+```bash
+# List assets (v2)
+GET https://api.wxcc-us1.cisco.com/organization/{orgId}/v2/asset?includeChannelName=true
+Authorization: Bearer {cc_token}
+
+# Create an asset
+POST https://api.wxcc-us1.cisco.com/organization/{orgId}/asset
+Content-Type: application/json
+{"name":"Tier 2 Work Items","channelType":"WORK_ITEM","channelId":"{channelId}","businessAddress":"600 Congress Ave, Austin TX"}
+
+# Full update (WORK_ITEM)
+PUT https://api.wxcc-us1.cisco.com/organization/{orgId}/asset/{id}
+Content-Type: application/json
+{"name":"Tier 2 Work Items (EU)"}
+
+# Partial update (CUSTOM_MESSAGING)
+PATCH https://api.wxcc-us1.cisco.com/organization/{orgId}/asset/{id}
+Content-Type: application/json
+{"description":"Migrated 2026-09"}
+```
+
+### Gotcha
+
+**`update` and `update-asset` are not the same command with different granularity -- they apply to
+different asset types, and picking the wrong one is a 4xx, not a partial write.** The spec is
+explicit in both directions: `PUT /asset/{id}` says *"Supported for WORK_ITEM assets. For
+CUSTOM_MESSAGING assets, use PATCH instead"*, and `PATCH /asset/{id}` says *"Supported only for
+CUSTOM_MESSAGING assets... For WORK_ITEM assets, use PUT instead."* The CLI names give no hint of
+that split, and `update` reads like the default choice for both. Check `channelType` with
+`wxcli asset show <asset-id>` first. One more asymmetry worth knowing: `PATCH` leaves
+`webhookConfig` alone when you omit it, so omitting it preserves existing credentials rather than
+clearing them.
+
+See also section 15 above (Channels), because `--channel-id` on create must name an existing
+channel, and `wxcli channel list-incoming-references` is what tells you which assets a channel is
+already carrying before you change it.
+
+---
+
+## 17. Consolidated Endpoint Reference
+
+All 112 endpoints across 17 CLI groups, grouped by resource.
 
 ### Dial Plans (8)
 
@@ -1107,9 +1307,36 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 | GET | /organization/{orgid}/resource-collection/{id}/incoming-references | `cc-resource-collection list` |
 | GET | /organization/{orgid}/v2/resource-collection | `cc-resource-collection list-resource-collection` |
 
+### Channels (6)
+
+| Method | Path | CLI Command |
+|---|---|---|
+| GET | /organization/{orgid}/v2/channel | `channel list-channel` |
+| GET | /organization/{orgid}/channel/{id} | `channel show` |
+| POST | /organization/{orgid}/channel/bulk | `channel create` |
+| PATCH | /organization/{orgid}/channel/{id} | `channel update` |
+| DELETE | /organization/{orgid}/channel/{id} | `channel delete` |
+| GET | /organization/{orgid}/channel/{id}/incoming-references | `channel list-incoming-references` |
+
+`POST /organization/{orgid}/channel` and `PUT /organization/{orgid}/channel/{id}` are multipart
+(logo upload) and have no CLI command -- see section 15 above.
+
+### Assets (8)
+
+| Method | Path | CLI Command |
+|---|---|---|
+| GET | /organization/{orgid}/v2/asset | `asset list-asset` |
+| GET | /organization/{orgid}/asset/{id} | `asset show` |
+| POST | /organization/{orgid}/asset | `asset create` |
+| POST | /organization/{orgid}/asset/bulk | `asset create-bulk` |
+| PUT | /organization/{orgid}/asset/{id} | `asset update` |
+| PATCH | /organization/{orgid}/asset/{id} | `asset update-asset` |
+| DELETE | /organization/{orgid}/asset/{id} | `asset delete` |
+| GET | /organization/{orgid}/asset/{id}/incoming-references | `asset list-incoming-references` |
+
 ---
 
-## 16. Gotchas
+## 18. Gotchas
 
 1. **CC dial plans are separate from Webex Calling dial plans.** Different API, different base URL (`api.wxcc-{region}.cisco.com` vs `webexapis.com`), different configuration model. Do not confuse the CC group `wxcli cc-dial-plan` with the Webex Calling dial plan commands, which live under `wxcli call-routing` (`list-dial-plans`, `create`, `show-dial-plans`, `update-dial-plans`, `delete`). There is no top-level `dial-plan` group.
 
@@ -1173,10 +1400,10 @@ All 98 endpoints across 15 CLI groups, grouped by resource.
 
 ---
 
-## 17. See Also
+## 19. See Also
 
-- [Contact Center: Core](contact-center-core.md) -- Agents, queues, teams, skills, desktop, configuration
-- [Contact Center: Analytics](contact-center-analytics.md) -- AI, monitoring, subscriptions, tasks, search
+- [Contact Center: Core](contact-center-core.md) -- Agents, queues, teams, skills, desktop, configuration. Go here after sections 15-16: entry points live in that doc, and an entry point is what a channel or asset is ultimately attached to, so `list-incoming-references` on either resource returns entities documented there
+- [Contact Center: Analytics](contact-center-analytics.md) -- AI, monitoring, subscriptions, tasks, search. It also carries Usage Reports, which is where you go to measure how much traffic the channels and assets in sections 15-16 actually carried
 - [Contact Center: Journey](contact-center-journey.md) -- JDS: workspaces, persons, identity, profile views, events
 - [Contact Center: Agent Desktop SDK](contact-center-agent-sdk.md) -- The `@webex/contact-center` JS SDK. Relevant here because a Flow Designer **Set Variable** node marked *Agent Viewable* is what makes a variable appear in `interaction.callFlowParams` on the agent's desktop
 - [Call Routing & PSTN](call-routing.md) -- Webex Calling routing (trunks, route groups, route lists -- entirely separate from CC routing)

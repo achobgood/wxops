@@ -237,6 +237,32 @@
     "GET /identity/organizations/{}/v1/ArchivedUser"
    ]
   },
+  "asset": {
+   "create": [
+    "POST /organization/{}/asset"
+   ],
+   "create-bulk": [
+    "POST /organization/{}/asset/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/asset/{}"
+   ],
+   "list-asset": [
+    "GET /organization/{}/v2/asset"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/asset/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/asset/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/asset/{}"
+   ],
+   "update-asset": [
+    "PATCH /organization/{}/asset/{}"
+   ]
+  },
   "attachment_actions": {
    "create-an-attachment": [
     "POST /attachment/actions"
@@ -912,6 +938,9 @@
    "validate-a-dial": [
     "POST /telephony/config/premisePstn/actions/validateDialPatterns/invoke"
    ],
+   "validate-a-trunk": [
+    "POST /telephony/config/premisePstn/trunks/actions/validate/invoke"
+   ],
    "validate-local-gateway": [
     "POST /telephony/config/premisePstn/trunks/actions/fqdnValidation/invoke"
    ]
@@ -931,6 +960,11 @@
    ],
    "update": [
     "PUT /telephony/config/serviceSettings/callerReputationProvider"
+   ]
+  },
+  "calling_metrics": {
+   "show": [
+    "GET /analytics/callQualityStats"
    ]
   },
   "calling_service": {
@@ -2171,11 +2205,17 @@
    "create-pause": [
     "POST /tasks/{}/record/pause"
    ],
+   "create-pause-tasks": [
+    "POST /tasks/{}/pause"
+   ],
    "create-reject": [
     "POST /tasks/{}/reject"
    ],
    "create-resume": [
     "POST /tasks/{}/record/resume"
+   ],
+   "create-resume-tasks": [
+    "POST /tasks/{}/resume"
    ],
    "create-skip": [
     "POST /dialer/campaign/{}/preview-task/{}/skip"
@@ -2345,6 +2385,26 @@
    ],
    "list-cdr_stream": [
     "GET /cdr_stream"
+   ]
+  },
+  "channel": {
+   "create": [
+    "POST /organization/{}/channel/bulk"
+   ],
+   "delete": [
+    "DELETE /organization/{}/channel/{}"
+   ],
+   "list-channel": [
+    "GET /organization/{}/v2/channel"
+   ],
+   "list-incoming-references": [
+    "GET /organization/{}/channel/{}/incoming-references"
+   ],
+   "show": [
+    "GET /organization/{}/channel/{}"
+   ],
+   "update": [
+    "PATCH /organization/{}/channel/{}"
    ]
   },
   "classifications": {
@@ -4723,6 +4783,26 @@
    ]
   },
   "update": {},
+  "usage_reports": {
+   "create": [
+    "POST /usage-reports"
+   ],
+   "delete": [
+    "DELETE /usage-reports/{}"
+   ],
+   "list-download": [
+    "GET /usage-reports/{}/download"
+   ],
+   "list-resource-types": [
+    "GET /usage-reports/resource-types"
+   ],
+   "list-usage-reports": [
+    "GET /usage-reports"
+   ],
+   "show": [
+    "GET /usage-reports/{}"
+   ]
+  },
   "user_settings": {
    "configure-busy-voicemail": [
     "POST /people/{}/features/voicemail/actions/uploadBusyGreeting/invoke"

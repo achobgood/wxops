@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-09-14",
+ "captured": "2026-09-21",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -197,6 +197,16 @@
     },
     "summary": "List Admin Audit Events",
     "tag": "Admin Audit Events"
+   },
+   "GET /analytics/callQualityStats": {
+    "fields": {
+     "(operation)": "#634d2d%961e8b",
+     "query:from": "#31761c",
+     "query:location": "#7852f1",
+     "query:to": "#25eda4"
+    },
+    "summary": "Webex Calling Call Quality Stats",
+    "tag": "Calling Metrics"
    },
    "GET /analytics/meetingsMetrics/aggregates": {
     "fields": {
@@ -2763,6 +2773,16 @@
     },
     "summary": "List Recordings for Admin or Compliance officer",
     "tag": "Converged Recordings"
+   },
+   "GET /analytics/callQualityStats": {
+    "fields": {
+     "(operation)": "#634d2d%961e8b",
+     "query:from": "#31761c",
+     "query:location": "#7852f1",
+     "query:to": "#25eda4"
+    },
+    "summary": "Webex Calling Call Quality Stats",
+    "tag": "Calling Metrics"
    },
    "GET /cdr_feed": {
     "fields": {
@@ -6695,9 +6715,9 @@
      "(operation)": "#79a1ad",
      "path:id": "!#34c779",
      "query:hasCxEssentials": "#d66945%64452c",
-     "query:max": "!#e7f71a",
+     "query:max": "#e7f71a",
      "query:orgId": "#b31959",
-     "query:start": "!#d03bc5"
+     "query:start": "#d03bc5"
     },
     "summary": "Get Details for an Agent for Call Queue or Customer Assist",
     "tag": "Features:  Call Queue"
@@ -10329,6 +10349,7 @@
      "body:name": "!#95aa51",
      "body:pChargeInfoSupportPolicy": "#6f0b83=ASSERTED_IDENTITY|CONFIGURABLE_CHARGE_NUMBER|DISABLED",
      "body:password": "!#fe29c4",
+     "body:peerIdentity": "#72c936",
      "body:port": "#3b7818",
      "body:trunkType": "!#8429f9=CERTIFICATE_BASED|REGISTERING",
      "query:orgId": "#e53b90"
@@ -10338,13 +10359,27 @@
    },
    "POST /telephony/config/premisePstn/trunks/actions/fqdnValidation/invoke": {
     "fields": {
-     "(operation)": "#7301db",
+     "(operation)": "#c42a9a",
      "body:address": "#3dfd84",
      "body:domain": "~name#37c9fa",
      "body:port": "#499870",
      "query:orgId": "#14939f"
     },
     "summary": "Validate Local Gateway FQDN and Domain for a Trunk",
+    "tag": "Call Routing"
+   },
+   "POST /telephony/config/premisePstn/trunks/actions/validate/invoke": {
+    "fields": {
+     "(operation)": "#b989a0",
+     "body:fqdnAddress": "#3dfd84",
+     "body:fqdnDomain": "~name#37c9fa",
+     "body:fqdnPort": "#499870",
+     "body:isRestrictedToDedicatedInstance": "#2313f2",
+     "body:peerIdentity": "#72c936",
+     "body:trunkType": "#8429f9=CERTIFICATE_BASED|REGISTERING",
+     "query:orgId": "#e53b90"
+    },
+    "summary": "Validate a Trunk",
     "tag": "Call Routing"
    },
    "POST /telephony/config/redSky": {
@@ -14855,6 +14890,7 @@
      "body:numberOfDaysForMessageExpiry": "!#63ed4d",
      "body:strictDeletionEnabled": "#ede231",
      "body:voiceMessageForwardingEnabled": "#bdfd3e",
+     "body:voicePortalAccessVmDepositEnabled": "#bb9f42",
      "query:orgId": "#ef5a94"
     },
     "summary": "Update Voicemail Settings",
@@ -15616,6 +15652,15 @@
     "summary": "Delete specific Question mapped to AutoCSAT by ID",
     "tag": "AI Feature"
    },
+   "DELETE /organization/{}/asset/{}": {
+    "fields": {
+     "(operation)": "#c43e4d",
+     "path:id": "!~id#4ae2da",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Delete specific Asset by ID",
+    "tag": "Asset"
+   },
    "DELETE /organization/{}/audio-file/{}": {
     "fields": {
      "(operation)": "#9a4350",
@@ -15661,6 +15706,15 @@
     },
     "summary": "Delete specific Global Variable by ID",
     "tag": "Global Variables"
+   },
+   "DELETE /organization/{}/channel/{}": {
+    "fields": {
+     "(operation)": "#42402b",
+     "path:id": "!~id#ab9f2f",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Delete specific Channel by ID",
+    "tag": "Channel"
    },
    "DELETE /organization/{}/contact-number/{}": {
     "fields": {
@@ -15860,6 +15914,14 @@
     },
     "summary": "Delete Subscription",
     "tag": "Subscriptions"
+   },
+   "DELETE /usage-reports/{}": {
+    "fields": {
+     "(operation)": "#4fc9f9%1bc4e6",
+     "path:reportId": "!#c4b844"
+    },
+    "summary": "Delete usage report",
+    "tag": "Usage Reports"
    },
    "DELETE /v2/subscriptions/{}": {
     "fields": {
@@ -16353,6 +16415,28 @@
     "summary": "Get specific AI Feature resource by ID",
     "tag": "AI Feature"
    },
+   "GET /organization/{}/asset/{}": {
+    "fields": {
+     "(operation)": "#29b590",
+     "path:id": "!~id#4ae2da",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:includeChannelName": "#72049d"
+    },
+    "summary": "Get specific Asset by ID",
+    "tag": "Asset"
+   },
+   "GET /organization/{}/asset/{}/incoming-references": {
+    "fields": {
+     "(operation)": "#ea8387",
+     "path:id": "!~id#56f140",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334",
+     "query:type": "#b387ea"
+    },
+    "summary": "List references for a specific Asset",
+    "tag": "Asset"
+   },
    "GET /organization/{}/audio-file/{}": {
     "fields": {
      "(operation)": "#5363e9",
@@ -16509,6 +16593,28 @@
     },
     "summary": "List references for a specific Global Variable",
     "tag": "Global Variables"
+   },
+   "GET /organization/{}/channel/{}": {
+    "fields": {
+     "(operation)": "#28744c",
+     "path:id": "!~id#ab9f2f",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:includeLogoUrlVersioned": "#966d26"
+    },
+    "summary": "Get specific Channel by ID",
+    "tag": "Channel"
+   },
+   "GET /organization/{}/channel/{}/incoming-references": {
+    "fields": {
+     "(operation)": "#440d9e",
+     "path:id": "!~id#56f140",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334",
+     "query:type": "#b387ea"
+    },
+    "summary": "List references for a specific Channel",
+    "tag": "Channel"
    },
    "GET /organization/{}/contact-number/all-numbers": {
     "fields": {
@@ -17294,6 +17400,24 @@
     "summary": "List Question mapped to AutoCSAT(s)",
     "tag": "AI Feature"
    },
+   "GET /organization/{}/v2/asset": {
+    "fields": {
+     "(operation)": "#676f3b",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:attributes": "#b3ee99",
+     "query:excludeEPAssociated": "#56d091",
+     "query:filter": "#131e36",
+     "query:includeChannelName": "#72049d",
+     "query:includeCount": "#5f2e2d",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334",
+     "query:search": "#5a8517",
+     "query:singleObjectResponse": "#966306%3a4c0b",
+     "query:sort": "#0d05f1"
+    },
+    "summary": "List Assets",
+    "tag": "Asset"
+   },
    "GET /organization/{}/v2/audio-file": {
     "fields": {
      "(operation)": "#d21824",
@@ -17375,6 +17499,23 @@
     },
     "summary": "List Global Variable(s)",
     "tag": "Global Variables"
+   },
+   "GET /organization/{}/v2/channel": {
+    "fields": {
+     "(operation)": "#ce9220",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:attributes": "#b3ee99",
+     "query:filter": "#131e36",
+     "query:includeCount": "#a230ab",
+     "query:includeLogoUrlVersioned": "#966d26",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334",
+     "query:search": "#5a8517",
+     "query:singleObjectResponse": "#966306%3a4c0b",
+     "query:sort": "#0d05f1"
+    },
+    "summary": "List Channels",
+    "tag": "Channel"
    },
    "GET /organization/{}/v2/contact-number": {
     "fields": {
@@ -17896,6 +18037,39 @@
     "summary": "Get Tasks",
     "tag": "Tasks"
    },
+   "GET /usage-reports": {
+    "fields": {
+     "(operation)": "#54c41c",
+     "query:createdAfter": "#2ce555",
+     "query:createdBefore": "#81d4c8",
+     "query:resourceType": "#fcf5e5"
+    },
+    "summary": "List usage reports",
+    "tag": "Usage Reports"
+   },
+   "GET /usage-reports/resource-types": {
+    "fields": {
+     "(operation)": "#6cdf3f"
+    },
+    "summary": "Get available resource types",
+    "tag": "Usage Reports"
+   },
+   "GET /usage-reports/{}": {
+    "fields": {
+     "(operation)": "#c11df4",
+     "path:reportId": "!#c4b844"
+    },
+    "summary": "Get usage report details",
+    "tag": "Usage Reports"
+   },
+   "GET /usage-reports/{}/download": {
+    "fields": {
+     "(operation)": "#417320%0dfb64",
+     "path:fileId": "!~id#1c39b6"
+    },
+    "summary": "Download usage report file",
+    "tag": "Usage Reports"
+   },
    "GET /v2/event-types": {
     "fields": {
      "(operation)": "#a3daa0",
@@ -18113,6 +18287,16 @@
     "summary": "Partially update AI Feature resource by ID",
     "tag": "AI Feature"
    },
+   "PATCH /organization/{}/asset/{}": {
+    "fields": {
+     "(operation)": "#b526f4",
+     "body:valueType": "#10c9b1=ARRAY|FALSE|NULL|NUMBER|OBJECT|STRING|TRUE",
+     "path:id": "!~id#4ae2da",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Partially update Asset by ID",
+    "tag": "Asset"
+   },
    "PATCH /organization/{}/auxiliary-code/bulk": {
     "fields": {
      "(operation)": "#9955be",
@@ -18138,6 +18322,18 @@
     },
     "summary": "Bulk partial update Auxiliary Code(s)",
     "tag": "Auxiliary Code"
+   },
+   "PATCH /organization/{}/channel/{}": {
+    "fields": {
+     "(operation)": "#5926e3%bcb6f1",
+     "body:description": "#3c93b2",
+     "body:logoIconName": "#a50db0",
+     "body:logoType": "#0ddf53=MOMENTUM",
+     "path:id": "!~id#ab9f2f",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Partially update Channel by ID",
+    "tag": "Channel"
    },
    "PATCH /organization/{}/contact-service-queue/bulk": {
     "fields": {
@@ -19013,6 +19209,66 @@
     "summary": "Bulk save Question mapped to AutoCSAT",
     "tag": "AI Feature"
    },
+   "POST /organization/{}/asset": {
+    "fields": {
+     "(operation)": "#ad3e5b",
+     "body:businessAddress": "!#3b1a38",
+     "body:channelId": "!#d9669d",
+     "body:channelName": "#b09408",
+     "body:channelType": "!#dfffc5=CHAT|CUSTOM_MESSAGING|EMAIL|FAX|OTHERS|SOCIAL_CHANNEL|TELEPHONY|VIDEO|WORK_ITEM",
+     "body:createdTime": "#2a5a15",
+     "body:dataSchema": "#3ef96a%c4e923",
+     "body:dataSchema[].displayName": "!#1c480f",
+     "body:dataSchema[].fieldKey": "!#b6fb93",
+     "body:dataSchema[].id": "~id#1e249a",
+     "body:dataSchema[].isRequired": "#3d54f5%3d54f5",
+     "body:dataSchema[].isViewable": "#34e80d",
+     "body:description": "#684fa6",
+     "body:id": "~id#063231",
+     "body:lastUpdatedTime": "#876772",
+     "body:name": "!#41e35b",
+     "body:organizationId": "~id#771c29%e872e9",
+     "body:version": "#0f67fd",
+     "body:webhookConfig": "#6c58f0",
+     "body:webhookConfig.webhookSecret": "#fb95d4",
+     "body:webhookConfig.webhookUrl": "#0ddeee%db52d7",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Create a new Asset",
+    "tag": "Asset"
+   },
+   "POST /organization/{}/asset/bulk": {
+    "fields": {
+     "(operation)": "#56eba1",
+     "body:items": "#b00970",
+     "body:items[].item": "#9e4356",
+     "body:items[].item.businessAddress": "!#3b1a38",
+     "body:items[].item.channelId": "!#d9669d",
+     "body:items[].item.channelName": "#b09408",
+     "body:items[].item.channelType": "!#dfffc5=CHAT|CUSTOM_MESSAGING|EMAIL|FAX|OTHERS|SOCIAL_CHANNEL|TELEPHONY|VIDEO|WORK_ITEM",
+     "body:items[].item.createdTime": "#2a5a15",
+     "body:items[].item.dataSchema": "#3ef96a%c4e923",
+     "body:items[].item.dataSchema[].displayName": "!#1c480f",
+     "body:items[].item.dataSchema[].fieldKey": "!#b6fb93",
+     "body:items[].item.dataSchema[].id": "~id#1e249a",
+     "body:items[].item.dataSchema[].isRequired": "#3d54f5%3d54f5",
+     "body:items[].item.dataSchema[].isViewable": "#34e80d",
+     "body:items[].item.description": "#684fa6",
+     "body:items[].item.id": "~id#063231",
+     "body:items[].item.lastUpdatedTime": "#876772",
+     "body:items[].item.name": "!#41e35b",
+     "body:items[].item.organizationId": "~id#771c29%e872e9",
+     "body:items[].item.version": "#0f67fd",
+     "body:items[].item.webhookConfig": "#6c58f0",
+     "body:items[].item.webhookConfig.webhookSecret": "#fb95d4",
+     "body:items[].item.webhookConfig.webhookUrl": "#0ddeee%db52d7",
+     "body:items[].itemIdentifier": "#7380ec",
+     "body:items[].requestAction": "#5235d6",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Bulk save Assets",
+    "tag": "Asset"
+   },
    "POST /organization/{}/auto-csat/{}/question": {
     "fields": {
      "(operation)": "#121ae5",
@@ -19218,6 +19474,38 @@
     },
     "summary": "Purge inactive Global Variable(s)",
     "tag": "Global Variables"
+   },
+   "POST /organization/{}/channel/bulk": {
+    "fields": {
+     "(operation)": "#e66920",
+     "body:items": "#b00970",
+     "body:items[].item": "#f8f7f0",
+     "body:items[].item.channelType": "!#85d097=CHAT|CUSTOM_MESSAGING|EMAIL|FAX|OTHERS|SOCIAL_CHANNEL|TELEPHONY|VIDEO|WORK_ITEM",
+     "body:items[].item.createdTime": "#2a5a15",
+     "body:items[].item.description": "#3c93b2",
+     "body:items[].item.id": "~id#063231",
+     "body:items[].item.lastUpdatedTime": "#876772",
+     "body:items[].item.logoIconName": "#979de0",
+     "body:items[].item.logoType": "!#067bde=LOGO_URL|MOMENTUM",
+     "body:items[].item.logoUrl": "#160724",
+     "body:items[].item.logoUrlVersioned": "#870429",
+     "body:items[].item.messagingPolicy": "#688774",
+     "body:items[].item.messagingPolicy.allowFileAttachments": "!#d70476",
+     "body:items[].item.messagingPolicy.allowedFileTypes": "#a8cdc3",
+     "body:items[].item.messagingPolicy.maxMessageCharacters": "!#30a6d7",
+     "body:items[].item.messagingPolicy.maxNumberOfAttachments": "#fa9871",
+     "body:items[].item.messagingPolicy.maxSingleAttachmentSizeMegabytes": "#2c69a0",
+     "body:items[].item.messagingPolicy.maxTotalAttachmentSizeMegabytes": "#b5a511",
+     "body:items[].item.name": "!#41e35b",
+     "body:items[].item.numberOfAsset": "#baac2e",
+     "body:items[].item.organizationId": "~id#771c29%e872e9",
+     "body:items[].item.version": "#0f67fd",
+     "body:items[].itemIdentifier": "#7380ec",
+     "body:items[].requestAction": "#5235d6",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Bulk save Channels",
+    "tag": "Channel"
    },
    "POST /organization/{}/contact-number": {
     "fields": {
@@ -20801,6 +21089,14 @@
     "summary": "Hold Task",
     "tag": "Tasks"
    },
+   "POST /tasks/{}/pause": {
+    "fields": {
+     "(operation)": "#bc1c1b%3ad60c",
+     "path:taskId": "!#6785a6"
+    },
+    "summary": "Pause Task",
+    "tag": "Tasks"
+   },
    "POST /tasks/{}/record/pause": {
     "fields": {
      "(operation)": "#127750%740f74",
@@ -20827,6 +21123,14 @@
     "summary": "Reject Task",
     "tag": "Tasks"
    },
+   "POST /tasks/{}/resume": {
+    "fields": {
+     "(operation)": "#fe22ab",
+     "path:taskId": "!#4bdb92"
+    },
+    "summary": "Resume Task",
+    "tag": "Tasks"
+   },
    "POST /tasks/{}/transfer": {
     "fields": {
      "(operation)": "#4cc7b0",
@@ -20843,7 +21147,7 @@
      "body:mediaResourceId": "!~id#949bbb",
      "path:taskId": "!#988f46"
     },
-    "summary": "Resume Task",
+    "summary": "Unhold Task",
     "tag": "Tasks"
    },
    "POST /tasks/{}/wrapup": {
@@ -20855,6 +21159,16 @@
     },
     "summary": "Wrap Up Task",
     "tag": "Tasks"
+   },
+   "POST /usage-reports": {
+    "fields": {
+     "(operation)": "#6c69a4",
+     "body:endDate": "#3e83b8",
+     "body:resourceType": "#625bc2",
+     "body:startDate": "#c12112"
+    },
+    "summary": "Create usage report",
+    "tag": "Usage Reports"
    },
    "POST /v2/agents/login": {
     "fields": {
@@ -21428,6 +21742,35 @@
     },
     "summary": "Update specific Desktop Profile by ID",
     "tag": "Desktop Profile"
+   },
+   "PUT /organization/{}/asset/{}": {
+    "fields": {
+     "(operation)": "#2c9182",
+     "body:businessAddress": "!#3b1a38",
+     "body:channelId": "!#d9669d",
+     "body:channelName": "#b09408",
+     "body:channelType": "!#dfffc5=CHAT|CUSTOM_MESSAGING|EMAIL|FAX|OTHERS|SOCIAL_CHANNEL|TELEPHONY|VIDEO|WORK_ITEM",
+     "body:createdTime": "#2a5a15",
+     "body:dataSchema": "#3ef96a%c4e923",
+     "body:dataSchema[].displayName": "!#1c480f",
+     "body:dataSchema[].fieldKey": "!#b6fb93",
+     "body:dataSchema[].id": "~id#1e249a",
+     "body:dataSchema[].isRequired": "#3d54f5%3d54f5",
+     "body:dataSchema[].isViewable": "#34e80d",
+     "body:description": "#684fa6",
+     "body:id": "~id#063231",
+     "body:lastUpdatedTime": "#876772",
+     "body:name": "!#41e35b",
+     "body:organizationId": "~id#771c29%e872e9",
+     "body:version": "#0f67fd",
+     "body:webhookConfig": "#6c58f0",
+     "body:webhookConfig.webhookSecret": "#fb95d4",
+     "body:webhookConfig.webhookUrl": "#0ddeee%db52d7",
+     "path:id": "!~id#4ae2da",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Update specific Asset by ID",
+    "tag": "Asset"
    },
    "PUT /organization/{}/auto-csat/{}": {
     "fields": {

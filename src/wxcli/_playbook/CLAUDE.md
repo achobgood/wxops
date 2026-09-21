@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 180 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 184 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -287,6 +287,9 @@ When multiple skills could match, use this lookup. (Basic skill-vs-skill routing
 | Register interest in telephony webhook events (`webhook-interest-registrations`) | `call-control` | `messaging-bots` (that's messaging webhooks; this is the Calling-side registration that gates which telephony events a webhook receives) |
 | Discover which fields the Contact Center search API accepts (`cc-search-metadata`) | `reporting-cc` | `contact-center` (metadata describes the search surface; it provisions nothing) |
 | Person-level hot-desking members (`hot-desking-members`) | `manage-call-settings` (person settings) | `manage-devices` (workspace/device-level hot-desk stays there) |
+| Set up the medium a Contact Center contact arrives on (telephony/email/chat/social/work-item), or the configured instance of one — `channel`, `asset` | `contact-center` | `messaging-spaces` (a Webex space is not a CC "channel") and `configure-features` (Calling has no channel concept) |
+| Generate or download a Contact Center consumption/billing report (`usage-reports`) | `reporting-cc` | `reporting` (that group is Webex Calling CDR; CC resource consumption is a different API and arrives as a downloadable file) |
+| Webex Calling call quality figures — packet loss, jitter, latency — for a time window (`calling-metrics`) | `reporting` | `reporting-cc` (that is Contact Center quality) and `reporting-meetings` (that is meeting media quality) |
 
 ### Multi-Skill Workflows
 
@@ -419,7 +422,7 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 ## CLI Status & Known Issues
 
-**180 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+**184 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
 ### Common Flags (`--fields`, `--output`, `--json-body`, `--all`, `--verify`)
 

@@ -68,7 +68,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true}'
+_BODY_SKELETON_UPDATE = '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true,"voicePortalAccessVmDepositEnabled":true}'
 
 @app.command("update", short_help="Update Voicemail Settings.")
 def update(
@@ -76,6 +76,7 @@ def update(
     number_of_days_for_message_expiry: str = typer.Option(None, "--number-of-days-for-message-expiry", help="Number of days after which messages expire."),
     strict_deletion_enabled: bool = typer.Option(None, "--strict-deletion-enabled/--no-strict-deletion-enabled", help="Set to `true` to delete all read and unread voicemail messages based on the time frame you set. Set to `false` to keep all the unread voicemail messages."),
     voice_message_forwarding_enabled: bool = typer.Option(None, "--voice-message-forwarding-enabled/--no-voice-message-forwarding-enabled", help="Set to `true` to allow people to configure the email forwarding of voicemails."),
+    voice_portal_access_vm_deposit_enabled: bool = typer.Option(None, "--voice-portal-access-vm-deposit-enabled/--no-voice-portal-access-vm-deposit-enabled", help="This field allows the callers to access the voice portal by pressing the * key during the voicemail deposit or after sending a message."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -83,7 +84,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Voicemail Settings.\n\n\b\nExample: wxcli calling-service update --message-expiry-enabled --number-of-days-for-message-expiry NUMBER_OF_DAYS_FOR_MESSAGE_EXPIRY\n\n\b\nExample --json-body: '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true}'"""
+    """Update Voicemail Settings.\n\n\b\nExample: wxcli calling-service update --message-expiry-enabled --number-of-days-for-message-expiry NUMBER_OF_DAYS_FOR_MESSAGE_EXPIRY\n\n\b\nExample --json-body: '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true,"voicePortalAccessVmDepositEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -105,6 +106,8 @@ def update(
             body["strictDeletionEnabled"] = strict_deletion_enabled
         if voice_message_forwarding_enabled is not None:
             body["voiceMessageForwardingEnabled"] = voice_message_forwarding_enabled
+        if voice_portal_access_vm_deposit_enabled is not None:
+            body["voicePortalAccessVmDepositEnabled"] = voice_portal_access_vm_deposit_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

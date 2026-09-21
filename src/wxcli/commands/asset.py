@@ -1,0 +1,415 @@
+import json
+import httpx
+import typer
+from wxcli.auth import get_api
+from wxcli.errors import WebexError, handle_rest_error, handle_network_error
+from wxcli.output import print_table, print_json
+from wxcli.common import emit, load_json_body
+from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
+from wxcli.common import verify_write
+
+
+app = typer.Typer(help="Manage Webex Calling asset.")
+
+
+_BODY_SKELETON_CREATE = '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'
+
+@app.command("create", short_help="Create a new Asset.")
+def create(
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="(required) Enter a name for the agent profile."),
+    description: str = typer.Option(None, "--description", help="Asset description"),
+    channel_type: str = typer.Option(None, "--channel-type", help="(required) Choices: TELEPHONY, EMAIL, FAX, CHAT, VIDEO, OTHERS, SOCIAL_CHANNEL, WORK_ITEM, CUSTOM_MESSAGING"),
+    channel_name: str = typer.Option(None, "--channel-name", help="Channel name (read-only, included when includeChannelName=true)"),
+    channel_id: str = typer.Option(None, "--channel-id", help="(required) Channel ID reference"),
+    business_address: str = typer.Option(None, "--business-address", help="(required) Business address (immutable after creation, max 200 chars, no special JSON chars)"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Create a new Asset.\n\n\b\nExample: wxcli asset create --name NAME --channel-type TELEPHONY --channel-id CHANNEL_ID --business-address BUSINESS_ADDRESS\n\n\b\nExample --json-body: '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/asset"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if channel_type is not None:
+            body["channelType"] = channel_type
+        if channel_name is not None:
+            body["channelName"] = channel_name
+        if channel_id is not None:
+            body["channelId"] = channel_id
+        if business_address is not None:
+            body["businessAddress"] = business_address
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'channelType', 'channelId', 'businessAddress'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_BULK = '{"items":[{"itemIdentifier":0,"item":{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'
+
+@app.command("create-bulk", short_help="Bulk save Assets.")
+def create_bulk(
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Bulk save Assets.\n\n\b\nExample --json-body: '{"items":[{"itemIdentifier":0,"item":{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0},"requestAction":"..."}]}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BULK), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/asset/bulk"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+@app.command("show", short_help="Get specific Asset by ID.")
+def show(
+    id: str = typer.Argument(help="UUID"),
+    include_channel_name: str = typer.Option(None, "--include-channel-name", help="Include channel name in the response."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get specific Asset by ID.\n\n\b\nExample: wxcli asset show ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/asset/{id}"
+    params = {}
+    if include_channel_name is not None:
+        params["includeChannelName"] = include_channel_name
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_UPDATE = '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'
+
+@app.command("update", short_help="Update specific Asset by ID.")
+def update(
+    id: str = typer.Argument(help="UUID"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="Enter a name for the agent profile."),
+    description: str = typer.Option(None, "--description", help="Asset description"),
+    channel_type: str = typer.Option(None, "--channel-type", help="Choices: TELEPHONY, EMAIL, FAX, CHAT, VIDEO, OTHERS, SOCIAL_CHANNEL, WORK_ITEM, CUSTOM_MESSAGING"),
+    channel_name: str = typer.Option(None, "--channel-name", help="Channel name (read-only, included when includeChannelName=true)"),
+    channel_id: str = typer.Option(None, "--channel-id", help="Channel ID reference"),
+    business_address: str = typer.Option(None, "--business-address", help="Business address (immutable after creation, max 200 chars, no special JSON chars)"),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update specific Asset by ID.\n\n\b\nExample: wxcli asset update ID --name NAME --channel-type TELEPHONY --channel-id CHANNEL_ID --business-address BUSINESS_ADDRESS\n\n\b\nExample --json-body: '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/asset/{id}"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if channel_type is not None:
+            body["channelType"] = channel_type
+        if channel_name is not None:
+            body["channelName"] = channel_name
+        if channel_id is not None:
+            body["channelId"] = channel_id
+        if business_address is not None:
+            body["businessAddress"] = business_address
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+    try:
+        result = api.session.rest_put(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_UPDATE_ASSET = '{"valueType":"ARRAY"}'
+
+@app.command("update-asset", short_help="Partially update Asset by ID.")
+def update_asset(
+    id: str = typer.Argument(help="UUID"),
+    value_type: str = typer.Option(None, "--value-type", help="Choices: ARRAY, OBJECT, STRING, NUMBER, TRUE, FALSE, NULL"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Partially update Asset by ID.\n\n\b\nExample: wxcli asset update-asset ID\n\n\b\nExample --json-body: '{"valueType":"ARRAY"}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ASSET), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/asset/{id}"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if value_type is not None:
+            body["valueType"] = value_type
+    try:
+        result = api.session.rest_patch(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if verify:
+        verify_write(api, url, None, body)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": id}, output=output, fields=fields)
+
+
+
+@app.command("delete", short_help="Delete specific Asset by ID.")
+def delete(
+    id: str = typer.Argument(help="UUID"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Delete specific Asset by ID.\n\n\b\nExample: wxcli asset delete ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    if not force:
+        typer.confirm(f"Delete {id}?", abort=True)
+    url = f"{cc_base_url}/organization/{orgid}/asset/{id}"
+    try:
+        result = api.session.rest_delete(url)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Deleted: {id}")
+    else:
+        emit({"status": "deleted", "id": id}, output=output, fields=fields)
+
+
+
+@app.command("list", hidden=True)
+@app.command("list-incoming-references", short_help="List references for a specific Asset.")
+def list_incoming_references(
+    id: str = typer.Argument(help="UUID"),
+    type_param: str = typer.Option(None, "--type", help="Entity type of the other entity that has a reference to this specific entity."),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List references for a specific Asset.\n\n\b\nExample: wxcli asset list-incoming-references ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/asset/{id}/incoming-references"
+    params = {}
+    if type_param is not None:
+        params["type"] = type_param
+    if page is not None:
+        params["page"] = page
+    if page_size is not None:
+        params["pageSize"] = page_size
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+
+
+@app.command("list-asset", short_help="List Assets.")
+def list_asset(
+    filter_param: str = typer.Option(None, "--filter", help="Filter expression"),
+    attributes: str = typer.Option(None, "--attributes", help="Supported attributes"),
+    search: str = typer.Option(None, "--search", help="Filter data based on the search keyword.Supported search columns(name) The examples below show some search queries - \"Cisco\" - field==\"name\";value==\"Cisco\" - fields=in=(\"name\");value==\"Cisco\""),
+    page: str = typer.Option(None, "--page", help="Defines the number of displayed page. The page number starts from 0."),
+    page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
+    sort: str = typer.Option(None, "--sort", help="Sortable properties"),
+    include_count: str = typer.Option(None, "--include-count", help="Include count"),
+    single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception."),
+    include_channel_name: str = typer.Option(None, "--include-channel-name", help="Include channel name in the response."),
+    exclude_ep_associated: str = typer.Option(None, "--exclude-ep-associated", help="When true, return only assets that are not associated with any Entry Point."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Assets."""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    orgid = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/organization/{orgid}/v2/asset"
+    params = {}
+    if filter_param is not None:
+        params["filter"] = filter_param
+    if attributes is not None:
+        params["attributes"] = attributes
+    if search is not None:
+        params["search"] = search
+    if page is not None:
+        params["page"] = page
+    if page_size is not None:
+        params["pageSize"] = page_size
+    if sort is not None:
+        params["sort"] = sort
+    if include_count is not None:
+        params["includeCount"] = include_count
+    if single_object_response is not None:
+        params["singleObjectResponse"] = single_object_response
+    if include_channel_name is not None:
+        params["includeChannelName"] = include_channel_name
+    if exclude_ep_associated is not None:
+        params["excludeEPAssociated"] = exclude_ep_associated
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        if all_pages:
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        else:
+            result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+
+

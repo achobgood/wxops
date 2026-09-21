@@ -19,6 +19,10 @@
       "description": "Operations related to external voicemail Message Waiting Indicator (MWI) status."
     },
     {
+      "name": "Calling Metrics",
+      "description": "Webex Calling call and media-quality metrics."
+    },
+    {
       "name": "Features: Call Recording",
       "description": "Webex Calling Call Recording settings, including organization- and location-level vendor configuration, terms of service, compliance announcements, and custom call recording announcements."
     },
@@ -11683,8 +11687,88 @@
         ]
       }
     },
+    "/telephony/config/premisePstn/trunks/actions/validate/invoke": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Validate a Trunk",
+        "operationId": "Validate a Trunk",
+        "description": "Validate Local Gateway trunk settings for the organization before creation.\n\nLocal Gateway trunks connect Webex Calling to on-premises PSTN infrastructure, terminating on a local gateway or other supported device. Trunks can be assigned to Route Groups to distribute calls across multiple trunks or to provide redundancy.\n\nThis endpoint validates FQDN, domain, peer identity, and trunk type settings prior to trunk creation.\n\nValidating a trunk requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "Call Routing"
+        ],
+        "parameters": [
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization to which the trunk belongs.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrunkValidatePost"
+              }
+            }
+          }
+        }
+      }
+    },
     "/telephony/config/premisePstn/trunks/actions/fqdnValidation/invoke": {
       "post": {
+        "deprecated": true,
         "responses": {
           "204": {
             "description": "No Content",
@@ -11739,7 +11823,7 @@
         },
         "summary": "Validate Local Gateway FQDN and Domain for a Trunk",
         "operationId": "Validate Local Gateway FQDN and Domain for a Trunk",
-        "description": "Validate Local Gateway FQDN and Domain for the organization trunks.\n\nA Trunk is a connection between Webex Calling and the premises, which terminates on the premises with a local gateway or other supported device.\nThe trunk can be assigned to a Route Group - a group of trunks that allow Webex Calling to distribute calls over multiple trunks or to provide redundancy.\n\nValidating Local Gateway FQDN and Domain requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "**Deprecated**: Use [Validate a Trunk](#/Call%20Routing/Validate%20a%20Trunk) instead.\n\nValidate Local Gateway FQDN and Domain for the organization trunks.\n\nA Trunk is a connection between Webex Calling and the premises, which terminates on the premises with a local gateway or other supported device.\nThe trunk can be assigned to a Route Group - a group of trunks that allow Webex Calling to distribute calls over multiple trunks or to provide redundancy.\n\nValidating Local Gateway FQDN and Domain requires a full administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "Call Routing"
         ],
@@ -12086,6 +12170,7 @@
                   "port": 5000,
                   "maxConcurrentCalls": 1000,
                   "isRestrictedToDedicatedInstance": true,
+                  "peerIdentity": "acme.corp",
                   "pChargeInfoSupportPolicy": "DISABLED"
                 }
               }
@@ -29854,6 +29939,253 @@
         "parameters": []
       }
     },
+    "/v1/analytics/callQualityStats": {
+      "get": {
+        "summary": "Webex Calling Call Quality Stats",
+        "operationId": "getCallQualityStats",
+        "description": "Returns aggregated Webex Calling call and media-quality statistics for the authenticated organization. A call or media session is classified as good quality when all available audio and video quality measurements meet their defined thresholds. Missing individual quality measurements do not cause the call or session to be classified as poor quality.\n\nYou can query data for a time range of up to seven days within the previous 3 weeks. For older historical data, use the Webex Calling Media Quality dashboard or reports. For more information on Media Quality KPI definitions, [click here](https://help.webex.com/en-us/article/n0rlwxe/Analytics-for-Your-Cloud-Collaboration-Portfolio#Cisco_Concept.dita_7609f9dc-3b80-4c0f-9456-5aaa385c4e27).\n\nThis operation requires a Pro Pack for Control Hub license. The access token must include the analytics:read_all scope and represent either a full administrator or read-only administrator. The organization is derived from the access token.\n\n<div><Callout type=\"error\">The base URL for these APIs is **analytics.webexapis.com**, which does not work with the **Try It** feature.</Callout></div>",
+        "tags": [
+          "Calling Metrics"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive UTC start time in yyyy-MM-ddTHH:mm:ssZ format. If omitted while to is provided, it is seven days before the effective to time. If both times are omitted, it is seven days before the current time.",
+            "example": "2026-08-10T12:00:00Z",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "minLength": 20,
+              "maxLength": 20,
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive UTC end time in yyyy-MM-ddTHH:mm:ssZ format. A value later than the current time is clamped to the current time. If omitted while from is provided, it is the earlier of seven days after from and the current time. If both times are omitted, it is the current time.",
+            "example": "2026-08-16T12:00:00Z",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "minLength": 20,
+              "maxLength": 20,
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "description": "Exact Webex Calling location name. Omit it or provide an empty value to include all locations.",
+            "example": "Headquarters",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Webex Calling call-quality statistics.",
+                  "example": {
+                    "startTime": "2026-08-10T12:00:00Z",
+                    "endTime": "2026-08-16T12:00:00Z",
+                    "location": "Headquarters",
+                    "metrics": {
+                      "totalCalls": 12500,
+                      "totalCallsWithMedia": 12000,
+                      "totalGoodQualityCallsWithMedia": 11400,
+                      "totalMediaSessions": 24000,
+                      "totalGoodMediaSessions": 22800,
+                      "avgCallLegAudioJitter": 18.4,
+                      "avgCallLegAudioLatency": 132.7,
+                      "avgCallLegAudioPacketLoss": 0.8
+                    }
+                  },
+                  "required": [
+                    "startTime",
+                    "endTime",
+                    "metrics"
+                  ],
+                  "properties": {
+                    "startTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2026-08-10T12:00:00Z",
+                      "description": "Start of the queried interval."
+                    },
+                    "endTime": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2026-08-16T12:00:00Z",
+                      "description": "End of the queried interval."
+                    },
+                    "location": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Headquarters",
+                      "description": "Selected location, or null when all locations are included."
+                    },
+                    "metrics": {
+                      "type": "object",
+                      "description": "Call and media-quality statistics.",
+                      "example": {
+                        "totalCalls": 12500,
+                        "totalCallsWithMedia": 12000,
+                        "totalGoodQualityCallsWithMedia": 11400,
+                        "totalMediaSessions": 24000,
+                        "totalGoodMediaSessions": 22800,
+                        "avgCallLegAudioJitter": 18.4,
+                        "avgCallLegAudioLatency": 132.7,
+                        "avgCallLegAudioPacketLoss": 0.8
+                      },
+                      "required": [
+                        "totalCalls",
+                        "totalCallsWithMedia",
+                        "totalGoodQualityCallsWithMedia",
+                        "totalMediaSessions",
+                        "totalGoodMediaSessions",
+                        "avgCallLegAudioJitter",
+                        "avgCallLegAudioLatency",
+                        "avgCallLegAudioPacketLoss"
+                      ],
+                      "properties": {
+                        "totalCalls": {
+                          "type": "integer",
+                          "format": "int64",
+                          "minimum": 0,
+                          "example": 12500,
+                          "description": "Total calls."
+                        },
+                        "totalCallsWithMedia": {
+                          "type": "integer",
+                          "format": "int64",
+                          "minimum": 0,
+                          "example": 12000,
+                          "description": "Total calls with media."
+                        },
+                        "totalGoodQualityCallsWithMedia": {
+                          "type": "integer",
+                          "format": "int64",
+                          "minimum": 0,
+                          "example": 11400,
+                          "description": "Total good-quality calls with media."
+                        },
+                        "totalMediaSessions": {
+                          "type": "integer",
+                          "format": "int64",
+                          "minimum": 0,
+                          "example": 24000,
+                          "description": "Total media sessions."
+                        },
+                        "totalGoodMediaSessions": {
+                          "type": "integer",
+                          "format": "int64",
+                          "minimum": 0,
+                          "example": 22800,
+                          "description": "Total good-quality media sessions."
+                        },
+                        "avgCallLegAudioJitter": {
+                          "type": "number",
+                          "format": "double",
+                          "nullable": true,
+                          "example": 18.4,
+                          "description": "Average call-leg audio jitter in milliseconds."
+                        },
+                        "avgCallLegAudioLatency": {
+                          "type": "number",
+                          "format": "double",
+                          "nullable": true,
+                          "example": 132.7,
+                          "description": "Average call-leg audio latency in milliseconds."
+                        },
+                        "avgCallLegAudioPacketLoss": {
+                          "type": "number",
+                          "format": "double",
+                          "nullable": true,
+                          "example": 0.8,
+                          "description": "Average call-leg audio packet loss percentage."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "startTime": "2026-08-10T12:00:00Z",
+                  "endTime": "2026-08-16T12:00:00Z",
+                  "location": "Headquarters",
+                  "metrics": {
+                    "totalCalls": 12500,
+                    "totalCallsWithMedia": 12000,
+                    "totalGoodQualityCallsWithMedia": 11400,
+                    "totalMediaSessions": 24000,
+                    "totalGoodMediaSessions": 22800,
+                    "avgCallLegAudioJitter": 18.4,
+                    "avgCallLegAudioLatency": 132.7,
+                    "avgCallLegAudioPacketLoss": 0.8
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        }
+      }
+    },
     "/telephony/config/announcementLanguages": {
       "get": {
         "responses": {
@@ -29968,7 +30300,8 @@
                   "messageExpiryEnabled": false,
                   "numberOfDaysForMessageExpiry": 10,
                   "strictDeletionEnabled": false,
-                  "voiceMessageForwardingEnabled": true
+                  "voiceMessageForwardingEnabled": true,
+                  "voicePortalAccessVmDepositEnabled": true
                 }
               }
             }
@@ -30114,7 +30447,8 @@
                 "messageExpiryEnabled": false,
                 "numberOfDaysForMessageExpiry": 10,
                 "strictDeletionEnabled": false,
-                "voiceMessageForwardingEnabled": true
+                "voiceMessageForwardingEnabled": true,
+                "voicePortalAccessVmDepositEnabled": true
               },
               "schema": {
                 "$ref": "#/components/schemas/PutVoicemailSettingsObject"
@@ -58104,7 +58438,6 @@
             "name": "max",
             "in": "query",
             "description": "Limit the number of objects returned to this maximum count.",
-            "required": true,
             "example": "5",
             "schema": {
               "type": "number"
@@ -58114,7 +58447,6 @@
             "name": "start",
             "in": "query",
             "description": "Start at the zero-based offset in the list of matching objects.",
-            "required": true,
             "example": "0",
             "schema": {
               "type": "number"
@@ -140640,6 +140972,40 @@
           }
         }
       },
+      "TrunkValidatePost": {
+        "type": "object",
+        "properties": {
+          "fqdnAddress": {
+            "type": "string",
+            "example": "lgw1.london",
+            "description": "FQDN or SRV address of the trunk."
+          },
+          "fqdnDomain": {
+            "type": "string",
+            "example": "acme.corp",
+            "description": "Domain name of the trunk."
+          },
+          "fqdnPort": {
+            "type": "integer",
+            "example": 5060,
+            "description": "FQDN port of the trunk."
+          },
+          "trunkType": {
+            "$ref": "#/components/schemas/TrunkType",
+            "description": "Trunk Type associated with the trunk."
+          },
+          "isRestrictedToDedicatedInstance": {
+            "type": "boolean",
+            "example": false,
+            "description": "Flag to indicate if the trunk is restricted to a dedicated instance."
+          },
+          "peerIdentity": {
+            "type": "string",
+            "example": "acme.corp",
+            "description": "Peer identity for certificate-based trunks. Used for TLS peer verification."
+          }
+        }
+      },
       "TrunkFQDNValidatePost": {
         "type": "object",
         "properties": {
@@ -140771,6 +141137,11 @@
             "example": true,
             "description": "Flag to indicate if the trunk is restricted to a dedicated instance."
           },
+          "peerIdentity": {
+            "type": "string",
+            "example": "acme.corp",
+            "description": "Peer identity for certificate-based trunks. Used for TLS peer verification."
+          },
           "pChargeInfoSupportPolicy": {
             "$ref": "#/components/schemas/PChargeInfoSupportPolicyType"
           }
@@ -140833,6 +141204,11 @@
             "type": "number",
             "example": 1000,
             "description": "Max Concurrent call. Required to create a static certificate based trunk."
+          },
+          "peerIdentity": {
+            "type": "string",
+            "example": "acme.corp",
+            "description": "Peer identity for certificate-based trunks. Used for TLS peer verification."
           },
           "pChargeInfoSupportPolicy": {
             "$ref": "#/components/schemas/PChargeInfoSupportPolicyType"
@@ -149558,6 +149934,13 @@
       },
       "GetVoicemailSettingsObject": {
         "type": "object",
+        "example": {
+          "messageExpiryEnabled": false,
+          "numberOfDaysForMessageExpiry": 10,
+          "strictDeletionEnabled": false,
+          "voiceMessageForwardingEnabled": true,
+          "voicePortalAccessVmDepositEnabled": true
+        },
         "required": [
           "messageExpiryEnabled",
           "numberOfDaysForMessageExpiry",
@@ -149567,6 +149950,7 @@
         "properties": {
           "messageExpiryEnabled": {
             "type": "boolean",
+            "example": false,
             "description": "When enabled, you can set the deletion conditions for expired messages."
           },
           "numberOfDaysForMessageExpiry": {
@@ -149576,12 +149960,18 @@
           },
           "strictDeletionEnabled": {
             "type": "boolean",
+            "example": false,
             "description": "When enabled, all read and unread voicemail messages will be deleted based on the time frame you set. When disabled, all unread voicemail messages will be kept."
           },
           "voiceMessageForwardingEnabled": {
             "type": "boolean",
             "example": true,
             "description": "When enabled, people in the organization can configure the email forwarding of voicemails."
+          },
+          "voicePortalAccessVmDepositEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "This field allows the callers to access the voice portal by pressing the * key during the voicemail deposit or after sending a message."
           }
         }
       },
@@ -149690,6 +150080,11 @@
             "type": "boolean",
             "example": true,
             "description": "Set to `true` to allow people to configure the email forwarding of voicemails."
+          },
+          "voicePortalAccessVmDepositEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "This field allows the callers to access the voice portal by pressing the * key during the voicemail deposit or after sending a message."
           }
         }
       },
@@ -169583,6 +169978,11 @@
             "type": "string",
             "example": "for Pediatric Services",
             "description": "This field provides additional context for the transfer type. For example, Intent Name is the specific intent identified by the AI Receptionist during the conversation, used to route the call to the number mapped to that intent. Example intents include:\n\n- \"for Pediatric Services\"\n\n- \"for Occupational Therapy\""
+          },
+          "Answer reason": {
+            "type": "string",
+            "example": "Auto Answer",
+            "description": "Specifies how the call was answered. This field displays Auto Answer when the Auto-Answer feature handles the call. For manually answered calls, the value is N/A."
           }
         }
       },
@@ -180105,6 +180505,12 @@
       }
     },
     "securitySchemes": {
+      "bearer-key": {
+        "type": "http",
+        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
       "oauth2": {
         "flows": {
           "authorizationCode": {
@@ -180114,12 +180520,6 @@
           }
         },
         "type": "oauth2"
-      },
-      "bearer-key": {
-        "type": "http",
-        "description": "e.g. Bearer YOUR_AUTHORIZATION_TOKEN",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
       },
       "bearerAuth": {
         "type": "http",

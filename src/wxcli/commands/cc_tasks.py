@@ -322,7 +322,7 @@ def create_hold(
 
 _BODY_SKELETON_CREATE_UNHOLD = '{"mediaResourceId":"..."}'
 
-@app.command("create-unhold", short_help="Resume Task.")
+@app.command("create-unhold", short_help="Unhold Task.")
 def create_unhold(
     task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
     media_resource_id: str = typer.Option(None, "--media-resource-id", help="(required) It is an identifier of a media resource, maximum length 36 characters"),
@@ -332,7 +332,7 @@ def create_unhold(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Resume Task.\n\n\b\nExample: wxcli cc-tasks create-unhold TASK_ID --media-resource-id MEDIA_RESOURCE_ID\n\n\b\nExample --json-body: '{"mediaResourceId":"..."}'"""
+    """Unhold Task.\n\n\b\nExample: wxcli cc-tasks create-unhold TASK_ID --media-resource-id MEDIA_RESOURCE_ID\n\n\b\nExample --json-body: '{"mediaResourceId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_UNHOLD), indent=2))
         raise typer.Exit(0)
@@ -349,6 +349,74 @@ def create_unhold(
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+@app.command("create-pause-tasks", short_help="Pause Task.")
+def create_pause_tasks(
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pause Task.\n\n\b\nExample: wxcli cc-tasks create-pause-tasks TASK_ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v1/tasks/{task_id}/pause"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+@app.command("create-resume-tasks", short_help="Resume Task.")
+def create_resume_tasks(
+    task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Resume Task.\n\n\b\nExample: wxcli cc-tasks create-resume-tasks TASK_ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    url = f"{cc_base_url}/v1/tasks/{task_id}/resume"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
@@ -414,6 +482,7 @@ def create_reject(
 
 
 
+@app.command("create-pause-record", hidden=True)
 @app.command("create-pause", short_help="Pause Recording Task.")
 def create_pause(
     task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
@@ -450,6 +519,7 @@ def create_pause(
 
 _BODY_SKELETON_CREATE_RESUME = '{"autoResumed":true}'
 
+@app.command("create-resume-record", hidden=True)
 @app.command("create-resume", short_help="Resume Recording Task.")
 def create_resume(
     task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),

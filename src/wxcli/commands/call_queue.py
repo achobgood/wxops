@@ -1700,13 +1700,13 @@ def list_agents(
 def show_agents(
     id: str = typer.Argument(help="Webex CALL_QUEUE id, from: wxcli call-queue list-agents"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to view the details of an agent with Customer Assist license. This can otherwise be ommited or set to `false`."),
-    max: str = typer.Option(..., "--max", help="Limit the number of objects returned to this maximum count."),
-    start: str = typer.Option(..., "--start", help="Start at the zero-based offset in the list of matching objects."),
+    max: str = typer.Option(None, "--max", help="Limit the number of objects returned to this maximum count."),
+    start: str = typer.Option(None, "--start", help="Start at the zero-based offset in the list of matching objects."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Details for an Agent for Call Queue or Customer Assist.\n\n\b\nExample: wxcli call-queue show-agents ID --max MAX --start START"""
+    """Get Details for an Agent for Call Queue or Customer Assist.\n\n\b\nExample: wxcli call-queue show-agents ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/queues/agents/{id}"
     params = {}
