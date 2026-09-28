@@ -1,0 +1,248 @@
+spec-sync 2026-09-28 — FAILED CLOSED
+
+THE FAILING OUTPUT, VERBATIM
+----------------------------
+$ python3 -m tools.sync_classify --base origin/main --fail-on-human
+sync_classify: verdict=human  added=90 removed=0 retargeted=0 groups +5/-0
+  blast radius: 90 command names changed > 40 — green is not intended
+exit 1
+
+WHY THIS STOPPED THE RUN
+------------------------
+Contract section 1 step 3: a `human` verdict goes straight to section 4. Contract
+section 6 lists "blast radius over 40" as one of the things that must reach a
+human. 90 command names changed, so the automation is not permitted to release
+this week no matter how clean the rest of the bar is.
+
+This is NOT a broken pass bar. Every other gate was made to hold, on a clean
+tree, before the verdict was read:
+
+  sync_guard diff --base origin/main .......... 0 forbidden edit(s)
+  drift_check --enforce ....................... result: PASS
+      drift-check: 189 command sets (192 registered names incl. aliases),
+      2141 commands, 1971 non-skipped spec ops (156 deliberately skipped)
+  pytest tests/ -m "not live" ................. 4427 passed, 6 skipped, 0 failed
+  wxcli-dist/assemble.py ......................... exit 0; a second assemble is a
+      byte-for-byte no-op, so nothing is left un-assembled
+  name lock (check 22) ........................ 0 moved, 0 removed, 0 groups
+      gone, 0 unlocked
+
+The only item that fails is the verdict itself. A human decides whether to ship
+90 renamed/added command names in one release.
+
+WHAT UPSTREAM ACTUALLY DID (2026-09-28 refresh, 7 specs updated)
+----------------------------------------------------------------
+Cisco reshaped Webex Calling call control from one scope into three. Every bare
+/telephony/calls/<verb> and /telephony/conference/<verb> gained two siblings:
+
+    /telephony/calls/members/{memberId}/<verb>      (admin / Service App)
+    /telephony/calls/members/me/<verb>              (self)
+
+The member-scoped Call Controls API went from 5 published actions (dial, answer,
+hangup, list calls, get call details) to 25 — full parity with the user-level
+API. That is the substance of the week, and it is why the blast radius is 90:
+most of those 90 are NEW names for new endpoints, not churn on existing ones
+(added=90, removed=0, retargeted=0).
+
+Five new command groups appeared:
+
+    call-controls-members            POST .../members/{memberId}/wrapupreasons
+    call-controls-members-me         POST .../members/me/wrapupreasons
+    external-data-updates            PUT  /v1/data/updateExternal  (Contact Center)
+    user-call-settings-members       voicemail MESSAGE surface, by member
+    user-call-settings-members-me    the same, self-scoped
+
+A DOC CLAIM THIS REFRESH FALSIFIED — worth a human's eye even if the release is
+deferred
+-------------------------------------------------------------------------------
+docs/reference/call-control.md section 5 carried this gotcha:
+
+    "Members API supports a limited action set. Only Dial, Answer, Hangup, List
+     Calls, and Get Call Details are available. Hold, Resume, Transfer, Mute,
+     Park, and Barge-in are user-level API operations only and are NOT available
+     on the Members API path."
+
+That is now false — all of them are published under /members/{memberId}/. The
+run rewrote that section, but the rewrite lives only in the rejected tree (see
+below), so the false claim is still on main until someone lands a sync.
+
+WHAT THE RUN DID BEFORE IT STOPPED — and what is lost
+------------------------------------------------------
+Per contract section 4 this branch is clean off main; none of the regenerated
+tree goes with it. The regen is therefore NOT preserved anywhere, and a re-run
+will have to redo it. The expensive, non-obvious part is the override work, so
+it is reproduced verbatim at the end of this file. Applying that diff first will
+save the next run its entire repair budget.
+
+Two lock refusals had to be resolved to get a clean regen:
+
+  1. 25 locked names reported REMOVED. They were not removed. The suffix
+     disambiguation above renamed them: `create-barge-in` now derives as
+     `create-barge-in-calls`, `list-history` as `list-history-calls`, and so on.
+     Every one of the 25 paths was confirmed still present in the new spec and
+     still rendered, path by path, before anything was pinned. Pinned back to
+     their locked names via tag_overrides -> command_name_overrides.
+
+  2. 13 HIGH check-12 findings on the new surface. Fixed by renaming, never by
+     acking — contract section 2 D forbids a `naming` ack:
+       - three dedup artifacts (`create-resume-members-1` and friends, where the
+         members/me path lost the race for the `-me` suffix) renamed to `-me` to
+         match every other me-scoped action in the same groups;
+       - ten bare `create`/`list`/`show`/`delete` names in the new groups, where
+         the group name said one thing and the resource was another, renamed to
+         the resource.
+
+One trap worth recording for the next run: a spec_sync run that gets as far as
+refreshing the name lock WRITES the then-current names into
+tools/command_name_lock.json. If you then rename anything, the next run's lock
+refresh refuses against your own provisional names. Reset the lock to
+origin/main before re-running, or the refusal list is noise.
+
+Routing and reference-doc coverage for all five new groups was written and
+checks 4 and 20 went to 0 — also only in the rejected tree. The routing
+decisions were:
+
+# Routing decisions — spec-sync 2026-09-28
+
+Five new command groups appeared in this refresh. One line each, per contract §2 B.
+
+- call-controls-members -> call-control (Cisco tagged the member-scoped wrap-up-reason POST apart from Call Controls, but it is a Calling call-control action on a live call, which is exactly this skill's surface; the WxCC `cc-aux-code` lookalike belongs to contact-center and is called out in both the skill and the CLAUDE.md row)
+- call-controls-members-me -> call-control (same operation, self-scoped; splitting the pair across skills would make the token-scope choice invisible at the point of use)
+- external-data-updates -> contact-center (PUT /v1/data/updateExternal writes global-variable values onto handled CC contacts; the variable definitions it depends on are `cc-global-vars`, already routed to this skill, and it needs the region-scoped CC base URL plus `cjp:` scopes that only this skill sets up)
+- user-call-settings-members -> manage-call-settings (voicemail MESSAGE state — summary, list, mark read/unread, delete; this skill already owns per-person voicemail, and the adjacent `user-settings` voicemail CONFIG commands are the thing users will confuse it with, so the disambiguation belongs in the same skill rather than across two)
+- user-call-settings-members-me -> manage-call-settings (self-scoped twin of the above; routed together for the same reason as the call-controls pair)
+
+WHAT A HUMAN NEEDS TO DECIDE
+----------------------------
+Whether 90 added command names ship as one release. There is nothing to repair
+first: the tree that produced these numbers passed every other gate. If the
+answer is yes, re-run the sync with the override diff below applied and release
+it by hand; the verdict was minor-shaped (added-only, nothing removed or
+retargeted) before the blast-radius rule promoted it to `human`.
+
+APPENDIX — tools/field_overrides.yaml diff vs ded49a69f48a
+------------------------------------------------------------
+diff --git a/tools/field_overrides.yaml b/tools/field_overrides.yaml
+index fb6220b..ae6be26 100644
+--- a/tools/field_overrides.yaml
++++ b/tools/field_overrides.yaml
+@@ -1406,6 +1406,94 @@ tag_overrides:
+         # Derived from "Validate Country for AI Receptionist" and truncated
+         # mid-phrase, leaving a dangling preposition that reads as a bug.
+         "validate-country-for": "validate-country"
++    # Upstream (2026-09-28) added two sibling history endpoints —
++    # /telephony/calls/members/me/history and
++    # /telephony/calls/members/{memberId}/history — next to the long-standing
++    # /telephony/calls/history. Three paths deriving the same base name made the
++    # generator disambiguate all three, so the locked operation
++    # `GET /telephony/calls/history` stopped shipping as `list-history` and
++    # started shipping as `list-history-calls`. That is a rename of a name that
++    # has shipped since the group existed, and it is the name the Call Controls
++    # table_columns block keys on.
++    #
++    # Pin the locked operation back to its locked name. The two new commands
++    # keep their derived suffixes, which is exactly the shape the sibling call
++    # lists in this same group already use: bare `list` for /telephony/calls
++    # against `list-calls-me` / `list-calls-members`. So the group reads
++    # `list-history` / `list-history-me` / `list-history-members`.
++    "Call Controls":
++      command_name_overrides:
++        "list-history-calls": "list-history"
++        # Dedup artifacts, not upstream names. For `resume` and
++        # `resumeRecording` the members/me/ path lost the race for the `-me`
++        # suffix and fell through to a bare `-1`, which tells a caller nothing.
++        # Every other me-scoped action in this group already ships as `-me`
++        # (create-hold-me, create-mute-me, create-barge-in-me, ...), so these
++        # two are renamed to match rather than acked: a numeric suffix is
++        # exactly the name shape check 12 exists to catch.
++        "create-resume-members-1": "create-resume-me"
++        "create-resume-recording-members-1": "create-resume-recording-me"
++        # The same upstream change hit every action verb in this group, not
++        # just history: each bare /telephony/calls/<verb> gained
++        # members/me/<verb> and members/{memberId}/<verb> siblings, so all 18
++        # long-shipping bare names picked up a `-calls` suffix. The name-lock
++        # reported them as REMOVED rather than MOVED because the old name left
++        # the rendered set entirely, but every locked operation is still in the
++        # spec and still rendered — verified path-by-path against the new
++        # spec before pinning. These are renames to undo, not upstream
++        # removals, so none of them is the §6 "command removed upstream" signal.
++        "create-barge-in-calls": "create-barge-in"
++        "create-divert-calls": "create-divert"
++        "create-hold-calls": "create-hold"
++        "create-mute-calls": "create-mute"
++        "create-park-calls": "create-park"
++        "create-pause-recording-calls": "create-pause-recording"
++        "create-pickup-calls": "create-pickup"
++        "create-pull-calls": "create-pull"
++        "create-push-calls": "create-push"
++        "create-reject-calls": "create-reject"
++        "create-resume-calls": "create-resume"
++        "create-resume-recording-calls": "create-resume-recording"
++        "create-retrieve-calls": "create-retrieve"
++        "create-start-recording-calls": "create-start-recording"
++        "create-stop-recording-calls": "create-stop-recording"
++        "create-transfer-calls": "create-transfer"
++        "create-transmit-dtmf-calls": "create-transmit-dtmf"
++        "create-unmute-calls": "create-unmute"
++    # New upstream groups (2026-09-28). Cisco split the member-scoped and
++    # self-scoped wrap-up-reason writes out of Call Controls into tags of their
++    # own, and each tag holds exactly one POST — so the derived name was a bare
++    # `create` whose group name says "call controls" while the resource is
++    # wrap-up reasons. Check 12 rates that HIGH for a reason: the headline
++    # resource is unreachable, so a caller who types the obvious name gets a
++    # different resource and no error. Named for the resource instead. The
++    # unpunctuated spelling matches the path segment (`wrapupreasons`), which is
++    # the token a caller greps for.
++    "Call Controls Members":
++      command_name_overrides:
++        "create": "create-wrapupreasons"
++    "Call Controls Members Me":
++      command_name_overrides:
++        "create": "create-wrapupreasons"
++    # Same upstream reshape as Call Controls above: every bare
++    # /telephony/conference/<verb> gained members/me/ and members/{memberId}/
++    # siblings, suffixing all seven shipped names to `-conference`. Pinned back
++    # for the same reason and on the same evidence — each locked operation was
++    # confirmed still present in the spec and still rendered under the suffixed
++    # name.
++    "Conference Controls":
++      command_name_overrides:
++        # Same dedup artifact as Call Controls above, and the same remedy:
++        # create-resume-members-1 is the only me-scoped conference action not
++        # already shipping as `-me`.
++        "create-resume-members-1": "create-resume-me"
++        "create-add-participant-conference": "create-add-participant"
++        "create-deafen-conference": "create-deafen"
++        "create-hold-conference": "create-hold"
++        "create-mute-conference": "create-mute"
++        "create-resume-conference": "create-resume"
++        "create-undeafen-conference": "create-undeafen"
++        "create-unmute-conference": "create-unmute"
+     "Converged Recordings":
+       command_name_overrides:
+       # Wave 3 renames (2026-07-27): 26 CRITICAL commands whose name gave an
+@@ -1454,6 +1542,24 @@ tag_overrides:
+       command_name_overrides:
+         "delete": "delete-access-codes-all"
+     # Merged tag name — "Workspace Call Settings (1/2)" is folded into this.
++    # New upstream groups (2026-09-28): the voicemail MESSAGE surface
++    # (summary, list, delete, mark read/unread) split out of User Call Settings
++    # into member-scoped and self-scoped tags. Every bare name here names the
++    # group, not the resource — `wxcli user-call-settings-members list` reads
++    # like "list members" and returns voice messages. Renamed to the resource,
++    # using the names check 12 proposed.
++    "User Call Settings Members":
++      command_name_overrides:
++        "show": "show-summary"
++        "list": "list-voice-messages"
++        "delete": "delete-voice-messages"
++        "create": "create-mark-as-read"
++    "User Call Settings Members Me":
++      command_name_overrides:
++        "show": "show-summary"
++        "list": "list-voice-messages"
++        "delete": "delete-voice-messages"
++        "create": "create-mark-as-read"
+     "Workspace Call Settings":
+       command_name_overrides:
+         "delete": "delete-access-codes-all"
