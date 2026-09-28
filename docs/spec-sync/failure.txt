@@ -246,3 +246,519 @@ index fb6220b..ae6be26 100644
      "Workspace Call Settings":
        command_name_overrides:
          "delete": "delete-access-codes-all"
+
+
+APPENDIX 2 — the hand-written prose from the rejected tree
+-----------------------------------------------------------
+Everything else in the rejected regen is reproducible by re-running the
+pipeline. This is not: it is hand-written, it is what contract sections 2 B,
+2 C and 3 require for the five new groups, and it includes the correction to
+the call-control.md section 5 claim that this refresh falsified. Applying this
+diff plus Appendix 1 puts a re-run straight at the verdict with no repair
+budget spent.
+
+diff --git a/.claude/skills/call-control/SKILL.md b/.claude/skills/call-control/SKILL.md
+index 84e88b9..b146e9a 100644
+--- a/.claude/skills/call-control/SKILL.md
++++ b/.claude/skills/call-control/SKILL.md
+@@ -497,6 +497,30 @@ wxcli conference --help
+ | `wxcli conference create-hold` | `--line-owner-id` | Hold the conference |
+ | `wxcli conference create-resume` | `--line-owner-id` | Resume the conference |
+ 
++#### Wrap-up reasons on a call (`call-controls-members` / `call-controls-members-me`)
++
++Two separate one-command groups, not commands inside `call-controls`: Cisco
++tags them apart. `call-controls-members` acts on another member (admin /
++Service App token), `call-controls-members-me` on the authenticated user.
++Both are write-only — there is no GET, so you cannot read back what a call
++currently carries.
++
++| Command | Positional | Description |
++|---------|-----------|-------------|
++| `wxcli call-controls-members create-wrapupreasons` | `MEMBER_ID` | Set the wrap-up reason on another member's call |
++| `wxcli call-controls-members-me create-wrapupreasons` | — | Set it on your own call |
++
++```bash
++# The body is nested, so --json-body is the only way in. Print the skeleton first.
++wxcli call-controls-members-me create-wrapupreasons --generate-json-body
++
++wxcli call-controls-members-me create-wrapupreasons --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
++wxcli call-controls-members create-wrapupreasons MEMBER_ID --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
++```
++
++Not to be confused with Contact Center wrap-up codes (`cc-aux-code`, the
++`contact-center` skill) — same word, different API, different licence.
++
+ **Note:** Conference commands do NOT take a positional conference ID. Use `--line-owner-id` to specify whose conference to operate on (required for Service App tokens).
+ 
+ #### 3-way merge via Call Control API
+diff --git a/.claude/skills/contact-center/SKILL.md b/.claude/skills/contact-center/SKILL.md
+index bfebcc0..bed5ac7 100644
+--- a/.claude/skills/contact-center/SKILL.md
++++ b/.claude/skills/contact-center/SKILL.md
+@@ -180,6 +180,23 @@ Ask the user what they want to configure. Present this decision matrix if they a
+ | Search | Search CC resources | `cc-search` |
+ | Address books | Address book management | `cc-address-book` |
+ 
++### External Data Updates
++
++| Need | Operation | CLI Group(s) |
++|------|-----------|-------------|
++| Correct a handled contact's data | Batch-write global variable values onto contacts after the fact | `external-data-updates` |
++
++The variable must already be defined (`cc-global-vars`); this writes values,
++not definitions. There is no GET on this surface, and `data[]` is nested, so
++`--json-body` is mandatory — flags alone send an empty array and change
++nothing.
++
++```bash
++wxcli external-data-updates update --generate-json-body
++
++wxcli external-data-updates update --json-body '{"orgId":"ORG_ID","updateType":"contact","data":[{"id":"CONTACT_ID","startTimestamp":"1759000000000","endTimestamp":"1759000600000","globalVariables":[{"name":"orderValue","value":249}]}]}'
++```
++
+ ### Not Contact Center?
+ 
+ | Need | Redirect To |
+diff --git a/.claude/skills/manage-call-settings/SKILL.md b/.claude/skills/manage-call-settings/SKILL.md
+index cea60ee..62465b2 100644
+--- a/.claude/skills/manage-call-settings/SKILL.md
++++ b/.claude/skills/manage-call-settings/SKILL.md
+@@ -297,6 +297,32 @@ wxcli guest-management create --subject "ext-user-42" --display-name "Jane Guest
+ | **MS Teams — org-wide** | `client-settings` | ~~user-settings~~ |
+ | **MS Teams — per person** | `user-settings *-ms-teams` | ~~client-settings~~ |
+ | **Guest issuer tokens** | `guest-management` (Guest Issuer app required) | ~~user-settings~~ |
++| **Voicemail messages** (list/read/delete a mailbox's messages) | `user-call-settings-members` (admin, by member) · `user-call-settings-members-me` (self) | ~~user-settings~~ (that's voicemail *config* — enable, forward, greeting) |
++
++### Voicemail messages (the messages, not the settings)
++
++`user-settings` configures voicemail. These two groups act on the **messages in
++the mailbox**: the unread/total summary, the message list, mark read/unread,
++and delete. `user-call-settings-members` takes a positional member ID and an
++admin token; `user-call-settings-members-me` is the self-scoped twin with no
++positional. Neither retrieves audio — metadata and state only.
++
++```bash
++# Unread/total counts, then the messages (a list endpoint — use --all to count)
++wxcli user-call-settings-members show-summary MEMBER_ID
++wxcli user-call-settings-members list-voice-messages MEMBER_ID --all -o json
++
++# Mark the mailbox read, then delete one message (no undo)
++wxcli user-call-settings-members create-mark-as-read MEMBER_ID
++wxcli user-call-settings-members delete-voice-messages MEMBER_ID MESSAGE_ID
++
++# Self-scoped twin
++wxcli user-call-settings-members-me show-summary
++```
++
++`list-memberships` on either group does NOT list messages — it lists which
++mailboxes the member belongs to. `list-voice-messages` is the message list.
++
+ 
+ ---
+ 
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 143f15a..42a78d8 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -3,7 +3,7 @@
+ Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
+ 
+ **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
+-The wxcli CLI has 184 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
++The wxcli CLI has 189 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+ 
+ ## Mandatory Grounding Rule
+ 
+@@ -287,6 +287,9 @@ When multiple skills could match, use this lookup. (Basic skill-vs-skill routing
+ | Register interest in telephony webhook events (`webhook-interest-registrations`) | `call-control` | `messaging-bots` (that's messaging webhooks; this is the Calling-side registration that gates which telephony events a webhook receives) |
+ | Discover which fields the Contact Center search API accepts (`cc-search-metadata`) | `reporting-cc` | `contact-center` (metadata describes the search surface; it provisions nothing) |
+ | Person-level hot-desking members (`hot-desking-members`) | `manage-call-settings` (person settings) | `manage-devices` (workspace/device-level hot-desk stays there) |
++| Set the wrap-up reason on a Webex **Calling** call (`call-controls-members`, `call-controls-members-me`) | `call-control` | `contact-center` (`cc-aux-code` is the WxCC wrap-up surface — same word, different API, needs a `cjp:` scope) and `customer-assist` (that configures wrap-up reasons on a CX queue; these two SET one on a live call) |
++| List, read, mark or delete the **messages in a voicemail box** (`user-call-settings-members`, `user-call-settings-members-me`) | `manage-call-settings` | `provision-calling` and `configure-features` (voicemail *groups* are a location feature there); `user-settings` inside this same skill is voicemail **configuration** — enable, forward, greeting, passcode — not the messages |
++| Batch-correct global variable values on Contact Center contacts already handled (`external-data-updates`) | `contact-center` | `reporting-cc` (that reads CC analytics; this writes back onto contacts) and `configure-features` (Calling has no global-variable concept) |
+ | Set up the medium a Contact Center contact arrives on (telephony/email/chat/social/work-item), or the configured instance of one — `channel`, `asset` | `contact-center` | `messaging-spaces` (a Webex space is not a CC "channel") and `configure-features` (Calling has no channel concept) |
+ | Generate or download a Contact Center consumption/billing report (`usage-reports`) | `reporting-cc` | `reporting` (that group is Webex Calling CDR; CC resource consumption is a different API and arrives as a downloadable file) |
+ | Webex Calling call quality figures — packet loss, jitter, latency — for a time window (`calling-metrics`) | `reporting` | `reporting-cc` (that is Contact Center quality) and `reporting-meetings` (that is meeting media quality) |
+@@ -422,7 +425,7 @@ Listing a group here is a commitment that we intentionally do not route to it. I
+ 
+ ## CLI Status & Known Issues
+ 
+-**184 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
++**189 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+ 
+ ### Common Flags (`--fields`, `--output`, `--json-body`, `--all`, `--verify`)
+ 
+@@ -461,8 +464,8 @@ If `--fields` reduces a non-empty response to an empty one, a note goes to stder
+ Three behaviors that will otherwise read as bugs:
+ 
+ - **It is deliberately a no-op on endpoints the spec says do not paginate** — that is roughly half the commands carrying it. The flag is uniform on every list command *by design*: an option present on most commands but not all teaches a rule that breaks unpredictably, costing a failed call plus a `--help` round trip each time (the same reasoning that closed the `--output` gap). One page back from `--all` on a non-paging endpoint is correct, not a failure.
+-- **Walking is bounded at 1000 pages**, overridable with `WXCLI_MAX_PAGES`. Hitting the ceiling prints an error to stderr containing the word **INCOMPLETE**. That word means records are missing — not that a request failed. Do not draw a conclusion from output that produced it.
+-- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. **You will see that note — do not assume otherwise.** (Measured 2026-08-01 on Claude Code and Codex 0.144.1: both merge stderr into the tool result the model reads, so it stays visible when stdout is piped, redirected to a file, or large enough to be truncated to a head preview — the note is written by `rest_get` *before* any row is rendered, so it lands on line 1. It is lost only if you suppress it yourself with `2>/dev/null` or `WXCLI_NO_PAGE_WARN=1`.) The failure mode this guards against is therefore *ignoring* the note, not missing it: if you see it and still answer a "how many" question, the answer is wrong. `WXCLI_NO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
++- **Walking is bounded at 1000 pages**, overridable with `WXwxcliMAX_PAGES`. Hitting the ceiling prints an error to stderr containing the word **INCOMPLETE**. That word means records are missing — not that a request failed. Do not draw a conclusion from output that produced it.
++- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. **You will see that note — do not assume otherwise.** (Measured 2026-08-01 on Claude Code and Codex 0.144.1: both merge stderr into the tool result the model reads, so it stays visible when stdout is piped, redirected to a file, or large enough to be truncated to a head preview — the note is written by `rest_get` *before* any row is rendered, so it lands on line 1. It is lost only if you suppress it yourself with `2>/dev/null` or `WXwxcliNO_PAGE_WARN=1`.) The failure mode this guards against is therefore *ignoring* the note, not missing it: if you see it and still answer a "how many" question, the answer is wrong. `WXwxcliNO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
+ 
+ One precision on "overrides `--limit`": it overrides what is **fetched**. In `-o table` mode `--limit` still caps *printed* rows (with a visible `... N more` row); `-o json` prints everything fetched.
+ 
+diff --git a/docs/reference/call-control.md b/docs/reference/call-control.md
+index d41f3ca..267b3ee 100644
+--- a/docs/reference/call-control.md
++++ b/docs/reference/call-control.md
+@@ -21,10 +21,11 @@ Webex Calling Call Control APIs enable 3rd-party applications to manage calls on
+ 6. [Call Details & History](#3-call-details--history)
+ 7. [Data Models](#4-data-models)
+ 8. [Service App / Admin API](#5-service-app--admin-api-call-controls-members)
+-9. [Additional API: External Voicemail MWI](#6-additional-api-external-voicemail-mwi)
+-10. [Common Use Cases](#7-common-use-cases)
+-11. [Key Gotchas](#8-key-gotchas)
+-12. [See Also](#see-also)
++9. [Wrap-Up Reasons](#6-wrap-up-reasons-call-controls-members--call-controls-members-me)
++10. [Additional API: External Voicemail MWI](#7-additional-api-external-voicemail-mwi)
++11. [Common Use Cases](#8-common-use-cases)
++12. [Key Gotchas](#9-key-gotchas)
++13. [See Also](#see-also)
+ 
+ ---
+ 
+@@ -883,23 +884,108 @@ The Members API mirrors the user-level API but adds a `memberId` path parameter
+ 
+ ### Available Members Endpoints
+ 
+-| Action | Endpoint | Returns |
+-|--------|----------|---------|
+-| List Calls | `GET {BASE}/telephony/calls/members/{memberId}/calls` | List of call objects |
+-| Get Call Details | `GET {BASE}/telephony/calls/members/{memberId}/calls/{callId}` | Call object |
+-| Dial | `POST {BASE}/telephony/calls/members/{memberId}/dial` | `{callId, callSessionId}` |
+-| Answer | `POST {BASE}/telephony/calls/members/{memberId}/answer` | (204 No Content) |
+-| Hangup | `POST {BASE}/telephony/calls/members/{memberId}/hangup` | (204 No Content) |
++**Unverified:** as of the 2026-09-28 spec refresh the Members API is at full
++parity with the user-level API — 25 paths under
++`/telephony/calls/members/{memberId}/`, one for every user-level action plus
++`wrapupreasons`. A second family, `/telephony/calls/members/me/`, publishes the
++identical 25 paths scoped to the authenticated user.
++
++| Action | Endpoint suffix | Returns |
++|--------|-----------------|---------|
++| List Calls | `calls` | List of call objects |
++| Get Call Details | `calls/{callId}` | Call object |
++| Call History | `history` | List of history records |
++| Dial | `dial` | `{callId, callSessionId}` |
++| Answer / Hangup / Reject | `answer`, `hangup`, `reject` | (204 No Content) |
++| Hold / Resume | `hold`, `resume` | (204 No Content) |
++| Mute / Unmute | `mute`, `unmute` | (204 No Content) |
++| Transfer / Divert | `transfer`, `divert` | (204 No Content) |
++| Park / Retrieve / Pickup | `park`, `retrieve`, `pickup` | (204 No Content) |
++| Pull / Push | `pull`, `push` | (204 No Content) |
++| Barge-In | `bargeIn` | (204 No Content) |
++| Transmit DTMF | `transmitDtmf` | (204 No Content) |
++| Recording control | `startRecording`, `stopRecording`, `pauseRecording`, `resumeRecording` | (204 No Content) |
++| Set Wrap-Up Reasons | `wrapupreasons` | a CLI group of its own — see [section 6](#6-wrap-up-reasons-call-controls-members--call-controls-members-me) |
+ 
+ **`memberId`** can be one of: person ID, workspace ID, or virtual line ID.
+ 
++In the CLI every one of these except `wrapupreasons` lives in the `call-controls`
++group, suffixed by scope: bare for `/telephony/calls/...`, `-members` for
++`/members/{memberId}/...`, `-me` for `/members/me/...`.
++
++```bash
++# Admin/Service App: put another member's call on hold
++wxcli call-controls create-hold-members MEMBER_ID --call-id CALL_ID
++
++# The same action on your own call
++wxcli call-controls create-hold-me --call-id CALL_ID
++
++# The user-level path, unchanged
++wxcli call-controls create-hold --call-id CALL_ID
++```
++
+ ### Gotchas
+ 
+-- **Members API supports a limited action set.** Only Dial, Answer, Hangup, List Calls, and Get Call Details are available. Hold, Resume, Transfer, Mute, Park, and Barge-in are user-level API operations only and are NOT available on the Members API path. Service App integrations requiring these operations must use user-level OAuth tokens (`spark:calls_write`) acting as the target user.
++- **The Members API is no longer limited to five actions, and integrations written against that limit are now leaving capability unused.** Through the 2026-09-21 spec this surface published only Dial, Answer, Hangup, List Calls and Get Call Details, so anything needing Hold, Transfer, Mute, Park or Barge-in had to fall back to user-level OAuth acting as the target user. The 2026-09-28 refresh publishes all of them under `/members/{memberId}/`. **Unverified:** the parity is read from the spec, not exercised against a live org, so treat the 20 added actions as available-but-untested and confirm scope behaviour before relying on them in production.
++- **`-me` is a distinct path family, not an alias for the bare user-level path.** `/telephony/calls/hold` and `/telephony/calls/members/me/hold` are two separately published endpoints, and the CLI ships them as two commands. **Unverified:** which token types each accepts is not stated in the spec. Known issue #1 — admin tokens get 400 "Target user not authorized" on user-level call control — is the reason to test both rather than assume they are interchangeable.
+ 
+ ---
+ 
+-## 6. Additional API: External Voicemail MWI
++## 6. Wrap-Up Reasons (`call-controls-members` / `call-controls-members-me`)
++
++Records the wrap-up reason against a call — the short disposition code chosen
++when a call ends ("Sale", "Callback requested"). Cisco tagged these two
++operations apart from the rest of Call Controls, so in the CLI they are two
++groups holding one command each rather than commands inside `call-controls`.
++
++This is **not** the Contact Center wrap-up surface: WxCC keeps its own
++auxiliary/wrap-up codes against a WxCC task, on a different API behind a
++region-scoped base URL and a `cjp:` scope. This one writes against a Webex
++*Calling* call and needs neither. It is also **not** a read surface — neither
++group publishes a GET, so there is no way to ask what wrap-up reason a call
++currently carries, only to set one.
++
++| Group | Scope | Command | Endpoint |
++|-------|-------|---------|----------|
++| `call-controls-members` | another member; admin / Service App | `create-wrapupreasons` | `POST /v1/telephony/calls/members/{memberId}/wrapupreasons` |
++| `call-controls-members-me` | the authenticated user | `create-wrapupreasons` | `POST /v1/telephony/calls/members/me/wrapupreasons` |
++
++### CLI Examples
++
++```bash
++# What does the body look like? Print the skeleton without authenticating.
++wxcli call-controls-members-me create-wrapupreasons --generate-json-body
++
++# Set the wrap-up reason on your own call
++wxcli call-controls-members-me create-wrapupreasons --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
++
++# Admin / Service App: set it on another member's call
++wxcli call-controls-members create-wrapupreasons MEMBER_ID --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
++```
++
++### Raw HTTP
++
++```bash
++# Self-scoped
++curl -X POST "https://webexapis.com/v1/telephony/calls/members/me/wrapupreasons" \
++  -H "Authorization: Bearer $TOKEN" \
++  -H "Content-Type: application/json" \
++  -d '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
++
++# Member-scoped (admin / Service App)
++curl -X POST "https://webexapis.com/v1/telephony/calls/members/MEMBER_ID/wrapupreasons" \
++  -H "Authorization: Bearer $TOKEN" \
++  -H "Content-Type: application/json" \
++  -d '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
++```
++
++### Gotchas
++
++- **The request body is not flattened into flags, so `--json-body` is the only way to call this.** The generator skips deeply nested body fields (known issue #2), and both commands came through with no per-field options: `create-wrapupreasons` takes `memberId` positionally and everything else as JSON. Run `--generate-json-body` first and edit the skeleton it prints — guessing field names is what produces a 400 that names no field. **Unverified:** the accepted field set is read from the generated skeleton, not confirmed against a live call.
++
++---
++
++## 7. Additional API: External Voicemail MWI
+ 
+ Set or clear Message Waiting Indicator (MWI) for a person or workspace. Service App only.
+ 
+@@ -932,7 +1018,7 @@ wxcli external-voicemail create --id <workspace_id> --action SET
+ 
+ ---
+ 
+-## 7. Common Use Cases
++## 8. Common Use Cases
+ 
+ > **Executable path:** run these flows with `wxcli call-controls` (§3 CLI Examples — including the same Hold/Consult/Transfer and Park/Retrieve patterns) or the raw HTTP endpoints in §2. The Python below shows the same call sequence using `api.session.rest_*()` raw HTTP calls.
+ 
+@@ -1019,7 +1105,7 @@ result = api.session.rest_post(f"{BASE}/telephony/calls/members/{member_id}/dial
+ 
+ ---
+ 
+-## 8. Key Gotchas
++## 9. Key Gotchas
+ 
+ 1. **3rd Party Call Control only** -- These APIs do not work with Webex app's native calling. They are for building external call control applications.
+ 
+@@ -1045,5 +1131,10 @@ result = api.session.rest_post(f"{BASE}/telephony/calls/members/{member_id}/dial
+ 
+ ## See Also
+ 
++- [`contact-center-core.md`](contact-center-core.md) — read this if the wrap-up
++  reason you are trying to set belongs to a WxCC task rather than a Calling call;
++  the two surfaces share a word and share nothing else, and picking the wrong one
++  fails with a 403 on scope rather than anything that names the mistake.
++
+ - **[webhooks-events.md](webhooks-events.md)** — Real-time call event notifications via webhooks. Webhook call event payloads share the same fields as the `TelephonyCall` object documented here (§4 Data Models); use webhooks for event-driven call control rather than polling List Calls.
+ - **[person-call-settings-media.md](person-call-settings-media.md)** — Call recording configuration (recording mode, compliance announcements). Recording mode determines which recording control actions are available in this API.
+diff --git a/docs/reference/contact-center-analytics.md b/docs/reference/contact-center-analytics.md
+index a49366e..42a4e20 100644
+--- a/docs/reference/contact-center-analytics.md
++++ b/docs/reference/contact-center-analytics.md
+@@ -30,9 +30,10 @@ from the Contact Center OpenAPI spec.
+ 12. [Search](#12-search)
+ 13. [Address Book](#13-address-book)
+ 14. [Usage Reports](#14-usage-reports)
+-15. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
+-16. [Gotchas](#gotchas)
+-17. [See Also](#see-also)
++15. [External Data Updates](#15-external-data-updates-external-data-updates)
++16. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
++17. [Gotchas](#gotchas)
++18. [See Also](#see-also)
+ 
+ ---
+ 
+@@ -977,6 +978,66 @@ consumption, this group is the wrong one and that doc is where to go.
+ 
+ ---
+ 
++## 15. External Data Updates (`external-data-updates`)
++
++Writes global-variable values back onto contacts that have already been handled
++— a batch correction after the fact. New upstream group in the 2026-09-28 spec,
++one command against `PUT /v1/data/updateExternal`, carrying an `updateType`
++(currently only `contact`) and a `data[]` array of records, each naming a
++contact `id`, a time window, and the `globalVariables` to set on it.
++
++This is **not** how a flow sets a variable during a live interaction — that
++happens inside the flow, or through the Agent Desktop SDK on the task. It is
++also **not** the place to define a global variable: the variable must already
++exist, and creating or editing the definitions is `cc-global-vars`. And it is
++**not** a read surface — there is no GET here, so it can correct a value but
++cannot tell you what a contact currently holds; that is the task/search surface
++in [section 10](#10-tasks) and [section 12](#12-search).
++
++| Command | Method | Endpoint |
++|---------|--------|----------|
++| `update` | PUT | `{CC_BASE}/v1/data/updateExternal` |
++
++### CLI Examples
++
++```bash
++# Print the request-body skeleton without authenticating
++wxcli external-data-updates update --generate-json-body
++
++# Correct one global variable on one already-handled contact
++wxcli external-data-updates update --json-body '{"orgId":"ORG_ID","updateType":"contact","data":[{"id":"CONTACT_ID","startTimestamp":"1759000000000","endTimestamp":"1759000600000","globalVariables":[{"name":"orderValue","value":249}]}]}'
++
++# Larger corrections read better from a file
++wxcli external-data-updates update --json-body file://corrections.json
++```
++
++### Raw HTTP
++
++```bash
++curl -X PUT "https://api.wxcc-us1.cisco.com/v1/data/updateExternal" \
++  -H "Authorization: Bearer $TOKEN" \
++  -H "Content-Type: application/json" \
++  -d '{
++        "orgId": "ORG_ID",
++        "updateType": "contact",
++        "data": [
++          {
++            "id": "CONTACT_ID",
++            "startTimestamp": "1759000000000",
++            "endTimestamp": "1759000600000",
++            "globalVariables": [{"name": "orderValue", "value": 249}]
++          }
++        ]
++      }'
++```
++
++### Gotchas
++
++- **The endpoint is region-scoped and the base URL is not webexapis.com, so a token that works everywhere else in the playbook still fails here.** The CLI resolves the Contact Center base URL from the configured region (`wxcli set-cc-region <region>`, default us1) rather than the Calling host, and the call additionally needs the `cjp:` OAuth scopes a Personal Access Token does not carry — known issue #11. A 403 here is far more often the scope or the region than the body. **Unverified:** the endpoint was not exercised live; the base-URL and scope behaviour is read from the generated command and known issue #11.
++- **`data[]` is nested, so the per-field flags do not reach it and `--json-body` is mandatory for any real call.** `--org-id` and `--update-type` exist as flags, but the records themselves do not, which means a call made with flags alone sends an empty `data[]` and corrects nothing while still returning success-shaped output. Start from `--generate-json-body`. **Unverified:** the no-op-on-empty-array behaviour follows from the generated body assembly, not from a live response.
++
++---
++
+ ## Raw HTTP Endpoint Table
+ 
+ All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
+@@ -1223,6 +1284,12 @@ All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `http
+ 
+ ## See Also
+ 
++- [`contact-center-core.md`](contact-center-core.md) — read this before calling
++  `external-data-updates`: the global variable named in the body has to have been
++  defined first, and that definition surface (`cc-global-vars`) is documented
++  there. A name that was never defined is the likeliest cause of an update that
++  reports success and changes nothing.
++
+ - [Contact Center: Core](contact-center-core.md) — Agents, queues, teams, skills, desktop, configuration
+ - [Contact Center: Journey](contact-center-journey.md) — JDS: workspaces, persons, identity, profile views, events
+ - [Contact Center: Routing](contact-center-routing.md) — Dial plans, campaigns, flows, audio, contacts
+diff --git a/docs/reference/person-call-settings-media.md b/docs/reference/person-call-settings-media.md
+index 5d7570c..4f98601 100644
+--- a/docs/reference/person-call-settings-media.md
++++ b/docs/reference/person-call-settings-media.md
+@@ -44,6 +44,7 @@ Every setting in this group follows the same REST pattern: endpoints resolve to
+ 10. [Push-to-Talk](#10-push-to-talk)
+ 11. [Music on Hold](#11-music-on-hold)
+ 12. [Common Patterns](#12-common-patterns)
++13. [Voicemail Messages](#13-voicemail-messages-user-call-settings-members--user-call-settings-members-me)
+ 
+ ---
+ 
+@@ -1532,6 +1533,72 @@ Not all settings apply equally to all entity types:
+ 
+ ---
+ 
++## 13. Voicemail Messages (`user-call-settings-members` / `user-call-settings-members-me`)
++
++Reads and manages the voicemail **messages themselves** — the list of messages
++in a mailbox, the unread/total summary, marking messages read or unread, and
++deleting one. New upstream groups in the 2026-09-28 spec, split out of User
++Call Settings into a member-scoped family
++(`/telephony/voiceMessages/members/{memberId}/`) and a self-scoped one
++(`/telephony/voiceMessages/members/me/`).
++
++This is **not** voicemail *configuration*. Everything in [section 1](#1-voicemail)
++— whether voicemail is enabled, where it forwards, greetings, the passcode —
++lives on `people/{personId}/features/voicemail` and is untouched by these
++groups. Nor is it voicemail *group* management (a shared location mailbox;
++that is `configure-features`), and it is **not** a way to download the audio:
++neither group publishes a media-retrieval endpoint, only metadata and state.
++
++| Group | Scope | Commands |
++|-------|-------|----------|
++| `user-call-settings-members` | another member; admin token | `show-summary`, `list-voice-messages`, `delete-voice-messages`, `create-mark-as-read`, `create-mark-as-unread`, `list-memberships` |
++| `user-call-settings-members-me` | the authenticated user | the same six, with no positional member ID |
++
++### CLI Examples
++
++```bash
++# Unread/total counts for one user's mailbox
++wxcli user-call-settings-members show-summary MEMBER_ID
++
++# The messages themselves (a list endpoint: use --all before you count)
++wxcli user-call-settings-members list-voice-messages MEMBER_ID --all -o json
++
++# Mark the whole mailbox read, then delete one message
++wxcli user-call-settings-members create-mark-as-read MEMBER_ID
++wxcli user-call-settings-members delete-voice-messages MEMBER_ID MESSAGE_ID
++
++# The self-scoped family takes no member ID
++wxcli user-call-settings-members-me show-summary
++wxcli user-call-settings-members-me list-voice-messages --all -o json
++```
++
++### Raw HTTP
++
++```bash
++# Summary (unread/total)
++curl "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/summary" \
++  -H "Authorization: Bearer $TOKEN"
++
++# List messages
++curl "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/voiceMessages" \
++  -H "Authorization: Bearer $TOKEN"
++
++# Mark as read / unread
++curl -X POST "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/markAsRead" \
++  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}'
++
++# Delete one message
++curl -X DELETE "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/voiceMessages/MESSAGE_ID" \
++  -H "Authorization: Bearer $TOKEN"
++```
++
++### Gotchas
++
++- **`list-memberships` does not list the messages in a mailbox — it lists which mailboxes a member belongs to.** The name reads like a sibling of `list-voice-messages` and returns something else entirely, which is the shape of mistake that produces a confident wrong answer with exit 0. `list-voice-messages` is the message list; `list-memberships` answers "whose voicemail can this member reach". A third, org-wide form of the same question lives on `user-settings list-memberships` (`GET /telephony/voiceMessages/memberships`), with no member scope at all. **Unverified:** the distinction is read from the spec's own summaries ("List Messages" against "List Voice Message Memberships"), not confirmed against a live mailbox.
++- **Deleting a message is unrecoverable and the command does not ask.** `delete-voice-messages` takes a message ID and issues a DELETE; there is no undo and no recycle bin on this surface. Read the list first and delete by an ID you have actually looked at. **Unverified:** no live deletion was performed to confirm the response shape.
++
++---
++
+ ## Gotchas (Cross-Cutting)
+ 
+ - **Read-only fields cause silent failures.** Every PUT endpoint in this group has read-only fields that must be excluded from the request body. If you include them, the API may return 400 or silently ignore the entire request. Key offenders: `greetingUploaded`, `systemMaxNumberOfRings`, `voiceMessageForwardingEnabled` (voicemail); `types`, `locationExternalCallerIdName` (caller ID); `serviceProvider`, `externalGroup`, `externalIdentifier` (call recording); `fileName` (call intercept); `mohLocationEnabled` (music on hold).
+@@ -1548,6 +1615,11 @@ Not all settings apply equally to all entity types:
+ 
+ ## See Also
+ 
++- [`self-service-call-settings.md`](self-service-call-settings.md) — read this
++  before reaching for the `-me` voicemail-message commands with an admin token.
++  It documents why the self-service endpoints return 404 (error 4008) for a user
++  without a Calling licence, which is the failure these commands inherit.
++
+ - **[Location Call Settings — Core](location-calling-core.md)** — Location-level voicemail policies (transcription toggle), org-wide voicemail settings (expiry, forwarding), and location-level call intercept that govern person-level defaults
+ - **[Location Recording — Advanced](location-recording-advanced.md)** — Location/org-level call recording vendor settings that must be configured before per-person recording works
+ - **[self-service-call-settings.md](self-service-call-settings.md)** -- User-level `/people/me/` endpoints for self-service call settings, including 6 user-only settings with no admin path.
