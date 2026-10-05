@@ -1,10 +1,10 @@
 {
-  "date": "2026-09-21",
-  "outcome": "released",
-  "sha": "19324548d6751e9e04b4a83150af375c45f5ca2e",
-  "version": "v1.8.0",
-  "groups": 184,
-  "commands": 2012,
+  "date": "2026-10-05",
+  "outcome": "failed",
+  "sha": "ded49a69f48ae7161ac9fa2fc70812cfb5078648",
+  "version": null,
+  "groups": 189,
+  "commands": 2131,
   "issue": null,
-  "notes": "7 specs updated, 19 new paths. Verdict minor: 24 commands added, 0 removed, 0 retargeted, 4 new groups (asset, channel, usage_reports, calling_metrics). Rule A pin: upstream added POST /tasks/{}/pause and /resume, which collided with the shipped cc-tasks create-pause/create-resume (POST /tasks/{}/record/pause|resume) and pushed both onto -record suffixes; pinned back, new task-level pair keeps create-pause-tasks/create-resume-tasks. Rule D (no acks): renamed asset/channel `list` to list-incoming-references and usage-reports `list` to list-resource-types, each of which had taken the bare name from a non-headline operation. Rules B/C: all 4 groups routed (contact-center, contact-center, reporting-cc, reporting) with reference-doc sections in contact-center-routing.md SS15-16, contact-center-analytics.md S14, reporting-analytics.md S4. Blast radius 29 structural, 0 ID-kind flips, under the 40 threshold."
+  "notes": "sync_classify verdict=human: blast radius 90 command names > 40 (added=90, removed=0, retargeted=0, groups +5/-0). SECOND CONSECUTIVE WEEK on the same block \u2014 origin/spec-sync/failed-2026-09-28 (60f29be) is still open, so nothing was committed to main then either and this week's spec diff is the identical cumulative one. Re-derived independently and the situation is static: same classifier numbers, same 5 new groups (call-controls-members, call-controls-members-me, external-data-updates, user-call-settings-members, user-call-settings-members-me), same 26 locked-name pins (19 call_controls + 7 conference), same 13 check-12 HIGH findings. Verified on the rejected tree: update-specs exit 0 (7 specs), spec_sync exit 0 after two rule-A pin rounds, name lock 0 moved/0 removed, sync_guard 0 forbidden. drift_check reports FAIL, not PASS, because this run stopped at the step-3 verdict and did NOT write the rule B/C/D work (checks 4/8/12/20 outstanding) \u2014 section 4 discards the regen, and the 2026-09-28 run already produced and lost those artifacts; its record is the evidence the full bar holds on this content (drift_check PASS, 4427 tests passed, idempotent assemble). pytest and assemble were NOT run this week. groups/commands are the rejected regen's numbers, not this branch's. Nothing committed to main, nothing released. See failure.txt; the override reproduction appendix is on the 2026-09-28 branch."
 }
