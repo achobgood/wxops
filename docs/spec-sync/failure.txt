@@ -1,0 +1,113 @@
+spec-sync 2026-10-05 — FAILED CLOSED (second consecutive week, same block)
+
+THE FAILING OUTPUT, VERBATIM
+----------------------------
+$ python3 -m tools.sync_classify --base origin/main
+sync_classify: verdict=human  added=90 removed=0 retargeted=0 groups +5/-0
+  blast radius: 90 command names changed > 40 — green is not intended
+exit 0
+
+WHY THIS STOPPED THE RUN
+------------------------
+Contract section 1 step 3: a `human` verdict goes straight to section 4.
+Contract section 6 lists "blast radius over 40" as one of the things that must
+reach a human. 90 command names changed, so the automation may not release this
+week however clean the rest of the bar is. There is nothing here for the
+automation to repair — the verdict is the escalation, by design.
+
+THE NEW FACT THIS WEEK: NOTHING HAS MOVED
+-----------------------------------------
+docs/spec-sync/failure.txt on the still-open branch
+`origin/spec-sync/failed-2026-09-28` (commit 60f29be) describes the same block,
+from the same upstream change. That branch has not been deleted, so nobody has
+acted on it yet. This run re-derived the situation independently and it is
+static, not drifting:
+
+  classifier, 2026-09-28 ....... added=90  removed=0  retargeted=0  groups +5/-0
+  classifier, 2026-10-05 ....... added=90  removed=0  retargeted=0  groups +5/-0
+
+  same five new groups ......... call-controls-members, call-controls-members-me,
+                                 external-data-updates, user-call-settings-members,
+                                 user-call-settings-members-me
+  same locked-name refusals .... 19 in call_controls (18 bare create-* verbs plus
+                                 list-history), 7 in conference — 26 operations
+                                 renamed by suffix disambiguation, 0 actually
+                                 removed from the spec
+  same check-12 HIGH set ....... 10 bare create/list/show/delete names in the new
+                                 groups, plus the 3 `-members-1` dedup artifacts
+                                 this run had already renamed before check 12 ran
+                                 (13 in total, matching last week's count)
+
+`python3 tools/update-specs.py` exited 0 with 7 specs updated — the same refresh,
+because nothing was committed to main on 2026-09-28, so main's specs are still
+the 2026-09-21 set and this week's diff is the identical cumulative one.
+
+WHAT UPSTREAM DID (unchanged from last week's write-up)
+-------------------------------------------------------
+Cisco reshaped Webex Calling call control from one scope into three: every bare
+/telephony/calls/<verb> and /telephony/conference/<verb> gained
+
+    /telephony/calls/members/{memberId}/<verb>      (admin / Service App)
+    /telephony/calls/members/me/<verb>              (self)
+
+The member-scoped Call Controls API went from 5 published actions to 25. Most of
+the 90 are NEW names for new endpoints, not churn on existing ones (added=90,
+removed=0, retargeted=0). `origin/spec-sync/failed-2026-09-28` carries the full
+analysis, the five routing decisions, and a reproduction appendix.
+
+WHAT THIS RUN DID, AND WHAT IT DELIBERATELY DID NOT DO
+------------------------------------------------------
+Done, and verified:
+
+  update-specs.py ............... exit 0, 7 specs updated, 0 errors
+  spec_sync.py --skip-update .... exit 0 after two name-lock pin rounds
+                                  (contract section 2 rule A, two attempts: Call
+                                  Controls first, then Conference Controls)
+  name lock (check 22) .......... 0 moved, 0 removed, 0 groups gone, 0 unlocked
+  sync_guard diff --base ........ 0 forbidden edit(s) vs origin/main
+  drift_check --enforce ......... first line: 189 command sets (192 registered
+                                  names incl. aliases), 2131 commands, 1971
+                                  non-skipped spec ops (156 deliberately skipped)
+
+NOT done, and this is why drift_check reports FAIL rather than PASS on the
+rejected tree:
+
+  [4]  5 unreferenced groups     — contract section 2 rule B routing not written
+  [8]  5 untracked modules       — not staged (the tree is being discarded)
+  [12] 10 HIGH name findings     — contract section 2 rule D renames not written
+  [20] 5 groups with no doc      — contract section 2 rule C sections not written
+
+That work was skipped on purpose. Contract section 1 step 3 sends a `human`
+verdict straight to section 4, and section 4 discards the regen, so writing
+routing rows and five reference-doc sections this week would have produced
+exactly the artifacts that last week's run already produced and that section 4
+already threw away once. Last week's record is the evidence that the rest of the
+bar holds on this content: on 2026-09-28, with rules B/C/D completed, the same
+tree gave drift_check PASS, 4427 tests passed / 6 skipped / 0 failed, and an
+idempotent assemble. This run does not re-assert those three; it did not run
+them.
+
+The 26 name pins WERE redone, because they are the one piece of work needed just
+to get a clean regen, and redoing them is what proved the upstream situation is
+unchanged. The diff is equivalent to the appendix on the 2026-09-28 branch; use
+that appendix, it is the fuller one.
+
+WHAT A HUMAN NEEDS TO DECIDE
+----------------------------
+Unchanged: whether 90 added command names ship as one release. The verdict was
+minor-shaped (added-only, nothing removed, nothing retargeted) before the
+blast-radius rule promoted it to `human`. If the answer is yes: apply the
+override appendix from `origin/spec-sync/failed-2026-09-28`, complete contract
+section 2 rules B/C/D for the five new groups, and release by hand.
+
+One claim on main is false until a sync lands, and it has now been false for two
+weeks. docs/reference/call-control.md section 5 still says the Members API
+supports only Dial, Answer, Hangup, List Calls and Get Call Details, and that
+Hold, Resume, Transfer, Mute, Park and Barge-in are user-level only. All of them
+are now published under /members/{memberId}/.
+
+A TRAP, RE-CONFIRMED
+--------------------
+A spec_sync run that reaches the name-lock refresh writes the then-current names
+into tools/command_name_lock.json. Reset that file to origin/main before
+re-running, or the next refusal list is your own provisional names.
