@@ -1308,6 +1308,13 @@ result = api.session.rest_post(f"{BASE}/telephony/calls/members/{member_id}/dial
   reason you are trying to set belongs to a WxCC task rather than a Calling call;
   the two surfaces share a word and share nothing else, and picking the wrong one
   fails with a 403 on scope rather than anything that names the mistake.
+- [`call-features-additional.md`](call-features-additional.md) — go here to *define*
+  the wrap-up reason names that §6 applies: Customer Assist keeps the org-level list
+  and the per-queue assignment, and §6 sends those names, not IDs.
+- [`location-recording-advanced.md`](location-recording-advanced.md) — its §3 has the
+  conference data model (`ConferenceDetails`, `ConferenceTypeEnum`) that §7's
+  commands return and switch between, and its §4 configures which supervisors may
+  monitor which agents — the permission side of §7's barge-in / monitor / coach modes.
 
 - **[webhooks-events.md](webhooks-events.md)** — Real-time call event notifications via webhooks. Webhook call event payloads share the same fields as the `TelephonyCall` object documented here (§4 Data Models); use webhooks for event-driven call control rather than polling List Calls.
 - **[person-call-settings-media.md](person-call-settings-media.md)** — Call recording configuration (recording mode, compliance announcements). Recording mode determines which recording control actions are available in this API.
