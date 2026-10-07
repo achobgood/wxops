@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Codex assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 184 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 192 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -254,6 +254,9 @@ When multiple skills could match, use this lookup. (Basic skill-vs-skill routing
 | Register interest in telephony webhook events (`webhook-interest-registrations`) | `call-control` | `messaging-bots` (that's messaging webhooks; this is the Calling-side registration that gates which telephony events a webhook receives) |
 | Discover which fields the Contact Center search API accepts (`cc-search-metadata`) | `reporting-cc` | `contact-center` (metadata describes the search surface; it provisions nothing) |
 | Person-level hot-desking members (`hot-desking-members`) | `manage-call-settings` (person settings) | `manage-devices` (workspace/device-level hot-desk stays there) |
+| Set the wrap-up reason on a Webex **Calling** call (`call-controls-members`, `call-controls-members-me`) | `call-control` | `contact-center` (`cc-aux-code` is the WxCC wrap-up surface — same word, different API, needs a `cjp:` scope) and `customer-assist` (that configures wrap-up reasons on a CX queue; these two SET one on a live call) |
+| List, read, mark or delete the **messages in a voicemail box** (`user-call-settings-members`, `user-call-settings-members-me`) | `manage-call-settings` | `provision-calling` and `configure-features` (voicemail *groups* are a location feature there); `user-settings` inside this same skill is voicemail **configuration** — enable, forward, greeting, passcode — not the messages |
+| Batch-correct global variable values on Contact Center contacts already handled (`external-data-updates`) | `contact-center` | `reporting-cc` (that reads CC analytics; this writes back onto contacts) and `configure-features` (Calling has no global-variable concept) |
 | Set up the medium a Contact Center contact arrives on (telephony/email/chat/social/work-item), or the configured instance of one — `channel`, `asset` | `contact-center` | `messaging-spaces` (a Webex space is not a CC "channel") and `configure-features` (Calling has no channel concept) |
 | Generate or download a Contact Center consumption/billing report (`usage-reports`) | `reporting-cc` | `reporting` (that group is Webex Calling CDR; CC resource consumption is a different API and arrives as a downloadable file) |
 | Webex Calling call quality figures — packet loss, jitter, latency — for a time window (`calling-metrics`) | `reporting` | `reporting-cc` (that is Contact Center quality) and `reporting-meetings` (that is meeting media quality) |
@@ -389,7 +392,7 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 ## CLI Status & Known Issues
 
-**184 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+**192 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
 ### Common Flags (`--fields`, `--output`, `--json-body`, `--all`, `--verify`)
 
@@ -428,8 +431,8 @@ If `--fields` reduces a non-empty response to an empty one, a note goes to stder
 Three behaviors that will otherwise read as bugs:
 
 - **It is deliberately a no-op on endpoints the spec says do not paginate** — that is roughly half the commands carrying it. The flag is uniform on every list command *by design*: an option present on most commands but not all teaches a rule that breaks unpredictably, costing a failed call plus a `--help` round trip each time (the same reasoning that closed the `--output` gap). One page back from `--all` on a non-paging endpoint is correct, not a failure.
-- **Walking is bounded at 1000 pages**, overridable with `WXCLI_MAX_PAGES`. Hitting the ceiling prints an error to stderr containing the word **INCOMPLETE**. That word means records are missing — not that a request failed. Do not draw a conclusion from output that produced it.
-- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. **You will see that note — do not assume otherwise.** (Measured 2026-08-01 on Codex and Codex 0.144.1: both merge stderr into the tool result the model reads, so it stays visible when stdout is piped, redirected to a file, or large enough to be truncated to a head preview — the note is written by `rest_get` *before* any row is rendered, so it lands on line 1. It is lost only if you suppress it yourself with `2>/dev/null` or `WXCLI_NO_PAGE_WARN=1`.) The failure mode this guards against is therefore *ignoring* the note, not missing it: if you see it and still answer a "how many" question, the answer is wrong. `WXCLI_NO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
+- **Walking is bounded at 1000 pages**, overridable with `WXwxcliMAX_PAGES`. Hitting the ceiling prints an error to stderr containing the word **INCOMPLETE**. That word means records are missing — not that a request failed. Do not draw a conclusion from output that produced it.
+- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. **You will see that note — do not assume otherwise.** (Measured 2026-08-01 on Codex and Codex 0.144.1: both merge stderr into the tool result the model reads, so it stays visible when stdout is piped, redirected to a file, or large enough to be truncated to a head preview — the note is written by `rest_get` *before* any row is rendered, so it lands on line 1. It is lost only if you suppress it yourself with `2>/dev/null` or `WXwxcliNO_PAGE_WARN=1`.) The failure mode this guards against is therefore *ignoring* the note, not missing it: if you see it and still answer a "how many" question, the answer is wrong. `WXwxcliNO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
 
 One precision on "overrides `--limit`": it overrides what is **fetched**. In `-o table` mode `--limit` still caps *printed* rows (with a visible `... N more` row); `-o json` prints everything fetched.
 

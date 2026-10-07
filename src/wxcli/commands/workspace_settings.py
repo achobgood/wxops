@@ -4175,3 +4175,110 @@ def update_outbound_billing_plan(
         emit({"status": "updated", "id": workspace_id}, output=output, fields=fields)
 
 
+
+@app.command("show-answer-settings", short_help="Get Answer Settings for a Workspace.")
+def show_answer_settings(
+    workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Answer Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings show-answer-settings WORKSPACE_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/answerSettings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_UPDATE_ANSWER_SETTINGS = '{"preferredAnswerEndpointId":"...","autoAnswerEnabled":true}'
+
+@app.command("update-answer-settings", short_help="Update Answer Settings for a Workspace.")
+def update_answer_settings(
+    workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
+    preferred_answer_endpoint_id: str = typer.Option(None, "--preferred-answer-endpoint-id", help="The unique identifier for the preferred answer endpoint. This may be a device, application, or hot desking guest endpoint. Set to null to clear the preferred answer endpoint; omit to leave unchanged."),
+    auto_answer_enabled: bool = typer.Option(None, "--auto-answer-enabled/--no-auto-answer-enabled", help="Indicates whether auto answer is enabled for the workspace."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Answer Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-answer-settings WORKSPACE_ID\n\n\b\nExample --json-body: '{"preferredAnswerEndpointId":"...","autoAnswerEnabled":true}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANSWER_SETTINGS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/answerSettings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if preferred_answer_endpoint_id is not None:
+            body["preferredAnswerEndpointId"] = preferred_answer_endpoint_id
+        if auto_answer_enabled is not None:
+            body["autoAnswerEnabled"] = auto_answer_enabled
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": workspace_id}, output=output, fields=fields)
+
+
+
+@app.command("list-available-preferred-answer-endpoints", short_help="Get Available Preferred Answer Endpoints for a Workspace.")
+def list_available_preferred_answer_endpoints(
+    workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Available Preferred Answer Endpoints for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-available-preferred-answer-endpoints WORKSPACE_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/availablePreferredAnswerEndpoints"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Is Preferred Answer Endpoint', 'isPreferredAnswerEndpoint')], limit=limit)
+
+

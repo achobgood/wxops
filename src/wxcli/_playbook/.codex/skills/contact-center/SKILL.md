@@ -180,6 +180,23 @@ Ask the user what they want to configure. Present this decision matrix if they a
 | Search | Search CC resources | `cc-search` |
 | Address books | Address book management | `cc-address-book` |
 
+### External Data Updates
+
+| Need | Operation | CLI Group(s) |
+|------|-----------|-------------|
+| Correct a handled contact's data | Batch-write global variable values onto contacts after the fact | `external-data-updates` |
+
+The variable must already be defined (`cc-global-vars`); this writes values,
+not definitions. There is no GET on this surface, and `data[]` is nested, so
+`--json-body` is mandatory — flags alone send an empty array and change
+nothing.
+
+```bash
+wxcli external-data-updates update --generate-json-body
+
+wxcli external-data-updates update --json-body '{"orgId":"ORG_ID","updateType":"contact","data":[{"id":"CONTACT_ID","startTimestamp":"1759000000000","endTimestamp":"1759000600000","globalVariables":[{"name":"orderValue","value":249}]}]}'
+```
+
 ### Not Contact Center?
 
 | Need | Redirect To |

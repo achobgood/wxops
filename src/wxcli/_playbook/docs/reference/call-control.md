@@ -21,10 +21,11 @@ Webex Calling Call Control APIs enable 3rd-party applications to manage calls on
 6. [Call Details & History](#3-call-details--history)
 7. [Data Models](#4-data-models)
 8. [Service App / Admin API](#5-service-app--admin-api-call-controls-members)
-9. [Additional API: External Voicemail MWI](#6-additional-api-external-voicemail-mwi)
-10. [Common Use Cases](#7-common-use-cases)
-11. [Key Gotchas](#8-key-gotchas)
-12. [See Also](#see-also)
+9. [Wrap-Up Reasons](#6-wrap-up-reasons-call-controls-members--call-controls-members-me)
+10. [Additional API: External Voicemail MWI](#7-additional-api-external-voicemail-mwi)
+11. [Common Use Cases](#8-common-use-cases)
+12. [Key Gotchas](#9-key-gotchas)
+13. [See Also](#see-also)
 
 ---
 
@@ -883,23 +884,108 @@ The Members API mirrors the user-level API but adds a `memberId` path parameter 
 
 ### Available Members Endpoints
 
-| Action | Endpoint | Returns |
-|--------|----------|---------|
-| List Calls | `GET {BASE}/telephony/calls/members/{memberId}/calls` | List of call objects |
-| Get Call Details | `GET {BASE}/telephony/calls/members/{memberId}/calls/{callId}` | Call object |
-| Dial | `POST {BASE}/telephony/calls/members/{memberId}/dial` | `{callId, callSessionId}` |
-| Answer | `POST {BASE}/telephony/calls/members/{memberId}/answer` | (204 No Content) |
-| Hangup | `POST {BASE}/telephony/calls/members/{memberId}/hangup` | (204 No Content) |
+**Unverified:** as of the 2026-09-28 spec refresh the Members API is at full
+parity with the user-level API — 25 paths under
+`/telephony/calls/members/{memberId}/`, one for every user-level action plus
+`wrapupreasons`. A second family, `/telephony/calls/members/me/`, publishes the
+identical 25 paths scoped to the authenticated user.
+
+| Action | Endpoint suffix | Returns |
+|--------|-----------------|---------|
+| List Calls | `calls` | List of call objects |
+| Get Call Details | `calls/{callId}` | Call object |
+| Call History | `history` | List of history records |
+| Dial | `dial` | `{callId, callSessionId}` |
+| Answer / Hangup / Reject | `answer`, `hangup`, `reject` | (204 No Content) |
+| Hold / Resume | `hold`, `resume` | (204 No Content) |
+| Mute / Unmute | `mute`, `unmute` | (204 No Content) |
+| Transfer / Divert | `transfer`, `divert` | (204 No Content) |
+| Park / Retrieve / Pickup | `park`, `retrieve`, `pickup` | (204 No Content) |
+| Pull / Push | `pull`, `push` | (204 No Content) |
+| Barge-In | `bargeIn` | (204 No Content) |
+| Transmit DTMF | `transmitDtmf` | (204 No Content) |
+| Recording control | `startRecording`, `stopRecording`, `pauseRecording`, `resumeRecording` | (204 No Content) |
+| Set Wrap-Up Reasons | `wrapupreasons` | a CLI group of its own — see [section 6](#6-wrap-up-reasons-call-controls-members--call-controls-members-me) |
 
 **`memberId`** can be one of: person ID, workspace ID, or virtual line ID.
 
+In the CLI every one of these except `wrapupreasons` lives in the `call-controls`
+group, suffixed by scope: bare for `/telephony/calls/...`, `-members` for
+`/members/{memberId}/...`, `-me` for `/members/me/...`.
+
+```bash
+# Admin/Service App: put another member's call on hold
+wxcli call-controls create-hold-members MEMBER_ID --call-id CALL_ID
+
+# The same action on your own call
+wxcli call-controls create-hold-me --call-id CALL_ID
+
+# The user-level path, unchanged
+wxcli call-controls create-hold --call-id CALL_ID
+```
+
 ### Gotchas
 
-- **Members API supports a limited action set.** Only Dial, Answer, Hangup, List Calls, and Get Call Details are available. Hold, Resume, Transfer, Mute, Park, and Barge-in are user-level API operations only and are NOT available on the Members API path. Service App integrations requiring these operations must use user-level OAuth tokens (`spark:calls_write`) acting as the target user.
+- **The Members API is no longer limited to five actions, and integrations written against that limit are now leaving capability unused.** Through the 2026-09-21 spec this surface published only Dial, Answer, Hangup, List Calls and Get Call Details, so anything needing Hold, Transfer, Mute, Park or Barge-in had to fall back to user-level OAuth acting as the target user. The 2026-09-28 refresh publishes all of them under `/members/{memberId}/`. **Unverified:** the parity is read from the spec, not exercised against a live org, so treat the 20 added actions as available-but-untested and confirm scope behaviour before relying on them in production.
+- **`-me` is a distinct path family, not an alias for the bare user-level path.** `/telephony/calls/hold` and `/telephony/calls/members/me/hold` are two separately published endpoints, and the CLI ships them as two commands. **Unverified:** which token types each accepts is not stated in the spec. Known issue #1 — admin tokens get 400 "Target user not authorized" on user-level call control — is the reason to test both rather than assume they are interchangeable.
 
 ---
 
-## 6. Additional API: External Voicemail MWI
+## 6. Wrap-Up Reasons (`call-controls-members` / `call-controls-members-me`)
+
+Records the wrap-up reason against a call — the short disposition code chosen
+when a call ends ("Sale", "Callback requested"). Cisco tagged these two
+operations apart from the rest of Call Controls, so in the CLI they are two
+groups holding one command each rather than commands inside `call-controls`.
+
+This is **not** the Contact Center wrap-up surface: WxCC keeps its own
+auxiliary/wrap-up codes against a WxCC task, on a different API behind a
+region-scoped base URL and a `cjp:` scope. This one writes against a Webex
+*Calling* call and needs neither. It is also **not** a read surface — neither
+group publishes a GET, so there is no way to ask what wrap-up reason a call
+currently carries, only to set one.
+
+| Group | Scope | Command | Endpoint |
+|-------|-------|---------|----------|
+| `call-controls-members` | another member; admin / Service App | `create-wrapupreasons` | `POST /v1/telephony/calls/members/{memberId}/wrapupreasons` |
+| `call-controls-members-me` | the authenticated user | `create-wrapupreasons` | `POST /v1/telephony/calls/members/me/wrapupreasons` |
+
+### CLI Examples
+
+```bash
+# What does the body look like? Print the skeleton without authenticating.
+wxcli call-controls-members-me create-wrapupreasons --generate-json-body
+
+# Set the wrap-up reason on your own call
+wxcli call-controls-members-me create-wrapupreasons --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
+
+# Admin / Service App: set it on another member's call
+wxcli call-controls-members create-wrapupreasons MEMBER_ID --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
+```
+
+### Raw HTTP
+
+```bash
+# Self-scoped
+curl -X POST "https://webexapis.com/v1/telephony/calls/members/me/wrapupreasons" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
+
+# Member-scoped (admin / Service App)
+curl -X POST "https://webexapis.com/v1/telephony/calls/members/MEMBER_ID/wrapupreasons" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
+```
+
+### Gotchas
+
+- **The request body is not flattened into flags, so `--json-body` is the only way to call this.** The generator skips deeply nested body fields (known issue #2), and both commands came through with no per-field options: `create-wrapupreasons` takes `memberId` positionally and everything else as JSON. Run `--generate-json-body` first and edit the skeleton it prints — guessing field names is what produces a 400 that names no field. **Unverified:** the accepted field set is read from the generated skeleton, not confirmed against a live call.
+
+---
+
+## 7. Additional API: External Voicemail MWI
 
 Set or clear Message Waiting Indicator (MWI) for a person or workspace. Service App only.
 
@@ -932,7 +1018,7 @@ wxcli external-voicemail create --id <workspace_id> --action SET
 
 ---
 
-## 7. Common Use Cases
+## 8. Common Use Cases
 
 > **Executable path:** run these flows with `wxcli call-controls` (§3 CLI Examples — including the same Hold/Consult/Transfer and Park/Retrieve patterns) or the raw HTTP endpoints in §2. The Python below shows the same call sequence using `api.session.rest_*()` raw HTTP calls.
 
@@ -1019,7 +1105,7 @@ result = api.session.rest_post(f"{BASE}/telephony/calls/members/{member_id}/dial
 
 ---
 
-## 8. Key Gotchas
+## 9. Key Gotchas
 
 1. **3rd Party Call Control only** -- These APIs do not work with Webex app's native calling. They are for building external call control applications.
 
@@ -1044,6 +1130,11 @@ result = api.session.rest_post(f"{BASE}/telephony/calls/members/{member_id}/dial
 ---
 
 ## See Also
+
+- [`contact-center-core.md`](contact-center-core.md) — read this if the wrap-up
+  reason you are trying to set belongs to a WxCC task rather than a Calling call;
+  the two surfaces share a word and share nothing else, and picking the wrong one
+  fails with a 403 on scope rather than anything that names the mistake.
 
 - **[webhooks-events.md](webhooks-events.md)** — Real-time call event notifications via webhooks. Webhook call event payloads share the same fields as the `TelephonyCall` object documented here (§4 Data Models); use webhooks for event-driven call control rather than polling List Calls.
 - **[person-call-settings-media.md](person-call-settings-media.md)** — Call recording configuration (recording mode, compliance announcements). Recording mode determines which recording control actions are available in this API.

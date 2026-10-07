@@ -76,6 +76,8 @@ Virtual lines support the same call settings as person lines. Each feature is it
 | Feature | Endpoint Suffix | What It Controls |
 |---------|-----------------|-----------------|
 | Agent Caller ID | `agentCallerId` | Caller ID when acting as a call queue/hunt group agent |
+| Answer Settings | `answerSettings` | Preferred answer endpoint + auto answer (see [Answer Settings](#answer-settings-preferred-endpoint--auto-answer)) |
+| Available Preferred Answer Endpoints | `availablePreferredAnswerEndpoints` | Read-only list of endpoints that can be chosen as the preferred answer endpoint |
 | Available Numbers | `availableNumbers` | List available numbers for assignment |
 | Barge-In | `bargeIn` | Barge-in settings |
 | Call Bridge | `callBridge` | Call bridge settings |
@@ -102,7 +104,7 @@ See the [Raw HTTP](#raw-http) section below for read/write examples against thes
 
 ### CLI Examples
 
-The `virtual-line-settings` command group covers virtual line CRUD and all call settings (63 commands total). The commands mirror the person settings commands in `user-settings`.
+The `virtual-line-settings` command group covers virtual line CRUD and all call settings (68 commands total). The commands mirror the person settings commands in `user-settings`.
 
 #### Virtual Line CRUD
 
@@ -237,6 +239,28 @@ wxcli virtual-line-settings update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 
 
 The four toggles are the same object people and workspaces carry — field-by-field
 detail in [Person Call Settings: Media](person-call-settings-media.md#7-call-recording).
+
+#### Answer Settings (preferred endpoint + auto answer)
+
+Which of the devices or apps a virtual line rings on should answer, and whether
+calls are auto-answered. Same object as the person-level `answerSettings`
+(`person-call-settings-behavior.md` §10): `preferredAnswerEndpointId`,
+`autoAnswerEnabled`, and `isPreferredEndpointClearableByPerson`, which the spec
+describes for a virtual line as whether "the person can clear the preferred
+endpoint setting by selecting None to disable auto-answer". It is not call
+forwarding and not the virtual line's device assignment (`list-devices`).
+
+```bash
+# Endpoints that could be chosen (IDs for --preferred-answer-endpoint-id)
+wxcli virtual-line-settings list-available-preferred-answer-endpoints VIRTUAL_LINE_ID -o json
+
+# Read, then set the preferred endpoint and enable auto answer
+wxcli virtual-line-settings show-answer-settings VIRTUAL_LINE_ID -o json
+wxcli virtual-line-settings update-answer-settings VIRTUAL_LINE_ID --preferred-answer-endpoint-id ENDPOINT_ID --auto-answer-enabled --verify
+
+# Clear the preferred endpoint — needs JSON null (gotcha 10)
+wxcli virtual-line-settings update-answer-settings VIRTUAL_LINE_ID --json-body '{"preferredAnswerEndpointId": null}'
+```
 
 #### Permissions & Other Settings
 
@@ -643,6 +667,15 @@ barge = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/barg
 
 # ── Push to Talk ─────────────────────────────────────────────────
 ptt = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/pushToTalk")
+
+# ── Answer Settings (preferred endpoint + auto answer) ───────────
+ans = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/answerSettings")
+api.session.rest_put(f"{BASE}/telephony/config/virtualLines/{vl_id}/answerSettings", json={
+    "preferredAnswerEndpointId": endpoint_id,   # None clears it; omit to leave unchanged
+    "autoAnswerEnabled": True,
+})
+candidates = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/availablePreferredAnswerEndpoints")
+# candidates["endpoints"] -> [{"id", "type", "name", "isPreferredAnswerEndpoint"}]
 ```
 
 ### Virtual Extensions CRUD
@@ -760,6 +793,7 @@ result = api.session.rest_post(
 7. **No auto-pagination** -- Use `max=1000` for the first page. Check for pagination links if you have more results.
 8. **Virtual line call settings path vs workspace features path** -- Virtual lines use `/telephony/config/virtualLines/{id}/{feature}`. Workspaces use `/workspaces/{id}/features/{feature}`. These are completely different base paths.
 9. **`virtual-extensions` CLI commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`). The `wxcli cleanup` command already uses raw REST for this reason. The `virtual-line-settings` group uses the correct path family but only has settings commands, not CRUD. <!-- Documented from CLI known issue, 2026-03-31 -->
+10. **Clearing a virtual line's preferred answer endpoint needs a JSON `null`, not the flag.** The spec says the field "must be set to null" to clear and that omitting it leaves it unchanged. `--preferred-answer-endpoint-id` on `virtual-line-settings update-answer-settings` is a plain string option, so `--preferred-answer-endpoint-id null` would send the string `"null"`; use `--json-body '{"preferredAnswerEndpointId": null}'`. Answer settings are admin-only (`spark-admin:telephony_config_read`/`_write`). **Unverified:** read from the spec and the generated command code; no live call has been made.
 
 ---
 
@@ -789,4 +823,5 @@ result = api.session.rest_post(
 ## See Also
 
 - **[devices-dect.md](devices-dect.md)** — DECT handset Line 2 supports VIRTUAL_LINE member type. Virtual lines can be assigned to DECT handsets as secondary lines.
+- **[person-call-settings-behavior.md](person-call-settings-behavior.md)** §10 — go there for the full answer-settings field list (endpoint type enums, `preferredAnswerEndpointRequired`) and how it relates to the older person-only `preferredAnswerEndpoint` object; the virtual line version is the same object on a different path.
 - **[emergency-services.md](emergency-services.md)** — Emergency callback number (ECBN) configuration for virtual lines. The `emergencyCallbackNumber` endpoint in the virtual line call settings table is documented in detail there.

@@ -630,6 +630,74 @@ wxcli user-settings update-preferred-answer-endpoint <personId> --preferred-answ
 - **Preferred answer endpoint affects Call Control API behavior.** When set, the `/telephony/calls/dial`, `/telephony/calls/retrieve`, `/telephony/calls/pickup`, `/telephony/calls/barge-in`, and `/telephony/calls/answer` endpoints route to that preferred device/app. If the preferred endpoint is offline or unreachable, call control operations may fail silently or route unexpectedly.
 - **Endpoint names derive from device tags.** The `name` field in `PreferredAnswerEndpoint` comes from the device's `name=<value>` tag. If no tag is set, the name may be a generic device model identifier, making it hard to distinguish between multiple devices of the same type.
 
+### Answer Settings (`answerSettings`) — preferred endpoint plus auto answer
+
+A second, newer admin object at `/telephony/config/people/{personId}/answerSettings`.
+The spec describes it as configuring "automatic call answering behavior for a
+person, including preferred answer endpoint and whether auto answer is enabled".
+It carries the same `preferredAnswerEndpointId` as the `preferredAnswerEndpoint`
+object above, **plus** `autoAnswerEnabled`, `isPreferredEndpointClearableByPerson`
+(writable), and three read-only fields: `preferredAnswerEndpointType`
+(`WEBEX_APP_DESKTOP`, `PRIMARY_DEVICE`, `NON_PRIMARY_DEVICE`, `HOTDESK_DEVICE`, `NONE`),
+`preferredAnswerEndpointIdType` (`APPLICATION`, `CALLING_DEVICE`, `HOTDESKING_GUEST`),
+and `preferredAnswerEndpointRequired` ("whether the person must have a preferred
+answer endpoint selected in order for a call to be auto-answered"). Candidate
+endpoints come from a separate `availablePreferredAnswerEndpoints` GET, which
+returns `endpoints[]` with `id`, `type`, `name` and `isPreferredAnswerEndpoint`.
+
+It is **not** the self-service preferred answer endpoint (`my-call-settings show`/`update`,
+`/people/me/settings/preferredAnswerEndpoint`, user OAuth — see
+`self-service-call-settings.md`), and it is not call forwarding or alerting. The
+same three operations exist for workspaces (`devices-workspaces.md`) and virtual
+lines (`virtual-lines.md`).
+
+| Operation | Command | Path |
+|-----------|---------|------|
+| Read | `wxcli user-settings show-answer-settings PERSON_ID` | `GET .../people/{personId}/answerSettings` |
+| Update | `wxcli user-settings update-answer-settings PERSON_ID` | `PUT .../people/{personId}/answerSettings` |
+| Candidates | `wxcli user-settings list-available-preferred-answer-endpoints PERSON_ID` | `GET .../people/{personId}/availablePreferredAnswerEndpoints` |
+
+#### CLI Examples
+
+```bash
+# Which endpoints could answer for this person (IDs to pass below)
+wxcli user-settings list-available-preferred-answer-endpoints PERSON_ID -o json
+
+# Read, then set the preferred endpoint and turn auto answer on
+wxcli user-settings show-answer-settings PERSON_ID -o json
+wxcli user-settings update-answer-settings PERSON_ID --preferred-answer-endpoint-id ENDPOINT_ID --auto-answer-enabled --verify
+
+# Stop the person clearing it themselves
+wxcli user-settings update-answer-settings PERSON_ID --no-is-preferred-endpoint-clearable-by-person
+
+# Clear the preferred endpoint (needs a JSON null — see gotcha below)
+wxcli user-settings update-answer-settings PERSON_ID --json-body '{"preferredAnswerEndpointId": null}'
+```
+
+#### Raw HTTP
+
+```bash
+curl "https://webexapis.com/v1/telephony/config/people/PERSON_ID/answerSettings" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -X PUT "https://webexapis.com/v1/telephony/config/people/PERSON_ID/answerSettings" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"preferredAnswerEndpointId": "ENDPOINT_ID", "autoAnswerEnabled": true}'
+
+curl "https://webexapis.com/v1/telephony/config/people/PERSON_ID/availablePreferredAnswerEndpoints" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Scopes per the spec: `spark-admin:telephony_config_read` (GETs) and
+`spark-admin:telephony_config_write` (PUT), admin token — unlike
+`preferredAnswerEndpoint`, which also accepts the user `spark:` scopes.
+
+#### Gotchas
+
+- **Clearing the preferred endpoint needs a JSON `null`, which the flag cannot send.** The spec says "To clear the preferred answer endpoint, the `preferredAnswerEndpointId` must be set to null", and "omit to leave unchanged". `--preferred-answer-endpoint-id` is a plain string option in the generated code, so `--preferred-answer-endpoint-id null` would send the four-character string `"null"`. Use `--json-body '{"preferredAnswerEndpointId": null}'`. **Unverified:** the request body is read from `src/wxcli/commands/user_settings.py`; the server's response to the string form has not been observed.
+- **Two admin objects now hold the same preferred endpoint — change it in one place.** `update-preferred-answer-endpoint` and `update-answer-settings` both write `preferredAnswerEndpointId` for the same person. The spec does not say they are separate stores, so assume they are one value and read back with `show-answer-settings` after a write through either. Prefer `*-answer-settings` whenever auto answer is part of the change. **Unverified:** whether a write through one path is visible through the other has not been tested live.
+- **Auto answer may need a preferred endpoint to do anything.** The read-only `preferredAnswerEndpointRequired` flag means the entity "must have a preferred answer endpoint selected in order for a call to be auto-answered". When it reads `true`, check that `preferredAnswerEndpointId` is set before treating `autoAnswerEnabled: true` as working. **Unverified:** spec text only.
+
 ---
 
 ## 11. MS Teams
@@ -1194,6 +1262,7 @@ Returns DECT network associations for a person. Lists which DECT networks/handse
 | Numbers (update) | -- | `spark-admin:telephony_config_write` |
 | Available Numbers | `spark-admin:telephony_config_read` | -- |
 | Preferred Answer | `spark(-admin):telephony_config_read` | `spark(-admin):telephony_config_write` |
+| Answer Settings | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 | MS Teams | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 | Mode Management | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
 | Personal Assistant | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` |
@@ -1218,3 +1287,5 @@ Returns DECT network associations for a person. Lists which DECT networks/handse
 - **[Emergency Services Reference](emergency-services.md)** — Organization and location-level ECBN configuration, E911 providers, and emergency location management
 - **[Devices — Core Reference](devices-core.md)** — Device management, hoteling host configuration, and shared-line appearance settings at the device level
 - **[self-service-call-settings.md](self-service-call-settings.md)** -- User-level `/people/me/` endpoints for self-service call settings, including 6 user-only settings with no admin path.
+- **[virtual-lines.md](virtual-lines.md)** and **[devices-workspaces.md](devices-workspaces.md)** — go there to set answer settings (preferred endpoint + auto answer, §10) on a virtual line or a workspace instead of a person; the commands are the same three under `virtual-line-settings` / `workspace-settings`, and the workspace body lacks the clearable-by-person field.
+- **[call-control.md](call-control.md)** — read this to see what the endpoint IDs are *for*: per the spec, the Call Control dial/answer/pickup/retrieve/barge-in actions accept an `endpointId`, and these endpoint lists are where such IDs come from.
