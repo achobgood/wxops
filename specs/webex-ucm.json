@@ -3792,8 +3792,7 @@
       "DeviceLayout": {
         "type": "object",
         "required": [
-          "layoutMode",
-          "lineKeys"
+          "layoutMode"
         ],
         "properties": {
           "layoutMode": {
@@ -3810,7 +3809,7 @@
             "items": {
               "$ref": "#/components/schemas/ProgrammableLineKeys"
             },
-            "description": "Contains a mapping of Line Keys and their corresponding actions."
+            "description": "Contains a mapping of Line Keys and their corresponding actions. This field is required when `layoutMode` is CUSTOM. When `layoutMode` is DEFAULT, this field is not returned in GET responses and should not be included in PUT requests, as the system uses the default line-key assignments."
           },
           "kemModuleType": {
             "$ref": "#/components/schemas/KemModuleType",
@@ -5194,7 +5193,8 @@
               "supportsApplyChangesEnabled": false,
               "allowConfigureLinesEnabled": true,
               "allowConfigurePhoneSettingsEnabled": false,
-              "supportsHotlineEnabled": false
+              "supportsHotlineEnabled": false,
+              "supportsVirtualLineEnabled": false
             },
             {
               "model": "DMS Polycom EE400",
@@ -5232,7 +5232,8 @@
               "supportsApplyChangesEnabled": true,
               "allowConfigureLinesEnabled": true,
               "allowConfigurePhoneSettingsEnabled": true,
-              "supportsHotlineEnabled": true
+              "supportsHotlineEnabled": true,
+              "supportsVirtualLineEnabled": true
             }
           ]
         },
@@ -5293,7 +5294,8 @@
           "supportsApplyChangesEnabled",
           "allowConfigureLinesEnabled",
           "allowConfigurePhoneSettingsEnabled",
-          "supportsHotlineEnabled"
+          "supportsHotlineEnabled",
+          "supportsVirtualLineEnabled"
         ],
         "properties": {
           "model": {
@@ -5439,6 +5441,11 @@
           "supportsHotlineEnabled": {
             "type": "boolean",
             "description": "Enables / disables hotline support."
+          },
+          "supportsVirtualLineEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indicates whether the device supports virtual line configuration."
           },
           "maxNumberOfLineAppearances": {
             "type": "number",

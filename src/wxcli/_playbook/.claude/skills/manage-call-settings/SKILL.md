@@ -159,6 +159,7 @@ wxcli virtual-line-settings --help          # 65+ commands, grouped by theme bel
 | Caller ID | `list-caller-id`/`update-caller-id-virtual-lines`, `show-caller-id`/`update-caller-id-agent`, `list-available-caller-ids` |
 | Devices & numbers | `show-number`, `list-devices`, `list-dect-networks`, `update-directory-search`, `list-available-numbers-*` |
 | Billing | `list-outbound-billing-plan`/`update-outbound-billing-plan` |
+| Answering | `show-answer-settings`/`update-answer-settings`, `list-available-preferred-answer-endpoints` (preferred endpoint + auto answer) |
 
 ```bash
 wxcli virtual-line-settings list --location-id LOCATION_ID -o json      # find virtual lines
@@ -297,6 +298,79 @@ wxcli guest-management create --subject "ext-user-42" --display-name "Jane Guest
 | **MS Teams — org-wide** | `client-settings` | ~~user-settings~~ |
 | **MS Teams — per person** | `user-settings *-ms-teams` | ~~client-settings~~ |
 | **Guest issuer tokens** | `guest-management` (Guest Issuer app required) | ~~user-settings~~ |
+| **Voicemail messages** (list/read/delete a mailbox's messages) | `user-call-settings-members` (by member) · `user-call-settings-members-me` (self) | ~~`user-settings show-voicemail`/`update-voicemail`~~ (that's voicemail *config* — enable, forward, greeting) |
+| **Answer settings** (preferred answer endpoint + auto answer) | `user-settings` / `virtual-line-settings` / `workspace-settings` `*-answer-settings` | ~~`my-call-settings show`/`update`~~ (self-service preferred endpoint only, user OAuth) |
+
+### Voicemail messages (the messages, not the settings)
+
+`user-settings show-voicemail`/`update-voicemail` *configure* voicemail. These
+two groups act on the **messages in the mailbox**: the unread/read summary, the
+message list, mark read/unread, and delete. `user-call-settings-members` takes a
+positional member ID — a person, workspace, virtual line, hunt group, call queue
+or auto attendant per the spec (`--help` types it "PEOPLE id"; on ID kinds the
+doc wins). `user-call-settings-members-me` is the self-scoped twin: no
+positional, user token, optional `--line-owner-id` for a secondary/shared line.
+Neither retrieves audio — metadata and state only. Full detail:
+`docs/reference/person-call-settings-media.md` §13.
+
+```bash
+# Unread/read counts, then the messages (a list endpoint — use --all to count)
+wxcli user-call-settings-members show-summary MEMBER_ID
+wxcli user-call-settings-members list-voice-messages MEMBER_ID --all -o json
+
+# Mark ONE message read — without --message-id EVERY message is marked read
+wxcli user-call-settings-members create-mark-as-read MEMBER_ID --message-id MESSAGE_ID
+
+# Delete one message (no undo; prompts unless --force)
+wxcli user-call-settings-members delete-voice-messages MEMBER_ID MESSAGE_ID
+
+# Self-scoped twin (user token)
+wxcli user-call-settings-members-me show-summary
+```
+
+- `list-memberships` (either group) does NOT list messages — it lists the call
+  queue / hunt group / auto attendant **shared mailboxes** the member can reach.
+  `list-voice-messages` is the message list.
+- `user-settings list-memberships` (new) answers that same question for the
+  **token holder** — the spec says "for the authenticated user" — through the
+  older `/telephony/voiceMessages/memberships` path. It is not org-wide and takes
+  no person ID. `user-settings` also still wraps the older self-scoped message
+  path (`show-summary`, `list-voice-messages`, … with no positional).
+- **Unverified:** none of this surface has been run against a live tenant; the
+  scoping above is read from the spec and `--help`.
+
+### Answer settings — preferred answer endpoint + auto answer (person / workspace / virtual line)
+
+"Answer settings" is the admin-side object that picks **which of an entity's
+devices or apps answers** (`preferredAnswerEndpointId`) and whether calls are
+**auto-answered** (`autoAnswerEnabled`). It is not call forwarding and not ring
+or alerting settings. The same three commands exist on all three groups; only
+the positional changes.
+
+```bash
+wxcli user-settings list-available-preferred-answer-endpoints PERSON_ID   # candidate endpoint IDs
+wxcli user-settings show-answer-settings PERSON_ID -o json
+wxcli user-settings update-answer-settings PERSON_ID --preferred-answer-endpoint-id ENDPOINT_ID --auto-answer-enabled --verify
+
+wxcli virtual-line-settings show-answer-settings VIRTUAL_LINE_ID -o json
+wxcli workspace-settings update-answer-settings WORKSPACE_ID --no-auto-answer-enabled --verify
+
+# CLEAR the preferred endpoint: the API wants JSON null, which the flag cannot send
+wxcli user-settings update-answer-settings PERSON_ID --json-body '{"preferredAnswerEndpointId": null}'
+```
+
+- `--is-preferred-endpoint-clearable-by-person` exists on person and virtual
+  line only — the workspace body has no such field.
+- The older `user-settings list-preferred-answer-endpoint` /
+  `update-preferred-answer-endpoint` (`/preferredAnswerEndpoint`) set the
+  endpoint only; `my-call-settings show`/`update` are the user-OAuth
+  self-service equivalent. Reach for `*-answer-settings` when auto answer is
+  involved, or for a workspace or virtual line. Detail:
+  `docs/reference/person-call-settings-behavior.md` §10.
+- **Unverified:** no live call has been made. `--preferred-answer-endpoint-id`
+  is a plain string option in the generated code, so `null` would be sent as
+  the string `"null"` — clear with `--json-body` instead.
+
 
 ---
 
@@ -517,7 +591,8 @@ Present the user with the settings categories. Ask which settings they want to r
 | Available Hoteling Hosts | `my-call-settings list-available-hosts` | — | User-level OAuth only. Lists hosts the user can sign into |
 | Receptionist Client | `list-reception` | `update-reception` | `receptionEnabled` must be `true` if members set. Path: `/features/reception` (NOT receptionist) |
 | Numbers | `list-numbers` | — | Primary + alternate numbers; distinctive ring patterns |
-| Preferred Answer Endpoint | — | — | Which device/app answers by default (SDK only for now) |
+| Preferred Answer Endpoint | `list-preferred-answer-endpoint` | `update-preferred-answer-endpoint` | Which device/app answers by default. Self-service: `my-call-settings show`/`update` |
+| Answer Settings | `show-answer-settings` | `update-answer-settings` | Preferred endpoint **plus** auto answer; candidates via `list-available-preferred-answer-endpoints`. Same three on `workspace-settings`/`virtual-line-settings`. See the Answer settings recipe above |
 | MS Teams | `list-ms-teams` | `update-ms-teams` | Person-level accepts **HIDE_WEBEX_APP only**. For PRESENCE_SYNC use org-level `wxcli client-settings update` |
 | Mode Management | `list-mode-management` | `update-mode-management` | Admin path assigns *which features* a user may mode-manage (`list-available-features` lists candidates). **Switching** a mode is user-OAuth-only via the `mode-management` group |
 | Hot Desking Members | `list-members-hot-desking` | `update-members-hot-desking` | Member lines on the person's hot desk device. `list-available-members-hot-desking` searches candidates. Alias group: `hot-desking-members` |
@@ -535,7 +610,7 @@ These ONLY work at `/telephony/config/people/me/settings/{feature}` with a user 
 
 **MS Teams and Mode Management are NOT SDK-only** — both have verified CLI commands (`user-settings list-ms-teams`/`update-ms-teams`, `user-settings list-mode-management`/`update-mode-management`, plus org-level `client-settings` and user-level `mode-management`). See the Quick Recipes above. Virtual lines likewise have a full 65-command group (`virtual-line-settings`) — do not fall back to raw HTTP for them.
 
-For settings still marked "SDK only" above (Music on Hold, Feature Access Controls, Preferred Answer, Personal Assistant, ECBN), use the raw HTTP fallback pattern with an **admin** token:
+For settings still marked "SDK only" above (Music on Hold, Feature Access Controls, Personal Assistant, ECBN), use the raw HTTP fallback pattern with an **admin** token:
 
 ```bash
 # Read the current setting value

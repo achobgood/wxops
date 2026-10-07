@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-09-21",
+ "captured": "2026-10-07",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -1935,6 +1935,23 @@
     "summary": "Release Conference",
     "tag": "Conference Controls"
    },
+   "DELETE /telephony/conference/members/me/conference": {
+    "fields": {
+     "(operation)": "#86ce73",
+     "query:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Release Conference",
+    "tag": "Conference Controls"
+   },
+   "DELETE /telephony/conference/members/{}/conference": {
+    "fields": {
+     "(operation)": "#86ce73",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Release Conference by Member ID",
+    "tag": "Conference Controls"
+   },
    "DELETE /telephony/config/announcements/playlists/{}": {
     "fields": {
      "(operation)": "#45ea43",
@@ -2730,10 +2747,30 @@
     "summary": "Delete Simultaneous Ring Criteria for a Workspace",
     "tag": "Workspace Call Settings (2/2)"
    },
+   "DELETE /telephony/voiceMessages/members/me/voiceMessages/{}": {
+    "fields": {
+     "(operation)": "#580e0e",
+     "path:messageId": "!#80d2cd",
+     "query:lineOwnerId": "~id#6ab71e"
+    },
+    "summary": "Delete Message",
+    "tag": "User Call Settings Members Me"
+   },
+   "DELETE /telephony/voiceMessages/members/{}/voiceMessages/{}": {
+    "fields": {
+     "(operation)": "#580e0e",
+     "path:memberId": "!#98ff0e",
+     "path:messageId": "!#80d2cd",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Delete Message by Member ID",
+    "tag": "User Call Settings Members"
+   },
    "DELETE /telephony/voiceMessages/{}": {
     "fields": {
      "(operation)": "#580e0e",
-     "path:messageId": "!#80d2cd"
+     "path:messageId": "!#80d2cd",
+     "query:lineOwnerId": "~id#a75cef"
     },
     "summary": "Delete Message",
     "tag": "User Call Settings (2/2)"
@@ -3258,6 +3295,14 @@
     "summary": "Get Call Details",
     "tag": "Call Controls"
    },
+   "GET /telephony/calls/members/me/history": {
+    "fields": {
+     "(operation)": "#caa1e5",
+     "query:type": "#b97f6e=missed|placed|received"
+    },
+    "summary": "List Call History",
+    "tag": "Call Controls"
+   },
    "GET /telephony/calls/members/{}/calls": {
     "fields": {
      "(operation)": "#acc546",
@@ -3277,6 +3322,16 @@
     "summary": "Get Call Details by Member ID",
     "tag": "Call Controls"
    },
+   "GET /telephony/calls/members/{}/history": {
+    "fields": {
+     "(operation)": "#caa1e5",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57",
+     "query:type": "#b97f6e=missed|placed|received"
+    },
+    "summary": "List Call History by Member ID",
+    "tag": "Call Controls"
+   },
    "GET /telephony/calls/{}": {
     "fields": {
      "(operation)": "#b57f78",
@@ -3292,6 +3347,23 @@
      "query:lineOwnerId": "~id#b678be"
     },
     "summary": "Get Conference Details",
+    "tag": "Conference Controls"
+   },
+   "GET /telephony/conference/members/me/conference": {
+    "fields": {
+     "(operation)": "#0b9508",
+     "query:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Get Conference Details",
+    "tag": "Conference Controls"
+   },
+   "GET /telephony/conference/members/{}/conference": {
+    "fields": {
+     "(operation)": "#0b9508",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Get Conference Details by Member ID",
     "tag": "Conference Controls"
    },
    "GET /telephony/config/aiReceptionists": {
@@ -3744,7 +3816,7 @@
    },
    "GET /telephony/config/devices/{}/layout": {
     "fields": {
-     "(operation)": "#04c815",
+     "(operation)": "#22a0a3",
      "path:deviceId": "!#55d839",
      "query:orgId": "#fff33e"
     },
@@ -5906,6 +5978,15 @@
     "summary": "Get Anonymous Call Rejection Settings for a Person",
     "tag": "User Call Settings (3/3)"
    },
+   "GET /telephony/config/people/{}/answerSettings": {
+    "fields": {
+     "(operation)": "#c979ad",
+     "path:personId": "!#4ba7c2",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Get Answer Settings for a Person",
+    "tag": "User Call Settings (3/3)"
+   },
    "GET /telephony/config/people/{}/applications/availableMembers": {
     "fields": {
      "(operation)": "#7f3370",
@@ -5966,6 +6047,15 @@
     },
     "summary": "Get Shared-Line Appearance Members",
     "tag": "User Call Settings (2/2)"
+   },
+   "GET /telephony/config/people/{}/availablePreferredAnswerEndpoints": {
+    "fields": {
+     "(operation)": "#c7b7cf",
+     "path:personId": "!#4ba7c2",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Get Available Preferred Answer Endpoints for a Person",
+    "tag": "User Call Settings (3/3)"
    },
    "GET /telephony/config/people/{}/callCaptions": {
     "fields": {
@@ -7011,6 +7101,24 @@
     "summary": "Retrieve Agent's Caller ID Information",
     "tag": "Virtual Line Call Settings"
    },
+   "GET /telephony/config/virtualLines/{}/answerSettings": {
+    "fields": {
+     "(operation)": "#bd9f9c",
+     "path:virtualLineId": "!#02c097",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Get Answer Settings for a Virtual Line",
+    "tag": "Virtual Line Call Settings"
+   },
+   "GET /telephony/config/virtualLines/{}/availablePreferredAnswerEndpoints": {
+    "fields": {
+     "(operation)": "#0041e1",
+     "path:virtualLineId": "!#02c097",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Get Available Preferred Answer Endpoints for a Virtual Line",
+    "tag": "Virtual Line Call Settings"
+   },
    "GET /telephony/config/virtualLines/{}/bargeIn": {
     "fields": {
      "(operation)": "#d988a8",
@@ -7328,6 +7436,24 @@
      "query:orgId": "~id#4bb372"
     },
     "summary": "Retrieve Anonymous Call Settings for a Workspace",
+    "tag": "Workspace Call Settings (2/2)"
+   },
+   "GET /telephony/config/workspaces/{}/answerSettings": {
+    "fields": {
+     "(operation)": "#9520e9",
+     "path:workspaceId": "!#c527e0",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Get Answer Settings for a Workspace",
+    "tag": "Workspace Call Settings (2/2)"
+   },
+   "GET /telephony/config/workspaces/{}/availablePreferredAnswerEndpoints": {
+    "fields": {
+     "(operation)": "#c8d184",
+     "path:workspaceId": "!#c527e0",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Get Available Preferred Answer Endpoints for a Workspace",
     "tag": "Workspace Call Settings (2/2)"
    },
    "GET /telephony/config/workspaces/{}/bargeIn": {
@@ -7732,14 +7858,72 @@
    "GET /telephony/voiceMessages": {
     "fields": {
      "(operation)": "#33e013",
-     "query:lineOwnerId": "~id#b678be"
+     "query:lineOwnerId": "~id#a75cef"
     },
     "summary": "List Messages",
     "tag": "User Call Settings (2/2)"
    },
+   "GET /telephony/voiceMessages/members/me/memberships": {
+    "fields": {
+     "(operation)": "#c349bf"
+    },
+    "summary": "List Voice Message Memberships",
+    "tag": "User Call Settings Members Me"
+   },
+   "GET /telephony/voiceMessages/members/me/summary": {
+    "fields": {
+     "(operation)": "#7d08fc",
+     "query:lineOwnerId": "~id#6ab71e"
+    },
+    "summary": "Get Message Summary",
+    "tag": "User Call Settings Members Me"
+   },
+   "GET /telephony/voiceMessages/members/me/voiceMessages": {
+    "fields": {
+     "(operation)": "#33e013",
+     "query:lineOwnerId": "~id#6ab71e"
+    },
+    "summary": "List Messages",
+    "tag": "User Call Settings Members Me"
+   },
+   "GET /telephony/voiceMessages/members/{}/memberships": {
+    "fields": {
+     "(operation)": "#b872d3",
+     "path:memberId": "!#98ff0e",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "List Voice Message Memberships",
+    "tag": "User Call Settings Members"
+   },
+   "GET /telephony/voiceMessages/members/{}/summary": {
+    "fields": {
+     "(operation)": "#7d08fc",
+     "path:memberId": "!#98ff0e",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Get Message Summary by Member ID",
+    "tag": "User Call Settings Members"
+   },
+   "GET /telephony/voiceMessages/members/{}/voiceMessages": {
+    "fields": {
+     "(operation)": "#33e013",
+     "path:memberId": "!#98ff0e",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "List Messages by Member ID",
+    "tag": "User Call Settings Members"
+   },
+   "GET /telephony/voiceMessages/memberships": {
+    "fields": {
+     "(operation)": "#0da27c"
+    },
+    "summary": "List Voice Message Memberships",
+    "tag": "User Call Settings (3/3)"
+   },
    "GET /telephony/voiceMessages/summary": {
     "fields": {
-     "(operation)": "#7d08fc"
+     "(operation)": "#7d08fc",
+     "query:lineOwnerId": "~id#a75cef"
     },
     "summary": "Get Message Summary",
     "tag": "User Call Settings (2/2)"
@@ -8144,6 +8328,17 @@
     "summary": "Answer",
     "tag": "Call Controls"
    },
+   "POST /telephony/calls/members/me/bargeIn": {
+    "fields": {
+     "(operation)": "#e74167",
+     "body:endpointId": "~id#4581d1%e259a9",
+     "body:lineOwnerId": "~id#b678be",
+     "body:singleNumberReachPhoneNumber": "#851fbc",
+     "body:target": "!#65f1cd"
+    },
+    "summary": "Barge In",
+    "tag": "Call Controls"
+   },
    "POST /telephony/calls/members/me/dial": {
     "fields": {
      "(operation)": "#e373bb",
@@ -8155,6 +8350,17 @@
     "summary": "Dial",
     "tag": "Call Controls"
    },
+   "POST /telephony/calls/members/me/divert": {
+    "fields": {
+     "(operation)": "#ca2091",
+     "body:callId": "!~id#13ee53",
+     "body:destination": "#ee19c5%587f20",
+     "body:lineOwnerId": "~id#b678be",
+     "body:toVoicemail": "#679c87"
+    },
+    "summary": "Divert",
+    "tag": "Call Controls"
+   },
    "POST /telephony/calls/members/me/hangup": {
     "fields": {
      "(operation)": "#55b3aa",
@@ -8163,6 +8369,168 @@
     },
     "summary": "Hangup",
     "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/hold": {
+    "fields": {
+     "(operation)": "#8db60d",
+     "body:callId": "!~id#8dc0bd",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Hold",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/mute": {
+    "fields": {
+     "(operation)": "#037adf",
+     "body:callId": "!~id#86c318",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Mute",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/park": {
+    "fields": {
+     "(operation)": "#1c33d4",
+     "body:callId": "!~id#9df6f0",
+     "body:destination": "#eebc1b",
+     "body:isGroupPark": "#9c2b6d",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Park",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/pauseRecording": {
+    "fields": {
+     "(operation)": "#a8ea92",
+     "body:callId": "~id#71f7e2",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Pause Recording",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/pickup": {
+    "fields": {
+     "(operation)": "#af3d05",
+     "body:endpointId": "~id#cf768c%e259a9",
+     "body:lineOwnerId": "~id#b678be",
+     "body:singleNumberReachPhoneNumber": "#608f36",
+     "body:target": "#5ff945"
+    },
+    "summary": "Pickup",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/pull": {
+    "fields": {
+     "(operation)": "#eae91a",
+     "body:endpointId": "~id#d3d8f8%e259a9",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Pull",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/push": {
+    "fields": {
+     "(operation)": "#33063e",
+     "body:callId": "~id#e62bc5",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Push",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/reject": {
+    "fields": {
+     "(operation)": "#03519f",
+     "body:action": "#18a137",
+     "body:callId": "!~id#4b6a09",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Reject",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/resume": {
+    "fields": {
+     "(operation)": "#b3b5a2",
+     "body:callId": "!~id#51d0f4",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Resume",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/resumeRecording": {
+    "fields": {
+     "(operation)": "#232150",
+     "body:callId": "~id#d5bb61",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Resume Recording",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/retrieve": {
+    "fields": {
+     "(operation)": "#5c9974",
+     "body:destination": "#373819",
+     "body:endpointId": "~id#e66cc4%e259a9",
+     "body:lineOwnerId": "~id#b678be",
+     "body:singleNumberReachPhoneNumber": "#479c4a"
+    },
+    "summary": "Retrieve",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/startRecording": {
+    "fields": {
+     "(operation)": "#3d3060",
+     "body:callId": "~id#a4b44f",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Start Recording",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/stopRecording": {
+    "fields": {
+     "(operation)": "#0c564a",
+     "body:callId": "~id#8f0b99",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Stop Recording",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/transfer": {
+    "fields": {
+     "(operation)": "#7215ac%e3591b",
+     "body:callId1": "~id#a209c9",
+     "body:callId2": "~id#66177c",
+     "body:destination": "#e8b635",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Transfer",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/transmitDtmf": {
+    "fields": {
+     "(operation)": "#9504f7",
+     "body:callId": "~id#6d56e0",
+     "body:dtmf": "#942152%a6b50e",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Transmit DTMF",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/unmute": {
+    "fields": {
+     "(operation)": "#ef590b",
+     "body:callId": "!~id#71c71b",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Unmute",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/me/wrapupreasons": {
+    "fields": {
+     "(operation)": "#ee4411%ebcc9c",
+     "body:wrapupReasons": "#0d45fd"
+    },
+    "summary": "Set Wrap-up Reasons",
+    "tag": "Call Controls Members Me"
    },
    "POST /telephony/calls/members/{}/answer": {
     "fields": {
@@ -8173,6 +8541,18 @@
      "query:orgId": "~id#43f1ef%9bec57"
     },
     "summary": "Answer by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/bargeIn": {
+    "fields": {
+     "(operation)": "#e74167",
+     "body:endpointId": "~id#4581d1%e259a9",
+     "body:singleNumberReachPhoneNumber": "#851fbc",
+     "body:target": "!#65f1cd",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Barge In by Member ID",
     "tag": "Call Controls"
    },
    "POST /telephony/calls/members/{}/dial": {
@@ -8187,6 +8567,18 @@
     "summary": "Dial by Member ID",
     "tag": "Call Controls"
    },
+   "POST /telephony/calls/members/{}/divert": {
+    "fields": {
+     "(operation)": "#ca2091",
+     "body:callId": "!~id#13ee53",
+     "body:destination": "#ee19c5%587f20",
+     "body:toVoicemail": "#679c87",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Divert by Member ID",
+    "tag": "Call Controls"
+   },
    "POST /telephony/calls/members/{}/hangup": {
     "fields": {
      "(operation)": "#55b3aa",
@@ -8196,6 +8588,186 @@
     },
     "summary": "Hangup by Member ID",
     "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/hold": {
+    "fields": {
+     "(operation)": "#8db60d",
+     "body:callId": "!~id#8dc0bd",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Hold by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/mute": {
+    "fields": {
+     "(operation)": "#037adf",
+     "body:callId": "!~id#86c318",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Mute by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/park": {
+    "fields": {
+     "(operation)": "#1c33d4",
+     "body:callId": "!~id#9df6f0",
+     "body:destination": "#eebc1b",
+     "body:isGroupPark": "#9c2b6d",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Park by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/pauseRecording": {
+    "fields": {
+     "(operation)": "#a8ea92",
+     "body:callId": "~id#71f7e2",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Pause Recording by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/pickup": {
+    "fields": {
+     "(operation)": "#af3d05",
+     "body:endpointId": "~id#cf768c%e259a9",
+     "body:singleNumberReachPhoneNumber": "#608f36",
+     "body:target": "#5ff945",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Pickup by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/pull": {
+    "fields": {
+     "(operation)": "#eae91a",
+     "body:endpointId": "~id#d3d8f8%e259a9",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Pull by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/push": {
+    "fields": {
+     "(operation)": "#33063e",
+     "body:callId": "~id#e62bc5",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Push by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/reject": {
+    "fields": {
+     "(operation)": "#03519f",
+     "body:action": "#18a137",
+     "body:callId": "!~id#4b6a09",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Reject by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/resume": {
+    "fields": {
+     "(operation)": "#b3b5a2",
+     "body:callId": "!~id#51d0f4",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Resume by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/resumeRecording": {
+    "fields": {
+     "(operation)": "#232150",
+     "body:callId": "~id#d5bb61",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Resume Recording by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/retrieve": {
+    "fields": {
+     "(operation)": "#5c9974",
+     "body:destination": "#373819",
+     "body:endpointId": "~id#e66cc4%e259a9",
+     "body:singleNumberReachPhoneNumber": "#479c4a",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Retrieve by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/startRecording": {
+    "fields": {
+     "(operation)": "#3d3060",
+     "body:callId": "~id#a4b44f",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Start Recording by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/stopRecording": {
+    "fields": {
+     "(operation)": "#0c564a",
+     "body:callId": "~id#8f0b99",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Stop Recording by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/transfer": {
+    "fields": {
+     "(operation)": "#7215ac%e3591b",
+     "body:callId1": "~id#a209c9",
+     "body:callId2": "~id#66177c",
+     "body:destination": "#e8b635",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Transfer by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/transmitDtmf": {
+    "fields": {
+     "(operation)": "#9504f7",
+     "body:callId": "~id#6d56e0",
+     "body:dtmf": "#942152%a6b50e",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Transmit DTMF by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/unmute": {
+    "fields": {
+     "(operation)": "#ef590b",
+     "body:callId": "!~id#71c71b",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Unmute by Member ID",
+    "tag": "Call Controls"
+   },
+   "POST /telephony/calls/members/{}/wrapupreasons": {
+    "fields": {
+     "(operation)": "#df541d%ebcc9c",
+     "body:wrapupReasons": "#0d45fd",
+     "path:memberId": "!#103e2f",
+     "query:orgId": "#9d2154"
+    },
+    "summary": "Set Wrap-up Reasons by Member ID",
+    "tag": "Call Controls Members"
    },
    "POST /telephony/calls/mute": {
     "fields": {
@@ -8376,6 +8948,198 @@
     "summary": "Hold",
     "tag": "Conference Controls"
    },
+   "POST /telephony/conference/members/me/addParticipant": {
+    "fields": {
+     "(operation)": "#74f858",
+     "body:callId": "!~id#126a9e",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Add Participant",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/bargeIn": {
+    "fields": {
+     "(operation)": "#b2f007"
+    },
+    "summary": "Barge In",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/conference": {
+    "fields": {
+     "(operation)": "#aa304f%5b20b7",
+     "body:callIds": "!~id#488648%5b20b7",
+     "body:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Start Conference",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/deafen": {
+    "fields": {
+     "(operation)": "~id#b9879c",
+     "body:callId": "!~id#bf71dd"
+    },
+    "summary": "Deafen Participant",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/hold": {
+    "fields": {
+     "(operation)": "#6adf45",
+     "query:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Hold",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/mute": {
+    "fields": {
+     "(operation)": "#b4f18a",
+     "body:callId": "~id#bfc625"
+    },
+    "summary": "Mute",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/resume": {
+    "fields": {
+     "(operation)": "#772fd1",
+     "query:lineOwnerId": "~id#b678be"
+    },
+    "summary": "Resume",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/silentMonitor": {
+    "fields": {
+     "(operation)": "#a4e60f"
+    },
+    "summary": "Silent Monitor",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/supervisorCoach": {
+    "fields": {
+     "(operation)": "#086a69"
+    },
+    "summary": "Supervisor Coach",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/undeafen": {
+    "fields": {
+     "(operation)": "~id#d642d8",
+     "body:callId": "!~id#dc9dae"
+    },
+    "summary": "Undeafen Participant",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/me/unmute": {
+    "fields": {
+     "(operation)": "#d8ac0b",
+     "body:callId": "~id#c341f6"
+    },
+    "summary": "Unmute",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/addParticipant": {
+    "fields": {
+     "(operation)": "#74f858",
+     "body:callId": "!~id#126a9e",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Add Participant by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/bargeIn": {
+    "fields": {
+     "(operation)": "#4b0b11",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Barge In by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/conference": {
+    "fields": {
+     "(operation)": "#aa304f%5b20b7",
+     "body:callIds": "!~id#488648%5b20b7",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Start Conference by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/deafen": {
+    "fields": {
+     "(operation)": "~id#b9879c",
+     "body:callId": "!~id#bf71dd",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Deafen Participant by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/hold": {
+    "fields": {
+     "(operation)": "#6adf45",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Hold by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/mute": {
+    "fields": {
+     "(operation)": "#b4f18a",
+     "body:callId": "~id#bfc625",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Mute by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/resume": {
+    "fields": {
+     "(operation)": "#772fd1",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Resume by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/silentMonitor": {
+    "fields": {
+     "(operation)": "#11cbf3",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Silent Monitor by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/supervisorCoach": {
+    "fields": {
+     "(operation)": "#865933",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Supervisor Coach by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/undeafen": {
+    "fields": {
+     "(operation)": "~id#d642d8",
+     "body:callId": "!~id#dc9dae",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Undeafen Participant by Member ID",
+    "tag": "Conference Controls"
+   },
+   "POST /telephony/conference/members/{}/unmute": {
+    "fields": {
+     "(operation)": "#d8ac0b",
+     "body:callId": "~id#c341f6",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Unmute by Member ID",
+    "tag": "Conference Controls"
+   },
    "POST /telephony/conference/mute": {
     "fields": {
      "(operation)": "#b4f18a",
@@ -8454,7 +9218,7 @@
      "(operation)": "#0fcdae",
      "body:fileName": "!~name#43aaf1",
      "body:fileUri": "!#302814",
-     "body:isTextToSpeech": "!#36151c",
+     "body:isTextToSpeech": "#cc7996",
      "body:name": "!~name#cda37f",
      "query:orgId": "#1b027e"
     },
@@ -9120,7 +9884,7 @@
      "(operation)": "#9bfd64",
      "body:fileName": "!~name#43aaf1",
      "body:fileUri": "!#302814",
-     "body:isTextToSpeech": "!#36151c",
+     "body:isTextToSpeech": "#cc7996",
      "body:name": "!~name#cda37f",
      "path:locationId": "!~id#66071c",
      "query:orgId": "#66d62d"
@@ -10705,6 +11469,16 @@
     "summary": "Configure No Answer Voicemail Greeting for a Place",
     "tag": "Workspace Call Settings (2/2)"
    },
+   "POST /telephony/externalVoicemail/members/{}/mwi": {
+    "fields": {
+     "(operation)": "#b6ffe7%5b8078",
+     "body:action": "!#b8a2c6=CLEAR|SET",
+     "path:memberId": "!#8838fb",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Set or Clear Message Waiting Indicator (MWI) Status by Member ID",
+    "tag": "External Voicemail"
+   },
    "POST /telephony/externalVoicemail/mwi": {
     "fields": {
      "(operation)": "#182565%060025",
@@ -10759,7 +11533,7 @@
    "POST /telephony/voiceMessages/markAsRead": {
     "fields": {
      "(operation)": "#96699e",
-     "body:lineOwnerId": "~id#b678be",
+     "body:lineOwnerId": "~id#a75cef",
      "body:messageId": "~id#2bf7a6"
     },
     "summary": "Mark As Read",
@@ -10768,11 +11542,49 @@
    "POST /telephony/voiceMessages/markAsUnread": {
     "fields": {
      "(operation)": "#7a3c82",
-     "body:lineOwnerId": "~id#b678be",
+     "body:lineOwnerId": "~id#a75cef",
      "body:messageId": "~id#fc040b"
     },
     "summary": "Mark As Unread",
     "tag": "User Call Settings (2/2)"
+   },
+   "POST /telephony/voiceMessages/members/me/markAsRead": {
+    "fields": {
+     "(operation)": "#96699e",
+     "body:lineOwnerId": "~id#6ab71e",
+     "body:messageId": "~id#2bf7a6"
+    },
+    "summary": "Mark As Read",
+    "tag": "User Call Settings Members Me"
+   },
+   "POST /telephony/voiceMessages/members/me/markAsUnread": {
+    "fields": {
+     "(operation)": "#7a3c82",
+     "body:lineOwnerId": "~id#6ab71e",
+     "body:messageId": "~id#fc040b"
+    },
+    "summary": "Mark As Unread",
+    "tag": "User Call Settings Members Me"
+   },
+   "POST /telephony/voiceMessages/members/{}/markAsRead": {
+    "fields": {
+     "(operation)": "#96699e",
+     "body:messageId": "~id#2bf7a6",
+     "path:memberId": "!#98ff0e",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Mark As Read by Member ID",
+    "tag": "User Call Settings Members"
+   },
+   "POST /telephony/voiceMessages/members/{}/markAsUnread": {
+    "fields": {
+     "(operation)": "#7a3c82",
+     "body:messageId": "~id#fc040b",
+     "path:memberId": "!#98ff0e",
+     "query:orgId": "~id#43f1ef%9bec57"
+    },
+    "summary": "Mark As Unread by Member ID",
+    "tag": "User Call Settings Members"
    },
    "POST /telephony/webhookInterestRegistrations": {
     "fields": {
@@ -11257,7 +12069,7 @@
      "(operation)": "#29a881",
      "body:fileName": "!~name#43aaf1",
      "body:fileUri": "!#302814",
-     "body:isTextToSpeech": "!#36151c",
+     "body:isTextToSpeech": "#cc7996",
      "body:name": "!~name#cda37f",
      "path:announcementId": "!~id#722e5b",
      "query:orgId": "#f294c9"
@@ -11433,7 +12245,7 @@
    },
    "PUT /telephony/config/devices/{}/layout": {
     "fields": {
-     "(operation)": "#0b3297",
+     "(operation)": "#ba095a%1317d9",
      "body:kemKeys": "#91aa51",
      "body:kemKeys[].kemKeyIndex": "!#ca73ee",
      "body:kemKeys[].kemKeyLabel": "#ee1a1a",
@@ -11443,7 +12255,7 @@
      "body:kemKeys[].sharedLineIndex": "!#f79ee1",
      "body:kemModuleType": "#690c54=KEM_14_KEYS|KEM_18_KEYS|KEM_20_KEYS",
      "body:layoutMode": "!#057834=CUSTOM|DEFAULT",
-     "body:lineKeys": "!#a1c6f2",
+     "body:lineKeys": "#5032da%d8ccf6",
      "body:lineKeys[].lineKeyIndex": "!#db0ae2",
      "body:lineKeys[].lineKeyLabel": "#c4efc7",
      "body:lineKeys[].lineKeyType": "!#6ddc43%ce2d57=CALL_PARK_EXTENSION|CLOSED|MODE_MANAGEMENT|MONITOR|OPEN|PRIMARY_LINE|SHARED_LINE|SPEED_DIAL",
@@ -11809,7 +12621,7 @@
      "(operation)": "#4a1a7d",
      "body:fileName": "!~name#43aaf1",
      "body:fileUri": "!#302814",
-     "body:isTextToSpeech": "!#36151c",
+     "body:isTextToSpeech": "#cc7996",
      "body:name": "!~name#cda37f",
      "path:announcementId": "!~id#722e5b",
      "path:locationId": "!~id#66071c",
@@ -13790,6 +14602,18 @@
     "summary": "Update Anonymous Call Rejection Settings for a Person",
     "tag": "User Call Settings (3/3)"
    },
+   "PUT /telephony/config/people/{}/answerSettings": {
+    "fields": {
+     "(operation)": "#fb3c67%58ec85",
+     "body:autoAnswerEnabled": "#a677d5",
+     "body:isPreferredEndpointClearableByPerson": "#52a43e",
+     "body:preferredAnswerEndpointId": "#f5bc2e",
+     "path:personId": "!#4ba7c2",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Update Answer Settings for a Person",
+    "tag": "User Call Settings (3/3)"
+   },
    "PUT /telephony/config/people/{}/applications/members": {
     "fields": {
      "(operation)": "#f62b84",
@@ -14525,6 +15349,18 @@
     "summary": "Modify Agent's Caller ID Information",
     "tag": "Virtual Line Call Settings"
    },
+   "PUT /telephony/config/virtualLines/{}/answerSettings": {
+    "fields": {
+     "(operation)": "#437571%58ec85",
+     "body:autoAnswerEnabled": "#831217",
+     "body:isPreferredEndpointClearableByPerson": "#82ef03",
+     "body:preferredAnswerEndpointId": "#f5bc2e",
+     "path:virtualLineId": "!#02c097",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Update Answer Settings for a Virtual Line",
+    "tag": "Virtual Line Call Settings"
+   },
    "PUT /telephony/config/virtualLines/{}/bargeIn": {
     "fields": {
      "(operation)": "#d0d66a",
@@ -14890,7 +15726,7 @@
      "body:numberOfDaysForMessageExpiry": "!#63ed4d",
      "body:strictDeletionEnabled": "#ede231",
      "body:voiceMessageForwardingEnabled": "#bdfd3e",
-     "body:voicePortalAccessVmDepositEnabled": "#bb9f42",
+     "body:voicePortalAccessVMDepositEnabled": "#bb9f42",
      "query:orgId": "#ef5a94"
     },
     "summary": "Update Voicemail Settings",
@@ -14904,6 +15740,17 @@
      "query:orgId": "~id#4bb372"
     },
     "summary": "Modify Anonymous Call Settings for a Workspace",
+    "tag": "Workspace Call Settings (2/2)"
+   },
+   "PUT /telephony/config/workspaces/{}/answerSettings": {
+    "fields": {
+     "(operation)": "#795f99%58ec85",
+     "body:autoAnswerEnabled": "#c45a1a",
+     "body:preferredAnswerEndpointId": "#f5bc2e",
+     "path:workspaceId": "!#c527e0",
+     "query:orgId": "#f14196"
+    },
+    "summary": "Update Answer Settings for a Workspace",
     "tag": "Workspace Call Settings (2/2)"
    },
    "PUT /telephony/config/workspaces/{}/bargeIn": {
@@ -15706,6 +16553,15 @@
     },
     "summary": "Delete specific Global Variable by ID",
     "tag": "Global Variables"
+   },
+   "DELETE /organization/{}/call-monitoring/{}": {
+    "fields": {
+     "(operation)": "#a9e379",
+     "path:id": "!~id#64d90d",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Delete specific Call Monitoring by ID",
+    "tag": "Call Monitoring Request"
    },
    "DELETE /organization/{}/channel/{}": {
     "fields": {
@@ -16594,6 +17450,16 @@
     "summary": "List references for a specific Global Variable",
     "tag": "Global Variables"
    },
+   "GET /organization/{}/call-monitoring/{}": {
+    "fields": {
+     "(operation)": "#9d2da9",
+     "path:id": "!~id#64d90d",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:includeFilterDetails": "#611a46"
+    },
+    "summary": "Get specific Call Monitoring by ID",
+    "tag": "Call Monitoring Request"
+   },
    "GET /organization/{}/channel/{}": {
     "fields": {
      "(operation)": "#28744c",
@@ -16938,6 +17804,26 @@
     "summary": "List references for a specific Multimedia Profile",
     "tag": "Multimedia Profile"
    },
+   "GET /organization/{}/organization-setting": {
+    "fields": {
+     "(operation)": "#d9f1b5",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:filter": "#e12522",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334"
+    },
+    "summary": "List Organization Settings",
+    "tag": "Organization Setting"
+   },
+   "GET /organization/{}/organization-setting/{}": {
+    "fields": {
+     "(operation)": "#4fdd1a",
+     "path:id": "!~id#56f140",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Get specific Organization Setting by ID",
+    "tag": "Organization Setting"
+   },
    "GET /organization/{}/outdial-ani": {
     "fields": {
      "(operation)": "#8b8bd0",
@@ -17193,6 +18079,26 @@
     },
     "summary": "List references for a specific Team",
     "tag": "Team"
+   },
+   "GET /organization/{}/tenant-configuration": {
+    "fields": {
+     "(operation)": "#279855",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:filter": "#e12522",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334"
+    },
+    "summary": "List Tenant Configuration",
+    "tag": "Tenant Configuration"
+   },
+   "GET /organization/{}/tenant-configuration/{}": {
+    "fields": {
+     "(operation)": "#620384",
+     "path:id": "!~id#56f140",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Get specific Tenant Configuration by ID",
+    "tag": "Tenant Configuration"
    },
    "GET /organization/{}/user": {
     "fields": {
@@ -17500,6 +18406,22 @@
     "summary": "List Global Variable(s)",
     "tag": "Global Variables"
    },
+   "GET /organization/{}/v2/call-monitoring": {
+    "fields": {
+     "(operation)": "#c74550",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:attributes": "#cec174",
+     "query:filter": "#1414ee",
+     "query:includeFiltersCount": "#6d4bc7",
+     "query:includeTotalCallMonitoringCountInOrg": "#96cb18",
+     "query:includeUserDetails": "#95bd55",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334",
+     "query:search": "#5a8517"
+    },
+    "summary": "List Call Monitoring Configurations",
+    "tag": "Call Monitoring Request"
+   },
    "GET /organization/{}/v2/channel": {
     "fields": {
      "(operation)": "#ce9220",
@@ -17693,6 +18615,19 @@
     "summary": "List Multimedia Profile(s)",
     "tag": "Multimedia Profile"
    },
+   "GET /organization/{}/v2/organization-setting": {
+    "fields": {
+     "(operation)": "#d7a308",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:attributes": "#bd6ce5",
+     "query:filter": "#accadb",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334",
+     "query:search": "#5a8517"
+    },
+    "summary": "List Organization Settings",
+    "tag": "Organization Setting"
+   },
    "GET /organization/{}/v2/outdial-ani": {
     "fields": {
      "(operation)": "#8b8bd0",
@@ -17807,6 +18742,19 @@
     },
     "summary": "List Teams",
     "tag": "Team"
+   },
+   "GET /organization/{}/v2/tenant-configuration": {
+    "fields": {
+     "(operation)": "#0f91c5",
+     "path:orgid": "!#acc991%9e48cd",
+     "query:attributes": "#bd6ce5",
+     "query:filter": "#dddc96",
+     "query:page": "#ce21b6",
+     "query:pageSize": "#4b5334",
+     "query:search": "#5a8517"
+    },
+    "summary": "List Tenant Configuration",
+    "tag": "Tenant Configuration"
    },
    "GET /organization/{}/v2/user": {
     "fields": {
@@ -18228,9 +19176,9 @@
    },
    "PATCH /admin/v1/api/person/workspace-id/{}/person-id/{}": {
     "fields": {
-     "(operation)": "#c57ec6",
-     "body:[].op": "!#7e79be=add|remove|update",
-     "body:[].path": "!#b9658d",
+     "(operation)": "#69f088",
+     "body:[].op": "!#7e79be=add|remove|replace",
+     "body:[].path": "!#40c371",
      "body:[].value": "#77cb36",
      "path:personId": "!#ab9187",
      "path:workspaceId": "!#889d89"
@@ -18322,6 +19270,49 @@
     },
     "summary": "Bulk partial update Auxiliary Code(s)",
     "tag": "Auxiliary Code"
+   },
+   "PATCH /organization/{}/call-monitoring/{}": {
+    "fields": {
+     "(operation)": "#ccb838",
+     "body:agents": "#d97c02",
+     "body:agentsAccessType": "#a20688",
+     "body:agents[].id": "#32da12",
+     "body:agents[].userDetails": "#8b28e6",
+     "body:agents[].userDetails.email": "#c10890",
+     "body:agents[].userDetails.firstName": "~name#422155",
+     "body:agents[].userDetails.lastName": "~name#651ba2",
+     "body:contactServiceQueues": "!#72d9ba",
+     "body:contactServiceQueues[].id": "#8ffc09",
+     "body:contactServiceQueues[].name": "#0667f3",
+     "body:createdTime": "#2a5a15",
+     "body:daysOfWeek": "#3582e4",
+     "body:endTimestamp": "!#e2eba7",
+     "body:filtersCount": "#ed0892",
+     "body:filtersCount.specificAgents": "#59a72a",
+     "body:filtersCount.specificCsqs": "#04158d",
+     "body:filtersCount.specificTeams": "#dc245e",
+     "body:id": "~id#063231",
+     "body:lastUpdatedTime": "#876772",
+     "body:name": "!~name#f5bfde",
+     "body:organizationId": "~id#771c29%e872e9",
+     "body:paused": "!#4a0ed9",
+     "body:recurrence": "!#5accc1",
+     "body:startTimestamp": "!#9b2ea8",
+     "body:teams": "!#1ab670",
+     "body:teams[].id": "#8ffc09",
+     "body:teams[].name": "#0667f3",
+     "body:timezone": "!#08d519",
+     "body:userDetails": "#8b28e6",
+     "body:userDetails.email": "#c10890",
+     "body:userDetails.firstName": "~name#422155",
+     "body:userDetails.lastName": "~name#651ba2",
+     "body:userId": "!~id#32506a",
+     "body:version": "#0f67fd",
+     "path:id": "!~id#64d90d",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Partially update Call Monitoring by ID",
+    "tag": "Call Monitoring Request"
    },
    "PATCH /organization/{}/channel/{}": {
     "fields": {
@@ -18423,6 +19414,114 @@
     "summary": "Bulk partial update Contact Service Queues",
     "tag": "Contact Service Queue"
    },
+   "PATCH /organization/{}/organization-setting/{}": {
+    "fields": {
+     "(operation)": "#ea6a91",
+     "body:adapterId": "#a89b28",
+     "body:aiAssistantQuantity": "#1a62e7",
+     "body:allowAgentThresholds": "!#17447f",
+     "body:analyticsEnabled": "!#2f0021",
+     "body:basicNativeVirtualAgentQuantity": "#96d1c5",
+     "body:billingGroupId": "#9a1521",
+     "body:byovaOfferQuantity": "#394cac",
+     "body:campaignManagerEnabled": "!#bfc9b6",
+     "body:campaignManagerOverage": "!#a32d75",
+     "body:cccEnabled": "!#e7de56",
+     "body:checkAgentAvailability": "!#19ef34",
+     "body:ciscoPstnDID": "!#e3857f",
+     "body:ciscoPstnTF": "!#cb0bb5",
+     "body:concurrentDigitalContactEntitlement": "#26e685",
+     "body:concurrentVoiceContactEntitlement": "#4216c3",
+     "body:configureSpeechEnabledIVREnabled": "!#5b36ed",
+     "body:createdTime": "#838ab3",
+     "body:digitalContactSurgeFactor": "!#a4412e",
+     "body:externalId": "#369978",
+     "body:flowBuilderEnabled": "!#8f4d39",
+     "body:homeRegion": "#405559",
+     "body:id": "~id#063231",
+     "body:inactivateEntitiesPurgedOn": "#ff6f51",
+     "body:inboundMaximumActiveCalls": "!#dc69f9",
+     "body:ivrParkUrl": "!#064779",
+     "body:jukeboxEnabled": "!#9649b6",
+     "body:lastAgentRouting": "!#4fc4e3",
+     "body:lastUpdatedTime": "#a385a9",
+     "body:legRecordingEnabled": "!#51ba43",
+     "body:license": "#eb3e6b",
+     "body:licenseVersion": "#da5090",
+     "body:lostCallThreshold": "!#df9aa2",
+     "body:maskSensitiveData": "#0cc892",
+     "body:maxChannels": "!#9e9f44",
+     "body:maximumActiveCalls": "!#1b0170",
+     "body:maximumAddressBooks": "!#35ee36",
+     "body:maximumCallbackAttempts": "!#e81dd7",
+     "body:maximumSkills": "!#2d6355",
+     "body:maximumTextSkills": "!#aaad0a",
+     "body:maximumThresholdRules": "#72f346",
+     "body:maximumVirtualTeams": "!#57bf2f",
+     "body:multiMediaEnabled": "!#67000a",
+     "body:multiRegionEnabled": "#083f34",
+     "body:multipleTimeZoneEnabled": "!#5ba782",
+     "body:numberOfCadVariables": "!#2cd13a",
+     "body:offerCode": "!#f70e70=AIQM|AIRTR|ASAGENTS|CJPADD|CJPANR|CJPARS|CJPBASE|CJPCALLING|CJPCCAI|CJPDID|CJPDIG|CJPIVR|CJPPCCE|CJPPRM|CJPSTD|CJPTF|CJPUCCE|CJPVPOP|CJPWCCE|CMBAS|CMPRO|EPC|MFCS|RTTCC|SFDSK|SNDSK|VA|WEBEXAIAGENTS",
+     "body:offerDetails": "#d4eeb3",
+     "body:offerDetails[].licenseVolume": "!#53d35a",
+     "body:offerDetails[].offerCode": "!#9172ad",
+     "body:orderId": "#f7aca3",
+     "body:orderSubscriptionId": "#2fefbb",
+     "body:organizationId": "~id#e83547%e872e9",
+     "body:otgId": "#562b60",
+     "body:outboundSipDomain": "#be29d2",
+     "body:outdialMaximumActiveCalls": "!#bc8250",
+     "body:pauseResumeEnabled": "!#9595bc",
+     "body:pruningStrategy": "!#6b8372=AGENT_MINUTES|NONE|STORAGE_BASED|TIME_BASED",
+     "body:pruningValue": "!#d0c20b",
+     "body:purgeAllowed": "#0dc75e",
+     "body:purgeInactiveEntitiesInterval": "#ecfb26",
+     "body:qualityManagement": "!#2315e3",
+     "body:qualityManagementOverage": "!#bec422",
+     "body:recordAllCalls": "!#f8ef83",
+     "body:recordingMode": "#0d6e04=AUDIO_AND_SCREEN|AUDIO_ONLY|DISABLED",
+     "body:recordingPauseDuration": "!#2c8500",
+     "body:resourcesCreated": "!#5d9232",
+     "body:retryCallbackInterval": "!#447a1f",
+     "body:routingToSameAgent": "#182693=DISABLED|ENABLED",
+     "body:sbrEnabled": "!#9289ec",
+     "body:serviceProvisioningId": "#c2fb26",
+     "body:shortCallThreshold": "!#d2ff09",
+     "body:socialChannel": "!#b006d4",
+     "body:speechEnabledIVROverage": "!#e03b34",
+     "body:speechEnabledIVRPorts": "#fff31a",
+     "body:steeringDigitsEnabled": "!#487171",
+     "body:tenantXmlUrl": "!#649504",
+     "body:thresholdAlertsEnabled": "!#532704",
+     "body:transcriptsKmsKeyMetadata": "#7d690c",
+     "body:transcriptsKmsKeyMetadata.keyUrl": "#2601a3",
+     "body:transcriptsKmsKeyMetadata.kroUrl": "#3e3d76",
+     "body:transcriptsKmsKeyMetadata.updatedTimestamp": "#3ce7fd",
+     "body:version": "#0f67fd",
+     "body:voiceCallBackEnabled": "!#c250ad",
+     "body:voiceContactSurgeFactor": "!#8f3502",
+     "body:voicePrefix": "#75aeec",
+     "body:webCallBackEnabled": "!#0376b2",
+     "body:webRtcEnabled": "#44f798",
+     "body:webexManagementEnabled": "!#b2605d",
+     "body:webexManagementUrl": "#6c6751",
+     "body:wfoAnalyticsOverage": "!#ca279a",
+     "body:wfoAnalyticsWithTranscription": "!#9485d9",
+     "body:wfoAnalyticsWithTranscriptionOverage": "!#90ef27",
+     "body:wfoBundle": "!#946909",
+     "body:wfoBundleAgents": "#498834",
+     "body:wfoBundleOverage": "!#272cda",
+     "body:wfoEnabled": "!#ed81f3",
+     "body:wfoOverage": "!#fccbb3",
+     "body:wholesaleOrder": "#294086",
+     "body:workforceManagementEnabled": "#9d428c",
+     "path:id": "!~id#56f140",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Partially update Organization Setting by ID",
+    "tag": "Organization Setting"
+   },
    "PATCH /organization/{}/resource-collection/bulk": {
     "fields": {
      "(operation)": "#a1bd2d",
@@ -18446,7 +19545,7 @@
      "body:items": "#b00970",
      "body:items[].item": "#71f95a",
      "body:items[].item.active": "!#384c7a",
-     "body:items[].item.agentCapabilitiesEnabled": "#f6ce24",
+     "body:items[].item.agentCapabilitiesEnabled": "#650a1c%fd6b25",
      "body:items[].item.agentProfileId": "#bcab8c",
      "body:items[].item.broadCloudUserId": "#95cc75%ec23c0",
      "body:items[].item.ciUserId": "!#7edb30%934f0c",
@@ -18480,7 +19579,7 @@
      "body:items[].item.siteId": "#d119b9",
      "body:items[].item.skillProfileId": "#3b7662",
      "body:items[].item.subscriptionId": "#4192cb%ec23c0",
-     "body:items[].item.supervisorCapabilitiesEnabled": "#1c4db9",
+     "body:items[].item.supervisorCapabilitiesEnabled": "#a44f29%545251",
      "body:items[].item.teamIds": "#b186a8%ec2566",
      "body:items[].item.timezone": "#08d519",
      "body:items[].item.userLevelAutoCSATInclusion": "#ee6e86=EXCLUDED|INCLUDED",
@@ -19474,6 +20573,57 @@
     },
     "summary": "Purge inactive Global Variable(s)",
     "tag": "Global Variables"
+   },
+   "POST /organization/{}/call-monitoring": {
+    "fields": {
+     "(operation)": "#fd1b4a",
+     "body:agents": "#d97c02",
+     "body:agentsAccessType": "#a20688",
+     "body:agents[].id": "#32da12",
+     "body:agents[].userDetails": "#8b28e6",
+     "body:agents[].userDetails.email": "#c10890",
+     "body:agents[].userDetails.firstName": "~name#422155",
+     "body:agents[].userDetails.lastName": "~name#651ba2",
+     "body:contactServiceQueues": "!#72d9ba",
+     "body:contactServiceQueues[].id": "#8ffc09",
+     "body:contactServiceQueues[].name": "#0667f3",
+     "body:createdTime": "#2a5a15",
+     "body:daysOfWeek": "#3582e4",
+     "body:endTimestamp": "!#e2eba7",
+     "body:filtersCount": "#ed0892",
+     "body:filtersCount.specificAgents": "#59a72a",
+     "body:filtersCount.specificCsqs": "#04158d",
+     "body:filtersCount.specificTeams": "#dc245e",
+     "body:id": "~id#063231",
+     "body:lastUpdatedTime": "#876772",
+     "body:name": "!~name#f5bfde",
+     "body:organizationId": "~id#771c29%e872e9",
+     "body:paused": "!#4a0ed9",
+     "body:recurrence": "!#5accc1",
+     "body:startTimestamp": "!#9b2ea8",
+     "body:teams": "!#1ab670",
+     "body:teams[].id": "#8ffc09",
+     "body:teams[].name": "#0667f3",
+     "body:timezone": "!#08d519",
+     "body:userDetails": "#8b28e6",
+     "body:userDetails.email": "#c10890",
+     "body:userDetails.firstName": "~name#422155",
+     "body:userDetails.lastName": "~name#651ba2",
+     "body:userId": "!~id#32506a",
+     "body:version": "#0f67fd",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Create a new Call Monitoring",
+    "tag": "Call Monitoring Request"
+   },
+   "POST /organization/{}/call-monitoring/delete-reference": {
+    "fields": {
+     "(operation)": "",
+     "body:references": "#fb3edf%4a7809",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "",
+    "tag": "Call Monitoring Request"
    },
    "POST /organization/{}/channel/bulk": {
     "fields": {
@@ -21609,6 +22759,24 @@
     "summary": "Update scheduled callback by Id",
     "tag": "Callbacks"
    },
+   "PUT /data/updateExternal": {
+    "fields": {
+     "(operation)": "#2c41a6%8724b2",
+     "body:data": "!#8996dc",
+     "body:data[].endTimestamp": "!#6962c4%b15a3a",
+     "body:data[].globalVariables": "!#02b7ab%76313b",
+     "body:data[].globalVariables[].name": "!~name#64957b",
+     "body:data[].globalVariables[].value": "!#e12d7b",
+     "body:data[].id": "!~id#a0572c",
+     "body:data[].startTimestamp": "!#a46b12",
+     "body:orgId": "!#8f0a1c%e62fae",
+     "body:updateType": "!#9a933e%e7448b=contact",
+     "header:TrackingId": "#a02001",
+     "header:X-ORGANIZATION-ID": "#d10133"
+    },
+    "summary": "Update Task Global Variables",
+    "tag": "External Data Updates"
+   },
    "PUT /dataSources/{}": {
     "fields": {
      "(operation)": "#97532d%7cf3b2",
@@ -21863,6 +23031,49 @@
     "summary": "Update specific Global Variable by ID",
     "tag": "Global Variables"
    },
+   "PUT /organization/{}/call-monitoring/{}": {
+    "fields": {
+     "(operation)": "#483f84",
+     "body:agents": "#d97c02",
+     "body:agentsAccessType": "#a20688",
+     "body:agents[].id": "#32da12",
+     "body:agents[].userDetails": "#8b28e6",
+     "body:agents[].userDetails.email": "#c10890",
+     "body:agents[].userDetails.firstName": "~name#422155",
+     "body:agents[].userDetails.lastName": "~name#651ba2",
+     "body:contactServiceQueues": "!#72d9ba",
+     "body:contactServiceQueues[].id": "#8ffc09",
+     "body:contactServiceQueues[].name": "#0667f3",
+     "body:createdTime": "#2a5a15",
+     "body:daysOfWeek": "#3582e4",
+     "body:endTimestamp": "!#e2eba7",
+     "body:filtersCount": "#ed0892",
+     "body:filtersCount.specificAgents": "#59a72a",
+     "body:filtersCount.specificCsqs": "#04158d",
+     "body:filtersCount.specificTeams": "#dc245e",
+     "body:id": "~id#063231",
+     "body:lastUpdatedTime": "#876772",
+     "body:name": "!~name#f5bfde",
+     "body:organizationId": "~id#771c29%e872e9",
+     "body:paused": "!#4a0ed9",
+     "body:recurrence": "!#5accc1",
+     "body:startTimestamp": "!#9b2ea8",
+     "body:teams": "!#1ab670",
+     "body:teams[].id": "#8ffc09",
+     "body:teams[].name": "#0667f3",
+     "body:timezone": "!#08d519",
+     "body:userDetails": "#8b28e6",
+     "body:userDetails.email": "#c10890",
+     "body:userDetails.firstName": "~name#422155",
+     "body:userDetails.lastName": "~name#651ba2",
+     "body:userId": "!~id#32506a",
+     "body:version": "#0f67fd",
+     "path:id": "!~id#64d90d",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Update specific Call Monitoring by ID",
+    "tag": "Call Monitoring Request"
+   },
    "PUT /organization/{}/contact-number/{}": {
     "fields": {
      "(operation)": "#71a3c5",
@@ -22080,6 +23291,114 @@
     "summary": "Update specific Multimedia Profile by ID",
     "tag": "Multimedia Profile"
    },
+   "PUT /organization/{}/organization-setting/{}": {
+    "fields": {
+     "(operation)": "#98c3d2",
+     "body:adapterId": "#a89b28",
+     "body:aiAssistantQuantity": "#1a62e7",
+     "body:allowAgentThresholds": "!#17447f",
+     "body:analyticsEnabled": "!#2f0021",
+     "body:basicNativeVirtualAgentQuantity": "#96d1c5",
+     "body:billingGroupId": "#9a1521",
+     "body:byovaOfferQuantity": "#394cac",
+     "body:campaignManagerEnabled": "!#bfc9b6",
+     "body:campaignManagerOverage": "!#a32d75",
+     "body:cccEnabled": "!#e7de56",
+     "body:checkAgentAvailability": "!#19ef34",
+     "body:ciscoPstnDID": "!#e3857f",
+     "body:ciscoPstnTF": "!#cb0bb5",
+     "body:concurrentDigitalContactEntitlement": "#26e685",
+     "body:concurrentVoiceContactEntitlement": "#4216c3",
+     "body:configureSpeechEnabledIVREnabled": "!#5b36ed",
+     "body:createdTime": "#838ab3",
+     "body:digitalContactSurgeFactor": "!#a4412e",
+     "body:externalId": "#369978",
+     "body:flowBuilderEnabled": "!#8f4d39",
+     "body:homeRegion": "#405559",
+     "body:id": "~id#063231",
+     "body:inactivateEntitiesPurgedOn": "#ff6f51",
+     "body:inboundMaximumActiveCalls": "!#dc69f9",
+     "body:ivrParkUrl": "!#064779",
+     "body:jukeboxEnabled": "!#9649b6",
+     "body:lastAgentRouting": "!#4fc4e3",
+     "body:lastUpdatedTime": "#a385a9",
+     "body:legRecordingEnabled": "!#51ba43",
+     "body:license": "#eb3e6b",
+     "body:licenseVersion": "#da5090",
+     "body:lostCallThreshold": "!#df9aa2",
+     "body:maskSensitiveData": "#0cc892",
+     "body:maxChannels": "!#9e9f44",
+     "body:maximumActiveCalls": "!#1b0170",
+     "body:maximumAddressBooks": "!#35ee36",
+     "body:maximumCallbackAttempts": "!#e81dd7",
+     "body:maximumSkills": "!#2d6355",
+     "body:maximumTextSkills": "!#aaad0a",
+     "body:maximumThresholdRules": "#72f346",
+     "body:maximumVirtualTeams": "!#57bf2f",
+     "body:multiMediaEnabled": "!#67000a",
+     "body:multiRegionEnabled": "#083f34",
+     "body:multipleTimeZoneEnabled": "!#5ba782",
+     "body:numberOfCadVariables": "!#2cd13a",
+     "body:offerCode": "!#f70e70=AIQM|AIRTR|ASAGENTS|CJPADD|CJPANR|CJPARS|CJPBASE|CJPCALLING|CJPCCAI|CJPDID|CJPDIG|CJPIVR|CJPPCCE|CJPPRM|CJPSTD|CJPTF|CJPUCCE|CJPVPOP|CJPWCCE|CMBAS|CMPRO|EPC|MFCS|RTTCC|SFDSK|SNDSK|VA|WEBEXAIAGENTS",
+     "body:offerDetails": "#d4eeb3",
+     "body:offerDetails[].licenseVolume": "!#53d35a",
+     "body:offerDetails[].offerCode": "!#9172ad",
+     "body:orderId": "#f7aca3",
+     "body:orderSubscriptionId": "#2fefbb",
+     "body:organizationId": "~id#e83547%e872e9",
+     "body:otgId": "#562b60",
+     "body:outboundSipDomain": "#be29d2",
+     "body:outdialMaximumActiveCalls": "!#bc8250",
+     "body:pauseResumeEnabled": "!#9595bc",
+     "body:pruningStrategy": "!#6b8372=AGENT_MINUTES|NONE|STORAGE_BASED|TIME_BASED",
+     "body:pruningValue": "!#d0c20b",
+     "body:purgeAllowed": "#0dc75e",
+     "body:purgeInactiveEntitiesInterval": "#ecfb26",
+     "body:qualityManagement": "!#2315e3",
+     "body:qualityManagementOverage": "!#bec422",
+     "body:recordAllCalls": "!#f8ef83",
+     "body:recordingMode": "#0d6e04=AUDIO_AND_SCREEN|AUDIO_ONLY|DISABLED",
+     "body:recordingPauseDuration": "!#2c8500",
+     "body:resourcesCreated": "!#5d9232",
+     "body:retryCallbackInterval": "!#447a1f",
+     "body:routingToSameAgent": "#182693=DISABLED|ENABLED",
+     "body:sbrEnabled": "!#9289ec",
+     "body:serviceProvisioningId": "#c2fb26",
+     "body:shortCallThreshold": "!#d2ff09",
+     "body:socialChannel": "!#b006d4",
+     "body:speechEnabledIVROverage": "!#e03b34",
+     "body:speechEnabledIVRPorts": "#fff31a",
+     "body:steeringDigitsEnabled": "!#487171",
+     "body:tenantXmlUrl": "!#649504",
+     "body:thresholdAlertsEnabled": "!#532704",
+     "body:transcriptsKmsKeyMetadata": "#7d690c",
+     "body:transcriptsKmsKeyMetadata.keyUrl": "#2601a3",
+     "body:transcriptsKmsKeyMetadata.kroUrl": "#3e3d76",
+     "body:transcriptsKmsKeyMetadata.updatedTimestamp": "#3ce7fd",
+     "body:version": "#0f67fd",
+     "body:voiceCallBackEnabled": "!#c250ad",
+     "body:voiceContactSurgeFactor": "!#8f3502",
+     "body:voicePrefix": "#75aeec",
+     "body:webCallBackEnabled": "!#0376b2",
+     "body:webRtcEnabled": "#44f798",
+     "body:webexManagementEnabled": "!#b2605d",
+     "body:webexManagementUrl": "#6c6751",
+     "body:wfoAnalyticsOverage": "!#ca279a",
+     "body:wfoAnalyticsWithTranscription": "!#9485d9",
+     "body:wfoAnalyticsWithTranscriptionOverage": "!#90ef27",
+     "body:wfoBundle": "!#946909",
+     "body:wfoBundleAgents": "#498834",
+     "body:wfoBundleOverage": "!#272cda",
+     "body:wfoEnabled": "!#ed81f3",
+     "body:wfoOverage": "!#fccbb3",
+     "body:wholesaleOrder": "#294086",
+     "body:workforceManagementEnabled": "#9d428c",
+     "path:id": "!~id#56f140",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Update specific Organization Setting by ID",
+    "tag": "Organization Setting"
+   },
    "PUT /organization/{}/outdial-ani/{}": {
     "fields": {
      "(operation)": "#3a06e0",
@@ -22257,11 +23576,71 @@
     "summary": "Update specific Team by ID",
     "tag": "Team"
    },
+   "PUT /organization/{}/tenant-configuration/{}": {
+    "fields": {
+     "(operation)": "#ddd939",
+     "body:apsEnabled": "#c2027a",
+     "body:apsUrl": "#fb6a15",
+     "body:autoBaseUrl": "#b48956",
+     "body:autoWrapUpInterval": "#f4db6c",
+     "body:callVariablesBaseUrl": "#65bcb0",
+     "body:callVariablesSuppressed": "#aace87",
+     "body:centralLogLevel": "#00c8b7",
+     "body:configurationVersion": "#d57c57",
+     "body:consoleLogLevel": "#4963b7",
+     "body:createdTime": "#838ab3",
+     "body:diagnosticsPostUrl": "#a00aaf",
+     "body:dnDefaultDescription": "#bfa230",
+     "body:dnDefaultPrefix": "#ab90a6",
+     "body:dnDefaultRegex": "#d234ce",
+     "body:dnDefaultStripChars": "#38b5b0",
+     "body:dnOtherDescription": "#034142",
+     "body:dnOtherPrefix": "#add9a2",
+     "body:dnOtherRegex": "#12cb79",
+     "body:dnOtherStripChars": "#0f6cac",
+     "body:dnTargetPrefix": "#461a4b",
+     "body:dnTargetRegex": "#f1c654",
+     "body:dnTargetStripChars": "#3d2480",
+     "body:endCallEnabled": "#bb67eb",
+     "body:endConsultEnabled": "#7890ff",
+     "body:forceDefaultDn": "#8dff9a",
+     "body:heartBeatInterval": "#125200",
+     "body:id": "~id#063231",
+     "body:incidentReportingEnabled": "#bc23ee",
+     "body:lastUpdatedTime": "#a385a9",
+     "body:localDiskLogLevel": "#a9da5a",
+     "body:lostConnectionRecoveryTimeout": "#feeaa4",
+     "body:missedHeartBeatsAllowed": "#ee09b3",
+     "body:notRespondingToAvailableTimeout": "#72187f",
+     "body:organizationId": "~id#e83547%e872e9",
+     "body:outdialEnabled": "#83e753",
+     "body:privacyShieldVisible": "#f61fbd",
+     "body:rejectDuplicateDn": "#71b563",
+     "body:systemDefault": "#f00924",
+     "body:systemRecoveryMsg": "#0eb9cc",
+     "body:timeoutDesktopInactivityEnabled": "#f15727",
+     "body:timeoutDesktopInactivityMins": "#ccf24e",
+     "body:timeoutRonaChatSeconds": "!#de3354",
+     "body:timeoutRonaCustomMessagingSeconds": "#a3d978",
+     "body:timeoutRonaEmailSeconds": "!#7ea7ba",
+     "body:timeoutRonaSocialSeconds": "!#d5ff8a",
+     "body:timeoutRonaTelephonySeconds": "!#61af10",
+     "body:timeoutRonaWorkItemSeconds": "#ff0e95",
+     "body:version": "#0f67fd",
+     "body:watsonAnalyticsBaseUrl": "#e15282",
+     "body:watsonAnalyticsPassword": "#caedd6",
+     "body:watsonAnalyticsUserName": "#5501d9",
+     "path:id": "!~id#56f140",
+     "path:orgid": "!#acc991%9e48cd"
+    },
+    "summary": "Update specific Tenant Configuration by ID",
+    "tag": "Tenant Configuration"
+   },
    "PUT /organization/{}/user/{}": {
     "fields": {
      "(operation)": "#4d82db",
      "body:active": "!#384c7a",
-     "body:agentCapabilitiesEnabled": "#f6ce24",
+     "body:agentCapabilitiesEnabled": "#650a1c%fd6b25",
      "body:agentProfileId": "#bcab8c",
      "body:broadCloudUserId": "#95cc75%ec23c0",
      "body:ciUserId": "!#7edb30%934f0c",
@@ -22295,7 +23674,7 @@
      "body:siteId": "#d119b9",
      "body:skillProfileId": "#3b7662",
      "body:subscriptionId": "#4192cb%ec23c0",
-     "body:supervisorCapabilitiesEnabled": "#1c4db9",
+     "body:supervisorCapabilitiesEnabled": "#a44f29%545251",
      "body:teamIds": "#b186a8%ec2566",
      "body:timezone": "#08d519",
      "body:userLevelAutoCSATInclusion": "#ee6e86=EXCLUDED|INCLUDED",

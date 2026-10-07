@@ -1165,6 +1165,18 @@ cli_name_overrides:
     "Agent Wellbeing": "cc-agent-wellbeing"
     "Agent Summaries": "cc-agent-summaries"
     "Call Monitoring": "cc-call-monitoring"
+    # 2026-10-07: three CC config tags arrived without the cc- prefix every other
+    # WxCC group carries, and two derived names sat beside a DIFFERENT group an
+    # agent would confuse them with. "Call Monitoring Request" derived as
+    # `call-monitoring-request`, one letter-run from `cc-call-monitoring` — but
+    # that group starts/barges/coaches LIVE sessions, while this one stores the
+    # SCHEDULES (name, timezone, recurrence, start/end, supervisor user) that say
+    # who may monitor whom and when. "Organization Setting" derived as
+    # `organization-setting`, beside the Webex-org `org-settings` group
+    # (manage-identity). Never shipped, so renaming costs no compatibility.
+    "Call Monitoring Request": "cc-monitoring-schedules"
+    "Organization Setting": "cc-org-settings"
+    "Tenant Configuration": "cc-tenant-config"
     "Tasks": "cc-tasks"
     "Subscriptions": "cc-subscriptions"
     "Callbacks": "cc-callbacks"
@@ -1406,6 +1418,94 @@ tag_overrides:
         # Derived from "Validate Country for AI Receptionist" and truncated
         # mid-phrase, leaving a dangling preposition that reads as a bug.
         "validate-country-for": "validate-country"
+    # Upstream (2026-09-28) added two sibling history endpoints —
+    # /telephony/calls/members/me/history and
+    # /telephony/calls/members/{memberId}/history — next to the long-standing
+    # /telephony/calls/history. Three paths deriving the same base name made the
+    # generator disambiguate all three, so the locked operation
+    # `GET /telephony/calls/history` stopped shipping as `list-history` and
+    # started shipping as `list-history-calls`. That is a rename of a name that
+    # has shipped since the group existed, and it is the name the Call Controls
+    # table_columns block keys on.
+    #
+    # Pin the locked operation back to its locked name. The two new commands
+    # keep their derived suffixes, which is exactly the shape the sibling call
+    # lists in this same group already use: bare `list` for /telephony/calls
+    # against `list-calls-me` / `list-calls-members`. So the group reads
+    # `list-history` / `list-history-me` / `list-history-members`.
+    "Call Controls":
+      command_name_overrides:
+        "list-history-calls": "list-history"
+        # Dedup artifacts, not upstream names. For `resume` and
+        # `resumeRecording` the members/me/ path lost the race for the `-me`
+        # suffix and fell through to a bare `-1`, which tells a caller nothing.
+        # Every other me-scoped action in this group already ships as `-me`
+        # (create-hold-me, create-mute-me, create-barge-in-me, ...), so these
+        # two are renamed to match rather than acked: a numeric suffix is
+        # exactly the name shape check 12 exists to catch.
+        "create-resume-members-1": "create-resume-me"
+        "create-resume-recording-members-1": "create-resume-recording-me"
+        # The same upstream change hit every action verb in this group, not
+        # just history: each bare /telephony/calls/<verb> gained
+        # members/me/<verb> and members/{memberId}/<verb> siblings, so all 18
+        # long-shipping bare names picked up a `-calls` suffix. The name-lock
+        # reported them as REMOVED rather than MOVED because the old name left
+        # the rendered set entirely, but every locked operation is still in the
+        # spec and still rendered — verified path-by-path against the new
+        # spec before pinning. These are renames to undo, not upstream
+        # removals, so none of them is the §6 "command removed upstream" signal.
+        "create-barge-in-calls": "create-barge-in"
+        "create-divert-calls": "create-divert"
+        "create-hold-calls": "create-hold"
+        "create-mute-calls": "create-mute"
+        "create-park-calls": "create-park"
+        "create-pause-recording-calls": "create-pause-recording"
+        "create-pickup-calls": "create-pickup"
+        "create-pull-calls": "create-pull"
+        "create-push-calls": "create-push"
+        "create-reject-calls": "create-reject"
+        "create-resume-calls": "create-resume"
+        "create-resume-recording-calls": "create-resume-recording"
+        "create-retrieve-calls": "create-retrieve"
+        "create-start-recording-calls": "create-start-recording"
+        "create-stop-recording-calls": "create-stop-recording"
+        "create-transfer-calls": "create-transfer"
+        "create-transmit-dtmf-calls": "create-transmit-dtmf"
+        "create-unmute-calls": "create-unmute"
+    # New upstream groups (2026-09-28). Cisco split the member-scoped and
+    # self-scoped wrap-up-reason writes out of Call Controls into tags of their
+    # own, and each tag holds exactly one POST — so the derived name was a bare
+    # `create` whose group name says "call controls" while the resource is
+    # wrap-up reasons. Check 12 rates that HIGH for a reason: the headline
+    # resource is unreachable, so a caller who types the obvious name gets a
+    # different resource and no error. Named for the resource instead. The
+    # unpunctuated spelling matches the path segment (`wrapupreasons`), which is
+    # the token a caller greps for.
+    "Call Controls Members":
+      command_name_overrides:
+        "create": "create-wrapupreasons"
+    "Call Controls Members Me":
+      command_name_overrides:
+        "create": "create-wrapupreasons"
+    # Same upstream reshape as Call Controls above: every bare
+    # /telephony/conference/<verb> gained members/me/ and members/{memberId}/
+    # siblings, suffixing all seven shipped names to `-conference`. Pinned back
+    # for the same reason and on the same evidence — each locked operation was
+    # confirmed still present in the spec and still rendered under the suffixed
+    # name.
+    "Conference Controls":
+      command_name_overrides:
+        # Same dedup artifact as Call Controls above, and the same remedy:
+        # create-resume-members-1 is the only me-scoped conference action not
+        # already shipping as `-me`.
+        "create-resume-members-1": "create-resume-me"
+        "create-add-participant-conference": "create-add-participant"
+        "create-deafen-conference": "create-deafen"
+        "create-hold-conference": "create-hold"
+        "create-mute-conference": "create-mute"
+        "create-resume-conference": "create-resume"
+        "create-undeafen-conference": "create-undeafen"
+        "create-unmute-conference": "create-unmute"
     "Converged Recordings":
       command_name_overrides:
       # Wave 3 renames (2026-07-27): 26 CRITICAL commands whose name gave an
@@ -1454,6 +1554,24 @@ tag_overrides:
       command_name_overrides:
         "delete": "delete-access-codes-all"
     # Merged tag name — "Workspace Call Settings (1/2)" is folded into this.
+    # New upstream groups (2026-09-28): the voicemail MESSAGE surface
+    # (summary, list, delete, mark read/unread) split out of User Call Settings
+    # into member-scoped and self-scoped tags. Every bare name here names the
+    # group, not the resource — `wxcli user-call-settings-members list` reads
+    # like "list members" and returns voice messages. Renamed to the resource,
+    # using the names check 12 proposed.
+    "User Call Settings Members":
+      command_name_overrides:
+        "show": "show-summary"
+        "list": "list-voice-messages"
+        "delete": "delete-voice-messages"
+        "create": "create-mark-as-read"
+    "User Call Settings Members Me":
+      command_name_overrides:
+        "show": "show-summary"
+        "list": "list-voice-messages"
+        "delete": "delete-voice-messages"
+        "create": "create-mark-as-read"
     "Workspace Call Settings":
       command_name_overrides:
         "delete": "delete-access-codes-all"

@@ -232,6 +232,8 @@ The settings below are exposed under `/telephony/config/workspaces/{workspaceId}
 | Setting | Endpoint Segment | Purpose |
 |-----------|-----------|---------|
 | Anonymous call reject | `anonymousCallReject` | Anonymous call rejection |
+| Answer settings | `answerSettings` | Preferred answer endpoint + auto answer (gotcha 11) |
+| Available preferred answer endpoints | `availablePreferredAnswerEndpoints` | Read-only candidates for the preferred answer endpoint |
 | Barge in | `bargeIn` | Barge-in settings |
 | Call bridge | `callBridge` | Call bridge settings |
 | Call intercept | `intercept` | Call intercept |
@@ -563,6 +565,17 @@ intercept = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/int
 api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/intercept", json={
     "enabled": True,
 })
+
+# ── Answer Settings (preferred endpoint + auto answer) ───────────
+# /telephony/config/ path family — see gotcha 11 for the license question
+ans = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/answerSettings")
+api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/answerSettings", json={
+    "preferredAnswerEndpointId": endpoint_id,   # None clears it; omit to leave unchanged
+    "autoAnswerEnabled": True,
+})
+candidates = api.session.rest_get(
+    f"{BASE}/telephony/config/workspaces/{workspace_id}/availablePreferredAnswerEndpoints")
+# candidates["endpoints"] -> [{"id", "type", "name", "isPreferredAnswerEndpoint"}]
 ```
 
 ### Workspace Telephony Devices
@@ -921,11 +934,21 @@ wxcli workspace-settings list-available-numbers-emergency-callback-number <works
 
 # List available call forwarding numbers
 wxcli workspace-settings list-available-numbers-call-forwarding <workspace_id>
+
+# ── Answer Settings (preferred endpoint + auto answer) ───────────
+# Not call forwarding and not device assignment: which of the workspace's
+# endpoints answers, and whether calls are auto-answered. Gotcha 11.
+wxcli workspace-settings list-available-preferred-answer-endpoints WORKSPACE_ID -o json
+wxcli workspace-settings show-answer-settings WORKSPACE_ID -o json
+wxcli workspace-settings update-answer-settings WORKSPACE_ID --preferred-answer-endpoint-id ENDPOINT_ID --auto-answer-enabled --verify
+
+# Clear the preferred endpoint (JSON null — the flag cannot send one)
+wxcli workspace-settings update-answer-settings WORKSPACE_ID --json-body '{"preferredAnswerEndpointId": null}'
 ```
 
 #### Full Command Reference
 
-All 96 `workspace-settings` commands:
+All 103 `workspace-settings` commands:
 
 | Category | Commands |
 |----------|----------|
@@ -956,6 +979,7 @@ All 96 `workspace-settings` commands:
 | **Selective Accept** | `list-selective-accept`, `update-selective-accept`, `show-criteria-selective-accept`, `update-criteria-selective-accept`, `delete-criteria-selective-accept`, `create-criteria-selective-accept` |
 | **Priority Alert** | `list-priority-alert`, `update-priority-alert`, `show-criteria-priority-alert`, `update-criteria-priority-alert`, `delete-criteria-priority-alert`, `create-criteria-priority-alert` |
 | **Selective Forward** | `list-selective-forward`, `update-selective-forward`, `show-criteria-selective-forward`, `update-criteria-selective-forward`, `delete-criteria-selective-forward`, `create-criteria-selective-forward` |
+| **Answer Settings** | `show-answer-settings`, `update-answer-settings`, `list-available-preferred-answer-endpoints` |
 | **Available Numbers** | `list-available-numbers-workspaces`, `list-available-numbers-emergency-callback-number`, `list-available-numbers-call-forwarding`, `list-available-numbers-call-intercept`, `list-available-numbers-fax-message`, `list-available-numbers-secondary` |
 
 ### Workspace Locations (Legacy)
@@ -1048,6 +1072,8 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
     | `/telephony/config/workspaces/{id}/simultaneousRing` | 405 | 200 | |
     | `/telephony/config/workspaces/{id}/voicemail` | 405 | 200 | |
 
+11. **Workspace answer settings have no clearable-by-person field and may need a Professional licence.** The workspace `answerSettings` object carries `preferredAnswerEndpointId`, `autoAnswerEnabled` and the read-only `preferredAnswerEndpointType` / `preferredAnswerEndpointIdType` / `preferredAnswerEndpointRequired` — but not `isPreferredEndpointClearableByPerson`, which the person and virtual-line versions have, so `update-answer-settings` here offers no such flag. It lives under `/telephony/config/workspaces/{id}/`, the path family that returned 405 on Basic workspaces for everything except `musicOnHold` and `doNotDisturb` (gotcha 10), so expect 405 on a Basic workspace. To clear the preferred endpoint, send a JSON null with `--json-body '{"preferredAnswerEndpointId": null}'`; the `--preferred-answer-endpoint-id` flag is a plain string and would send `"null"`. **Unverified:** the field list is from the spec; the 405-on-Basic expectation is inferred from gotcha 10's pattern, not measured for this endpoint.
+
 ## CLI: `workspace-metrics` (Workspace Sensor Metrics)
 
 The `workspace-metrics` CLI group retrieves environmental sensor data and usage duration metrics from workspace devices (RoomOS endpoints with sensors).
@@ -1083,4 +1109,5 @@ wxcli workspace-metrics list-workspace-duration-metrics --workspace-id <workspac
 
 - **[devices-core.md](devices-core.md)** — Device activation codes, MAC provisioning, and telephony device settings (members/lines, line key templates, layouts). Use that API for device-level operations after associating a device with a workspace.
 - **[devices-dect.md](devices-dect.md)** — DECT network and handset management, including DECT workspace associations and hot desking session management.
+- **[person-call-settings-behavior.md](person-call-settings-behavior.md)** §10 — go there for what answer settings mean (endpoint type enums, `preferredAnswerEndpointRequired`) and how they relate to the person-only `preferredAnswerEndpoint` object; the workspace version is the same object minus the clearable-by-person field.
 - **[emergency-services.md](emergency-services.md)** — Emergency callback number (ECBN) configuration. The `ecbn` sub-API listed in the calling settings table above is documented in detail there.

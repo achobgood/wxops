@@ -2,8 +2,10 @@
 name: call-control
 description: |
   Real-time Webex Calling call control, telephony webhook/event monitoring, and conference controls.
-  Covers the Call Control API (user-level and Service App), telephony webhook subscriptions and
-  event parsing, and conference controls for real-time call monitoring and programmatic call control.
+  Covers the Call Control API in all three scopes (bare/self, `-me`, and Service App `-members`),
+  telephony webhook subscriptions and event parsing, conference controls including supervisor
+  barge-in/silent-monitor/coach, and setting wrap-up reasons on a member's last call
+  (call-controls-members / call-controls-members-me).
   NOT for: messaging webhooks/bot events (use messaging-bots skill), call settings/forwarding
   configuration (use manage-call-settings skill), or CDR/call history queries (use reporting skill).
 allowed-tools: Read, Grep, Glob, Bash
@@ -20,7 +22,7 @@ argument-hint: [call-control | webhooks | conference]
 >
 > **Service Apps** (with `spark-admin:calls_read` / `spark-admin:calls_write`) must use the **Members API** (`/v1/telephony/calls/members/{memberId}/*`) instead of the user-level endpoints.
 >
-> `wxcli call-controls` commands use user-level endpoints by default. Do NOT use them with admin/service-app tokens.
+> Every `wxcli call-controls` and `wxcli conference` action comes in up to three scopes. The **bare** name (`create-hold`) and the **`-me`** sibling (`create-hold-me`) both act on the token's own user — do NOT use them with admin/service-app tokens. The **`-members`** sibling (`create-hold-members MEMBER_ID`) is the Service App / admin path. See "Choosing a scope" in Step 6a.
 
 ---
 
@@ -84,9 +86,11 @@ Present this decision matrix if the user is unsure which approach fits their nee
 | Need | Approach | Tool |
 |------|----------|------|
 | Control calls from an external app (click-to-dial, hold, transfer) | **Call Control API** | `wxcli call-controls` or raw HTTP via `WebexSession` |
-| Control calls on behalf of users (admin/service app) | **Members API** | `wxcli call-controls create-dial-members`, `create-answer-members`, etc. |
+| Control calls on behalf of users (admin/service app) | **Members API** | `wxcli call-controls <action>-members MEMBER_ID` — every action has one (`create-dial-members`, `create-hold-members`, `create-transfer-members`, ...) |
 | Get notified when calls start/end/change state (push model) | **Webhooks** | `wxcli webhooks` or raw HTTP |
-| Multi-party conference management | **Conference Controls** | `wxcli conference` |
+| Multi-party conference management | **Conference Controls** | `wxcli conference` (bare, `-me`, `-members`) |
+| Supervisor barge-in / silent monitor / coach on a conference | **Conference Controls (scoped only)** | `wxcli conference create-silent-monitor-members MEMBER_ID` etc. — no bare form |
+| Tag a member's last completed call with wrap-up reasons | **Wrap-up reasons** | `wxcli call-controls-members create-wrapupreasons` / `wxcli call-controls-members-me create-wrapupreasons` |
 | Poll for active calls or call history | **Call Control API (GET)** | `wxcli call-controls list` / `list-history` |
 | Register interest in telephony events (before creating a telephony webhook) | **Webhook Interest Registrations** | `wxcli webhook-interest-registrations` — `list`, `create`, `delete` |
 
@@ -136,7 +140,7 @@ Example plan format:
 
 ### Operations
 1. Initiate click-to-dial to +12223334444
-2. Monitor call state via list-active
+2. Poll call state with: wxcli call-controls list -o json
 3. Transfer to +15551234567 when connected
 
 ### Prerequisites
@@ -185,6 +189,22 @@ Understanding the call state machine is essential for correct call control:
 **CallState values:** `connecting`, `alerting`, `connected`, `held`, `remoteHeld`, `disconnected`
 
 **Personality values:** `originator` (outgoing), `terminator` (incoming), `clickToDial` (alerting for click-to-dial, becomes `originator` on answer)
+
+#### Choosing a scope (bare, `-me`, `-members`)
+
+The decision is *whose* call you are touching — not which feature. All three put a call on hold; they differ only in whose call it is.
+
+| Token / goal | Use | Example | Path |
+|--------------|-----|---------|------|
+| User's own OAuth token, acting on that user's calls | **bare** (default in every example below) | `wxcli call-controls create-hold --call-id CALL_ID` | `/telephony/calls/hold` |
+| Same, via the self-scoped path | **`-me`** | `wxcli call-controls create-hold-me --call-id CALL_ID` | `/telephony/calls/members/me/hold` |
+| Service App / admin acting on a person, workspace or virtual line | **`-members MEMBER_ID`** | `wxcli call-controls create-hold-members MEMBER_ID --call-id CALL_ID` | `/telephony/calls/members/{memberId}/hold` |
+
+- Bare and `-me` have identical spec descriptions and bodies (both accept `--line-owner-id` for a secondary line on the user's own device). Nothing in the spec prefers one; bare is the long-standing path.
+- `-members` commands take **no** `--line-owner-id` — `MEMBER_ID` names the line owner — and fill `orgId` from the org saved in wxcli config. `--help` labels `MEMBER_ID` "Webex PEOPLE id", but the spec accepts a person, workspace or virtual line ID.
+- **Unverified:** the `-me` and `-members` siblings beyond dial/answer/hangup/list/show arrived in the post-2026-09-21 spec sync and have not been run against a live org. Run the one you need with `--help` first and confirm on one call before scripting it.
+
+Full name mapping: `docs/reference/call-control.md` → CLI Examples → Command Reference.
 
 #### Core call operations via wxcli
 
@@ -292,9 +312,11 @@ wxcli call-controls create-barge-in --target "+12223334444"
 # List all active calls for the user
 wxcli call-controls list -o json
 
-# Get details of a specific call (--line-owner-id required for Service App tokens)
+# Get details of a specific call
 wxcli call-controls show CALL_ID -o json
-wxcli call-controls show CALL_ID --line-owner-id USER_ID -o json
+# --line-owner-id: only for a secondary line (another user/workspace/virtual line) on YOUR device.
+# It does not let a Service App read someone else's call — use show-calls-members for that.
+wxcli call-controls show CALL_ID --line-owner-id LINE_OWNER_ID -o json
 
 # List call history (max 20 per type, 60 total)
 wxcli call-controls list-history -o json
@@ -319,7 +341,16 @@ wxcli call-controls list-calls-members MEMBER_ID -o json
 
 # Get call details for a member
 wxcli call-controls show-calls-members MEMBER_ID CALL_ID -o json
+
+# Mid-call actions and history on behalf of a member (Unverified live — spec-derived)
+wxcli call-controls create-hold-members MEMBER_ID --call-id CALL_ID
+wxcli call-controls create-transfer-members MEMBER_ID --call-id1 CALL_ID_1 --call-id2 CALL_ID_2
+wxcli call-controls create-park-members MEMBER_ID --call-id CALL_ID
+wxcli call-controls create-start-recording-members MEMBER_ID --call-id CALL_ID
+wxcli call-controls list-history-members MEMBER_ID --type missed -o json
 ```
+
+Every bare action has a `-members` sibling with the same flags minus `--line-owner-id`. The one bare command without one is `list-calls-queues QUEUE_ID`.
 
 ### 6b. Webhook setup for telephony events
 
@@ -486,36 +517,85 @@ wxcli conference --help
 
 | Command | Key Options | Description |
 |---------|-------------|-------------|
-| `wxcli conference list` | `--line-owner-id` | Get conference details |
-| `wxcli conference create` | `--json-body` | Start a conference |
-| `wxcli conference delete` | `--line-owner-id` | Release (end) a conference |
+| `wxcli conference list` | `--line-owner-id` | Get conference details (empty object if none) |
+| `wxcli conference create` | `--json-body '{"callIds":[...]}'` (min 2 call IDs) | Start a conference from existing calls |
+| `wxcli conference delete` | `--line-owner-id`, `--force` | Release (end) a conference — prompts unless `--force` |
 | `wxcli conference create-add-participant` | `--call-id` (required), `--line-owner-id` | Add a participant |
-| `wxcli conference create-mute` | `--call-id` | Mute a participant |
-| `wxcli conference create-unmute` | `--call-id` | Unmute a participant |
+| `wxcli conference create-mute` | `--call-id` | Mute a participant — **omit `--call-id` to mute the host** |
+| `wxcli conference create-unmute` | `--call-id` | Unmute a participant (host if omitted) |
 | `wxcli conference create-deafen` | `--call-id` (required) | Deafen a participant (can't hear) |
 | `wxcli conference create-undeafen` | `--call-id` (required) | Undeafen a participant |
-| `wxcli conference create-hold` | `--line-owner-id` | Hold the conference |
-| `wxcli conference create-resume` | `--line-owner-id` | Resume the conference |
+| `wxcli conference create-hold` | `--line-owner-id` | Hold the conference host |
+| `wxcli conference create-resume` | `--line-owner-id` | Resume the conference host |
 
-**Note:** Conference commands do NOT take a positional conference ID. Use `--line-owner-id` to specify whose conference to operate on (required for Service App tokens).
+**Note:** Conference commands do NOT take a positional conference ID — the API addresses "the conference" of whichever user the scope names. `--line-owner-id` is only for a secondary line on the token user's own device; it is **not** how a Service App picks whose conference to touch. A Service App uses the `-members` siblings below.
 
-#### 3-way merge via Call Control API
+#### Conference scopes and supervisor modes
 
-The Call Control API also supports merging two active calls into a conference:
+Every bare conference command above has a `-me` sibling (`/telephony/conference/members/me/...`) and a `-members MEMBER_ID` sibling (`/telephony/conference/members/{memberId}/...`). Start/get/release are named after the path: `create-conference-*`, `list-conference-*`, `delete-conference-*`; the rest add the suffix (`create-mute-members`, `create-hold-me`, ...). Three supervisor modes exist **only** in the scoped forms:
+
+| Command | What it does (spec) |
+|---------|---------------------|
+| `wxcli conference create-barge-in-members MEMBER_ID` / `create-barge-in-me` | Supervisor joins as a full participant; everyone hears them |
+| `wxcli conference create-silent-monitor-members MEMBER_ID` / `create-silent-monitor-me` | Supervisor listens without being heard |
+| `wxcli conference create-supervisor-coach-members MEMBER_ID` / `create-supervisor-coach-me` | One-way audio: only the agent hears the supervisor |
 
 ```bash
-# Merge two calls (user must have one active, one held)
-wxcli call-controls create-transfer --call-id1 CALL_ID_1 --call-id2 CALL_ID_2
+# Service App / admin: merge two of a member's calls, then read the result (Unverified live)
+wxcli conference create-conference-members MEMBER_ID --json-body '{"callIds":["CALL_ID_1","CALL_ID_2"]}'
+wxcli conference list-conference-members MEMBER_ID -o json
+
+# Move a supervisor's conference from silent monitoring to coaching (no body, 204)
+wxcli conference create-silent-monitor-members MEMBER_ID
+wxcli conference create-supervisor-coach-members MEMBER_ID
 ```
 
-Or via raw HTTP:
+Do not confuse these with `wxcli call-controls create-barge-in --target ...`: that places a **new call** to barge into someone's call and returns a `callId`; the conference modes switch a conference that already exists. Which supervisors may monitor which agents is Customer Assist configuration (`customer-assist` skill), not this API.
+
+#### 3-way merge
+
+To merge two (or more) of the user's calls into one conference, use **Start Conference** — not transfer. `create-transfer --call-id1 --call-id2` is an attended transfer: it hands the two calls to each other and does not keep the user in a three-way call.
+
+```bash
+# Merge two calls (both must be existing calls between the user and a participant)
+wxcli conference create --json-body '{"callIds":["CALL_ID_1","CALL_ID_2"]}'
+```
+
+Or via raw HTTP (the spec publishes no `/telephony/calls/conference`; the merge lives under `/telephony/conference`):
 
 ```python
 from wxcli.auth import get_api
 api = get_api()
-api.session.rest_post("https://webexapis.com/v1/telephony/calls/conference",
-    json={"callId1": call_id_1, "callId2": call_id_2})
+api.session.rest_post("https://webexapis.com/v1/telephony/conference",
+    json={"callIds": [call_id_1, call_id_2]})
 ```
+
+### 6d. Wrap-up reasons on a call (`call-controls-members` / `call-controls-members-me`)
+
+Applies wrap-up reasons (disposition labels such as "Sale") to a member's **last completed call**. These are two separate one-command groups, not commands inside `call-controls` — Cisco tags them apart — and there is no bare form.
+
+What this is NOT: it does not *define* reasons (that is Customer Assist — `wxcli customer-assist create`, see the `customer-assist` skill), it is not Contact Center wrap-up (`cc-aux-code` / `cc-tasks`, the `contact-center` skill), and it cannot read anything back (no GET exists).
+
+| Group | Command | Positional | Acts on |
+|-------|---------|-----------|---------|
+| `call-controls-members` | `create-wrapupreasons` | `MEMBER_ID` (required) | Another member's last completed call — admin / Service App token |
+| `call-controls-members-me` | `create-wrapupreasons` | — | The token user's own last completed call |
+
+The body is `{"wrapupReasons": ["<reason name>", ...]}` — names, not IDs, and **no `callId`**. There is no flag for the array, so `--json-body` is the only way to send it; without it the command posts an empty body.
+
+`call-controls-members` — set reasons on another member's last call:
+
+```bash
+wxcli call-controls-members create-wrapupreasons MEMBER_ID --json-body '{"wrapupReasons":["Sale","Callback requested"]}'
+```
+
+`call-controls-members-me` — set reasons on your own last call:
+
+```bash
+wxcli call-controls-members-me create-wrapupreasons --json-body '{"wrapupReasons":["Sale"]}'
+```
+
+**Unverified** (spec-derived, no live tenant): whether an unconfigured reason name is rejected, and how soon after hang-up the call counts as "last completed". Because there is no `callId`, post right after the call ends (a `telephony_calls` `disconnected` webhook is the natural trigger) — if the member finishes another call first, the reasons land on that one.
 
 ---
 
@@ -560,7 +640,7 @@ Summarize the completed operations and their outcomes:
 
 ## Critical Rules
 
-1. **User-level token required for call control.** Admin tokens get 400 "Target user not authorized". Service Apps must use the Members API (`/calls/members/{memberId}/*`). This is the most common failure.
+1. **User-level token required for the bare and `-me` commands.** Admin tokens get 400 "Target user not authorized". Service Apps must use the Members API (`/calls/members/{memberId}/*` — the `-members` commands), which now covers every call action, not just dial/answer/hangup (spec-derived, **Unverified** live). This is the most common failure.
 
 2. **Webhook auto-deactivation.** Webhooks that fail to deliver events (target URL returns errors repeatedly) are automatically set to `inactive`. You must explicitly reactivate them via the update API. You cannot deactivate a webhook via API -- only delete it.
 
@@ -576,7 +656,7 @@ Summarize the completed operations and their outcomes:
 
 8. **Call history limit.** `list-history` returns max 20 records per type (placed/missed/received), max 60 total.
 
-9. **Conference via Call Control API requires two calls.** The user must have one active and one held call to merge. Use `hold` first, then `dial` the second party, then `conference`.
+9. **A conference merge needs at least two existing calls.** Use `hold` first, then `dial` the second party, then `wxcli conference create --json-body '{"callIds":[...]}'`. `create-transfer` with two call IDs is a transfer, not a merge.
 
 10. **Webhook event delivery is not guaranteed to be ordered.** Use `data.eventTimestamp` and `data.callSessionId` to correlate and order events.
 
@@ -602,5 +682,5 @@ Summarize the completed operations and their outcomes:
 If context compacts mid-execution, recover by:
 1. Re-read `docs/reference/call-control.md` for call control API details
 2. Re-read `docs/reference/webhooks-events.md` for webhook setup
-3. Run `wxcli call-controls --help` and `wxcli conference --help` to rediscover CLI commands
+3. Run `wxcli call-controls --help`, `wxcli conference --help`, `wxcli call-controls-members --help` and `wxcli call-controls-members-me --help` to rediscover CLI commands
 4. Resume from the last completed step

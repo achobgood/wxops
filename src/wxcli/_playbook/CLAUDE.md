@@ -3,7 +3,7 @@
 Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
 
 **Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 184 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+The wxcli CLI has 192 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
 
 ## Mandatory Grounding Rule
 
@@ -287,6 +287,12 @@ When multiple skills could match, use this lookup. (Basic skill-vs-skill routing
 | Register interest in telephony webhook events (`webhook-interest-registrations`) | `call-control` | `messaging-bots` (that's messaging webhooks; this is the Calling-side registration that gates which telephony events a webhook receives) |
 | Discover which fields the Contact Center search API accepts (`cc-search-metadata`) | `reporting-cc` | `contact-center` (metadata describes the search surface; it provisions nothing) |
 | Person-level hot-desking members (`hot-desking-members`) | `manage-call-settings` (person settings) | `manage-devices` (workspace/device-level hot-desk stays there) |
+| Set the wrap-up reason on a Webex **Calling** call (`call-controls-members`, `call-controls-members-me`) | `call-control` | `contact-center` (`cc-aux-code` is the WxCC wrap-up surface — same word, different API, needs a `cjp:` scope) and `customer-assist` (that configures wrap-up reasons on a CX queue; these two SET one on a live call) |
+| List, read, mark or delete the **messages in a voicemail box** (`user-call-settings-members`, `user-call-settings-members-me`) | `manage-call-settings` | `provision-calling` and `configure-features` (voicemail *groups* are a location feature there); `user-settings` inside this same skill is voicemail **configuration** — enable, forward, greeting, passcode — not the messages |
+| Batch-correct global variable values on Contact Center contacts already handled (`external-data-updates`) | `contact-center` | `reporting-cc` (that reads CC analytics; this writes back onto contacts) and `configure-features` (Calling has no global-variable concept) |
+| Schedule when a Contact Center supervisor may monitor which agents — recurring or one-off windows (`cc-monitoring-schedules`) | `contact-center` | `cc-call-monitoring` in the same skill (that starts, barges and coaches a LIVE monitoring session; this stores the schedule that authorises one) and `call-control` (Calling barge-in/silent-monitor on a Calling call, not WxCC) |
+| Read or change Contact Center tenant-wide entitlements and thresholds — short/lost-call thresholds, contact entitlements, WFO and campaign-manager flags (`cc-org-settings`) | `contact-center` | `manage-identity` (`org-settings` is the **Webex** org's feature-key settings, a different API on a different host) |
+| Read or change Contact Center tenant configuration — auto wrap-up interval, outdial, logging levels, DN descriptions (`cc-tenant-config`) | `contact-center` | `manage-identity` (Webex org identity settings) and `provision-calling` (Calling org defaults live in `calling-service`) |
 | Set up the medium a Contact Center contact arrives on (telephony/email/chat/social/work-item), or the configured instance of one — `channel`, `asset` | `contact-center` | `messaging-spaces` (a Webex space is not a CC "channel") and `configure-features` (Calling has no channel concept) |
 | Generate or download a Contact Center consumption/billing report (`usage-reports`) | `reporting-cc` | `reporting` (that group is Webex Calling CDR; CC resource consumption is a different API and arrives as a downloadable file) |
 | Webex Calling call quality figures — packet loss, jitter, latency — for a time window (`calling-metrics`) | `reporting` | `reporting-cc` (that is Contact Center quality) and `reporting-meetings` (that is meeting media quality) |
@@ -422,7 +428,7 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 
 ## CLI Status & Known Issues
 
-**184 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+**192 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
 
 ### Common Flags (`--fields`, `--output`, `--json-body`, `--all`, `--verify`)
 

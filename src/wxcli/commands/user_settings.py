@@ -3092,6 +3092,7 @@ def update_passcode(
 
 @app.command("show-summary", short_help="Get Message Summary.")
 def show_summary(
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, virtual line, auto attendant, hunt group, or call queue for which there is a secondary line on a device owned by the user invoking the API, or that was shared with the user invoking the API."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -3099,8 +3100,11 @@ def show_summary(
     """Get Message Summary."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/voiceMessages/summary"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -3111,7 +3115,7 @@ def show_summary(
 
 @app.command("list-voice-messages", short_help="List Messages. (Calling)")
 def list_voice_messages(
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, virtual line, auto attendant, hunt group, or call queue for which there is a secondary line on a device owned by the user invoking the API, or that was shared with the user invoking the API."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -3145,6 +3149,7 @@ def list_voice_messages(
 @app.command("delete-voice-messages", short_help="Delete Message.")
 def delete_voice_messages(
     message_id: str = typer.Argument(help="from: wxcli user-settings list-voice-messages"),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, virtual line, auto attendant, hunt group, or call queue for which there is a secondary line on a device owned by the user invoking the API, or that was shared with the user invoking the API."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -3155,8 +3160,11 @@ def delete_voice_messages(
     if not force:
         typer.confirm(f"Delete {message_id}?", abort=True)
     url = f"https://webexapis.com/v1/telephony/voiceMessages/{message_id}"
+    params = {}
+    if line_owner_id is not None:
+        params["lineOwnerId"] = line_owner_id
     try:
-        result = api.session.rest_delete(url)
+        result = api.session.rest_delete(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -3175,7 +3183,7 @@ _BODY_SKELETON_CREATE_MARK_AS_READ = '{"messageId":"...","lineOwnerId":"..."}'
 @app.command("create-mark-as-read", short_help="Mark As Read.")
 def create_mark_as_read(
     message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as read. If the `messageId` is not provided, then all voicemail messages for the user are marked as read."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, virtual line, auto attendant, hunt group, or call queue for which there is a secondary line on a device owned by the user invoking the API, or that was shared with the user invoking the API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -3219,7 +3227,7 @@ _BODY_SKELETON_CREATE_MARK_AS_UNREAD = '{"messageId":"...","lineOwnerId":"..."}'
 @app.command("create-mark-as-unread", short_help="Mark As Unread.")
 def create_mark_as_unread(
     message_id: str = typer.Option(None, "--message-id", help="The voicemail message identifier of the message to mark as unread. If the `messageId` is not provided, then all voicemail messages for the user are marked as unread."),
-    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, virtual line, auto attendant, hunt group, or call queue for which there is a secondary line on a device owned by the user invoking the API, or that was shared with the user invoking the API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -6382,5 +6390,145 @@ def update_outbound_billing_plan(
         typer.echo(f"Updated.")
     else:
         emit({"status": "updated", "id": person_id}, output=output, fields=fields)
+
+
+
+@app.command("list-memberships", short_help="List Voice Message Memberships.")
+def list_memberships(
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Voice Message Memberships."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/voiceMessages/memberships"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("memberOf", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Phone Number', 'phoneNumber'), ('Extension', 'extension')], limit=limit)
+
+
+
+@app.command("show-answer-settings", short_help="Get Answer Settings for a Person.")
+def show_answer_settings(
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Answer Settings for a Person.\n\n\b\nExample: wxcli user-settings show-answer-settings PERSON_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/answerSettings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_UPDATE_ANSWER_SETTINGS = '{"preferredAnswerEndpointId":"...","autoAnswerEnabled":true,"isPreferredEndpointClearableByPerson":true}'
+
+@app.command("update-answer-settings", short_help="Update Answer Settings for a Person.")
+def update_answer_settings(
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    preferred_answer_endpoint_id: str = typer.Option(None, "--preferred-answer-endpoint-id", help="The unique identifier for the preferred answer endpoint. This may be a device, application, or hot desking guest endpoint. Set to null to clear the preferred answer endpoint; omit to leave unchanged."),
+    auto_answer_enabled: bool = typer.Option(None, "--auto-answer-enabled/--no-auto-answer-enabled", help="Indicates whether auto answer is enabled for the person."),
+    is_preferred_endpoint_clearable_by_person: bool = typer.Option(None, "--is-preferred-endpoint-clearable-by-person/--no-is-preferred-endpoint-clearable-by-person", help="Indicates whether the person can clear the preferred endpoint setting."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Answer Settings for a Person.\n\n\b\nExample: wxcli user-settings update-answer-settings PERSON_ID\n\n\b\nExample --json-body: '{"preferredAnswerEndpointId":"...","autoAnswerEnabled":true,"isPreferredEndpointClearableByPerson":true}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANSWER_SETTINGS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/answerSettings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if preferred_answer_endpoint_id is not None:
+            body["preferredAnswerEndpointId"] = preferred_answer_endpoint_id
+        if auto_answer_enabled is not None:
+            body["autoAnswerEnabled"] = auto_answer_enabled
+        if is_preferred_endpoint_clearable_by_person is not None:
+            body["isPreferredEndpointClearableByPerson"] = is_preferred_endpoint_clearable_by_person
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": person_id}, output=output, fields=fields)
+
+
+
+@app.command("list-available-preferred-answer-endpoints", short_help="Get Available Preferred Answer Endpoints for a Person.")
+def list_available_preferred_answer_endpoints(
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Available Preferred Answer Endpoints for a Person.\n\n\b\nExample: wxcli user-settings list-available-preferred-answer-endpoints PERSON_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/availablePreferredAnswerEndpoints"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Is Preferred Answer Endpoint', 'isPreferredAnswerEndpoint')], limit=limit)
 
 

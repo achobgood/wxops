@@ -1,7 +1,7 @@
 # Contact Center: AI, Analytics, Monitoring, and Events
 
 Reference for Webex Contact Center AI features, customer journey analytics, call monitoring,
-event subscriptions, and task management. Covers 14 CLI groups with 131 commands generated
+event subscriptions, and task management. Covers 15 CLI groups with 132 commands generated
 from the Contact Center OpenAPI spec.
 
 > **Regional base URL:** `https://api.wxcc-{region}.cisco.com`
@@ -30,9 +30,10 @@ from the Contact Center OpenAPI spec.
 12. [Search](#12-search)
 13. [Address Book](#13-address-book)
 14. [Usage Reports](#14-usage-reports)
-15. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
-16. [Gotchas](#gotchas)
-17. [See Also](#see-also)
+15. [External Data Updates](#15-external-data-updates-external-data-updates)
+16. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
+17. [Gotchas](#gotchas)
+18. [See Also](#see-also)
 
 ---
 
@@ -322,6 +323,12 @@ CLI group: `wxcli cc-call-monitoring` (7 commands)
 Real-time call monitoring for supervisors. Supports creating monitoring sessions, barge-in,
 hold/unhold monitoring, and session management. Most operations use `taskId` to identify the
 contact being monitored, but delete uses `requestId`.
+
+This group acts on calls that are happening now. Stored, recurring monitoring **schedules** —
+which supervisor covers which teams and queues, and when — are a different group,
+`cc-monitoring-schedules`, on the config API; see
+[contact-center-core.md §21](contact-center-core.md#21-call-monitoring-schedules-cc-monitoring-schedules)
+when the request is about a plan rather than a live call.
 
 ### Commands
 
@@ -977,9 +984,92 @@ consumption, this group is the wrong one and that doc is where to go.
 
 ---
 
+## 15. External Data Updates (`external-data-updates`)
+
+CLI group: `wxcli external-data-updates` (1 command)
+
+Writes **numeric global-variable values onto one Contact Center task that has already ended** — a correction or enrichment after the fact. The spec's own summary: "Updates numeric global variable values associated with a completed Webex Contact Center task." It is one command against `PUT /v1/data/updateExternal` on the regional CC host. The body carries `orgId`, `updateType` (the only accepted value is `contact`), and a `data` array holding the task: its `id` (the **task** ID), its `startTimestamp` and `endTimestamp`, and up to 30 `globalVariables` as name/number pairs.
+
+What this surface is **not**:
+
+- **Not how a variable is set during a live interaction.** That happens inside the flow, or on the live task through `cc-tasks update` (`PATCH /v1/tasks/{taskId}`, [section 10](#10-tasks)) or the Agent Desktop SDK.
+- **Not where a global variable is defined.** The variable must already exist; creating or editing definitions is `cc-global-vars` in [contact-center-core.md §20](contact-center-core.md#20-global-variables-cc-global-vars).
+- **Not a read surface.** There is no GET here: it can change a value but cannot tell you what a task currently holds. Reading task data is the task and search surfaces in [section 10](#10-tasks) and [section 12](#12-search).
+- **Not a bulk tool.** One task per request, and only a task that ended within the preceding two days.
+
+**Unverified:** this section is read from `specs/webex-contact-center.json` and the generated module `external_data_updates.py`. No live call was made.
+
+### Commands
+
+| CLI Command | HTTP | Description |
+|-------------|------|-------------|
+| `update` | PUT `/v1/data/updateExternal` | Update global variables on one completed task |
+
+### Key Parameters
+
+- **`orgId`** (required, UUID) — must be the org the token belongs to (or the org in an `X-ORGANIZATION-ID` header, which wxcli does not send). Not auto-injected; see gotcha 5
+- **`updateType`** (required) — `contact`
+- **`data`** (required) — an array holding exactly one task record:
+  - `id` — the task ID
+  - `startTimestamp` / `endTimestamp` — ISO-8601 UTC strings in `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'` form, e.g. `2026-09-22T10:30:00.000Z`
+  - `globalVariables` — at most 30 entries of `{"name": ..., "value": <number>}`; integer, long and double values are accepted
+
+### CLI Examples
+
+```bash
+# Print the request-body skeleton (exits before authenticating)
+wxcli external-data-updates update --generate-json-body
+
+# Set one numeric global variable on one task that ended in the last two days
+wxcli external-data-updates update --json-body '{"orgId":"ORG_UUID","updateType":"contact","data":[{"id":"TASK_ID","startTimestamp":"2026-09-22T10:00:00.000Z","endTimestamp":"2026-09-22T10:30:00.000Z","globalVariables":[{"name":"UpSell","value":12}]}]}'
+
+# The same body kept in a file
+wxcli external-data-updates update --json-body file://task-update.json
+```
+
+### Raw HTTP
+
+```bash
+curl -X PUT "https://api.wxcc-us1.cisco.com/v1/data/updateExternal" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "orgId": "ORG_UUID",
+        "updateType": "contact",
+        "data": [
+          {
+            "id": "TASK_ID",
+            "startTimestamp": "2026-09-22T10:00:00.000Z",
+            "endTimestamp": "2026-09-22T10:30:00.000Z",
+            "globalVariables": [{"name": "UpSell", "value": 12}]
+          }
+        ]
+      }'
+```
+
+The spec also accepts an optional `TrackingId` request header for tracing a request in support cases.
+
+### Gotchas
+
+1. **A success response means "accepted for processing", not "applied".** The spec's success status is `202 Accepted`, described as: the request "passed configuration-level validation and was accepted for processing. Additional interaction-level validation may occur after acceptance." A problem with the task itself — wrong timestamps, a variable the task cannot take — can therefore fail after this call has already returned success. Confirm the change through the search surface ([section 12](#12-search)) rather than trusting the exit code. **Unverified:** spec wording; no request was observed through to completion.
+
+2. **Timestamps are ISO-8601 strings, not the epoch milliseconds used almost everywhere else in Contact Center.** Both fields take `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'` in UTC, and they identify the task together with its `id`, so they need to be the task's real start and end. Epoch values copied from a task or search response must be converted first. **Unverified:** the format is spec-stated; how closely the timestamps must match the task's own was not tested.
+
+3. **Only a task that ended within the preceding two days can be updated.** The spec states it on the operation and again on `endTimestamp`. A correction for an older task is expected to be rejected with 400, so this is a near-real-time fix-up tool, not a way to backfill history. **Unverified:** spec wording; the exact cut-off behaviour was not tested.
+
+4. **One task per request, at most 30 variables, and numbers only.** The spec says each request "may contain only one task", caps `globalVariables` at 30 entries, and defines a global variable here as numeric (integer, long or double). String or boolean variables cannot be written through this endpoint. Correcting many tasks means many calls, and the spec documents a rate limit of five requests per second per org (429 beyond it). **Unverified:** spec wording; the limits were not exercised.
+
+5. **`orgId` goes in the body and wxcli does not fill it in.** Unlike the `/organization/{orgid}/…` commands, whose org ID is injected from config (gotcha 13), this command sends only what you put in the body. The spec declares `orgId` a UUID that must match the token's org, so use the bare UUID form, not the base64 Webex org ID — the same decoding described in [contact-center-core.md](contact-center-core.md#25-gotchas) gotcha #19. **Unverified:** read from the generated module and the spec's field format; the server's reaction to a base64 org ID was not observed.
+
+6. **`data[]` has no flag, so a call made with flags alone cannot succeed.** `--org-id` and `--update-type` exist, but without `--json-body` the body contains no `data` key at all, and the spec marks `data` required — expect a 400, not a silent no-op. Start from `--generate-json-body`. **Unverified:** read from the generated body assembly; the 400 is the spec's documented response for missing required data, not an observed one.
+
+7. **It is a Contact Center API even though nothing in its name or help says so.** The group has no `cc-` prefix and its `--help` reads "Manage Webex Calling external-data-updates", but the command calls the regional CC host (`api.wxcc-{region}.cisco.com`, set with `wxcli set-cc-region`), not `webexapis.com`. The spec names no specific OAuth scope for this operation and describes 403 as missing "required scopes or roles", so treat a 403 the way gotcha 11 describes. A `423 Locked` is different: the spec says the API is disabled by a feature flag or service kill switch, which no token change will fix. **Unverified:** base URL read from the generated module; scope and 423 behaviour are spec wording.
+
+---
+
 ## Raw HTTP Endpoint Table
 
-All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
+All 92 endpoints tabulated below, across 15 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
 
 ### AI Assistant (1)
 
@@ -1144,6 +1234,12 @@ All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `http
 | GET | `/v1/usage-reports/{fileId}/download` | Download one report file |
 | DELETE | `/v1/usage-reports/{reportId}` | Delete report and file |
 
+### External Data Updates (1)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| PUT | `/v1/data/updateExternal` | Update numeric global variables on one completed task |
+
 ---
 
 ## Gotchas
@@ -1223,10 +1319,10 @@ All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `http
 
 ## See Also
 
-- [Contact Center: Core](contact-center-core.md) — Agents, queues, teams, skills, desktop, configuration
+- [Contact Center: Core](contact-center-core.md) — Agents, queues, teams, skills, desktop, configuration. Go to its §20 before calling `external-data-updates`: the global variable named in the body must already be defined there (`cc-global-vars`), and must be numeric. Go to its §21 when the request is for a supervisor monitoring **schedule** rather than the live session in §7 here
 - [Contact Center: Journey](contact-center-journey.md) — JDS: workspaces, persons, identity, profile views, events
 - [Contact Center: Routing](contact-center-routing.md) — Dial plans, campaigns, flows, audio, contacts
-- [Contact Center: Agent Desktop SDK](contact-center-agent-sdk.md) — The `@webex/contact-center` JS SDK. The `cc-tasks` group documented here is the server-side counterpart to a live task in a custom desktop: `wxcli cc-tasks update` is `PATCH /v1/tasks/{taskId}`, the only route that writes call variables, and `create-pause`/`create-resume` mirror `task.pauseRecording()`
+- [Contact Center: Agent Desktop SDK](contact-center-agent-sdk.md) — The `@webex/contact-center` JS SDK. The `cc-tasks` group documented here is the server-side counterpart to a live task in a custom desktop: `wxcli cc-tasks update` is `PATCH /v1/tasks/{taskId}`, the route that writes call variables on a task that is still live (for a task that has already ended, §15's `external-data-updates` writes numeric global variables instead), and `create-pause`/`create-resume` mirror `task.pauseRecording()`
 - [Webhooks & Events](webhooks-events.md) — Webex platform webhooks (separate from CC subscriptions)
 - [Reporting & Analytics](reporting-analytics.md) — Webex Calling CDR, queue stats, call quality
 - [Authentication](authentication.md) — CC-specific OAuth scopes and region configuration
