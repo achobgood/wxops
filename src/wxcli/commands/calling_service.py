@@ -68,7 +68,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true,"voicePortalAccessVmDepositEnabled":true}'
+_BODY_SKELETON_UPDATE = '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true,"voicePortalAccessVMDepositEnabled":true}'
 
 @app.command("update", short_help="Update Voicemail Settings.")
 def update(
@@ -84,7 +84,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Voicemail Settings.\n\n\b\nExample: wxcli calling-service update --message-expiry-enabled --number-of-days-for-message-expiry NUMBER_OF_DAYS_FOR_MESSAGE_EXPIRY\n\n\b\nExample --json-body: '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true,"voicePortalAccessVmDepositEnabled":true}'"""
+    """Update Voicemail Settings.\n\n\b\nExample: wxcli calling-service update --message-expiry-enabled --number-of-days-for-message-expiry NUMBER_OF_DAYS_FOR_MESSAGE_EXPIRY\n\n\b\nExample --json-body: '{"messageExpiryEnabled":true,"numberOfDaysForMessageExpiry":0,"strictDeletionEnabled":true,"voiceMessageForwardingEnabled":true,"voicePortalAccessVMDepositEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -107,7 +107,7 @@ def update(
         if voice_message_forwarding_enabled is not None:
             body["voiceMessageForwardingEnabled"] = voice_message_forwarding_enabled
         if voice_portal_access_vm_deposit_enabled is not None:
-            body["voicePortalAccessVmDepositEnabled"] = voice_portal_access_vm_deposit_enabled
+            body["voicePortalAccessVMDepositEnabled"] = voice_portal_access_vm_deposit_enabled
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

@@ -72,14 +72,14 @@ def create(
     name: str = typer.Option(None, "--name", help="(required) Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="(required) URI of the announcement file."),
     file_name: str = typer.Option(None, "--file-name", help="(required) File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="(required) Indicates whether the announcement is text-to-speech."),
+    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech. If omitted or set to null or false, the announcement is stored as non-text-to-speech and text-to-speech metadata, such as the text, voice, and language, is not retained."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Upload a binary announcement greeting at organization level.\n\n\b\nExample: wxcli announcements create --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
+    """Upload a binary announcement greeting at organization level.\n\n\b\nExample: wxcli announcements create --name NAME --file-uri FILE_URI --file-name FILE_NAME\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -101,7 +101,7 @@ def create(
             body["fileName"] = file_name
         if is_text_to_speech is not None:
             body["isTextToSpeech"] = is_text_to_speech
-        _missing = [f for f in ['name', 'fileUri', 'fileName', 'isTextToSpeech'] if f not in body or body[f] is None]
+        _missing = [f for f in ['name', 'fileUri', 'fileName'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -178,7 +178,7 @@ def update(
     name: str = typer.Option(None, "--name", help="Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="URI of the announcement file."),
     file_name: str = typer.Option(None, "--file-name", help="File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech."),
+    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech. If omitted or set to null or false, the announcement is stored as non-text-to-speech and text-to-speech metadata, such as the text, voice, and language, is not retained."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -186,7 +186,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a binary announcement greeting at organization level.\n\n\b\nExample: wxcli announcements update ANNOUNCEMENT_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
+    """Modify a binary announcement greeting at organization level.\n\n\b\nExample: wxcli announcements update ANNOUNCEMENT_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -317,14 +317,14 @@ def create_announcements(
     name: str = typer.Option(None, "--name", help="(required) Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="(required) URI of the announcement file."),
     file_name: str = typer.Option(None, "--file-name", help="(required) File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="(required) Indicates whether the announcement is text-to-speech."),
+    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech. If omitted or set to null or false, the announcement is stored as non-text-to-speech and text-to-speech metadata, such as the text, voice, and language, is not retained."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Upload a binary announcement greeting at the location level.\n\n\b\nExample: wxcli announcements create-announcements LOCATION_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
+    """Upload a binary announcement greeting at the location level.\n\n\b\nExample: wxcli announcements create-announcements LOCATION_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ANNOUNCEMENTS), indent=2))
         raise typer.Exit(0)
@@ -346,7 +346,7 @@ def create_announcements(
             body["fileName"] = file_name
         if is_text_to_speech is not None:
             body["isTextToSpeech"] = is_text_to_speech
-        _missing = [f for f in ['name', 'fileUri', 'fileName', 'isTextToSpeech'] if f not in body or body[f] is None]
+        _missing = [f for f in ['name', 'fileUri', 'fileName'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -426,7 +426,7 @@ def update_announcements(
     name: str = typer.Option(None, "--name", help="Name of the announcement."),
     file_uri: str = typer.Option(None, "--file-uri", help="URI of the announcement file."),
     file_name: str = typer.Option(None, "--file-name", help="File name of the announcement."),
-    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech."),
+    is_text_to_speech: bool = typer.Option(None, "--is-text-to-speech/--no-is-text-to-speech", help="Indicates whether the announcement is text-to-speech. If omitted or set to null or false, the announcement is stored as non-text-to-speech and text-to-speech metadata, such as the text, voice, and language, is not retained."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -434,7 +434,7 @@ def update_announcements(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a binary announcement greeting at location level.\n\n\b\nExample: wxcli announcements update-announcements LOCATION_ID ANNOUNCEMENT_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME --is-text-to-speech\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
+    """Modify a binary announcement greeting at location level.\n\n\b\nExample: wxcli announcements update-announcements LOCATION_ID ANNOUNCEMENT_ID --name NAME --file-uri FILE_URI --file-name FILE_NAME\n\n\b\nExample --json-body: '{"name":"...","fileUri":"...","fileName":"...","isTextToSpeech":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ANNOUNCEMENTS), indent=2))
         raise typer.Exit(0)

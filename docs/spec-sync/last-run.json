@@ -1,10 +1,10 @@
 {
-  "date": "2026-09-21",
+  "date": "2026-10-07",
   "outcome": "released",
-  "sha": "19324548d6751e9e04b4a83150af375c45f5ca2e",
-  "version": "v1.8.0",
-  "groups": 184,
-  "commands": 2012,
+  "sha": "ded49a69f48ae7161ac9fa2fc70812cfb5078648",
+  "version": "v1.9.0",
+  "groups": 192,
+  "commands": 2157,
   "issue": null,
-  "notes": "7 specs updated, 19 new paths. Verdict minor: 24 commands added, 0 removed, 0 retargeted, 4 new groups (asset, channel, usage_reports, calling_metrics). Rule A pin: upstream added POST /tasks/{}/pause and /resume, which collided with the shipped cc-tasks create-pause/create-resume (POST /tasks/{}/record/pause|resume) and pushed both onto -record suffixes; pinned back, new task-level pair keeps create-pause-tasks/create-resume-tasks. Rule D (no acks): renamed asset/channel `list` to list-incoming-references and usage-reports `list` to list-resource-types, each of which had taken the bare name from a non-headline operation. Rules B/C: all 4 groups routed (contact-center, contact-center, reporting-cc, reporting) with reference-doc sections in contact-center-routing.md SS15-16, contact-center-analytics.md S14, reporting-analytics.md S4. Blast radius 29 structural, 0 ID-kind flips, under the 40 threshold."
+  "notes": "Manual, maintainer-approved run clearing the 2026-09-28 / 2026-10-05 block: sync_classify verdict=human on blast radius alone (added=106, removed=0, retargeted=0, groups +8/-0), approved to ship as one minor release. Upstream moved since 10-05: +3 WxCC config groups (renamed via cli_name_overrides to cc-monitoring-schedules, cc-org-settings, cc-tenant-config) on top of the 5 from 09-28. Rule A: 26 locked names pinned back (19 call_controls, 7 conference) after Cisco split call control into bare/members/me scopes; 3 `-members-1` dedup artifacts renamed to -me; 10 bare names in new groups renamed (no acks). Rules B/C: all 8 groups routed (call-control x2, manage-call-settings x2, contact-center x4) with reference coverage; last week's re-applied doc work vetted against --help and the spec by three agents, which fixed several false claims (wrap-up body, external-data-updates task/timestamp semantics, delete confirmation, member ID kinds) and removed the stale 'Members API supports only dial/answer/hangup' gotcha. Also fixed: a WXCLI_ env-var corruption in CLAUDE.md carried in by the 09-28 appendix, 3 stale _registry.py entries, call-control raw-HTTP examples reading `calls`/`history` instead of `items`, location-calling-core markAsRead raw HTTP (POST with body, not PUT on path). Pass bar: sync_guard 0, drift_check PASS, 4427 passed / 6 skipped, assemble idempotent; --fail-on-human exits 1 by design (the human decision is this approval)."
 }

@@ -62,3 +62,53 @@ def create(
         emit(result, output=output, fields=fields)
 
 
+
+_BODY_SKELETON_CREATE_MWI = '{"action":"SET"}'
+
+@app.command("create-mwi", short_help="Set or Clear Message Waiting Indicator (MWI) Status by Member ID.")
+def create_mwi(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    action: str = typer.Option(None, "--action", help="(required) Choices: SET, CLEAR"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Set or Clear Message Waiting Indicator (MWI) Status by Member ID.\n\n\b\nExample: wxcli external-voicemail create-mwi MEMBER_ID --action SET\n\n\b\nExample --json-body: '{"action":"SET"}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MWI), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/externalVoicemail/members/{member_id}/mwi"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if action is not None:
+            body["action"] = action
+        _missing = [f for f in ['action'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
