@@ -34,7 +34,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 3. Read `docs/reference/location-calling-media.md` for announcements, playlists, and access codes (only when working those groups)
 4. Read `docs/reference/location-calling-core.md` for internal dialing and location-level call handling
 5. Read `docs/reference/location-recording-advanced.md` for caller reputation
-6. Read `docs/reference/call-control.md` §6 for external voicemail MWI
+6. Read `docs/reference/call-control.md` §7 (Additional API: External Voicemail MWI) for external voicemail MWI
 7. Read `docs/reference/ai-receptionist.md` for AI Receptionist, its intents, and knowledge bases
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli call-queue create --help` reveals the kebab-cased flags like `--has-cx-essentials` and the `--json-body` shape you cannot guess from training data). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
@@ -777,19 +777,22 @@ wxcli caller-reputation unlock-caller-reputation --id PROVIDER_ID
 
 ### External Voicemail (MWI)
 
-One command. Turns the message-waiting indicator (the voicemail light/badge) on or off for a person or workspace — used when an **external** voicemail system, not Webex voicemail, holds the messages.
+Two commands, same action. Turns the message-waiting indicator (the voicemail light/badge) on or off — used when an **external** voicemail system, not Webex voicemail, holds the messages.
 
 ```bash
-# Light the voicemail indicator
+# Light the voicemail indicator (target as --id: person or workspace)
 wxcli external-voicemail create --id PERSON_OR_WORKSPACE_ID --action SET
 
 # Turn it off
 wxcli external-voicemail create --id PERSON_OR_WORKSPACE_ID --action CLEAR
+
+# Member-path form — target in the path; the spec also allows a virtual line here
+wxcli external-voicemail create-mwi MEMBER_ID --action SET
 ```
 
-`--id` is required; `--action` accepts `SET` or `CLEAR` only.
+`create` needs `--id` and `--action`; `create-mwi` needs the `MEMBER_ID` positional and `--action`. `--action` accepts `SET` or `CLEAR` only. Use `create-mwi` for a virtual line — the spec lists its `memberId` as "person, workspace, or virtual line" (`--help` calls it a PEOPLE id; the spec is right on ID kinds). **Unverified:** `create-mwi` has not been run live.
 
-> **Requires a Service App token** with the `spark-admin:calls_write` scope — an ordinary admin token or PAT will not work here. See `docs/reference/call-control.md` §6. This command only drives the indicator; it does not create or store voicemail.
+> **Requires a Service App token** with the `spark-admin:calls_write` scope — an ordinary admin token or PAT will not work here. See `docs/reference/call-control.md` §7 (Additional API: External Voicemail MWI) for both endpoint forms and their gotchas. These commands only drive the indicator; they do not create or store voicemail. To read or delete *Webex* voicemail messages, that is `user-call-settings-members` in the manage-call-settings skill.
 
 ---
 
@@ -950,7 +953,7 @@ wxcli caller-reputation show --output json
 wxcli caller-reputation show-status --output json
 ```
 
-> **External voicemail MWI has no read-back command** — the `external-voicemail` group only has `create`. Verify by checking the physical device indicator, not via API.
+> **External voicemail MWI has no read-back command** — the `external-voicemail` group only has `create` and `create-mwi`, both write-only. Verify by checking the physical device indicator, not via API.
 
 ## Step 8: Report results
 
@@ -1015,7 +1018,7 @@ Next steps:
 25. **Check references before deleting an announcement or playlist.** `wxcli announcements show-announcements-config ANN_ID -o json` returns `featureReferences` and `playlists`; `wxcli cq-playlists list PLAYLIST_ID -o json` shows which queues/locations use a playlist. Deleting an in-use file silently breaks the AA/CQ that plays it.
 26. **Playlist location assignment is a full replace.** `announcement-playlists update-playlists` overwrites the whole list — read `list-playlists PLAYLIST_ID` first and re-include every location you want to keep.
 27. **`caller-reputation` is org-level and uses `--organization-id`**, not the standard orgId injection. Score thresholds are **strings** — quote them (`--call-block-score-threshold "80"`).
-28. **`external-voicemail create` requires a Service App token** with `spark-admin:calls_write`. Admin tokens and PATs fail. It has no read-back command.
+28. **`external-voicemail create` and `create-mwi` require a Service App token** with `spark-admin:calls_write`. Admin tokens and PATs fail. Neither has a read-back command.
 29. **Announcement `create` takes a file URI, not a local path.** `--file-uri`, `--file-name`, `--name`, and the `--is-text-to-speech`/`--no-is-text-to-speech` flag are all required. For a spoken prompt without an audio file, use the `tts-generate` flow instead.
 30. **The TTS flow is not live-verified.** The `tts-generate` → `tts-status` sequence is inferred from the command surface, not from an executed run. Capture the real `tts-generate` output on first use, confirm the prompt completed, and correct this skill if the flow differs.
 

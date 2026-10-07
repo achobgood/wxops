@@ -297,6 +297,32 @@ wxcli guest-management create --subject "ext-user-42" --display-name "Jane Guest
 | **MS Teams — org-wide** | `client-settings` | ~~user-settings~~ |
 | **MS Teams — per person** | `user-settings *-ms-teams` | ~~client-settings~~ |
 | **Guest issuer tokens** | `guest-management` (Guest Issuer app required) | ~~user-settings~~ |
+| **Voicemail messages** (list/read/delete a mailbox's messages) | `user-call-settings-members` (admin, by member) · `user-call-settings-members-me` (self) | ~~user-settings~~ (that's voicemail *config* — enable, forward, greeting) |
+
+### Voicemail messages (the messages, not the settings)
+
+`user-settings` configures voicemail. These two groups act on the **messages in
+the mailbox**: the unread/total summary, the message list, mark read/unread,
+and delete. `user-call-settings-members` takes a positional member ID and an
+admin token; `user-call-settings-members-me` is the self-scoped twin with no
+positional. Neither retrieves audio — metadata and state only.
+
+```bash
+# Unread/total counts, then the messages (a list endpoint — use --all to count)
+wxcli user-call-settings-members show-summary MEMBER_ID
+wxcli user-call-settings-members list-voice-messages MEMBER_ID --all -o json
+
+# Mark the mailbox read, then delete one message (no undo)
+wxcli user-call-settings-members create-mark-as-read MEMBER_ID
+wxcli user-call-settings-members delete-voice-messages MEMBER_ID MESSAGE_ID
+
+# Self-scoped twin
+wxcli user-call-settings-members-me show-summary
+```
+
+`list-memberships` on either group does NOT list messages — it lists which
+mailboxes the member belongs to. `list-voice-messages` is the message list.
+
 
 ---
 

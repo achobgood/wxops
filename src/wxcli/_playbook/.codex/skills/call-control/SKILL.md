@@ -497,6 +497,30 @@ wxcli conference --help
 | `wxcli conference create-hold` | `--line-owner-id` | Hold the conference |
 | `wxcli conference create-resume` | `--line-owner-id` | Resume the conference |
 
+#### Wrap-up reasons on a call (`call-controls-members` / `call-controls-members-me`)
+
+Two separate one-command groups, not commands inside `call-controls`: Cisco
+tags them apart. `call-controls-members` acts on another member (admin /
+Service App token), `call-controls-members-me` on the authenticated user.
+Both are write-only — there is no GET, so you cannot read back what a call
+currently carries.
+
+| Command | Positional | Description |
+|---------|-----------|-------------|
+| `wxcli call-controls-members create-wrapupreasons` | `MEMBER_ID` | Set the wrap-up reason on another member's call |
+| `wxcli call-controls-members-me create-wrapupreasons` | — | Set it on your own call |
+
+```bash
+# The body is nested, so --json-body is the only way in. Print the skeleton first.
+wxcli call-controls-members-me create-wrapupreasons --generate-json-body
+
+wxcli call-controls-members-me create-wrapupreasons --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
+wxcli call-controls-members create-wrapupreasons MEMBER_ID --json-body '{"callId":"CALL_ID","wrapUpReason":"Sale"}'
+```
+
+Not to be confused with Contact Center wrap-up codes (`cc-aux-code`, the
+`contact-center` skill) — same word, different API, different licence.
+
 **Note:** Conference commands do NOT take a positional conference ID. Use `--line-owner-id` to specify whose conference to operate on (required for Service App tokens).
 
 #### 3-way merge via Call Control API

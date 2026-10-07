@@ -120,6 +120,7 @@ def create_answer_calls(
 
 _BODY_SKELETON_CREATE_REJECT = '{"callId":"...","action":{},"lineOwnerId":"..."}'
 
+@app.command("create-reject-calls", hidden=True)
 @app.command("create-reject", short_help="Reject.")
 def create_reject(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
@@ -219,6 +220,7 @@ def create_hangup_calls(
 
 _BODY_SKELETON_CREATE_HOLD = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-hold-calls", hidden=True)
 @app.command("create-hold", short_help="Hold.")
 def create_hold(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hold."),
@@ -267,6 +269,7 @@ def create_hold(
 
 _BODY_SKELETON_CREATE_RESUME = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-resume-calls", hidden=True)
 @app.command("create-resume", short_help="Resume.")
 def create_resume(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to resume."),
@@ -315,6 +318,7 @@ def create_resume(
 
 _BODY_SKELETON_CREATE_MUTE = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-mute-calls", hidden=True)
 @app.command("create-mute", short_help="Mute.")
 def create_mute(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to mute."),
@@ -363,6 +367,7 @@ def create_mute(
 
 _BODY_SKELETON_CREATE_UNMUTE = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-unmute-calls", hidden=True)
 @app.command("create-unmute", short_help="Unmute.")
 def create_unmute(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to unmute."),
@@ -411,6 +416,7 @@ def create_unmute(
 
 _BODY_SKELETON_CREATE_DIVERT = '{"callId":"...","destination":"...","toVoicemail":true,"lineOwnerId":"..."}'
 
+@app.command("create-divert-calls", hidden=True)
 @app.command("create-divert", short_help="Divert.")
 def create_divert(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to divert."),
@@ -465,6 +471,7 @@ def create_divert(
 
 _BODY_SKELETON_CREATE_TRANSFER = '{"callId1":"...","callId2":"...","destination":"...","lineOwnerId":"..."}'
 
+@app.command("create-transfer-calls", hidden=True)
 @app.command("create-transfer", short_help="Transfer.")
 def create_transfer(
     call_id1: str = typer.Option(None, "--call-id1", help="The call identifier of the first call to transfer. This parameter is mandatory if either `callId2` or `destination` is provided."),
@@ -517,6 +524,7 @@ def create_transfer(
 
 _BODY_SKELETON_CREATE_PARK = '{"callId":"...","destination":"...","isGroupPark":true,"lineOwnerId":"..."}'
 
+@app.command("create-park-calls", hidden=True)
 @app.command("create-park", short_help="Park.")
 def create_park(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to park."),
@@ -571,6 +579,7 @@ def create_park(
 
 _BODY_SKELETON_CREATE_RETRIEVE = '{"destination":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'
 
+@app.command("create-retrieve-calls", hidden=True)
 @app.command("create-retrieve", short_help="Retrieve.")
 def create_retrieve(
     destination: str = typer.Option(None, "--destination", help="Identifies where the call is parked. The number field from the park command response can be used as the destination for the retrieve command. If not provided, the call parked against the retrieving user is retrieved. The destination can be digits or a URI. Some examples for destination include:..."),
@@ -623,6 +632,7 @@ def create_retrieve(
 
 _BODY_SKELETON_CREATE_START_RECORDING = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-start-recording-calls", hidden=True)
 @app.command("create-start-recording", short_help="Start Recording.")
 def create_start_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to start recording."),
@@ -667,6 +677,7 @@ def create_start_recording(
 
 _BODY_SKELETON_CREATE_STOP_RECORDING = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-stop-recording-calls", hidden=True)
 @app.command("create-stop-recording", short_help="Stop Recording.")
 def create_stop_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to stop recording."),
@@ -711,6 +722,7 @@ def create_stop_recording(
 
 _BODY_SKELETON_CREATE_PAUSE_RECORDING = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-pause-recording-calls", hidden=True)
 @app.command("create-pause-recording", short_help="Pause Recording.")
 def create_pause_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to pause recording."),
@@ -755,6 +767,7 @@ def create_pause_recording(
 
 _BODY_SKELETON_CREATE_RESUME_RECORDING = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-resume-recording-calls", hidden=True)
 @app.command("create-resume-recording", short_help="Resume Recording.")
 def create_resume_recording(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to resume recording."),
@@ -799,6 +812,7 @@ def create_resume_recording(
 
 _BODY_SKELETON_CREATE_TRANSMIT_DTMF = '{"callId":"...","dtmf":"...","lineOwnerId":"..."}'
 
+@app.command("create-transmit-dtmf-calls", hidden=True)
 @app.command("create-transmit-dtmf", short_help="Transmit DTMF.")
 def create_transmit_dtmf(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to transmit DTMF digits for."),
@@ -846,6 +860,7 @@ def create_transmit_dtmf(
 
 _BODY_SKELETON_CREATE_PUSH = '{"callId":"...","lineOwnerId":"..."}'
 
+@app.command("create-push-calls", hidden=True)
 @app.command("create-push", short_help="Push.")
 def create_push(
     call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to push."),
@@ -890,6 +905,7 @@ def create_push(
 
 _BODY_SKELETON_CREATE_PICKUP = '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'
 
+@app.command("create-pickup-calls", hidden=True)
 @app.command("create-pickup", short_help="Pickup.")
 def create_pickup(
     target: str = typer.Option(None, "--target", help="Identifies the user to pickup an incoming call from. If not provided, an incoming call to the user's call pickup group is picked up. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`,..."),
@@ -942,6 +958,7 @@ def create_pickup(
 
 _BODY_SKELETON_CREATE_BARGE_IN = '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'
 
+@app.command("create-barge-in-calls", hidden=True)
 @app.command("create-barge-in", short_help="Barge In.")
 def create_barge_in(
     target: str = typer.Option(None, "--target", help="(required) Identifies the user to barge-in on. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
@@ -1053,6 +1070,7 @@ def show(
 
 
 
+@app.command("list-history-calls", hidden=True)
 @app.command("list-history", short_help="List Call History.")
 def list_history(
     type_param: str = typer.Option(None, "--type", help="Choices: placed, missed, received"),
@@ -1088,6 +1106,7 @@ def list_history(
 
 _BODY_SKELETON_CREATE_PULL = '{"endpointId":"...","lineOwnerId":"..."}'
 
+@app.command("create-pull-calls", hidden=True)
 @app.command("create-pull", short_help="Pull.")
 def create_pull(
     endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."),
@@ -1383,6 +1402,955 @@ def show_calls_members(
 
 
 
+_BODY_SKELETON_CREATE_START_RECORDING_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-start-recording-members", short_help="Start Recording by Member ID.")
+def create_start_recording_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to start recording."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Start Recording by Member ID.\n\n\b\nExample: wxcli call-controls create-start-recording-members MEMBER_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_START_RECORDING_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/startRecording"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_STOP_RECORDING_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-stop-recording-members", short_help="Stop Recording by Member ID.")
+def create_stop_recording_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to stop recording."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Stop Recording by Member ID.\n\n\b\nExample: wxcli call-controls create-stop-recording-members MEMBER_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_STOP_RECORDING_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/stopRecording"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PAUSE_RECORDING_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-pause-recording-members", short_help="Pause Recording by Member ID.")
+def create_pause_recording_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to pause recording."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pause Recording by Member ID.\n\n\b\nExample: wxcli call-controls create-pause-recording-members MEMBER_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PAUSE_RECORDING_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/pauseRecording"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_RESUME_RECORDING_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-resume-recording-members", short_help="Resume Recording by Member ID.")
+def create_resume_recording_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to resume recording."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Resume Recording by Member ID.\n\n\b\nExample: wxcli call-controls create-resume-recording-members MEMBER_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESUME_RECORDING_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/resumeRecording"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_BARGE_IN_MEMBERS = '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"..."}'
+
+@app.command("create-barge-in-members", short_help="Barge In by Member ID.")
+def create_barge_in_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    target: str = typer.Option(None, "--target", help="(required) Identifies the user to barge-in on. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the barge-in. Mutually exclusive with `endpointId`."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Barge In by Member ID.\n\n\b\nExample: wxcli call-controls create-barge-in-members MEMBER_ID --target TARGET\n\n\b\nExample --json-body: '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BARGE_IN_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/bargeIn"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if target is not None:
+            body["target"] = target
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
+        _missing = [f for f in ['target'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_DIVERT_MEMBERS = '{"callId":"...","destination":"...","toVoicemail":true}'
+
+@app.command("create-divert-members", short_help="Divert by Member ID.")
+def create_divert_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to divert."),
+    destination: str = typer.Option(None, "--destination", help="The destination to divert the call to. If toVoicemail is false, destination is required. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help="If set to true, the call is diverted to voicemail. If no destination is specified, the call is diverted to the user's own voicemail. If a destination is specified, the call is diverted to the specified user's voicemail."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Divert by Member ID.\n\n\b\nExample: wxcli call-controls create-divert-members MEMBER_ID --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","destination":"...","toVoicemail":true}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DIVERT_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/divert"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if destination is not None:
+            body["destination"] = destination
+        if to_voicemail is not None:
+            body["toVoicemail"] = to_voicemail
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PUSH_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-push-members", short_help="Push by Member ID.")
+def create_push_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to push."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Push by Member ID.\n\n\b\nExample: wxcli call-controls create-push-members MEMBER_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PUSH_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/push"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_HOLD_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-hold-members", short_help="Hold by Member ID.")
+def create_hold_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hold."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Hold by Member ID.\n\n\b\nExample: wxcli call-controls create-hold-members MEMBER_ID --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_HOLD_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/hold"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+@app.command("list-history-members", short_help="List Call History by Member ID.")
+def list_history_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    type_param: str = typer.Option(None, "--type", help="Choices: placed, missed, received"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Call History by Member ID.\n\n\b\nExample: wxcli call-controls list-history-members MEMBER_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/history"
+    params = {}
+    if type_param is not None:
+        params["type"] = type_param
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Number', 'number'), ('Privacy Enabled', 'privacyEnabled'), ('Time', 'time')], limit=limit)
+
+
+
+_BODY_SKELETON_CREATE_MUTE_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-mute-members", short_help="Mute by Member ID.")
+def create_mute_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to mute."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Mute by Member ID.\n\n\b\nExample: wxcli call-controls create-mute-members MEMBER_ID --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MUTE_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/mute"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PARK_MEMBERS = '{"callId":"...","destination":"...","isGroupPark":true}'
+
+@app.command("create-park-members", short_help="Park by Member ID.")
+def create_park_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to park."),
+    destination: str = typer.Option(None, "--destination", help="Identifes where the call is to be parked. If not provided, the call is parked against the parking user. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help="If set to`true`, the call is parked against an automatically selected member of the user's call park group and the destination parameter is ignored."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Park by Member ID.\n\n\b\nExample: wxcli call-controls create-park-members MEMBER_ID --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","destination":"...","isGroupPark":true}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PARK_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/park"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if destination is not None:
+            body["destination"] = destination
+        if is_group_park is not None:
+            body["isGroupPark"] = is_group_park
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PICKUP_MEMBERS = '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"..."}'
+
+@app.command("create-pickup-members", short_help="Pickup by Member ID.")
+def create_pickup_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    target: str = typer.Option(None, "--target", help="Identifies the user to pickup an incoming call from. If not provided, an incoming call to the user's call pickup group is picked up. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`,..."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the pickup. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the pickup. Mutually exclusive with `endpointId`."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pickup by Member ID.\n\n\b\nExample: wxcli call-controls create-pickup-members MEMBER_ID\n\n\b\nExample --json-body: '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PICKUP_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/pickup"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if target is not None:
+            body["target"] = target
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PULL_MEMBERS = '{"endpointId":"..."}'
+
+@app.command("create-pull-members", short_help="Pull by Member ID.")
+def create_pull_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pull by Member ID.\n\n\b\nExample: wxcli call-controls create-pull-members MEMBER_ID\n\n\b\nExample --json-body: '{"endpointId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PULL_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/pull"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_REJECT_MEMBERS = '{"callId":"...","action":{}}'
+
+@app.command("create-reject-members", short_help="Reject by Member ID.")
+def create_reject_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
+    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action is applied if no specific action is provided."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Reject by Member ID.\n\n\b\nExample: wxcli call-controls create-reject-members MEMBER_ID --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","action":{}}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REJECT_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/reject"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if action is not None:
+            body["action"] = action
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_RESUME_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-resume-members", short_help="Resume by Member ID.")
+def create_resume_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to resume."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Resume by Member ID.\n\n\b\nExample: wxcli call-controls create-resume-members MEMBER_ID --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESUME_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/resume"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_RETRIEVE_MEMBERS = '{"destination":"...","endpointId":"...","singleNumberReachPhoneNumber":"..."}'
+
+@app.command("create-retrieve-members", short_help="Retrieve by Member ID.")
+def create_retrieve_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    destination: str = typer.Option(None, "--destination", help="Identifies where the call is parked. The number field from the park command response can be used as the destination for the retrieve command. If not provided, the call parked against the retrieving user is retrieved. The destination can be digits or a URI. Some examples for destination include:..."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the retrieval. Mutually exclusive with `endpointId`."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve by Member ID.\n\n\b\nExample: wxcli call-controls create-retrieve-members MEMBER_ID\n\n\b\nExample --json-body: '{"destination":"...","endpointId":"...","singleNumberReachPhoneNumber":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RETRIEVE_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/retrieve"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if destination is not None:
+            body["destination"] = destination
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_TRANSFER_MEMBERS = '{"callId1":"...","callId2":"...","destination":"..."}'
+
+@app.command("create-transfer-members", short_help="Transfer by Member ID.")
+def create_transfer_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id1: str = typer.Option(None, "--call-id1", help="The call identifier of the first call to transfer. This parameter is mandatory if either `callId2` or `destination` is provided."),
+    call_id2: str = typer.Option(None, "--call-id2", help="The call identifier of the second call to transfer. This parameter is mandatory if `callId1` is provided and `destination` is not provided."),
+    destination: str = typer.Option(None, "--destination", help="The destination to be transferred to. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`. This parameter is mandatory if `callId1` is provided and `callId2` is not..."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Transfer by Member ID.\n\n\b\nExample: wxcli call-controls create-transfer-members MEMBER_ID\n\n\b\nExample --json-body: '{"callId1":"...","callId2":"...","destination":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSFER_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/transfer"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id1 is not None:
+            body["callId1"] = call_id1
+        if call_id2 is not None:
+            body["callId2"] = call_id2
+        if destination is not None:
+            body["destination"] = destination
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_TRANSMIT_DTMF_MEMBERS = '{"callId":"...","dtmf":"..."}'
+
+@app.command("create-transmit-dtmf-members", short_help="Transmit DTMF by Member ID.")
+def create_transmit_dtmf_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to transmit DTMF digits for."),
+    dtmf: str = typer.Option(None, "--dtmf", help="The DTMF digits to transmit. Each digit must be part of the following set: `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, *, #, A, B, C, D]`. A comma \",\" may be included to indicate a pause between digits. For the value “1,234”, the DTMF 1 digit is initially sent. After a pause, the DTMF 2, 3, and 4 digits are..."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Transmit DTMF by Member ID.\n\n\b\nExample: wxcli call-controls create-transmit-dtmf-members MEMBER_ID\n\n\b\nExample --json-body: '{"callId":"...","dtmf":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSMIT_DTMF_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/transmitDtmf"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if dtmf is not None:
+            body["dtmf"] = dtmf
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_UNMUTE_MEMBERS = '{"callId":"..."}'
+
+@app.command("create-unmute-members", short_help="Unmute by Member ID.")
+def create_unmute_members(
+    member_id: str = typer.Argument(help="Webex PEOPLE id"),
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to unmute."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Unmute by Member ID.\n\n\b\nExample: wxcli call-controls create-unmute-members MEMBER_ID --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_UNMUTE_MEMBERS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/{member_id}/unmute"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
 _BODY_SKELETON_CREATE_DIAL_ME = '{"destination":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'
 
 @app.command("create-dial-me", short_help="Dial.")
@@ -1592,5 +2560,916 @@ def show_calls_me(
     except httpx.HTTPError as e:
         handle_network_error(e)
     emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_START_RECORDING_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-start-recording-me", short_help="Start Recording.")
+def create_start_recording_me(
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to start recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Start Recording.\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_START_RECORDING_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/startRecording"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_STOP_RECORDING_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-stop-recording-me", short_help="Stop Recording.")
+def create_stop_recording_me(
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to stop recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Stop Recording.\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_STOP_RECORDING_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/stopRecording"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PAUSE_RECORDING_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-pause-recording-me", short_help="Pause Recording.")
+def create_pause_recording_me(
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to pause recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pause Recording.\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PAUSE_RECORDING_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/pauseRecording"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_RESUME_RECORDING_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-resume-recording-members-1", hidden=True)
+@app.command("create-resume-recording-me", short_help="Resume Recording.")
+def create_resume_recording_me(
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to resume recording."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Resume Recording.\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESUME_RECORDING_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/resumeRecording"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_REJECT_ME = '{"callId":"...","action":{},"lineOwnerId":"..."}'
+
+@app.command("create-reject-me", short_help="Reject.")
+def create_reject_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
+    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action is applied if no specific action is provided."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Reject.\n\n\b\nExample: wxcli call-controls create-reject-me --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","action":{},"lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_REJECT_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/reject"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if action is not None:
+            body["action"] = action
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_BARGE_IN_ME = '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'
+
+@app.command("create-barge-in-me", short_help="Barge In.")
+def create_barge_in_me(
+    target: str = typer.Option(None, "--target", help="(required) Identifies the user to barge-in on. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the barge-in. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the barge-in. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Barge In.\n\n\b\nExample: wxcli call-controls create-barge-in-me --target TARGET\n\n\b\nExample --json-body: '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_BARGE_IN_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/bargeIn"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if target is not None:
+            body["target"] = target
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['target'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_DIVERT_ME = '{"callId":"...","destination":"...","toVoicemail":true,"lineOwnerId":"..."}'
+
+@app.command("create-divert-me", short_help="Divert.")
+def create_divert_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to divert."),
+    destination: str = typer.Option(None, "--destination", help="The destination to divert the call to. If toVoicemail is false, destination is required. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    to_voicemail: bool = typer.Option(None, "--to-voicemail/--no-to-voicemail", help="If set to true, the call is diverted to voicemail. If no destination is specified, the call is diverted to the user's own voicemail. If a destination is specified, the call is diverted to the specified user's voicemail."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Divert.\n\n\b\nExample: wxcli call-controls create-divert-me --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","destination":"...","toVoicemail":true,"lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_DIVERT_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/divert"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if destination is not None:
+            body["destination"] = destination
+        if to_voicemail is not None:
+            body["toVoicemail"] = to_voicemail
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PUSH_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-push-me", short_help="Push.")
+def create_push_me(
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to push."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Push.\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PUSH_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/push"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_HOLD_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-hold-me", short_help="Hold.")
+def create_hold_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to hold."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Hold.\n\n\b\nExample: wxcli call-controls create-hold-me --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_HOLD_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/hold"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+@app.command("list-history-me", short_help="List Call History.")
+def list_history_me(
+    type_param: str = typer.Option(None, "--type", help="Choices: placed, missed, received"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Call History."""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/history"
+    params = {}
+    if type_param is not None:
+        params["type"] = type_param
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Number', 'number'), ('Privacy Enabled', 'privacyEnabled'), ('Time', 'time')], limit=limit)
+
+
+
+_BODY_SKELETON_CREATE_MUTE_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-mute-me", short_help="Mute.")
+def create_mute_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to mute."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Mute.\n\n\b\nExample: wxcli call-controls create-mute-me --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MUTE_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/mute"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PARK_ME = '{"callId":"...","destination":"...","isGroupPark":true,"lineOwnerId":"..."}'
+
+@app.command("create-park-me", short_help="Park.")
+def create_park_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to park."),
+    destination: str = typer.Option(None, "--destination", help="Identifes where the call is to be parked. If not provided, the call is parked against the parking user. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `*73`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`"),
+    is_group_park: bool = typer.Option(None, "--is-group-park/--no-is-group-park", help="If set to`true`, the call is parked against an automatically selected member of the user's call park group and the destination parameter is ignored."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Park.\n\n\b\nExample: wxcli call-controls create-park-me --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","destination":"...","isGroupPark":true,"lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PARK_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/park"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if destination is not None:
+            body["destination"] = destination
+        if is_group_park is not None:
+            body["isGroupPark"] = is_group_park
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PICKUP_ME = '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'
+
+@app.command("create-pickup-me", short_help="Pickup.")
+def create_pickup_me(
+    target: str = typer.Option(None, "--target", help="Identifies the user to pickup an incoming call from. If not provided, an incoming call to the user's call pickup group is picked up. The target can be digits or a URI. Some examples for target include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`,..."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the pickup. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the pickup. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pickup.\n\n\b\nExample --json-body: '{"target":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PICKUP_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/pickup"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if target is not None:
+            body["target"] = target
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_PULL_ME = '{"endpointId":"...","lineOwnerId":"..."}'
+
+@app.command("create-pull-me", short_help="Pull.")
+def create_pull_me(
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint)."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Pull.\n\n\b\nExample --json-body: '{"endpointId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_PULL_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/pull"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_RESUME_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-resume-members-1", hidden=True)
+@app.command("create-resume-me", short_help="Resume.")
+def create_resume_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to resume."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Resume.\n\n\b\nExample: wxcli call-controls create-resume-me --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RESUME_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/resume"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_RETRIEVE_ME = '{"destination":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'
+
+@app.command("create-retrieve-me", short_help="Retrieve.")
+def create_retrieve_me(
+    destination: str = typer.Option(None, "--destination", help="Identifies where the call is parked. The number field from the park command response can be used as the destination for the retrieve command. If not provided, the call parked against the retrieving user is retrieved. The destination can be digits or a URI. Some examples for destination include:..."),
+    endpoint_id: str = typer.Option(None, "--endpoint-id", help="The ID of the device or application to use for the retrieval. The `endpointId` must be one of the endpointIds returned by the [Get Preferred Answer Endpoint API](/docs/api/v1/user-call-settings-2-2/get-preferred-answer-endpoint). Mutually exclusive with `singleNumberReachPhoneNumber`."),
+    single_number_reach_phone_number: str = typer.Option(None, "--single-number-reach-phone-number", help="The Single Number Reach phone number to use for the retrieval. Mutually exclusive with `endpointId`."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Retrieve.\n\n\b\nExample --json-body: '{"destination":"...","endpointId":"...","singleNumberReachPhoneNumber":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_RETRIEVE_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/retrieve"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if destination is not None:
+            body["destination"] = destination
+        if endpoint_id is not None:
+            body["endpointId"] = endpoint_id
+        if single_number_reach_phone_number is not None:
+            body["singleNumberReachPhoneNumber"] = single_number_reach_phone_number
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_TRANSFER_ME = '{"callId1":"...","callId2":"...","destination":"...","lineOwnerId":"..."}'
+
+@app.command("create-transfer-me", short_help="Transfer.")
+def create_transfer_me(
+    call_id1: str = typer.Option(None, "--call-id1", help="The call identifier of the first call to transfer. This parameter is mandatory if either `callId2` or `destination` is provided."),
+    call_id2: str = typer.Option(None, "--call-id2", help="The call identifier of the second call to transfer. This parameter is mandatory if `callId1` is provided and `destination` is not provided."),
+    destination: str = typer.Option(None, "--destination", help="The destination to be transferred to. The destination can be digits or a URI. Some examples for destination include: `1234`, `2223334444`, `+12223334444`, `tel:+12223334444`, `user@company.domain`, `sip:user@company.domain`. This parameter is mandatory if `callId1` is provided and `callId2` is not..."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Transfer.\n\n\b\nExample --json-body: '{"callId1":"...","callId2":"...","destination":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSFER_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/transfer"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id1 is not None:
+            body["callId1"] = call_id1
+        if call_id2 is not None:
+            body["callId2"] = call_id2
+        if destination is not None:
+            body["destination"] = destination
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "callId" in result:
+            typer.echo(f"Created: {result['callId']}")
+        elif isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_TRANSMIT_DTMF_ME = '{"callId":"...","dtmf":"...","lineOwnerId":"..."}'
+
+@app.command("create-transmit-dtmf-me", short_help="Transmit DTMF.")
+def create_transmit_dtmf_me(
+    call_id: str = typer.Option(None, "--call-id", help="The call identifier of the call to transmit DTMF digits for."),
+    dtmf: str = typer.Option(None, "--dtmf", help="The DTMF digits to transmit. Each digit must be part of the following set: `[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, *, #, A, B, C, D]`. A comma \",\" may be included to indicate a pause between digits. For the value “1,234”, the DTMF 1 digit is initially sent. After a pause, the DTMF 2, 3, and 4 digits are..."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Transmit DTMF.\n\n\b\nExample --json-body: '{"callId":"...","dtmf":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRANSMIT_DTMF_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/transmitDtmf"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if dtmf is not None:
+            body["dtmf"] = dtmf
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_CREATE_UNMUTE_ME = '{"callId":"...","lineOwnerId":"..."}'
+
+@app.command("create-unmute-me", short_help="Unmute.")
+def create_unmute_me(
+    call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to unmute."),
+    line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Unmute.\n\n\b\nExample: wxcli call-controls create-unmute-me --call-id CALL_ID\n\n\b\nExample --json-body: '{"callId":"...","lineOwnerId":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_UNMUTE_ME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/calls/members/me/unmute"
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if call_id is not None:
+            body["callId"] = call_id
+        if line_owner_id is not None:
+            body["lineOwnerId"] = line_owner_id
+        _missing = [f for f in ['callId'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
+    try:
+        result = api.session.rest_post(url, json=body)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if output == "id":
+        if isinstance(result, dict) and "id" in result:
+            typer.echo(f"Created: {result['id']}")
+        elif not result or result == {}:
+            typer.echo("Created.")
+        else:
+            print_json(result)
+    else:
+        emit(result, output=output, fields=fields)
 
 

@@ -427,6 +427,12 @@
    "create-barge-in": [
     "POST /telephony/calls/bargeIn"
    ],
+   "create-barge-in-me": [
+    "POST /telephony/calls/members/me/bargeIn"
+   ],
+   "create-barge-in-members": [
+    "POST /telephony/calls/members/{}/bargeIn"
+   ],
    "create-dial-me": [
     "POST /telephony/calls/members/me/dial"
    ],
@@ -435,6 +441,12 @@
    ],
    "create-divert": [
     "POST /telephony/calls/divert"
+   ],
+   "create-divert-me": [
+    "POST /telephony/calls/members/me/divert"
+   ],
+   "create-divert-members": [
+    "POST /telephony/calls/members/{}/divert"
    ],
    "create-hangup-calls": [
     "POST /telephony/calls/hangup"
@@ -448,50 +460,146 @@
    "create-hold": [
     "POST /telephony/calls/hold"
    ],
+   "create-hold-me": [
+    "POST /telephony/calls/members/me/hold"
+   ],
+   "create-hold-members": [
+    "POST /telephony/calls/members/{}/hold"
+   ],
    "create-mute": [
     "POST /telephony/calls/mute"
+   ],
+   "create-mute-me": [
+    "POST /telephony/calls/members/me/mute"
+   ],
+   "create-mute-members": [
+    "POST /telephony/calls/members/{}/mute"
    ],
    "create-park": [
     "POST /telephony/calls/park"
    ],
+   "create-park-me": [
+    "POST /telephony/calls/members/me/park"
+   ],
+   "create-park-members": [
+    "POST /telephony/calls/members/{}/park"
+   ],
    "create-pause-recording": [
     "POST /telephony/calls/pauseRecording"
+   ],
+   "create-pause-recording-me": [
+    "POST /telephony/calls/members/me/pauseRecording"
+   ],
+   "create-pause-recording-members": [
+    "POST /telephony/calls/members/{}/pauseRecording"
    ],
    "create-pickup": [
     "POST /telephony/calls/pickup"
    ],
+   "create-pickup-me": [
+    "POST /telephony/calls/members/me/pickup"
+   ],
+   "create-pickup-members": [
+    "POST /telephony/calls/members/{}/pickup"
+   ],
    "create-pull": [
     "POST /telephony/calls/pull"
+   ],
+   "create-pull-me": [
+    "POST /telephony/calls/members/me/pull"
+   ],
+   "create-pull-members": [
+    "POST /telephony/calls/members/{}/pull"
    ],
    "create-push": [
     "POST /telephony/calls/push"
    ],
+   "create-push-me": [
+    "POST /telephony/calls/members/me/push"
+   ],
+   "create-push-members": [
+    "POST /telephony/calls/members/{}/push"
+   ],
    "create-reject": [
     "POST /telephony/calls/reject"
+   ],
+   "create-reject-me": [
+    "POST /telephony/calls/members/me/reject"
+   ],
+   "create-reject-members": [
+    "POST /telephony/calls/members/{}/reject"
    ],
    "create-resume": [
     "POST /telephony/calls/resume"
    ],
+   "create-resume-me": [
+    "POST /telephony/calls/members/me/resume"
+   ],
+   "create-resume-members": [
+    "POST /telephony/calls/members/{}/resume"
+   ],
    "create-resume-recording": [
     "POST /telephony/calls/resumeRecording"
+   ],
+   "create-resume-recording-me": [
+    "POST /telephony/calls/members/me/resumeRecording"
+   ],
+   "create-resume-recording-members": [
+    "POST /telephony/calls/members/{}/resumeRecording"
    ],
    "create-retrieve": [
     "POST /telephony/calls/retrieve"
    ],
+   "create-retrieve-me": [
+    "POST /telephony/calls/members/me/retrieve"
+   ],
+   "create-retrieve-members": [
+    "POST /telephony/calls/members/{}/retrieve"
+   ],
    "create-start-recording": [
     "POST /telephony/calls/startRecording"
+   ],
+   "create-start-recording-me": [
+    "POST /telephony/calls/members/me/startRecording"
+   ],
+   "create-start-recording-members": [
+    "POST /telephony/calls/members/{}/startRecording"
    ],
    "create-stop-recording": [
     "POST /telephony/calls/stopRecording"
    ],
+   "create-stop-recording-me": [
+    "POST /telephony/calls/members/me/stopRecording"
+   ],
+   "create-stop-recording-members": [
+    "POST /telephony/calls/members/{}/stopRecording"
+   ],
    "create-transfer": [
     "POST /telephony/calls/transfer"
+   ],
+   "create-transfer-me": [
+    "POST /telephony/calls/members/me/transfer"
+   ],
+   "create-transfer-members": [
+    "POST /telephony/calls/members/{}/transfer"
    ],
    "create-transmit-dtmf": [
     "POST /telephony/calls/transmitDtmf"
    ],
+   "create-transmit-dtmf-me": [
+    "POST /telephony/calls/members/me/transmitDtmf"
+   ],
+   "create-transmit-dtmf-members": [
+    "POST /telephony/calls/members/{}/transmitDtmf"
+   ],
    "create-unmute": [
     "POST /telephony/calls/unmute"
+   ],
+   "create-unmute-me": [
+    "POST /telephony/calls/members/me/unmute"
+   ],
+   "create-unmute-members": [
+    "POST /telephony/calls/members/{}/unmute"
    ],
    "list": [
     "GET /telephony/calls"
@@ -508,6 +616,12 @@
    "list-history": [
     "GET /telephony/calls/history"
    ],
+   "list-history-me": [
+    "GET /telephony/calls/members/me/history"
+   ],
+   "list-history-members": [
+    "GET /telephony/calls/members/{}/history"
+   ],
    "show": [
     "GET /telephony/calls/{}"
    ],
@@ -516,6 +630,16 @@
    ],
    "show-calls-members": [
     "GET /telephony/calls/members/{}/calls/{}"
+   ]
+  },
+  "call_controls_members": {
+   "create-wrapupreasons": [
+    "POST /telephony/calls/members/{}/wrapupreasons"
+   ]
+  },
+  "call_controls_members_me": {
+   "create-wrapupreasons": [
+    "POST /telephony/calls/members/me/wrapupreasons"
    ]
   },
   "call_park": {
@@ -1799,6 +1923,29 @@
     "GET /flow-store/{}/project/{}/flows/{}:export"
    ]
   },
+  "cc_monitoring_schedules": {
+   "create": [
+    "POST /organization/{}/call-monitoring"
+   ],
+   "create-delete-reference": [
+    "POST /organization/{}/call-monitoring/delete-reference"
+   ],
+   "delete": [
+    "DELETE /organization/{}/call-monitoring/{}"
+   ],
+   "list": [
+    "GET /organization/{}/v2/call-monitoring"
+   ],
+   "show": [
+    "GET /organization/{}/call-monitoring/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/call-monitoring/{}"
+   ],
+   "update-call-monitoring": [
+    "PATCH /organization/{}/call-monitoring/{}"
+   ]
+  },
   "cc_multimedia_profile": {
    "create": [
     "POST /organization/{}/multimedia-profile"
@@ -1834,6 +1981,23 @@
   "cc_notification": {
    "create": [
     "POST /notification/subscribe"
+   ]
+  },
+  "cc_org_settings": {
+   "list": [
+    "GET /organization/{}/organization-setting"
+   ],
+   "list-organization-setting": [
+    "GET /organization/{}/v2/organization-setting"
+   ],
+   "show": [
+    "GET /organization/{}/organization-setting/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/organization-setting/{}"
+   ],
+   "update-organization-setting": [
+    "PATCH /organization/{}/organization-setting/{}"
    ]
   },
   "cc_outdial_ani": {
@@ -2274,6 +2438,20 @@
     "PUT /organization/{}/team/{}"
    ]
   },
+  "cc_tenant_config": {
+   "list": [
+    "GET /organization/{}/tenant-configuration"
+   ],
+   "list-tenant-configuration": [
+    "GET /organization/{}/v2/tenant-configuration"
+   ],
+   "show": [
+    "GET /organization/{}/tenant-configuration/{}"
+   ],
+   "update": [
+    "PUT /organization/{}/tenant-configuration/{}"
+   ]
+  },
   "cc_user_profiles": {
    "create": [
     "POST /organization/{}/v3/user-profile"
@@ -2430,29 +2608,107 @@
    "create-add-participant": [
     "POST /telephony/conference/addParticipant"
    ],
+   "create-add-participant-me": [
+    "POST /telephony/conference/members/me/addParticipant"
+   ],
+   "create-add-participant-members": [
+    "POST /telephony/conference/members/{}/addParticipant"
+   ],
+   "create-barge-in-me": [
+    "POST /telephony/conference/members/me/bargeIn"
+   ],
+   "create-barge-in-members": [
+    "POST /telephony/conference/members/{}/bargeIn"
+   ],
+   "create-conference-me": [
+    "POST /telephony/conference/members/me/conference"
+   ],
+   "create-conference-members": [
+    "POST /telephony/conference/members/{}/conference"
+   ],
    "create-deafen": [
     "POST /telephony/conference/deafen"
+   ],
+   "create-deafen-me": [
+    "POST /telephony/conference/members/me/deafen"
+   ],
+   "create-deafen-members": [
+    "POST /telephony/conference/members/{}/deafen"
    ],
    "create-hold": [
     "POST /telephony/conference/hold"
    ],
+   "create-hold-me": [
+    "POST /telephony/conference/members/me/hold"
+   ],
+   "create-hold-members": [
+    "POST /telephony/conference/members/{}/hold"
+   ],
    "create-mute": [
     "POST /telephony/conference/mute"
+   ],
+   "create-mute-me": [
+    "POST /telephony/conference/members/me/mute"
+   ],
+   "create-mute-members": [
+    "POST /telephony/conference/members/{}/mute"
    ],
    "create-resume": [
     "POST /telephony/conference/resume"
    ],
+   "create-resume-me": [
+    "POST /telephony/conference/members/me/resume"
+   ],
+   "create-resume-members": [
+    "POST /telephony/conference/members/{}/resume"
+   ],
+   "create-silent-monitor-me": [
+    "POST /telephony/conference/members/me/silentMonitor"
+   ],
+   "create-silent-monitor-members": [
+    "POST /telephony/conference/members/{}/silentMonitor"
+   ],
+   "create-supervisor-coach-me": [
+    "POST /telephony/conference/members/me/supervisorCoach"
+   ],
+   "create-supervisor-coach-members": [
+    "POST /telephony/conference/members/{}/supervisorCoach"
+   ],
    "create-undeafen": [
     "POST /telephony/conference/undeafen"
+   ],
+   "create-undeafen-me": [
+    "POST /telephony/conference/members/me/undeafen"
+   ],
+   "create-undeafen-members": [
+    "POST /telephony/conference/members/{}/undeafen"
    ],
    "create-unmute": [
     "POST /telephony/conference/unmute"
    ],
+   "create-unmute-me": [
+    "POST /telephony/conference/members/me/unmute"
+   ],
+   "create-unmute-members": [
+    "POST /telephony/conference/members/{}/unmute"
+   ],
    "delete": [
     "DELETE /telephony/conference"
    ],
+   "delete-conference-me": [
+    "DELETE /telephony/conference/members/me/conference"
+   ],
+   "delete-conference-members": [
+    "DELETE /telephony/conference/members/{}/conference"
+   ],
    "list": [
     "GET /telephony/conference"
+   ],
+   "list-conference-me": [
+    "GET /telephony/conference/members/me/conference"
+   ],
+   "list-conference-members": [
+    "GET /telephony/conference/members/{}/conference"
    ]
   },
   "configure": {},
@@ -2999,9 +3255,17 @@
     "GET /events/{}"
    ]
   },
+  "external_data_updates": {
+   "update": [
+    "PUT /data/updateExternal"
+   ]
+  },
   "external_voicemail": {
    "create": [
     "POST /telephony/externalVoicemail/mwi"
+   ],
+   "create-mwi": [
+    "POST /telephony/externalVoicemail/members/{}/mwi"
    ]
   },
   "groups": {
@@ -4803,6 +5067,46 @@
     "GET /usage-reports/{}"
    ]
   },
+  "user_call_settings_members": {
+   "create-mark-as-read": [
+    "POST /telephony/voiceMessages/members/{}/markAsRead"
+   ],
+   "create-mark-as-unread": [
+    "POST /telephony/voiceMessages/members/{}/markAsUnread"
+   ],
+   "delete-voice-messages": [
+    "DELETE /telephony/voiceMessages/members/{}/voiceMessages/{}"
+   ],
+   "list-memberships": [
+    "GET /telephony/voiceMessages/members/{}/memberships"
+   ],
+   "list-voice-messages": [
+    "GET /telephony/voiceMessages/members/{}/voiceMessages"
+   ],
+   "show-summary": [
+    "GET /telephony/voiceMessages/members/{}/summary"
+   ]
+  },
+  "user_call_settings_members_me": {
+   "create-mark-as-read": [
+    "POST /telephony/voiceMessages/members/me/markAsRead"
+   ],
+   "create-mark-as-unread": [
+    "POST /telephony/voiceMessages/members/me/markAsUnread"
+   ],
+   "delete-voice-messages": [
+    "DELETE /telephony/voiceMessages/members/me/voiceMessages/{}"
+   ],
+   "list-memberships": [
+    "GET /telephony/voiceMessages/members/me/memberships"
+   ],
+   "list-voice-messages": [
+    "GET /telephony/voiceMessages/members/me/voiceMessages"
+   ],
+   "show-summary": [
+    "GET /telephony/voiceMessages/members/me/summary"
+   ]
+  },
   "user_settings": {
    "configure-busy-voicemail": [
     "POST /people/{}/features/voicemail/actions/uploadBusyGreeting/invoke"
@@ -4936,6 +5240,9 @@
    "list-available-numbers-secondary": [
     "GET /telephony/config/people/{}/secondary/availableNumbers"
    ],
+   "list-available-preferred-answer-endpoints": [
+    "GET /telephony/config/people/{}/availablePreferredAnswerEndpoints"
+   ],
    "list-call-filtering": [
     "GET /telephony/config/people/{}/executive/callFiltering"
    ],
@@ -4953,6 +5260,9 @@
    ],
    "list-members-hot-desking": [
     "GET /telephony/config/people/{}/features/hotDesking/members"
+   ],
+   "list-memberships": [
+    "GET /telephony/voiceMessages/memberships"
    ],
    "list-mode-management": [
     "GET /telephony/config/people/{}/modeManagement/features"
@@ -5022,6 +5332,9 @@
    ],
    "show-anonymous-call-reject": [
     "GET /telephony/config/people/{}/anonymousCallReject"
+   ],
+   "show-answer-settings": [
+    "GET /telephony/config/people/{}/answerSettings"
    ],
    "show-auto-transfer-numbers": [
     "GET /telephony/config/people/{}/outgoingPermission/autoTransferNumbers"
@@ -5127,6 +5440,9 @@
    ],
    "update-anonymous-call-reject": [
     "PUT /telephony/config/people/{}/anonymousCallReject"
+   ],
+   "update-answer-settings": [
+    "PUT /telephony/config/people/{}/answerSettings"
    ],
    "update-assigned-assistants": [
     "PUT /telephony/config/people/{}/executive/assignedAssistants"
@@ -5467,6 +5783,9 @@
    "list-available-numbers-virtual-lines": [
     "GET /telephony/config/virtualLines/availableNumbers"
    ],
+   "list-available-preferred-answer-endpoints": [
+    "GET /telephony/config/virtualLines/{}/availablePreferredAnswerEndpoints"
+   ],
    "list-caller-id": [
     "GET /telephony/config/virtualLines/{}/callerId"
    ],
@@ -5496,6 +5815,9 @@
    ],
    "show": [
     "GET /telephony/config/virtualLines/{}/callRecording"
+   ],
+   "show-answer-settings": [
+    "GET /telephony/config/virtualLines/{}/answerSettings"
    ],
    "show-auto-transfer-numbers": [
     "GET /telephony/config/virtualLines/{}/outgoingPermission/autoTransferNumbers"
@@ -5544,6 +5866,9 @@
    ],
    "update-access-codes": [
     "PUT /telephony/config/virtualLines/{}/outgoingPermission/accessCodes"
+   ],
+   "update-answer-settings": [
+    "PUT /telephony/config/virtualLines/{}/answerSettings"
    ],
    "update-auto-transfer-numbers": [
     "PUT /telephony/config/virtualLines/{}/outgoingPermission/autoTransferNumbers"
@@ -5834,6 +6159,9 @@
    "list-available-numbers-workspaces": [
     "GET /telephony/config/workspaces/availableNumbers"
    ],
+   "list-available-preferred-answer-endpoints": [
+    "GET /telephony/config/workspaces/{}/availablePreferredAnswerEndpoints"
+   ],
    "list-digit-patterns": [
     "GET /telephony/config/workspaces/{}/outgoingPermission/digitPatterns"
    ],
@@ -5878,6 +6206,9 @@
    ],
    "show-anonymous-call-reject": [
     "GET /telephony/config/workspaces/{}/anonymousCallReject"
+   ],
+   "show-answer-settings": [
+    "GET /telephony/config/workspaces/{}/answerSettings"
    ],
    "show-auto-transfer-numbers": [
     "GET /workspaces/{}/features/outgoingPermission/autoTransferNumbers"
@@ -5941,6 +6272,9 @@
    ],
    "update-anonymous-call-reject": [
     "PUT /telephony/config/workspaces/{}/anonymousCallReject"
+   ],
+   "update-answer-settings": [
+    "PUT /telephony/config/workspaces/{}/answerSettings"
    ],
    "update-auto-transfer-numbers": [
     "PUT /workspaces/{}/features/outgoingPermission/autoTransferNumbers"

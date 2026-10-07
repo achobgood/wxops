@@ -1,6 +1,6 @@
 # Contact Center: Agents, Queues, Teams, and Configuration
 
-Reference for Webex Contact Center agent management, queue routing, team assignment, skill-based routing, desktop configuration, and administrative entity management. Covers 21 CLI groups with 211 commands generated from the Contact Center OpenAPI spec.
+Reference for Webex Contact Center agent management, queue routing, team assignment, skill-based routing, desktop configuration, and administrative entity management. Covers 24 CLI groups with 227 commands generated from the Contact Center OpenAPI spec.
 
 ## Sources
 
@@ -49,9 +49,12 @@ Two path families exist:
 18. [Work Types (`cc-work-types`)](#18-work-types-cc-work-types)
 19. [Sites (`cc-site`)](#19-sites-cc-site)
 20. [Global Variables (`cc-global-vars`)](#20-global-variables-cc-global-vars)
-21. [Common Patterns](#21-common-patterns)
-22. [Gotchas](#22-gotchas)
-23. [See Also](#23-see-also)
+21. [Call Monitoring Schedules (`cc-monitoring-schedules`)](#21-call-monitoring-schedules-cc-monitoring-schedules)
+22. [Organization Settings (`cc-org-settings`)](#22-organization-settings-cc-org-settings)
+23. [Tenant Configuration (`cc-tenant-config`)](#23-tenant-configuration-cc-tenant-config)
+24. [Common Patterns](#24-common-patterns)
+25. [Gotchas](#25-gotchas)
+26. [See Also](#26-see-also)
 
 > **Note:** Agent summaries (`cc-agent-summaries`) are documented in [contact-center-analytics.md](contact-center-analytics.md) alongside the related AI and generated summary features.
 
@@ -275,7 +278,7 @@ Contact Center user management. CC users are Webex users with CC-specific config
 | Method | Path | CLI Command | Description |
 |--------|------|-------------|-------------|
 | GET | `/organization/{orgid}/user` | `list` | List User(s) (v1) |
-| GET | `/organization/{orgid}/user/by-call-monitoring-id/{id}` | `show` | List users by call monitoring ID |
+| GET | `/organization/{orgid}/user/by-call-monitoring-id/{id}` | `show` | List the users a call monitoring **schedule** covers — takes a schedule ID (§21), **not** a user ID; for one user use `show-user` |
 | PATCH | `/organization/{orgid}/user/bulk` | `update` | Bulk partial update Users |
 | GET | `/organization/{orgid}/user/bulk-export` | _(no CLI command)_ | Bulk export User(s) |
 | GET | `/organization/{orgid}/user/by-ci-user-id/{id}` | `show-by-ci-user-id-organization` | Get User by CI User ID (v1) |
@@ -284,8 +287,8 @@ Contact Center user management. CC users are Webex users with CC-specific config
 | GET | `/organization/{orgid}/user/with-user-profile` | `list-with-user-profile` | List Users with profile |
 | GET | `/organization/{orgid}/user/with-user-profile/{id}` | `show-with-user-profile` | Get User with profile by ID |
 | GET | `/organization/{orgid}/user/{id}` | `show-user` | Get User by ID |
-| PATCH | `/organization/{orgid}/user/{id}` | `update-user-organization-1` | Partially update User by ID |
-| PUT | `/organization/{orgid}/user/{id}` | `update-user-organization` | Update User by ID |
+| PATCH | `/organization/{orgid}/user/{id}` | _(no CLI command)_ | Partially update User by ID |
+| PUT | `/organization/{orgid}/user/{id}` | `update-user` | Update User by ID |
 | GET | `/organization/{orgid}/user/{id}/incoming-references` | `list-incoming-references` | List references for User |
 | GET | `/organization/{orgid}/v2/user` | `list-user` | List User(s) (v2) |
 | GET | `/organization/{orgid}/v2/user/by-ci-user-id/{id}` | `show-by-ci-user-id-v2` | Get User by CI User ID (v2) |
@@ -1517,7 +1520,263 @@ curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/cad-variable" 
 
 ---
 
-## 21. Common Patterns
+## 21. Call Monitoring Schedules (`cc-monitoring-schedules`)
+
+A call monitoring schedule is a **stored, supervisor-owned plan** for monitoring: a name, a time window (`startTimestamp`/`endTimestamp` in epoch milliseconds, UTC), a `timezone`, an optional weekly `recurrence` on `daysOfWeek`, the teams and contact service queues it covers, which agents it covers (`agentsAccessType` `ALL`, or `SPECIFIC` with an `agents` list), the supervisor who owns it (`userId`), and a `paused` flag. Upstream tags it "Call Monitoring Request"; the paths are `/organization/{orgid}/call-monitoring`.
+
+This is **not** live monitoring. Starting a silent-monitor session on a contact that is in progress, barging in, holding, or ending a session is `cc-call-monitoring` (runtime paths under `/v1/monitor`), documented in [contact-center-analytics.md §7](contact-center-analytics.md#7-call-monitoring). Creating a schedule here does not attach a supervisor to any call, and deleting one does not end a session that is already running. It is also **not** the Webex Calling person-level monitoring (busy-lamp) setting, which belongs to the `manage-call-settings` skill.
+
+**Unverified:** everything in this section is read from `specs/webex-contact-center.json` and the generated module `cc_monitoring_schedules.py`. No live call was made, and the spec does not say how — or whether — a schedule causes the platform to start monitoring sessions on its own.
+
+### Endpoints
+
+| Method | Path | CLI Command | Description |
+|--------|------|-------------|-------------|
+| POST | `/organization/{orgid}/call-monitoring` | `create` | Create a schedule |
+| POST | `/organization/{orgid}/call-monitoring/delete-reference` | `create-delete-reference` | Remove references to a deleted team/agent/queue (destructive, see gotchas) |
+| GET | `/organization/{orgid}/call-monitoring/{id}` | `show` | Get one schedule (full record) |
+| PUT | `/organization/{orgid}/call-monitoring/{id}` | `update` | Full replace |
+| PATCH | `/organization/{orgid}/call-monitoring/{id}` | `update-call-monitoring` | Partial update |
+| DELETE | `/organization/{orgid}/call-monitoring/{id}` | `delete` | Delete a schedule |
+| GET | `/organization/{orgid}/v2/call-monitoring` | `list` | List schedules (v2 — the only list endpoint) |
+| GET | `/organization/{orgid}/user/by-call-monitoring-id/{id}` | `cc-users show` | Users a schedule covers (lives in the `cc-users` group) |
+
+**Which list and which update to use.** The usual CC convention (see `cc-team` in §9) is that bare `list` is the v1 endpoint and `list-<resource>` is v2. That convention does **not** hold here: this resource has no v1 list, so the bare `list` *is* the v2 endpoint and there is no `list-call-monitoring`. For changes, prefer `update-call-monitoring` (PATCH): it changes only the fields you send, so pausing a schedule is one field. `update` (PUT) replaces the record, and the spec marks nine fields required on it — including the `teams` and `contactServiceQueues` arrays — so a PUT that omits them is expected to fail or to clear them.
+
+### Key Parameters
+
+- **Required by the spec on create/PUT:** `name`, `timezone`, `recurrence`, `startTimestamp`, `endTimestamp`, `userId` (the supervisor), `paused`, `teams` (at least one), `contactServiceQueues` (at least one)
+- **`teams` / `contactServiceQueues`:** arrays of `{"id": ..., "name": ...}` references. They have no CLI flag — pass them in `--json-body`
+- **`agentsAccessType`:** `ALL` or `SPECIFIC`; with `SPECIFIC`, list the agents in `agents` as `[{"id": "AGENT_USER_ID"}]`
+- **`daysOfWeek`:** any of `SUN` `MON` `TUE` `WED` `THU` `FRI` `SAT`, used when `recurrence` is true
+- **`show --include-filter-details true`:** adds the names of the teams, agents and queues to the response
+- **`list --include-user-details true` / `--include-filters-count true`:** adds the supervisor's name/email, and per-schedule counts of specific agents/teams/queues
+
+### CLI Examples
+
+```bash
+# List schedules (this bare `list` is the v2 endpoint), with supervisor names
+wxcli cc-monitoring-schedules list --include-user-details true --all -o json
+
+# Get one schedule, with team/agent/queue names filled in
+wxcli cc-monitoring-schedules show SCHEDULE_ID --include-filter-details true
+
+# Create a weekday schedule covering every agent on one team and one queue
+wxcli cc-monitoring-schedules create --json-body '{
+  "name": "Morning Shift Monitoring",
+  "timezone": "America/New_York",
+  "recurrence": true,
+  "daysOfWeek": ["MON", "TUE", "WED", "THU", "FRI"],
+  "startTimestamp": 1772169240000,
+  "endTimestamp": 1772244000000,
+  "userId": "SUPERVISOR_USER_ID",
+  "paused": false,
+  "agentsAccessType": "ALL",
+  "teams": [{"id": "TEAM_ID"}],
+  "contactServiceQueues": [{"id": "QUEUE_ID"}]
+}'
+
+# Pause it without touching anything else (PATCH)
+wxcli cc-monitoring-schedules update-call-monitoring SCHEDULE_ID --paused --verify
+
+# Which agents does this schedule actually cover?
+wxcli cc-users show SCHEDULE_ID -o json
+
+# Delete it
+wxcli cc-monitoring-schedules delete SCHEDULE_ID --force
+```
+
+### Raw HTTP
+
+The base URL is region-scoped (`https://api.wxcc-{region}.cisco.com`; `us1` shown) and `$ORG_ID` is the bare UUID form of the org ID (gotcha #19 in §25).
+
+```bash
+# List schedules (v2)
+curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/call-monitoring?includeUserDetails=true" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Create a schedule
+curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/call-monitoring" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Morning Shift Monitoring","timezone":"America/New_York","recurrence":true,"daysOfWeek":["MON","TUE","WED","THU","FRI"],"startTimestamp":1772169240000,"endTimestamp":1772244000000,"userId":"SUPERVISOR_USER_ID","paused":false,"agentsAccessType":"ALL","teams":[{"id":"TEAM_ID"}],"contactServiceQueues":[{"id":"QUEUE_ID"}]}'
+
+# Pause a schedule (partial update)
+curl -X PATCH "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/call-monitoring/$SCHEDULE_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"paused":true}'
+
+# Users covered by a schedule
+curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/user/by-call-monitoring-id/$SCHEDULE_ID?page=0&pageSize=50" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Gotchas
+
+1. **`cc-monitoring-schedules` stores a plan; `cc-call-monitoring` acts on a call that is happening now — picking the wrong one either does nothing yet or does something immediately.** A request like "let the supervisor listen to the support team's calls on weekday mornings" is a schedule; "listen to this call" is a live session (`cc-call-monitoring create`, keyed by `taskId`). The two groups share no IDs: a schedule ID is not a monitoring request ID, and neither is a task ID. **Unverified:** derived from the two groups' paths and request schemas, not from a live call.
+
+2. **A flags-only `create` gets past the CLI and is then expected to be rejected by the server, because two required fields have no flag.** The CLI checks seven required fields locally (`name`, `timezone`, `recurrence`, `startTimestamp`, `endTimestamp`, `userId`, `paused`), but the spec also requires `teams` and `contactServiceQueues` (each with at least one entry), and array fields are never generated as flags. The flag path also sends the timestamps as JSON strings where the spec declares integers. Use `--json-body` for create and PUT, starting from `--generate-json-body`. **Unverified:** the server's reaction to the missing arrays and string timestamps is predicted from the spec, not observed.
+
+3. **The list response is not the whole schedule — read teams, agents and queues from `show`.** The spec states that returning array fields from the list endpoint is deprecated and points to get-by-ID for the complete resource, and the list `--filter`/`--attributes` parameters exclude `teams`, `agents` and `contactServiceQueues`. A list row with no teams is therefore not evidence that the schedule has none. **Unverified:** spec wording; the current list payload was not inspected.
+
+4. **`create-delete-reference` deletes, despite its `create-` prefix, and it does not ask for confirmation.** It is `POST /call-monitoring/delete-reference` with a body like `{"references": {"team": "TEAM_ID"}}`. Its body schema is shared with other resources and describes detaching the named team, site, agent or skill profile from contact service queues across the org, so its exact reach on this path is not documented. Use it only to clean up after a team, agent or queue has been removed, and `show` the affected schedules before and after. **Unverified:** the spec gives this operation no summary or description of its own.
+
+5. **`cc-users show` takes a schedule ID, not a user ID.** Upstream added `GET /organization/{orgid}/user/by-call-monitoring-id/{id}` under the Users tag, and it is generated as `cc-users show`. Passing a user ID to it returns nothing useful; to fetch one user, use `cc-users show-user` (§4). The spec says the result is filtered by the caller's team access ("while enforcing team ACL"), so two admins can get different lists for the same schedule. **Unverified:** command mapping read from `cc_users.py`; the ACL behaviour is spec wording.
+
+---
+
+## 22. Organization Settings (`cc-org-settings`)
+
+The Contact Center tenant's organization-wide settings record (upstream tag "Organization Setting", paths `/organization/{orgid}/organization-setting`). Most of its 94 fields are **entitlements and capacity ceilings** that come from the subscription — `offerCode`, `offerDetails`, `maximumActiveCalls`, `maxChannels`, `maximumSkills`, `numberOfCadVariables`, feature switches such as `campaignManagerEnabled` and `wfoEnabled` — plus a small set of operational settings an admin can change: short- and lost-call thresholds, recording behaviour, purge of inactive entities, WebRTC, sensitive-data masking, and routing back to the same agent.
+
+This is **not** the Webex org-wide `org-settings` group (organization feature settings by key, owned by the `manage-identity` skill), and it is not the Webex org profile (`identity-org`). It is also **not** `cc-tenant-config` (§23), which holds desktop and runtime timers such as RONA timeouts and auto wrap-up. There is no create or delete: you read the existing record and update it.
+
+**Unverified:** read from `specs/webex-contact-center.json` and the generated module `cc_org_settings.py`. No live call was made; in particular, that an org has exactly one settings record is inferred from the absence of create/delete, not observed.
+
+### Endpoints
+
+| Method | Path | CLI Command | Description |
+|--------|------|-------------|-------------|
+| GET | `/organization/{orgid}/organization-setting` | `list` | List (v1 — **deprecated** upstream) |
+| GET | `/organization/{orgid}/v2/organization-setting` | `list-organization-setting` | List (v2 — use this) |
+| GET | `/organization/{orgid}/organization-setting/{id}` | `show` | Get by ID |
+| PUT | `/organization/{orgid}/organization-setting/{id}` | `update` | Full replace |
+| PATCH | `/organization/{orgid}/organization-setting/{id}` | `update-organization-setting` | Partial update (use this) |
+
+**Which list and which update to use.** This group follows the CC convention: bare `list` is v1 and `list-organization-setting` is v2. The spec marks the v1 list deprecated ("Use GET /v2/organization-setting instead"), so use `list-organization-setting` to find the record's ID. For writes, use `update-organization-setting` (PATCH). `update` (PUT) is a full replace whose schema marks 56 fields required, nearly all of them entitlements a user token is not allowed to change (see gotcha 2).
+
+### Key Parameters
+
+Fields the spec says a **user token** may change ("when authorized by the required scope and User Profile permission"); every other field is marked "User-token updates are not permitted":
+
+| Field | CLI flag | Notes |
+|-------|----------|-------|
+| `shortCallThreshold` | `--short-call-threshold` | Integer |
+| `lostCallThreshold` | `--lost-call-threshold` | Integer |
+| `pauseResumeEnabled` | `--pause-resume-enabled` / `--no-pause-resume-enabled` | Recording pause/resume |
+| `recordingPauseDuration` | `--recording-pause-duration` | Integer |
+| `recordAllCalls` | `--record-all-calls` / `--no-record-all-calls` | |
+| `recordingMode` | `--recording-mode` | `AUDIO_ONLY`, `AUDIO_AND_SCREEN`, `DISABLED` |
+| `purgeAllowed` | `--purge-allowed` / `--no-purge-allowed` | |
+| `purgeInactiveEntitiesInterval` | `--purge-inactive-entities-interval` | Integer |
+| `webRtcEnabled` | `--web-rtc-enabled` / `--no-web-rtc-enabled` | |
+| `maskSensitiveData` | `--mask-sensitive-data` / `--no-mask-sensitive-data` | |
+| `routingToSameAgent` | `--routing-to-same-agent` | `DISABLED`, `ENABLED` |
+
+### CLI Examples
+
+```bash
+# Find the settings record and its ID (v2)
+wxcli cc-org-settings list-organization-setting -o json
+
+# Read it in full
+wxcli cc-org-settings show ORG_SETTING_ID
+
+# Change one admin-modifiable threshold (PATCH) and confirm it took
+wxcli cc-org-settings update-organization-setting ORG_SETTING_ID --json-body '{"shortCallThreshold": 10}' --verify
+
+# Turn on routing back to the same agent
+wxcli cc-org-settings update-organization-setting ORG_SETTING_ID --routing-to-same-agent ENABLED --verify
+```
+
+### Raw HTTP
+
+Region-scoped base URL (`us1` shown); `$ORG_ID` is the bare UUID (gotcha #19 in §25).
+
+```bash
+# List (v2)
+curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/organization-setting" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Partial update
+curl -X PATCH "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/organization-setting/$ORG_SETTING_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"shortCallThreshold":10}'
+```
+
+### Gotchas
+
+1. **`cc-org-settings` and `org-settings` are different products' settings, and only the `cc-` prefix tells them apart.** `org-settings` reads and writes Webex organization feature settings by key on `webexapis.com`; `cc-org-settings` is the Contact Center tenant record on `api.wxcc-{region}.cisco.com` and needs the CC OAuth scopes (gotcha #2 in §25). A 403 from one says nothing about access to the other. **Unverified:** derived from the two groups' base URLs, not a live comparison.
+
+2. **Only 11 of the 94 fields are writable with a user token, so most "settings" here are read-only to an admin.** The spec marks every entitlement, capacity and licensing field "User-token updates are not permitted"; the writable ones are listed under Key Parameters. Expect a rejection if a body includes a protected field with a changed value — one more reason to send a PATCH carrying only the field you mean to change. **Unverified:** which token types count as "user tokens", and what the server does with an unchanged protected field inside a body, were not tested.
+
+3. **The bare `list` is the deprecated v1 endpoint.** It returns a plain array, while the spec directs callers to the v2 endpoint, which wxcli exposes as `list-organization-setting`. **Unverified:** spec wording; no removal date is given.
+
+4. **Numeric flags are sent as JSON strings.** The generated command sends `--short-call-threshold 10` as `"10"`, while the spec declares an integer. If the server rejects it, pass the value in `--json-body '{"shortCallThreshold": 10}'`, which keeps the number a number. **Unverified:** read from the generated body assembly; server-side coercion not tested.
+
+---
+
+## 23. Tenant Configuration (`cc-tenant-config`)
+
+Tenant-wide Contact Center runtime behaviour (upstream tag "Tenant Configuration", paths `/organization/{orgid}/tenant-configuration`): agent desktop timers (RONA timeouts per channel — telephony, chat, email, social, work item, custom messaging — desktop inactivity timeout, auto wrap-up interval, lost-connection recovery, heartbeat), call-control toggles (`endCallEnabled`, `endConsultEnabled`, `privacyShieldVisible`), outdial (`outdialEnabled`) and dial-number (DN) handling (default/other/target DN regex, prefix, strip characters and descriptions, `rejectDuplicateDn`, `forceDefaultDn`), and log levels.
+
+This is **not** the entitlements record (`cc-org-settings`, §22). It is **not** a desktop profile (`cc-desktop-profile`, §14) or desktop layout (§13), which are assigned to agents — this record applies to the whole tenant. And it is **not** a Webex Calling location or org calling setting. There is no create or delete, and — unlike §21 and §22 — no partial update either.
+
+**Unverified:** read from `specs/webex-contact-center.json` and the generated module `cc_tenant_config.py`. No live call was made; field meanings beyond their names are not stated by the spec.
+
+### Endpoints
+
+| Method | Path | CLI Command | Description |
+|--------|------|-------------|-------------|
+| GET | `/organization/{orgid}/tenant-configuration` | `list` | List (v1 — **deprecated** upstream) |
+| GET | `/organization/{orgid}/v2/tenant-configuration` | `list-tenant-configuration` | List (v2 — use this) |
+| GET | `/organization/{orgid}/tenant-configuration/{id}` | `show` | Get by ID |
+| PUT | `/organization/{orgid}/tenant-configuration/{id}` | `update` | Full replace — the only write |
+
+**Which list and which update to use.** Bare `list` is v1 and deprecated by the spec; use `list-tenant-configuration` (v2). Upstream publishes no PATCH for this resource, so `update` (PUT, full replace) is the only way to change anything — see gotcha 1 for how to do that safely.
+
+### Key Parameters
+
+- **Required by the spec on `update`:** `timeoutRonaTelephonySeconds`, `timeoutRonaChatSeconds`, `timeoutRonaEmailSeconds`, `timeoutRonaSocialSeconds`
+- **User-token writable** (every other field is marked "User-token updates are not permitted"): `autoWrapUpInterval`, `endCallEnabled`, `endConsultEnabled`, `lostConnectionRecoveryTimeout`, `forceDefaultDn`, `privacyShieldVisible`, `timeoutDesktopInactivityEnabled`, `timeoutDesktopInactivityMins`, and the five `timeoutRona…Seconds` fields for telephony, social, chat, email and work item (`timeoutRonaCustomMessagingSeconds` is not user-writable)
+- **`timeoutRonaWorkItemSeconds` / `timeoutRonaCustomMessagingSeconds`:** valid range 1–6000, and only applicable when the tenant has the corresponding work-item or custom-messaging feature flag
+
+### CLI Examples
+
+```bash
+# Find the record and its ID (v2)
+wxcli cc-tenant-config list-tenant-configuration -o json
+
+# Save the current record to a file before changing it
+wxcli cc-tenant-config show TENANT_CONFIG_ID -o json > tenant-config.json
+
+# Edit tenant-config.json (e.g. timeoutRonaTelephonySeconds), then PUT the whole record back
+wxcli cc-tenant-config update TENANT_CONFIG_ID --json-body file://tenant-config.json --verify
+```
+
+### Raw HTTP
+
+Region-scoped base URL (`us1` shown); `$ORG_ID` is the bare UUID (gotcha #19 in §25).
+
+```bash
+# List (v2)
+curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/tenant-configuration" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Read one record
+curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/tenant-configuration/$TENANT_CONFIG_ID" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Full replace — send the whole record you just read, with your edit applied
+curl -X PUT "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/tenant-configuration/$TENANT_CONFIG_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @tenant-config.json
+```
+
+### Gotchas
+
+1. **There is no partial update: `update` is a PUT, so a call made with one flag sends a one-field body to a full-replace endpoint.** The generated command builds the body from only the flags you pass, and the spec requires the four RONA timeouts on every PUT. Changing just `--auto-wrap-up-interval` with flags is therefore expected to be rejected, or to reset fields you did not send. Read the record with `show -o json`, edit the file, and send it back with `--json-body file://…`. **Unverified:** whether the server rejects or resets omitted fields was not tested; full-replace semantics are the CC convention (Pattern Note 5 in §24).
+
+2. **Units differ from field to field, and the names do not always say which.** The RONA timeouts are in seconds and the desktop inactivity timeout in minutes, as their names state. `autoWrapUpInterval`, `heartBeatInterval`, `lostConnectionRecoveryTimeout` and `notRespondingToAvailableTimeout` carry no unit in the spec; their examples (30000, 30000, 60000, 300000) read as milliseconds. Check the current value with `show` before writing one, so a "30" meant as seconds does not become 30 ms. **Unverified:** the millisecond reading is inferred from the spec's example values.
+
+3. **The bare `list` is the deprecated v1 endpoint.** Use `list-tenant-configuration` (v2). **Unverified:** spec wording; no removal date is given.
+
+---
+
+## 24. Common Patterns
 
 Most CC config entities follow a standard CRUD pattern with these operations:
 
@@ -1544,7 +1803,7 @@ Most CC config entities follow a standard CRUD pattern with these operations:
 
 4. **Incoming references:** Before deleting an entity, check incoming references to see what depends on it. Deleting an entity that is referenced by another entity may fail or cause cascading issues.
 
-5. **PUT is full replace:** All update endpoints use PUT (full replacement). Always GET the entity first, modify the fields you need, and PUT the full object back. The only exceptions are the bulk PATCH endpoints on `auxiliary-code` and `user`.
+5. **PUT is full replace:** All update endpoints use PUT (full replacement). Always GET the entity first, modify the fields you need, and PUT the full object back. The exceptions are the bulk PATCH endpoints on `auxiliary-code` and `user`, and the per-record PATCH commands on call monitoring schedules (`cc-monitoring-schedules update-call-monitoring`, §21) and organization settings (`cc-org-settings update-organization-setting`, §22). Tenant configuration (§23) has no PATCH.
 
 6. **orgId auto-injection:** The `{orgid}` path parameter is automatically injected from your saved config. You never need to pass it manually in CLI commands.
 
@@ -1574,7 +1833,7 @@ For teardown, reverse this order.
 
 ---
 
-## 22. Gotchas
+## 25. Gotchas
 
 1. **Different base URL.** The CC API uses `api.wxcc-{region}.cisco.com`, not `webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`). Using the wrong base URL produces connection errors.
 
@@ -1630,12 +1889,14 @@ For teardown, reverse this order.
 
 ---
 
-## 23. See Also
+## 26. See Also
 
 - [Contact Center: Routing](contact-center-routing.md) -- Dial plans, campaigns, flows, audio files, contact lists, dial numbers
 - [Contact Center: Analytics](contact-center-analytics.md) -- AI, monitoring, subscriptions, tasks, search
 - [Contact Center: Journey](contact-center-journey.md) -- JDS: workspaces, persons, identity, profile views, events
 - [Contact Center: Agent Desktop SDK](contact-center-agent-sdk.md) -- The `@webex/contact-center` **JS SDK** for building a custom agent desktop. Note the "desktop" collision: §13 above is *desktop layout* config for **Cisco's own** Agent Desktop; that doc is about replacing that app with your own, which ignores layouts entirely
+- [Contact Center: Analytics §7 — Call Monitoring](contact-center-analytics.md#7-call-monitoring) -- Go here when the supervisor needs to listen to, barge into, or end monitoring on a call that is **in progress** (`cc-call-monitoring`). §21 above only stores monitoring *schedules*; it never touches a live call
+- [Admin: Org Management](admin-org-management.md) -- Go here when the setting you want is a **Webex** organization setting (`org-settings`, `identity-org`) rather than the Contact Center tenant record in §22. The `cc-` prefix is the only thing that tells the two groups apart, and they live on different hosts with different scopes
 - [Authentication](authentication.md) -- CC-specific OAuth scopes, region configuration, and token setup
 - [Contact Center Skill](../../.claude/skills/contact-center/SKILL.md) -- Guided workflow for provisioning agents, queues, teams, flows, campaigns via wxcli
 - `CLAUDE.md` (project root) -- CC region setup, CLI integration notes

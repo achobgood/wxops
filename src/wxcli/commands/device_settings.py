@@ -1262,7 +1262,7 @@ def list_layout(
 
 
 
-_BODY_SKELETON_UPDATE_LAYOUT = '{"layoutMode":"DEFAULT","lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0,"lineKeyLabel":"...","lineKeyValue":"..."}],"userReorderEnabled":true,"kemModuleType":"KEM_14_KEYS","kemKeys":[{"kemModuleIndex":0,"kemKeyIndex":0,"kemKeyType":"PRIMARY_LINE","sharedLineIndex":0,"kemKeyLabel":"...","kemKeyValue":"..."}]}'
+_BODY_SKELETON_UPDATE_LAYOUT = '{"layoutMode":"DEFAULT","userReorderEnabled":true,"lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0,"lineKeyLabel":"...","lineKeyValue":"..."}],"kemModuleType":"KEM_14_KEYS","kemKeys":[{"kemModuleIndex":0,"kemKeyIndex":0,"kemKeyType":"PRIMARY_LINE","sharedLineIndex":0,"kemKeyLabel":"...","kemKeyValue":"..."}]}'
 
 @app.command("update-layout", short_help="Modify Device Layout by Device ID.")
 def update_layout(
@@ -1277,7 +1277,7 @@ def update_layout(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Device Layout by Device ID.\n\n\b\nExample: wxcli device-settings update-layout DEVICE_ID --json-body '{"layoutMode":"DEFAULT","lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0}]}'\n\n\b\nExample --json-body: '{"layoutMode":"DEFAULT","lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0,"lineKeyLabel":"...","lineKeyValue":"..."}],"userReorderEnabled":true,"kemModuleType":"KEM_14_KEYS","kemKeys":[{"kemModuleIndex":0,"kemKeyIndex":0,"kemKeyType":"PRIMARY_LINE","sharedLineIndex":0,"kemKeyLabel":"...","kemKeyValue":"..."}]}'"""
+    """Modify Device Layout by Device ID.\n\n\b\nExample: wxcli device-settings update-layout DEVICE_ID --layout-mode DEFAULT\n\n\b\nExample --json-body: '{"layoutMode":"DEFAULT","userReorderEnabled":true,"lineKeys":[{"lineKeyIndex":0,"lineKeyType":"PRIMARY_LINE","sharedLineIndex":0,"lineKeyLabel":"...","lineKeyValue":"..."}],"kemModuleType":"KEM_14_KEYS","kemKeys":[{"kemModuleIndex":0,"kemKeyIndex":0,"kemKeyType":"PRIMARY_LINE","sharedLineIndex":0,"kemKeyLabel":"...","kemKeyValue":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_LAYOUT), indent=2))
         raise typer.Exit(0)

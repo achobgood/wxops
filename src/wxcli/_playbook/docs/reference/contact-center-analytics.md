@@ -30,9 +30,10 @@ from the Contact Center OpenAPI spec.
 12. [Search](#12-search)
 13. [Address Book](#13-address-book)
 14. [Usage Reports](#14-usage-reports)
-15. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
-16. [Gotchas](#gotchas)
-17. [See Also](#see-also)
+15. [External Data Updates](#15-external-data-updates-external-data-updates)
+16. [Raw HTTP Endpoint Table](#raw-http-endpoint-table)
+17. [Gotchas](#gotchas)
+18. [See Also](#see-also)
 
 ---
 
@@ -977,6 +978,66 @@ consumption, this group is the wrong one and that doc is where to go.
 
 ---
 
+## 15. External Data Updates (`external-data-updates`)
+
+Writes global-variable values back onto contacts that have already been handled
+— a batch correction after the fact. New upstream group in the 2026-09-28 spec,
+one command against `PUT /v1/data/updateExternal`, carrying an `updateType`
+(currently only `contact`) and a `data[]` array of records, each naming a
+contact `id`, a time window, and the `globalVariables` to set on it.
+
+This is **not** how a flow sets a variable during a live interaction — that
+happens inside the flow, or through the Agent Desktop SDK on the task. It is
+also **not** the place to define a global variable: the variable must already
+exist, and creating or editing the definitions is `cc-global-vars`. And it is
+**not** a read surface — there is no GET here, so it can correct a value but
+cannot tell you what a contact currently holds; that is the task/search surface
+in [section 10](#10-tasks) and [section 12](#12-search).
+
+| Command | Method | Endpoint |
+|---------|--------|----------|
+| `update` | PUT | `{CC_BASE}/v1/data/updateExternal` |
+
+### CLI Examples
+
+```bash
+# Print the request-body skeleton without authenticating
+wxcli external-data-updates update --generate-json-body
+
+# Correct one global variable on one already-handled contact
+wxcli external-data-updates update --json-body '{"orgId":"ORG_ID","updateType":"contact","data":[{"id":"CONTACT_ID","startTimestamp":"1759000000000","endTimestamp":"1759000600000","globalVariables":[{"name":"orderValue","value":249}]}]}'
+
+# Larger corrections read better from a file
+wxcli external-data-updates update --json-body file://corrections.json
+```
+
+### Raw HTTP
+
+```bash
+curl -X PUT "https://api.wxcc-us1.cisco.com/v1/data/updateExternal" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "orgId": "ORG_ID",
+        "updateType": "contact",
+        "data": [
+          {
+            "id": "CONTACT_ID",
+            "startTimestamp": "1759000000000",
+            "endTimestamp": "1759000600000",
+            "globalVariables": [{"name": "orderValue", "value": 249}]
+          }
+        ]
+      }'
+```
+
+### Gotchas
+
+- **The endpoint is region-scoped and the base URL is not webexapis.com, so a token that works everywhere else in the playbook still fails here.** The CLI resolves the Contact Center base URL from the configured region (`wxcli set-cc-region <region>`, default us1) rather than the Calling host, and the call additionally needs the `cjp:` OAuth scopes a Personal Access Token does not carry — known issue #11. A 403 here is far more often the scope or the region than the body. **Unverified:** the endpoint was not exercised live; the base-URL and scope behaviour is read from the generated command and known issue #11.
+- **`data[]` is nested, so the per-field flags do not reach it and `--json-body` is mandatory for any real call.** `--org-id` and `--update-type` exist as flags, but the records themselves do not, which means a call made with flags alone sends an empty `data[]` and corrects nothing while still returning success-shaped output. Start from `--generate-json-body`. **Unverified:** the no-op-on-empty-array behaviour follows from the generated body assembly, not from a live response.
+
+---
+
 ## Raw HTTP Endpoint Table
 
 All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `https://api.wxcc-{region}.cisco.com`.
@@ -1222,6 +1283,12 @@ All 91 endpoints tabulated below, across 14 CLI groups. Regional base URL: `http
 ---
 
 ## See Also
+
+- [`contact-center-core.md`](contact-center-core.md) — read this before calling
+  `external-data-updates`: the global variable named in the body has to have been
+  defined first, and that definition surface (`cc-global-vars`) is documented
+  there. A name that was never defined is the likeliest cause of an update that
+  reports success and changes nothing.
 
 - [Contact Center: Core](contact-center-core.md) — Agents, queues, teams, skills, desktop, configuration
 - [Contact Center: Journey](contact-center-journey.md) — JDS: workspaces, persons, identity, profile views, events

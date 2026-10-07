@@ -44,6 +44,7 @@ Every setting in this group follows the same REST pattern: endpoints resolve to 
 10. [Push-to-Talk](#10-push-to-talk)
 11. [Music on Hold](#11-music-on-hold)
 12. [Common Patterns](#12-common-patterns)
+13. [Voicemail Messages](#13-voicemail-messages-user-call-settings-members--user-call-settings-members-me)
 
 ---
 
@@ -1532,6 +1533,72 @@ Not all settings apply equally to all entity types:
 
 ---
 
+## 13. Voicemail Messages (`user-call-settings-members` / `user-call-settings-members-me`)
+
+Reads and manages the voicemail **messages themselves** — the list of messages
+in a mailbox, the unread/total summary, marking messages read or unread, and
+deleting one. New upstream groups in the 2026-09-28 spec, split out of User
+Call Settings into a member-scoped family
+(`/telephony/voiceMessages/members/{memberId}/`) and a self-scoped one
+(`/telephony/voiceMessages/members/me/`).
+
+This is **not** voicemail *configuration*. Everything in [section 1](#1-voicemail)
+— whether voicemail is enabled, where it forwards, greetings, the passcode —
+lives on `people/{personId}/features/voicemail` and is untouched by these
+groups. Nor is it voicemail *group* management (a shared location mailbox;
+that is `configure-features`), and it is **not** a way to download the audio:
+neither group publishes a media-retrieval endpoint, only metadata and state.
+
+| Group | Scope | Commands |
+|-------|-------|----------|
+| `user-call-settings-members` | another member; admin token | `show-summary`, `list-voice-messages`, `delete-voice-messages`, `create-mark-as-read`, `create-mark-as-unread`, `list-memberships` |
+| `user-call-settings-members-me` | the authenticated user | the same six, with no positional member ID |
+
+### CLI Examples
+
+```bash
+# Unread/total counts for one user's mailbox
+wxcli user-call-settings-members show-summary MEMBER_ID
+
+# The messages themselves (a list endpoint: use --all before you count)
+wxcli user-call-settings-members list-voice-messages MEMBER_ID --all -o json
+
+# Mark the whole mailbox read, then delete one message
+wxcli user-call-settings-members create-mark-as-read MEMBER_ID
+wxcli user-call-settings-members delete-voice-messages MEMBER_ID MESSAGE_ID
+
+# The self-scoped family takes no member ID
+wxcli user-call-settings-members-me show-summary
+wxcli user-call-settings-members-me list-voice-messages --all -o json
+```
+
+### Raw HTTP
+
+```bash
+# Summary (unread/total)
+curl "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/summary" \
+  -H "Authorization: Bearer $TOKEN"
+
+# List messages
+curl "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/voiceMessages" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Mark as read / unread
+curl -X POST "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/markAsRead" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}'
+
+# Delete one message
+curl -X DELETE "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/voiceMessages/MESSAGE_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Gotchas
+
+- **`list-memberships` does not list the messages in a mailbox — it lists which mailboxes a member belongs to.** The name reads like a sibling of `list-voice-messages` and returns something else entirely, which is the shape of mistake that produces a confident wrong answer with exit 0. `list-voice-messages` is the message list; `list-memberships` answers "whose voicemail can this member reach". A third, org-wide form of the same question lives on `user-settings list-memberships` (`GET /telephony/voiceMessages/memberships`), with no member scope at all. **Unverified:** the distinction is read from the spec's own summaries ("List Messages" against "List Voice Message Memberships"), not confirmed against a live mailbox.
+- **Deleting a message is unrecoverable and the command does not ask.** `delete-voice-messages` takes a message ID and issues a DELETE; there is no undo and no recycle bin on this surface. Read the list first and delete by an ID you have actually looked at. **Unverified:** no live deletion was performed to confirm the response shape.
+
+---
+
 ## Gotchas (Cross-Cutting)
 
 - **Read-only fields cause silent failures.** Every PUT endpoint in this group has read-only fields that must be excluded from the request body. If you include them, the API may return 400 or silently ignore the entire request. Key offenders: `greetingUploaded`, `systemMaxNumberOfRings`, `voiceMessageForwardingEnabled` (voicemail); `types`, `locationExternalCallerIdName` (caller ID); `serviceProvider`, `externalGroup`, `externalIdentifier` (call recording); `fileName` (call intercept); `mohLocationEnabled` (music on hold).
@@ -1547,6 +1614,11 @@ Not all settings apply equally to all entity types:
 ---
 
 ## See Also
+
+- [`self-service-call-settings.md`](self-service-call-settings.md) — read this
+  before reaching for the `-me` voicemail-message commands with an admin token.
+  It documents why the self-service endpoints return 404 (error 4008) for a user
+  without a Calling licence, which is the failure these commands inherit.
 
 - **[Location Call Settings — Core](location-calling-core.md)** — Location-level voicemail policies (transcription toggle), org-wide voicemail settings (expiry, forwarding), and location-level call intercept that govern person-level defaults
 - **[Location Recording — Advanced](location-recording-advanced.md)** — Location/org-level call recording vendor settings that must be configured before per-person recording works
