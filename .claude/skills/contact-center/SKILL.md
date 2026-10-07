@@ -4,7 +4,8 @@ description: |
   Provision and manage Webex Contact Center resources using wxcli CLI commands:
   agents, queues, entry points, teams, skills, flows, campaigns, dial plans,
   dial numbers (DN-to-entry-point mapping), desktop profiles, CC sites, CC business hours,
-  CC holiday lists, and monitoring. Guides the user from prerequisites through
+  CC holiday lists, monitoring (live sessions and stored monitoring schedules),
+  CC org settings and tenant configuration. Guides the user from prerequisites through
   execution and verification.
   Use for: create, update, delete, list, configure, or troubleshoot any CC resource.
   NOT for: Webex Calling queues/hunt groups (use configure-features), Calling dial plans
@@ -147,6 +148,8 @@ Ask the user what they want to configure. Present this decision matrix if they a
 | Teams | CC team CRUD, agent assignment | `cc-team` |
 | Channels | The medium a contact arrives on (telephony/email/chat/social/work-item) + its branding | `channel` |
 | Assets | A configured instance of a channel (mailbox, chat widget, custom-messaging endpoint) | `asset` |
+| CC org settings | Tenant entitlements/limits (read) + short/lost-call thresholds, recording mode, same-agent routing (write) — **not** Webex `org-settings` | `cc-org-settings` |
+| CC tenant configuration | Tenant-wide RONA timeouts, auto wrap-up, desktop inactivity, outdial DN handling | `cc-tenant-config` |
 
 ### Flows & Automation
 
@@ -171,7 +174,8 @@ Ask the user what they want to configure. Present this decision matrix if they a
 
 | Need | Operation | CLI Group(s) |
 |------|-----------|-------------|
-| Call monitoring | Monitor/barge/coach live calls | `cc-call-monitoring` |
+| Call monitoring | Monitor/barge/coach a call that is in progress now | `cc-call-monitoring` |
+| Monitoring schedules | Store a supervisor's monitoring plan (when, which teams/queues/agents, paused) — **not** a live session | `cc-monitoring-schedules` (+ `cc-users show SCHEDULE_ID` for the users it covers) |
 | Real-time stats | Real-time queue/agent statistics | `cc-realtime` |
 | Queue statistics | Queue performance metrics | `cc-queue-stats` |
 | Event subscriptions | Subscribe to CC events (webhooks) | `cc-subscriptions` |
@@ -184,17 +188,24 @@ Ask the user what they want to configure. Present this decision matrix if they a
 
 | Need | Operation | CLI Group(s) |
 |------|-----------|-------------|
-| Correct a handled contact's data | Batch-write global variable values onto contacts after the fact | `external-data-updates` |
+| Correct a finished task's data | Write numeric global-variable values onto ONE task that ended in the last two days | `external-data-updates` |
 
-The variable must already be defined (`cc-global-vars`); this writes values,
-not definitions. There is no GET on this surface, and `data[]` is nested, so
-`--json-body` is mandatory — flags alone send an empty array and change
-nothing.
+This is **not** how a live task's variables are set (that is the flow, or
+`cc-tasks update`), **not** where a variable is defined (`cc-global-vars` —
+it must exist first and be numeric), and **not** a read: there is no GET.
+Rules from the spec (**Unverified** — not exercised live): one task per
+request; at most 30 variables; numbers only; timestamps are ISO-8601 UTC
+strings (`2026-09-22T10:00:00.000Z`), not epoch ms; `orgId` is the bare org
+UUID and is not auto-injected. `data[]` has no flag, so `--json-body` is
+mandatory — without it the body has no `data` and a 400 is expected. A
+`202` means accepted for processing, not applied. The group has no `cc-`
+prefix and its `--help` says "Webex Calling", but it calls the CC regional
+host. Details: `docs/reference/contact-center-analytics.md` §15.
 
 ```bash
 wxcli external-data-updates update --generate-json-body
 
-wxcli external-data-updates update --json-body '{"orgId":"ORG_ID","updateType":"contact","data":[{"id":"CONTACT_ID","startTimestamp":"1759000000000","endTimestamp":"1759000600000","globalVariables":[{"name":"orderValue","value":249}]}]}'
+wxcli external-data-updates update --json-body '{"orgId":"ORG_UUID","updateType":"contact","data":[{"id":"TASK_ID","startTimestamp":"2026-09-22T10:00:00.000Z","endTimestamp":"2026-09-22T10:30:00.000Z","globalVariables":[{"name":"UpSell","value":12}]}]}'
 ```
 
 ### Not Contact Center?
@@ -205,6 +216,7 @@ wxcli external-data-updates update --json-body '{"orgId":"ORG_ID","updateType":"
 | Person/workspace call settings | `manage-call-settings` skill |
 | Webex Calling reporting (CDR) | `reporting` skill |
 | Customer Assist on a Calling queue | `customer-assist` skill |
+| Webex organization settings (`org-settings`, no `cc-` prefix) | `manage-identity` skill |
 | Meetings | `manage-meetings` skill |
 
 ## Step 4: Check prerequisites
@@ -785,6 +797,32 @@ wxcli cc-global-vars list-cad-variable -o json
 
 ---
 
+### CC Org Settings & Tenant Configuration
+
+Two tenant-wide records with no create or delete — find the record ID with the v2 list, then
+update it. Neither is the Webex `org-settings` group (that is `manage-identity`). Most fields are
+marked "User-token updates are not permitted" in the spec; only a few are admin-writable
+(**Unverified** — spec-derived, see `docs/reference/contact-center-core.md` §22–§23).
+
+- `cc-org-settings` — entitlements and limits (mostly read-only) plus short/lost-call thresholds,
+  recording mode, pause/resume, WebRTC, data masking, routing to same agent. Bare `list` is the
+  deprecated v1 endpoint: use `list-organization-setting`. Write with `update-organization-setting`
+  (PATCH, partial), not `update` (PUT, 56 required fields).
+- `cc-tenant-config` — RONA timeouts per channel, auto wrap-up interval, desktop inactivity, outdial
+  DN handling. Bare `list` is deprecated v1: use `list-tenant-configuration`. There is **no PATCH**:
+  `update` is a full-replace PUT, so read → edit → send the whole record back.
+
+```bash
+wxcli cc-org-settings list-organization-setting -o json
+wxcli cc-org-settings update-organization-setting ORG_SETTING_ID --json-body '{"shortCallThreshold": 10}' --verify
+
+wxcli cc-tenant-config list-tenant-configuration -o json
+wxcli cc-tenant-config show TENANT_CONFIG_ID -o json > tenant-config.json
+wxcli cc-tenant-config update TENANT_CONFIG_ID --json-body file://tenant-config.json --verify
+```
+
+---
+
 ### Flow Management
 
 **List flows:**
@@ -994,6 +1032,25 @@ wxcli cc-call-monitoring list -o json
 wxcli cc-call-monitoring create-end TASK_ID
 ```
 
+**Monitoring schedules (`cc-monitoring-schedules`) — a stored plan, not a live session.** Use this
+group when the ask is "supervisor X monitors team Y on weekday mornings"; use `cc-call-monitoring`
+above when the ask is "listen to this call now". A schedule never attaches anyone to a call by
+itself being created (**Unverified** — spec-derived). Bare `list` here is the **v2** endpoint (there
+is no v1 list, unlike `cc-team`); prefer `update-call-monitoring` (PATCH, partial) over `update`
+(PUT, full replace). `teams` and `contactServiceQueues` are required (at least one each) and have
+no flags, so create needs `--json-body`. Timestamps are epoch milliseconds (integers).
+
+```bash
+wxcli cc-monitoring-schedules create --json-body '{"name":"Morning Shift Monitoring","timezone":"America/New_York","recurrence":true,"daysOfWeek":["MON","TUE","WED","THU","FRI"],"startTimestamp":1772169240000,"endTimestamp":1772244000000,"userId":"SUPERVISOR_USER_ID","paused":false,"agentsAccessType":"ALL","teams":[{"id":"TEAM_ID"}],"contactServiceQueues":[{"id":"QUEUE_ID"}]}'
+
+wxcli cc-monitoring-schedules update-call-monitoring SCHEDULE_ID --paused --verify
+
+# Users a schedule covers — note `cc-users show` takes a SCHEDULE id, not a user id
+wxcli cc-users show SCHEDULE_ID -o json
+```
+
+Details and gotchas: `docs/reference/contact-center-core.md` §21.
+
 ---
 
 ### Event Subscriptions
@@ -1150,8 +1207,8 @@ wxcli cc-aux-code show AUX_ID -o json
 # Subscription
 wxcli cc-subscriptions show SUBSCRIPTION_ID -o json
 
-# CC user
-wxcli cc-users show USER_ID -o json
+# CC user (show-user, not show — `cc-users show` takes a monitoring schedule ID)
+wxcli cc-users show-user USER_ID -o json
 
 # Auto CSAT
 wxcli cc-auto-csat show-auto-csat AUTO_CSAT_ID -o json
@@ -1245,10 +1302,10 @@ Next steps:
 
 ### Workflow E: Reskill agents
 
-1. List current user skill assignments → `wxcli cc-users show USER_ID -o json`
+1. List current user skill assignments → `wxcli cc-users show-user USER_ID -o json`
 2. List users by dynamic skill → `wxcli cc-users show-by-dynamic-skill-id SKILL_ID -o json`
-3. Bulk update dynamic skills → `wxcli cc-users update-dynamic-skill --json-body '...'`
-4. Reassign skill profile → `wxcli cc-users update-reskill --json-body '...'`
+3. Bulk update dynamic skills → `wxcli cc-users update-dynamic-skill SKILL_ID --json-body '...'`
+4. Reassign skill profile → `wxcli cc-users update-reskill USER_ID --json-body '...'`
 5. Verify updated queues → `wxcli cc-queue list-agent-based-queues USER_CI_ID -o json`
 
 ---

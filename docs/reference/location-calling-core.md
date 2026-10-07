@@ -1232,10 +1232,10 @@ messages = result.get("items", [])
 api.session.rest_delete(f"{BASE}/telephony/voiceMessages/{message_id}")
 ```
 
-**Mark as read / unread:**
+**Mark as read / unread:** `POST`, with the message ID in the body, not the path. Omitting `messageId` marks **every** message in the mailbox (per the spec's field description).
 ```python
-api.session.rest_put(f"{BASE}/telephony/voiceMessages/{message_id}/markAsRead")
-api.session.rest_put(f"{BASE}/telephony/voiceMessages/{message_id}/markAsUnread")
+api.session.rest_post(f"{BASE}/telephony/voiceMessages/markAsRead", json={"messageId": message_id})
+api.session.rest_post(f"{BASE}/telephony/voiceMessages/markAsUnread", json={"messageId": message_id})
 ```
 
 ---
