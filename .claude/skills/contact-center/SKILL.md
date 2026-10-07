@@ -1298,7 +1298,7 @@ Next steps:
 
 1. Create event subscription → `wxcli cc-subscriptions create --json-body '...'`
 2. Monitor live calls → `wxcli cc-call-monitoring create --json-body '...'`
-3. Barge in if needed → `wxcli cc-call-monitoring create-barge-in --json-body '...'`
+3. Barge in if needed → `wxcli cc-call-monitoring create-barge-in TASK_ID --json-body '...'`
 
 ### Workflow E: Reskill agents
 

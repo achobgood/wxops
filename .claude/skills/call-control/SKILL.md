@@ -140,7 +140,7 @@ Example plan format:
 
 ### Operations
 1. Initiate click-to-dial to +12223334444
-2. Monitor call state via `wxcli call-controls list`
+2. Poll call state with: wxcli call-controls list -o json
 3. Transfer to +15551234567 when connected
 
 ### Prerequisites
