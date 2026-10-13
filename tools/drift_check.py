@@ -282,6 +282,18 @@ Checks (docs/arch/target-architecture.md §A6):
       never fire; a path two specs declare fires only when no spec types the
       name non-numeric. Invocations with no block or spec op, and a
       `--json-body` that is not inline JSON, are skipped and counted.
+  30. Documented --json-body with unknown keys: every top-level key of an
+      inline `--json-body '{…}'` must be a property of the operation's
+      request body (body_schema; `$ref`/`allOf` resolved, nested allOf too).
+      `contact-center-routing.md` documented `cc-captures create` with
+      `from`/`to`/`filters` against a body that takes only `query`, and
+      `cc-dial-number create` with `dialNumber` for `dialledNumber`. A
+      `oneOf`/`anyOf` of closed branches accepts their union; an open
+      (`additionalProperties`), discriminator-only, `JsonValue` or
+      property-less schema is skipped. Keys the spec's own request example
+      or a `Patchable fields:` list in its description names are accepted.
+      Unparseable bodies (`$(cat f.json)`, `file://`, `@file`, `-`, invalid
+      JSON) are counted separately, never fired.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -2155,6 +2167,17 @@ def spec_op_index() -> dict[str, dict[tuple[str, str], dict]]:
     return _SPEC_OP_INDEX
 
 
+def _raw_body_schema(op: dict) -> dict | None:
+    """The unresolved request-body schema node body_schema starts from — the
+    first JSON content type openapi_parser.parse_request_body would pick —
+    or None when the op declares no JSON body."""
+    content = op.get("requestBody", {}).get("content", {})
+    node = next((content[k] for k in JSON_CONTENT_KEYS if k in content), None)
+    if not node:
+        return None
+    return node.get("schema", {})
+
+
 def body_schema(op: dict, spec: dict) -> dict | None:
     """Resolved request-body schema with allOf merged.
 
@@ -2162,11 +2185,9 @@ def body_schema(op: dict, spec: dict) -> dict | None:
     the same body the generator saw. Unlike check 9's `_resolve_schema` this
     keeps `required`, which is the entire oracle for checks 13 and 14.
     """
-    content = op.get("requestBody", {}).get("content", {})
-    node = next((content[k] for k in JSON_CONTENT_KEYS if k in content), None)
-    if not node:
+    schema = _raw_body_schema(op)
+    if schema is None:
         return None
-    schema = node.get("schema", {})
     if "$ref" in schema:
         schema = _ref(spec, schema)
     if "allOf" in schema:
@@ -3402,9 +3423,11 @@ def helper_skip_count(*keys: str) -> int:
 CHECK_PRINT: dict[str, tuple[str, str, Callable[[dict], str]]] = {}
 
 
-def print_check_findings(check: str, findings: list[dict], limit: int = 20) -> None:
+def print_check_findings(check: str, findings: list[dict], limit: int = 20,
+                         note: str = "") -> None:
     """Print a check-23+ result: `[NN] <label>: N   (examined M <noun>, skipped
-    K)`, up to `limit` detail lines, then `... and N more (--json for all)`.
+    K)`, then `note` when given (check 30's unparseable count), up to `limit`
+    detail lines, then `... and N more (--json for all)`.
 
     Never raises — the gate runs unattended, and a crash here exits 2:
       * a record_examined blind finding (`{"check", "error"}`) prints as
@@ -3418,7 +3441,8 @@ def print_check_findings(check: str, findings: list[dict], limit: int = 20) -> N
     stats = CHECK_EXAMINED.get(check) or {}
     print(f"[{check}] {label}: {len(findings)}"
           f"   (examined {stats.get('examined', 0)} {noun}, "
-          f"skipped {stats.get('skipped', 0)})")
+          f"skipped {stats.get('skipped', 0)})"
+          + (f"   {note}" if note else ""))
     for f in findings[:limit]:
         if (isinstance(f, dict) and f.get("check") == check
                 and "error" in f):   # record_examined's blind finding
@@ -4211,6 +4235,50 @@ def _json_number_ok(value) -> bool | None:
     return False
 
 
+def _inline_json_body(value: str):
+    """The decoded value of an inline `--json-body '{…}'` (or `'[…]'`), or
+    None when the documented value is not inline JSON: `file://x`, `@file`,
+    `$(cat f.json)`, `-` (stdin), a `{...}` sketch, or anything that does not
+    parse. Shared by checks 29 and 30 so both read a body the same way."""
+    text = value.strip()
+    if not text.startswith(("{", "[")):
+        return None
+    try:
+        return json.loads(text)
+    except (ValueError, RecursionError):
+        return None
+
+
+def _invocation_resolver(blocks: list[CommandBlock], spec_index: dict,
+                         registrations: dict[str, str] | None):
+    """Return `resolve(inv) -> (block, spec ops)` for checks 29 and 30.
+
+    The block is found by group + command — an alias group resolves through
+    `registrations` (default parse_registrations(), `{}` if that raises) —
+    and its spec ops by method + normalized path. Either is None when the
+    invocation has no block (hand-written seams, hidden aliases) or the
+    block no spec op.
+    """
+    if registrations is None:
+        try:
+            registrations = parse_registrations()
+        except Exception:   # noqa: BLE001 — unattended gate: skip, not crash
+            registrations = {}
+    by_name: dict[tuple[str, str], CommandBlock] = {}
+    for b in blocks:
+        by_name.setdefault((b.group, b.command), b)
+        by_name.setdefault((b.module, b.command), b)
+
+    def resolve(inv: dict):
+        group, command = inv.get("group"), inv.get("command")
+        block = (by_name.get((group, command))
+                 or by_name.get((registrations.get(group, ""), command)))
+        sops = spec_index.get((block.method, block.npath)) if block else None
+        return block, sops
+
+    return resolve
+
+
 def check_doc_value_types(invocations: list[dict], blocks: list[CommandBlock],
                           spec_index: dict,
                           registrations: dict[str, str] | None = None) -> list[dict]:
@@ -4239,21 +4307,11 @@ def check_doc_value_types(invocations: list[dict], blocks: list[CommandBlock],
     """
     findings: list[dict] = []
     examined = skipped = 0
-    if registrations is None:
-        try:
-            registrations = parse_registrations()
-        except Exception:   # noqa: BLE001 — unattended gate: skip, not crash
-            registrations = {}
-    by_name: dict[tuple[str, str], CommandBlock] = {}
-    for b in blocks:
-        by_name.setdefault((b.group, b.command), b)
-        by_name.setdefault((b.module, b.command), b)
+    resolve = _invocation_resolver(blocks, spec_index, registrations)
     seen: set[tuple] = set()
     for inv in invocations:
         group, command = inv.get("group"), inv.get("command")
-        block = (by_name.get((group, command))
-                 or by_name.get((registrations.get(group, ""), command)))
-        sops = spec_index.get((block.method, block.npath)) if block else None
+        block, sops = resolve(inv)
         if not sops:
             skipped += 1
             continue
@@ -4262,11 +4320,7 @@ def check_doc_value_types(invocations: list[dict], blocks: list[CommandBlock],
         checks: list[tuple[str, object, str | None]] = []
         for flag, value in _flag_values(list(inv.get("tokens") or ())):
             if flag == "--json-body":
-                text = value.strip()
-                try:
-                    body = json.loads(text) if text.startswith("{") else None
-                except ValueError:
-                    body = None
+                body = _inline_json_body(value)
                 if not isinstance(body, dict):
                     skipped += 1        # file://, $(cat …), @file, or not JSON
                     continue
@@ -4303,6 +4357,227 @@ CHECK_PRINT["29"] = (
     "documented invocations",
     lambda f: (f"{f['file']}:{f['line']}  wxcli {f['group']} {f['command']}  "
                f"{f['where']} {f['value']!r}  spec: {f['expected']}"))
+
+
+# ----------------------------------------------------------------- check 30
+
+def _closed_schema_keys(spec: dict, schema, depth: int = 0,
+                        branch: bool = False) -> set[str] | None:
+    """Every top-level key `schema` accepts, or None when it is not a closed
+    list of keys (Review Focus 4). `$ref` and `allOf` resolve (nested allOf
+    too, which body_schema's one-level merge does not see).
+
+    None — the check cannot judge — when any part is open
+    (`additionalProperties` present and anything but false; `{}` is open
+    too), carries a `discriminator` with no `oneOf`/`anyOf` to enumerate the
+    subtypes, is a `oneOf`/`anyOf` branch (`branch=True`) declaring no
+    properties at all, or declares `valueType` as its ONLY property — the
+    serialized Jackson `JsonNode` the CC spec names `JsonValue` ("Json Value
+    schema"), which stands for any JSON at all (`asset update-asset`
+    documents a CUSTOM_MESSAGING field, not `valueType`). A `oneOf`/`anyOf`
+    whose branches are ALL closed
+    accepts the union of their keys: a key no branch declares is rejected
+    whichever branch the server picks, so it can fire without guessing the
+    branch (`cc-agent-summaries create`, SummaryListRequest). One open
+    branch makes the whole schema None.
+    """
+    schema = _resolve_ref(spec, schema)
+    if depth > 8:
+        return None
+    if schema.get("additionalProperties", False) is not False:
+        return None
+    alternatives = [schema.get(k) for k in ("oneOf", "anyOf")]
+    alternatives = [a for a in alternatives if a]
+    if schema.get("discriminator") and not alternatives:
+        return None
+    props = schema.get("properties")
+    keys = {k for k in props if isinstance(k, str)} if isinstance(props, dict) else set()
+    if keys == {"valueType"}:
+        return None
+    parts = schema.get("allOf") or []
+    if not isinstance(parts, list):
+        return None
+    for part in parts:
+        sub = _closed_schema_keys(spec, part, depth + 1)
+        if sub is None:
+            return None
+        keys |= sub
+    for branches in alternatives:
+        if not isinstance(branches, list):
+            return None
+        for b in branches:
+            sub = _closed_schema_keys(spec, b, depth + 1, branch=True)
+            if sub is None:
+                return None
+            keys |= sub
+    if branch and not keys:
+        return None
+    return keys
+
+
+def _body_example_keys(sop) -> set[str]:
+    """Top-level keys of the spec's own request-body examples — the media
+    type's `example`, each `examples[*].value`, and the schema's `example`.
+
+    Some specs contradict themselves: `PATCH /groups/{groupId}` declares a
+    SCIM `{schemas, Operations}` schema while its example (and the docs that
+    follow it) send `{displayName, members: [{id, operation}]}`. A doc that
+    matches the spec's own example is not contradicting the spec, so check
+    30 accepts those keys too — it fires only where the doc agrees with the
+    spec nowhere."""
+    content = sop.op.get("requestBody", {}).get("content", {})
+    node = next((content[k] for k in JSON_CONTENT_KEYS if k in content), None)
+    if not isinstance(node, dict):
+        return set()
+    examples = node.get("examples")
+    candidates = [node.get("example"),
+                  _resolve_ref(sop.spec, node.get("schema", {})).get("example")]
+    if isinstance(examples, dict):
+        candidates += [_resolve_ref(sop.spec, e).get("value")
+                       for e in examples.values()]
+    keys: set[str] = set()
+    for c in candidates:
+        if isinstance(c, dict):
+            keys |= {k for k in c if isinstance(k, str)}
+    return keys
+
+
+# "Patchable fields: name, description, logoType (MOMENTUM only), logoIconName"
+# — an operation description that enumerates the fields it accepts.
+_DESCRIBED_FIELDS = re.compile(r"\b\w+able fields?:\s*([^.\n]+)", re.I)
+_LEADING_NAME = re.compile(r"\s*([A-Za-z_][A-Za-z0-9_]*)")
+
+
+def _described_body_keys(sop) -> set[str]:
+    """Field names the operation's own `description` lists as accepted
+    (`Patchable fields: a, b, c`). `PATCH …/channel/{id}` lists `name` there
+    while its ChannelPatchDTO schema omits it; a doc that renames a channel
+    agrees with the spec's description, so check 30 accepts the key. Only an
+    explicit `<…able> fields:` list counts — a key merely mentioned in prose
+    (`status`, `question`) does not."""
+    desc = sop.op.get("description")
+    keys: set[str] = set()
+    if isinstance(desc, str):
+        for m in _DESCRIBED_FIELDS.finditer(desc):
+            for item in m.group(1).split(","):
+                name = _LEADING_NAME.match(item)
+                if name:
+                    keys.add(name.group(1))
+    return keys
+
+
+def _closed_body_keys(sop) -> set[str] | None:
+    """The top-level keys one spec op's JSON request body accepts, or None
+    when the check cannot judge: no JSON body (body_schema), no properties,
+    or an open/composed schema _closed_schema_keys cannot close. A closed
+    schema's keys are widened by what the spec itself says elsewhere: its
+    own request examples (_body_example_keys) and a field list in the
+    operation's description (_described_body_keys). Never raises: an odd
+    shape is None."""
+    try:
+        if not isinstance(body_schema(sop.op, sop.spec), dict):
+            return None
+        keys = _closed_schema_keys(sop.spec, _raw_body_schema(sop.op))
+        if not keys:
+            return None
+        return keys | _body_example_keys(sop) | _described_body_keys(sop)
+    except Exception:   # noqa: BLE001 — an odd body shape is skipped, never raised
+        return None
+
+
+def check_doc_body_keys(invocations: list[dict], blocks: list[CommandBlock],
+                        spec_index: dict,
+                        registrations: dict[str, str] | None = None
+                        ) -> tuple[list[dict], int]:
+    """A documented `--json-body` whose top-level keys the request does not
+    accept.
+
+    `cc-dial-number create` was documented with `"dialNumber"`; the spec
+    (and the API) take `dialledNumber`, so the example could only fail or
+    be silently ignored. Checks 6/10/11 judge flag names and arguments, and
+    check 29 judges the TYPES of keys the schema declares; nothing compared
+    the keys themselves with the schema.
+
+    For each documented invocation (doc_invocations) with a `--json-body`
+    token, the block and spec ops are found as check 29 finds them
+    (_invocation_resolver). The body is decoded with _inline_json_body; a
+    top-level key in no declaring spec's request-body `properties` fires.
+    A deliberately partial PATCH body is fine — only keys that exist are
+    required, never all of them. Where the spec contradicts itself, a key
+    the spec's own request example uses, or that the operation description
+    lists as `Patchable fields: …`, is accepted too — the check fires only
+    where the doc agrees with the spec nowhere.
+
+    Skipped, never fired or raised:
+      * an unparseable body — `"$(cat f.json)"`, `file://x`, `@file`, `-`,
+        a `{...}` sketch, invalid JSON (Review Focus 3). Counted and
+        returned as the second element: `(findings, skipped_unparseable)`;
+      * a body that is not a JSON object (a top-level array);
+      * an invocation with no block or spec op;
+      * a body any declaring spec leaves unjudgeable — no `properties`, an
+        open or a composed schema (_closed_body_keys, Review Focus 4).
+    """
+    findings: list[dict] = []
+    examined = skipped = unparseable = 0
+    resolve = _invocation_resolver(blocks, spec_index, registrations)
+    seen: set[tuple] = set()
+    for inv in invocations:
+        bodies = [v for flag, v in _flag_values(list(inv.get("tokens") or ()))
+                  if flag == "--json-body"]
+        if not bodies:
+            continue
+        group, command = inv.get("group"), inv.get("command")
+        _block, sops = resolve(inv)
+        if not sops:
+            skipped += len(bodies)
+            continue
+        for value in bodies:
+            body = _inline_json_body(value)
+            if body is None:
+                unparseable += 1
+                continue
+            if not isinstance(body, dict):
+                skipped += 1
+                continue
+            allowed: set[str] = set()
+            for sop in sops:
+                keys = _closed_body_keys(sop)
+                if keys is None:
+                    allowed = set()
+                    break
+                allowed |= keys
+            if not allowed:
+                skipped += 1
+                continue
+            examined += 1
+            unknown = sorted(k for k in body if k not in allowed)
+            if not unknown:
+                continue
+            key = (inv.get("file"), inv.get("line"), group, command, tuple(unknown))
+            if key in seen:
+                continue
+            seen.add(key)
+            findings.append({"file": inv.get("file"), "line": inv.get("line"),
+                             "group": group, "command": command,
+                             "unknown": unknown, "allowed": sorted(allowed)})
+    findings = record_examined(
+        "30", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "documented --json-body examples")
+    return findings, unparseable
+
+
+def _fmt_body_keys(f: dict) -> str:
+    allowed = f["allowed"]
+    shown = ", ".join(allowed[:8]) + (f", … +{len(allowed) - 8}" if len(allowed) > 8 else "")
+    return (f"{f['file']}:{f['line']}  wxcli {f['group']} {f['command']}  "
+            f"--json-body {', '.join(f['unknown'])}  (accepts: {shown})")
+
+
+CHECK_PRINT["30"] = (
+    "documented --json-body examples with keys the request does not accept",
+    "documented --json-body examples",
+    _fmt_body_keys)
 
 
 # ----------------------------------------------------------------- check 18
@@ -5269,9 +5544,12 @@ def main() -> int:
     cc_base64_org_ids = check_cc_base64_org_id()
     unreachable_list_keys = check_unreachable_list_key()
     wrong_product_labels = check_wrong_product_label()
-    doc_value_types = check_doc_value_types(
-        list(doc_invocations(surface, positional_surface)),
-        iter_command_blocks(), spec_ops_by_key())
+    invocations = list(doc_invocations(surface, positional_surface))
+    command_blocks = iter_command_blocks()
+    ops_by_key = spec_ops_by_key()
+    doc_value_types = check_doc_value_types(invocations, command_blocks, ops_by_key)
+    doc_body_keys, unparseable_bodies = check_doc_body_keys(
+        invocations, command_blocks, ops_by_key)
 
     results = {
         "1_spec_cli_parity": parity,
@@ -5321,6 +5599,7 @@ def main() -> int:
         "27_unreachable_list_key": unreachable_list_keys,
         "28_wrong_product_label": wrong_product_labels,
         "29_doc_value_type_mismatch": doc_value_types,
+        "30_doc_body_unknown_keys": doc_body_keys,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -5339,7 +5618,7 @@ def main() -> int:
                   or inert_window_flags or walker_params
                   or single_object_lists or cc_base64_org_ids
                   or unreachable_list_keys or wrong_product_labels
-                  or doc_value_types)
+                  or doc_value_types or doc_body_keys)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -5577,6 +5856,8 @@ def main() -> int:
         print_check_findings("27", unreachable_list_keys)
         print_check_findings("28", wrong_product_labels)
         print_check_findings("29", doc_value_types)
+        print_check_findings("30", doc_body_keys,
+                             note=f"({unparseable_bodies} unparseable, not checked)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

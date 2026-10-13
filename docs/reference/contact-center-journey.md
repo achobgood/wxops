@@ -249,13 +249,20 @@ wxcli cc-journey show-workspace-id-journey-actions ws-abc-123
 # Create an action
 wxcli cc-journey create-template-id ws-abc-123 tmpl-001 --json-body '{
   "name": "Send Welcome Email",
-  "type": "webhook",
-  "config": {"url": "https://example.com/webhook"}
+  "rules": {"logic": "OR", "args": ["item buy,price,integer,Sum GT 100"]},
+  "actionTriggers": [{"type": "Webhook", "webhookURL": "https://example.com/webhook"}],
+  "isActive": true
 }'
 
 # Get action by name
 wxcli cc-journey show-action-name ws-abc-123 tmpl-001 "Send Welcome Email"
 ```
+
+> **Unverified:** the create body is from the spec (its own examples), not a live call. `name`
+> and `rules` are required; `rules.args` entries follow the spec's
+> `"<event>,<field>,<type>,<aggregate> <op> <value>"` pattern, and what fires is declared in
+> `actionTriggers` (the spec's example also carries an `attributes` object with `httpverb` and
+> `requestbody`). There is no top-level `type` or `config`.
 
 ---
 

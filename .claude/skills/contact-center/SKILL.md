@@ -388,10 +388,14 @@ wxcli cc-queue list-skill-based-queues SKILL_PROFILE_ID -o json
 
 ```bash
 wxcli cc-queue create-fetch-by-dynamic-skills-and-skill-profile --json-body '{
-  "dynamicSkillIds": ["SKILL_ID"],
+  "dynamicSkills": [{"skillId": "SKILL_ID", "proficiencyValue": 5}],
   "skillProfileId": "SKILL_PROFILE_ID"
 }'
 ```
+
+> **Unverified:** body keys are from the spec, not a live call. Each `dynamicSkills` item
+> carries the value in the field matching the skill's type: `proficiencyValue`,
+> `booleanValue`, `textValue` or `enumSkillValues`.
 
 **Fetch queues by user ID and skill profile ID (POST):**
 
@@ -406,9 +410,12 @@ wxcli cc-queue create-fetch-by-user-id-skill-profile-id --json-body '{
 
 ```bash
 wxcli cc-queue create-fetch-by-grouped-assistant-skill --json-body '{
-  "skillIds": ["SKILL_ID"]
+  "assistantSkillIds": ["ASSISTANT_SKILL_ID"]
 }'
 ```
+
+> **Unverified:** the key is from the spec, not a live call. Omit `assistantSkillIds` (or
+> send `null`) to get every Assistant Skill's mapping.
 
 ---
 
@@ -709,11 +716,18 @@ wxcli cc-desktop-profile list-agent-profile -o json
 ```bash
 wxcli cc-multimedia-profile create --json-body '{
   "name": "Voice Only",
-  "mediaTypes": [
-    {"media": "telephony", "maxCount": 1}
-  ]
+  "telephony": 1,
+  "chat": 0,
+  "email": 0,
+  "social": 0,
+  "active": true,
+  "blendingModeEnabled": false,
+  "blendingMode": "EXCLUSIVE"
 }'
 ```
+
+Each channel is its own integer limit (`telephony` 0–1, `chat`/`email`/`social` 0–5); all
+eight keys above are required by the spec.
 
 **List multimedia profiles:**
 
@@ -1119,10 +1133,16 @@ wxcli cc-auto-csat list-question AUTO_CSAT_ID -o json
 
 ```bash
 wxcli cc-call-monitoring create --json-body '{
-  "taskId": "TASK_ID",
-  "agentId": "AGENT_ID"
+  "id": "REQUEST_ID",
+  "monitorType": "midcall",
+  "taskId": "TASK_ID"
 }'
 ```
+
+> **Unverified:** body keys are from the spec, not a live call. `id` (your own request id,
+> ≤36 chars) and `monitorType` (`midcall`, `adhoc` or `continuous`) are required; `taskId` is
+> mandatory for `midcall`. To monitor an agent's calls rather than one task, send
+> `"agents": ["AGENT_ID"]` (or `queueIds`/`teams`/`sites`) instead of `taskId`.
 
 **Barge into a call:**
 
@@ -1171,9 +1191,12 @@ Details and gotchas: `docs/reference/contact-center-core.md` §21.
 wxcli cc-subscriptions create --json-body '{
   "name": "Agent Events",
   "eventTypes": ["AgentStateChange", "TaskRouted"],
-  "callbackUrl": "https://example.com/webhook"
+  "destinationUrl": "https://example.com/webhook"
 }'
 ```
+
+The webhook target is `destinationUrl` (HTTPS); `name`, `eventTypes` and `destinationUrl`
+are required by the spec.
 
 **List subscriptions:**
 

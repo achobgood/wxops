@@ -202,11 +202,14 @@ the report collection is `list-usage-reports`. Full detail:
 
 ### Agent Summaries
 
-#### Recipe CC-8 — Search interaction summaries
-Question: "Find summaries mentioning billing disputes"
+#### Recipe CC-8 — Look up an interaction's generated summary
+Question: "Show me the AI summary of this interaction"
 ```bash
-wxcli cc-agent-summaries create --json-body '{"query": "billing dispute"}' -o json
+wxcli cc-agent-summaries create --json-body '{"orgId":"ORG_UUID","searchType":"AGENT","interactionId":"INTERACTION_ID","agentCiUserId":"AGENT_CI_USER_ID"}' -o json
 ```
+This is a lookup of **one interaction for one agent** (body verified live 2026-10-13), not a
+text search — there is no `query` key, so "find summaries mentioning X" is not answerable
+here. `orgId` is the bare CC org UUID. Full detail: `docs/reference/contact-center-analytics.md`.
 
 ### Real-Time Monitoring
 

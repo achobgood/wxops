@@ -1276,13 +1276,13 @@ wxcli call-recording update-terms-of-service <vendor_id> --json-body '{"termsOfS
 wxcli call-recording show-compliance-announcement-call-recording
 
 # Update org-level compliance announcement settings
-wxcli call-recording update-compliance-announcement-call-recording --json-body '{"enabled": true}'
+wxcli call-recording update-compliance-announcement-call-recording --json-body '{"inboundPSTNCallsEnabled": true, "outboundPSTNCallsEnabled": true}'
 
 # Get location-level compliance announcement settings
 wxcli call-recording show-compliance-announcement-call-recording-1 <loc_id>
 
 # Update location-level compliance announcement settings
-wxcli call-recording update-compliance-announcement-call-recording-1 <loc_id> --json-body '{"enabled": true}'
+wxcli call-recording update-compliance-announcement-call-recording-1 <loc_id> --json-body '{"useOrgSettingsEnabled": false, "inboundPSTNCallsEnabled": true, "outboundPSTNCallsEnabled": true}'
 
 # List call recording regions
 wxcli call-recording list
@@ -1294,7 +1294,7 @@ wxcli call-recording list-vendors <loc_id>
 wxcli call-recording show-vendors
 
 # Set call recording vendor for a location
-wxcli call-recording update-vendor-call-recording <loc_id> --json-body '{"vendorId": "<vendor_id>"}'
+wxcli call-recording update-vendor-call-recording <loc_id> --json-body '{"orgDefaultEnabled": false, "id": "<vendor_id>"}'
 
 # List call recording jobs
 wxcli call-recording list-call-recording
@@ -1302,6 +1302,12 @@ wxcli call-recording list-call-recording
 # Get job status of a call recording job
 wxcli call-recording show-call-recording <job_id>
 ```
+
+> **Unverified:** the compliance-announcement and vendor bodies above are from the spec, not a
+> live call. Compliance announcements have no single `enabled` switch: inbound and outbound
+> PSTN announcements are separate toggles, and a location follows the org settings until
+> `useOrgSettingsEnabled` is `false`. The location vendor body names the vendor in `id`;
+> `orgDefaultEnabled: true` keeps the org's default vendor instead.
 
 ---
 

@@ -280,7 +280,7 @@ wxcli meetings delete-registration MEETING_ID
 wxcli meetings list-interpreters MEETING_ID --output json
 
 # Create an interpreter
-wxcli meetings create-interpreters MEETING_ID --json-body '{"items": [{"email": "interpreter@example.com", "languageCode1": "en", "languageCode2": "es"}]}'
+wxcli meetings create-interpreters MEETING_ID --json-body '{"email": "interpreter@example.com", "languageCode1": "en", "languageCode2": "es"}'
 
 # Update an interpreter
 wxcli meetings update-interpreters MEETING_ID INTERPRETER_ID --json-body '{"languageCode1": "en", "languageCode2": "fr"}'
@@ -322,10 +322,10 @@ wxcli meeting-participants update PARTICIPANT_ID --json-body '{"muted": true}'
 wxcli meeting-participants create-admit --json-body '{"items": [{"id": "PARTICIPANT_ID"}]}'
 
 # SIP callout
-wxcli meeting-participants create-callout --json-body '{"meetingId": "MEETING_ID", "sipAddress": "sip:room@example.com"}'
+wxcli meeting-participants create-callout --json-body '{"meetingId": "MEETING_ID", "address": "sip:room@example.com", "addressType": "sipAddress", "displayName": "Room 1"}'
 
-# Cancel SIP callout
-wxcli meeting-participants create-cancel-callout --json-body '{"meetingId": "MEETING_ID", "calloutId": "CALLOUT_ID"}'
+# Cancel SIP callout (participantId comes from the create-callout response)
+wxcli meeting-participants create-cancel-callout --json-body '{"participantId": "PARTICIPANT_ID"}'
 ```
 
 ---
@@ -414,14 +414,15 @@ wxcli meeting-preferences list --output json
 # Get audio options
 wxcli meeting-preferences show --output json
 
-# Update audio options
-wxcli meeting-preferences update --json-body '{"defaultAudioType": "webexAudio"}'
+# Update audio options (PUT — the spec requires the whole audio object: read it with
+# `show`, change defaultAudioType, send every field back)
+wxcli meeting-preferences update-audio --json-body '{"defaultAudioType": "webexAudio", ...}'
 
 # Get video options
 wxcli meeting-preferences list --output json
 
 # Update video options
-wxcli meeting-preferences update-video --json-body '{"videoEnabled": true}'
+wxcli meeting-preferences update-video --json-body '{"videoDevices": [{"deviceName": "Room 1", "deviceAddress": "room1@example.com", "isDefault": true}]}'
 
 # Get scheduling options
 wxcli meeting-preferences list-scheduling-options --output json
@@ -436,7 +437,7 @@ wxcli meeting-preferences list-personal-meeting-room --output json
 wxcli meeting-preferences update --json-body '{"topic": "My Room"}'
 
 # Batch refresh personal meeting room IDs
-wxcli meeting-preferences create-refresh-id --json-body '{"items": [{"email": "user@example.com"}]}'
+wxcli meeting-preferences create-refresh-id --json-body '{"siteUrl": "site.webex.com", "personalMeetingRoomIds": [{"email": "user@example.com", "systemGenerated": true}]}'
 
 # List sites
 wxcli meeting-preferences list-sites --output json
@@ -484,13 +485,13 @@ wxcli meeting-session-types list --output json
 wxcli meeting-session-types list-session-types --output json
 
 # Update user session types
-wxcli meeting-session-types update --json-body '{"sessionTypes": [123, 456]}'
+wxcli meeting-session-types update --json-body '{"siteUrl": "site.webex.com", "email": "user@example.com", "sessionTypeIds": ["123", "456"]}'
 
 # Get site-wide meeting settings
 wxcli meeting-site show --output json
 
 # Update site-wide meeting settings
-wxcli meeting-site update --json-body '{"defaultScheduledType": "meeting"}'
+wxcli meeting-site update --json-body '{"securityOptions": {"joinBeforeHost": true}}'
 ```
 
 ---

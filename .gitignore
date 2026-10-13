@@ -88,6 +88,7 @@ tests/*
 !tests/test_drift_check_list_key.py
 !tests/test_drift_check_product_label.py
 !tests/test_drift_check_doc_value_types.py
+!tests/test_drift_check_doc_body_keys.py
 !tests/test_spec_sync.py
 !tests/test_sync_guard.py
 !tests/test_sync_classify.py

@@ -468,9 +468,10 @@ wxcli emergency-services update-status-red-sky-1 Y2lzY29...locationId \
 wxcli emergency-services create-building Y2lzY29...locationId \
   --alerting-email "security@company.com"
 
-# Update a RedSky building address for a location
+# Update a RedSky building address for a location (the spec's update body takes only
+# `address`; the alerting email set at create time is not part of it)
 wxcli emergency-services update-building Y2lzY29...locationId \
-  --json-body '{"alertingEmail": "new-security@company.com"}'
+  --json-body '{"address": {"addressLine1": "100 Main St", "city": "Austin", "stateOrProvince": "TX", "zipOrPostalCode": "78701", "country": "US"}}'
 ```
 
 ### Emergency Call Notifications (Org-Level)
@@ -803,9 +804,11 @@ body = {"alertingEmail": "security@company.com"}
 result = api.session.rest_post(
     f"{BASE}/telephony/config/locations/{location_id}/redSky/building", json=body)
 
-# Update building address
+# Update building address (spec: the PUT body carries only `address`)
 api.session.rest_put(
-    f"{BASE}/telephony/config/locations/{location_id}/redSky/building", json=body)
+    f"{BASE}/telephony/config/locations/{location_id}/redSky/building",
+    json={"address": {"addressLine1": "100 Main St", "city": "Austin",
+                     "stateOrProvince": "TX", "zipOrPostalCode": "78701", "country": "US"}})
 ```
 
 ### Emergency Address (PSTN)

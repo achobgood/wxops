@@ -289,7 +289,7 @@ The same PUT/PATCH distinction applies to groups: use `scim-groups update-groups
 wxcli scim-bulk create --fail-on-errors 5 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 5,
-  "Operations": [
+  "operations": [
     {
       "method": "POST",
       "path": "/Users",
@@ -317,6 +317,10 @@ wxcli scim-bulk create --fail-on-errors 5 --json-body '{
   ]
 }'
 ```
+
+> **Unverified:** the Webex spec (`BulkUser`) names the top-level array `operations`
+> (lowercase, required), not RFC 7644's `Operations`; not live-verified. The PATCH body
+> nested inside an operation's `data` keeps the SCIM `Operations` spelling.
 
 Check the response for per-operation status. Each operation returns its own status code (e.g., `201` for created, `409` for conflict/duplicate).
 
@@ -436,9 +440,10 @@ wxcli org-contacts create-delete \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --json-body '{
     "schemas": "urn:cisco:codev:identity:contact:core:1.0",
-    "contactIds": ["contact-id-1", "contact-id-2"]
+    "objectIds": ["contact-id-1", "contact-id-2"]
   }'
 ```
+The contact UUIDs go in `objectIds` (spec; both `schemas` and `objectIds` are required).
 
 ### Operation G: Directory Cleanup (Deactivate Stale Users)
 
@@ -457,7 +462,7 @@ wxcli scim-users update-users $USER_ID --json-body '{
 wxcli scim-bulk create --fail-on-errors 10 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 10,
-  "Operations": [
+  "operations": [
     {"method": "PATCH", "path": "/Users/USER_ID_1", "data": {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"], "Operations": [{"op": "replace", "path": "active", "value": false}]}},
     {"method": "PATCH", "path": "/Users/USER_ID_2", "data": {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"], "Operations": [{"op": "replace", "path": "active", "value": false}]}}
   ]

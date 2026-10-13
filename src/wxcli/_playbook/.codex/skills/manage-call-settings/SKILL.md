@@ -47,7 +47,7 @@ wxcli user-settings update-call-recording PERSON_ID --verify --json-body '{"enab
 ### Voicemail transcription (location-scoped — affects ALL users at location)
 ```bash
 wxcli location-voicemail show LOCATION_ID -o json          # Location voicemail policy
-wxcli location-voicemail update LOCATION_ID --json-body '{"voiceMessageTranscriptionEnabled": true}'
+wxcli location-voicemail update LOCATION_ID --json-body '{"voicemailTranscriptionEnabled": true}'
 wxcli user-settings update-voicemail PERSON_ID --json-body '{"enabled": true, "emailCopyOfMessage": {"enabled": true, "emailId": "user@example.com"}}'
 ```
 
@@ -82,13 +82,15 @@ wxcli my-call-settings list-available-hosts -o json        # List available hote
 ```bash
 wxcli user-settings show-call-forwarding PERSON_ID -o json
 wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
-  "always": {"enabled": false},
-  "busy": {"enabled": true, "destination": "+15551234567", "destinationVoicemailEnabled": false},
-  "noAnswer": {"enabled": false, "numberOfRings": 3},
+  "callForwarding": {
+    "always": {"enabled": false},
+    "busy": {"enabled": true, "destination": "+15551234567", "destinationVoicemailEnabled": false},
+    "noAnswer": {"enabled": false, "numberOfRings": 3}
+  },
   "businessContinuity": {"enabled": false}
 }'
 ```
-Note: 4 blocks (always, busy, noAnswer, businessContinuity). selectiveForward is a SEPARATE API.
+Note: 4 blocks — `always`, `busy` and `noAnswer` nest under `callForwarding`; `businessContinuity` is its sibling at the top level. selectiveForward is a SEPARATE API.
 
 ### Workspace hoteling
 ```bash
@@ -112,11 +114,12 @@ wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled":
 ```bash
 wxcli user-settings list-simultaneous-ring PERSON_ID -o json
 wxcli user-settings update-simultaneous-ring PERSON_ID --enabled --json-body '{"enabled":true,"phoneNumbers":[{"phoneNumber":"+15551234567"}]}'
-wxcli user-settings create-criteria-simultaneous-ring PERSON_ID --json-body '{"name":"After hours","phoneNumbers":["+15551234567"]}'
+wxcli user-settings create-criteria-simultaneous-ring PERSON_ID --json-body '{"scheduleName":"After hours","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"SELECT_PHONE_NUMBERS","phoneNumbers":["+15551234567"],"anonymousCallersEnabled":false,"unavailableCallersEnabled":false,"ringEnabled":true}'
 wxcli user-settings show-criteria-simultaneous-ring PERSON_ID ID -o json
-wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID --json-body '{"enabled":true}'
+wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID --json-body '{"ringEnabled":true}'
 wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID ID
 ```
+- Criteria body (spec, not live-verified): `callsFrom` and `ringEnabled` are required; with `callsFrom: SELECT_PHONE_NUMBERS`, `phoneNumbers`, `anonymousCallersEnabled` and `unavailableCallersEnabled` are required too. The criteria's toggle is `ringEnabled` — criteria with `ringEnabled: false` take priority.
 - Person SimRing now has an admin path via `user-settings` — `list-simultaneous-ring` / `update-simultaneous-ring` configure the base setting (enabled, do-not-ring-if-on-call, numbers); the `criteria-simultaneous-ring` commands manage schedule-based ring criteria.
 - **Workspace SimRing is also admin-configurable:** `wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID` and `update-simultaneous-ring` exist. Use those for workspaces instead of the `user-settings` commands.
 - SNR (`single-number-reach`) remains a valid alternative for the desk + mobile ring-simultaneously use case, but it is no longer the only admin-configurable option for person SimRing:
@@ -749,13 +752,15 @@ wxcli user-settings update-do-not-disturb PERSON_ID --json-body '{"enabled": tru
 wxcli user-settings show-call-forwarding PERSON_ID --output json
 # 2. PUT replaces entire object — include ALL blocks, modify only target
 wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
-  "always": {"enabled": false},
-  "busy": {"enabled": true, "destination": "+15551234567", "destinationVoicemailEnabled": false},
-  "noAnswer": {"enabled": false, "numberOfRings": 3},
+  "callForwarding": {
+    "always": {"enabled": false},
+    "busy": {"enabled": true, "destination": "+15551234567", "destinationVoicemailEnabled": false},
+    "noAnswer": {"enabled": false, "numberOfRings": 3}
+  },
   "businessContinuity": {"enabled": false}
 }'
 ```
-Forwarding has 4 blocks: always, busy, noAnswer, businessContinuity. selectiveForward is a SEPARATE API.
+Forwarding has 4 blocks: always, busy and noAnswer under `callForwarding`, plus top-level businessContinuity. selectiveForward is a SEPARATE API.
 
 #### Pattern: Voicemail configuration
 

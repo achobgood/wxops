@@ -263,7 +263,7 @@ wxcli org-contacts create-delete \
   --schemas "urn:cisco:codev:identity:contact:core:1.0" \
   --json-body '{
     "schemas": "urn:cisco:codev:identity:contact:core:1.0",
-    "contactIds": ["contact-id-1", "contact-id-2"]
+    "objectIds": ["contact-id-1", "contact-id-2"]
   }'
 ```
 
@@ -312,7 +312,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "schemas": "urn:cisco:codev:identity:contact:core:1.0",
-    "contactIds": ["id1", "id2"]
+    "objectIds": ["id1", "id2"]
   }' \
   "https://webexapis.com/v1/contacts/organizations/$ORG_ID/contacts/bulk/delete"
 ```

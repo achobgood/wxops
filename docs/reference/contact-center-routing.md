@@ -297,7 +297,7 @@ wxcli cc-contact-number list-contact-number
 wxcli cc-contact-number show <number-id>
 
 # Create a contact number
-wxcli cc-contact-number create --json-body '{"name":"+15551234567","type":"TOLL_FREE"}'
+wxcli cc-contact-number create --json-body '{"number":"+15551234567"}'
 
 # Bulk export
 wxcli cc-contact-number list-bulk-export -o json
@@ -305,6 +305,9 @@ wxcli cc-contact-number list-bulk-export -o json
 # Delete a contact number
 wxcli cc-contact-number delete <number-id>
 ```
+
+> **Unverified:** the create body is from the spec, not a live call: `number` (the customized
+> ANI) is the only required key, and there is no `name` or `type`.
 
 ### Raw HTTP
 
@@ -316,7 +319,7 @@ Authorization: Bearer {cc_token}
 # Create a contact number
 POST https://api.wxcc-us1.cisco.com/organization/{orgId}/contact-number
 Content-Type: application/json
-{"name":"+15551234567","type":"TOLL_FREE"}
+{"number":"+15551234567"}
 ```
 
 ---
@@ -455,7 +458,8 @@ wxcli cc-overrides show <override-id>
 wxcli cc-overrides create --json-body '{"name":"Holiday-Override","description":"Route to overflow during holidays"}'
 
 # Update an override
-wxcli cc-overrides update <override-id> --json-body '{"active":true}'
+# (PUT: name, timezone and overrides are required by the spec, and there is no active flag)
+wxcli cc-overrides update <override-id> --json-body '{"name":"Holiday-Override","timezone":"America/New_York","overrides":[{"name":"Christmas","startDateTime":"2026-12-25T00:00","endDateTime":"2026-12-25T23:59","workingHours":false,"frequency":"DontRepeat"}]}'
 
 # Delete an override
 wxcli cc-overrides delete <override-id>
@@ -597,16 +601,18 @@ dialer from calling specific phone numbers. Uses the `/v3/campaign-management/` 
 wxcli cc-contact-list list <campaign-id>
 
 # Create a contact list
-wxcli cc-contact-list create <campaign-id> --json-body '{"name":"Q1-List","contacts":[]}'
+# (spec: supportedChannels is required, plus activationTimeLagMinutes or activationDateTime;
+#  there is no name or contacts key — add contacts with create-contacts)
+wxcli cc-contact-list create <campaign-id> --json-body '{"supportedChannels":["TELEPHONY"],"activationTimeLagMinutes":0}'
 
 # Add contacts to a list
 wxcli cc-contact-list create-contacts <campaign-id> <list-id> --json-body '{"contacts":[{"phoneNumber":"+15551234567","firstName":"Jane"}]}'
 
-# Update a contact's status
-wxcli cc-contact-list update <campaign-id> <list-id> <contact-id> --json-body '{"status":"DO_NOT_CALL"}'
+# Close a contact (spec: contactStatus accepts only CLOSED)
+wxcli cc-contact-list update <campaign-id> <list-id> <contact-id> --json-body '{"contactStatus":"CLOSED"}'
 
-# Update list status (activate/deactivate)
-wxcli cc-contact-list update-status <campaign-id> <list-id> --json-body '{"status":"ACTIVE"}'
+# Update list status (spec example: EXPIRED; the value is not case-sensitive)
+wxcli cc-contact-list update-status <campaign-id> <list-id> --json-body '{"contactListStatus":"EXPIRED"}'
 
 # Add a phone number to DNC list
 wxcli cc-dnc create <dnc-list-name> --json-body '{"phoneNumber":"+15559876543"}'
@@ -1057,14 +1063,20 @@ wxcli cc-data-sources show <schema-id>
 wxcli cc-data-sources show-data-sources <data-source-id>
 
 # Register a new data source
-wxcli cc-data-sources create --json-body '{"name":"Salesforce-CRM","type":"REST","url":"https://api.salesforce.com"}'
+wxcli cc-data-sources create --json-body '{"schemaId":"SCHEMA_ID","url":"https://myapp.example.com/webhook","audience":"my-app","subject":"data-feed","nonce":"unique-nonce-value","tokenLifetimeMinutes":60}'
 
-# Update a data source
-wxcli cc-data-sources update <data-source-id> --json-body '{"name":"Salesforce-CRM-v2","url":"https://api2.salesforce.com"}'
+# Update a data source (e.g. pause it)
+wxcli cc-data-sources update <data-source-id> --json-body '{"status":"disabled","errorMessage":"Maintenance window"}'
 
 # Delete a data source
 wxcli cc-data-sources delete <data-source-id>
 ```
+
+> **Unverified:** the bodies are from the spec, not a live call. A data source is a JWT-signed
+> webhook registration (`schemaId`, `url`, `audience`, `subject`, `nonce`,
+> `tokenLifetimeMinutes`) — it has no `name` or `type`. `update` adds `status`
+> (`active`/`disabled`) and `errorMessage`. Same API as `data-sources` in
+> [admin-apps-data.md](admin-apps-data.md).
 
 ### Raw HTTP
 
@@ -1076,7 +1088,7 @@ Authorization: Bearer {cc_token}
 # Register a data source
 POST https://api.wxcc-us1.cisco.com/dataSources
 Content-Type: application/json
-{"name":"Salesforce-CRM","type":"REST","url":"https://api.salesforce.com"}
+{"schemaId":"SCHEMA_ID","url":"https://myapp.example.com/webhook","audience":"my-app","subject":"data-feed","nonce":"unique-nonce-value","tokenLifetimeMinutes":60}
 
 # List schemas
 GET https://api.wxcc-us1.cisco.com/dataSources/schemas
