@@ -515,10 +515,11 @@ wxcli cc-users show USER_ID -o json
 **Bulk update dynamic skill for users:**
 
 ```bash
-wxcli cc-users update-dynamic-skill --json-body '{
-  "userIds": ["USER_ID_1", "USER_ID_2"],
-  "dynamicSkillId": "SKILL_ID",
-  "skillValue": 8
+wxcli cc-users update-dynamic-skill SKILL_ID --json-body '{
+  "items": [
+    {"itemIdentifier": 1, "item": {"id": "USER_ID_1"}, "requestAction": "SAVE"},
+    {"itemIdentifier": 2, "item": {"id": "USER_ID_2"}, "requestAction": "SAVE"}
+  ]
 }'
 ```
 

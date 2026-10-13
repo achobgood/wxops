@@ -272,6 +272,16 @@ Checks (docs/arch/target-architecture.md §A6):
       (command_renderer.group_label_spec). Groups with no matching spec op,
       ops only in a spec SPEC_PRODUCT lacks, or no readable label are
       skipped and counted.
+  29. Documented value of the wrong type: a documented `--flag value` that
+      feeds a query param (flag_query_map), or a top-level key of an inline
+      `--json-body '{…}'` (body_schema), whose spec type is integer/number
+      (or format int64/int32) must be a number. `contact-center-core.md`
+      documented `cc-agents list-activities --from "2026-03-01T00:00:00Z"`
+      against an int64 epoch-ms `from`. Placeholders (`FROM_PARAM`,
+      `<epoch-ms>`, `$FROM`, `{{from}}`, `...`, any value with no digit)
+      never fire; a path two specs declare fires only when no spec types the
+      name non-numeric. Invocations with no block or spec op, and a
+      `--json-body` that is not inline JSON, are skipped and counted.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -1482,8 +1492,12 @@ def parse_module_signatures(module: str,
     for node in ast.walk(ast.parse(path.read_text())):
         if not isinstance(node, ast.FunctionDef):
             continue
-        name = _command_name(node)
-        if name is None:
+        # Every decorator name, not just the first: a renamed command stacks
+        # its hidden alias FIRST, so `_command_name` alone recorded only the
+        # alias, and documented calls of 105 visible commands (e.g.
+        # `cc-agents list-activities`) were invisible to doc_invocations.
+        cmd_names = [n for n, _hidden in command_names(node)]
+        if not cmd_names:
             continue
         params = node.args.args + node.args.kwonlyargs
         defaults = ([None] * (len(node.args.args) - len(node.args.defaults))
@@ -1515,10 +1529,11 @@ def parse_module_signatures(module: str,
                 names = ["--" + param.arg.replace("_", "-")]
             for f in names:
                 flags[f] = takes_value
-        rec = out.setdefault(name, {"args": args, "flags": {}})
-        if not rec["args"] and args:
-            rec["args"] = args
-        rec["flags"].update(flags)
+        for name in cmd_names:
+            rec = out.setdefault(name, {"args": list(args), "flags": {}})
+            if not rec["args"] and args:
+                rec["args"] = list(args)
+            rec["flags"].update(flags)
     return out
 
 
@@ -4077,6 +4092,214 @@ CHECK_PRINT["28"] = (
                f"expected product: {' or '.join(f['expected'])}"))
 
 
+# ----------------------------------------------------------------- check 29
+
+# A documented value counts as a number when it is one. JSON numbers count too
+# (the --json-body branch compares the decoded value, not its text).
+_NUMBER_VALUE = re.compile(r"^-?\d+(\.\d+)?$")
+_NUMERIC_TYPES = ("integer", "number")
+_NUMERIC_FORMATS = ("int64", "int32")
+_FLAG_TOKEN = re.compile(r"^--?[A-Za-z]")
+
+
+def _doc_value_is_placeholder(value: str) -> bool:
+    """A documented value that stands for one the reader supplies.
+
+    `FROM_PARAM`, `<epoch-ms>`, `$FROM`, `{{from}}`, `...` and anything quoting
+    a backtick or a `#` never fire (Review Focus 2). Nor does a value with no
+    digit at all — `epoch-ms`, `start-time`, `now`: a word names the value
+    rather than being one, and a wrong-but-wordy value is a cheaper miss than
+    a false positive on a gate that runs unattended.
+    """
+    v = value.strip()
+    return (not v or bool(DOC_PLACEHOLDER.match(v))
+            or any(c in v for c in "<>${}`#")
+            or "..." in v or "…" in v
+            or not any(ch.isdigit() for ch in v))
+
+
+def _numeric_type(spec: dict, schema) -> str | None:
+    """'integer' / 'number' / 'integer (int64)' when `schema` (or the `$ref`
+    it names) declares a scalar number, else None. An array of numbers is not
+    a number — it is passed as a list."""
+    schema = _resolve_ref(spec, schema)
+    t, fmt = schema.get("type"), schema.get("format")
+    if isinstance(t, list):
+        t = next((x for x in t if x in _NUMERIC_TYPES), t[0] if t else None)
+    if t in _NUMERIC_TYPES or fmt in _NUMERIC_FORMATS:
+        base = t if t in _NUMERIC_TYPES else "integer"
+        return f"{base} ({fmt})" if isinstance(fmt, str) and fmt else base
+    return None
+
+
+def _query_param_numeric(sop, name: str) -> str | None | bool:
+    """Numeric type of query param `name` on one spec op; None if declared
+    but not numeric; False if this spec does not declare it."""
+    op, spec = sop.op, sop.spec
+    params = []
+    for holder in (op, _path_item_of(op, spec)):
+        declared = holder.get("parameters")
+        if isinstance(declared, list):
+            params += declared
+    for p in params:
+        p = _resolve_ref(spec, p)
+        if p.get("in") == "query" and p.get("name") == name:
+            return _numeric_type(spec, p.get("schema", p))
+    return False
+
+
+def _body_prop_numeric(sop, key: str) -> str | None | bool:
+    """As _query_param_numeric, for a top-level request-body property."""
+    try:
+        schema = body_schema(sop.op, sop.spec)
+    except Exception:   # noqa: BLE001 — an odd body shape is skipped, never raised
+        return False
+    props = (schema or {}).get("properties")
+    if not isinstance(props, dict) or key not in props:
+        return False
+    return _numeric_type(sop.spec, props[key])
+
+
+def _agreed_numeric(sops, lookup, name: str) -> str | None:
+    """The numeric type every declaring spec agrees on, or None. A spec that
+    declares the name non-numeric vetoes (under-report rather than fail a
+    command one spec describes differently, as checks 9/23-28 do)."""
+    found = None
+    for sop in sops:
+        kind = lookup(sop, name)
+        if kind is False:
+            continue
+        if kind is None:
+            return None
+        found = found or kind
+    return found
+
+
+def _flag_values(tokens: list[str]):
+    """Yield (flag, value) for every `--flag value` / `--flag=value` pair."""
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t.startswith("--"):
+            if "=" in t:
+                name, value = t.split("=", 1)
+                yield name, value
+            elif i + 1 < len(tokens) and not _FLAG_TOKEN.match(tokens[i + 1]):
+                yield t, tokens[i + 1]
+                i += 1
+        i += 1
+
+
+def _json_number_ok(value) -> bool | None:
+    """True: a number (or a numeric string). None: nothing to judge (null,
+    a placeholder string). False: a value of the wrong type."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return True
+    if value is None:
+        return None
+    if isinstance(value, str):
+        if _NUMBER_VALUE.match(value.strip()):
+            return True
+        return None if _doc_value_is_placeholder(value) else False
+    return False
+
+
+def check_doc_value_types(invocations: list[dict], blocks: list[CommandBlock],
+                          spec_index: dict,
+                          registrations: dict[str, str] | None = None) -> list[dict]:
+    """A documented value whose type contradicts the spec.
+
+    `contact-center-core.md` documented `wxcli cc-agents list-activities
+    --from "2026-03-01T00:00:00Z"`; the spec declares `from` integer/int64
+    (epoch ms), so the documented example could only fail. Nothing compared a
+    documented VALUE to the declared type — checks 6/10/11 judge names,
+    counts and presence.
+
+    For each documented invocation (doc_invocations) the command's block is
+    found by group + command (an alias group resolves through
+    `registrations`, default parse_registrations()), and its spec op by
+    method + normalized path. `--flag value` pairs are mapped to query
+    params through flag_query_map; top-level keys of an inline `--json-body
+    '{…}'` are looked up in body_schema. When the spec type is integer/number
+    (or format int64/int32) the value must match `^-?\\d+(\\.\\d+)?$` — a
+    JSON number counts. A path two specs declare fires only when no declaring
+    spec gives the name a non-numeric type.
+
+    Placeholders never fire (_doc_value_is_placeholder). Skipped and counted,
+    never raised: invocations with no block or no spec op (hand-written
+    seams, hidden aliases), and a `--json-body` that is not inline JSON
+    (`file://`, `$(cat …)`, `@file`) or does not parse.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    if registrations is None:
+        try:
+            registrations = parse_registrations()
+        except Exception:   # noqa: BLE001 — unattended gate: skip, not crash
+            registrations = {}
+    by_name: dict[tuple[str, str], CommandBlock] = {}
+    for b in blocks:
+        by_name.setdefault((b.group, b.command), b)
+        by_name.setdefault((b.module, b.command), b)
+    seen: set[tuple] = set()
+    for inv in invocations:
+        group, command = inv.get("group"), inv.get("command")
+        block = (by_name.get((group, command))
+                 or by_name.get((registrations.get(group, ""), command)))
+        sops = spec_index.get((block.method, block.npath)) if block else None
+        if not sops:
+            skipped += 1
+            continue
+        examined += 1
+        flag_params = flag_query_map(block.text)
+        checks: list[tuple[str, object, str | None]] = []
+        for flag, value in _flag_values(list(inv.get("tokens") or ())):
+            if flag == "--json-body":
+                text = value.strip()
+                try:
+                    body = json.loads(text) if text.startswith("{") else None
+                except ValueError:
+                    body = None
+                if not isinstance(body, dict):
+                    skipped += 1        # file://, $(cat …), @file, or not JSON
+                    continue
+                for key, val in body.items():
+                    kind = _agreed_numeric(sops, _body_prop_numeric, key)
+                    if kind:
+                        checks.append((f"--json-body {key}", val, kind))
+                continue
+            param = flag_params.get(flag)
+            if param is None:
+                continue
+            kind = _agreed_numeric(sops, _query_param_numeric, param)
+            if kind and not (_NUMBER_VALUE.match(value.strip())
+                             or _doc_value_is_placeholder(value)):
+                checks.append((flag, value, kind))
+        for where, value, kind in checks:
+            if not where.startswith("--json-body ") or _json_number_ok(value) is False:
+                shown = value if isinstance(value, str) else json.dumps(value)
+                key = (inv.get("file"), inv.get("line"), group, command, where, shown)
+                if key in seen:
+                    continue
+                seen.add(key)
+                findings.append({"file": inv.get("file"), "line": inv.get("line"),
+                                 "group": group, "command": command,
+                                 "where": where, "value": shown, "expected": kind})
+    return record_examined(
+        "29", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "documented invocations")
+
+
+CHECK_PRINT["29"] = (
+    "documented values whose type contradicts the spec",
+    "documented invocations",
+    lambda f: (f"{f['file']}:{f['line']}  wxcli {f['group']} {f['command']}  "
+               f"{f['where']} {f['value']!r}  spec: {f['expected']}"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -5041,6 +5264,9 @@ def main() -> int:
     cc_base64_org_ids = check_cc_base64_org_id()
     unreachable_list_keys = check_unreachable_list_key()
     wrong_product_labels = check_wrong_product_label()
+    doc_value_types = check_doc_value_types(
+        list(doc_invocations(surface, positional_surface)),
+        iter_command_blocks(), spec_ops_by_key())
 
     results = {
         "1_spec_cli_parity": parity,
@@ -5089,6 +5315,7 @@ def main() -> int:
         "26_cc_base64_org_id": cc_base64_org_ids,
         "27_unreachable_list_key": unreachable_list_keys,
         "28_wrong_product_label": wrong_product_labels,
+        "29_doc_value_type_mismatch": doc_value_types,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -5106,7 +5333,8 @@ def main() -> int:
                   or name_lock["removed_modules"] or name_lock["unlocked"]
                   or inert_window_flags or walker_params
                   or single_object_lists or cc_base64_org_ids
-                  or unreachable_list_keys or wrong_product_labels)
+                  or unreachable_list_keys or wrong_product_labels
+                  or doc_value_types)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -5343,6 +5571,7 @@ def main() -> int:
         print_check_findings("26", cc_base64_org_ids)
         print_check_findings("27", unreachable_list_keys)
         print_check_findings("28", wrong_product_labels)
+        print_check_findings("29", doc_value_types)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

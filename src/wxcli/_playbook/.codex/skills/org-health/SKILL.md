@@ -72,8 +72,8 @@ before analyzing. See AGENTS.md's Common Flags section.
 TIMESTAMP=$(cat org-health-output/.current-run)
 OUTPUT_DIR="org-health-output/${TIMESTAMP}/collected"
 
-# For each queue ID from call_queues.json:
-wxcli call-queue show <QUEUE_ID> -o json > "${OUTPUT_DIR}/call_queue_details/<QUEUE_ID>.json"
+# For each queue in call_queues.json (its locationId and id):
+wxcli call-queue show <LOCATION_ID> <QUEUE_ID> -o json > "${OUTPUT_DIR}/call_queue_details/<QUEUE_ID>.json"
 ```
 
 **Outgoing permissions sample** — select up to 50 user IDs from step 9:
