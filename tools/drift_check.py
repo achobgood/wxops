@@ -241,6 +241,7 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 try:  # runnable as `python tools/drift_check.py` and as an imported module
     from tools.spec_overlay import load_overlay, merge_overlay, superseded_paths
@@ -2824,6 +2825,310 @@ def check_inert_overrides() -> tuple[list, list]:
     stale = [{"tag": t, "reason": " ".join(str(acks[t]).split())[:120]}
              for t in sorted(set(acks) - acked_tags)]
     return findings, stale
+
+
+# ------------------------------------------- shared helpers for checks 23-30
+#
+# Checks 23-30 each compare a rendered command block (what the CLI sends) with
+# the spec operation it renders (what the API declares). These helpers are the
+# single reader for both sides. Contract: they NEVER raise on odd input — a
+# missing response, a non-dict schema, an unreadable module or spec is
+# returned as empty/None and the consuming check skips it (and counts it).
+
+class CommandBlock(NamedTuple):
+    module: str    # module stem, e.g. "cc_flow"
+    group: str     # module.replace("_", "-") — NOT alias-resolved
+    command: str   # from @app.command("…")
+    method: str    # GET/POST/PUT/PATCH/DELETE; page walkers count as GET
+    npath: str     # normalize_path() of the url with URL_BASES stripped
+    text: str      # the whole block, decorator through the next decorator
+
+
+class SpecOp(NamedTuple):
+    spec_file: str  # e.g. "webex-contact-center.json"
+    path: str       # raw spec path, un-normalized
+    method: str     # upper-case
+    op: dict
+    spec: dict      # the whole (overlay-merged) spec, for $ref resolution
+
+
+_BLOCK_URL = re.compile(r'(?<![\w.])url = f?"([^"]+)"')
+_BLOCK_NAME = re.compile(r'@app\.command\("([^"]+)"')
+# rest_* names the method; the four page walkers in src/wxcli/auth.py
+# (follow_pagination, follow_page_param, fetch_from_offset, follow_scim) all
+# issue GET. Read, never imported.
+_BLOCK_CALL = re.compile(
+    r"\.(rest_(get|post|put|patch|delete)|follow_pagination|follow_page_param"
+    r"|fetch_from_offset|follow_scim)\(")
+
+
+def iter_command_blocks(commands_dir: Path = COMMANDS_DIR) -> list[CommandBlock]:
+    """Every command block in every non-`_` module that names a URL.
+
+    Splits on `\\n(?=@app\\.command)` exactly as check 16 does, so a stacked
+    hidden-alias decorator becomes its own URL-less block and is dropped — one
+    block per command. Blocks with no URL, no command name, or no recognisable
+    rest_*/walker call are dropped: there is nothing to compare them against.
+    """
+    blocks: list[CommandBlock] = []
+    try:
+        modules = sorted(Path(commands_dir).glob("*.py"))
+    except OSError:
+        return blocks
+    for mod in modules:
+        if mod.stem.startswith("_"):
+            continue
+        try:
+            source = mod.read_text()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for text in re.split(r"\n(?=@app\.command)", source):
+            named = _BLOCK_NAME.search(text)
+            url = _BLOCK_URL.search(text)
+            call = _BLOCK_CALL.search(text)
+            if not (named and url and call):
+                continue
+            path = url.group(1)
+            for base in URL_BASES:
+                if path.startswith(base):
+                    path = path[len(base):]
+                    break
+            method = (call.group(2) or "get").upper()
+            blocks.append(CommandBlock(
+                module=mod.stem, group=mod.stem.replace("_", "-"),
+                command=named.group(1), method=method,
+                npath=normalize_path(path), text=text))
+    return blocks
+
+
+_SPEC_OPS_CACHE: dict[tuple, dict] = {}
+
+
+def spec_ops_by_key(specs_dir: Path = SPECS_DIR) -> dict[tuple[str, str], list[SpecOp]]:
+    """{(METHOD, normalized path): [SpecOp, …]} over every `webex-*.json`.
+
+    Globbed from disk like check 16, and kept per declaring spec — never
+    pooled — so a path two specs describe differently yields two entries and
+    the consumer decides. The overlay `<specs_dir>/overlays/<stem>.overlay.json`
+    is merged when present (additive, as the generator does), so a command
+    rendered from an overlay operation is not mistaken for one with no spec op.
+    An unreadable or non-object spec is skipped. Cached on the files' mtimes
+    and sizes; callers must not mutate the result.
+    """
+    specs_dir = Path(specs_dir)
+    try:
+        files = sorted(specs_dir.glob("webex-*.json"))
+        stamp = tuple((str(f), f.stat().st_mtime_ns, f.stat().st_size)
+                      for f in files + sorted(
+                          (specs_dir / "overlays").glob("*.overlay.json")))
+    except OSError:
+        return {}
+    cached = _SPEC_OPS_CACHE.get(stamp)
+    if cached is not None:
+        return cached
+    index: dict[tuple[str, str], list[SpecOp]] = {}
+    for spec_file in files:
+        try:
+            spec = json.loads(spec_file.read_text())
+        except (OSError, UnicodeDecodeError, ValueError):
+            continue
+        if not isinstance(spec, dict):
+            continue
+        overlay_file = specs_dir / "overlays" / f"{spec_file.stem}.overlay.json"
+        try:
+            overlay = (json.loads(overlay_file.read_text())
+                       if overlay_file.exists() else {})
+        except (OSError, UnicodeDecodeError, ValueError):
+            overlay = {}
+        if isinstance(overlay, dict) and isinstance(overlay.get("paths", {}), dict):
+            try:
+                merge_overlay(spec, overlay)
+            except (AttributeError, TypeError):
+                pass
+        paths = spec.get("paths")
+        if not isinstance(paths, dict):
+            continue
+        for path, methods in paths.items():
+            if not isinstance(methods, dict):
+                continue
+            for method, op in methods.items():
+                if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
+                    continue
+                index.setdefault((method.upper(), normalize_path(path)), []).append(
+                    SpecOp(spec_file=spec_file.name, path=path,
+                           method=method.upper(), op=op, spec=spec))
+    _SPEC_OPS_CACHE.clear()   # one live snapshot; a rewritten spec invalidates
+    _SPEC_OPS_CACHE[stamp] = index
+    return index
+
+
+# {id(spec): (spec, {id(op): path item})}. The spec itself is held so its id
+# cannot be recycled while the entry lives.
+_PATH_ITEM_CACHE: dict[int, tuple[dict, dict[int, dict]]] = {}
+
+
+def _path_item_of(op: dict, spec: dict) -> dict:
+    """The path item that declares `op` (by identity), or {}."""
+    entry = _PATH_ITEM_CACHE.get(id(spec))
+    if entry is None or entry[0] is not spec:
+        found: dict[int, dict] = {}
+        paths = spec.get("paths")
+        for item in (paths.values() if isinstance(paths, dict) else ()):
+            if not isinstance(item, dict):
+                continue
+            for method, candidate in item.items():
+                if (isinstance(method, str) and method.lower() in HTTP_METHODS
+                        and isinstance(candidate, dict)):
+                    found[id(candidate)] = item
+        entry = (spec, found)
+        _PATH_ITEM_CACHE[id(spec)] = entry
+    return entry[1].get(id(op), {})
+
+
+def _resolve_ref(spec: dict, node, depth: int = 0):
+    """Follow a `$ref` chain (bounded); non-dict or dangling -> {}."""
+    while isinstance(node, dict) and isinstance(node.get("$ref"), str):
+        if depth > 8:
+            return {}
+        node = _ref(spec, node)
+        depth += 1
+    return node if isinstance(node, dict) else {}
+
+
+def query_param_names(op: dict, spec: dict) -> set[str]:
+    """Names of every `in: query` parameter on `op`, path-level ones included.
+
+    `$ref`'d parameters are resolved; a dangling ref or a non-dict entry is
+    ignored. Path-level parameters are found by locating `op` (by identity) in
+    `spec["paths"]`, so pass the op object a SpecOp carries, not a copy.
+    """
+    if not isinstance(op, dict) or not isinstance(spec, dict):
+        return set()
+    params = []
+    for holder in (op, _path_item_of(op, spec)):
+        declared = holder.get("parameters")
+        if isinstance(declared, list):
+            params += declared
+    names: set[str] = set()
+    for p in params:
+        p = _resolve_ref(spec, p)
+        name = p.get("name")
+        if p.get("in") == "query" and isinstance(name, str):
+            names.add(name)
+    return names
+
+
+def _is_array_schema(schema: dict) -> bool:
+    t = schema.get("type")
+    return t == "array" or (isinstance(t, list) and "array" in t)
+
+
+def _object_props(spec: dict, schema, depth: int = 0) -> dict:
+    """Top-level properties of a schema, `$ref` and `allOf` resolved."""
+    schema = _resolve_ref(spec, schema)
+    if depth > 8 or not schema:
+        return {}
+    props: dict = {}
+    parts = schema.get("allOf")
+    for part in parts if isinstance(parts, list) else ():
+        props.update(_object_props(spec, part, depth + 1))
+    own = schema.get("properties")
+    if isinstance(own, dict):
+        props.update(own)
+    return props
+
+
+def response_array_props(op: dict, spec: dict) -> set[str] | None:
+    """Array-typed top-level properties of `op`'s 200 response.
+
+    Reads EVERY media type, `*/*` included — the seven CC bulk exports declare
+    only `*/*`, and a JSON-only reader saw nothing there (2026-10-13). `$ref`
+    (on the response, the schema and each property) and `allOf` are resolved.
+    Returns None when any media type's schema is itself an array (a bare list:
+    there is no key to extract), and an empty set when there is no 200, no
+    content or no usable schema.
+    """
+    if not isinstance(op, dict) or not isinstance(spec, dict):
+        return set()
+    responses = op.get("responses")
+    if not isinstance(responses, dict):
+        return set()
+    resp = _resolve_ref(spec, responses.get("200", responses.get(200)))
+    content = resp.get("content")
+    if not isinstance(content, dict):
+        return set()
+    found: set[str] = set()
+    for media in content.values():
+        if not isinstance(media, dict):
+            continue
+        schema = _resolve_ref(spec, media.get("schema"))
+        if not schema:
+            continue
+        if _is_array_schema(schema):
+            return None
+        for name, prop in _object_props(spec, schema).items():
+            if _is_array_schema(_resolve_ref(spec, prop)):
+                found.add(name)
+    return found
+
+
+_LIST_EXTRACTOR = re.compile(r'result\.get\("([^"]+)",\s*result\.get\("data"')
+
+
+def list_extractor_key(block_text: str) -> str | None:
+    """The key a list command extracts: `result.get("<key>", result.get("data", …))`."""
+    m = _LIST_EXTRACTOR.search(block_text or "")
+    return m.group(1) if m else None
+
+
+_OPTION_DECL = re.compile(r"\b(\w+)\s*:\s*[^=\n]+?=\s*typer\.Option\(")
+_FLAG_LITERAL = re.compile(r'"(--[A-Za-z0-9][\w-]*)"')
+_PARAM_ASSIGN = re.compile(r'\bparams\["([^"]+)"\]\s*=\s*(?:str\(\s*)?(\w+)\b')
+
+
+def _call_args(text: str, start: int) -> str:
+    """Text of a call's arguments from `start` (just past its `(`) to the
+    matching `)`, string-aware. Unbalanced -> the rest of the text."""
+    depth, i, quote = 1, start, None
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            if ch == "\\":
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return text[start:i]
+        i += 1
+    return text[start:]
+
+
+def flag_query_map(block_text: str) -> dict[str, str]:
+    """{"--flag": query-param name} for options that feed `params[…]`.
+
+    Joins `var: T = typer.Option(…, "--flag", …)` (multi-line calls included)
+    with `params["name"] = var` / `params["name"] = str(var)`. An option that
+    never reaches `params`, or a param fed by anything but an option variable,
+    is omitted.
+    """
+    text = block_text or ""
+    var_flag: dict[str, str] = {}
+    for m in _OPTION_DECL.finditer(text):
+        flag = _FLAG_LITERAL.search(_call_args(text, m.end()))
+        if flag:
+            var_flag.setdefault(m.group(1), flag.group(1))
+    out: dict[str, str] = {}
+    for m in _PARAM_ASSIGN.finditer(text):
+        flag = var_flag.get(m.group(2))
+        if flag:
+            out.setdefault(flag, m.group(1))
+    return out
 
 
 # Paging totals a Webex response uses to say "there is more than this page".
