@@ -113,8 +113,9 @@ wxcli cc-ai-feature list
 # Get a specific AI feature
 wxcli cc-ai-feature show feat-abc-123
 
-# Enable/disable an AI feature
-wxcli cc-ai-feature update feat-abc-123 --json-body '{"active": true}'
+# Enable/disable an AI feature (each feature is its own object with an `enable` flag;
+# there is no top-level active switch — spec, not live-verified)
+wxcli cc-ai-feature update feat-abc-123 --json-body '{"realtimeTranscripts": {"enable": true}}'
 ```
 
 ### Raw HTTP
@@ -133,7 +134,7 @@ PATCH https://api.wxcc-us1.cisco.com/organization/{orgId}/ai-feature/{id}
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"active": true}
+{"realtimeTranscripts": {"enable": true}}
 ```
 
 ---
@@ -183,19 +184,26 @@ wxcli cc-auto-csat list-question csat-001
 
 # Create a new mapped question
 wxcli cc-auto-csat create csat-001 --json-body '{
-  "question": "How satisfied were you with the service?",
-  "questionType": "rating",
-  "scale": 5
+  "questionId": "QUESTION_ID",
+  "questionnaireId": "QUESTIONNAIRE_ID"
 }'
 
 # Bulk save questions
 wxcli cc-auto-csat create-bulk csat-001 --json-body '{
-  "questions": [
-    {"question": "Rate agent helpfulness", "questionType": "rating", "scale": 5},
-    {"question": "Would you recommend us?", "questionType": "boolean"}
+  "items": [
+    {"itemIdentifier": 1, "requestAction": "SAVE",
+     "item": {"questionId": "QUESTION_ID_1", "questionnaireId": "QUESTIONNAIRE_ID"}},
+    {"itemIdentifier": 2, "requestAction": "SAVE",
+     "item": {"questionId": "QUESTION_ID_2", "questionnaireId": "QUESTIONNAIRE_ID"}}
   ]
 }'
 ```
+
+> **Unverified:** both bodies are from the spec, not a live call. A mapped question is a
+> *reference* to an existing survey question — `questionId` and `questionnaireId` are required —
+> not the question text. The bulk form wraps each one in an `items` entry
+> (`itemIdentifier`, `requestAction`: `SAVE` or `DELETE`, `item`). The spec marks this endpoint
+> deprecated in favour of `POST /ai-feature/auto-csat/question`.
 
 ### Raw HTTP
 
@@ -209,7 +217,7 @@ POST https://api.wxcc-us1.cisco.com/organization/{orgId}/auto-csat/{autoCsatId}/
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"question": "How satisfied were you?", "questionType": "rating", "scale": 5}
+{"questionId": "QUESTION_ID", "questionnaireId": "QUESTIONNAIRE_ID"}
 ```
 
 ---
@@ -245,7 +253,8 @@ wxcli cc-summaries list
 wxcli cc-summaries show summary-abc-123
 
 # Update summary config
-wxcli cc-summaries update summary-abc-123 --json-body '{"active": true}'
+wxcli cc-summaries update summary-abc-123 --json-body '{"callDropSummariesEnabled": true, "virtualAgentTransferSummariesEnabled": true, "consultTransferSummariesEnabled": true, "agentInclusionType": "ALL"}'
+# (spec, not live-verified: the toggles are per summary type; there is no active flag)
 ```
 
 ### Raw HTTP
@@ -260,7 +269,7 @@ PUT https://api.wxcc-us1.cisco.com/organization/{orgId}/generated-summaries/{id}
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"active": true}
+{"callDropSummariesEnabled": true, "virtualAgentTransferSummariesEnabled": true, "consultTransferSummariesEnabled": true, "agentInclusionType": "ALL"}
 ```
 
 ---
@@ -418,10 +427,16 @@ or SSE connection for streaming agent state, task, and queue updates.
 ```bash
 # Subscribe to realtime notifications
 wxcli cc-realtime create --json-body '{
-  "resource": "task",
-  "subscriptionIds": ["sub-001"]
+  "clientType": "MyMonitor",
+  "isKeepAliveEnabled": true,
+  "allowMultiLogin": false
 }'
 ```
+
+> **Unverified:** the body is from the spec, not a live call. This opens a websocket
+> notification channel for the calling user; its four optional keys (`isKeepAliveEnabled`,
+> `clientType`, `allowMultiLogin` — which needs `clientType` — and `force`) shape that
+> connection. There is no `resource` or `subscriptionIds` key.
 
 ### Raw HTTP
 
@@ -430,7 +445,7 @@ POST https://api.wxcc-us1.cisco.com/v1/realtime/subscribe
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"resource": "task", "subscriptionIds": ["sub-001"]}
+{"clientType": "MyMonitor", "isKeepAliveEnabled": true, "allowMultiLogin": false}
 ```
 
 ---
@@ -476,7 +491,7 @@ wxcli cc-subscriptions create-subscriptions --json-body '{
   "name": "Agent State Changes",
   "eventTypes": ["agent:channel_state_change"],
   "resourceVersion": "agent:2.0.0",
-  "callbackUrl": "https://example.com/cc-webhook"
+  "destinationUrl": "https://example.com/cc-webhook"
 }'
 
 # List active subscriptions
@@ -510,7 +525,7 @@ Content-Type: application/json
   "name": "Agent State Changes",
   "eventTypes": ["agent:channel_state_change"],
   "resourceVersion": "agent:2.0.0",
-  "callbackUrl": "https://example.com/cc-webhook"
+  "destinationUrl": "https://example.com/cc-webhook"
 }
 
 # Get subscription
@@ -581,10 +596,13 @@ wxcli cc-tasks list --from 1784592000000 --all -o json
 wxcli cc-tasks list --from 1784592000000 --offset 100 --limit 5 -o json
 
 # Create a task
+# (spec, not live-verified: destination, entryPointId and mediaType are required;
+#  outboundType is CALLBACK, OUTDIAL or EXECUTE_FLOW, and OUTDIAL needs an outbound entry point)
 wxcli cc-tasks create --json-body '{
-  "channelType": "telephony",
+  "entryPointId": "OUTBOUND_ENTRY_POINT_ID",
   "destination": "+15551234567",
-  "direction": "OUTBOUND"
+  "mediaType": "telephony",
+  "outboundType": "OUTDIAL"
 }'
 
 # Accept a task
@@ -598,7 +616,7 @@ wxcli cc-tasks create-unhold task-789
 
 # Consult transfer
 wxcli cc-tasks create-consult task-789 --json-body '{
-  "destination": "agent-456",
+  "to": "agent-456",
   "destinationType": "agent"
 }'
 
@@ -635,7 +653,7 @@ POST https://api.wxcc-us1.cisco.com/v1/tasks
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"channelType": "telephony", "destination": "+15551234567", "direction": "OUTBOUND"}
+{"entryPointId": "OUTBOUND_ENTRY_POINT_ID", "destination": "+15551234567", "mediaType": "telephony", "outboundType": "OUTDIAL"}
 
 # Accept task
 POST https://api.wxcc-us1.cisco.com/v1/tasks/{taskId}/accept
@@ -674,10 +692,15 @@ push-based event delivery.
 ```bash
 # Subscribe to notifications
 wxcli cc-notification create --json-body '{
-  "notificationType": "agentDesktop",
-  "resource": "task"
+  "clientType": "MyDesktop",
+  "isKeepAliveEnabled": true,
+  "allowMultiLogin": false
 }'
 ```
+
+> **Unverified:** the body is from the spec, not a live call — the same four optional
+> connection keys as `cc-realtime create` (`isKeepAliveEnabled`, `clientType`,
+> `allowMultiLogin`, `force`); there is no `notificationType` or `resource` key.
 
 ### Raw HTTP
 
@@ -686,7 +709,7 @@ POST https://api.wxcc-us1.cisco.com/v1/notification/subscribe
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"notificationType": "agentDesktop", "resource": "task"}
+{"clientType": "MyDesktop", "isKeepAliveEnabled": true, "allowMultiLogin": false}
 ```
 
 ---
@@ -832,16 +855,15 @@ wxcli cc-address-book create-address-book --json-body '{
 
 # Create an entry
 wxcli cc-address-book create-entry ab-001 --json-body '{
-  "firstName": "Jane",
-  "lastName": "Smith",
-  "phoneNumber": "+15559876543"
+  "name": "Jane Smith",
+  "number": "+15559876543"
 }'
 
-# Bulk save entries
+# Bulk save entries (spec, not live-verified: each entry is an items[] wrapper)
 wxcli cc-address-book create-bulk ab-001 --json-body '{
-  "entries": [
-    {"firstName": "Alice", "phoneNumber": "+15551111111"},
-    {"firstName": "Bob", "phoneNumber": "+15552222222"}
+  "items": [
+    {"itemIdentifier": 1, "requestAction": "SAVE", "item": {"name": "Alice", "number": "+15551111111"}},
+    {"itemIdentifier": 2, "requestAction": "SAVE", "item": {"name": "Bob", "number": "+15552222222"}}
   ]
 }'
 
@@ -878,7 +900,7 @@ POST https://api.wxcc-us1.cisco.com/organization/{orgId}/address-book/{addressBo
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"firstName": "Jane", "lastName": "Smith", "phoneNumber": "+15559876543"}
+{"name": "Jane Smith", "number": "+15559876543"}
 
 # Bulk export
 GET https://api.wxcc-us1.cisco.com/organization/{orgId}/address-book/bulk-export

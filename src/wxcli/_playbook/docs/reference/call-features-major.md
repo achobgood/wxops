@@ -944,7 +944,7 @@ Gotcha: when you update a selective rule's `name`, the rule ID changes. The upda
 
 ### CLI Examples
 
-The forwarding commands follow the same pattern across all three features. Substitute the feature command group (`auto-attendant`, `call-queue`, or `hunt-group`).
+The forwarding commands follow the same pattern across all three features. Substitute the feature command group (`auto-attendant`, `call-queue`, or `hunt-group`). The update body nests `always` (and `selective`, `rules`, `operatingModes`) under a top-level `callForwarding` object — the spec requires it on the auto attendant.
 
 ```bash
 # Get call forwarding settings (same pattern for all three features)
@@ -954,15 +954,15 @@ wxcli hunt-group show-call-forwarding LOC_ID HG_ID
 
 # Update call forwarding — enable always-forward via --json-body
 wxcli auto-attendant update-call-forwarding LOC_ID AA_ID --json-body '{
-  "always": {"enabled": true, "destination": "+15551234567"}
+  "callForwarding": {"always": {"enabled": true, "destination": "+15551234567"}}
 }'
 
 wxcli call-queue update-call-forwarding LOC_ID QUEUE_ID --json-body '{
-  "always": {"enabled": true, "destination": "+15551234567"}
+  "callForwarding": {"always": {"enabled": true, "destination": "+15551234567"}}
 }'
 
 wxcli hunt-group update-call-forwarding LOC_ID HG_ID --json-body '{
-  "always": {"enabled": true, "destination": "+15551234567"}
+  "callForwarding": {"always": {"enabled": true, "destination": "+15551234567"}}
 }'
 
 # Create a selective forwarding rule

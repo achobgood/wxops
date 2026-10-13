@@ -324,7 +324,7 @@ wxcli admin-recordings delete RECORDING_ID_HERE --force
 wxcli admin-recordings create-access-list-recordings RECORDING_ID_HERE \
   --host-email host@example.com \
   --send-email \
-  --json-body '{"accessList": [{"email": "recipient@example.com", "displayName": "Recipient"}]}'
+  --json-body '{"addEmails": ["recipient@example.com"]}'
 
 # List group recordings for a person
 wxcli admin-recordings list-recordings-group --person-id PERSON_ID_HERE
@@ -401,9 +401,12 @@ Content-Type: application/json
 {
   "hostEmail": "host@example.com",
   "sendEmail": true,
-  "accessList": [{"email": "recipient@example.com", "displayName": "Recipient"}]
+  "addEmails": ["recipient@example.com"]
 }
 ```
+
+> **Unverified:** the body keys are from the spec, not a live call: `addEmails` shares and
+> `removeEmails` unshares (each at most 100 addresses); `sendEmail` defaults to `true`.
 
 #### Share by Link
 

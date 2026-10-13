@@ -245,16 +245,27 @@ wxcli cc-agent-wellbeing show "burnout-uuid"
 
 # Subscribe for realtime burnout events
 wxcli cc-agent-wellbeing create --json-body '{
-  "agentId": "...",
-  "subscriptionType": "BURNOUT"
+  "name": "Burnout events",
+  "eventTypes": ["EVENT_TYPE"],
+  "destinationUrl": "https://example.com/webhook"
 }'
 
 # Record a burnout event action
 wxcli cc-agent-wellbeing create-action --json-body '{
   "agentId": "...",
-  "action": "BREAK_TAKEN"
+  "interactionId": "...",
+  "clientId": "Acme",
+  "actionType": "Break Played",
+  "actionDateType": 1617536244000
 }'
 ```
+
+> **Unverified:** both bodies are from the spec, not a live call. `create` registers a webhook
+> subscription (`name`, `eventTypes` and `destinationUrl` are required; `destinationUrl` must be
+> HTTPS) — it does not take an agent. The spec does not list the burnout event-type names (its
+> generic example is `agent:login`). `create-action` records what was done about an agent's
+> burnout index: `actionType` is free text (spec example: "Break Played, Supervisor Notified,
+> etc.") and `actionDateType` is the epoch-ms time it happened.
 
 ### Raw HTTP
 
@@ -426,8 +437,14 @@ wxcli cc-user-profiles show "profile-uuid"
 wxcli cc-user-profiles create --json-body '{
   "name": "Standard Agent Profile",
   "description": "Default profile for voice agents",
-  "accessRights": {"queues": ["queue-uuid-1", "queue-uuid-2"]}
+  "profileType": "STANDARD_AGENT",
+  "active": true,
+  "permissionAccessLevel": "ALL",
+  "resourceAccessLevel": "ALL"
 }'
+# Unverified (spec, not live): name, profileType, active, permissionAccessLevel and
+# resourceAccessLevel are required. There is no accessRights key: to limit the profile to
+# particular resources set resourceAccessLevel SPECIFIC and list resourceCollections.
 
 # Get profile ACL (v3) — returns the whole ACL object (JSON); before 2026-10-13 the CLI printed []
 wxcli cc-user-profiles list-acl "profile-uuid"
@@ -538,9 +555,10 @@ wxcli cc-queue list-agent-based-queues "user-uuid"
 
 # Reassign agents to a queue
 wxcli cc-queue create-reassign-agents "queue-uuid" --json-body '{
-  "agentIds": ["agent1-uuid", "agent2-uuid"],
-  "action": "ADD"
+  "add": ["agent1-uuid", "agent2-uuid"],
+  "remove": []
 }'
+# Unverified (spec, not live): the body is two lists, add and remove, not an action verb.
 
 # List all queues (v1)
 wxcli cc-queue list
@@ -815,10 +833,10 @@ Skills are attributes assigned to agents for skill-based routing. Each skill has
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `serviceLevel`, `skillType` (TEXT, PROFICIENCY, BOOLEAN, ENUM)
+- **Create:** Requires `name`, `serviceLevelThreshold`, `skillType` (TEXT, PROFICIENCY, BOOLEAN, ENUM) and `active` (spec). An enum skill's values go in `enumSkillValues`, one `{"name": …}` object each (spec, not live-verified)
 - **PROFICIENCY type:** Values 0-10, used for competency-based routing
 - **BOOLEAN type:** True/false, used for capability flags (e.g., "speaks_spanish")
-- **ENUM type:** Requires `enumValues` array defining the allowed values
+- **ENUM type:** Requires `enumSkillValues` — one `{"name": …}` object per allowed value
 - **TEXT type:** Free-form text value
 
 ### CLI Examples
@@ -831,22 +849,25 @@ wxcli cc-skill list-skill
 wxcli cc-skill create --json-body '{
   "name": "Product Knowledge",
   "skillType": "PROFICIENCY",
-  "serviceLevel": 60
+  "serviceLevelThreshold": 60,
+  "active": true
 }'
 
 # Create a boolean skill
 wxcli cc-skill create --json-body '{
   "name": "Spanish Speaker",
   "skillType": "BOOLEAN",
-  "serviceLevel": 60
+  "serviceLevelThreshold": 60,
+  "active": true
 }'
 
 # Create an enum skill
 wxcli cc-skill create --json-body '{
   "name": "Region",
   "skillType": "ENUM",
-  "serviceLevel": 60,
-  "enumValues": ["EAST", "WEST", "CENTRAL"]
+  "serviceLevelThreshold": 60,
+  "active": true,
+  "enumSkillValues": [{"name": "EAST"}, {"name": "WEST"}, {"name": "CENTRAL"}]
 }'
 
 # Get a specific skill
@@ -871,7 +892,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/skill" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/skill" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Product Knowledge","skillType":"PROFICIENCY","serviceLevel":60}'
+  -d '{"name":"Product Knowledge","skillType":"PROFICIENCY","serviceLevelThreshold":60,"active":true}'
 ```
 
 ---
@@ -1500,10 +1521,12 @@ wxcli cc-global-vars list-reportable-count
 # Create a global variable
 wxcli cc-global-vars create --json-body '{
   "name": "CustomerTier",
-  "type": "STRING",
+  "variableType": "String",
   "defaultValue": "Standard",
+  "active": true,
   "reportable": true,
   "agentViewable": true,
+  "desktopLabel": "Customer Tier",
   "agentEditable": false
 }'
 

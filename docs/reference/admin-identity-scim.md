@@ -412,6 +412,11 @@ Execute multiple SCIM user/group operations in a single HTTP request. Supports c
 
 The `--fail-on-errors` parameter specifies the maximum number of individual operation failures before the entire bulk request is aborted.
 
+> **Unverified:** the Webex spec (`BulkUser`) names the request's top-level array
+> `operations` (lowercase, required), not RFC 7644's `Operations`; the examples below follow
+> the spec and have not been live-verified. A PATCH body nested in an operation's `data`
+> keeps the SCIM `Operations` spelling, and the bulk *response* is shown as the API returns it.
+
 ### CLI Examples
 
 ```bash
@@ -419,7 +424,7 @@ The `--fail-on-errors` parameter specifies the maximum number of individual oper
 wxcli scim-bulk create --fail-on-errors 5 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 5,
-  "Operations": [
+  "operations": [
     {
       "method": "POST",
       "path": "/Users",
@@ -451,7 +456,7 @@ wxcli scim-bulk create --fail-on-errors 5 --json-body '{
 wxcli scim-bulk create --fail-on-errors 10 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 10,
-  "Operations": [
+  "operations": [
     {
       "method": "PATCH",
       "path": "/Users/USER_ID_1",
@@ -475,7 +480,7 @@ wxcli scim-bulk create --fail-on-errors 10 --json-body '{
 wxcli scim-bulk create --fail-on-errors 0 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 0,
-  "Operations": [
+  "operations": [
     {"method": "DELETE", "path": "/Users/USER_ID_1"},
     {"method": "DELETE", "path": "/Users/USER_ID_2"}
   ]
@@ -488,7 +493,7 @@ wxcli scim-bulk create --fail-on-errors 0 --json-body '{
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   "https://webexapis.com/identity/scim/YOUR_ORG_ID/v2/Bulk" \
-  -d '{"schemas":["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],"failOnErrors":5,"Operations":[...]}'
+  -d '{"schemas":["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],"failOnErrors":5,"operations":[...]}'
 ```
 
 > **Gotcha — Bulk Operations Can Partially Fail:**
@@ -779,7 +784,7 @@ Import multiple users from a CSV/list in a single API call:
 wxcli scim-bulk create --fail-on-errors 5 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 5,
-  "Operations": [
+  "operations": [
     {
       "method": "POST",
       "path": "/Users",
@@ -850,7 +855,7 @@ wxcli scim-users update-users USER_ID --json-body '{
 wxcli scim-bulk create --fail-on-errors 10 --json-body '{
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:BulkRequest"],
   "failOnErrors": 10,
-  "Operations": [
+  "operations": [
     {"method": "PATCH", "path": "/Users/USER_ID_1", "data": {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"], "Operations": [{"op": "replace", "path": "active", "value": false}]}},
     {"method": "PATCH", "path": "/Users/USER_ID_2", "data": {"schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"], "Operations": [{"op": "replace", "path": "active", "value": false}]}}
   ]

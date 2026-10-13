@@ -685,7 +685,7 @@ api.session.rest_put(
 # Assign assistants to executive
 api.session.rest_put(
     f"{BASE}/telephony/config/people/{person_id}/executive/assignedAssistants",
-    json={"assistants": [{"id": assistant_person_id}]}
+    json={"assistantIds": [assistant_person_id]}
 )
 
 # Read assistant settings (from assistant's perspective)
@@ -754,11 +754,11 @@ wxcli user-settings list-available-assistants Y2lzY29...execPersonId \
 
 # Assign assistants to an executive (requires --json-body for the array)
 wxcli user-settings update-assigned-assistants Y2lzY29...execPersonId \
-  --json-body '{"assistants": [{"id": "Y2lzY29...asstPersonId"}]}'
+  --json-body '{"assistantIds": ["Y2lzY29...asstPersonId"]}'
 
 # Remove all assistants (send null)
 wxcli user-settings update-assigned-assistants Y2lzY29...execPersonId \
-  --json-body '{"assistants": null}'
+  --json-body '{"assistantIds": null}'
 
 # --- Assistant Settings (from assistant's perspective) ---
 

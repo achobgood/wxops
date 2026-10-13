@@ -165,6 +165,8 @@ def test_enforce_exit_code_follows_check_8(monkeypatch, capsys, untracked, expec
     # Check 29 reads documented invocations off the surfaces stubbed empty
     # above, so run for real it examines 0 and correctly reports BLIND.
     monkeypatch.setattr(drift_check, "check_doc_value_types", lambda *a, **k: [])
+    # Check 30 reads the same invocations and would be BLIND for the same reason.
+    monkeypatch.setattr(drift_check, "check_doc_body_keys", lambda *a, **k: ([], 0))
     monkeypatch.setattr(sys, "argv", ["drift_check.py", "--enforce"])
 
     assert drift_check.main() == expected_exit
