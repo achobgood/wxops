@@ -4108,34 +4108,24 @@ def list_available_numbers_secondary(
 @app.command("list-outbound-billing-plan", short_help="Retrieve a Workspace's Outbound Billing Plan.")
 def list_outbound_billing_plan(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve a Workspace's Outbound Billing Plan.\n\n\b\nExample: wxcli workspace-settings list-outbound-billing-plan WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/outboundBillingPlan"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 

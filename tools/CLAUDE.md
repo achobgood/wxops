@@ -1320,6 +1320,30 @@ override, body fields only, raises on an unknown name) pins `location` + `region
 `errors.py` no longer claims PATs always get 403. `cc_ai_assistant.py` keeps its old-style
 label: it is a kept CLI-ahead module (`keep_endpoints`) that no regen writes.
 
+### A flat-object GET the parser could not see is rendered as `show` (2026-10-13)
+
+`user-settings list-outbound-billing-plan` printed `[]` while the API returned
+`{"enabled": true}` (verified live). Its 200 is a response-level `$ref`
+(`#/components/responses/OutboundBillingPlanResponse`). `_get_response_schema`
+does not resolve that, so `detect_command_type` saw no schema and fell back to
+"no schema -> list", and the list extractor dropped the whole object. The
+`virtual-line-settings` and `workspace-settings` twins had the same defect, as
+did `guest-management list` (`/guests/count`, an object declared only under
+`text/plain`).
+
+`_declares_single_object` reads every media type and resolves response-level
+`$ref`s. A list-classified GET whose 200 is one flat object, with properties and
+no array, is re-rendered as `show` in `parse_tag`. This happens **after names
+are derived**, using the same mechanism as the `{id}:action` rule above, so no
+shipped name moved (check 22: 0 moved). If anything is in doubt, the list
+rendering is kept: a bare array, an array property, an unresolvable `$ref`, or
+an object with no properties. Measured across all 9 specs, the rule changes
+exactly these 4 operations.
+
+`_get_response_schema` itself was deliberately NOT widened. It also feeds
+columns and create-id extraction, and changing those was not needed for this
+fix. Drift check 27 gates this class of defect ("no array, drops: …").
+
 ## Known Issues — Generator / Pipeline Only
 
 These were removed from root CLAUDE.md (not needed by the builder agent at runtime):

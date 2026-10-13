@@ -1032,6 +1032,89 @@ class TestSingleResourceActionGet:
         assert "{orgId}/project/{projectId}/flows:search" in lists
 
 
+def _single_object_spec(response_200: dict, extra: dict | None = None) -> dict:
+    # The real list comes first and takes the bare `list`, as in user-settings.
+    spec = {"paths": {
+        "/people/{personId}/numbers": {"get": {
+            "tags": ["Probe"], "operationId": "getNumbers",
+            "summary": "List Numbers",
+            "parameters": [{"name": "personId", "in": "path",
+                            "required": True, "schema": {"type": "string"}}],
+            "responses": {"200": {"description": "ok", "content": {
+                "application/json": {"schema": {"type": "object", "properties": {
+                    "numbers": {"type": "array", "items": {"type": "object"}}}}}}}}}},
+        "/people/{personId}/outboundBillingPlan": {"get": {
+            "tags": ["Probe"], "operationId": "getPlan",
+            "summary": "Retrieve a Person's Outbound Billing Plan",
+            "parameters": [{"name": "personId", "in": "path",
+                            "required": True, "schema": {"type": "string"}}],
+            "responses": {"200": response_200}}},
+    }}
+    spec.update(extra or {})
+    return spec
+
+
+_PLAN_SCHEMA = {"type": "object", "properties": {"enabled": {"type": "boolean"}}}
+
+
+class TestSingleObjectResponseGet:
+    """`user-settings list-outbound-billing-plan` printed `[]` for
+    `{"enabled": true}` (live, 2026-10-13). Its 200 is a response-level `$ref`
+    `_get_response_schema` never resolved, so `detect_command_type` saw no
+    schema and defaulted to list. `guest-management list` (`/guests/count`,
+    an object under `text/plain` only) had the same shape. A list-classified
+    GET whose response is one flat object renders as `show`, after naming."""
+
+    @pytest.mark.parametrize("response,expected", [
+        ({"$ref": "#/components/responses/Plan"}, True),
+        ({"content": {"text/plain": {"schema": _PLAN_SCHEMA}}}, True),
+        ({"content": {"*/*": {"schema": _PLAN_SCHEMA}}}, True),
+        # Any doubt keeps the list rendering:
+        ({"content": {"application/json": {"schema": {
+            "type": "array", "items": {}}}}}, False),
+        ({"content": {"application/json": {"schema": {"type": "object",
+            "properties": {"rows": {"$ref": "#/components/schemas/Rows"}}}}}},
+         False),
+        ({"content": {"application/json": {"schema": {"type": "object",
+            "properties": {"rows": {"$ref": "#/components/schemas/Gone"}}}}}},
+         False),
+        ({"content": {"application/json": {"schema": {"type": "object"}}}},
+         False),
+        ({"description": "no content"}, False),
+        ({"$ref": "#/components/responses/Gone"}, False),
+    ])
+    def test_classifier(self, response, expected):
+        from tools.openapi_parser import _declares_single_object
+        spec = {"components": {
+            "responses": {"Plan": {"description": "ok", "content": {
+                "application/json": {"schema": {
+                    "$ref": "#/components/schemas/Plan"}}}}},
+            "schemas": {"Plan": _PLAN_SCHEMA,
+                        "Rows": {"type": "array", "items": {}}}}}
+        assert _declares_single_object(
+            {"responses": {"200": response}}, spec) is expected
+
+    def test_response_ref_object_renders_full_response_name_kept(self):
+        spec = _single_object_spec(
+            {"$ref": "#/components/responses/Plan"},
+            {"components": {"responses": {"Plan": {
+                "description": "ok", "content": {"application/json": {
+                    "schema": _PLAN_SCHEMA}}}}}})
+        endpoints, _ = parse_tag("Probe", spec)
+        by_path = {ep.url_path: ep for ep in endpoints}
+        plan = by_path["people/{personId}/outboundBillingPlan"]
+        assert plan.command_type == "show"
+        assert plan.response_list_key is None
+        # Named BEFORE the reclassification, so the shipped name is kept.
+        assert plan.command_name == "list-outbound-billing-plan"
+        code = render_command_file("Probe", endpoints, {})
+        body = _function_body(code, _safe_func_name(plan.command_name))
+        assert "emit(result, output=output, fields=fields)" in body
+        assert 'result.get("items"' not in body
+        # Control: the sibling array response is still a list.
+        assert by_path["people/{personId}/numbers"].command_type == "list"
+
+
 # ── folder_name_to_module ───────────────────────────────────────────────────
 
 
