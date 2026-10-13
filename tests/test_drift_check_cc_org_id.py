@@ -123,6 +123,26 @@ def test_resolve_org_id_query_fires(tmp_path):
     assert len(_run(tmp_path, src)) == 1
 
 
+def test_walrus_assigned_get_org_id_fires(tmp_path):
+    src = _query().replace(
+        "    org_id = get_org_id()\n    if org_id is not None:",
+        "    if (org_id := get_org_id()) is not None:")
+    assert len(_run(tmp_path, src)) == 1
+
+
+def test_walrus_assigned_get_cc_org_id_passes(tmp_path):
+    src = _query().replace(
+        "    org_id = get_org_id()\n    if org_id is not None:",
+        "    if (org_id := get_cc_org_id(api.session)) is not None:")
+    assert _run(tmp_path, src) == []
+
+
+def test_cc_base_url_called_with_an_argument_is_examined(tmp_path):
+    findings = _run(tmp_path, _query(base="cc_base_url = get_cc_base_url(region)"))
+    assert drift_check.CHECK_EXAMINED["26"]["examined"] == 1
+    assert len(findings) == 1
+
+
 def test_other_query_param_from_get_org_id_passes(tmp_path):
     src = _query().replace('params["orgId"] = org_id',
                            'params["owner"] = org_id')
@@ -149,6 +169,12 @@ def test_cc_path_with_inline_resolve_org_id_fires(tmp_path):
     src = _path().replace("/organization/{orgid}/",
                           "/organization/{resolve_org_id(api.session)}/")
     assert len(_run(tmp_path, src)) == 1
+
+
+def test_cc_path_with_suffix_named_helper_passes(tmp_path):
+    src = _path().replace("/organization/{orgid}/",
+                          "/organization/{my_get_org_id(api.session)}/")
+    assert _run(tmp_path, src) == []
 
 
 def test_cc_path_with_inline_get_cc_org_id_passes(tmp_path):
