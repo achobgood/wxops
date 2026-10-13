@@ -1,8 +1,8 @@
 """Lazy mounting for wxcli's command tree.
 
 main.py's root Typer app used to import all 178 generated command-group
-modules (plus 5 hand-written ones, 3 aliases, and up to 11 dev-only fs_*
-ones) unconditionally at import time, then have Typer walk the whole tree
+modules (plus 5 hand-written ones and 3 aliases) unconditionally at
+import time, then have Typer walk the whole tree
 again to build a click command from it — twice the cost, paid on every
 invocation including `wxcli --version`. This module makes that lazy:
 
@@ -26,8 +26,8 @@ invocation including `wxcli --version`. This module makes that lazy:
 
 `GENERATED_GROUPS` (`_registry.py`) is the single source of truth for the
 178 generator-owned groups; `tools/drift_check.py`'s `parse_registrations()`
-parses it directly and now also parses `HAND_WRITTEN_GROUPS` / `ALIASES` /
-`FS_DEV_GROUPS` below the same way — flat tuple literals, no exec needed.
+parses it directly and now also parses `HAND_WRITTEN_GROUPS` / `ALIASES`
+below the same way — flat tuple literals, no exec needed.
 """
 from __future__ import annotations
 
@@ -61,22 +61,6 @@ ALIASES = [
     ("customer-assist", "cx-essentials"),
     ("people", "users"),
     ("licenses", "licenses-api"),
-]
-
-# Dev-only Flow Store CLI — gitignored, generated from
-# specs/webex-flow-store.json, absent from a fresh clone / the shipped wheel.
-FS_DEV_GROUPS = [
-    ("fs_flows", "fs-flows"),
-    ("fs_resources", "fs-resources"),
-    ("fs_templates", "fs-templates"),
-    ("fs_tracing", "fs-tracing"),
-    ("fs_flows_v2", "fs-flows-v2"),
-    ("fs_user_prefs", "fs-user-prefs"),
-    ("fs_connectors", "fs-connectors"),
-    ("fs_expression_test", "fs-expression-test"),
-    ("fs_flow_props", "fs-flow-props"),
-    ("fs_flow_versions", "fs-flow-versions"),
-    ("fs_projects", "fs-projects"),
 ]
 
 _GROUP_TO_MODULE = {grp: mod for mod, grp in [*HAND_WRITTEN_GROUPS, *GENERATED_GROUPS]}
@@ -235,8 +219,7 @@ def _alias_loader(base_group: str, commands: dict):
 def build_lazy_commands(root: typer.Typer) -> dict[str, object]:
     """The full lazy `{name: command-or-proxy}` map for every group this CLI
     registers beyond the root's own hand-written commands: proxies for the
-    178 generated + 5 hand-written groups, plus the 3 aliases, plus (if
-    present — dev-only, gitignored) the fs_* Flow Store groups.
+    178 generated + 5 hand-written groups, plus the 3 aliases.
     """
     commands: dict[str, object] = {}
     for module, group in [*HAND_WRITTEN_GROUPS, *GENERATED_GROUPS]:
@@ -246,12 +229,6 @@ def build_lazy_commands(root: typer.Typer) -> dict[str, object]:
     for base, alias in ALIASES:
         commands[alias] = _LazyGroupProxy(
             alias, _extract_short_help(_GROUP_TO_MODULE[base]), _alias_loader(base, commands)
-        )
-    for module, group in FS_DEV_GROUPS:
-        if not (_COMMANDS_DIR / f"{module}.py").exists():
-            continue  # dev-only, gitignored — absent on a fresh clone/wheel
-        commands[group] = _LazyGroupProxy(
-            group, _extract_short_help(module), _group_loader(module, group, root)
         )
     return commands
 
@@ -276,12 +253,6 @@ def mount_all(root: typer.Typer) -> None:
 
     for base, alias in ALIASES:
         root.add_typer(generated_apps[base], name=alias)
-
-    try:
-        for module, group in FS_DEV_GROUPS:
-            root.add_typer(_stamped(import_module(f"wxcli.commands.{module}").app), name=group)
-    except ImportError:
-        pass
 
 
 class LazyTyper(typer.Typer):

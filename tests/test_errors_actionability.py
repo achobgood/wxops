@@ -95,6 +95,16 @@ class TestStatusFallback:
         run("Unauthorized", status=401)
         assert "wxcli configure" in capsys.readouterr().err
 
+    def test_401_org_access_points_at_the_org_id_not_the_token(self, capsys):
+        """Live 2026-10-13: the CC host rejected the base64 org id with this
+        body. The generic 401 tip sent you to replace a perfectly good token."""
+        live = ('{"trackingId":"GTWY_x","error":{"key":401,"message":[{"description":'
+                '"Token does not have access to OrgId:Y2lzY29zcGFyazovL3VzL09SR0FO"}]}}')
+        run(live, status=401)
+        err = capsys.readouterr().err
+        assert "bare UUID" in err and "wxcli whoami" in err
+        assert "expired, or revoked" not in err
+
     def test_403_names_whoami(self, capsys):
         run("HTTP Status 403 - Forbidden", status=403)
         err = capsys.readouterr().err

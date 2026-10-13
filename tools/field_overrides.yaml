@@ -884,15 +884,14 @@ skip_tags:
     - "Functions"        # colon-action paths (/functions/{id}:publish) — generator cannot
                          # render ':' path segments yet; deliberate gap until colon-path
                          # support lands (refactor-plan S1.3). 11 ops.
-    - "Activities"       # flow-store surface embedded in the CC spec (/flow-store/... paths);
-    - "Templates"        # covered by the dev-only fs-* groups generated from the untracked
-    - "Events"           # webex-flow-store.json. Deliberate gap in the tracked CLI. 6 ops.
-  webex-flow-store.json:
-    - admin-flow-controller    # internal admin endpoints
-    - auth-controller          # OAuth redirect (handled by SDK)
-    - buid-info-controller     # build info endpoint
-    - health-controller        # health check
-    - prometheus-controller    # metrics endpoint
+    - "Templates"        # Flow Store template catalog embedded in the CC spec. Deliberately
+                         # NOT exposed: the WxCC Flow Store CLI was retired 2026-10-13
+                         # (ADR-11); keep this skipped so spec-sync cannot bring that
+                         # surface back through the CC spec. 2 ops. The sibling
+                         # "Activities"/"Events" tags (4 ops) were carved out the same
+                         # day — they work on the CC host — and render into cc-flow via
+                         # tag_merge (see the webex-contact-center.json block there).
+                         # cc-flow / cc-legacy-flows are the supported flow surface.
 
 # Drop spurious tag/operation pairings present in the upstream spec.
 # tag -> list of path globs that carry the tag but do not belong to it.
@@ -1088,9 +1087,25 @@ tag_merge:
     #     grouping is visible on a regen diff; a missing command is not.
     "AI Receptionist for Webex Calling":
       - "AI Receptionist"
-  webex-flow-store.json:
-    "Flow":
-      - "Flow APIs"
+  webex-contact-center.json:
+    # Activity catalog carve-out (2026-10-13, ADR-11 amendment). The CC spec's
+    # "Activities" (3 ops) and "Events" (1 op) tags were skipped with the rest
+    # of the Flow Store surface, but unlike the retired fs-* groups they are
+    # served by the Contact Center API host and work with a production token —
+    # verified live, read-only: GET {cc}/{orgUuid}/project/{projectId}/v2/
+    # activities (54 activities), .../activities/{name}, .../activities/{name}/
+    # inputs/{input}/choices, .../v2/event-specifications. They are the catalog
+    # a flow author needs (which activities exist, their inputs, the allowed
+    # values), so they render into cc-flow, not a group of their own.
+    # "Templates" (GET /templates, /templates/{id}) stays in skip_tags.
+    # Narrowness is GATED, not assumed: tests/test_generate_commands.py pins the
+    # exact operationIds these two tags carry, so an upstream addition (e.g. the
+    # .../activities/{name}/schema path, which 404s live) fails CI instead of
+    # shipping into cc-flow unverified. Merged ops sort BEFORE /flows in the
+    # spec and would steal `list`/`show` — pinned under tag_overrides "Flows".
+    "Flows":
+      - "Activities"
+      - "Events"
 
 # Human-friendly CLI group names (OpenAPI tag → CLI name)
 cli_name_overrides:
@@ -1276,18 +1291,6 @@ cli_name_overrides:
     # (tools/CLAUDE.md known issues #16/#17)
     "Site": "cc-site"
     "Data Sources": "cc-data-sources"
-  webex-flow-store.json:
-    "Flow": "fs-flows"
-    "Flow V2": "fs-flows-v2"
-    "Flow Template APIs": "fs-templates"
-    "Flow Tracing APIs": "fs-tracing"
-    "Flow Resource Collection APIs": "fs-resources"
-    "User Preferences": "fs-user-prefs"
-    "connector-controller": "fs-connectors"
-    "flow-property-controller": "fs-flow-props"
-    "flow-version-controller": "fs-flow-versions"
-    "project-controller": "fs-projects"
-    "expression-test-controller": "fs-expression-test"
 
 # CLI commands whose endpoints are ahead of the published spec — kept
 # deliberately. Each entry excuses one (method, path) from the drift gate's
@@ -1745,6 +1748,25 @@ tag_overrides:
       command_name_overrides:
         "list-export": "export"
         "create": "publish"
+        # 2026-10-13 activity-catalog carve-out (tag_merge folds "Activities" +
+        # "Events" into this tag). Their paths (/v2/activities...,
+        # /v2/event-specifications) sort before /flows, so unpinned they take
+        # the bare `list` and `show` and the shipped flow commands become
+        # list-flows / show-flows — measured with --dry-run before regenerating.
+        # A SWAP: the catalog ops get descriptive names, the flow ops keep
+        # theirs. (list-event-specifications is already the derived name.)
+        "list": "list-activities"
+        "show": "show-activity"
+        "list-choices": "list-activity-choices"
+        "list-flows": "list"
+        "show-flows": "show"
+      command_help_notes:
+        list-activity-choices: >
+          a dependent input (e.g. queue-contact destination) returns 400
+          'requires a parent value' unless you pass its parent too:
+          --parent-input-name channelType --parent-value TELEPHONY. The
+          parent's own values come from this command on the parent input.
+          Verified live 2026-10-13.
     "Users":
       command_name_overrides:
         "update-update-dynamic-skill": "update-dynamic-skill"
@@ -1825,12 +1847,12 @@ tag_overrides:
 # Four Flow Store table_columns blocks sat here until 2026-07-29, keyed
 # "fs-flows" / "fs-templates" / "fs-projects" / "fs-connectors". Those are CLI
 # GROUP names, not OpenAPI tags — the tags are "Flow", "Flow Template APIs",
-# "project-controller" and "connector-controller" (see cli_name_overrides for
-# webex-flow-store.json). A tag block is looked up by TAG, so all four had never
-# applied. Deleted rather than re-keyed: three of the four groups render no list
-# command at all, and the fourth (fs-flows list) resolves no item schema, so its
-# columns could never be validated by check 9 — on a dev-only surface generated
-# from an untracked spec. The schema-derived default covers it.
+# "project-controller" and "connector-controller" (of webex-flow-store.json).
+# A tag block is looked up by TAG, so all four had never applied. Deleted
+# rather than re-keyed: three of the four groups render no list command at
+# all, and the fourth (fs-flows list) resolves no item schema, so its columns
+# could never be validated by check 9. The whole Flow Store surface was then
+# retired 2026-10-13 (ADR-11 in docs/architecture/02-decisions.md).
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # naming_ack — command names whose obvious reading is wrong, acknowledged

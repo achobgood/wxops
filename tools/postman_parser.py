@@ -66,6 +66,12 @@ class Endpoint:
     # boolean it always was, so nothing reading it changes meaning; this carries
     # the two styles it could never express.
     pagination_style: str = "none"
+    # The page-SIZE query parameter a 'page'-style endpoint declares. Contact
+    # Center mostly spells it `pageSize`, but the Flows endpoints spell it
+    # `size` — and a server ignores the name it does not know, so a walker
+    # sending `pageSize` there got the default page of 10 and stopped after
+    # one page (cc-flow list --all returned 10 of 56, 2026-10-13).
+    page_size_param: str = "pageSize"
     real_semantics: str | None = None
     # {extraction key -> item-schema fields}, list endpoints only. Keyed by the
     # key the generated code extracts with, so a response_list_keys override

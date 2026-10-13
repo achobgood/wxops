@@ -89,6 +89,31 @@ class TestFollowPageParam:
                                  item_key="data"))
         assert all(c["orgId"] == "abc" for c in s.calls)
 
+    def test_it_pages_with_the_size_name_the_endpoint_declares(self):
+        """cc-flow list: the Flows endpoints take `size`. Sending `pageSize`
+        was ignored server-side, the default page of 10 came back, and the walk
+        stopped at 10 of 56 (live, 2026-10-13)."""
+        s = FakeSession([page("data", 200), page("data", 7, 200)])
+        out = list(s.follow_page_param("u", item_key="data", size_param="size"))
+        assert len(out) == 207
+        assert all("size" in c and "pageSize" not in c for c in s.calls)
+
+    def test_a_declared_total_extends_past_a_capped_page(self):
+        """The CC specs say an over-max size is silently adjusted down, so a
+        capped page looks exactly like a last page. A total says otherwise."""
+        def capped(n, start):
+            return {"data": [{"id": start + i} for i in range(n)],
+                    "meta": {"totalRecords": 250}}
+        s = FakeSession([capped(100, 0), capped(100, 100), capped(50, 200)])
+        out = list(s.follow_page_param("u", item_key="data", page_size=200))
+        assert len(out) == 250
+        assert [c["page"] for c in s.calls] == [0, 1, 2]
+
+    def test_a_wrong_total_is_bounded_by_an_empty_page(self):
+        s = FakeSession([{"data": [{"id": 1}], "totalRecords": 999}, {"data": []}])
+        assert len(list(s.follow_page_param("u", item_key="data"))) == 1
+        assert len(s.calls) == 2
+
     def test_empty_first_page_terminates(self):
         s = FakeSession([{"data": []}])
         assert list(s.follow_page_param("u", item_key="data")) == []
@@ -230,8 +255,8 @@ class TestDefaultsUnchanged:
     def test_a_spec_parameter_named_all_fails_generation(self):
         """--all must be protected the way --output and --fields are.
 
-        Not hypothetical: webex-flow-store.json already declares a query
-        parameter named `all`, inert only because that spec is dev-only.
+        Not hypothetical: the retired Flow Store spec (ADR-11) declared a
+        query parameter named `all`.
         Unguarded, two options would spell "--all" and Typer silently shadows
         one — the failure mode the --filter analysis rejected.
         """
@@ -261,14 +286,11 @@ class TestDefaultsUnchanged:
         emitted by exactly one renderer site. A bare `"--limit"` count is the
         wrong denominator three ways: `licenses show` declares a spec parameter
         genuinely named `limit` (a cap on users returned, nothing to do with
-        paging), `converged-recordings export` is hand-written, and the eleven
-        dev-only `fs_*` modules are gitignored and absent from the wheel.
+        paging), and `converged-recordings export` is hand-written.
         """
         cmds = REPO / "src/wxcli/commands"
         paging_limit = all_flag = 0
         for f in sorted(cmds.glob("*.py")):
-            if f.name.startswith("fs_"):
-                continue
             src = f.read_text()
             paging_limit += src.count(
                 'help="Max results (0=all for paginated endpoints')

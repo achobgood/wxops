@@ -77,6 +77,13 @@ def _body_says_more(body) -> bool:
     """
     if not isinstance(body, dict):
         return False
+    # A page-numbered body that states its page and page count answers the
+    # question exactly. Comparing the collection total with THIS page's count
+    # fired on every page after the first, the last one included (`cc-flow list
+    # --page 5`: 6 of 56 returned, nothing left, note printed anyway).
+    paged = _page_meta(body)
+    if paged is not None and paged[1] is not None:
+        return paged[0] + 1 < paged[1]
     returned = len(_items_of(body, "items"))
     for key in ("totalResources", "totalRecords", "totalResults", "total"):
         total = body.get(key)
@@ -84,13 +91,34 @@ def _body_says_more(body) -> bool:
             continue
         if isinstance(total, int) and total > returned:
             return True
-    meta = body.get("meta")
-    if isinstance(meta, dict):
-        for key in ("totalRecords", "totalResources", "total"):
-            total = meta.get(key)
-            if isinstance(total, int) and not isinstance(total, bool) and total > returned:
-                return True
+    # `pageInfo` is the Flows spelling (cc-flow list with includePagination,
+    # cc-flow list-search): {"currentPage", "totalRecords", "pageSize",
+    # "totalPages"}. Without it a 10-of-56 first page was silent.
+    for wrapper in ("meta", "pageInfo"):
+        meta = body.get(wrapper)
+        if isinstance(meta, dict):
+            for key in ("totalRecords", "totalResources", "total"):
+                total = meta.get(key)
+                if isinstance(total, int) and not isinstance(total, bool) and total > returned:
+                    return True
     return False
+
+
+def _declared_total(body) -> int | None:
+    """The collection total a paged body declares, or None.
+
+    Same spellings `_body_says_more` reads, top-level first, then under the
+    `meta` / `pageInfo` wrappers.
+    """
+    if not isinstance(body, dict):
+        return None
+    scopes = [body] + [body[w] for w in ("meta", "pageInfo") if isinstance(body.get(w), dict)]
+    for scope in scopes:
+        for key in ("totalRecords", "totalResources", "totalResults", "total"):
+            total = scope.get(key)
+            if isinstance(total, int) and not isinstance(total, bool):
+                return total
+    return None
 
 
 def _next_page_url(response: "httpx.Response") -> str | None:
@@ -143,7 +171,8 @@ def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
     # The remedy must be `--offset`, NOT `--limit 0`. On the 210 commands this
     # fires for, `--limit 0` is already the default and does not fetch more —
     # naming it would print a next step that cannot work. Both render branches
-    # send `--offset` through as `start`, so it is correct for every caller.
+    # send `--offset` through as `start` — correct for `max`/`start` endpoints,
+    # but NOT for page-numbered ones, which get `--page` below instead.
     try:
         start = int((params or {}).get("start") or 0)
     except (TypeError, ValueError):
@@ -151,8 +180,62 @@ def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
 
     shown = f"{count} records returned" if count else "This response was partial"
     nxt = " Re-run with --all to fetch every page"
-    nxt += f", or --offset {start + count} for just the next one." if count else "."
+    page = _next_page_number(response, body, params)
+    if page is not None:
+        # Page-numbered (Contact Center) endpoints ignore `start`, so the
+        # `--offset` remedy re-fetched page 0 — verified live 2026-10-13 on
+        # cc-flow list and cc-queue list. Their own `--page` is what moves.
+        nxt += f", or --page {page} for just the next one."
+    else:
+        nxt += f", or --offset {start + count} for just the next one." if count else "."
     typer.echo(f"Note: {shown} and the server has more pages.{nxt}", err=True)
+
+
+def _page_meta(body) -> tuple[int, int | None] | None:
+    """(current page, total pages or None) from a page-numbered body, else None.
+
+    `pageInfo.currentPage`/`totalPages` on Flows, `meta.page`/`totalPages` on
+    the CC v2 config lists.
+    """
+    if not isinstance(body, dict):
+        return None
+    for wrapper, key in (("pageInfo", "currentPage"), ("meta", "page")):
+        meta = body.get(wrapper)
+        if not isinstance(meta, dict):
+            continue
+        current = meta.get(key)
+        if isinstance(current, int) and not isinstance(current, bool):
+            pages = meta.get("totalPages")
+            ok = isinstance(pages, int) and not isinstance(pages, bool)
+            return current, (pages if ok else None)
+    return None
+
+
+def _next_page_number(response, body, params) -> int | None:
+    """The `--page` value that fetches the next page, or None if not paged by number.
+
+    In order: the `page` query of a `Link: rel="next"` URL (CC v1 lists send
+    one), the body's page metadata, the request's own `page` param.
+    """
+    from urllib.parse import parse_qs, urlsplit
+    nxt = _next_page_url(response)
+    if nxt:
+        values = parse_qs(urlsplit(nxt).query).get("page")
+        if values:
+            try:
+                return int(values[0])
+            except ValueError:
+                return None
+        return None
+    meta = _page_meta(body)
+    if meta is not None:
+        return meta[0] + 1
+    try:
+        if params and params.get("page") is not None:
+            return int(params["page"]) + 1
+    except (TypeError, ValueError):
+        return None
+    return None
 
 # Bounded retry policy. WXCLI_RETRY_MODE=off (or legacy WXCLI_NO_RETRY=1) disables.
 DEFAULT_MAX_ATTEMPTS = 4
@@ -320,20 +403,38 @@ class WebexSession:
         SHORT page rather than a declared total, because the CC wrappers vary
         (`meta`, `totalResources`/`pageNumber`, plain `data`) and a short page is
         the one signal all of them agree on. An exactly-full final page costs one
-        extra request that returns empty — correct, just not free.
+        extra request that returns empty — correct, just not free. A declared
+        total, where the body carries one, can only EXTEND the walk past a short
+        page (a server-capped page size), never cut it short.
+
+        `size_param` must be the name the endpoint declares: the Flows endpoints
+        take `size`, and a server ignores an unknown `pageSize`, answers with its
+        default page, and the short-page stop then ends the walk after page 0.
+        The generator passes it whenever the spec spells it differently.
         """
         params = dict(params or {})
         params[size_param] = params.get(size_param) or page_size
         size = int(params[size_param])
         page = int(params.get(page_param) or first_page)
         walked = 0
+        seen = 0
         while True:
             params[page_param] = page
             data = self._json_or_raise(self._request("GET", url, params=params))
             items = _items_of(data, item_key)
             yield from items
-            if len(items) < size:
+            seen += len(items)
+            if not items:
                 return
+            if len(items) < size:
+                # A short page normally ends the walk. But the CC specs say an
+                # over-max size "will automatically adjust ... to the max page
+                # size", so a server cap looks exactly like a last page. When
+                # the body declares a total we have not reached, keep going;
+                # the empty-page stop above still bounds a wrong total.
+                total = _declared_total(data)
+                if total is None or seen >= total:
+                    return
             walked += 1
             if _page_cap_reached(walked, "follow_page_param"):
                 return

@@ -488,6 +488,8 @@ Contact Service Queues route incoming contacts to agents based on routing strate
 ### Key Parameters
 
 - **Create:** Requires `name`, `channelType` (telephony, chat, email, social), `routingType` (SKILL_BASED, AGENT_BASED, TEAM_BASED)
+- **Single create vs bulk:** `cc-queue create` is the **bulk** endpoint (`/contact-service-queue/bulk`); the single-queue create is `cc-queue create-contact-service-queue`. Its `--help` marks `name`, `queueType`, `checkAgentAvailability`, `channelType`, `serviceLevelThreshold`, `maxActiveContacts`, `maxTimeInQueue` and `active` required; the `--json-body` example also carries `queueRoutingType` and `callDistributionGroups` (see gotcha 27)
+- **Read team routing with `show`, not `list`:** `list-contact-service-queue-v2` omits `callDistributionGroups` (gotcha 28)
 - **Reassign agents:** POST with `agentIds` array and `action` (ADD or REMOVE) for agent-based queues
 - **By user ID queries:** Return queues where a specific user is eligible to receive contacts
 - **By skill profile ID:** Returns queues that use a specific skill profile for routing
@@ -661,6 +663,7 @@ Entry points are the initial landing points for customer contacts. Each entry po
 
 - **Create:** Requires `name`, `entryPointType` (INBOUND/OUTBOUND), `channelType` (TELEPHONY, EMAIL, FAX, CHAT, VIDEO, OTHERS, SOCIAL_CHANNEL), `active`, `serviceLevelThreshold`, `maximumActiveContacts`
 - **v2 list:** Enhanced filtering and pagination support
+- **Wiring an entry point to a flow:** set `flowId` (the flow's id) and `flowTagId` (which published-version tag to run). `"Latest"` works; Live, Test and Dev tags also exist. A newly published flow has only the `Latest` tag, so use `"Latest"` until you tag a version otherwise (gotcha 29)
 
 ### CLI Examples
 
@@ -677,6 +680,10 @@ wxcli cc-entry-point create --json-body '{
   "serviceLevelThreshold": 60,
   "maximumActiveContacts": 100
 }'
+
+# Wire an entry point to a published flow (add these two fields to the create body or an update)
+#   "flowId": "<flow id>", "flowTagId": "Latest"
+# Verified live 2026-10-13: create with flowId + flowTagId "Latest" saved, and show read both back.
 
 # Get a specific entry point
 wxcli cc-entry-point show "ep-uuid"
@@ -1147,8 +1154,8 @@ Business hours define when the contact center is open. Entry points and routing 
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `timezone`, `businessHours` (array of day/time entries)
-- **Business hours structure:** Each entry defines a day of week, start time, and end time
+- **Create:** Requires `name`, `timezone`, `workingHours` (array of `{name, days, startTime, endTime}` entries). Verified live 2026-10-13: `"workingHours":[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"07:00","endTime":"19:00"}]` created OK; this matches `cc-business-hour create --help`. An earlier version of this doc and the skill showed `businessHours:[{day:"monday",...}]`, which is not what `--help` shows (gotcha 30)
+- **Business hours structure:** Each `workingHours` entry names a block, lists its days as three-letter codes (`MON`..`SUN`), and gives a start and end time
 - **Timezone:** Important for multi-region deployments; hours are evaluated in the configured timezone
 
 ### CLI Examples
@@ -1161,12 +1168,8 @@ wxcli cc-business-hour list-business-hours
 wxcli cc-business-hour create --json-body '{
   "name": "US East Business Hours",
   "timezone": "America/New_York",
-  "businessHours": [
-    {"day": "MONDAY", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "TUESDAY", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "WEDNESDAY", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "THURSDAY", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "FRIDAY", "startTime": "08:00", "endTime": "17:00"}
+  "workingHours": [
+    {"name": "Weekday", "days": ["MON", "TUE", "WED", "THU", "FRI"], "startTime": "08:00", "endTime": "17:00"}
   ]
 }'
 
@@ -1188,7 +1191,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/business-hours" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/business-hours" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"US East Business Hours","timezone":"America/New_York","businessHours":[{"day":"MONDAY","startTime":"08:00","endTime":"17:00"}]}'
+  -d '{"name":"US East Business Hours","timezone":"America/New_York","workingHours":[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"08:00","endTime":"17:00"}]}'
 ```
 
 ---
@@ -1879,13 +1882,21 @@ For teardown, reverse this order.
 
 22. **`desktopLabel` required when `agentViewable` is true.** Creating or updating a Global Variable with `agentViewable: true` fails unless `desktopLabel` is also provided. This dependency is not documented in the API spec's required fields list.
 
-23. **Personal access tokens lack CC *config* scopes.** PATs from developer.webex.com do NOT carry `cjp:config_read` or `cjp:config_write`, even for full admins on CC-provisioned orgs. **This is about the config surface only — it is not true of the agent runtime.** A PAT *does* carry `cjp:user`, the per-agent runtime scope: verified live on 2026-07-31, an agent's PAT successfully drove `register()`, `stationLogin()` and `setAgentState()` through the `@webex/contact-center` JS SDK against a live tenant. So a PAT works for a custom agent desktop and for `PATCH /v1/tasks/{taskId}`, and does not work for `wxcli cc-*`. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §10. Two options for CC config operations: (a) **OAuth integration** — select CC scopes explicitly and complete the OAuth authorization flow; adding scopes to an existing integration does not update previously issued tokens, you must re-authorize; (b) **Service App with CJP scopes** — recommended for production automation and server-to-server use; no interactive login required after the org admin authorizes the app, making it suitable for CI/CD pipelines and backend services. Note: all CC integration scopes work with Service Apps except `spark:applications_token` and `spark:kms`.
+23. **A full-admin PAT worked against CC config endpoints when tested; a 403 means the token lacks the CC scopes.** An earlier version of this gotcha (2026-04-24, from a 403 on Global Variables on org ccbcamp0199) claimed PATs from developer.webex.com never carry `cjp:config_read`/`cjp:config_write`. **That claim is disproven.** Verified live 2026-10-13 on the same org (CC Bootcamp Sandbox, ccbcamp0199, region us1) with a full-admin PAT from developer.webex.com: HTTP 200 on `cc-flow` list, show, export (`--version latest` and `draft`), list-validate, create-validate, create-lock and create-unlock; `cc-queue list`; `cc-entry-point list`; and `cc-global-vars list-cad-variable` (returned the org's 6 global variables, the same endpoint that returned 403 in April). No 403 on any call. **Not tested:** CC writes other than validate/lock/unlock, PATs from non-full-admin users, and other orgs, so do not assume a PAT works for every `cc-*` command. If a `cc-*` call does return 403 with a `ccconfig_` trackingId, the token lacks the CC scopes; use one of the two options below. **Separately, the agent runtime is a different scope:** a PAT *does* carry `cjp:user`, the per-agent runtime scope: verified live on 2026-07-31, an agent's PAT successfully drove `register()`, `stationLogin()` and `setAgentState()` through the `@webex/contact-center` JS SDK against a live tenant. So a PAT works for a custom agent desktop and for `PATCH /v1/tasks/{taskId}`. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §10. Two options for CC config operations when the token lacks the scopes: (a) **OAuth integration** — select CC scopes explicitly and complete the OAuth authorization flow; adding scopes to an existing integration does not update previously issued tokens, you must re-authorize; (b) **Service App with CJP scopes** — recommended for production automation and server-to-server use; no interactive login required after the org admin authorizes the app, making it suitable for CI/CD pipelines and backend services. Note: all CC integration scopes work with Service Apps except `spark:applications_token` and `spark:kms`.
 
 24. **Global Variable names are immutable.** The CC API returns 400 `"name: should not be modified"` if you attempt to change the `name` field via PUT update. To rename a variable, delete and recreate it. Note that any flows referencing the old variable ID will need to be updated.
 
 25. **Flow Designer HTTP Connector handles auth and base URL automatically.** The CC HTTP Connector (created in Control Hub → Contact Center → Integrations → Connectors) stores the regional base URL and auth tokens for you. In the Flow Designer HTTP Request node, provide only the **request path**, not the full URL — e.g., `/organization/{orgid}/cad-variable` for Global Variables or `/search` for the Search API. Toggle "Use Authenticated Endpoint" and select the connector; no manual token management is needed in flows. When creating the connector, choose the access level: Read-Only (GET) or Read-Write (POST/PUT/DELETE).
 
 26. **Derive the CC regional base URL from the access token.** The Webex access token has three underscore-separated parts: `token.split('_')` → `[accessToken, ciCluster, orgId]`. The middle segment (`ciCluster`) maps directly to the regional base URL: `https://api.wxcc-{ciCluster}.cisco.com`. Available regions: `us1`, `eu1`, `eu2`, `anz1` (confirmed); `ca1`, `jp1`, `sg1` (plausible but not independently confirmed from public documentation — verify against your org's token cluster value). This is useful for production apps that need to determine the correct CC API endpoint dynamically without hardcoding a region.
+
+27. **`cc-queue create` is the BULK endpoint; a single queue is `cc-queue create-contact-service-queue`.** `cc-queue create --help` reads "Bulk save Contact Service Queues". Verified live 2026-10-13: four queues were created with `create-contact-service-queue` (SLA 30/60/120 s), and read back. Its `--help` marks `name`, `queueType` (INBOUND/OUTBOUND), `checkAgentAvailability`, `channelType`, `serviceLevelThreshold`, `maxActiveContacts`, `maxTimeInQueue` and `active` required, and its example body also carries `routingType`, `queueRoutingType` (e.g. `TEAM_BASED`) and `callDistributionGroups` (`[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}]`). A body with only `name` and `channelType` leaves required fields out.
+
+28. **`list-contact-service-queue-v2` omits `callDistributionGroups`, so team routing reads as null in a list.** Verified live 2026-10-13: a queue whose team assignment was null in the v2 list showed `TEAM_BASED` with its team in `show-contact-service-queue-v2`. Read team routing with `show`; a list row with no team is not evidence the queue has none (a "which queues have no team?" query built on the list would be wrong).
+
+29. **Entry point to flow wiring is `flowId` plus `flowTagId`; new flows publish with only the `Latest` tag.** Verified live 2026-10-13: `cc-entry-point create` with `flowId` set to a just-published flow and `flowTagId: "Latest"` saved, and `show` returned both with the entry point active. Live, Test and Dev tags also exist, but the flow published that day had only `Latest` pointing at its version (Dev/Live/Test unset); pointing an entry point at a tag the flow never received was not tested. Mapping a dial number to the entry point (`cc-dial-number`) is a separate step, without which the flow cannot be called.
+
+30. **CC business hours use `workingHours`, not `businessHours`.** Verified live 2026-10-13: `workingHours:[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"07:00","endTime":"19:00"}]` created OK and appeared in the flow-designer choices for the `business-hours` activity. The older `businessHours:[{day:"monday",...}]` shape shown here before 2026-10-13 does not match `--help`. The holiday-list body (§16) was not re-tested.
 
 ---
 

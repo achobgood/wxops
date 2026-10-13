@@ -134,9 +134,9 @@ def test_flags_tag_overrides_on_a_tag_that_spec_does_not_declare(check):
 
 
 def test_a_section_for_a_spec_not_on_disk_is_out_of_scope(check):
-    """webex-flow-store.json is untracked and absent from a fresh clone. Its
-    entries are not inert there — they are simply not in play, and reading them
-    as defects would make the check fail on a clean checkout."""
+    """A per-spec section keyed on a spec that is not on disk is not inert —
+    it is simply not in play, and reading it as a defect would make the check
+    fail on a checkout that lacks that spec."""
     findings, _ = check(
         {"tag_overrides": {"absent-spec.json": {"Whatever": {"table_columns": {}}}},
          "cli_name_overrides": {"absent-spec.json": {"Whatever": "whatever"}}})

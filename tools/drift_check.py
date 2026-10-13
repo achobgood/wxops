@@ -219,16 +219,15 @@ Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
 skip an operation whose declaring specs disagree rather than unioning them —
 unioning is how check 9's predecessor reported a confident 0 over a live-broken
-command. Both also assert the dev-only fs_* exclusion rather than assuming it.
+command.
 
 Note: checks 2, 10, 11a and 11b share `command_heads`, which reads BOTH
 `wxcli <group> <command>` and the prefixless `<group> <command>` form that
 skill quick-reference tables use. Keying only on the literal `wxcli` hid 14
 dead references and 10 broken examples while every check reported 0.
 
-Fresh-clone semantics: only git-tracked specs count
-(specs/webex-flow-store.json is untracked). Command modules count unless a
-gitignore rule excludes them (dev-only fs_*), so a newly generated module is
+Fresh-clone semantics: only git-tracked specs count. Command modules count
+unless a gitignore rule excludes them, so a newly generated module is
 counted — and reported by check 8 — rather than silently treated as absent.
 """
 import argparse
@@ -262,7 +261,6 @@ URL_BASES = (
     "https://webexapis.com",       # SCIM paths hang off the bare domain (no /v1)
     "https://analytics-calling.webexapis.com",
     "{cc_base_url}",
-    "{fs_base_url}",
 )  # normalize_path() strips a leading /v1 from whatever remains
 
 
@@ -302,9 +300,10 @@ def module_state() -> dict[str, set[str]]:
     """Classify src/wxcli/commands/*.py module stems: countable vs untracked.
 
     "countable" is what the published counts and checks 1/3/6 are built from. A
-    module counts unless a gitignore rule excludes it — the dev-only fs_*
-    modules (.gitignore:111) exist only on a developer's machine and counting
-    them would make the published "N command groups" claim unreproducible.
+    module counts unless a gitignore rule excludes it — a gitignored module
+    (e.g. a stale local copy of the retired Flow Store fs_*.py, still matched
+    by .gitignore; ADR-11) exists only on one machine, and counting it would
+    make the published "N command groups" claim unreproducible.
 
     Index membership is deliberately NOT the test. A freshly generated module
     is legitimately required but untracked until `git add`; treating it as
@@ -592,7 +591,7 @@ def build_cli_surface() -> tuple[dict, set[str]]:
     surface = {}
     for group, module in parse_registrations().items():
         if module not in countable:
-            continue  # gitignored dev-only (fs_*) — absent on a fresh clone
+            continue  # gitignored — absent on a fresh clone
         surface[group] = parse_module_commands(module)
     # converged_recordings_export mounts download/export onto the generated
     # group at import time (main.py register() pattern)
@@ -2025,17 +2024,6 @@ def check_naming(findings: list[dict], acked: dict) -> tuple[list, list, list]:
 
 # ----------------------------------------------------------- checks 13 & 14
 
-# The 11 dev-only modules: gitignored (.gitignore:111), absent from the shipped
-# wheel, present only on a developer's disk. A prior round let them inflate
-# three separate counts, so the exclusion below is ASSERTED on every run
-# (fs_exclusion_audit) rather than assumed — a guard that cannot be shown to
-# still bind is not a guard.
-FS_MODULES = {
-    "fs_connectors", "fs_expression_test", "fs_flow_props", "fs_flow_versions",
-    "fs_flows", "fs_flows_v2", "fs_projects", "fs_resources", "fs_templates",
-    "fs_tracing", "fs_user_prefs",
-}
-
 # tools/field_overrides.yaml: auto_inject_from_config. These query parameters
 # are supplied from saved config at runtime, so a spec marking them required is
 # satisfied with no flag — the same exception 11a's docstring records.
@@ -2355,8 +2343,8 @@ def skeleton_lies(skel, schema: dict, spec: dict, path: str = ""):
                                  f"{path}[]")
 
 
-def check_generated_help() -> tuple[list, list, dict]:
-    """Checks 13 and 14, in ONE pass: (bad_examples, bad_skeletons, fs_audit).
+def check_generated_help() -> tuple[list, list]:
+    """Checks 13 and 14, in ONE pass: (bad_examples, bad_skeletons).
 
     Both read the same join — shipped generated source against the ONE spec
     that declares the operation — so they share the pass rather than paying for
@@ -2381,20 +2369,9 @@ def check_generated_help() -> tuple[list, list, dict]:
     if "converged-recordings" in registrations:
         canonical.setdefault("converged_recordings_export", "converged-recordings")
 
-    # Prove the fs_* exclusion instead of trusting it. These 11 are on a
-    # developer's disk and excluded by .gitignore, so they must reach neither
-    # `countable` nor `parse_registrations`. Reporting the audit every run is
-    # what stops the guard becoming silently vacuous.
-    fs_audit = {
-        "declared": sorted(FS_MODULES),
-        "present_on_disk": sorted(p.stem for p in COMMANDS_DIR.glob("fs_*.py")),
-        "leaked": sorted((FS_MODULES & countable)
-                         | (FS_MODULES & set(registrations.values()))),
-    }
-
     bad_examples, bad_skeletons = [], []
     for module, group in sorted(canonical.items()):
-        if module in FS_MODULES or module not in countable:
+        if module not in countable:
             continue
         module_src = (COMMANDS_DIR / f"{module}.py").read_text()
 
@@ -2506,7 +2483,7 @@ def check_generated_help() -> tuple[list, list, dict]:
     bad_examples.sort(key=lambda f: (f["group"], f["command"]))
     bad_skeletons.sort(key=lambda f: (f["kind"], f["group"], f["command"],
                                       f["json_path"]))
-    return bad_examples, bad_skeletons, fs_audit
+    return bad_examples, bad_skeletons
 
 
 # ---------------------------------------------------------- deliberate gaps
@@ -2734,9 +2711,9 @@ def check_inert_overrides() -> tuple[list, list]:
     is checking.
 
     Specs are read from DISK, not from git — unlike the rest of this file. A
-    per-spec section keyed on a spec that is absent (webex-flow-store.json on a
-    fresh clone) is out of scope rather than inert, and the dev-only tags it
-    declares must not read as defects just because the spec is untracked.
+    per-spec section keyed on a spec that is absent from disk is out of scope
+    rather than inert, so its tags do not read as defects just because the
+    spec is not present.
     """
     import yaml   # load_overrides()'s hand-rolled parser stays for the other
                   # checks; this one needs three levels of nesting and a folded
@@ -2903,12 +2880,11 @@ def check_undeclared_paging(acks: dict | None = None,
     the list cannot decay into an allowlist.
 
     Specs are globbed from DISK, which for most of this file would make the
-    result non-reproducible from a clone (the untracked dev-only
-    webex-flow-store.json is on a developer's machine and nowhere else). It is
-    safe HERE only because the COMMAND side is filtered first: dev-only modules
-    are `fs_*` and are skipped, so no flow-store operation can ever reach the
-    spec loop. Verified by removing the spec and re-running — identical
-    findings. If that `fs_` skip is ever relaxed, filter the specs too.
+    result non-reproducible from a clone if an untracked spec sat in specs/.
+    None should: the one that did (webex-flow-store.json) was retired with its
+    fs-* groups on 2026-10-13 (ADR-11), and a stray copy now fails every regen
+    via command_renderer.SPEC_PRODUCT. If an untracked spec is ever sanctioned
+    again, filter the specs here to tracked ones.
     """
     if acks is None:
         import yaml   # hard runtime dependency of wxcli itself — see check 15
@@ -2916,7 +2892,7 @@ def check_undeclared_paging(acks: dict | None = None,
                 or {}).get("undeclared_paging_ack") or {}
     inert: dict[tuple[str, str], list[str]] = {}
     for mod in sorted(commands_dir.glob("*.py")):
-        if mod.stem.startswith(("fs_", "_")):
+        if mod.stem.startswith("_"):
             continue
         for block in re.split(r"\n(?=@app\.command)", mod.read_text()):
             if 'all_pages: bool = typer.Option(False, "--all"' not in block:
@@ -3914,7 +3890,7 @@ def main() -> int:
         surface, positional_surface, kind_surface)
     naming_unacked, naming_stale, naming_advisory = check_naming(
         build_naming_findings(), overrides.get("naming_ack") or {})
-    bad_examples, bad_skeletons, fs_audit = check_generated_help()
+    bad_examples, bad_skeletons = check_generated_help()
     inert_overrides, stale_inert_acks = check_inert_overrides()
     inert_paging, stale_paging_acks = check_undeclared_paging()
     registry_counts = check_registry_counts()
@@ -3950,7 +3926,6 @@ def main() -> int:
         "12_naming_advisory": naming_advisory,
         "13_unrunnable_examples": bad_examples,
         "14_truncated_skeletons": bad_skeletons,
-        "14_fs_exclusion_audit": fs_audit,
         "15_inert_overrides": inert_overrides,
         "15_stale_inert_acks": stale_inert_acks,
         "16_inert_all_flag": inert_paging,
@@ -3975,7 +3950,7 @@ def main() -> int:
                   or untracked_mods or bad_columns or unpinned_specs
                   or bad_positionals or missing_flags or kind_mismatches
                   or naming_unacked or naming_stale
-                  or bad_examples or bad_skeletons or fs_audit["leaked"]
+                  or bad_examples or bad_skeletons
                   or inert_overrides or stale_inert_acks
                   or inert_paging or stale_paging_acks
                   or registry_counts or doc_shape
@@ -4119,19 +4094,13 @@ def main() -> int:
         for n in naming_stale[:20]:
             print(f"      STALE ACK  {n['kind']} {n['op']}  — {n['reason']}")
         print(f"[13] generated `Example:` lines that cannot succeed: "
-              f"{len(bad_examples)}"
-              f"   (fs_* exclusion asserted: {len(fs_audit['declared'])} declared,"
-              f" {len(fs_audit['present_on_disk'])} on disk,"
-              f" {len(fs_audit['leaked'])} leaked)")
+              f"{len(bad_examples)}")
         for f in bad_examples[:20]:
             print(f"      wxcli {f['group']} {f['command']}  omits "
                   f"{', '.join(f['missing'])}  ({f['spec']}: {f['operation']})")
             print(f"        {f['example']}")
         if len(bad_examples) > 20:
             print(f"      ... and {len(bad_examples) - 20} more (--json for all)")
-        if fs_audit["leaked"]:
-            print(f"      LEAKED dev-only modules into the counted surface: "
-                  f"{', '.join(fs_audit['leaked'])}")
         print(f"[14] --generate-json-body skeletons that truncate: "
               f"{len(bad_skeletons)}")
         for s in bad_skeletons[:20]:

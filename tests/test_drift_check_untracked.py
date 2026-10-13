@@ -150,9 +150,7 @@ def test_enforce_exit_code_follows_check_8(monkeypatch, capsys, untracked, expec
     monkeypatch.setattr(drift_check, "check_arg_kinds", lambda *a: ([], [], []))
     monkeypatch.setattr(drift_check, "build_naming_findings", lambda: [])
     monkeypatch.setattr(drift_check, "check_naming", lambda *a: ([], [], []))
-    monkeypatch.setattr(drift_check, "check_generated_help",
-                        lambda: ([], [], {"declared": [], "present_on_disk": [],
-                                          "leaked": []}))
+    monkeypatch.setattr(drift_check, "check_generated_help", lambda: ([], []))
     monkeypatch.setattr(drift_check, "check_inert_overrides", lambda: ([], []))
     # 16-20 were left unstubbed and passed only because they happen to report
     # zero on this tree — the same accident the two comments above describe.

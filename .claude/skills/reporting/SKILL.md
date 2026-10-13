@@ -76,7 +76,7 @@ Ask the user what they want to analyze. Present this decision matrix if they are
 | **Meeting** recordings — org-wide/compliance listing, recycle bin, sharing | **Admin Recordings** | `wxcli admin-recordings` |
 | Recording access audit | **Recording Reports** | `wxcli recording-report` |
 | Partner-level report generation | **Partner Reports** | `wxcli partner-reports` |
-| Contact Center queue/agent stats | **→ Use `reporting-cc` skill** | CC-scoped OAuth required |
+| Contact Center queue/agent stats | **→ Use `reporting-cc` skill** | CC scopes (`cjp:config_read`); a full-admin PAT worked 2026-10-13 |
 | Meeting quality, workspace metrics | **→ Use `reporting-meetings` skill** | Standard admin scopes |
 
 ## Step 4: Check prerequisites

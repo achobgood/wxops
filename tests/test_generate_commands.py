@@ -183,18 +183,6 @@ class TestMainCLI:
         assert "GENERATED_GROUPS = [" in registry
         assert '("things", "things"),' in registry
 
-    def test_generate_all_dev_only_skips_manifest(self, monkeypatch, capsys, tmp_path):
-        """--dev-only prints the guarded block and never writes the manifest."""
-        rc = self._run_main(
-            monkeypatch, "--spec", str(FIXTURE_SPEC), "--all",
-            "--output", str(tmp_path), "--dev-only",
-        )
-        assert rc == 0
-        captured = capsys.readouterr().out
-        assert "manifest NOT updated" in captured
-        assert "app.add_typer" in captured
-        assert not (tmp_path / "_registry.py").exists()
-
     def test_folder_alias(self, monkeypatch, capsys, tmp_path):
         """--folder is a backward-compat alias for --tag."""
         rc = self._run_main(
@@ -302,3 +290,68 @@ class TestResolveTagMerge:
     def test_none_returns_empty(self):
         result = resolve_tag_merge(None, "any.json")
         assert result == {}
+
+
+# ── Activity-catalog carve-out (ADR-11 amendment, 2026-10-13) ───────────────
+
+
+class TestActivityCatalogCarveOut:
+    """The CC spec's "Activities"/"Events" tags render into cc-flow via
+    tag_merge; "Templates" stays skipped with the retired Flow Store surface.
+
+    The carve-out is a whole-TAG merge, so its narrowness rests on what those
+    two tags contain. This pins it: an upstream addition to either tag (the
+    `.../activities/{name}/schema` path, which 404s live, is the obvious
+    candidate) fails here and forces a decision, instead of rendering an
+    unverified command into cc-flow on the next spec sync.
+    """
+
+    REPO = Path(__file__).parent.parent
+    CARVED = {
+        "Activities": {"listActivityDefinitions", "describeActivity",
+                       "getActivityInputChoices"},
+        "Events": {"listEventSpecifications"},
+    }
+
+    def _ops_by_tag(self):
+        spec = json.loads((self.REPO / "specs" / "webex-contact-center.json").read_text())
+        out: dict[str, set[str]] = {}
+        for methods in spec["paths"].values():
+            for op in methods.values():
+                if isinstance(op, dict):
+                    for tag in op.get("tags", []):
+                        out.setdefault(tag, set()).add(op.get("operationId"))
+        return out
+
+    def _overrides(self):
+        import yaml
+        return yaml.safe_load((self.REPO / "tools" / "field_overrides.yaml").read_text())
+
+    def test_carved_tags_hold_exactly_the_live_verified_ops(self):
+        ops = self._ops_by_tag()
+        for tag, expected in self.CARVED.items():
+            assert ops.get(tag) == expected, (
+                f"{tag} now carries {sorted(ops.get(tag, set()))}; only "
+                f"{sorted(expected)} were verified live on the CC host. Verify "
+                f"the new op(s) read-only, then update this test and ADR-11 — "
+                f"or exclude them with tag_op_excludes.")
+
+    def test_merged_into_flows_and_templates_still_skipped(self):
+        ovr = self._overrides()
+        merge = resolve_tag_merge(ovr["tag_merge"], "webex-contact-center.json")
+        assert set(merge.get("Flows", [])) == set(self.CARVED)
+        skipped = ovr["skip_tags"]["webex-contact-center.json"]
+        assert "Templates" in skipped
+        assert not set(self.CARVED) & set(skipped), (
+            "a carved tag is also skipped — after tag_merge it would render, "
+            "but drift check 1 (which reads raw tags) would call it a deliberate gap")
+
+    def test_shipped_cc_flow_carries_the_catalog_and_keeps_flow_names(self):
+        src = (self.REPO / "src" / "wxcli" / "commands" / "cc_flow.py").read_text()
+        for name in ("list-activities", "show-activity", "list-activity-choices",
+                     "list-event-specifications"):
+            assert f'@app.command("{name}", short_help=' in src
+        # The swap must hand the bare names back to the flow operations.
+        list_fn = src[src.index('@app.command("list", short_help='):]
+        assert "/flows\"" in list_fn.split("\n@app.command")[0]
+        assert "/templates" not in src

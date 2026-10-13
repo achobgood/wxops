@@ -12,6 +12,144 @@ from wxcli.common import verify_write
 app = typer.Typer(help="Manage Webex Contact Center cc-flow.")
 
 
+@app.command("list-activities", short_help="List Activity Definitions.")
+def list_activities(
+    project_id: str = typer.Argument(help="24-char hex id"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Activity Definitions.\n\n\b\nExample: wxcli cc-flow list-activities PROJECT_ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    org_id = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/activities"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('Display Name', 'displayName'), ('Activity Name', 'activityName'), ('Category', 'category'), ('Group', 'group'), ('Activity Type', 'activityType')], limit=limit)
+
+
+
+@app.command("show-activity", short_help="Describe an Activity.")
+def show_activity(
+    project_id: str = typer.Argument(help="24-char hex id"),
+    activity_name: str = typer.Argument(help="e.g. play-message, from: wxcli cc-flow list-activities"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Describe an Activity.\n\n\b\nExample: wxcli cc-flow show-activity PROJECT_ID play-message"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    org_id = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/activities/{activity_name}"
+    try:
+        result = api.session.rest_get(url)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+@app.command("list-choices", hidden=True)
+@app.command("list-activity-choices", short_help="Get Activity Input Choices.")
+def list_activity_choices(
+    project_id: str = typer.Argument(help="24-char hex id"),
+    activity_name: str = typer.Argument(help="e.g. queue-contact, from: wxcli cc-flow list-activities"),
+    input_name: str = typer.Argument(help="e.g. channelType"),
+    search: str = typer.Option(None, "--search", help="Search text used to filter the returned choices (type-ahead). When `validate=true`, this is instead the single value to look up."),
+    validate: str = typer.Option(None, "--validate", help="When `true` and `search` is supplied, performs a point-lookup of the single value in `search` (matched against the choice's `value`/ID) instead of filtering."),
+    parent_value: str = typer.Option(None, "--parent-value", help="Parent input value for a cascading/dynamic input (for example, the selected `channelType`)."),
+    parent_input_name: str = typer.Option(None, "--parent-input-name", help="Parent input name for a cascading/dynamic input. Required when `parentValue` is provided."),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Activity Input Choices.\n\nNOTE: a dependent input (e.g. queue-contact destination) returns 400 'requires a parent value' unless you pass its parent too: --parent-input-name channelType --parent-value TELEPHONY. The parent's own values come from this command on the parent input. Verified live 2026-10-13.\n\n\b\nExample: wxcli cc-flow list-activity-choices PROJECT_ID queue-contact channelType"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    org_id = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/activities/{activity_name}/inputs/{input_name}/choices"
+    params = {}
+    if search is not None:
+        params["search"] = search
+    if validate is not None:
+        params["validate"] = validate
+    if parent_value is not None:
+        params["parentValue"] = parent_value
+    if parent_input_name is not None:
+        params["parentInputName"] = parent_input_name
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("choices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Value', 'value')], limit=limit)
+
+
+
+@app.command("list-event-specifications", short_help="List Event Specifications.")
+def list_event_specifications(
+    project_id: str = typer.Argument(help="24-char hex id"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List Event Specifications.\n\n\b\nExample: wxcli cc-flow list-event-specifications PROJECT_ID"""
+    api = get_api(debug=debug)
+    cc_base_url = get_cc_base_url()
+    org_id = get_cc_org_id(api.session)
+    url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/event-specifications"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    result = None
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    result = result or []
+    items = result.get("specifications", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('Event Specification Name', 'eventSpecificationName'), ('Event Source Name', 'eventSourceName'), ('Event Classification Name', 'eventClassificationName')], limit=limit)
+
+
+
+@app.command("list-flows", hidden=True)
 @app.command("list", short_help="List Flows or Subflows.")
 def cmd_list(
     project_id: str = typer.Argument(help="24-char hex id"),
@@ -21,7 +159,7 @@ def cmd_list(
     partial_name_search: str = typer.Option(None, "--partial-name-search", help="Performs a partial string match on the name of the flow. If the flow name contains the given string it will be fetched in the response."),
     search_by: str = typer.Option(None, "--search-by", help="Filter expression in the format `<field>|<value>`. Supports searching by `channelType` (for example, `channelType|telephony`, `channelType|workItem`, `channelType|customMessaging`, `channelType|genericAction`)."),
     size: str = typer.Option(None, "--size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
-    include_pagination: str = typer.Option(None, "--include-pagination", help="If set to true then a different paginated response object containing the page metadata (currentPage, totalRecords, pageSize, totalPages) will be returned. The flow objects will be in an array named \"data\"."),
+    include_pagination: str = typer.Option("true", "--include-pagination", help="If set to true then a different paginated response object containing the page metadata (currentPage, totalRecords, pageSize, totalPages) will be returned. The flow objects will be in an array named \"data\"."),
     is_validation: str = typer.Option(None, "--is-validation", help="If true, validates the existence of flows by ID regardless of the caller's RBAC access. Intended for internal Task Management use cases."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
@@ -59,7 +197,7 @@ def cmd_list(
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="items", size_param="size"))
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -110,7 +248,7 @@ def list_search(
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data", size_param="size"))
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -418,6 +556,7 @@ def create_import(
 
 
 
+@app.command("show-flows", hidden=True)
 @app.command("show", short_help="Get a Flow or Subflow.")
 def show(
     project_id: str = typer.Argument(help="24-char hex id"),
@@ -564,11 +703,8 @@ def list_validate(
     flow_id: str = typer.Argument(help="24-char hex id"),
     version_id: str = typer.Option(None, "--version-id", help="Version to validate. Use 'draft' for the current draft, or a specific version ObjectId."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Validate an Existing Flow or Subflow Draft.\n\n\b\nExample: wxcli cc-flow list-validate PROJECT_ID FLOW_ID"""
@@ -581,20 +717,13 @@ def list_validate(
         params["versionId"] = version_id
     if flow_type is not None:
         params["flowType"] = flow_type
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("results", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Code', 'code'), ('Doc Link', 'docLink'), ('Hint', 'hint'), ('Message', 'message'), ('Severity', 'severity')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -605,11 +734,8 @@ def export(
     flow_id: str = typer.Argument(help="24-char hex id"),
     version: str = typer.Option(None, "--version", help="Version to export. Use 'latest' for the most recent published version, 'draft' for the working copy, or a specific version ObjectId."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Export a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow export PROJECT_ID FLOW_ID"""
@@ -622,19 +748,12 @@ def export(
         params["version"] = version
     if flow_type is not None:
         params["flowType"] = flow_type
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("nodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Activity Name', 'activityName')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 

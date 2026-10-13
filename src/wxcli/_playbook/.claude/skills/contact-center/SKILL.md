@@ -69,7 +69,9 @@ If this returns 403, the token lacks CC-specific OAuth scopes. Required scopes:
 
 The user may need to re-authenticate with CC scopes enabled.
 
-> **WARNING:** Personal access tokens (PATs) from developer.webex.com do NOT carry CC scopes, even for full admins. If you get 403 "Access denied - Client is forbidden access to the resource" with a `ccconfig_` tracking ID, the token lacks CC scopes. Two options:
+> **NOTE (verified live 2026-10-13):** A full-admin personal access token (PAT) from developer.webex.com worked for CC config calls on org "CC Bootcamp Sandbox" — `cc-flow` list/show/export/list-validate/create-validate/create-lock/create-unlock, `cc-queue list`, `cc-entry-point list` and `cc-global-vars list-cad-variable` all returned 200, no 403. An earlier (April 2026) finding that PATs get 403 on global variables on this same org no longer reproduces. Whether a PAT works can still vary by org/token, so try it first.
+>
+> If you get 403 "Access denied - Client is forbidden access to the resource" with a `ccconfig_` tracking ID, the token lacks `cjp:config_*` scopes. Two options:
 >
 > **Option A — OAuth Integration** (user-facing apps):
 > 1. Create an OAuth integration at developer.webex.com with `cjp:config_read` and `cjp:config_write` scopes selected
@@ -320,21 +322,33 @@ Collect from user:
 | Max time in queue | No | Seconds before overflow |
 | Overflow destination | No | Entry point or number for overflow |
 
-**CLI command (v2 — preferred):**
+**CLI command (single queue, v2):**
 
 ```bash
-wxcli cc-queue create --json-body '{
+wxcli cc-queue create-contact-service-queue --json-body '{
   "name": "Support Queue",
-  "channelType": "telephony",
-  "routingType": "LONGEST_AVAILABLE_AGENT"
+  "queueType": "INBOUND",
+  "channelType": "TELEPHONY",
+  "checkAgentAvailability": false,
+  "serviceLevelThreshold": 60,
+  "maxActiveContacts": 100,
+  "maxTimeInQueue": 3600,
+  "active": true,
+  "routingType": "LONGEST_AVAILABLE_AGENT",
+  "queueRoutingType": "TEAM_BASED",
+  "callDistributionGroups": [{"agentGroups": [{"teamId": "TEAM_ID"}], "order": 0, "duration": 0}]
 }'
 ```
+
+> **`cc-queue create` is the BULK endpoint** ("Bulk save Contact Service Queues"), not the single create. Verified live 2026-10-13: `create-contact-service-queue` created four queues. Its `--help` marks `name`, `queueType`, `checkAgentAvailability`, `channelType`, `serviceLevelThreshold`, `maxActiveContacts`, `maxTimeInQueue` and `active` required; the body above follows the `--help` example. Run `wxcli cc-queue create-contact-service-queue --help` for the current list. The earlier example here (`name` + `channelType` only) omitted required fields.
 
 **List queues:**
 
 ```bash
 wxcli cc-queue list-contact-service-queue-v2 -o json
 ```
+
+> **`list-contact-service-queue-v2` omits `callDistributionGroups`** (verified live 2026-10-13: team assignment reads null). Read team routing with `show-contact-service-queue-v2` below; a list row with no team does not mean the queue has none.
 
 **Show specific queue:**
 
@@ -407,7 +421,8 @@ Collect from user:
 | Name | Yes | Unique entry point name |
 | Channel type | Yes | `telephony`, `chat`, `email`, `social` |
 | Service level threshold | No | Seconds |
-| Flow ID | No | Assigned flow for routing |
+| Flow ID | No | Assigned flow for routing (`flowId`) |
+| Flow tag ID | No | Which flow version tag to run (`flowTagId`); `"Latest"` works |
 
 **CLI command (v2 — preferred):**
 
@@ -417,6 +432,8 @@ wxcli cc-entry-point create --json-body '{
   "channelType": "telephony"
 }'
 ```
+
+> **Wiring to a flow (verified live 2026-10-13):** add `"flowId": "<flow id>"` and `"flowTagId": "Latest"` to the body; `show` read both back. A newly published flow has only the `Latest` tag pointing at its version (Live, Test and Dev tags exist but were unset), so use `Latest` until you tag a version otherwise. The entry point is not callable until a dial number is mapped to it (`cc-dial-number`).
 
 **List entry points:**
 
@@ -615,15 +632,13 @@ The response is `{"outcome", "statusCode", "pagination", "campaigns": [...]}`; t
 wxcli cc-business-hour create --json-body '{
   "name": "Standard Hours",
   "timezone": "America/New_York",
-  "businessHours": [
-    {"day": "monday", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "tuesday", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "wednesday", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "thursday", "startTime": "08:00", "endTime": "17:00"},
-    {"day": "friday", "startTime": "08:00", "endTime": "17:00"}
+  "workingHours": [
+    {"name": "Weekday", "days": ["MON", "TUE", "WED", "THU", "FRI"], "startTime": "08:00", "endTime": "17:00"}
   ]
 }'
 ```
+
+> **Body shape (verified live 2026-10-13):** the array is `workingHours: [{name, days:["MON",...], startTime, endTime}]`, matching `cc-business-hour create --help`. An earlier version of this example used `businessHours:[{day:"monday",...}]`, which does not match `--help`. The holiday-list example below was not re-tested.
 
 **List business hours:**
 
@@ -781,13 +796,13 @@ wxcli cc-work-types list-work-type -o json
 ```bash
 wxcli cc-global-vars create --json-body '{
   "name": "maxRetries",
-  "variableType": "INTEGER",
+  "variableType": "Integer",
   "defaultValue": "3",
   "description": "Max IVR retry attempts"
 }'
 ```
 
-Variable types: `STRING`, `INTEGER`, `BOOLEAN`, `DECIMAL`, `DATE_TIME`, `JSON`.
+Variable types use **title case**: `--help` lists `String`, `Integer`, `Boolean`, `Decimal`, `DateTime`, `DATE_TIME`. Verified live 2026-10-13: `"variableType":"STRING"` fails with a misleading `400` ("validDefaultValueForVariabelType: defaultValue invalid value...", trackingId `ccconfig_39babbad-89a7-46b0-839f-ed942256433e`), while `"String"` succeeds and the API returns `"String"`. Only `String` was tested live; the other types' casing follows `--help` and `contact-center-core.md` gotcha 21 and is unverified. An `agentViewable` variable also needs `desktopLabel` (gotcha 22).
 
 **List global variables:**
 
@@ -831,17 +846,33 @@ wxcli cc-tenant-config update TENANT_CONFIG_ID --json-body file://tenant-config.
 wxcli cc-flow list PROJECT_ID -o json
 ```
 
+> **Paging (fixed 2026-10-13):** `cc-flow list --all` returns every flow (56 of 56 live). The default fetch returns 10 and prints a "more pages … `--page 1`" note. No `--size 100` workaround needed; `--offset` does nothing here, use `--page`.
+
+> **Argument order (verified via `--help` and live 2026-10-13):** `show`, `export`, `list-validate`, `delete` take `PROJECT_ID` then `FLOW_ID`. `publish`, `create-lock`, `create-unlock` take `FLOW_ID` then `PROJECT_ID`. The wrong order on `export` returns 404 "Flow … not found".
+>
+> **Finding the project ID:** no `cc-*` command lists projects. Get a flow id from `cc-entry-point show <id>` (field `flowId`), then read `projectId` from `cc-flow show PROJECT_ID FLOW_ID` (reads do not enforce the project in the path, so any value returns the flow). If you already know a project id, `cc-flow list PROJECT_ID` gives flow ids.
+
+**Show a flow (full definition):**
+
+```bash
+wxcli cc-flow show PROJECT_ID FLOW_ID -o json
+```
+
+Returns the full flow definition (FlowIr schema 2.0), including `projectId`.
+
 **Export a flow:**
 
 ```bash
-wxcli cc-flow export FLOW_ID PROJECT_ID -o json
+wxcli cc-flow export PROJECT_ID FLOW_ID -o json
 ```
 
 Use `--version` to specify a version: `draft`, `latest`, or a specific version ID.
 
 ```bash
-wxcli cc-flow export FLOW_ID PROJECT_ID --version draft -o json
+wxcli cc-flow export PROJECT_ID FLOW_ID --version draft -o json
 ```
+
+> **NOTE:** `cc-flow export` emits the full export envelope (15 keys incl. `schemaVersion`, `id`, `name`, `nodes`, `edges`, `variables`, `eventFlows`, `preferences`), verified 2026-10-13. (An earlier CLI build printed only `nodes`; fixed.) `show -o json` returns the full flow definition.
 
 **Publish a flow:**
 
@@ -858,7 +889,44 @@ wxcli cc-flow publish FLOW_ID PROJECT_ID --json-body '{
 }'
 ```
 
-> **NOTE:** Flow import (file upload) is not available via CLI. Use Control Hub or the API directly for flow import.
+**Validate, lock, import:**
+
+```bash
+wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json
+wxcli cc-flow list-validate PROJECT_ID FLOW_ID   # returns {valid, results}
+wxcli cc-flow create-lock FLOW_ID PROJECT_ID
+wxcli cc-flow create-unlock FLOW_ID PROJECT_ID
+wxcli cc-flow create-import PROJECT_ID --json-body file://flow.json
+```
+
+> **NOTE:** Lock/unlock return 200 "OK" but no command exposes lock state for read-back.
+
+**Activity catalog (read-only, added 2026-10-13, all returned 200 live):**
+
+```bash
+wxcli cc-flow list-activities PROJECT_ID
+wxcli cc-flow show-activity PROJECT_ID ACTIVITY_NAME
+wxcli cc-flow list-activity-choices PROJECT_ID ACTIVITY_NAME INPUT_NAME
+wxcli cc-flow list-event-specifications PROJECT_ID
+```
+
+> A dependent input (e.g. `queue-contact` `destination`) returns 400 "requires a parent value" unless you also pass `--parent-input-name channelType --parent-value TELEPHONY`. Use these to look up activity names, inputs and choice values when hand-writing a FlowIr body; raw `GET /v2/activities` is the fallback. `cc-flow list-search` returned 404 on the sandbox even via raw HTTP (unverified whether the endpoint is live).
+>
+> **`create-validate` is safe to run but not authoritative.** It is a POST that changes nothing, but `valid:false` can be a false positive. Two are proven (verified live 2026-10-13, against Designer-built flows): `ivr-collectdigits` has no accepted success-edge condition (`default`, `out`, `done`, `success` all rejected, yet Designer writes `default`), and `FC1038 Variable 'X' is referenced but not declared` fires on every `{{Node.Output}}` reference except the start node's (`{{NewContact.ANI}}` passes). It also reports only **one** edge-condition error per call, and edge checks gate the FC checks, so errors appear one layer at a time. `cc-flow publish` (without `--skip-validation`) succeeded on a draft that `list-validate` reported as `ERROR FC1038`, so neither validate endpoint is the publish gate. Treat validate as a way to find real errors (FC1015, FC1024, missing start-node fields), not a pass/fail verdict.
+>
+> **Import works (verified live 2026-10-13; supersedes the earlier "HTTP 500 / not demonstrated" note).** `cc-flow create-import` (POST `/{orgId}/project/{projectId}/v2/flows:import`) created a 43-node flow on the first try from a well-formed FlowIr 2.0 body; `show` read back identical. It is a **full create**: a name clash returns `409 FLOW_ALREADY_EXISTS` unless `--overwrite true`. The response can carry non-fatal preflight warnings (`preflightWarningsCount`) that dry-run validate does not report. The earlier 500s (trackingIds `693ce99d-ab7d-48f0-aef4-4ca1080105ca`, `5fb767c8-9135-48d5-93df-35a0c09c1425`) were on export-derived bodies, cause unproven. **Hypothesis (not re-tested):** the incomplete start-node `flowType`.
+>
+> **Exports do not round-trip (as observed):** `create-validate` on export-derived bodies returned `valid:false` with errors such as "key not found: eventSourceName" and "Condition 'default' is not valid for activity 'bridged-transfer'". Likely cause (not proven): the start node's incomplete `flowType` plus the validator false positives above.
+
+**Building a flow from scratch (condensed; full detail, port table and example body in `docs/reference/contact-center-routing.md` §11, "Building a flow from scratch"):**
+
+1. **Use FlowIr 2.0, not the shape in `--help` or the spec.** The `--help`/FlowV2 example (nodes `{name, activityName, inputs, outputs, position}`, edges `{key, from_node, from_port, to_node, condition}`, `flowName`, `eventFlows: []`) fails `create-validate` with `400 main flow edge from must not be empty.; main flow edge to must not be empty.` and `No start node found. Add one node with activityType='start'`. The server reads: top level `{schemaVersion:"2.0", name, flowType:"FLOW", description, variables:[], nodes:[], edges:[], eventFlows:{nodes:[],edges:[]}, preferences:[]}` (`eventFlows` is an object); node `{name, activityType:"start"|"action"|"end", properties:{activityName, <inputs flat>}}`; edge `{from, to, condition}`. No `position`.
+2. **Start node.** Must be activity `NewContact` (`NewPhoneContact` gives `FC1024`) with all six `flowType` fields (omitting the `*Name` ones gives `FC0000 ... key not found: eventSourceName`):
+   `{"name":"NewContact","activityType":"start","properties":{"name":"NewContact","activityName":"NewContact","activityId":"start","event":"NewContact","flowType":{"eventSourceId":"5eff0e2eb10162499bc9f932","eventSourceName":"WebexContactCenter","eventClassificationId":"5f10475cf021306e89e1692c","eventClassificationName":"VoiceInteractions","eventSpecificationId":"5f2d02144332507e39cc8a7f","eventSpecificationName":"ContactStartWorkflow"}}}`
+3. **Edge `condition` names seen in the published body:** start and `set-variable` use `out` (+ `error`); `play-message`, `play-music`, `queue-contact`, `callback` use `default` (queue-contact and callback also `failure`); `ivr-menu` uses the digit plus `timeout`/`invalid`/`error`; `ivr-collectdigits` uses `default` (validator rejects it, see above) plus `timeout`/`invalid`/`error`; `condition-activity` uses `true`/`false`/`error`; `business-hours` uses `workingHours`/`holidays`/`override`/`default`/`error`. `queue-contact` `failure` draws a non-fatal import WARNING ("Use one of: default").
+4. **Variables.** A global variable in FlowIr is `{name, type, value, source:"GLOBAL", id:"<global var id>", ...}`; a flow-local one has `source:""`, `id:""`. An `isCAD:true` (agent-viewable) variable needs a non-empty `desktopLabel` or validate returns `FC1015` (also for globals re-declared in the flow).
+5. **Sequence that worked (verified live 2026-10-13):** create queues, business hours and globals first and take their ids from the read-back, then `create-import` the flow, `show` it to compare, `publish FLOW_ID PROJECT_ID`, then create the entry point with `flowId` + `flowTagId` (see Entry Point). No test call was placed, so none of it is runtime-verified.
+6. **Recipe notes, not runtime-tested.** *Callback:* `callback` with `toggleCallbackDestination: false` calls back into the queue the contact is already in, which avoids a `{{QueueNode.QueueId}}` reference (and its FC1038 false positive). *Bilingual prompts:* with the built-in "Cisco Cloud Text-to-Speech" connector the voice follows the `Global_Language` / `Global_VoiceName` globals; a language-specific `set-variable` node sets them (`es-US` / `es-US-Alonso` for Spanish) plus prompt-text variables, and one set of nodes speaks `{{msgX}}`.
 
 ---
 
@@ -1150,7 +1218,7 @@ Handle errors explicitly:
 
 ### Generic errors
 
-- **401/403**: Token expired or insufficient scopes — run `wxcli configure` to re-authenticate. CC requires `cjp:config_read` / `cjp:config_write` scopes.
+- **401/403**: Token expired or insufficient scopes — run `wxcli configure` to re-authenticate. A 403 with a `ccconfig_` trackingId means the token lacks `cjp:config_read` / `cjp:config_write`; use an OAuth integration or Service App with those scopes selected and re-authorize after adding scopes.
 - **403 with scope hint**: The CLI detects CC 403 errors and prints a scope tip. Follow the guidance.
 - **409**: Name conflict — ask user for alternate name.
 - **400**: Validation error — read the error message and fix the parameter.
@@ -1241,7 +1309,7 @@ Next steps:
 ## Critical Rules
 
 1. **Always set CC region first.** Before any `cc-*` command, ensure the region is set: `wxcli set-cc-region <region>`. CC API calls go to `api.wxcc-{region}.cisco.com`, not `webexapis.com`.
-2. **CC requires separate OAuth scopes.** Standard Webex admin tokens don't include CC scopes. The user needs `cjp:config_read` and `cjp:config_write`. The CLI detects 403 and prints a scope tip.
+2. **CC config calls need `cjp:config_read` / `cjp:config_write` on the token.** A full-admin PAT worked for CC config reads and flow writes on one org (verified live 2026-10-13), so try the current token first. On a 403 (`ccconfig_` trackingId) the token lacks those scopes — use an OAuth integration or Service App with them selected. The CLI detects 403 and prints a scope tip.
 3. **Always show the deployment plan** (Step 5) and wait for user confirmation before executing.
 4. **Prefer v2 commands over v1.** v2 endpoints are CRUD-oriented (single resource). v1 endpoints are bulk-oriented (arrays). For individual creates/updates, use the v2 variant (e.g., `create-contact-service-queue-v2`, `list-entry-point-v2`).
 5. **orgId is auto-injected.** The CLI resolves `orgId` from the authenticated user's org. No need to pass it manually.
@@ -1272,7 +1340,7 @@ Next steps:
 2. Create multimedia profile → `wxcli cc-multimedia-profile create --json-body '...'`
 3. Create team → `wxcli cc-team create --json-body '...'`
 4. Create entry point → `wxcli cc-entry-point create --json-body '...'`
-5. Create queue → `wxcli cc-queue create --json-body '...'`
+5. Create queue → `wxcli cc-queue create-contact-service-queue --json-body '...'` (`cc-queue create` is the bulk endpoint)
 6. Map dial number → `wxcli cc-dial-number create --json-body '...'`
 7. Create/assign flow → `wxcli cc-flow publish FLOW_ID PROJECT_ID --comment "..."`
 8. Verify end-to-end → list all resources and confirm IDs are linked

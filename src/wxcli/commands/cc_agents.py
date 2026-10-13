@@ -286,7 +286,7 @@ def list_activities(
         params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     result = None
     try:
         if all_pages:
@@ -335,7 +335,7 @@ def list_statistics(
         params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     result = None
     try:
         result = api.session.rest_get(url, params=params)

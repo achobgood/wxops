@@ -6,7 +6,7 @@ from the Contact Center OpenAPI spec.
 
 > **Regional base URL:** `https://api.wxcc-{region}.cisco.com`
 > **Regions:** us1, eu1, eu2, anz1, ca1, jp1, sg1
-> **Auth:** CC-specific OAuth scopes (`cjp:config_read`, `cjp:config_write`)
+> **Auth:** CC scopes (`cjp:config_read`, `cjp:config_write`); a full-admin PAT worked on the analytics endpoints tried on 2026-10-13 (see gotcha 11)
 > **Set region:** `wxcli set-cc-region <region>` (defaults to us1)
 
 ## Sources
@@ -1264,7 +1264,7 @@ All 92 endpoints tabulated below, across 15 CLI groups. Regional base URL: `http
 
 10. **Notifications and Realtime are separate subscription mechanisms.** `cc-notification` (POST `/v1/notification/subscribe`) is push-based delivery. `cc-realtime` (POST `/v1/realtime/subscribe`) is for WebSocket/SSE streaming. `cc-subscriptions` manages durable webhook-style subscriptions. All three coexist and serve different consumption patterns.
 
-11. **All CC APIs require CC-specific OAuth scopes.** Standard Webex admin tokens will not work. You need `cjp:config_read` and/or `cjp:config_write` scopes. JDS admin endpoints additionally need `cjds:admin_org_read`/`cjds:admin_org_write`. The CLI detects 403 errors and prints a scope tip.
+11. **CC APIs require the `cjp:config_read` and/or `cjp:config_write` scopes; a 403 means they are missing (fix: OAuth integration or Service App with those scopes).** Observed 2026-10-13: a full-admin personal access token got 200 on every analytics endpoint tried (`/v1/queues/statistics`, `/v1/agents/statistics`, `/v1/agents/activities`, `/v1/ewt` (204, no samples), `POST /search`, `GET /search/v2/meta`, `POST /generated-summaries/search`) and on the config endpoints, with no 403. Not tested: realtime subscribe, call monitoring, usage reports. The 403 behavior may differ per tenant or endpoint. JDS admin endpoints additionally need `cjds:admin_org_read`/`cjds:admin_org_write`. The CLI detects 403 errors and prints a scope tip.
 
 12. **Regional base URL is required.** All CC API requests go to `https://api.wxcc-{region}.cisco.com`, not `https://webexapis.com`. Set the region with `wxcli set-cc-region <region>` (defaults to `us1`).
 
@@ -1290,6 +1290,8 @@ All 92 endpoints tabulated below, across 15 CLI groups. Regional base URL: `http
     **`agent:channelType_state_change`**: `agentId`, `currentState` (Available/Idle/Engaged/EngagedOther/WrapUp/Reserved/LoggedOut), `channelType`, `pendingIdleState` (boolean), `idleCodeName`, `teamId`, `createdTime`. Note: the `comciscotimestamp` CloudEvents envelope field is **only** present in `agent:channelType_state_change` events.
 
 16. **Queue Statistics and Agent Statistics REST APIs reach EOL March 31, 2027.** Both are deprecated in favor of the GraphQL Search API. Same auth scopes apply (`cjp:config` or `cjp:config_read`). Migrate before the EOL date.
+
+    **CLI 401 (fixed 2026-10-13):** `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-ewt show` and `cc-search create` used to return 401 `Token does not have access to OrgId:<base64>` because they sent the saved base64 Spark org id as the `orgId` query parameter (not a scope failure). The CLI now sends the bare UUID; verified 200 on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-tasks list` and `cc-subscriptions`, and 204 on `cc-ewt show`. `cc-search create` was not live-tested. If this 401 appears on an older wxcli, upgrade.
 
 17. **Bulk export APIs deprecated April 2026.** The `/bulk-export` GET endpoints across 19 config resources (Address Book, Auxiliary Code, Business Hours, Desktop Layout, Skills, Teams, Users, and others) are deprecated. Use the corresponding list endpoints (`/v2/` or `/v3/` variants) instead. The `list-bulk-export` CLI commands for these resources will stop working after removal.
 

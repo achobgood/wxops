@@ -32,7 +32,7 @@ def cmd_list(
         params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     result = None
     try:
         result = api.session.rest_get(url, params=params)
@@ -118,7 +118,7 @@ def show(
     params = {}
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -201,7 +201,7 @@ def delete(
     params = {}
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     try:
         result = api.session.rest_delete(url, params=params)
     except WebexError as e:
@@ -237,7 +237,7 @@ def list_event_types_v1(
         params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     result = None
     try:
         result = api.session.rest_get(url, params=params)
@@ -271,7 +271,7 @@ def list_subscriptions(
         params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     result = None
     try:
         result = api.session.rest_get(url, params=params)
@@ -360,7 +360,7 @@ def show_subscriptions(
     params = {}
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -446,7 +446,7 @@ def delete_subscriptions(
     params = {}
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     try:
         result = api.session.rest_delete(url, params=params)
     except WebexError as e:
@@ -482,7 +482,7 @@ def list_event_types_v2(
         params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     result = None
     try:
         result = api.session.rest_get(url, params=params)

@@ -3,7 +3,7 @@ name: reporting-cc
 description: |
   Query and analyze Webex Contact Center analytics: CC queue statistics, CC agent statistics,
   estimated wait time, agent summaries, task search, and real-time CC monitoring.
-  Requires CC-scoped OAuth (cjp:config_read).
+  CC scopes (cjp:config_read) are required; a full-admin PAT was observed to work on 2026-10-13.
   NOT for: Webex Calling CDR/queue/AA stats (use reporting skill) or
   meetings/workspace analytics (use reporting-meetings skill).
 allowed-tools: Read, Grep, Glob, Bash
@@ -13,7 +13,7 @@ argument-hint: [cc-report-type]
 # Contact Center Analytics Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. What OAuth scope do CC analytics require? (Answer: `cjp:config_read` / `cjp:config_write` — standard admin tokens will NOT work.)
+1. What OAuth scope do CC analytics require? (Answer: `cjp:config_read` / `cjp:config_write`. Observed 2026-10-13: a full-admin PAT got 200 on the analytics endpoints, so try the current token first; a 403 means the scopes are missing. A 401 "Token does not have access to OrgId:<base64>" is the orgId-format problem in Critical Rule 6 (fixed in the CLI 2026-10-13), not scope.)
 2. How is the CC region configured? (Answer: `wxcli set-cc-region <region>` — defaults to us1.)
 
 If you cannot answer both, read `docs/reference/contact-center-analytics.md` before proceeding.
@@ -30,7 +30,7 @@ If you cannot answer both, read `docs/reference/contact-center-analytics.md` bef
 wxcli whoami
 ```
 
-CC APIs require CJP scopes (`cjp:config_read` / `cjp:config_write`). Two options: **OAuth Integration** (user-facing apps, interactive login) or **Service App** (production automation, no interactive login needed). If the token lacks CC scopes, the user needs to re-authenticate with one of these.
+CC APIs require CJP scopes (`cjp:config_read` / `cjp:config_write`). Two options: **OAuth Integration** (user-facing apps, interactive login) or **Service App** (production automation, no interactive login needed). If a call returns 403, the token lacks CC scopes and the user needs to re-authenticate with one of these. (Observed 2026-10-13: a full-admin PAT from developer.webex.com returned 200 on queue stats, agent stats/activities, EWT, task search, search metadata and agent summaries, so a PAT is worth trying first.)
 
 Verify region is set. There is no getter command — region is stored in the wxcli
 config file (`~/.wxcli/config.json`, `cc_region` key), set via `wxcli set-cc-region`.
@@ -271,11 +271,12 @@ print(f'Worst average wait: {wait}ms in queue {name}')
 
 ## Critical Rules
 
-1. **CC-scoped OAuth or Service App required.** Standard admin tokens get 403. Must use `cjp:config_read` / `cjp:config_write` — via OAuth Integration or Service App (both supported).
+1. **CC scopes (`cjp:config_read` / `cjp:config_write`) are required; a 403 means they are missing.** Fix: OAuth Integration or Service App with those scopes (both supported). Observed 2026-10-13: a full-admin PAT got no 403 on any analytics endpoint tried (queue stats, agent stats, agent activities, EWT, task search, search metadata, agent summaries), so do not assume a PAT is blocked.
 2. **Region must be set.** CC APIs route to regional endpoints. Default is us1.
 3. **Response shapes vary.** CC APIs may return objects or arrays. Recipes handle both with `isinstance` checks.
 4. **Field names vary.** Different CC API versions use different field names (e.g., `avgWaitTime` vs `averageWaitTime`). Recipes use fallbacks with `x.get('field1', x.get('field2', 0))`.
 5. **Real-time data is ephemeral.** Snapshot of current state, not historical.
+6. **401 "Token does not have access to OrgId:<base64 id>" is NOT a scope problem, and is FIXED in the CLI (2026-10-13).** Older wxcli builds sent the saved base64 Spark org id as `orgId` on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-ewt show` and `cc-search create`, and the CC API rejected it. The CLI now sends the bare UUID; verified 200 on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-tasks list`, `cc-subscriptions` and 204 on `cc-ewt show` (`cc-search create` not live-tested). If you still see this 401, upgrade wxcli and check `wxcli whoami`'s Target org; raw HTTP with the bare UUID `orgId` (or none) is the fallback.
 
 ---
 
