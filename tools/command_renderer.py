@@ -1293,7 +1293,10 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     # either: the same inert pair on 5 commands (`scim-users list`, `groups
     # list`, …), caught by drift check 23. Translated the same way: --limit is
     # the page size (`count`), --offset is the 1-based `startIndex` (offset + 1).
-    scim_window = ep.pagination_style == "scim" and not ep.paginates
+    # Requires BOTH names: `scim` style is set by either alone, and a count-only
+    # op would otherwise get --offset sent as an undeclared `startIndex`.
+    scim_window = (ep.pagination_style == "scim" and not ep.paginates
+                   and {"startIndex", "count"} <= spec_param_names)
 
     params.extend(_render_output_options("table"))
     if page_numbered:
