@@ -743,12 +743,12 @@ def _value_shape(meta: dict) -> tuple[str | None, str | None]:
 _TRACKED_SPECS = Path(__file__).resolve().parent.parent / "specs"
 
 # Which Webex product each spec describes. Derived from the FILE, which the
-# generator always knows, rather than guessed from the CLI name — the same
-# authority the group-help label at the bottom of this module still guesses at
-# from a name prefix (`cc-` -> Contact Center, else Calling), which is why
-# `teams` and `hds` announce themselves as Webex Calling. That label is tracked
-# separately as findings D07/D08; when it is fixed it should read this dict
-# instead of the prefix test, not add a second mapping beside it.
+# generator always knows, rather than guessed from the CLI name. It is the one
+# mapping behind both the cross-product short_help qualifier and the group-help
+# label ("Manage Webex <Product>: <group>.", render_command_file via
+# group_label_spec). The label used to guess from a name prefix (`cc-` ->
+# Contact Center, else Calling), which called `teams` and `hds` Webex Calling
+# (findings D07/D08, fixed 2026-10-13). Do not add a second mapping beside it.
 #
 # A spec present on disk with no entry here raises rather than being skipped,
 # so a future tracked spec cannot join silently. webex-flow-store.json is
@@ -807,9 +807,10 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
     summary_groups: dict[str, set[str]] = {}
     group_product: dict[str, str] = {}
     # {group -> [spec, ...]} every spec that renders at least one command into
-    # the group, in walk order. Read by group_label_spec: five groups are
-    # written by two specs, so "the spec rendering right now" is not a stable
-    # answer to "which product is this group".
+    # the group, in walk order. Read by group_label_spec: seven groups are
+    # written by two specs (five of their labels flipped with render order), so
+    # "the spec rendering right now" is not a stable answer to "which product
+    # is this group".
     group_specs: dict[str, list[str]] = {}
 
     # Same order spec_sync generates in, so that where two specs declare one

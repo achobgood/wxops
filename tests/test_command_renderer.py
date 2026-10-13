@@ -960,6 +960,10 @@ class TestWildcardResponseListKey:
         assert rc and rc[0].command_type == "list"
 
 
+def _probes(by_group: dict) -> dict:
+    return {g: v for g, v in by_group.items() if g.startswith("zz-")}
+
+
 class TestGroupHelpProduct:
     """Item 7 (2026-10-13): the group-help label was guessed from the CLI-name
     prefix, so `asset` and `channel` (Contact Center host) and every admin,
@@ -972,7 +976,13 @@ class TestGroupHelpProduct:
         ("webex-admin.json", "Webex Admin"),
         ("webex-cloud-calling.json", "Webex Calling"),
     ])
-    def test_label_follows_the_spec(self, spec, label):
+    def test_label_follows_the_spec(self, spec, label, monkeypatch):
+        # An empty index: no spec owns "asset", so each keeps its own product
+        # whatever the live specs say (group_label_spec's non-owner branch).
+        from tools import command_renderer as cr
+        monkeypatch.setattr(cr, "_producer_index", {
+            "by_path": {}, "by_tail": {}, "scoping": set(), "summary_groups": {},
+            "group_product": {}, "group_specs": {}})
         code = render_command_file("asset", [_make_endpoint()], {}, spec_filename=spec)
         assert f'app = typer.Typer(help="Manage {label}: asset.")' in code
 
@@ -992,48 +1002,104 @@ class TestGroupHelpProduct:
                  and 'typer.Typer(help="Manage Webex Contact Center' not in f.read_text()]
         assert not wrong, wrong
 
-    # Five groups are written by two specs (last writer wins), so a label read
-    # off "the spec rendering now" flipped with render order: a full spec_sync
-    # regen and a one-spec regen disagreed on calling-metrics, events,
-    # webhooks, workspace-locations and workspace-metrics.
+    # Seven groups are written by two specs (last writer wins), and five of
+    # their labels flipped with render order: a full spec_sync regen and a
+    # one-spec regen disagreed. The rule tests below run on a FIXTURE index
+    # built from tiny specs, so an upstream tag change cannot fail them (the
+    # weekly routine runs this suite and may not edit tests); only the live
+    # self-consistency test reads the real index, and it names no group.
 
-    @pytest.mark.parametrize("spec", ["webex-messaging.json", "webex-meetings.json"])
-    def test_multi_spec_group_label_ignores_render_order(self, spec):
-        code = render_command_file("webhooks", [_make_endpoint()], {}, spec_filename=spec)
-        assert 'app = typer.Typer(help="Manage Webex Messaging: webhooks.")' in code
+    @staticmethod
+    def _probe_spec(*tags):
+        paths = {}
+        for i, tag in enumerate(tags):
+            slug = tag.lower().replace(" ", "")
+            paths[f"/{slug}/{{probeId}}"] = {"get": {
+                "tags": [tag], "operationId": f"get{slug}{i}",
+                "summary": f"Get {tag}",
+                "parameters": [{"name": "probeId", "in": "path",
+                                "required": True, "schema": {"type": "string"}}],
+                "responses": {"200": {"description": "ok"}}}}
+        return {"openapi": "3.0.0", "info": {"title": "probe", "version": "1"},
+                "paths": paths}
 
-    def test_label_rank_puts_the_umbrella_spec_last(self):
-        from tools.command_renderer import _label_rank
-        owners = ["webex-admin.json", "webex-meetings.json", "webex-messaging.json"]
-        assert min(owners, key=_label_rank(owners)) == "webex-meetings.json"
-        owners = ["webex-cloud-calling.json", "webex-device.json"]
-        assert min(owners, key=_label_rank(owners)) == "webex-cloud-calling.json"
-        assert min(["webex-admin.json"], key=_label_rank(["webex-admin.json"])) \
-            == "webex-admin.json"
+    @pytest.fixture
+    def probe_index(self, tmp_path, monkeypatch):
+        """Umbrella pair (admin + meetings; admin walks first), a walk-order
+        tie (cloud-calling + device), and a single-owner group."""
+        from tools import command_renderer as cr
+        specs = {
+            "webex-admin.json": ["Zz Umbrella Probe"],
+            "webex-meetings.json": ["Zz Umbrella Probe"],
+            "webex-device.json": ["Zz Order Probe"],
+            "webex-cloud-calling.json": ["Zz Order Probe"],
+            "webex-messaging.json": ["Zz Single Probe"],
+        }
+        for name, tags in specs.items():
+            (tmp_path / name).write_text(json.dumps(self._probe_spec(*tags)))
+        index = cr.build_producer_index(specs_dir=tmp_path)
+        monkeypatch.setattr(cr, "_producer_index", index)
+        return index
 
-    def test_group_label_spec_on_the_real_index(self):
+    def test_fixture_index_records_every_owner_in_walk_order(self, probe_index):
+        # Filtered to the probes: the real field_overrides.yaml still applies
+        # (tag_merge can synthesize a group of its own on a cloud-calling spec).
+        assert _probes(probe_index["group_specs"]) == {
+            "zz-umbrella-probe": ["webex-admin.json", "webex-meetings.json"],
+            "zz-order-probe": ["webex-cloud-calling.json", "webex-device.json"],
+            "zz-single-probe": ["webex-messaging.json"],
+        }
+
+    def test_umbrella_spec_ranks_last(self, probe_index):
         from tools.command_renderer import group_label_spec
-        assert group_label_spec("meeting-qualities", "webex-admin.json") == "webex-meetings.json"
-        assert group_label_spec("calling-metrics", "webex-admin.json") == "webex-cloud-calling.json"
-        assert group_label_spec("workspace-metrics", "webex-admin.json") == "webex-device.json"
-        assert group_label_spec("locations", "webex-device.json") == "webex-cloud-calling.json"
-        # Not an owner (a fixture, a spec outside specs/): its own product.
-        assert group_label_spec("asset", "webex-admin.json") == "webex-admin.json"
+        for spec in ("webex-admin.json", "webex-meetings.json"):
+            assert group_label_spec("zz-umbrella-probe", spec) == "webex-meetings.json"
 
-    def test_shipped_multi_spec_groups_carry_the_ranked_label(self):
-        """The tree invariant a full regen must reproduce byte-for-byte."""
+    def test_walk_order_breaks_a_tie(self, probe_index):
+        from tools.command_renderer import group_label_spec
+        for spec in ("webex-device.json", "webex-cloud-calling.json"):
+            assert group_label_spec("zz-order-probe", spec) == "webex-cloud-calling.json"
+
+    def test_non_owner_keeps_its_own_spec(self, probe_index):
+        from tools.command_renderer import group_label_spec
+        assert group_label_spec("zz-single-probe", "webex-admin.json") == "webex-admin.json"
+        assert group_label_spec("zz-unknown", "webex-device.json") == "webex-device.json"
+
+    @pytest.mark.parametrize("group,owners,product", [
+        ("zz-umbrella-probe", ["webex-admin.json", "webex-meetings.json"], "Meetings"),
+        ("zz-order-probe", ["webex-device.json", "webex-cloud-calling.json"], "Calling"),
+    ])
+    def test_label_ignores_render_order(self, probe_index, group, owners, product):
+        want = f'app = typer.Typer(help="Manage Webex {product}: {group}.")'
+        for spec in owners:
+            code = render_command_file(group, [_make_endpoint()], {}, spec_filename=spec)
+            assert want in code, spec
+
+    def test_qualifier_product_follows_the_label_rule(self, probe_index):
+        assert _probes(probe_index["group_product"]) == {
+            "zz-umbrella-probe": "Meetings",
+            "zz-order-probe": "Calling",
+            "zz-single-probe": "Messaging",
+        }
+
+    def test_shipped_labels_match_the_live_index(self):
+        """Self-consistency, no group named: every shipped module of a group the
+        live index knows carries the label the rule derives. A full regen must
+        reproduce this byte-for-byte."""
         from tools.command_renderer import (
             SPEC_PRODUCT, _label_rank, build_producer_index)
         cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
-        shared = {g: o for g, o in build_producer_index()["group_specs"].items()
-                  if len(o) > 1}
-        assert len(shared) >= 5, shared     # 7 today; catches an empty index
-        wrong = []
-        for group, owners in shared.items():
+        checked, wrong = 0, []
+        for group, owners in build_producer_index()["group_specs"].items():
+            module = cmd_dir / f"{group.replace('-', '_')}.py"
+            if not owners or not module.exists():
+                continue
             product = SPEC_PRODUCT[min(owners, key=_label_rank(owners))]
             want = f'app = typer.Typer(help="Manage Webex {product}: {group}.")'
-            if want not in (cmd_dir / f"{group.replace('-', '_')}.py").read_text():
+            checked += 1
+            if want not in module.read_text():
                 wrong.append(want)
+        assert checked >= 1, "the live index is empty -- it is not being built"
         assert not wrong, wrong
 
 
