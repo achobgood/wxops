@@ -1352,9 +1352,11 @@ Seven groups are rendered by two specs: `calling-metrics`, `events`,
 wins. All seven render identical commands from both specs; only the group-help
 label differed, because it named the product of whichever spec was rendering
 at that moment. A full `spec_sync.py --skip-update` regen rewrote 5 committed
-labels. A one-spec regen would have written them differently again. The
-weekly job would have churned them, and check 28 would have had nothing
-stable to hold.
+labels. The weekly job regenerates in the fixed `PREFERRED_ORDER`, so on its
+own it would have rewritten those 5 once and then stayed stable. The real
+hazard was a one-spec regen (`generate_commands.py --spec X --all`): it
+writes the label of spec X, which disagrees with what a full regen writes. The
+next full regen would then flip the label back.
 
 **The rule (`command_renderer.group_label_spec`).** The label names the
 product of one spec, chosen from every spec that renders at least one command
@@ -1367,6 +1369,12 @@ into the group (`build_producer_index()["group_specs"]`):
 
 A spec that is not among the group's owners keeps its own product. That covers
 test fixtures and specs outside `specs/`.
+
+**Ownership is read from the repo's `specs/`.** That is where
+`build_producer_index` looks, not where `--spec` points. A generator run
+against a candidate spec stored elsewhere under the same filename therefore
+labels groups by the committed specs' ownership. That stays true until the
+candidate is copied into `specs/`.
 
 **One definition for both uses.** `group_product`, the source of the
 cross-product short_help qualifier, uses the same rule. So a group's label and
@@ -1388,8 +1396,12 @@ to Calling.
 directories were byte-identical. After a `spec_sync.py` regen,
 `git status --porcelain src/wxcli/commands` is empty. Drift check 28 accepts
 any owning spec's product, so it holds no opinion on the choice.
-`tests/test_command_renderer.py::TestGroupHelpProduct` pins the rule and the
-shipped labels.
+
+**Tests:** `tests/test_command_renderer.py::TestGroupHelpProduct` pins the rule
+on a fixture index built from tiny specs. An upstream tag change cannot fail
+it, which matters because the weekly routine runs the suite and may not edit
+tests. One live test checks that every shipped label equals the label the
+rule derives from the live index. It names no group.
 
 ## Known Issues — Generator / Pipeline Only
 
