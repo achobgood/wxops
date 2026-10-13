@@ -226,8 +226,9 @@ Checks (docs/arch/target-architecture.md §A6):
       name gives the CLI nothing to translate to and is out of scope.
   24. Walker page/size params: a page walker (follow_page_param,
       fetch_from_offset, follow_scim) must not send a page or page-size
-      query-param name the spec op does not declare when the op DOES declare
-      a name for that concept. follow_page_param always sent `pageSize`; the
+      query-param name the spec op does not declare — a page name when the
+      op declares a page name of its own, a size name when the op declares
+      any paging name. follow_page_param always sent `pageSize`; the
       Flows endpoints read `size`, returned their default 10, and the
       short-page stop ended the walk (`cc-flow list --all`: 10 of 56). Names
       come from the page_param=/size_param= kwargs (auth.py defaults
@@ -3355,7 +3356,8 @@ def print_check_findings(check: str, findings: list[dict], limit: int = 20) -> N
     Never raises — the gate runs unattended, and a crash here exits 2:
       * a record_examined blind finding (`{"check", "error"}`) prints as
         `BLIND  <error>` without reaching the check's formatter;
-      * a formatter that raises on an odd finding prints the finding's repr;
+      * a formatter that raises on an odd finding prints `FORMAT-ERROR  <repr>`
+        (prefixed so it stays visible in an unattended log);
       * an unregistered check or one with no CHECK_EXAMINED entry prints
         generic text and zeros.
     """
@@ -3365,13 +3367,14 @@ def print_check_findings(check: str, findings: list[dict], limit: int = 20) -> N
           f"   (examined {stats.get('examined', 0)} {noun}, "
           f"skipped {stats.get('skipped', 0)})")
     for f in findings[:limit]:
-        if isinstance(f, dict) and "error" in f:   # record_examined's blind finding
+        if (isinstance(f, dict) and f.get("check") == check
+                and "error" in f):   # record_examined's blind finding
             print(f"      BLIND  {f['error']}")
             continue
         try:
             line = fmt(f)
         except Exception:   # noqa: BLE001 — a print must never fail the gate
-            line = repr(f)
+            line = f"FORMAT-ERROR  {f!r}"
         print(f"      {line}")
     if len(findings) > limit:
         print(f"      ... and {len(findings) - limit} more (--json for all)")
@@ -3491,6 +3494,12 @@ _WALKER_DEFAULTS = {
     "fetch_from_offset": {"page_param": "page", "size_param": "pageSize"},
 }
 _SCIM_WALKER_SENDS = {"page_param": "startIndex", "size_param": "count"}
+# Any of these declared means the endpoint names its paging, so an undeclared
+# size name is wrong. Wider than check 23's size set on purpose: check 24 only
+# looks at blocks the renderer already gave a walker, so a bare `size`/`count`
+# there is a page size, not a generic word.
+_WALKER_SIZE_NAMES = frozenset({"pageSize", "size", "limit", "max", "count",
+                                "perPage"})
 _WALKER_CALL = re.compile(r"\.(follow_page_param|fetch_from_offset|follow_scim)\(")
 _WALKER_KWARG = re.compile(r"\b(page_param|size_param)\s*=\s*([^,)\s]+)")
 _STR_LITERAL = re.compile(r"""^(["'])([^"']*)\1$""")
@@ -3552,24 +3561,31 @@ def check_undeclared_walker_params(commands_dir: Path = COMMANDS_DIR,
     `page_param=`/`size_param=` kwargs (defaults `page`/`pageSize`, copied from
     src/wxcli/auth.py) — and for `follow_scim(` its fixed `startIndex`/`count`
     — are compared with the spec op's declared query params. A name fires when
-    it is undeclared AND the endpoint declares a name for that concept: a
-    page/offset name (`page`, `startIndex`, `offset`, `start`) for the page
-    param, a page-size name (_declared_window_names("--limit")) for the size
-    param. `/v1/tasks` declares only `pageSize` yet pages by `page` live
-    (2026-10-13), so a concept the spec leaves unnamed gives this check nothing
-    to compare — a measured tightening, not an ack; the runtime's
-    `_repeated_page` guard covers a page name the server ignores.
+    it is undeclared AND:
+      * page param — the endpoint declares a page/offset name (`page`,
+        `startIndex`, `offset`, `start`, or any `page*` name but `pageSize`,
+        e.g. `pageNumber`);
+      * size param — the endpoint declares ANY paging name (a page name above,
+        any `page*` name, or `pageSize`/`size`/`limit`/`max`/`count`/`perPage`).
+    The one relaxation is evidenced: `/v1/tasks` declares only `pageSize` yet
+    pages by `page` live (2026-10-13), so an undeclared page name on an
+    endpoint that declares NO page name is not a finding — the runtime's
+    `_repeated_page` guard covers a page name the server ignores. A measured
+    tightening, not an ack.
 
     A path several specs declare counts as declared if ANY of them declares the
-    name. Blocks with no matching spec op, or with a walker call whose names
-    cannot be read statically, are skipped and counted.
+    name. Blocks with no matching spec op, a walker call whose names cannot be
+    read statically, or a walker inside a non-GET block are skipped and counted.
     """
     findings: list[dict] = []
     examined = skipped = 0
     blocks = iter_command_blocks(commands_dir)
     index = spec_ops_by_key(specs_dir)
     for block in blocks:
-        if block.method != "GET" or not _WALKER_CALL.search(block.text):
+        if not _WALKER_CALL.search(block.text):
+            continue
+        if block.method != "GET":   # walker beside a non-GET call: unreadable
+            skipped += 1
             continue
         calls = walker_sends(block.text)
         sops = index.get(("GET", block.npath))
@@ -3580,8 +3596,11 @@ def check_undeclared_walker_params(commands_dir: Path = COMMANDS_DIR,
         declared: set[str] = set()
         for sop in sops:
             declared |= query_param_names(sop.op, sop.spec)
-        concept = {"page_param": declared & _OFFSET_NAMES,
-                   "size_param": _declared_window_names("--limit", declared)}
+        page_names = (declared & _OFFSET_NAMES) | {
+            n for n in declared if n.startswith("page") and n != "pageSize"}
+        paging_names = page_names | (declared & _WALKER_SIZE_NAMES) | {
+            n for n in declared if n.startswith("page")}
+        concept = {"page_param": page_names, "size_param": paging_names}
         seen: set[tuple[str, str]] = set()
         for walker, sends in calls:
             for role in ("page_param", "size_param"):
