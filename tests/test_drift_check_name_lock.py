@@ -111,7 +111,12 @@ def test_docstring_and_ci_name_check_22():
     doc = dc.__doc__
     assert "\n  21. " in doc and "\n  22. " in doc, "checks 21 and 22 must be listed in the header"
     ci = (Path(dc.REPO) / ".github" / "workflows" / "ci.yml").read_text()
-    assert r"^\[22\]" in ci, "CI completion assertion must name the last check"
+    # Check 22 is no longer the last check; test_drift_check_exit_codes derives
+    # the exact last number. Here: CI pins check 22 or a later one.
+    import re
+    pinned = re.search(r"\^\\\[(\d+)\\\]", ci)
+    assert pinned and int(pinned.group(1)) >= 22, \
+        "CI completion assertion must name the last check (22 or later)"
 
 
 # ------------------------------------------------------------- live tree

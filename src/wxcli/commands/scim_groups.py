@@ -25,8 +25,8 @@ def cmd_list(
     member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `machine`, `group`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (count); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (sent as the 1-based startIndex = offset + 1)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -53,10 +53,10 @@ def cmd_list(
         params["includeMembers"] = include_members
     if member_type is not None:
         params["memberType"] = member_type
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("count") is None:
+        params["count"] = limit
+    if offset > 0 and params.get("startIndex") is None:
+        params["startIndex"] = offset + 1
     result = None
     try:
         if all_pages:
@@ -270,8 +270,8 @@ def list_members(
     member_type: str = typer.Option(None, "--member-type", help="Filter the members by member type. Sample data: `user`, `machine`, `group`."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (count); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (sent as the 1-based startIndex = offset + 1)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -286,10 +286,10 @@ def list_members(
         params["count"] = count
     if member_type is not None:
         params["memberType"] = member_type
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("count") is None:
+        params["count"] = limit
+    if offset > 0 and params.get("startIndex") is None:
+        params["startIndex"] = offset + 1
     result = None
     try:
         if all_pages:

@@ -26,8 +26,8 @@ def cmd_list(
     group_usage_types: str = typer.Option(None, "--group-usage-types", help="Returns groups with details of the specified group type."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (count); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (sent as the 1-based startIndex = offset + 1)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -56,10 +56,10 @@ def cmd_list(
         params["includeGroupDetails"] = include_group_details
     if group_usage_types is not None:
         params["groupUsageTypes"] = group_usage_types
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("count") is None:
+        params["count"] = limit
+    if offset > 0 and params.get("startIndex") is None:
+        params["startIndex"] = offset + 1
     result = None
     try:
         if all_pages:
