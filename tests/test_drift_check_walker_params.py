@@ -153,9 +153,50 @@ def test_wrong_page_name_fires_when_endpoint_declares_another(tree):
     assert sorted(f["param"] for f in findings) == ["page", "pageSize"]
 
 
-def test_generic_size_without_page_is_not_a_page_size(tree):
-    """`size` alone is too generic a word (as in check 23): no size concept."""
-    assert tree(_block(DEFAULT_WALK), _spec(["size"])) == []
+def test_bare_size_beside_a_walker_is_a_page_size(tree):
+    """Unlike check 23, check 24 only reads blocks the renderer gave a walker,
+    so a declared bare `size` is the page size: `pageSize` there is the bug."""
+    findings = tree(_block(DEFAULT_WALK), _spec(["size"]))
+    assert [f["param"] for f in findings] == ["pageSize"]
+
+
+def test_bare_size_reached_passes(tree):
+    walk = ('follow_page_param(url=url, params=params, item_key="data", '
+            'size_param="size")')
+    assert tree(_block(walk), _spec(["size"])) == []
+
+
+def test_page_number_spelling_fires_on_default_page(tree):
+    """A new page spelling: `{pageNumber, pageSize}` + the default walker
+    sends `page`, which the endpoint does not read."""
+    findings = tree(_block(DEFAULT_WALK), _spec(["pageNumber", "pageSize"]))
+    assert [(f["walker"], f["param"]) for f in findings] == [
+        ("follow_page_param", "page")]
+
+
+def test_page_number_spelling_reached_passes(tree):
+    walk = ('follow_page_param(url=url, params=params, item_key="data", '
+            'page_param="pageNumber")')
+    assert tree(_block(walk), _spec(["pageNumber", "pageSize"])) == []
+
+
+def test_per_page_spelling_fires_on_default_size(tree):
+    """A new size spelling: `{page, perPage}` + the default walker sends
+    `pageSize`, which the endpoint does not read."""
+    findings = tree(_block(DEFAULT_WALK), _spec(["page", "perPage"]))
+    assert [(f["walker"], f["param"]) for f in findings] == [
+        ("follow_page_param", "pageSize")]
+
+
+def test_per_page_spelling_reached_passes(tree):
+    walk = ('follow_page_param(url=url, params=params, item_key="data", '
+            'size_param="perPage")')
+    assert tree(_block(walk), _spec(["page", "perPage"])) == []
+
+
+def test_cc_tasks_shape_page_stays_silent(tree):
+    """The one evidenced relaxation: `{pageSize}` only, walker sends `page`."""
+    assert tree(_block(DEFAULT_WALK), _spec(["pageSize"])) == []
 
 
 def test_silent_when_endpoint_declares_no_paging_names(tree):
@@ -201,6 +242,19 @@ def test_non_literal_kwarg_is_skipped_not_guessed(tree):
 
 # -------------------------------------------------------- coverage / blind
 
+def test_walker_in_a_non_get_block_is_skipped_and_counted(tree):
+    post = _block(DEFAULT_WALK).replace(
+        "result = api.session.rest_get(url, params=params)",
+        "result = api.session.rest_post(url, json={})").replace(
+        "result = list(api.session.follow_page_param",
+        "result = list(api.session.follow_page_param", 1)
+    post = post.replace("        if all_pages:\n", "        api.session.rest_post(url, json={})\n        if all_pages:\n")
+    good = _block(DEFAULT_WALK).replace('"list"', '"list-two"')
+    findings = tree(post + "\n" + good, _spec(["page", "size"]))
+    assert [f["command"] for f in findings] == ["list-two"]
+    assert drift_check.CHECK_EXAMINED["24"] == {"examined": 1, "skipped": 1}
+
+
 def test_skips_block_without_a_spec_op(tree):
     findings = tree(_block(DEFAULT_WALK), _spec(["page", "size"], path="/v1/other"))
     assert [f.get("check") for f in findings] == ["24"]
@@ -235,7 +289,9 @@ def test_odd_input_never_raises(tmp_path):
 
 def test_live_tree_is_clean():
     assert drift_check.check_undeclared_walker_params() == []
-    assert drift_check.CHECK_EXAMINED["24"]["examined"] >= 100
+    # A floor that catches blindness only (110 today); zero is BLIND anyway.
+    # A tight floor would fail the weekly job when upstream retires lists.
+    assert drift_check.CHECK_EXAMINED["24"]["examined"] >= 20
 
 
 # ------------------------------------------- shared print helper (23-30)
@@ -265,7 +321,18 @@ def test_print_helper_renders_blind_finding_without_keyerror(capsys, probe_print
 def test_print_helper_survives_a_formatter_that_raises(capsys, probe_print):
     drift_check.print_check_findings("99", [{"odd": 1}])
     out = capsys.readouterr().out.splitlines()
-    assert out[1] == "      {'odd': 1}"
+    assert out[1] == "      FORMAT-ERROR  {'odd': 1}"
+
+
+def test_print_helper_does_not_swallow_an_ordinary_error_key(capsys, probe_print):
+    """Only record_examined's own {check, error} is BLIND: an ordinary finding
+    with an `error` field, or another check's blind finding, is formatted."""
+    drift_check.print_check_findings("99", [
+        {"group": "g", "command": "c", "error": "x"},
+        {"check": "23", "error": "examined 0 things"}])
+    out = capsys.readouterr().out.splitlines()
+    assert out[1] == "      wxcli g c"
+    assert out[2].startswith("      FORMAT-ERROR  ")
 
 
 def test_print_helper_caps_detail_lines(capsys, probe_print, monkeypatch):

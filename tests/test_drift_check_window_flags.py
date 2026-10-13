@@ -300,5 +300,6 @@ def test_odd_input_never_raises(tmp_path):
 
 def test_live_tree_is_clean():
     assert drift_check.check_inert_window_flags() == []
-    # Not blind: the live tree has ~540 GET list blocks carrying the flags.
-    assert drift_check.CHECK_EXAMINED["23"]["examined"] >= 400
+    # A floor that catches blindness only (~540 today); zero is BLIND anyway.
+    # A tight floor would fail the weekly job when upstream retires lists.
+    assert drift_check.CHECK_EXAMINED["23"]["examined"] >= 100
