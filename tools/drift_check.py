@@ -251,6 +251,14 @@ Checks (docs/arch/target-architecture.md §A6):
       access to OrgId:Y2lz…` to 14 commands in 6 groups (`cc-queue-stats
       list`, `cc-subscriptions` x8, …). Calling-host blocks are out of
       scope; no spec is read.
+  27. Unreachable list key: a GET list command extracting
+      `result.get("<key>", result.get("data", …))` must reach at least one
+      array its spec's 200 response declares (any media type, `*/*`
+      included) — `<key>` or the `data` fallback. The seven CC bulk exports
+      declare `resources` under `*/*` only and extracted `items`:
+      `cc-global-vars list` printed 0 of 9 rows. Several arrays pass when
+      any is reachable; a bare-array response is exempt; a response with no
+      declared array is skipped and counted.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -3855,6 +3863,90 @@ CHECK_PRINT["26"] = (
     lambda f: f"wxcli {f['group']} {f['command']}  {f['op']}")
 
 
+# ----------------------------------------------------------------- check 27
+
+def check_unreachable_list_key(commands_dir: Path = COMMANDS_DIR,
+                               specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A list command whose extractor cannot reach the response's array.
+
+    The seven Contact Center bulk exports declare their 200 response only
+    under `*/*`. `_get_response_schema` read JSON content types only, so
+    `extract_response_list_key` never saw `resources` and the renderer fell
+    back to `result.get("items", result.get("data", …))` — `cc-global-vars
+    list` printed 0 of 9 rows, exit 0, with a false "more pages" note, and
+    `cc-user-profiles list-acl` (six arrays, extracted `items`) printed `[]`
+    (2026-10-13).
+
+    For each GET block that extracts `result.get("<key>", result.get("data",
+    …))`, the spec op's 200 array properties are read over every media type
+    (response_array_props). A finding needs a non-empty set of arrays of which
+    neither `<key>` nor `data` (the extractor's fallback) is one. A response
+    with several arrays passes when ANY is reachable — a command may extract
+    one on purpose. A bare-array response (None) is emitted by the
+    extractor's own list branch and passes.
+
+    A path several specs declare passes if ANY of them describes a bare array
+    or a reachable array (under-report rather than fail a correct command, as
+    checks 9/23-25 do). Blocks with no matching spec op, or whose response
+    declares no array in any spec, are skipped and counted.
+
+    Overlap with check 25 is accepted, not suppressed: 25 judges a
+    single-resource `{id}` GET whose object the extractor truncates; 27
+    judges any list whose key misses every array. A block can be both only
+    if it is a single object whose key ALSO misses — two distinct defects,
+    one fix (render it as `show`) clears both. Neither tree has such a block.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method != "GET":
+            continue
+        key = list_extractor_key(block.text)
+        if key is None:
+            continue                # not rendered as a list: out of scope
+        sops = index.get(("GET", block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        reachable = {key, "data"}
+        missed: set[str] = set()
+        passes = False
+        for sop in sops:
+            arrays = response_array_props(sop.op, sop.spec)
+            if arrays is None or arrays & reachable:
+                passes = True
+                continue
+            missed |= arrays
+        if not passes and not missed:
+            skipped += 1            # no declared array: never guessed
+            continue
+        examined += 1
+        if passes:
+            continue
+        findings.append({
+            "group": block.group,
+            "command": block.command,
+            "op": f"GET {sops[0].path}",
+            "extracts": key,
+            "spec_arrays": sorted(missed),
+            "spec": ", ".join(sorted({s.spec_file for s in sops})),
+        })
+    return record_examined(
+        "27", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "list commands")
+
+
+CHECK_PRINT["27"] = (
+    "list commands whose extractor cannot reach the response's array",
+    "list commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  extracts {f['extracts']}  "
+               f"spec arrays: {', '.join(f['spec_arrays'])}  "
+               f"{f['op']}  ({f['spec']})"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -4817,6 +4909,7 @@ def main() -> int:
     walker_params = check_undeclared_walker_params()
     single_object_lists = check_single_object_list_render()
     cc_base64_org_ids = check_cc_base64_org_id()
+    unreachable_list_keys = check_unreachable_list_key()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -4863,6 +4956,7 @@ def main() -> int:
         "24_undeclared_walker_params": walker_params,
         "25_single_object_list_render": single_object_lists,
         "26_cc_base64_org_id": cc_base64_org_ids,
+        "27_unreachable_list_key": unreachable_list_keys,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -4879,7 +4973,8 @@ def main() -> int:
                   or name_lock_missing or name_lock["retargeted"] or name_lock["removed"]
                   or name_lock["removed_modules"] or name_lock["unlocked"]
                   or inert_window_flags or walker_params
-                  or single_object_lists or cc_base64_org_ids)
+                  or single_object_lists or cc_base64_org_ids
+                  or unreachable_list_keys)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -5114,6 +5209,7 @@ def main() -> int:
         print_check_findings("24", walker_params)
         print_check_findings("25", single_object_lists)
         print_check_findings("26", cc_base64_org_ids)
+        print_check_findings("27", unreachable_list_keys)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
