@@ -2862,6 +2862,18 @@ _BLOCK_CALL = re.compile(
     r"|fetch_from_offset|follow_scim)\(")
 
 
+# What the two readers below could NOT parse on their most recent call, so a
+# consuming check can print it beside its count instead of reporting a quiet 0:
+#   "modules" — module stems that could not be read (iter_command_blocks)
+#   "blocks"  — "module command" blocks naming a URL or a call but not both,
+#               i.e. a render style the parser no longer recognises
+#               (iter_command_blocks; a URL-less hidden alias is NOT counted)
+#   "specs"   — spec files unreadable / not an object / no `paths` dict
+#               (spec_ops_by_key)
+# Each reader resets only its own keys. Read: `len(HELPER_SKIPS["blocks"])`.
+HELPER_SKIPS: dict[str, list[str]] = {"modules": [], "blocks": [], "specs": []}
+
+
 def iter_command_blocks(commands_dir: Path = COMMANDS_DIR) -> list[CommandBlock]:
     """Every command block in every non-`_` module that names a URL.
 
@@ -2869,8 +2881,11 @@ def iter_command_blocks(commands_dir: Path = COMMANDS_DIR) -> list[CommandBlock]
     hidden-alias decorator becomes its own URL-less block and is dropped — one
     block per command. Blocks with no URL, no command name, or no recognisable
     rest_*/walker call are dropped: there is nothing to compare them against.
+    Unreadable modules and half-parsed blocks are named in HELPER_SKIPS.
     """
     blocks: list[CommandBlock] = []
+    HELPER_SKIPS["modules"] = skipped_modules = []
+    HELPER_SKIPS["blocks"] = skipped_blocks = []
     try:
         modules = sorted(Path(commands_dir).glob("*.py"))
     except OSError:
@@ -2881,12 +2896,15 @@ def iter_command_blocks(commands_dir: Path = COMMANDS_DIR) -> list[CommandBlock]
         try:
             source = mod.read_text()
         except (OSError, UnicodeDecodeError):
+            skipped_modules.append(mod.stem)
             continue
         for text in re.split(r"\n(?=@app\.command)", source):
             named = _BLOCK_NAME.search(text)
             url = _BLOCK_URL.search(text)
             call = _BLOCK_CALL.search(text)
             if not (named and url and call):
+                if named and (url or call):
+                    skipped_blocks.append(f"{mod.stem} {named.group(1)}")
                 continue
             path = url.group(1)
             for base in URL_BASES:
@@ -2901,7 +2919,7 @@ def iter_command_blocks(commands_dir: Path = COMMANDS_DIR) -> list[CommandBlock]
     return blocks
 
 
-_SPEC_OPS_CACHE: dict[tuple, dict] = {}
+_SPEC_OPS_CACHE: dict[tuple, tuple[dict, list[str]]] = {}
 
 
 def spec_ops_by_key(specs_dir: Path = SPECS_DIR) -> dict[tuple[str, str], list[SpecOp]]:
@@ -2912,7 +2930,8 @@ def spec_ops_by_key(specs_dir: Path = SPECS_DIR) -> dict[tuple[str, str], list[S
     the consumer decides. The overlay `<specs_dir>/overlays/<stem>.overlay.json`
     is merged when present (additive, as the generator does), so a command
     rendered from an overlay operation is not mistaken for one with no spec op.
-    An unreadable or non-object spec is skipped. Cached on the files' mtimes
+    An unreadable or non-object spec is skipped and named in
+    HELPER_SKIPS["specs"]. Cached on the files' mtimes
     and sizes; callers must not mutate the result.
     """
     specs_dir = Path(specs_dir)
@@ -2922,17 +2941,22 @@ def spec_ops_by_key(specs_dir: Path = SPECS_DIR) -> dict[tuple[str, str], list[S
                       for f in files + sorted(
                           (specs_dir / "overlays").glob("*.overlay.json")))
     except OSError:
+        HELPER_SKIPS["specs"] = []
         return {}
     cached = _SPEC_OPS_CACHE.get(stamp)
     if cached is not None:
-        return cached
+        HELPER_SKIPS["specs"] = list(cached[1])
+        return cached[0]
     index: dict[tuple[str, str], list[SpecOp]] = {}
+    skipped: list[str] = []
     for spec_file in files:
         try:
             spec = json.loads(spec_file.read_text())
         except (OSError, UnicodeDecodeError, ValueError):
+            skipped.append(spec_file.name)
             continue
         if not isinstance(spec, dict):
+            skipped.append(spec_file.name)
             continue
         overlay_file = specs_dir / "overlays" / f"{spec_file.stem}.overlay.json"
         try:
@@ -2947,6 +2971,7 @@ def spec_ops_by_key(specs_dir: Path = SPECS_DIR) -> dict[tuple[str, str], list[S
                 pass
         paths = spec.get("paths")
         if not isinstance(paths, dict):
+            skipped.append(spec_file.name)
             continue
         for path, methods in paths.items():
             if not isinstance(methods, dict):
@@ -2958,7 +2983,8 @@ def spec_ops_by_key(specs_dir: Path = SPECS_DIR) -> dict[tuple[str, str], list[S
                     SpecOp(spec_file=spec_file.name, path=path,
                            method=method.upper(), op=op, spec=spec))
     _SPEC_OPS_CACHE.clear()   # one live snapshot; a rewritten spec invalidates
-    _SPEC_OPS_CACHE[stamp] = index
+    _SPEC_OPS_CACHE[stamp] = (index, skipped)
+    HELPER_SKIPS["specs"] = list(skipped)
     return index
 
 
@@ -3023,6 +3049,22 @@ def _is_array_schema(schema: dict) -> bool:
     return t == "array" or (isinstance(t, list) and "array" in t)
 
 
+def _is_array_prop(spec: dict, node, depth: int = 0) -> bool:
+    """A property that is an array — directly, via `$ref`, or composed:
+    `allOf`/`oneOf`/`anyOf` with any member that resolves to an array."""
+    node = _resolve_ref(spec, node)
+    if depth > 8 or not node:
+        return False
+    if _is_array_schema(node):
+        return True
+    for key in ("allOf", "oneOf", "anyOf"):
+        members = node.get(key)
+        if isinstance(members, list) and any(
+                _is_array_prop(spec, m, depth + 1) for m in members):
+            return True
+    return False
+
+
 def _object_props(spec: dict, schema, depth: int = 0) -> dict:
     """Top-level properties of a schema, `$ref` and `allOf` resolved."""
     schema = _resolve_ref(spec, schema)
@@ -3067,7 +3109,7 @@ def response_array_props(op: dict, spec: dict) -> set[str] | None:
         if _is_array_schema(schema):
             return None
         for name, prop in _object_props(spec, schema).items():
-            if _is_array_schema(_resolve_ref(spec, prop)):
+            if _is_array_prop(spec, prop):
                 found.add(name)
     return found
 

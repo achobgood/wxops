@@ -324,3 +324,66 @@ def test_flag_query_map_multiline_str_and_unmapped():
 '''
     assert dc.flag_query_map(block) == {}
     assert dc.flag_query_map("") == {}
+
+
+def test_response_array_props_composed_property():
+    """A property wrapping an array in allOf/oneOf/anyOf — directly or via a
+    $ref — is an array; a composition with no array member is not."""
+    spec = {"components": {"schemas": {
+        "Ids": {"type": "array", "items": {"type": "string"}},
+        "Name": {"type": "string"},
+    }}}
+    op = _op_200({"application/json": {"schema": {"type": "object", "properties": {
+        "a": {"allOf": [{"$ref": "#/components/schemas/Ids"}]},
+        "b": {"oneOf": [{"type": "null"}, {"type": "array", "items": {}}]},
+        "c": {"anyOf": [{"$ref": "#/components/schemas/Name"},
+                        {"allOf": [{"$ref": "#/components/schemas/Ids"}]}]},
+        "d": {"oneOf": [{"$ref": "#/components/schemas/Name"}, {"type": "integer"}]},
+        "e": {"allOf": "not a list"},
+    }}}})
+    assert dc.response_array_props(op, spec) == {"a", "b", "c"}
+
+
+# ------------------------------------------------------------------ HELPER_SKIPS
+
+def test_helper_skips_name_what_could_not_be_parsed(tmp_path):
+    cmds = tmp_path / "commands"
+    specs = tmp_path / "specs"
+    half = '''
+@app.command("odd")
+def odd():
+    url = f"https://webexapis.com/v1/odd"
+    httpx.get(url)
+'''
+    _write(cmds, "mod.py", EXPORT + half)
+    (cmds / "binary.py").write_bytes(b"\xff\xfe\xfa\x00\x81")
+    dc.iter_command_blocks(commands_dir=cmds)
+    assert dc.HELPER_SKIPS["modules"] == ["binary"]
+    # the hidden-alias block (name, no url, no call) is NOT a skip
+    assert dc.HELPER_SKIPS["blocks"] == ["mod odd"]
+
+    _write(specs, "webex-ok.json", json.dumps(_spec({"/v1/a": {"get": {}}})))
+    _write(specs, "webex-bad.json", "{ not json")
+    _write(specs, "webex-nopaths.json", json.dumps({"paths": []}))
+    dc.spec_ops_by_key(specs_dir=specs)
+    assert sorted(dc.HELPER_SKIPS["specs"]) == ["webex-bad.json", "webex-nopaths.json"]
+    dc.spec_ops_by_key(specs_dir=specs)   # served from cache: still reported
+    assert sorted(dc.HELPER_SKIPS["specs"]) == ["webex-bad.json", "webex-nopaths.json"]
+
+
+# -------------------------------------------------------------- live-tree tripwire
+
+def test_live_tree_helpers_are_not_blind():
+    """Tripwire for checks 23-30. If a regen changes the `url = f"…"` line or
+    the rest_*/walker call style, every block would drop silently and those
+    checks would report a vacuous 0. src/ and specs/ are tracked, so this
+    holds in a clean clone. Measured 2026-10-13: 2004 blocks, 2002 matched."""
+    blocks = dc.iter_command_blocks()
+    index = dc.spec_ops_by_key()
+    assert len(blocks) >= 1500, len(blocks)
+    matched = sum((b.method, b.npath) in index for b in blocks)
+    assert matched / len(blocks) >= 0.95, (matched, len(blocks))
+    assert dc.HELPER_SKIPS["modules"] == []
+    # 2 today, both hand-written: cleanup run, cucm execute
+    assert len(dc.HELPER_SKIPS["blocks"]) <= 10, dc.HELPER_SKIPS["blocks"]
+    assert dc.HELPER_SKIPS["specs"] == []
