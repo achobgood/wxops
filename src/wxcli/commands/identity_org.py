@@ -9,7 +9,7 @@ from wxcli.config import resolve_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling identity-org.")
+app = typer.Typer(help="Manage Webex Admin: identity-org.")
 
 
 @app.command("show", short_help="Get an organization.")

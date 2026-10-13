@@ -9,7 +9,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-flow.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-flow.")
 
 
 @app.command("list-activities", short_help="List Activity Definitions.")
@@ -163,8 +163,8 @@ def cmd_list(
     is_validation: str = typer.Option(None, "--is-validation", help="If true, validates the existence of flows by ID regardless of the caller's RBAC access. Intended for internal Task Management use cases."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (size); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -190,14 +190,14 @@ def cmd_list(
         params["includePagination"] = include_pagination
     if is_validation is not None:
         params["isValidation"] = is_validation
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("size") is None:
+        params["size"] = limit
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="items", size_param="size"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="items", size_param="size")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -220,12 +220,12 @@ def list_search(
     key_value_filter: str = typer.Option(None, "--key-value-filter", help="Filters results based on key-value pairs. Format: 'key1|value1,key2|value2'. This will add a filter on normalizedFlow collection directly instead of running query on atlas."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (size); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Search Flows.\n\n\b\nExample: wxcli cc-flow list-search PROJECT_ID --query QUERY"""
+    """Search Flows.\n\nNOTE: on us1 (2026-10-13) this endpoint is not routed: GET .../flows:search answers 404 with an EMPTY body from the API gateway (istio-envoy, trackingId GTWY_...), with or without query/page/size, while .../flows on the same project returns 200. The path variants :search, %3Asearch, /search, /v2/...:search and /flow-store/...:search all 404 the same way. To find flows by name, use 'cc-flow list --all' with --fields, e.g. --fields "[?contains(name, 'Test')]".\n\n\b\nExample: wxcli cc-flow list-search PROJECT_ID --query QUERY"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -241,14 +241,14 @@ def list_search(
         params["size"] = size
     if key_value_filter is not None:
         params["keyValueFilter"] = key_value_filter
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("size") is None:
+        params["size"] = limit
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data", size_param="size"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data", size_param="size")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:

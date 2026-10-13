@@ -9,7 +9,7 @@ from wxcli.config import resolve_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling scim-groups.")
+app = typer.Typer(help="Manage Webex Admin: scim-groups.")
 
 
 @app.command("list", short_help="Search groups.")

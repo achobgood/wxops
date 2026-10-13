@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling workspace-metrics.")
+app = typer.Typer(help="Manage Webex Devices: workspace-metrics.")
 
 
 @app.command("list", short_help="Workspace Metrics.")

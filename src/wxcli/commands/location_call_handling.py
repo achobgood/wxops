@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling location-call-handling.")
+app = typer.Typer(help="Manage Webex Calling: location-call-handling.")
 
 
 _BODY_SKELETON_GENERATE_EXAMPLE_PASSWORD = '{"generate":["sip"]}'

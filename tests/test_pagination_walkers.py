@@ -123,23 +123,155 @@ class TestFollowPageParam:
         """Without a cap this hangs until the caller's timeout kills it, which
         in this project's agent harness kills the subagent with no output."""
         monkeypatch.setenv("WXCLI_MAX_PAGES", "5")
-        s = FakeSession([page("data", 10)] * 50)   # never a short page
+        # never a short page, and every page distinct — the repeat guard below
+        # cannot see this one, only the page cap can
+        s = FakeSession([page("data", 10, 10 * i) for i in range(50)])
         out = list(s.follow_page_param("u", item_key="data", page_size=10))
         assert len(s.calls) == 5
         assert len(out) == 50
 
     def test_hitting_the_cap_says_the_result_is_incomplete(self, monkeypatch, capsys):
         monkeypatch.setenv("WXCLI_MAX_PAGES", "3")
-        s = FakeSession([page("data", 10)] * 20)
+        s = FakeSession([page("data", 10, 10 * i) for i in range(20)])
         list(s.follow_page_param("u", item_key="data", page_size=10))
         err = capsys.readouterr().err
         assert "INCOMPLETE" in err and "WXCLI_MAX_PAGES" in err
 
     def test_scim_is_capped_too(self, monkeypatch):
         monkeypatch.setenv("WXCLI_MAX_PAGES", "4")
-        s = FakeSession([page("Resources", 10)] * 50)
+        s = FakeSession([page("Resources", 10, 10 * i) for i in range(50)])
         list(s.follow_scim("u", count=10))
         assert len(s.calls) == 4
+
+    def test_a_server_repeating_its_page_stops_at_the_first_repeat(self, capsys):
+        """/v1/tasks declares only `pageSize` ("offset-based pagination", no
+        offset parameter). Live it honours `page` (2026-10-13: 226 tasks, 2
+        requests, all unique), but a server that ignored `page` would answer
+        every request with the same full page: the short-page stop never fires
+        and the walk used to yield that page until the 1000-page cap. Stop on
+        the first repeat, never yield it, and say the result is INCOMPLETE."""
+        s = FakeSession([page("data", 10)] * 1000)
+        out = list(s.follow_page_param("u", item_key="data", page_size=10))
+        assert len(s.calls) == 2
+        assert len(out) == 10 and len({r["id"] for r in out}) == 10
+        err = capsys.readouterr().err
+        assert "INCOMPLETE" in err and "page 1" in err
+
+    def test_scim_repeat_guard(self, capsys):
+        s = FakeSession([page("Resources", 10)] * 1000)
+        out = list(s.follow_scim("u", count=10))
+        assert len(s.calls) == 2 and len(out) == 10
+        assert "INCOMPLETE" in capsys.readouterr().err
+
+    def test_distinct_full_pages_are_not_mistaken_for_repeats(self):
+        s = FakeSession([page("data", 10), page("data", 10, 10), page("data", 3, 20)])
+        assert len(list(s.follow_page_param("u", item_key="data", page_size=10))) == 23
+
+
+# ── --offset on a page-numbered endpoint ─────────────────────────────────────
+
+
+class PagedServer(WebexSession):
+    """Serves records 0..total-1 by `page`/<size_param>, the way CC does — and,
+    like CC, IGNORES `start`/`max` entirely. `cap` silently lowers an
+    over-large page size; `declare_total` toggles the body's total."""
+
+    def __init__(self, total, cap=None, declare_total=True, size_param="pageSize",
+                 key="data"):
+        self.records = [{"id": i} for i in range(total)]
+        self.cap, self.declare_total = cap, declare_total
+        self.size_param, self.key = size_param, key
+        self.calls: list[dict] = []
+
+    def _request(self, method, url, params=None, **kw):  # type: ignore[override]
+        params = dict(params or {})
+        self.calls.append(params)
+        size = int(params.get(self.size_param) or 10)
+        if self.cap:
+            size = min(size, self.cap)
+        page = int(params.get("page") or 0)
+        body = {self.key: self.records[page * size:(page + 1) * size]}
+        if self.declare_total:
+            body["meta"] = {"totalRecords": len(self.records)}
+
+        class _R:
+            is_success = True
+            content = b"x"
+            headers: dict = {}
+
+            def json(self_inner):
+                return body
+
+        return _R()
+
+
+class TestFetchFromOffset:
+    """Issue 1 (2026-10-13): `--offset` sent `start`, which page-numbered
+    endpoints ignore — `cc-flow list --offset 10` returned page 0 again, exit 0.
+    The generated page-numbered commands now call fetch_from_offset."""
+
+    def ids(self, rows):
+        return [r["id"] for r in rows]
+
+    def test_offset_on_a_page_boundary_is_one_request(self):
+        s = PagedServer(56)
+        out = s.fetch_from_offset("u", offset=20, count=10)
+        assert self.ids(out) == list(range(20, 30))
+        assert s.calls == [{"pageSize": 10, "page": 2}]
+        assert "start" not in s.calls[0]
+
+    def test_offset_mid_page_spans_two_pages_record_exactly(self):
+        s = PagedServer(56)
+        out = s.fetch_from_offset("u", offset=25, count=10)
+        assert self.ids(out) == list(range(25, 35))
+        assert [c["page"] for c in s.calls] == [2, 3]
+
+    def test_default_count_and_explicit_page_size(self):
+        s = PagedServer(500)
+        assert len(s.fetch_from_offset("u", offset=150)) == 100   # DEFAULT_OFFSET_WINDOW
+        s = PagedServer(500)
+        out = s.fetch_from_offset("u", params={"pageSize": "7", "page": "9"}, offset=3)
+        assert self.ids(out) == list(range(3, 10))   # --page is overridden
+
+    def test_offset_past_the_end_is_empty_and_silent(self, capsys, monkeypatch):
+        monkeypatch.delenv("WXCLI_NO_PAGE_WARN", raising=False)
+        s = PagedServer(56)
+        assert s.fetch_from_offset("u", offset=100, count=10) == []
+        assert capsys.readouterr().err == ""
+
+    def test_tail_window_is_short_and_silent(self, capsys, monkeypatch):
+        monkeypatch.delenv("WXCLI_NO_PAGE_WARN", raising=False)
+        s = PagedServer(56)
+        assert self.ids(s.fetch_from_offset("u", offset=50, count=10)) == list(range(50, 56))
+        assert capsys.readouterr().err == ""
+
+    def test_more_records_print_the_next_offset(self, capsys, monkeypatch):
+        monkeypatch.delenv("WXCLI_NO_PAGE_WARN", raising=False)
+        s = PagedServer(56)
+        s.fetch_from_offset("u", offset=25, count=10)
+        assert "--offset 35 " in capsys.readouterr().err
+
+    def test_no_total_looks_one_record_ahead(self, capsys, monkeypatch):
+        monkeypatch.delenv("WXCLI_NO_PAGE_WARN", raising=False)
+        s = PagedServer(30, declare_total=False)
+        assert self.ids(s.fetch_from_offset("u", offset=10, count=10)) == list(range(10, 20))
+        assert "--offset 20 " in capsys.readouterr().err
+        s = PagedServer(20, declare_total=False)
+        assert self.ids(s.fetch_from_offset("u", offset=10, count=10)) == list(range(10, 20))
+        assert capsys.readouterr().err == ""
+
+    def test_a_server_cap_replans_with_the_served_size(self):
+        """Asked for 50, served 20: page 1 at size 50 would be records 20..39
+        under the cap, not 50..99. Re-plan once with the size actually served."""
+        s = PagedServer(300, cap=20)
+        out = s.fetch_from_offset("u", offset=50, count=50)
+        assert self.ids(out) == list(range(50, 100))
+
+    def test_flows_size_name(self):
+        s = PagedServer(56, size_param="size")
+        out = s.fetch_from_offset("u", offset=12, count=5, size_param="size")
+        assert self.ids(out) == list(range(12, 17))
+        assert all("pageSize" not in c for c in s.calls)
 
 
 # ── SCIM: startIndex / count ─────────────────────────────────────────────────
@@ -292,8 +424,10 @@ class TestDefaultsUnchanged:
         paging_limit = all_flag = 0
         for f in sorted(cmds.glob("*.py")):
             src = f.read_text()
-            paging_limit += src.count(
-                'help="Max results (0=all for paginated endpoints')
+            # Two help variants: page-numbered commands say what --limit is
+            # sent as (the page size); every other list command keeps the
+            # generic string.
+            paging_limit += src.count('typer.Option(0, "--limit", help="Max results')
             all_flag += src.count('"--all", help="Fetch every page')
         assert paging_limit > 400, "denominator collapsed — the marker moved"
         assert all_flag == paging_limit

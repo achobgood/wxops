@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling wholesale-billing-reports.")
+app = typer.Typer(help="Manage Webex Wholesale: wholesale-billing-reports.")
 
 
 @app.command("list", short_help="List Wholesale Billing Reports.")

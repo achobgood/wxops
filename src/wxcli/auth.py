@@ -27,13 +27,16 @@ def _items_of(data, item_key: str) -> list:
     """The record list out of a paged response, whatever wrapper it arrived in.
 
     Mirrors the extraction the generated commands already do: the declared key,
-    then CC's `data`, then a bare top-level array.
+    then CC's `data`, then a bare top-level array. `resources` is the CC
+    bulk-export wrapper (`{totalResources, pageNumber, pageSize, resources}`);
+    without it a caller asking for "items" counted 0 records on a page of 6 and
+    the truncation note fired on a complete response (`cc-global-vars list`).
     """
     if isinstance(data, list):
         return data
     if not isinstance(data, dict):
         return []
-    for key in (item_key, "data", "items", "Resources"):
+    for key in (item_key, "data", "items", "Resources", "resources"):
         value = data.get(key)
         if isinstance(value, list):
             return value
@@ -62,6 +65,43 @@ def _page_cap_reached(pages: int, walker: str) -> bool:
     return True
 
 
+def _page_fingerprint(items: list) -> str | None:
+    """A stable digest of one page's records, or None for an empty page."""
+    if not items:
+        return None
+    import hashlib
+    import json
+    raw = json.dumps(items, sort_keys=True, default=str).encode()
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _repeated_page(items: list, previous: str | None, position: int, walker: str) -> bool:
+    """True — and says so on stderr — when a page repeats the one before it.
+
+    A server that ignores the walker's page parameter answers every request
+    with the same full page. The short-page stop never fires on that, so the
+    walk used to run to the 1000-page cap, yielding the same records 1000
+    times. Stop at the first repeat instead, before yielding it: the records
+    already yielded are each unique, and the run is flagged INCOMPLETE.
+    """
+    if previous is None or _page_fingerprint(items) != previous:
+        return False
+    typer.echo(
+        f"Error: {walker} stopped at page {position}: the server returned exactly "
+        "the records of the previous page, so it is ignoring the paging "
+        "parameter — the results are INCOMPLETE (only the first page is "
+        "real). Fetch without --all and narrow the query instead.",
+        err=True,
+    )
+    return True
+
+
+# How many records `--offset N` returns on a page-numbered endpoint when neither
+# `--limit` nor the endpoint's own page-size flag says. 100 is the declared
+# default of 94 of the 113 page-size parameters in the Contact Center spec.
+DEFAULT_OFFSET_WINDOW = 100
+
+
 def _body_says_more(body) -> bool:
     """True when a paged body reports more records than it just returned.
 
@@ -84,6 +124,15 @@ def _body_says_more(body) -> bool:
     paged = _page_meta(body)
     if paged is not None and paged[1] is not None:
         return paged[0] + 1 < paged[1]
+    # CC bulk-export (`{totalResources, pageNumber, pageSize, rel, resources}`)
+    # says it outright: `rel` is "next" while pages remain and "last" on the
+    # final one. Its `pageNumber` is NOT the page served — live 2026-10-13,
+    # cad-variable/bulk-export at pageSize 4 of 9: page=0 -> pageNumber 1,
+    # page=1 -> 2, page=2 -> 2 ("last"), no page -> 0 — so it is never read.
+    # Comparing the total with this page's count fired on the last page too.
+    rel = body.get("rel")
+    if rel in ("next", "last") and "totalResources" in body:
+        return rel == "next"
     returned = len(_items_of(body, "items"))
     for key in ("totalResources", "totalRecords", "totalResults", "total"):
         total = body.get(key)
@@ -170,25 +219,29 @@ def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
 
     # The remedy must be `--offset`, NOT `--limit 0`. On the 210 commands this
     # fires for, `--limit 0` is already the default and does not fetch more —
-    # naming it would print a next step that cannot work. Both render branches
-    # send `--offset` through as `start` — correct for `max`/`start` endpoints,
-    # but NOT for page-numbered ones, which get `--page` below instead.
-    try:
-        start = int((params or {}).get("start") or 0)
-    except (TypeError, ValueError):
-        start = 0
-
+    # naming it would print a next step that cannot work. `--offset` is the one
+    # remedy that exists on EVERY list command: on `max`/`start` endpoints it is
+    # `start`, and on page-numbered (Contact Center) endpoints the generated
+    # command translates it to `page`/`pageSize` (`fetch_from_offset`). `--page`
+    # is NOT named: `cc-tasks list` pages by `page` but its spec declares only
+    # `pageSize`, so it has no `--page` flag — the note used to name one.
     shown = f"{count} records returned" if count else "This response was partial"
     nxt = " Re-run with --all to fetch every page"
-    page = _next_page_number(response, body, params)
-    if page is not None:
-        # Page-numbered (Contact Center) endpoints ignore `start`, so the
-        # `--offset` remedy re-fetched page 0 — verified live 2026-10-13 on
-        # cc-flow list and cc-queue list. Their own `--page` is what moves.
-        nxt += f", or --page {page} for just the next one."
-    else:
-        nxt += f", or --offset {start + count} for just the next one." if count else "."
+    offset = _next_offset(response, body, params, count)
+    nxt += f", or --offset {offset} for just the next one." if offset else "."
     typer.echo(f"Note: {shown} and the server has more pages.{nxt}", err=True)
+
+
+def _more_pages_note(count: int, next_offset: int) -> None:
+    """The truncation note, for callers that fetched without rest_get."""
+    if os.environ.get("WXCLI_NO_PAGE_WARN"):
+        return
+    typer.echo(
+        f"Note: {count} records returned and the server has more pages. Re-run "
+        f"with --all to fetch every page, or --offset {next_offset} for just "
+        "the next one.",
+        err=True,
+    )
 
 
 def _page_meta(body) -> tuple[int, int | None] | None:
@@ -211,31 +264,66 @@ def _page_meta(body) -> tuple[int, int | None] | None:
     return None
 
 
-def _next_page_number(response, body, params) -> int | None:
-    """The `--page` value that fetches the next page, or None if not paged by number.
-
-    In order: the `page` query of a `Link: rel="next"` URL (CC v1 lists send
-    one), the body's page metadata, the request's own `page` param.
-    """
-    from urllib.parse import parse_qs, urlsplit
-    nxt = _next_page_url(response)
-    if nxt:
-        values = parse_qs(urlsplit(nxt).query).get("page")
-        if values:
-            try:
-                return int(values[0])
-            except ValueError:
-                return None
+def _int_or_none(value) -> int | None:
+    if isinstance(value, bool):
         return None
-    meta = _page_meta(body)
-    if meta is not None:
-        return meta[0] + 1
     try:
-        if params and params.get("page") is not None:
-            return int(params["page"]) + 1
+        return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _page_position(body) -> tuple[int, int | None] | None:
+    """(page number, page size or None) a page-numbered body states, else None.
+
+    `pageInfo.currentPage`/`pageSize` (Flows), `meta.page`/`pageSize` (CC v2
+    config lists). NOT the bulk-export top-level `pageNumber`, which does not
+    track the page served (see `_body_says_more`); those fall back to the
+    request's own `page`.
+    """
+    if not isinstance(body, dict):
+        return None
+    scopes = [(body.get("pageInfo"), "currentPage"), (body.get("meta"), "page")]
+    for scope, key in scopes:
+        if not isinstance(scope, dict):
+            continue
+        current = _int_or_none(scope.get(key))
+        if current is not None:
+            return current, _int_or_none(scope.get("pageSize")) or None
     return None
+
+
+_PAGE_SIZE_NAMES = ("pageSize", "size")
+
+
+def _next_offset(response, body, params, count: int) -> int | None:
+    """The absolute `--offset` that fetches the record after this page.
+
+    Page-numbered endpoints: (page + 1) * page size, read from, in order, the
+    `page`/`pageSize` of a `Link: rel="next"` URL (`/v1/tasks` sends one), the
+    body's own page position, the request's `page`. The page size falls back to
+    `count` — the note only fires when more remain, so this page was full.
+    Everything else: the request's `start` + `count`, as before.
+    """
+    from urllib.parse import parse_qs, urlsplit
+    params = params or {}
+    nxt = _next_page_url(response)
+    if nxt:
+        query = parse_qs(urlsplit(nxt).query)
+        page = _int_or_none((query.get("page") or [None])[0])
+        if page is not None:
+            size = next((_int_or_none(query[n][0]) for n in _PAGE_SIZE_NAMES
+                         if n in query), None)
+            return page * (size or count)
+    position = _page_position(body)
+    if position is None and params.get("page") is not None:
+        req_size = next((_int_or_none(params.get(n)) for n in _PAGE_SIZE_NAMES
+                         if params.get(n) is not None), None)
+        position = (_int_or_none(params.get("page")) or 0, req_size)
+    if position is not None:
+        return (position[0] + 1) * (position[1] or count)
+    start = _int_or_none(params.get("start")) or 0
+    return start + count if count else None
 
 # Bounded retry policy. WXCLI_RETRY_MODE=off (or legacy WXCLI_NO_RETRY=1) disables.
 DEFAULT_MAX_ATTEMPTS = 4
@@ -418,10 +506,14 @@ class WebexSession:
         page = int(params.get(page_param) or first_page)
         walked = 0
         seen = 0
+        previous = None
         while True:
             params[page_param] = page
             data = self._json_or_raise(self._request("GET", url, params=params))
             items = _items_of(data, item_key)
+            if _repeated_page(items, previous, page, "follow_page_param"):
+                return
+            previous = _page_fingerprint(items)
             yield from items
             seen += len(items)
             if not items:
@@ -440,6 +532,56 @@ class WebexSession:
                 return
             page += 1
 
+    def fetch_from_offset(self, url: str, params=None, offset: int = 0, count: int = 0,
+                          item_key: str = "data", page_param: str = "page",
+                          size_param: str = "pageSize") -> list:
+        """`--offset N` on a page-numbered endpoint: records [N, N + count).
+
+        These endpoints ignore `start`, so `--offset` used to re-fetch page 0
+        and exit 0 (verified live 2026-10-13 on `cc-flow list`, `cc-queue
+        list`). The offset is record-exact whatever the page size: page
+        N // size, skip N % size, and continue onto the next page when the
+        window spans two. `count` is `--limit`, else the request's own page
+        size, else DEFAULT_OFFSET_WINDOW; it is also the page size requested.
+
+        A server that caps the page size below the one asked for would shift
+        every page boundary, so a short page whose declared total says more
+        records follow re-plans once with the size the server actually serves.
+        Prints the same truncation note as rest_get when records remain.
+        """
+        params = dict(params or {})
+        params.pop(page_param, None)
+        want = int(count or params.get(size_param) or 0) or DEFAULT_OFFSET_WINDOW
+        size = want
+        for _ in range(2):
+            page, skip = divmod(offset, size)
+            params[size_param] = size
+            params[page_param] = page
+            body = self._json_or_raise(self._request("GET", url, params=params))
+            items = _items_of(body, item_key)
+            total = _declared_total(body)
+            capped = (0 < len(items) < size and total is not None
+                      and total > page * size + len(items))
+            if not capped:
+                break
+            size = len(items)
+        # One record past the window answers "are there more?" when no total does.
+        need = want if total is not None else want + 1
+        window = list(items[skip:skip + need])
+        if len(window) < need and len(items) == size:
+            for item in self.follow_page_param(
+                    url, params={**params, page_param: page + 1}, item_key=item_key,
+                    page_param=page_param, size_param=size_param, page_size=size):
+                window.append(item)
+                if len(window) >= need:
+                    break
+        more = (total > offset + min(len(window), want)) if total is not None \
+            else len(window) > want
+        window = window[:want]
+        if more:
+            _more_pages_note(len(window), offset + len(window))
+        return window
+
     def follow_scim(self, url: str, params=None, item_key: str = "Resources",
                     count: int = 100):
         """Walk a SCIM `startIndex`/`count` collection. startIndex is 1-based.
@@ -452,10 +594,14 @@ class WebexSession:
         size = int(params["count"])
         index = int(params.get("startIndex") or 1)
         walked = 0
+        previous = None
         while True:
             params["startIndex"] = index
             data = self._json_or_raise(self._request("GET", url, params=params))
             items = _items_of(data, item_key)
+            if _repeated_page(items, previous, index, "follow_scim"):
+                return
+            previous = _page_fingerprint(items)
             yield from items
             if len(items) < size:
                 return

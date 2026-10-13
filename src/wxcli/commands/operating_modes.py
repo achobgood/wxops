@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling operating-modes.")
+app = typer.Typer(help="Manage Webex Calling: operating-modes.")
 
 
 @app.command("list", short_help="Read the List of Operating Modes.")

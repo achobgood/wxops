@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling partner-admins.")
+app = typer.Typer(help="Manage Webex Admin: partner-admins.")
 
 
 @app.command("list", short_help="Get all customers managed by a partner admin.")

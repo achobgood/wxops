@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling xapi.")
+app = typer.Typer(help="Manage Webex Devices: xapi.")
 
 
 @app.command("show", short_help="Query Status.")

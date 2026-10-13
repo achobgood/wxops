@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-captures.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-captures.")
 
 
 _BODY_SKELETON_CREATE = '{"query":{"taskIds":["..."],"orgId":"...","urlExpiration":0,"includeSegments":true,"includeVARecordings":true,"includeScreenRecordings":true,"includeAllDigitalVersions":true}}'

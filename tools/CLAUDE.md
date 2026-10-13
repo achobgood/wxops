@@ -985,7 +985,10 @@ spec reappears in `specs/`.
 `Manage Webex Calling teams` for a messaging group, from the CLI-name-prefix test at
 the bottom of `command_renderer.py`). That line was deliberately left alone. When
 D07/D08 lands it should READ `SPEC_PRODUCT` instead of the prefix test — not add a
-second mapping beside it.
+second mapping beside it. **Landed 2026-10-13:** `render_command_file(spec_filename=…)`
+reads `SPEC_PRODUCT`; the label is "Manage Webex <Product>: <group>." (the colon keeps
+"Webex Devices: devices." readable). No spec → "Manage Webex <group>." (the regression
+fixture).
 
 **3. `call-settings-for-me-phase-5` was an internal build-milestone label shipped as
 a command path.** 7 real commands behind a name that tells a customer they are
@@ -1274,13 +1277,48 @@ regenerated, and re-verified live. A full regen into a temp dir changed exactly 
    `parse_tag` now reclassifies these to `show` **after** naming, exactly as a
    `command_type_overrides` entry would, so no shipped name or alias moved.
 
-**Still open, deliberately not fixed here:** `--offset` sends `start` on every list command,
-which page-numbered CC endpoints ignore — the note now names `--page`, but `--offset`
-itself is still inert there. `cc-flow list-search` (`GET …/flows:search`) returns 404 on the
-sandbox even by raw HTTP, so its `size_param` fix is verified statically only. `/v1/tasks`
-declares only `pageSize` ("offset-based pagination" with no offset parameter), so
-`cc-tasks list --all` sends a `page` the server may ignore — unverified, no tasks on the
-sandbox to page through.
+**Those three "still open" items were closed the same day — see the next record.**
+
+### Five more Contact Center defects, second pass (2026-10-13)
+
+All fixed in the generator/runtime, regenerated, drift gate PASS, and live-verified read-only
+on the CC Bootcamp Sandbox. Full regen into a temp dir before and after: only CC modules (+
+`asset`/`channel`, which are CC) changed in behaviour; every other module changed in its
+group-help line only.
+
+1. **`--limit`/`--offset` were inert on the 105 page-numbered list commands** (sent as
+   `max`/`start`; live `cc-queue list --limit 2` → `?max=2` → 17 rows). Kept on every list
+   command and TRANSLATED — ADR-12 in `docs/architecture/02-decisions.md`. Renderer:
+   `page_numbered` branch in `_render_list_command` (limit → page-size param, offset →
+   `fetch_from_offset`). Runtime: `WebexSession.fetch_from_offset`. The note now names the
+   absolute `--offset` everywhere (`_next_offset`), because `cc-tasks list` has no `--page`.
+2. **`cc-flow list-search` 404 is a gateway no-route, not a CLI bug.** Empty-body 404 from
+   `istio-envoy` (`GTWY_` trackingId) for every path/param variant; `…/flows` 200 on the same
+   project. Documented in a `command_help_notes` entry and the routing doc. No code change.
+3. **`/v1/tasks` pages by `page` although its spec declares only `pageSize`** — live `Link:
+   rel="next"` carries `page=1&pageSize=100`; `--all` returned 226/226 unique in 2 requests.
+   Guard added anyway: `follow_page_param` and `follow_scim` stop at the first page whose
+   records repeat the previous page's (`_repeated_page`), before yielding it, and say
+   INCOMPLETE. Before, such a server ran to the 1000-page cap.
+4. **`cc-search create` works** (200, `{"data":{"task":{"tasks":[…]}}}`); the only defect was
+   the docs, which showed `query` as a JSON object — it is a GraphQL string.
+5. **The 7 `*/*`-typed CC bulk exports printed 0 rows** (`cc-global-vars list`: 0 of 9) plus a
+   false "more pages" note. `_get_response_schema` read only JSON content types, so
+   `extract_response_list_key` never saw `resources`. Widened for the KEY only
+   (`wildcard=True`); type detection and columns deliberately not (would rename
+   `reportable-count` and re-derive 67 tables). Runtime: `_items_of` knows `resources`;
+   `_body_says_more` trusts bulk-export `rel` and never its `pageNumber` (live: page=0 → 1,
+   page=1 → 2, page=2 → 2). Side effect caught in the regen diff: `cc-user-profiles
+   list-acl` (a single object, printed `[]`) would have printed only `editableFolderIds`;
+   pinned to `show` via `command_type_overrides`.
+
+Plus, the same pass: **the group-help label reads `SPEC_PRODUCT`** (D07/D08, below) — "Manage
+Webex <Product>: <group>." — instead of the CLI-name prefix test that called `asset`/`channel`
+and every admin/device/messaging group "Webex Calling"; **`make_required`** (new per-command
+override, body fields only, raises on an unknown name) pins `location` + `regionId` on
+`cc-dial-number create` (spec: optional; API: 400 without each); and the CC 403 tip in
+`errors.py` no longer claims PATs always get 403. `cc_ai_assistant.py` keeps its old-style
+label: it is a kept CLI-ahead module (`keep_endpoints`) that no regen writes.
 
 ## Known Issues — Generator / Pipeline Only
 

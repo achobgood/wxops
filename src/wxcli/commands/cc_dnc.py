@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-dnc.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-dnc.")
 
 
 _BODY_SKELETON_CREATE = '{"phoneNumber":"...","source":"...","reason":"..."}'

@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-campaign-group.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-campaign-group.")
 
 
 @app.command("list", short_help="List Campaigns by Campaign Group.")
@@ -19,8 +19,8 @@ def cmd_list(
     campaign_status: str = typer.Option(None, "--campaign-status", help="Choices: Draft, Running, Pending, Paused, Completed, Ended"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -35,14 +35,14 @@ def cmd_list(
         params["pageSize"] = page_size
     if campaign_status is not None:
         params["campaignStatus"] = campaign_status
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="campaigns"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="campaigns")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:

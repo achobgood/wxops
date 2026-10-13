@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling external-data-updates.")
+app = typer.Typer(help="Manage Webex Contact Center: external-data-updates.")
 
 
 _BODY_SKELETON_UPDATE = '{"orgId":"...","updateType":"contact","data":[{"id":"...","startTimestamp":"...","endTimestamp":"...","globalVariables":[{"name":"...","value":0}]}]}'

@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling dect-devices.")
+app = typer.Typer(help="Manage Webex Calling: dect-devices.")
 
 
 _BODY_SKELETON_CREATE = '{"name":"...","model":"DMS Cisco DBS110","defaultAccessCodeEnabled":true,"defaultAccessCode":"...","displayName":"..."}'

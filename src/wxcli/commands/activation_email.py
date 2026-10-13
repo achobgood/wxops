@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling activation-email.")
+app = typer.Typer(help="Manage Webex Admin: activation-email.")
 
 
 @app.command("create", short_help="Initiate Bulk Activation Email Resend Job.")

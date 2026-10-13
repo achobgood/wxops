@@ -845,7 +845,10 @@ class TestCcFlowsPaging:
 
     def test_flows_walkers_page_with_size(self):
         _, code = _cc_render("Flows")
-        assert code.count('size_param="size"') == 2, code.count('size_param="size"')
+        # 2 commands x (the --all walker + the --offset window), both in `size`.
+        import re
+        assert len(re.findall(r'follow_page_param\([^)]*size_param="size"\)', code)) == 2
+        assert len(re.findall(r'fetch_from_offset\([^)]*size_param="size"\)', code)) == 2
 
     def test_include_pagination_defaults_on(self):
         _, code = _cc_render("Flows")
@@ -858,6 +861,111 @@ class TestCcFlowsPaging:
         assert all(ep.page_size_param == "pageSize" for ep in endpoints
                    if ep.pagination_style == "page")
         assert "size_param=" not in code
+
+
+class TestPageNumberedLimitOffset:
+    """Issue 1 (2026-10-13): on the page-numbered (`page`/`pageSize`) list
+    commands, --limit was sent as `max` and --offset as `start`. CC reads
+    neither, so both were inert on the wire and exit 0 (live: `cc-queue list
+    --limit 2` -> `?max=2` -> 17 records). Both flags stay — uniform on every
+    list command, ADR-12 — and are translated instead."""
+
+    def _list_body(self, tag, func="cmd_list"):
+        _, code = _cc_render(tag)
+        return _function_body(code, func)
+
+    def test_page_numbered_list_never_sends_max_or_start(self):
+        body = self._list_body("Team")
+        assert 'params["max"]' not in body and 'params["start"]' not in body
+        assert ('if limit > 0 and not all_pages and params.get("pageSize") is None:\n'
+                '        params["pageSize"] = limit') in body
+        assert ('elif offset > 0:\n            result = api.session.fetch_from_offset('
+                'url=url, params=params, offset=offset, count=limit, item_key=') in body
+
+    def test_offset_help_says_what_it_does(self):
+        body = self._list_body("Team")
+        assert 'help="Skip this many records (translated to the page number; record-exact)."' in body
+        assert "sent as the page size (pageSize)" in body
+
+    def test_flows_translate_into_size(self):
+        _, code = _cc_render("Flows")
+        assert 'params.get("size") is None:\n        params["size"] = limit' in code
+
+    def test_tasks_page_size_only_endpoint_is_translated_too(self):
+        """/v1/tasks declares `pageSize` but no `page`; it has no --page flag,
+        so --offset is its ONLY way to the next page (it honours `page` live:
+        Link rel=next `page=1&pageSize=100`, 2026-10-13)."""
+        body = self._list_body("Tasks")
+        assert "fetch_from_offset" in body and '"--page"' not in body
+
+    def test_link_style_commands_keep_max_and_start(self):
+        """Control: `max`/`start` endpoints are untouched."""
+        ep = _make_endpoint(command_type="list", method="GET",
+                            query_params=[_make_field(name="max", python_name="max", field_type="number"),
+                                          _make_field(name="start", python_name="start", field_type="number")])
+        ep.pagination_style = "link"
+        code = render_command_file("Things", [ep], {})
+        assert 'params["max"] = limit' in code and 'params["start"] = offset' in code
+        assert "fetch_from_offset" not in code
+
+
+class TestWildcardResponseListKey:
+    """Issue 5 (2026-10-13): `cc-global-vars list` printed 0 rows and a "server
+    has more pages" note while the org has 6 variables. The CC spec declares
+    121 GET 200s as `*/*`, which the list-key extractor never read, so the 7
+    bulk-export lists extracted `items`/`data` from a body whose records are
+    under `resources`."""
+
+    BULK = ["Global Variables", "Auxiliary Code", "Contact Number", "Dial Number",
+            "Entry Point", "Multimedia Profile", "Site"]
+
+    @pytest.mark.parametrize("tag", BULK)
+    def test_bulk_export_extracts_resources(self, tag):
+        endpoints, code = _cc_render(tag)
+        bulk = [ep for ep in endpoints if ep.url_path.endswith("/bulk-export")]
+        assert len(bulk) == 1, tag
+        assert bulk[0].response_list_key == "resources"
+        assert 'result.get("resources", result.get("data"' in code
+
+    def test_only_the_key_is_widened_not_the_command_type(self):
+        """reportable-count is a `*/*` flat object: widening type detection too
+        would turn it into settings-get and rename it. It must stay a list."""
+        endpoints, _ = _cc_render("Global Variables")
+        rc = [ep for ep in endpoints if ep.url_path.endswith("/reportable-count")]
+        assert rc and rc[0].command_type == "list"
+
+
+class TestGroupHelpProduct:
+    """Item 7 (2026-10-13): the group-help label was guessed from the CLI-name
+    prefix, so `asset` and `channel` (Contact Center host) and every admin,
+    device and messaging group read "Manage Webex Calling <group>." It now
+    reads SPEC_PRODUCT for the spec the group is rendered from."""
+
+    @pytest.mark.parametrize("spec,label", [
+        ("webex-contact-center.json", "Webex Contact Center"),
+        ("webex-messaging.json", "Webex Messaging"),
+        ("webex-admin.json", "Webex Admin"),
+        ("webex-cloud-calling.json", "Webex Calling"),
+    ])
+    def test_label_follows_the_spec(self, spec, label):
+        code = render_command_file("asset", [_make_endpoint()], {}, spec_filename=spec)
+        assert f'app = typer.Typer(help="Manage {label}: asset.")' in code
+
+    def test_shipped_unprefixed_cc_groups_say_contact_center(self):
+        cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
+        for mod in ("asset", "channel"):
+            src = (cmd_dir / f"{mod}.py").read_text()
+            assert "get_cc_base_url" in src
+            assert f'help="Manage Webex Contact Center: {mod}."' in src
+
+    def test_every_cc_host_module_is_labelled_contact_center(self):
+        cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
+        wrong = [f.name for f in sorted(cmd_dir.glob("*.py"))
+                 if "cc_base_url = get_cc_base_url()" in f.read_text()
+                 # prefix without the colon: cc_ai_assistant.py is a kept
+                 # CLI-ahead module no regen writes, labelled before 2026-10-13
+                 and 'typer.Typer(help="Manage Webex Contact Center' not in f.read_text()]
+        assert not wrong, wrong
 
 
 class TestSingleResourceActionGet:
@@ -1564,3 +1672,33 @@ class TestExampleCarriesJsonBody:
     def test_truncation_note_reaches_the_docstring(self):
         ep = self._ep(json_body_truncations=["a.b not expanded (schema recurses)"])
         assert "NOTE: skeleton incomplete" in _render_docstring(ep)
+
+
+class TestMakeRequired:
+    """Item 6 (2026-10-13): `cc-dial-number create` — the spec marks `location`
+    and `regionId` optional; live the API answered 400 "location: should not
+    be null or blank", then 400 "Telephony regionId should be provided.".
+    `make_required` pins them so the CLI refuses before the request."""
+
+    def test_marks_named_body_fields_required(self):
+        from tools.postman_parser import apply_endpoint_overrides
+        ep = _make_endpoint(command_type="create", method="POST", command_name="create",
+                            body_fields=[_make_field(name="location", python_name="location"),
+                                         _make_field(name="other", python_name="other")])
+        apply_endpoint_overrides(ep, {"make_required": {"create": ["location"]}})
+        assert {bf.name: bf.required for bf in ep.body_fields} == {"location": True, "other": False}
+
+    def test_unknown_field_name_raises(self):
+        from tools.postman_parser import apply_endpoint_overrides
+        ep = _make_endpoint(command_type="create", method="POST", command_name="create",
+                            body_fields=[_make_field(name="location", python_name="location")])
+        with pytest.raises(ValueError, match="regionIdd"):
+            apply_endpoint_overrides(ep, {"make_required": {"create": ["regionIdd"]}})
+
+    def test_shipped_dial_number_create_requires_location_and_region(self):
+        src = (Path(__file__).parent.parent / "src" / "wxcli" / "commands"
+               / "cc_dial_number.py").read_text()
+        assert ("_missing = [f for f in ['entryPointId', 'entryPointName', 'location', "
+                "'regionId'] if f not in body") in src
+        assert 'help="(required) The ID of the location' in src
+        assert 'help="(required) Specify the telephony region id' in src

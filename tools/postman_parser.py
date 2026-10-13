@@ -255,6 +255,21 @@ def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
         for qp in ep.query_params:
             if qp.name in opt_names:
                 qp.required = False
+    # Make-required overrides (spec says optional but the API rejects the
+    # request without it). Body fields only. A name that matches no body field
+    # raises, so an entry cannot outlive the field it pins.
+    make_req = folder_overrides.get("make_required", {})
+    if ep.command_name in make_req:
+        want = set(make_req[ep.command_name])
+        have = {bf.name for bf in ep.body_fields}
+        unknown = sorted(want - have)
+        if unknown:
+            raise ValueError(
+                f"make_required for {ep.command_name!r} names body field(s) "
+                f"{unknown} the operation does not declare (has: {sorted(have)})")
+        for bf in ep.body_fields:
+            if bf.name in want:
+                bf.required = True
     # Response list key overrides
     if ep.command_type == "list":
         keys_map = folder_overrides.get("response_list_keys", {})

@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling org-settings.")
+app = typer.Typer(help="Manage Webex Admin: org-settings.")
 
 
 @app.command("show", short_help="Get an Organization Setting.")

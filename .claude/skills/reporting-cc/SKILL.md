@@ -247,7 +247,8 @@ for state, count in states.most_common():
 #### Recipe CC-11 — Search tasks by date range
 Question: "Show all contacts handled yesterday"
 ```bash
-wxcli cc-search create --json-body '{"from": "2026-04-09T00:00:00Z", "to": "2026-04-10T00:00:00Z"}' -o json
+# from/to are GraphQL arguments in epoch ms (ISO strings -> 400 "not a valid 'Long'"); example = 2026-10-12 UTC
+wxcli cc-search create --query '{task(from: 1791763200000, to: 1791849600000){tasks{id channelType createdTime status}}}' -o json
 ```
 
 #### Recipe CC-12 — Worst queue by average wait
@@ -276,7 +277,7 @@ print(f'Worst average wait: {wait}ms in queue {name}')
 3. **Response shapes vary.** CC APIs may return objects or arrays. Recipes handle both with `isinstance` checks.
 4. **Field names vary.** Different CC API versions use different field names (e.g., `avgWaitTime` vs `averageWaitTime`). Recipes use fallbacks with `x.get('field1', x.get('field2', 0))`.
 5. **Real-time data is ephemeral.** Snapshot of current state, not historical.
-6. **401 "Token does not have access to OrgId:<base64 id>" is NOT a scope problem, and is FIXED in the CLI (2026-10-13).** Older wxcli builds sent the saved base64 Spark org id as `orgId` on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-ewt show` and `cc-search create`, and the CC API rejected it. The CLI now sends the bare UUID; verified 200 on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-tasks list`, `cc-subscriptions` and 204 on `cc-ewt show` (`cc-search create` not live-tested). If you still see this 401, upgrade wxcli and check `wxcli whoami`'s Target org; raw HTTP with the bare UUID `orgId` (or none) is the fallback.
+6. **401 "Token does not have access to OrgId:<base64 id>" is NOT a scope problem, and is FIXED in the CLI (2026-10-13).** Older wxcli builds sent the saved base64 Spark org id as `orgId` on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-ewt show` and `cc-search create`, and the CC API rejected it. The CLI now sends the bare UUID; verified 200 on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-tasks list`, `cc-subscriptions` and 204 on `cc-ewt show`, and 200 on `cc-search create` (GraphQL task query). If you still see this 401, upgrade wxcli and check `wxcli whoami`'s Target org; raw HTTP with the bare UUID `orgId` (or none) is the fallback.
 
 ---
 

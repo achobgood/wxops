@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling domains.")
+app = typer.Typer(help="Manage Webex Admin: domains.")
 
 
 _BODY_SKELETON_GET_DOMAIN_VERIFICATION = '{"domain":"..."}'

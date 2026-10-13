@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling broadworks-subscribers.")
+app = typer.Typer(help="Manage Webex BroadWorks: broadworks-subscribers.")
 
 
 @app.command("list", short_help="List BroadWorks Subscribers.")

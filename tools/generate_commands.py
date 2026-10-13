@@ -52,7 +52,7 @@ KNOWN_GLOBAL_KEYS = {
 # folder-level `list: {table_columns: [...]}` marker, not a command key.
 COMMAND_KEYED_OVERRIDES = (
     "table_columns", "add_query_params", "command_type_overrides",
-    "url_overrides", "response_list_keys", "make_optional", "body_defaults",
+    "url_overrides", "response_list_keys", "make_optional", "make_required", "body_defaults",
     "command_help_notes", "command_confirms", "param_name_overrides",
 )
 
@@ -372,7 +372,8 @@ def generate_tag(
             for name in skipped_uploads:
                 print(f"  {'SKIP':30s} {'':6s} {'upload':15s} {name}")
     else:
-        code = render_command_file(cli_name, endpoints, folder_ovr, base_url_override=base_url_override)
+        code = render_command_file(cli_name, endpoints, folder_ovr, base_url_override=base_url_override,
+                                   spec_filename=overrides.get("_spec_filename"))
         out_path = output_dir / f"{module_name}.py"
         out_path.write_text(code)
         print(

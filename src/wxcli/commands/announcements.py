@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling announcements.")
+app = typer.Typer(help="Manage Webex Calling: announcements.")
 
 
 @app.command("list", short_help="Fetch list of announcement greetings on location and organization level.")

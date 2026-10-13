@@ -1741,6 +1741,27 @@ tag_overrides:
     "Team":
       command_name_overrides:
         "create-purge-inactive-entities": "delete-purge-inactive-entities"
+    # POST /organization/{orgid}/dial-number: the spec marks `location`
+    # optional, the API does not. Live 2026-10-13 (CC Bootcamp Sandbox): create
+    # with --dialled-number/--entry-point-id/--entry-point-name -> 400
+    # "location: should not be null or blank"; adding location alone -> 400
+    # "Telephony regionId should be provided."; with both -> created. The spec
+    # marks both optional. Pinned so the CLI says so before the request.
+    # `location` is the bare UUID of the Webex Calling location; `regionId` has
+    # no list command — copy it from an existing mapping (cc-dial-number list).
+    "Dial Number":
+      make_required:
+        create:
+          - location
+          - regionId
+    # GET /v3/user-profile/{id}/acl returns ONE ACL object (permissions,
+    # editable/viewable/nonViewable folder ids, resourceCollections, resources),
+    # not a collection. Typed `list` from its array properties, it printed `[]`
+    # live (2026-10-13, profile 2b46776a…); once list keys read `*/*` it would
+    # print only `editableFolderIds`. A show emits the whole object. Name kept.
+    "User Profiles":
+      command_type_overrides:
+        list-acl: "show"
     "Work Types":
       command_name_overrides:
         "create-purge-inactive-entities": "delete-purge-inactive-entities"
@@ -1767,6 +1788,15 @@ tag_overrides:
           --parent-input-name channelType --parent-value TELEPHONY. The
           parent's own values come from this command on the parent input.
           Verified live 2026-10-13.
+        list-search: >
+          on us1 (2026-10-13) this endpoint is not routed: GET
+          .../flows:search answers 404 with an EMPTY body from the API
+          gateway (istio-envoy, trackingId GTWY_...), with or without
+          query/page/size, while .../flows on the same project returns 200.
+          The path variants :search, %3Asearch, /search, /v2/...:search and
+          /flow-store/...:search all 404 the same way. To find flows by name,
+          use 'cc-flow list --all' with --fields, e.g. --fields
+          "[?contains(name, 'Test')]".
     "Users":
       command_name_overrides:
         "update-update-dynamic-skill": "update-dynamic-skill"

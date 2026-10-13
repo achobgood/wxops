@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling my-call-settings.")
+app = typer.Typer(help="Manage Webex Calling: my-call-settings.")
 
 
 @app.command("show-personal-assistant", short_help="Get Personal Assistant Settings.")

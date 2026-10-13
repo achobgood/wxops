@@ -9,7 +9,7 @@ from wxcli.config import resolve_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling org-contacts.")
+app = typer.Typer(help="Manage Webex Admin: org-contacts.")
 
 
 _BODY_SKELETON_CREATE = '{"schemas":"...","source":"CH","displayName":"...","firstName":"...","lastName":"...","companyName":"...","title":"...","address":"...","avatarURL":"...","primaryContactMethod":"SIPADDRESS","emails":[{"value":"...","type":"work","primary":true}],"phoneNumbers":[{"value":"...","type":"work","primary":true}],"sipAddresses":[{"value":"...","type":"enterprise","primary":true}],"ims":[{"value":"...","type":"aim","primary":true}],"groupIds":["..."]}'

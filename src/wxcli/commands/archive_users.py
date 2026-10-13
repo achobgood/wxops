@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling archive-users.")
+app = typer.Typer(help="Manage Webex Admin: archive-users.")
 
 
 @app.command("list", short_help="Query Archive User.")

@@ -600,11 +600,12 @@ wxcli cc-dial-plan list-dial-plan -o json
 **Map a dial number to an entry point:**
 
 ```bash
-wxcli cc-dial-number create --json-body '{
-  "dialNumber": "+18005551234",
-  "entryPointId": "ENTRY_POINT_ID"
-}'
+wxcli cc-dial-number create --dialled-number "+18005551234" --entry-point-id "ENTRY_POINT_ID" --entry-point-name "ENTRY_POINT_NAME" --location "LOCATION_ID" --region-id "REGION_ID"
 ```
+
+> **Dial-number create (verified live 2026-10-13):** the flags form above created the mapping and `show` confirmed it. **`--location` and `--region-id` are both required by the API (the spec says optional); since 2026-10-13 `--help` marks both required and the CLI refuses locally without them.** Before that fix: omit `--location` and it returns `400 "location: should not be null or blank"`; omit `--region-id` and it returns `400 "Telephony regionId should be provided."`. Copy both from a mapping that already works (`wxcli cc-dial-number list --all -o json` or `show ID -o json`), using the same values for a number on the same Calling location. In `--json-body` the field is `dialledNumber` (two L's, not `dialNumber`, which the earlier example here used), with `entryPointId`, `entryPointName`, `location`, `regionId`. After mapping, check the Calling side of the number too (see "Readiness checklist" in Flow Management).
+>
+> **WARNING: bare `wxcli cc-dial-number delete` (no ID) is "Delete all Dialed Number Mapping(s)" and removes EVERY mapping in the org** (it asks for confirmation unless `--force` is passed). To remove one mapping use `wxcli cc-dial-number delete-dial-number MAPPING_ID --force` (verified live 2026-10-13: returned `{"status":"deleted"}`).
 
 ---
 
@@ -846,7 +847,7 @@ wxcli cc-tenant-config update TENANT_CONFIG_ID --json-body file://tenant-config.
 wxcli cc-flow list PROJECT_ID -o json
 ```
 
-> **Paging (fixed 2026-10-13):** `cc-flow list --all` returns every flow (56 of 56 live). The default fetch returns 10 and prints a "more pages … `--page 1`" note. No `--size 100` workaround needed; `--offset` does nothing here, use `--page`.
+> **Paging (fixed 2026-10-13):** `cc-flow list --all` returns every flow (56 of 56 live). The default fetch returns 10 and prints a "more pages … `--offset 10`" note. `--offset N` works (translated to `page`/`size`, record-exact; ADR-12), and so does `--page`.
 
 > **Argument order (verified via `--help` and live 2026-10-13):** `show`, `export`, `list-validate`, `delete` take `PROJECT_ID` then `FLOW_ID`. `publish`, `create-lock`, `create-unlock` take `FLOW_ID` then `PROJECT_ID`. The wrong order on `export` returns 404 "Flow … not found".
 >
@@ -910,7 +911,7 @@ wxcli cc-flow list-activity-choices PROJECT_ID ACTIVITY_NAME INPUT_NAME
 wxcli cc-flow list-event-specifications PROJECT_ID
 ```
 
-> A dependent input (e.g. `queue-contact` `destination`) returns 400 "requires a parent value" unless you also pass `--parent-input-name channelType --parent-value TELEPHONY`. Use these to look up activity names, inputs and choice values when hand-writing a FlowIr body; raw `GET /v2/activities` is the fallback. `cc-flow list-search` returned 404 on the sandbox even via raw HTTP (unverified whether the endpoint is live).
+> A dependent input (e.g. `queue-contact` `destination`) returns 400 "requires a parent value" unless you also pass `--parent-input-name channelType --parent-value TELEPHONY`. Use these to look up activity names, inputs and choice values when hand-writing a FlowIr body; raw `GET /v2/activities` is the fallback. `cc-flow list-search` is not routed on us1: the API gateway returns an empty-body 404 (`GTWY_` trackingId) for every path and parameter variant while `…/flows` returns 200 (verified 2026-10-13). Search by name with `cc-flow list PROJECT_ID --all --fields "[?contains(name, 'X')].name"`.
 >
 > **`create-validate` is safe to run but not authoritative.** It is a POST that changes nothing, but `valid:false` can be a false positive. Two are proven (verified live 2026-10-13, against Designer-built flows): `ivr-collectdigits` has no accepted success-edge condition (`default`, `out`, `done`, `success` all rejected, yet Designer writes `default`), and `FC1038 Variable 'X' is referenced but not declared` fires on every `{{Node.Output}}` reference except the start node's (`{{NewContact.ANI}}` passes). It also reports only **one** edge-condition error per call, and edge checks gate the FC checks, so errors appear one layer at a time. `cc-flow publish` (without `--skip-validation`) succeeded on a draft that `list-validate` reported as `ERROR FC1038`, so neither validate endpoint is the publish gate. Treat validate as a way to find real errors (FC1015, FC1024, missing start-node fields), not a pass/fail verdict.
 >
@@ -927,6 +928,40 @@ wxcli cc-flow list-event-specifications PROJECT_ID
 4. **Variables.** A global variable in FlowIr is `{name, type, value, source:"GLOBAL", id:"<global var id>", ...}`; a flow-local one has `source:""`, `id:""`. An `isCAD:true` (agent-viewable) variable needs a non-empty `desktopLabel` or validate returns `FC1015` (also for globals re-declared in the flow).
 5. **Sequence that worked (verified live 2026-10-13):** create queues, business hours and globals first and take their ids from the read-back, then `create-import` the flow, `show` it to compare, `publish FLOW_ID PROJECT_ID`, then create the entry point with `flowId` + `flowTagId` (see Entry Point). No test call was placed, so none of it is runtime-verified.
 6. **Recipe notes, not runtime-tested.** *Callback:* `callback` with `toggleCallbackDestination: false` calls back into the queue the contact is already in, which avoids a `{{QueueNode.QueueId}}` reference (and its FC1038 false positive). *Bilingual prompts:* with the built-in "Cisco Cloud Text-to-Speech" connector the voice follows the `Global_Language` / `Global_VoiceName` globals; a language-specific `set-variable` node sets them (`es-US` / `es-US-Alonso` for Spanish) plus prompt-text variables, and one set of nodes speaks `{{msgX}}`.
+7. **Demo data in global variables is not live data.** A value such as a static restoration time ("9:30 PM tonight") or area name stored in a global variable is spoken on every call until someone edits the variable, whether or not it is still true. That is acceptable for a demo only if everyone knows it. A real deployment would fetch it per call (for example an HTTP Request node against the outage system, via an HTTP Connector). **The HTTP Request alternative was not built or tested here;** for HTTP Request node mechanics in flows, see `docs/reference/contact-center-routing.md` gotchas #16-17 and `docs/reference/contact-center-core.md` gotcha #25, which were written for other calls (JDS events, CC APIs), not an outage system.
+
+#### Readiness checklist — before the first test call (new inbound voice flow)
+
+Source: a read-only audit run live on 2026-10-13 against a new number → entry point → flow → 4 queues → team → agents chain (no writes made). Every row is an API read; none of it replaces a test call. Compare each new resource against one that already takes calls: same fields except the ones you meant to change.
+
+| # | Check | Command(s) | What "ready" looked like |
+|---|---|---|---|
+| 1 | Calling side of the number | `wxcli numbers list --all -o json` (filter to the number) | ACTIVE, PRIMARY, PSTN_NUMBER, same location as a working number, **owned by a `CONTACT_CENTER_ADAPTER`** ("Contact Center RTMS"). Same location means the same PSTN connection. Whether the carrier delivers calls is not visible here |
+| 2 | DN mapping | `wxcli cc-dial-number list --all -o json` | Mapping points at your entry point; `location`/`regionId` match a working mapping; only the entry point and `id` differ (`defaultAni: true` marks the tenant's default outdial number, leave it alone) |
+| 3 | Entry point → flow | `wxcli cc-entry-point show ID -o json` vs a working one | INBOUND, TELEPHONY, active, `flowId` set, `flowTagId` set (`Latest`), music file set. Differences from a working entry point should be intended ones (e.g. `callbackEnabled`) |
+| 4 | Published version | `wxcli cc-flow list PROJECT_ID --partial-name-search NAME --all` | Status `Published`, a version number, and the tag the entry point uses (`Latest`) pointing at it. A later publish moves `Latest` immediately, so do not publish edits mid-test |
+| 5 | Every ID in the flow is a valid choice | `wxcli cc-flow list-activity-choices PROJECT_ID queue-contact destination --parent-input-name channelType --parent-value TELEPHONY --validate true --search QUEUE_ID` (also `business-hours businessHoursId`, `play-music prompt`, `play-message connector`) | The ID resolves. Run one negative control (an all-zeros UUID) and confirm it returns `[]`, otherwise a hit proves nothing |
+| 6 | Global variables the flow reads | `wxcli cc-global-vars show ID` per variable | Each exists and is active |
+| 7 | Queues route to a team | `wxcli cc-queue show-contact-service-queue-v2 ID` (not the list, which omits `callDistributionGroups`) | active, INBOUND, TELEPHONY, `callDistributionGroups` → your team, music set, `maxTimeInQueue` as intended |
+| 8 | Team has agents | `wxcli cc-team show ID` | active, `userIds` non-empty, site set |
+| 9 | Agents are licensed and enabled | `wxcli cc-users list --all -o json`; `wxcli people show PERSON_ID --calling-data true`; `wxcli licenses list --all` | `contactCenterEnabled` and `agentCapabilitiesEnabled` true; a Contact Center agent license and a Webex Calling license; check `invitePending` (an agent who never accepted the invite probably cannot sign in: inferred, not tested) |
+| 10 | Profile allows voice | `wxcli cc-desktop-profile show ID` (`loginVoiceOptions` includes the option the agent will use, e.g. `BROWSER`); `wxcli cc-multimedia-profile show ID` (telephony slot ≥ 1). A user with no multimedia profile of their own inherits the team's, else the site's: `wxcli cc-site show ID` | Voice allowed on the profile the agent actually inherits |
+| 11 | **Someone is logged in and Available** | See "Agent session state" below | At least one active agent session in a team the queue routes to. **A queue with zero active sessions holds callers on music until `maxTimeInQueue`, then drops them.** This is an operations step, not configuration |
+| 12 | Business hours + timezone | `wxcli cc-business-hour show ID` | Timezone correct, hours cover the test time, holiday list/override as intended |
+| 13 | Agent-viewable variables | Flow export `variables`; `wxcli cc-desktop-layout list-desktop-layout --all` | Each agent-viewable variable has a `desktopLabel`, and the flow declares it `isCAD:true` (a global record marked agentViewable but declared `isCAD:false` in the flow will not show). The system default layout shows these variables, so a custom layout is not required |
+| 14 | Wrap-up codes | `wxcli cc-aux-code list --all` | Active `WRAP_UP_CODE` entries exist so the agent can finish the call |
+
+**Agent session state.** `wxcli cc-agents list-activities --from EPOCH_MS` is an event log (24 h window max per call, see `--help`); zero rows prove nothing by themselves. The audit cross-checked with `wxcli cc-search create` (GraphQL, `--help` shows the body) against the `agentSession` type: a 365-day query returned the real session history (so the probe works), and the sessions with `isActive: true` were counted. The query text was not saved, so build it from `wxcli cc-search-metadata list` and `wxcli cc-search create --generate-json-body`. If the count is 0, a person must sign in to Agent Desktop and go **Available** before the test call.
+
+**Only a live test call can prove** (no API read can):
+- That the carrier delivers the number to Contact Center.
+- The TTS voices (English `Automatic`, Spanish voices driven by the `Global_Language` / `Global_VoiceName` globals).
+- collect-digits behavior: the `default` success edge firing and `{{Node.DigitsEntered}}` landing in the variable (the validator rejects both; see above).
+- Expressions and nested `{{variable}}` references inside set-variable values resolving at runtime.
+- The business-hours port names (`workingHours`/`holidays`/`override`/`default`) at runtime.
+- The callback path (offer to the agent, which ANI is used when `callbackAni` is unset).
+- The `queue-contact` `failure` edges, which only fire when a queue fails.
+- That Agent Desktop shows the agent-viewable variables.
 
 ---
 

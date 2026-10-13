@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-campaign.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-campaign.")
 
 
 _BODY_SKELETON_CREATE = '{"id":"...","vendorVersion":"...","campaignType":"...","dialingRate":0,"entryPointId":"...","dialingListFetchURL":"...","outdialANI":"...","recordCount":0,"campaignName":"...","authToken":"...","noAnswerRingLimit":0,"maxDialingRate":0,"abandonRatePercentage":0,"predictiveCorrectionPace":0,"predictiveGain":0,"reservationPercentage":0,"callProgressAnalysisParams":{"cpaEnabled":true,"amdEnabled":true,"minSilencePeriod":0,"analysisPeriod":0,"minimumValidSpeech":0,"maxTimeAnalysis":0,"maxTermToneAnalysis":0,"terminatingToneDetect":true},"ivrPorts":0,"previewOfferTimeout":0,"previewOfferTimeoutAutoAction":"...","previewActionsDisabled":["..."],"validCampaignTimes":{"timeZone":"...","weeklySchedule":{"monday":[{"start":"...","end":"..."}],"tuesday":[{"start":"...","end":"..."}],"wednesday":[{"start":"...","end":"..."}],"thursday":[{"start":"...","end":"..."}],"friday":[{"start":"...","end":"..."}],"saturday":[{"start":"...","end":"..."}],"sunday":[{"start":"...","end":"..."}]},"dateOverrides":[{"date":"...","shiftTimes":[{"start":"...","end":"..."}]}]}}'

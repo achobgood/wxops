@@ -530,6 +530,41 @@ The weekly spec-sync never touched this spec — `update-specs.py` does not down
 
 ---
 
+## ADR-12: `--limit` / `--offset` Stay on Every List Command and Are Translated on Page-Numbered Endpoints
+
+### Decision
+
+Keep `--limit` and `--offset` on all list commands, including the 105 page-numbered ones (measured on the regenerated tree, 2026-10-13: Contact Center `page`/`pageSize`, the Flows `page`/`size`, and `/v1/tasks`, which declares only `pageSize`). On those commands the generator no longer sends them as `max`/`start`: `--limit N` is sent as the endpoint's own page-size parameter (unless the explicit page-size flag is given, and never with `--all`), and `--offset N` is served by a runtime helper, `WebexSession.fetch_from_offset`, that returns records N … N+count **record-exactly** — page `N // size`, skip `N % size`, continue onto the next page when the window spans two. The truncation note names `--offset <absolute next record>` on every command, page-numbered or not.
+
+### Context
+
+Verified live 2026-10-13 on the CC Bootcamp Sandbox: `cc-queue list --limit 2` sent `?max=2` and returned 17 records; `cc-flow list --offset 10` sent `start=10` and returned page 0 again. Both exit 0 — a wrong answer delivered confidently. The previous fix had pointed the truncation note at `--page N` instead, but `cc-tasks list` has no `--page` flag (its spec declares `pageSize` only, although the server pages by `page` and says so in a `Link` header), so the note named a flag that does not exist there.
+
+### Alternatives Considered
+
+- **Stop offering `--offset`/`--limit` on page-numbered commands.** *Rejected:* it breaks the uniform-flag rule the renderer already applies to `--all` and `--output` ("an option present on most commands but not all teaches a rule that breaks unpredictably, which costs an agent a failed call plus a `--help` round trip each time"). An agent that learned `--offset` on `people list` would get "No such option" on `cc-queue list`.
+- **Keep them and refuse loudly (exit 2, "use --page").** *Rejected:* the flag would still be present but never work, `cc-tasks` has no `--page` to point at, and the translation is cheap.
+- **Translate `--offset` to `page = N // size` only when N is a multiple of the page size.** *Rejected:* half-working; the note would have to know the page size the user will pass next time.
+- **Translate record-exactly, chosen.** At most one extra request when the window straddles a page boundary, plus one look-ahead record when the body declares no total (`/v1/tasks`). A server that caps the page size below the one asked for is detected (short page, declared total says more) and re-planned once with the size it actually serves.
+
+### Rationale
+
+- `--offset N` now means the same thing on every list command: skip N records. The note's remedy is the same flag everywhere.
+- `--limit N` now means the same thing everywhere: at most N records fetched — on link endpoints that was already `max`, the page size.
+- `--page`/`--page-size` stay as the endpoint's own controls; an explicit `--page-size` wins over `--limit`, and `--offset` overrides `--page`.
+
+### Consequences
+
+**Enables:** one paging vocabulary across all 543 list commands; `cc-tasks list --offset` reaches page 2 although the command has no `--page`.
+**Forecloses:** nothing — the native flags are untouched.
+**Gotchas:** the default window when neither `--limit` nor a page size is given is 100 (`DEFAULT_OFFSET_WINDOW`, the declared default of 94 of the 113 CC page-size parameters). CC bulk-export bodies carry a `pageNumber` that does **not** track the page served (live: page=0 → 1, page=1 → 2, page=2 → 2), so the note reads their `rel` (`next`/`last`) and takes the page index from the request, never from `pageNumber`. Unit-tested in `tests/test_pagination_walkers.py::TestFetchFromOffset` against a fake server that, like CC, ignores `start`/`max`.
+
+### Status
+
+**Active** since 2026-10-13 (uncommitted at time of writing). Live-verified read-only: `cc-flow list --offset 25 --limit 10` = flows 25–34 of the `--all` order; `cc-queue list --offset 15 --limit 5` = queues 15–16 of 17; `cc-tasks list --offset 100 --limit 5` = tasks 100–104 of 226; `cc-global-vars list --offset 4 --limit 4` = 4 of 9 with the note naming `--offset 8`.
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -547,6 +582,7 @@ The weekly spec-sync never touched this spec — `update-specs.py` does not down
 | ADR-10 (PyPI distribution) | ADR-1 (Generated commands) | setuptools-scm stamps the built wheel; the release workflow's version guard protects that stamp |
 | ADR-10 (PyPI distribution) | ADR-8 (Playbook) | The playbook stays repo-hosted, so the `git clone` source install is retained alongside the PyPI CLI install |
 | ADR-11 (Flow Store retired) | ADR-9 (Spec sync + drift gate) | Removes the dev-only spec exemption (`--dev-only`, the fs audit); `SPEC_PRODUCT`'s unknown-spec raise is what keeps the retired spec out of every regen |
+| ADR-12 (Paging flags translated) | ADR-1 (Generated commands) | The translation is emitted by the renderer per endpoint paging style; the runtime half lives in `auth.py` so a regen cannot drift from it |
 
 ---
 

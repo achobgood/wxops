@@ -9,7 +9,7 @@ from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-subscriptions.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-subscriptions.")
 
 
 @app.command("list", short_help="List Subscriptions.")

@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling authorizations.")
+app = typer.Typer(help="Manage Webex Admin: authorizations.")
 
 
 @app.command("list", short_help="List authorizations for a user.")
