@@ -1403,6 +1403,38 @@ it, which matters because the weekly routine runs the suite and may not edit
 tests. One live test checks that every shipped label equals the label the
 rule derives from the live index. It names no group.
 
+### Check 30 — what it accepts beyond the schema, and why none can fire falsely (2026-10-13)
+
+Check 30 (`check_doc_body_keys`) fails a documented `--json-body` whose top-level key is not a
+property of the operation's request schema. The oracle is the spec, which this repo has
+repeatedly found wrong against live behaviour, and the gate has no ack key. So every rule
+below only **widens** what a doc may send, or **skips** a body the check cannot judge. Each
+can hide a real mistake (a false negative). None can create a finding (a false positive).
+
+| Rule | Example that needed it | Why it cannot fire falsely |
+|---|---|---|
+| **Keys from the spec's own request example** (media-type `example`, `examples[*].value`, schema `example`) | `PATCH /groups/{id}`: the schema says `{schemas, Operations}`, but its example and our docs send `members` | Widening only. A key is flagged only if the doc agrees with the spec nowhere |
+| **A `<…able> fields:` list in the operation description** | `PATCH …/channel/{id}`: "Patchable fields: name, …", while ChannelPatchDTO omits `name` | Widening only. It needs an explicit list; one hit in all 9 specs. A word merely mentioned in prose does not count, because measured, that would have hidden 3 true positives |
+| **`JsonValue` skipped** (only property `valueType`) | `asset update-asset`: a serialized Jackson JsonNode, meaning any JSON | Skip only, keyed on shape. 2 ops |
+| **`oneOf`/`anyOf` of all-closed branches judged against the union of their keys** | `cc-agent-summaries create` (`SummaryListRequest`) | The union contains every branch, so a flagged key is rejected whichever branch the server picks. One open or property-less branch skips the body. 3 ops. This deviates from the plan's "skip oneOf", accepted in review |
+| **SCIM keys compare case-insensitively**, on ops whose spec path starts with `/identity/scim/` | `scim-bulk create`: docs send RFC 7644's `Operations`; the request schema says `operations` (the spec's own response example says `Operations`) | Widening only. RFC 7643 §2.1 makes SCIM attribute names case-insensitive. The rule is keyed on the path, not on a SCIM-looking schema, so `PATCH /groups/{id}` (not SCIM) still fires on a wrong case |
+| **Open schemas skipped** (`additionalProperties` present and not `false`, `{}` included), as are discriminator-only bases and property-less schemas | — | Skip only |
+
+**The known false-negative hole.** Measured over all 870 request bodies: the example and description rules
+widen 25 operations (counted once per spec), and a few of them admit response-only or wrapper keys. A doc sending any of
+these would pass:
+- `PUT /telephony/config/devices/{id}/settings`: `deviceCount`, `lastUpdateTime`, `updateInProgress`
+- `PATCH ai-feature`: `links`
+- workspace `callWaiting` PUT: `callWaiting`
+- `POST /groups`: `orgId`, `description`
+
+This is deliberate. A gate that misses a few keys beats one that blocks the unattended weekly
+run on a spec contradiction.
+
+**The trade-off left open.** The oracle is the spec and there is no ack key. So an upstream
+refresh that drops a key the live API still accepts fails the gate, and the only way out is
+a human doc edit. The widening rules above soften this; they do not remove it.
+
 ## Known Issues — Generator / Pipeline Only
 
 These were removed from root CLAUDE.md (not needed by the builder agent at runtime):

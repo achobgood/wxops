@@ -291,8 +291,9 @@ Checks (docs/arch/target-architecture.md §A6):
       `oneOf`/`anyOf` of closed branches accepts their union; an open
       (`additionalProperties`), discriminator-only, `JsonValue` or
       property-less schema is skipped. Keys the spec's own request example
-      or a `Patchable fields:` list in its description names are accepted.
-      Unparseable bodies (`$(cat f.json)`, `file://`, `@file`, `-`, invalid
+      or a `Patchable fields:` list in its description names are accepted,
+      and keys of a SCIM 2.0 operation (path under /identity/scim/) compare
+      case-insensitively (RFC 7643 §2.1). Unparseable bodies (`$(cat f.json)`, `file://`, `@file`, `-`, invalid
       JSON) are counted separately, never fired.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
@@ -4485,6 +4486,25 @@ def _closed_body_keys(sop) -> set[str] | None:
         return None
 
 
+# Webex mounts its SCIM 2.0 service (RFC 7644) — and only that — under this
+# prefix: /identity/scim/{orgId}/v2/{Users,Groups,Bulk,Schemas,…}.
+_SCIM_PATH_PREFIX = "/identity/scim/"
+
+
+def _is_scim_op(sop) -> bool:
+    """True for an operation of the SCIM 2.0 protocol, whose attribute names
+    are case-insensitive (RFC 7643 §2.1): `scim-bulk create` takes RFC 7644's
+    `Operations` although the spec's request schema spells it `operations`
+    (and the spec's own response example spells it `Operations`).
+
+    Keyed on the spec PATH, not on a SCIM-looking schema: `PATCH
+    /groups/{id}` (the Webex Groups API) also declares `{schemas,
+    Operations}`, but it is not a SCIM endpoint and promises no case
+    folding, so a wrong-case key there must still fire."""
+    path = getattr(sop, "path", "")
+    return isinstance(path, str) and path.startswith(_SCIM_PATH_PREFIX)
+
+
 def check_doc_body_keys(invocations: list[dict], blocks: list[CommandBlock],
                         spec_index: dict,
                         registrations: dict[str, str] | None = None
@@ -4506,7 +4526,8 @@ def check_doc_body_keys(invocations: list[dict], blocks: list[CommandBlock],
     required, never all of them. Where the spec contradicts itself, a key
     the spec's own request example uses, or that the operation description
     lists as `Patchable fields: …`, is accepted too — the check fires only
-    where the doc agrees with the spec nowhere.
+    where the doc agrees with the spec nowhere. On a SCIM 2.0 operation
+    (_is_scim_op) keys compare case-insensitively, per RFC 7643 §2.1.
 
     Skipped, never fired or raised:
       * an unparseable body — `"$(cat f.json)"`, `file://x`, `@file`, `-`,
@@ -4550,7 +4571,11 @@ def check_doc_body_keys(invocations: list[dict], blocks: list[CommandBlock],
                 skipped += 1
                 continue
             examined += 1
-            unknown = sorted(k for k in body if k not in allowed)
+            if any(_is_scim_op(sop) for sop in sops):
+                folded = {k.lower() for k in allowed}
+                unknown = sorted(k for k in body if k.lower() not in folded)
+            else:
+                unknown = sorted(k for k in body if k not in allowed)
             if not unknown:
                 continue
             key = (inv.get("file"), inv.get("line"), group, command, tuple(unknown))
@@ -4564,6 +4589,7 @@ def check_doc_body_keys(invocations: list[dict], blocks: list[CommandBlock],
         "30", findings, examined,
         skipped + helper_skip_count("modules", "blocks", "specs"),
         "documented --json-body examples")
+    CHECK_EXAMINED["30"]["unparseable"] = unparseable
     return findings, unparseable
 
 
@@ -5600,6 +5626,9 @@ def main() -> int:
         "28_wrong_product_label": wrong_product_labels,
         "29_doc_value_type_mismatch": doc_value_types,
         "30_doc_body_unknown_keys": doc_body_keys,
+        # Not a failure — the bodies check 30 could not read, so a run can
+        # trend them (`--json` had only the findings list before).
+        "30_doc_body_unparseable": unparseable_bodies,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced

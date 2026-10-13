@@ -301,6 +301,9 @@ wxcli meetings update-breakout-sessions MEETING_ID --json-body '{"items": [{"nam
 wxcli meetings delete-breakout-sessions MEETING_ID
 ```
 
+> **Unverified:** the `create-interpreters` body is from the spec, not a live call: one
+> interpreter per call (`languageCode1` and `languageCode2` required), not an `items` list.
+
 ---
 
 ### Participants
@@ -327,6 +330,11 @@ wxcli meeting-participants create-callout --json-body '{"meetingId": "MEETING_ID
 # Cancel SIP callout (participantId comes from the create-callout response)
 wxcli meeting-participants create-cancel-callout --json-body '{"participantId": "PARTICIPANT_ID"}'
 ```
+
+> **Unverified:** the callout bodies are from the spec, not a live call. `create-callout` takes
+> the SIP URI in `address` (`addressType: sipAddress`) and requires `displayName` (≤32 chars);
+> `create-cancel-callout` takes only `participantId`, the same id
+> `docs/reference/meetings-infrastructure.md` shows.
 
 ---
 
@@ -414,9 +422,8 @@ wxcli meeting-preferences list --output json
 # Get audio options
 wxcli meeting-preferences show --output json
 
-# Update audio options (PUT — the spec requires the whole audio object: read it with
-# `show`, change defaultAudioType, send every field back)
-wxcli meeting-preferences update-audio --json-body '{"defaultAudioType": "webexAudio", ...}'
+# Update audio options (PUT — send the whole audio object; read it first with `show`)
+wxcli meeting-preferences update-audio --json-body '{"defaultAudioType": "webexAudio", "otherTeleconferenceDescription": "", "enabledGlobalCallIn": true, "enabledTollFree": false, "enabledAutoConnection": false, "officeNumber": {"countryCode": "1", "number": "5551234567", "enabledCallInAuthentication": false, "enabledCallMe": false}, "mobileNumber": {"countryCode": "1", "number": "5557654321", "enabledCallInAuthentication": false, "enabledCallMe": true}}'
 
 # Get video options
 wxcli meeting-preferences list --output json
@@ -451,6 +458,12 @@ wxcli meeting-preferences create --json-body '{"emails": ["delegate@example.com"
 # Delete delegate emails
 wxcli meeting-preferences create --json-body '{"emails": ["delegate@example.com"]}'
 ```
+
+> **Unverified:** the `update-audio`, `update-video` and `create-refresh-id` bodies are from the
+> spec, not a live call. Audio options is a PUT whose spec marks every field above except
+> `audioPin` required (the body mirrors the spec's own example). `update-video` replaces the
+> device list; exactly one device must be `isDefault`. `create-refresh-id` requires `siteUrl`;
+> each `personalMeetingRoomIds` entry names a host by `email` or `personId`.
 
 ---
 
@@ -493,6 +506,12 @@ wxcli meeting-site show --output json
 # Update site-wide meeting settings
 wxcli meeting-site update --json-body '{"securityOptions": {"joinBeforeHost": true}}'
 ```
+
+> **Unverified:** both bodies are from the spec, not a live call. `meeting-session-types update`
+> requires `siteUrl` and `sessionTypeIds` (strings), naming the user by `email` or `personId`.
+> `meeting-site update` is a PATCH over nested option groups (`siteOptions`,
+> `defaultSchedulerOptions`, `scheduleMeetingOptions`, `securityOptions`); see
+> `docs/reference/meetings-settings.md` for the full shape.
 
 ---
 

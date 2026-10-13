@@ -57,6 +57,12 @@ def _inv(body, group="zz-probe", command="create", line=644, flag="--json-body")
             "prefixless": False, "sig": {}}
 
 
+def _stats():
+    """CHECK_EXAMINED["30"] without the unparseable count (asserted apart)."""
+    stats = drift_check.CHECK_EXAMINED["30"]
+    return {"examined": stats["examined"], "skipped": stats["skipped"]}
+
+
 def _fired(findings):
     """Real findings only — a body the check skips leaves nothing examined,
     and record_examined then adds its BLIND finding, which is not a fire."""
@@ -70,8 +76,8 @@ def tree(tmp_path):
     cmds.mkdir()
     specs.mkdir()
 
-    def run(invocations, *spec_list, registrations=None):
-        (cmds / "zz_probe.py").write_text(BLOCK)
+    def run(invocations, *spec_list, registrations=None, module_src=BLOCK):
+        (cmds / "zz_probe.py").write_text(module_src)
         for i, spec in enumerate(spec_list):
             name = "webex-probe.json" if i == 0 else f"webex-probe{i}.json"
             (specs / name).write_text(json.dumps(spec))
@@ -105,7 +111,7 @@ def test_known_keys_pass(tree):
     findings, _ = tree([_inv('{"query": {"taskIds": ["t1"], "zz": 1}}')],
                        _post_spec(_obj(QUERY)))
     assert findings == []
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 1, "skipped": 0}
+    assert _stats() == {"examined": 1, "skipped": 0}
 
 
 def test_partial_body_passes(tree):
@@ -145,7 +151,7 @@ def test_unparseable_bodies_counted_not_flagged(tree, body):
                                  _post_spec(_obj(QUERY)))
     assert findings == []
     assert unparseable == 1
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 1, "skipped": 0}
+    assert _stats() == {"examined": 1, "skipped": 0}
 
 
 def test_top_level_array_body_is_skipped(tree):
@@ -153,7 +159,7 @@ def test_top_level_array_body_is_skipped(tree):
     findings, unparseable = tree([_inv('[{"filters": 1}]'), _inv('{"query": {}}')],
                                  _post_spec(_obj(QUERY)))
     assert (findings, unparseable) == ([], 0)
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 1, "skipped": 1}
+    assert _stats() == {"examined": 1, "skipped": 1}
 
 
 # --------------------------------------- Review Focus 4: schema shapes
@@ -164,7 +170,7 @@ def test_top_level_array_body_is_skipped(tree):
 def test_open_schema_skipped(tree, extra):
     findings, _ = tree([_inv('{"filters": 1}')], _post_spec(_obj(QUERY, **extra)))
     assert _fired(findings) == []
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 0, "skipped": 1}
+    assert _stats() == {"examined": 0, "skipped": 1}
 
 
 def test_closed_schema_with_additional_properties_false_fires(tree):
@@ -179,7 +185,7 @@ def test_schema_without_properties_skipped(tree, schema):
     findings, _ = tree([_inv('{"filters": 1}'), _inv('{"filters": 2}', line=7)],
                        _post_spec(schema))
     assert _fired(findings) == []
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 0, "skipped": 2}
+    assert _stats() == {"examined": 0, "skipped": 2}
 
 
 def test_op_without_request_body_skipped(tree):
@@ -187,7 +193,7 @@ def test_op_without_request_body_skipped(tree):
         "responses": {"200": {"description": "ok"}}}}}}
     findings, _ = tree([_inv('{"filters": 1}'), _inv('{"x": 1}', line=7)], spec)
     assert _fired(findings) == []
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 0, "skipped": 2}
+    assert _stats() == {"examined": 0, "skipped": 2}
 
 
 def test_allof_ref_schema_resolved(tree):
@@ -306,7 +312,7 @@ def test_json_value_schema_is_open(tree):
         "type": "string", "enum": ["ARRAY", "OBJECT", "STRING"]}})}
     spec = _post_spec({"$ref": "#/components/schemas/JsonValue"}, components)
     assert _fired(tree([_inv('{"description": "Migrated"}')], spec)[0]) == []
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 0, "skipped": 1}
+    assert _stats() == {"examined": 0, "skipped": 1}
     closed = _post_spec(_obj({"valueType": {}, "name": {}}))
     findings, _ = tree([_inv('{"description": "Migrated"}')], closed)
     assert [f["unknown"] for f in findings] == [["description"]]
@@ -348,13 +354,52 @@ def test_unresolved_invocation_is_skipped_and_counted(tree):
     findings, _ = tree([_inv('{"filters": 1}', command="no-such"),
                         _inv('{"query": {}}')], _post_spec(_obj(QUERY)))
     assert findings == []
-    assert drift_check.CHECK_EXAMINED["30"] == {"examined": 1, "skipped": 1}
+    assert _stats() == {"examined": 1, "skipped": 1}
 
 
 def test_nothing_examined_is_blind(tree):
     findings, _ = tree([_inv('{"filters": 1}', command="no-such")],
                        _post_spec(_obj(QUERY)))
     assert len(findings) == 1 and "examined 0" in findings[0]["error"]
+
+
+# ------------------------------------------------- SCIM case-insensitivity
+
+SCIM_BLOCK = BLOCK.replace('f"https://webexapis.com/v1/zz/captures/query"',
+                           'f"https://webexapis.com/identity/scim/{org_id}/v2/Bulk"')
+BULK = _obj({"schemas": {}, "failOnErrors": {}, "operations": {}})
+
+
+def _scim_spec(path="/identity/scim/{orgId}/v2/Bulk", schema=BULK):
+    return {"paths": {path: {"post": {
+        "requestBody": {"content": {"application/json": {"schema": schema}}},
+        "responses": {"200": {"description": "ok"}}}}}}
+
+
+def test_scim_operation_compares_keys_case_insensitively(tree):
+    """`scim-bulk create`: the spec's request schema says `operations`, the
+    docs send RFC 7644's `Operations`; SCIM attribute names are
+    case-insensitive (RFC 7643 §2.1). A key in no case still fires."""
+    body = '{"schemas": [], "failOnErrors": 1, "Operations": []}'
+    assert tree([_inv(body)], _scim_spec(), module_src=SCIM_BLOCK)[0] == []
+    findings, _ = tree([_inv('{"Operations": [], "FailOnError": 1}')],
+                       _scim_spec(), module_src=SCIM_BLOCK)
+    assert [f["unknown"] for f in findings] == [["FailOnError"]]
+
+
+def test_non_scim_operation_keeps_case(tree):
+    """`PATCH /groups/{id}` declares a SCIM-looking `{schemas, Operations}`
+    body but is not a SCIM endpoint: a wrong-case key still fires there."""
+    findings, _ = tree([_inv('{"schemas": [], "operations": []}')],
+                       _post_spec(_obj({"schemas": {}, "Operations": {}})))
+    assert [f["unknown"] for f in findings] == [["operations"]]
+
+
+def test_scim_detection_is_keyed_on_the_spec_path():
+    op = drift_check.SpecOp("webex-admin.json", "/identity/scim/{orgId}/v2/Bulk",
+                            "POST", {}, {})
+    assert drift_check._is_scim_op(op)
+    assert not drift_check._is_scim_op(op._replace(path="/groups/{groupId}"))
 
 
 # -------------------------------------------------------------------- print
@@ -373,6 +418,13 @@ def test_print_renders_unparseable_count(tree, capsys):
     assert "wxcli zz-probe create  --json-body filters  (accepts: query)" in out[1]
 
 
+def test_unparseable_count_is_recorded_for_json_output(tree):
+    _, unparseable = tree([_inv("file://x.json"), _inv('{"query": {}}')],
+                          _post_spec(_obj(QUERY)))
+    assert unparseable == 1
+    assert drift_check.CHECK_EXAMINED["30"]["unparseable"] == 1
+
+
 # ---------------------------------------------------------------- live tree
 
 def test_live_tree_is_clean():
@@ -384,3 +436,15 @@ def test_live_tree_is_clean():
     assert findings == []
     assert drift_check.CHECK_EXAMINED["30"]["examined"] > 100
     assert unparseable > 0
+
+
+def test_json_output_carries_the_unparseable_count(monkeypatch, capsys):
+    """`--json` exposes the unparseable count beside the findings, so an
+    unattended run can trend it. Runs the real gate (about 10 s)."""
+    import sys
+    monkeypatch.setattr(sys, "argv", ["drift_check.py", "--json"])
+    drift_check.main()
+    results = json.loads(capsys.readouterr().out)
+    assert results["30_doc_body_unknown_keys"] == []
+    assert results["30_doc_body_unparseable"] == \
+        drift_check.CHECK_EXAMINED["30"]["unparseable"] > 0

@@ -267,6 +267,9 @@ wxcli org-contacts create-delete \
   }'
 ```
 
+> **Unverified:** from the spec, not a live call: the contact UUIDs go in `objectIds` (not
+> `contactIds`); `schemas` and `objectIds` are both required.
+
 ### Raw HTTP Fallback
 
 ```bash
@@ -316,6 +319,8 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   }' \
   "https://webexapis.com/v1/contacts/organizations/$ORG_ID/contacts/bulk/delete"
 ```
+
+> **Unverified:** the bulk-delete body (`objectIds`) is from the spec, not a live call.
 
 ### Gotchas
 

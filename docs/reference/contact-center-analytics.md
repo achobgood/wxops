@@ -113,10 +113,13 @@ wxcli cc-ai-feature list
 # Get a specific AI feature
 wxcli cc-ai-feature show feat-abc-123
 
-# Enable/disable an AI feature (each feature is its own object with an `enable` flag;
-# there is no top-level active switch — spec, not live-verified)
+# Enable/disable an AI feature
 wxcli cc-ai-feature update feat-abc-123 --json-body '{"realtimeTranscripts": {"enable": true}}'
 ```
+
+> **Unverified:** the `update` body is from the spec, not a live call. Each AI feature is its
+> own object with an `enable` flag (`realtimeTranscripts`, `generatedSummaries`,
+> `agentWellbeing`, `autoCSAT`, …); there is no top-level `active` switch.
 
 ### Raw HTTP
 
@@ -254,8 +257,11 @@ wxcli cc-summaries show summary-abc-123
 
 # Update summary config
 wxcli cc-summaries update summary-abc-123 --json-body '{"callDropSummariesEnabled": true, "virtualAgentTransferSummariesEnabled": true, "consultTransferSummariesEnabled": true, "agentInclusionType": "ALL"}'
-# (spec, not live-verified: the toggles are per summary type; there is no active flag)
 ```
+
+> **Unverified:** the `update` body is from the spec, not a live call. The toggles are per
+> summary type (`callDropSummariesEnabled`, `virtualAgentTransferSummariesEnabled`,
+> `consultTransferSummariesEnabled`) plus `agentInclusionType`; there is no `active` flag.
 
 ### Raw HTTP
 
@@ -366,7 +372,7 @@ when the request is about a plan rather than a live call.
 wxcli cc-call-monitoring create --json-body '{
   "id": "req-abc-123",
   "taskId": "task-789",
-  "monitorType": "silentMonitor"
+  "monitorType": "midcall"
 }'
 
 # List active monitoring sessions
@@ -388,6 +394,10 @@ wxcli cc-call-monitoring create-end task-789
 wxcli cc-call-monitoring delete req-abc-123
 ```
 
+> **Unverified:** from the spec, not a live call: `monitorType` is `midcall`, `adhoc` or
+> `continuous`, and `taskId` is mandatory for `midcall`. To monitor an agent's calls rather
+> than one task, send `agents` (or `queueIds`/`teams`/`sites`) instead of `taskId`.
+
 ### Raw HTTP
 
 ```
@@ -396,7 +406,7 @@ POST https://api.wxcc-us1.cisco.com/v1/monitor
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"taskId": "task-789", "monitorType": "silentMonitor"}
+{"id": "req-abc-123", "taskId": "task-789", "monitorType": "midcall"}
 
 # List active sessions
 GET https://api.wxcc-us1.cisco.com/v1/monitor/sessions
@@ -509,6 +519,9 @@ wxcli cc-subscriptions update-subscriptions sub-001 --json-body '{
 wxcli cc-subscriptions delete-subscriptions sub-001
 ```
 
+> **Unverified:** from the spec, not a live call: the webhook target is `destinationUrl` (HTTPS),
+> not `callbackUrl`; `name`, `eventTypes`, `destinationUrl` and `resourceVersion` are required.
+
 ### Raw HTTP
 
 ```
@@ -596,8 +609,6 @@ wxcli cc-tasks list --from 1784592000000 --all -o json
 wxcli cc-tasks list --from 1784592000000 --offset 100 --limit 5 -o json
 
 # Create a task
-# (spec, not live-verified: destination, entryPointId and mediaType are required;
-#  outboundType is CALLBACK, OUTDIAL or EXECUTE_FLOW, and OUTDIAL needs an outbound entry point)
 wxcli cc-tasks create --json-body '{
   "entryPointId": "OUTBOUND_ENTRY_POINT_ID",
   "destination": "+15551234567",
@@ -640,6 +651,11 @@ wxcli cc-tasks create-accept-preview-task task-789 campaign-001
 wxcli cc-tasks create-skip task-789 campaign-001
 wxcli cc-tasks delete-preview-task task-789 campaign-001
 ```
+
+> **Unverified:** the `create` and `create-consult` bodies are from the spec, not a live call.
+> `create` requires `destination`, `entryPointId` and `mediaType`; `outboundType` is
+> `CALLBACK`, `OUTDIAL` or `EXECUTE_FLOW`, and `OUTDIAL` needs an outbound entry point.
+> `create-consult` takes the target in `to` (not `destination`), with `destinationType`.
 
 ### Raw HTTP
 
@@ -859,7 +875,7 @@ wxcli cc-address-book create-entry ab-001 --json-body '{
   "number": "+15559876543"
 }'
 
-# Bulk save entries (spec, not live-verified: each entry is an items[] wrapper)
+# Bulk save entries
 wxcli cc-address-book create-bulk ab-001 --json-body '{
   "items": [
     {"itemIdentifier": 1, "requestAction": "SAVE", "item": {"name": "Alice", "number": "+15551111111"}},
@@ -880,6 +896,10 @@ wxcli cc-address-book delete ab-001 entry-001
 wxcli cc-address-book list-incoming-references ab-001
 wxcli cc-address-book delete-address-book-v3 ab-001
 ```
+
+> **Unverified:** the entry bodies are from the spec, not a live call. An entry is `name` +
+> `number` (both required); the bulk form wraps each one in an `items` entry
+> (`itemIdentifier`, `requestAction`: `SAVE` or `DELETE`, `item`).
 
 ### Raw HTTP
 
