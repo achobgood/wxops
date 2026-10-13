@@ -224,6 +224,15 @@ Checks (docs/arch/target-architecture.md §A6):
       (`cc-queue list --limit 2` -> `?max=2` -> 17 rows). --offset routed
       through fetch_from_offset counts as translated. An op declaring no such
       name gives the CLI nothing to translate to and is out of scope.
+  24. Walker page/size params: a page walker (follow_page_param,
+      fetch_from_offset, follow_scim) must not send a page or page-size
+      query-param name the spec op does not declare when the op DOES declare
+      a name for that concept. follow_page_param always sent `pageSize`; the
+      Flows endpoints read `size`, returned their default 10, and the
+      short-page stop ended the walk (`cc-flow list --all`: 10 of 56). Names
+      come from the page_param=/size_param= kwargs (auth.py defaults
+      page/pageSize) or follow_scim's startIndex/count; follow_pagination
+      (Link header) sends no name and is exempt.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -251,7 +260,7 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 
 try:  # runnable as `python tools/drift_check.py` and as an imported module
     from tools.spec_overlay import load_overlay, merge_overlay, superseded_paths
@@ -3326,9 +3335,46 @@ def record_examined(check: str, findings: list[dict], examined: int,
     return findings
 
 
-def helper_skip_count() -> int:
-    """Everything the shared readers could not parse on their last call."""
-    return sum(len(HELPER_SKIPS.get(k) or ()) for k in ("modules", "blocks", "specs"))
+def helper_skip_count(*keys: str) -> int:
+    """What the shared readers could not parse on their last call, summed over
+    the HELPER_SKIPS keys a check actually used (default: all three)."""
+    keys = keys or ("modules", "blocks", "specs")
+    return sum(len(HELPER_SKIPS.get(k) or ()) for k in keys)
+
+
+# How main() prints each of checks 23-30: {"NN": (label, noun, formatter)}.
+# The formatter renders ONE ordinary finding; print_check_findings renders the
+# blind-run finding itself, so a formatter never sees a dict without its keys.
+CHECK_PRINT: dict[str, tuple[str, str, Callable[[dict], str]]] = {}
+
+
+def print_check_findings(check: str, findings: list[dict], limit: int = 20) -> None:
+    """Print a check-23+ result: `[NN] <label>: N   (examined M <noun>, skipped
+    K)`, up to `limit` detail lines, then `... and N more (--json for all)`.
+
+    Never raises — the gate runs unattended, and a crash here exits 2:
+      * a record_examined blind finding (`{"check", "error"}`) prints as
+        `BLIND  <error>` without reaching the check's formatter;
+      * a formatter that raises on an odd finding prints the finding's repr;
+      * an unregistered check or one with no CHECK_EXAMINED entry prints
+        generic text and zeros.
+    """
+    label, noun, fmt = CHECK_PRINT.get(check, (f"check {check}", "items", repr))
+    stats = CHECK_EXAMINED.get(check) or {}
+    print(f"[{check}] {label}: {len(findings)}"
+          f"   (examined {stats.get('examined', 0)} {noun}, "
+          f"skipped {stats.get('skipped', 0)})")
+    for f in findings[:limit]:
+        if isinstance(f, dict) and "error" in f:   # record_examined's blind finding
+            print(f"      BLIND  {f['error']}")
+            continue
+        try:
+            line = fmt(f)
+        except Exception:   # noqa: BLE001 — a print must never fail the gate
+            line = repr(f)
+        print(f"      {line}")
+    if len(findings) > limit:
+        print(f"      ... and {len(findings) - limit} more (--json for all)")
 
 # The names an endpoint can declare for each window concept. `size` is a page
 # size only beside `page`, and `count` only beside `startIndex` — alone each is
@@ -3425,6 +3471,143 @@ def check_inert_window_flags(commands_dir: Path = COMMANDS_DIR,
             })
     return record_examined("23", findings, examined,
                            skipped + helper_skip_count(), "list commands")
+
+
+CHECK_PRINT["23"] = (
+    "list flags (--offset/--limit) sent as a query param the endpoint does not declare",
+    "list commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  {f['flag']} -> "
+               f"{f['sends']}  {f['op']}  ({f['spec']})"))
+
+
+# ----------------------------------------------------------------- check 24
+
+# The page/size names each runtime walker sends, copied from
+# src/wxcli/auth.py (follow_page_param / fetch_from_offset defaults,
+# follow_scim's fixed names) — read, never imported. follow_pagination walks
+# the server's Link header and sends no name of its own: exempt by construction.
+_WALKER_DEFAULTS = {
+    "follow_page_param": {"page_param": "page", "size_param": "pageSize"},
+    "fetch_from_offset": {"page_param": "page", "size_param": "pageSize"},
+}
+_SCIM_WALKER_SENDS = {"page_param": "startIndex", "size_param": "count"}
+_WALKER_CALL = re.compile(r"\.(follow_page_param|fetch_from_offset|follow_scim)\(")
+_WALKER_KWARG = re.compile(r"\b(page_param|size_param)\s*=\s*([^,)\s]+)")
+_STR_LITERAL = re.compile(r"""^(["'])([^"']*)\1$""")
+
+
+def _call_args(text: str, start: int):
+    """The argument text of the call whose `(` ends just before `start`, or
+    None when the parens never balance (a half-written or truncated block)."""
+    depth, quote = 1, ""
+    for i in range(start, len(text)):
+        c = text[i]
+        if quote:
+            if c == quote and text[i - 1] != "\\":
+                quote = ""
+        elif c in "\"'":
+            quote = c
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return text[start:i]
+    return None
+
+
+def walker_sends(block_text: str):
+    """[(walker, {"page_param": name, "size_param": name}), …] for every page
+    walker call in a block, or None when any call cannot be read statically
+    (unbalanced parens, or a page_param=/size_param= that is not a literal)."""
+    calls = []
+    for m in _WALKER_CALL.finditer(block_text):
+        walker = m.group(1)
+        args = _call_args(block_text, m.end())
+        if args is None:
+            return None
+        if walker == "follow_scim":
+            calls.append((walker, dict(_SCIM_WALKER_SENDS)))
+            continue
+        sends = dict(_WALKER_DEFAULTS[walker])
+        for kw in _WALKER_KWARG.finditer(args):
+            lit = _STR_LITERAL.match(kw.group(2))
+            if not lit:
+                return None
+            sends[kw.group(1)] = lit.group(2)
+        calls.append((walker, sends))
+    return calls
+
+
+def check_undeclared_walker_params(commands_dir: Path = COMMANDS_DIR,
+                                   specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A page walker sending a page or page-size name the endpoint does not read.
+
+    `follow_page_param` always sent `pageSize`. The Contact Center Flows
+    endpoints declare `size`, ignored the unknown name and returned their
+    default 10, which the short-page stop read as the end — `cc-flow list
+    --all` returned 10 of 56 and exited 0 (live, 2026-10-13).
+
+    For each block calling `follow_page_param(`/`fetch_from_offset(`, the
+    `page_param=`/`size_param=` kwargs (defaults `page`/`pageSize`, copied from
+    src/wxcli/auth.py) — and for `follow_scim(` its fixed `startIndex`/`count`
+    — are compared with the spec op's declared query params. A name fires when
+    it is undeclared AND the endpoint declares a name for that concept: a
+    page/offset name (`page`, `startIndex`, `offset`, `start`) for the page
+    param, a page-size name (_declared_window_names("--limit")) for the size
+    param. `/v1/tasks` declares only `pageSize` yet pages by `page` live
+    (2026-10-13), so a concept the spec leaves unnamed gives this check nothing
+    to compare — a measured tightening, not an ack; the runtime's
+    `_repeated_page` guard covers a page name the server ignores.
+
+    A path several specs declare counts as declared if ANY of them declares the
+    name. Blocks with no matching spec op, or with a walker call whose names
+    cannot be read statically, are skipped and counted.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method != "GET" or not _WALKER_CALL.search(block.text):
+            continue
+        calls = walker_sends(block.text)
+        sops = index.get(("GET", block.npath))
+        if calls is None or not sops:
+            skipped += 1
+            continue
+        examined += 1
+        declared: set[str] = set()
+        for sop in sops:
+            declared |= query_param_names(sop.op, sop.spec)
+        concept = {"page_param": declared & _OFFSET_NAMES,
+                   "size_param": _declared_window_names("--limit", declared)}
+        seen: set[tuple[str, str]] = set()
+        for walker, sends in calls:
+            for role in ("page_param", "size_param"):
+                name = sends[role]
+                if name in declared or not concept[role] or (walker, name) in seen:
+                    continue
+                seen.add((walker, name))
+                findings.append({
+                    "group": block.group,
+                    "command": block.command,
+                    "op": f"GET {sops[0].path}",
+                    "walker": walker,
+                    "param": name,
+                    "spec": ", ".join(sorted({s.spec_file for s in sops})),
+                })
+    return record_examined(
+        "24", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "page-walker commands")
+
+
+CHECK_PRINT["24"] = (
+    "page walkers using a page/size parameter the endpoint does not declare",
+    "page-walker commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  {f['walker']} sends "
+               f"{f['param']}  {f['op']}  ({f['spec']})"))
 
 
 # ----------------------------------------------------------------- check 18
@@ -4386,7 +4569,7 @@ def main() -> int:
     name_lock = check_name_lock(locked=name_lock_file.get("modules") or {})
     name_lock_missing = not name_lock_file.get("modules")
     inert_window_flags = check_inert_window_flags()
-    window_stats = CHECK_EXAMINED.get("23", {"examined": 0, "skipped": 0})
+    walker_params = check_undeclared_walker_params()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -4430,6 +4613,7 @@ def main() -> int:
         "22_name_lock_unlocked": name_lock["unlocked"],
         "22_name_lock_missing": name_lock_missing,
         "23_inert_window_flags": inert_window_flags,
+        "24_undeclared_walker_params": walker_params,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -4445,7 +4629,7 @@ def main() -> int:
                   or ungated_destructive
                   or name_lock_missing or name_lock["retargeted"] or name_lock["removed"]
                   or name_lock["removed_modules"] or name_lock["unlocked"]
-                  or inert_window_flags)
+                  or inert_window_flags or walker_params)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -4676,18 +4860,8 @@ def main() -> int:
               f"{len(name_lock['unlocked'])} unlocked"
               + ("   (NO LOCK FILE — run --refresh-name-lock)" if name_lock_missing else ""))
         _print_name_lock_findings(name_lock)
-        print(f"[23] list flags (--offset/--limit) sent as a query param the "
-              f"endpoint does not declare: {len(inert_window_flags)}"
-              f"   (examined {window_stats['examined']} list commands, "
-              f"skipped {window_stats['skipped']})")
-        for f in inert_window_flags[:20]:
-            if "error" in f:   # record_examined's blind-run finding
-                print(f"      BLIND  {f['error']}")
-                continue
-            print(f"      wxcli {f['group']} {f['command']}  {f['flag']} -> "
-                  f"{f['sends']}  {f['op']}  ({f['spec']})")
-        if len(inert_window_flags) > 20:
-            print(f"      ... and {len(inert_window_flags) - 20} more (--json for all)")
+        print_check_findings("23", inert_window_flags)
+        print_check_findings("24", walker_params)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

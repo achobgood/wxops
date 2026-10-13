@@ -82,6 +82,7 @@ tests/*
 !tests/test_drift_check_name_lock.py
 !tests/test_drift_check_static_helpers.py
 !tests/test_drift_check_window_flags.py
+!tests/test_drift_check_walker_params.py
 !tests/test_spec_sync.py
 !tests/test_sync_guard.py
 !tests/test_sync_classify.py
