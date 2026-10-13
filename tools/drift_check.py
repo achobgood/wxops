@@ -256,9 +256,12 @@ Checks (docs/arch/target-architecture.md §A6):
       array its spec's 200 response declares (any media type, `*/*`
       included) — `<key>` or the `data` fallback. The seven CC bulk exports
       declare `resources` under `*/*` only and extracted `items`:
-      `cc-global-vars list` printed 0 of 9 rows. Several arrays pass when
-      any is reachable; a bare-array response is exempt; a response with no
-      declared array is skipped and counted.
+      `cc-global-vars list` printed 0 of 9 rows. A response that declares
+      object properties but NO array fails too — the extractor drops every
+      field (`user-settings list-outbound-billing-plan` printed `[]` for
+      `{"enabled": true}`). Several arrays pass when any is reachable; a
+      bare-array response is exempt; a response declaring no properties at
+      all is skipped and counted.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -3875,26 +3878,35 @@ def check_unreachable_list_key(commands_dir: Path = COMMANDS_DIR,
     back to `result.get("items", result.get("data", …))` — `cc-global-vars
     list` printed 0 of 9 rows, exit 0, with a false "more pages" note, and
     `cc-user-profiles list-acl` (six arrays, extracted `items`) printed `[]`
-    (2026-10-13).
+    (2026-10-13). Same loss with no array at all: the three
+    `list-outbound-billing-plan` commands declare `{enabled}` through a
+    response-level `$ref` the parser did not resolve, defaulted to a list, and
+    printed `[]` for `{"enabled": true}` (live, 2026-10-13).
 
     For each GET block that extracts `result.get("<key>", result.get("data",
     …))`, the spec op's 200 array properties are read over every media type
     (response_array_props). A finding needs a non-empty set of arrays of which
-    neither `<key>` nor `data` (the extractor's fallback) is one. A response
-    with several arrays passes when ANY is reachable — a command may extract
-    one on purpose. A bare-array response (None) is emitted by the
-    extractor's own list branch and passes.
+    neither `<key>` nor `data` (the extractor's fallback) is one — OR no
+    array but at least one object property (response_object_props): the
+    extractor then drops every field. `spec_arrays` names the arrays it
+    missed (empty for the no-array case) and `drops` every top-level property
+    the response declares, i.e. what the command loses. A response with
+    several arrays passes when ANY is reachable — a command may extract one
+    on purpose, and so does one whose key or `data` names a declared
+    non-array property (the extractor emits that sub-object). A bare-array
+    response (None) is emitted by the extractor's own list branch and passes.
 
     A path several specs declare passes if ANY of them describes a bare array
     or a reachable array (under-report rather than fail a correct command, as
     checks 9/23-25 do). Blocks with no matching spec op, or whose response
-    declares no array in any spec, are skipped and counted.
+    declares no properties at all in any spec (no schema, a bare `{}`), are
+    skipped and counted: nothing to judge, never guessed.
 
     Overlap with check 25 is accepted, not suppressed: 25 judges a
     single-resource `{id}` GET whose object the extractor truncates; 27
-    judges any list whose key misses every array. A block can be both only
-    if it is a single object whose key ALSO misses — two distinct defects,
-    one fix (render it as `show`) clears both. Neither tree has such a block.
+    judges any list that emits nothing the response declares. A block can be
+    both only if it is a single object on an `{id}` tail whose key ALSO
+    misses — two distinct defects, one fix (render it as `show`) clears both.
     """
     findings: list[dict] = []
     examined = skipped = 0
@@ -3912,15 +3924,23 @@ def check_unreachable_list_key(commands_dir: Path = COMMANDS_DIR,
             continue
         reachable = {key, "data"}
         missed: set[str] = set()
+        drops: set[str] = set()
         passes = False
         for sop in sops:
             arrays = response_array_props(sop.op, sop.spec)
-            if arrays is None or arrays & reachable:
+            if arrays is None:
+                passes = True       # bare array: the list branch emits it
+                continue
+            props = response_object_props(sop.op, sop.spec)
+            # Reaching ANY declared property (an array, or an object under
+            # the key / `data`) emits something real: not this check's class.
+            if (props | arrays) & reachable:
                 passes = True
                 continue
             missed |= arrays
-        if not passes and not missed:
-            skipped += 1            # no declared array: never guessed
+            drops |= props | arrays
+        if not passes and not drops:
+            skipped += 1            # no declared property: never guessed
             continue
         examined += 1
         if passes:
@@ -3931,6 +3951,7 @@ def check_unreachable_list_key(commands_dir: Path = COMMANDS_DIR,
             "op": f"GET {sops[0].path}",
             "extracts": key,
             "spec_arrays": sorted(missed),
+            "drops": sorted(drops),
             "spec": ", ".join(sorted({s.spec_file for s in sops})),
         })
     return record_examined(
@@ -3943,8 +3964,10 @@ CHECK_PRINT["27"] = (
     "list commands whose extractor cannot reach the response's array",
     "list commands",
     lambda f: (f"wxcli {f['group']} {f['command']}  extracts {f['extracts']}  "
-               f"spec arrays: {', '.join(f['spec_arrays'])}  "
-               f"{f['op']}  ({f['spec']})"))
+               + (f"spec arrays: {', '.join(f['spec_arrays'])}  "
+                  if f['spec_arrays'] else
+                  f"no array, drops: {', '.join(f['drops'])}  ")
+               + f"{f['op']}  ({f['spec']})"))
 
 
 # ----------------------------------------------------------------- check 18

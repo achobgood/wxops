@@ -715,6 +715,88 @@ def _is_single_resource_action_get(method: str, path: str) -> bool:
     return bool(re.fullmatch(r"\{[^}]+\}:[A-Za-z][\w-]*", last))
 
 
+def _safe_resolve(spec: dict, node, depth: int = 0):
+    """Follow a `$ref` chain (bounded); dangling or non-dict -> None."""
+    while isinstance(node, dict) and isinstance(node.get("$ref"), str):
+        if depth > 8:
+            return None
+        try:
+            node = resolve_ref(spec, node["$ref"])
+        except (KeyError, TypeError, AttributeError):
+            return None
+        depth += 1
+    return node if isinstance(node, dict) else None
+
+
+def _may_be_array(spec: dict, node, depth: int = 0) -> bool:
+    """True unless `node` is definitely NOT an array. An unresolvable `$ref`
+    or a composition with any array member counts as maybe-array, so a doubt
+    always keeps the list rendering."""
+    resolved = _safe_resolve(spec, node)
+    if resolved is None or depth > 8:
+        return True
+    t = resolved.get("type")
+    if t == "array" or (isinstance(t, list) and "array" in t):
+        return True
+    for key in ("allOf", "oneOf", "anyOf"):
+        members = resolved.get(key)
+        if isinstance(members, list) and any(
+                _may_be_array(spec, m, depth + 1) for m in members):
+            return True
+    return False
+
+
+def _declared_props(spec: dict, schema, depth: int = 0) -> dict | None:
+    """Top-level properties, `$ref` and `allOf` resolved; None when any part
+    cannot be resolved (a doubt, so the caller keeps the list rendering)."""
+    schema = _safe_resolve(spec, schema)
+    if schema is None or depth > 8:
+        return None
+    props: dict = {}
+    for part in schema.get("allOf") or ():
+        sub = _declared_props(spec, part, depth + 1)
+        if sub is None:
+            return None
+        props.update(sub)
+    own = schema.get("properties")
+    if isinstance(own, dict):
+        props.update(own)
+    return props
+
+
+def _declares_single_object(op: dict, spec: dict) -> bool:
+    """True when the GET's 200 response is, in every media type it declares,
+    an object with at least one property and no array property.
+
+    Reads what `_get_response_schema` does not: a response-level `$ref`
+    (`#/components/responses/…`) and every media type, `text/plain` and `*/*`
+    included. `detect_command_type` saw no schema for those, so its "no schema
+    -> list" default rendered the three `list-outbound-billing-plan` commands
+    through the list extractor: `{"enabled": true}` printed `[]` (live,
+    2026-10-13). Same for `guest-management list` (`/guests/count`, an object
+    declared under `text/plain` only). Any doubt — a bare array, an array
+    property, an unresolvable `$ref`, a schema with no properties — returns
+    False, so a real collection is never re-rendered as a single object.
+    """
+    responses = op.get("responses")
+    if not isinstance(responses, dict):
+        return False
+    resp = _safe_resolve(spec, responses.get("200"))
+    content = resp.get("content") if resp else None
+    if not isinstance(content, dict) or not content:
+        return False
+    for media in content.values():
+        if not isinstance(media, dict):
+            return False
+        schema = _safe_resolve(spec, media.get("schema"))
+        if schema is None or _may_be_array(spec, schema):
+            return False
+        props = _declared_props(spec, schema)
+        if not props or any(_may_be_array(spec, p) for p in props.values()):
+            return False
+    return True
+
+
 def parse_operation(
     method: str,
     path: str,
@@ -828,6 +910,9 @@ def parse_tag(
     seen_types: dict[str, int] = {}
     # (endpoint, is_primary) in spec order; names are derived in a later pass.
     pending: list[tuple[Endpoint, bool]] = []
+    # id()s of list-classified GETs whose response is one flat object
+    # (_declares_single_object); re-rendered as `show` after naming.
+    single_object_lists: set[int] = set()
 
     for path, path_obj in spec.get("paths", {}).items():
         for method in ("get", "post", "put", "patch", "delete"):
@@ -881,6 +966,8 @@ def parse_tag(
                 op = {**op, "parameters": merged}
 
             ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params)
+            if ep.command_type == "list" and _declares_single_object(op, spec):
+                single_object_lists.add(id(ep))
             endpoints.append(ep)
             pending.append((ep, op_tags[0] == tag))
 
@@ -904,9 +991,13 @@ def parse_tag(
     # name-lock churn a behaviour fix should not cause. This is exactly what a
     # `command_type_overrides` entry does, made a rule so the next operation of
     # this shape is rendered correctly without anyone having to notice it.
+    # Same rule, same timing, for a list-classified GET whose response is
+    # declared (behind a response `$ref`, or under a non-JSON media type) as
+    # one flat object: the list extractor would print `[]` for it.
     for ep in endpoints:
-        if ep.command_type == "list" and _is_single_resource_action_get(
-                ep.method, "/" + ep.url_path):
+        if ep.command_type == "list" and (
+                _is_single_resource_action_get(ep.method, "/" + ep.url_path)
+                or id(ep) in single_object_lists):
             ep.command_type = "show"
             ep.response_list_key = None
             ep.response_item_fields = {}

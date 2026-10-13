@@ -12,8 +12,12 @@ A GET block that extracts `result.get("<key>", result.get("data", …))` fires
 when the spec's 200 response declares at least one array property and none of
 them is `<key>` or `data` (the extractor's fallback). A response with several
 arrays passes when ANY one is reachable — the command may intentionally emit
-one. A bare-array response has no key to extract and passes; a response that
-declares no array at all is skipped (nothing to judge, never guessed).
+one. A response that declares object properties but NO array fails too: the
+extractor drops every field (`user-settings list-outbound-billing-plan`
+printed `[]` for `{"enabled": true}`, live 2026-10-13 — the 200 was a
+response-level `$ref` the parser never resolved, so it defaulted to a list).
+A bare-array response has no key to extract and passes; a response that
+declares no properties at all is skipped (nothing to judge, never guessed).
 
 Every fire case has a paired no-fire case, written so the check can fail it.
 """
@@ -118,6 +122,7 @@ def test_star_media_type_resources_missed_fires(tree):
     assert f["op"] == f"GET {EXPORT_PATH}"
     assert f["extracts"] == "items"
     assert f["spec_arrays"] == ["resources"]
+    assert f["drops"] == ["pageNumber", "resources", "totalResources"]
     assert f["spec"] == "webex-probe.json"
 
 
@@ -206,13 +211,74 @@ def test_ref_and_allof_resolved_matching_key_passes(tree):
     assert tree(_block(LIST_BLOCK, key="resources"), spec) == []
 
 
+# ------------------------------------------- an object with no array at all
+
+BILLING_PATH = "/zz/people/{personId}/outboundBillingPlan"
+BILLING_URL = "zz/people/{person_id}/outboundBillingPlan"
+
+
+def test_object_without_array_fires(tree):
+    """`user-settings list-outbound-billing-plan` before the fix: `{enabled}`
+    rendered through the list extractor printed `[]`."""
+    spec = _spec(_obj({"enabled": {"type": "boolean"}}), path=BILLING_PATH,
+                 media="application/json")
+    findings = tree(_block(LIST_BLOCK, cmd="list-outbound-billing-plan",
+                           path=BILLING_URL), spec)
+    assert len(findings) == 1, findings
+    assert findings[0]["spec_arrays"] == []
+    assert findings[0]["drops"] == ["enabled"]
+    assert findings[0]["op"] == f"GET {BILLING_PATH}"
+
+
+def test_object_without_array_rendered_as_show_passes(tree):
+    """The fix: the same op rendered as a single-object read."""
+    good = _block(LIST_BLOCK, cmd="list-two", path="zz/two", key="resources")
+    spec = _spec(_obj({"enabled": {"type": "boolean"}}), path=BILLING_PATH,
+                 media="application/json")
+    spec["paths"]["/zz/two"] = _spec(EXPORT)["paths"][EXPORT_PATH]
+    findings = tree(_block(SHOW_BLOCK, cmd="list-outbound-billing-plan",
+                           path=BILLING_URL) + "\n" + good, spec)
+    assert findings == []
+    assert drift_check.CHECK_EXAMINED["27"] == {"examined": 1, "skipped": 0}
+
+
+def test_response_level_ref_object_fires(tree):
+    """The 200 itself is `{"$ref": "#/components/responses/…"}`."""
+    spec = _spec(None, path=BILLING_PATH)
+    spec["paths"][BILLING_PATH]["get"]["responses"]["200"] = {
+        "$ref": "#/components/responses/Billing"}
+    spec["components"] = {"responses": {"Billing": {
+        "description": "ok", "content": {"application/json": {"schema": {
+            "$ref": "#/components/schemas/Plan"}}}}},
+        "schemas": {"Plan": _obj({"enabled": {"type": "boolean"}})}}
+    findings = tree(_block(LIST_BLOCK, path=BILLING_URL), spec)
+    assert [f["drops"] for f in findings] == [["enabled"]]
+
+
+def test_text_plain_object_without_array_fires(tree):
+    """`guest-management list` (`/guests/count`) declares its object under
+    `text/plain` only; the list extractor drops it all the same."""
+    spec = _spec(_obj({"112": {"type": "number"}}), path="/zz/guests/count",
+                 media="text/plain")
+    findings = tree(_block(LIST_BLOCK, path="zz/guests/count"), spec)
+    assert [f["drops"] for f in findings] == [["112"]]
+
+
+def test_object_whose_key_names_a_non_array_property_passes(tree):
+    """`{data: {...}}`: the `data` fallback emits that sub-object — something
+    real is printed, so it is not this check's class."""
+    spec = _spec(_obj({"data": _obj({"task": STR}), "meta": STR}),
+                 media="application/json")
+    assert tree(_block(LIST_BLOCK), spec) == []
+    assert drift_check.CHECK_EXAMINED["27"] == {"examined": 1, "skipped": 0}
+
+
 # -------------------------------------------------------------- scope rules
 
-def test_response_without_an_array_is_skipped_and_counted(tree):
-    """No declared array: nothing to judge — never guessed. (A single object
-    rendered as a list is check 25's class, judged there.)"""
+def test_response_without_properties_is_skipped_and_counted(tree):
+    """An object schema declaring no property: nothing to judge."""
     good = _block(LIST_BLOCK, cmd="list-two", path="zz/two", key="resources")
-    spec = _spec(_obj({"name": STR}))
+    spec = _spec({"type": "object"})
     spec["paths"]["/zz/two"] = _spec(EXPORT)["paths"][EXPORT_PATH]
     findings = tree(_block(LIST_BLOCK) + "\n" + good, spec)
     assert findings == []
@@ -329,6 +395,7 @@ def test_check_27_line_format(capsys, monkeypatch):
     f = {"group": "cc-global-vars", "command": "list",
          "op": "GET /organization/{orgid}/cad-variable/bulk-export",
          "extracts": "items", "spec_arrays": ["resources"],
+         "drops": ["resources", "totalResources"],
          "spec": "webex-contact-center.json"}
     drift_check.print_check_findings("27", [f])
     out = capsys.readouterr().out.splitlines()
@@ -339,6 +406,22 @@ def test_check_27_line_format(capsys, monkeypatch):
         "resources  GET /organization/{orgid}/cad-variable/bulk-export  "
         "(webex-contact-center.json)",
     ]
+
+
+def test_check_27_line_format_no_array(capsys, monkeypatch):
+    monkeypatch.setitem(drift_check.CHECK_EXAMINED, "27",
+                        {"examined": 540, "skipped": 4})
+    f = {"group": "user-settings", "command": "list-outbound-billing-plan",
+         "op": "GET /telephony/config/people/{personId}/outboundBillingPlan",
+         "extracts": "items", "spec_arrays": [], "drops": ["enabled"],
+         "spec": "webex-cloud-calling.json"}
+    drift_check.print_check_findings("27", [f])
+    out = capsys.readouterr().out.splitlines()
+    assert out[1] == (
+        "      wxcli user-settings list-outbound-billing-plan  extracts items  "
+        "no array, drops: enabled  "
+        "GET /telephony/config/people/{personId}/outboundBillingPlan  "
+        "(webex-cloud-calling.json)")
 
 
 def test_main_wires_check_27():
