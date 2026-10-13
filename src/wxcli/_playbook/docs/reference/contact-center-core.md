@@ -337,11 +337,15 @@ wxcli cc-users update --json-body '[
 # List users with a specific dynamic skill
 wxcli cc-users show-by-dynamic-skill-id "skill-uuid"
 
-# Bulk assign a dynamic skill to users
+# Bulk assign a dynamic skill to users (unverified body; see the note below this block)
 wxcli cc-users update-dynamic-skill "skill-uuid" --json-body '{
   "items": [
-    {"itemIdentifier": 1, "item": {"id": "user1-uuid"}, "requestAction": "SAVE"},
-    {"itemIdentifier": 2, "item": {"id": "user2-uuid"}, "requestAction": "SAVE"}
+    {"itemIdentifier": 1, "requestAction": "SAVE",
+     "item": {"organizationId": "cc-org-uuid", "userId": "user1-uuid",
+              "skillId": "skill-uuid", "proficiencyValue": 7}},
+    {"itemIdentifier": 2, "requestAction": "SAVE",
+     "item": {"organizationId": "cc-org-uuid", "userId": "user2-uuid",
+              "skillId": "skill-uuid", "proficiencyValue": 7}}
   ]
 }'
 
@@ -354,6 +358,8 @@ wxcli cc-users update-reskill "user-uuid" --json-body '{
   }
 }'
 ```
+
+**Unverified:** the `update-dynamic-skill` body above is built from the spec's `UpdateDynamicSkillsDTO`, not from a live call. Per the spec: `userId` is the user whose dynamic skill is set; `organizationId` (the bare CC org UUID) is "required for all bulk save operations"; the value goes in the field that matches the skill's type — `proficiencyValue` (0-10), `booleanValue`, `textValue`, or `enumSkillValues`; `requestAction` is `SAVE` or `DELETE`; and `id` (the assignment's own resource id) is "mandatory when updating a resource", so include it when changing an existing assignment. `--generate-json-body` prints the full item shape.
 
 ### Raw HTTP
 

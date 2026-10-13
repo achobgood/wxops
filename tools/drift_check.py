@@ -1494,7 +1494,7 @@ def parse_module_signatures(module: str,
             continue
         # Every decorator name, not just the first: a renamed command stacks
         # its hidden alias FIRST, so `_command_name` alone recorded only the
-        # alias, and documented calls of 105 visible commands (e.g.
+        # alias, and documented calls of 102 renamed commands (e.g.
         # `cc-agents list-activities`) were invisible to doc_invocations.
         cmd_names = [n for n, _hidden in command_names(node)]
         if not cmd_names:
@@ -2215,8 +2215,8 @@ def _const_key(node) -> str | None:
 def command_names(node: ast.FunctionDef) -> list[tuple[str, bool]]:
     """Every `@app.command` name on one function, as (name, hidden).
 
-    38 generated functions carry two decorators: a hidden deprecated alias
-    FIRST, then the visible name. `_command_name` returns whichever it meets
+    102 generated functions carry two decorators (measured 2026-10-13): a
+    hidden deprecated alias FIRST, then the visible name. `_command_name` returns whichever it meets
     first, which is fine for a resolvable key and wrong for a report an operator
     reads — `announcements generate-a-text` is not in --help at all while
     `tts-generate` is.
@@ -4109,9 +4109,12 @@ def _doc_value_is_placeholder(value: str) -> bool:
     a backtick or a `#` never fire (Review Focus 2). Nor does a value with no
     digit at all — `epoch-ms`, `start-time`, `now`: a word names the value
     rather than being one, and a wrong-but-wordy value is a cheaper miss than
-    a false positive on a gate that runs unattended.
+    a false positive on a gate that runs unattended. A literal `true`/`false`
+    is a value, never a name, so it is not exempt.
     """
     v = value.strip()
+    if v.lower() in ("true", "false"):
+        return False
     return (not v or bool(DOC_PLACEHOLDER.match(v))
             or any(c in v for c in "<>${}`#")
             or "..." in v or "…" in v
@@ -4154,7 +4157,9 @@ def _body_prop_numeric(sop, key: str) -> str | None | bool:
         schema = body_schema(sop.op, sop.spec)
     except Exception:   # noqa: BLE001 — an odd body shape is skipped, never raised
         return False
-    props = (schema or {}).get("properties")
+    if not isinstance(schema, dict):
+        return False
+    props = schema.get("properties")
     if not isinstance(props, dict) or key not in props:
         return False
     return _numeric_type(sop.spec, props[key])

@@ -517,11 +517,17 @@ wxcli cc-users show USER_ID -o json
 ```bash
 wxcli cc-users update-dynamic-skill SKILL_ID --json-body '{
   "items": [
-    {"itemIdentifier": 1, "item": {"id": "USER_ID_1"}, "requestAction": "SAVE"},
-    {"itemIdentifier": 2, "item": {"id": "USER_ID_2"}, "requestAction": "SAVE"}
+    {"itemIdentifier": 1, "requestAction": "SAVE",
+     "item": {"organizationId": "CC_ORG_UUID", "userId": "USER_ID_1",
+              "skillId": "SKILL_ID", "proficiencyValue": 7}},
+    {"itemIdentifier": 2, "requestAction": "SAVE",
+     "item": {"organizationId": "CC_ORG_UUID", "userId": "USER_ID_2",
+              "skillId": "SKILL_ID", "proficiencyValue": 7}}
   ]
 }'
 ```
+
+**Unverified:** this body is built from the spec's `UpdateDynamicSkillsDTO`, not from a live call. Per the spec: `userId` is the user whose skill is set; `organizationId` (the bare CC org UUID) is "required for all bulk save operations"; the value goes in the field that matches the skill's type — `proficiencyValue` (0-10), `booleanValue`, `textValue`, or `enumSkillValues`; `requestAction` is `SAVE` or `DELETE`; and `id` (the assignment's own resource id) is "mandatory when updating a resource", so include it when changing an existing assignment. Run the command with `--generate-json-body` to see the full item shape.
 
 **List users with a specific dynamic skill:**
 
