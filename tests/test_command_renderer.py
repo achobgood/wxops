@@ -782,6 +782,123 @@ class TestCcV1PathsEndToEnd:
         assert not bad, "CC /v1 paths rendered without /v1:\n" + "\n".join(bad)
 
 
+# ── Contact Center fixes, 2026-10-13 (all three reproduced live first) ───────
+
+_CC_SPEC = Path(__file__).parent.parent / "specs" / "webex-contact-center.json"
+
+
+def _cc_render(tag: str) -> tuple[list, str]:
+    spec = json.loads(_CC_SPEC.read_text())
+    # auto_inject_params as generate_commands passes it by default.
+    endpoints, _ = parse_tag(tag, spec, auto_inject_params={"orgId"})
+    assert endpoints, f"{tag} produced no endpoints"
+    return endpoints, render_command_file(tag, endpoints, {},
+                                          base_url_override="{cc_base_url}")
+
+
+def _function_body(code: str, func: str) -> str:
+    start = code.index(f"\ndef {func}(")
+    nxt = code.find("\n@app.command", start)
+    return code[start: nxt if nxt != -1 else len(code)]
+
+
+class TestCcOrgIdQueryParam:
+    """Bug 1: the CC host rejected the base64 Webex org id in `?orgId=` with
+    401 'Token does not have access to OrgId:Y2lz...' — every CC runtime and
+    analytics command that sends it (cc-queue-stats, cc-agents, ...) failed."""
+
+    def test_cc_query_orgid_is_the_decoded_uuid(self):
+        _, code = _cc_render("Queues")
+        assert 'params["orgId"] = get_cc_org_id(api.session)' in code
+        assert 'params["orgId"] = org_id' not in code
+        # Still only when an org is saved: no saved org -> param omitted and the
+        # org is inferred from the token, as the spec documents.
+        assert "    if org_id is not None:\n" in code
+        compile(code, "<cc_queue_stats>", "exec")
+
+    def test_non_cc_query_orgid_is_unchanged(self):
+        """Control: the Calling/admin hosts DO take the base64 id."""
+        ep = _make_endpoint(auto_inject_params=["orgId"])
+        code = render_command_file("Things", [ep], {})
+        assert 'params["orgId"] = org_id' in code
+        assert "get_cc_org_id" not in code
+
+    def test_no_shipped_cc_module_sends_the_base64_org_id(self):
+        cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
+        bad = [f.name for f in sorted(cmd_dir.glob("cc_*.py"))
+               if 'params["orgId"] = org_id' in f.read_text()]
+        assert not bad, f"CC modules still send the base64 org id: {bad}"
+
+
+class TestCcFlowsPaging:
+    """Bug 2: `cc-flow list --all` returned 10 of 56. The walker sent
+    `pageSize`, the Flows endpoints take `size`; the server ignored the unknown
+    name, answered with its default page of 10, and the short-page stop ended
+    the walk. With no `includePagination`, the bare array carried no total, so
+    the truncation note could not fire either."""
+
+    def test_flows_page_size_param_is_size(self):
+        endpoints, _ = _cc_render("Flows")
+        by_path = {ep.url_path: ep for ep in endpoints if ep.method == "GET"}
+        assert by_path["{orgId}/project/{projectId}/flows"].page_size_param == "size"
+        assert by_path["{orgId}/project/{projectId}/flows:search"].page_size_param == "size"
+
+    def test_flows_walkers_page_with_size(self):
+        _, code = _cc_render("Flows")
+        assert code.count('size_param="size"') == 2, code.count('size_param="size"')
+
+    def test_include_pagination_defaults_on(self):
+        _, code = _cc_render("Flows")
+        assert 'typer.Option("true", "--include-pagination"' in code
+
+    def test_pagesize_endpoints_render_unchanged(self):
+        """Control: the ~109 `pageSize` commands must not grow a size_param."""
+        endpoints, code = _cc_render("Team")
+        assert any(ep.pagination_style == "page" for ep in endpoints)
+        assert all(ep.page_size_param == "pageSize" for ep in endpoints
+                   if ep.pagination_style == "page")
+        assert "size_param=" not in code
+
+
+class TestSingleResourceActionGet:
+    """Bug 3: `cc-flow export` printed only result["nodes"] — the list-style
+    extractor — so the export could not be re-imported; `list-validate` printed
+    `results` and dropped `valid: false`. A GET on `{id}:<action>` acts on ONE
+    resource and must emit the whole response."""
+
+    @pytest.mark.parametrize("method,path,expected", [
+        ("GET", "/{orgId}/project/{projectId}/v2/flows/{flowId}:export", True),
+        ("GET", "/{orgId}/project/{projectId}/v2/flows/{flowId}:validate", True),
+        ("GET", "/flow-store/{orgId}/project/{p}/flows/{flowId}:export", True),
+        ("GET", "/{orgId}/project/{projectId}/flows:search", False),   # a real list
+        ("GET", "/{orgId}/project/{projectId}/v2/flows/{flowId}", False),
+        ("POST", "/{orgId}/project/{projectId}/flows/{flowId}:publish", False),
+    ])
+    def test_classifier(self, method, path, expected):
+        from tools.openapi_parser import _is_single_resource_action_get
+        assert _is_single_resource_action_get(method, path) is expected
+
+    def test_export_and_validate_render_the_full_response(self):
+        endpoints, code = _cc_render("Flows")
+        names = {ep.url_path.rsplit(":", 1)[-1]: ep for ep in endpoints
+                 if ep.method == "GET" and ":" in ep.url_path.rsplit("/", 1)[-1]}
+        for action in ("export", "validate"):
+            ep = names[action]
+            assert ep.command_type == "show"
+            # Names are derived BEFORE the reclassification, so nothing moves.
+            assert ep.command_name == f"list-{action}"
+            body = _function_body(code, _safe_func_name(ep.command_name))
+            assert "emit(result, output=output, fields=fields)" in body
+            assert 'result.get("nodes"' not in body and 'result.get("results"' not in body
+
+    def test_flows_list_is_still_a_list(self):
+        """Control: the reclassification must not touch real list commands."""
+        endpoints, _ = _cc_render("Flows")
+        lists = {ep.url_path for ep in endpoints if ep.command_type == "list"}
+        assert "{orgId}/project/{projectId}/flows" in lists
+        assert "{orgId}/project/{projectId}/flows:search" in lists
+
+
 # ── folder_name_to_module ───────────────────────────────────────────────────
 
 
@@ -947,7 +1064,7 @@ def test_no_duplicate_option_declarations():
 
 
 def test_spec_query_and_filter_params_are_untouched():
-    """--fields must not disturb the flags cc-search/fs-flows/CC already own."""
+    """--fields must not disturb the flags cc-search/CC already own."""
     for taken in ("query", "filter"):
         ep = _make_endpoint(
             command_type="show", command_name="show",

@@ -36,7 +36,7 @@ def show(
         params["minValidSamples"] = min_valid_samples
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

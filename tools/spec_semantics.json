@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-10-07",
+ "captured": "2026-10-13",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -19116,6 +19116,49 @@
     },
     "summary": "Search Flows",
     "tag": "Flows"
+   },
+   "GET /{}/project/{}/v2/activities": {
+    "fields": {
+     "(operation)": "#55e6e2",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614"
+    },
+    "summary": "List Activity Definitions",
+    "tag": "Activities"
+   },
+   "GET /{}/project/{}/v2/activities/{}": {
+    "fields": {
+     "(operation)": "#594d61",
+     "path:activityName": "!#1e475f",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614"
+    },
+    "summary": "Describe an Activity",
+    "tag": "Activities"
+   },
+   "GET /{}/project/{}/v2/activities/{}/inputs/{}/choices": {
+    "fields": {
+     "(operation)": "#d5db69",
+     "path:activityName": "!#6cc63d",
+     "path:inputName": "!#c613a9%94674e",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:parentInputName": "#a3a8d9",
+     "query:parentValue": "#7434c1",
+     "query:search": "#42c320",
+     "query:validate": "#93a3a1"
+    },
+    "summary": "Get Activity Input Choices",
+    "tag": "Activities"
+   },
+   "GET /{}/project/{}/v2/event-specifications": {
+    "fields": {
+     "(operation)": "#e52ffa",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614"
+    },
+    "summary": "List Event Specifications",
+    "tag": "Events"
    },
    "GET /{}/project/{}/v2/flows/{}": {
     "fields": {

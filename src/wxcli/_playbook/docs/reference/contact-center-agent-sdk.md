@@ -648,15 +648,16 @@ them. Conflating them produces both false "this is impossible" conclusions and r
 
 This qualifies — it does not overturn — two existing statements in this repo:
 
-- [contact-center-core.md](contact-center-core.md) **gotcha #23** ("Personal access tokens lack
-  CC scopes") is correct about **config** scopes: a PAT carries neither `cjp:config_read` nor
-  `cjp:config_write`, so `wxcli cc-*` still needs an OAuth integration or a Service App. Its
-  heading generalizes further than its own body does.
-- `CLAUDE.md` **Known Issue #11** says the same thing for `cc-*` CLI commands, and is likewise
-  correct for the config surface.
+- [contact-center-core.md](contact-center-core.md) **gotcha #23** originally claimed a PAT
+  carries neither `cjp:config_read` nor `cjp:config_write`. That claim was **disproven live on
+  2026-10-13**: a full-admin PAT got HTTP 200 on `cc-flow`, `cc-queue`, `cc-entry-point` and
+  `cc-global-vars` reads on the same org that returned 403 in April. Gotcha #23 now records the
+  evidence and what was not tested (non-full-admin PATs, other orgs, most CC writes). A 403 on a
+  `cc-*` command still means the token lacks the CC config scopes, and the fix is an OAuth
+  integration or a Service App.
+- `CLAUDE.md` **Known Issue #11** was corrected the same day and agrees with gotcha #23.
 
-Neither is a statement about the agent runtime. A PAT works for `webex.cc`; it does not work
-for `wxcli cc-queue create`.
+Neither statement is about the agent runtime. A PAT works for `webex.cc`.
 
 ### Scopes for a production OAuth integration
 

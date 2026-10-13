@@ -18,7 +18,6 @@ BASE_URL = "https://webexapis.com/v1"
 BASE_URL_NO_V1 = "https://webexapis.com"
 BASE_URL_ANALYTICS = "https://analytics-calling.webexapis.com/v1"
 BASE_URL_CC = "{cc_base_url}"  # Resolved at runtime from config
-BASE_URL_FS = "{fs_base_url}"  # Resolved at runtime from config
 
 # Path prefixes that use the base URL without /v1
 NO_V1_PREFIXES = ("identity/", "Schemas/")
@@ -50,6 +49,10 @@ V2_MODULES = {
 # declared "limit" when present) and --offset to {offset, start}.
 _SUPPRESS_SPEC_PAGING_NAMES = {"max", "start", "offset", "limit"}
 
+# Boolean query params that switch a list response into a paging envelope that
+# carries the total. List commands default them ON — see _render_list_command.
+_OPT_IN_PAGE_ENVELOPE_PARAMS = {"includePagination"}
+
 # CLI option names the renderer injects unconditionally, via
 # _render_output_options(), on every generated command (list, show, create,
 # update, delete, settings-get, settings-update, action). Unlike the paging
@@ -66,10 +69,11 @@ _SUPPRESS_SPEC_PAGING_NAMES = {"max", "start", "offset", "limit"}
 # discussion of the same failure mode). So a collision here fails the
 # generator build loudly (ReservedParamCollisionError) instead of being
 # silently dropped or silently shadowed.
-# `all` joined these when --all shipped. Not hypothetical: webex-flow-store.json
-# already declares a query parameter literally named `all` on
-# GET /{orgId}/project/{projectId}/flows/{flowId}/tags. It is inert only because
-# that spec is dev-only and gitignored. Unguarded, a tracked spec adding one
+# `all` joined these when --all shipped. Not hypothetical: the Flow Store spec
+# (webex-flow-store.json, retired 2026-10-13 — see ADR-11 in
+# docs/architecture/02-decisions.md) declared a query parameter literally named
+# `all` on GET /{orgId}/project/{projectId}/flows/{flowId}/tags. Unguarded, a
+# tracked spec adding one
 # would emit two options spelling "--all" and Typer would silently shadow one —
 # the same silent failure the --filter analysis in tools/CLAUDE.md rejected.
 _RESERVED_OUTPUT_PARAM_NAMES = {"output", "fields", "all"}
@@ -247,7 +251,6 @@ def _expansion_kwargs(ep) -> str:
 
 def _render_imports(include_org_id: bool = False, include_org_id_path: bool = False,
                     include_cc_url: bool = False, include_cc_org_id: bool = False,
-                    include_fs_url: bool = False, include_fs_project_id: bool = False,
                     include_verify: bool = False) -> str:
     lines = '''import json
 import httpx
@@ -266,10 +269,6 @@ from wxcli.common import emit, load_json_body
         config_imports.append('get_cc_base_url')
     if include_cc_org_id:
         config_imports.append('get_cc_org_id')
-    if include_fs_url:
-        config_imports.append('get_fs_base_url')
-    if include_fs_project_id:
-        config_imports.append('get_fs_project_id')
     if config_imports:
         lines += f'from wxcli.config import {", ".join(config_imports)}\n'
     # Conditional so the 100+ modules with no verifiable write keep an unchanged
@@ -285,7 +284,7 @@ def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = N
     if _active_base_url_override:
         base = _active_base_url_override
         # The parser strips a leading 'v1/' because BASE_URL ends in /v1. The
-        # CC/FS bases do not ("https://api.wxcc-us1.cisco.com"), so a spec path
+        # CC base does not ("https://api.wxcc-us1.cisco.com"), so a spec path
         # that really is /v1/... must keep it. Before this, all 68 CC /v1 ops
         # (cc-callbacks, cc-tasks, cc-agents, ...) hit /callbacks/... -> 404,
         # while the unversioned config paths (/organization/...) were correct.
@@ -303,13 +302,11 @@ def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = N
         param = _path_var_to_param(var)
         expr = expr.replace("{" + var + "}", "{" + param + "}")
         bound.add(param)
-    # The CC/FS base URL constants are themselves unresolved placeholders
-    # ("{cc_base_url}"/"{fs_base_url}") — _render_path_inject assigns a
-    # matching local before the URL line runs, so these are bound too.
+    # The CC base URL constant is itself an unresolved placeholder
+    # ("{cc_base_url}") — _render_path_inject assigns a matching local
+    # before the URL line runs, so it is bound too.
     if _active_base_url_override == BASE_URL_CC:
         bound.add("cc_base_url")
-    elif _active_base_url_override == BASE_URL_FS:
-        bound.add("fs_base_url")
     unresolved = [name for name in _URL_PLACEHOLDER_RE.findall(expr) if name not in bound]
     if unresolved:
         raise UnboundUrlPlaceholderError(
@@ -347,7 +344,18 @@ def _render_auto_inject_params(ep: Endpoint) -> list[str]:
     if "orgId" in getattr(ep, "auto_inject_params", []):
         lines.append("    org_id = get_org_id()")
         lines.append("    if org_id is not None:")
-        lines.append('        params["orgId"] = org_id')
+        if _active_base_url_override == BASE_URL_CC:
+            # The Contact Center host wants the bare org UUID. The saved org id
+            # is the base64 Webex id, and sending that got 401 "Token does not
+            # have access to OrgId:Y2lz..." on every CC runtime/analytics
+            # command with an orgId query param (cc-queue-stats, cc-agents,
+            # cc-ewt, cc-search, cc-subscriptions, cc-tasks), live 2026-10-13.
+            # get_cc_org_id decodes the saved id without a network call; the
+            # `is not None` guard keeps "no saved org -> param omitted, org
+            # inferred from the token", which the spec documents.
+            lines.append('        params["orgId"] = get_cc_org_id(api.session)')
+        else:
+            lines.append('        params["orgId"] = org_id')
     return lines
 
 
@@ -356,20 +364,13 @@ def _render_path_inject(ep: Endpoint) -> list[str]:
     lines = []
     if _active_base_url_override == BASE_URL_CC:
         lines.append("    cc_base_url = get_cc_base_url()")
-    elif _active_base_url_override == BASE_URL_FS:
-        lines.append("    fs_base_url = get_fs_base_url()")
     for var in getattr(ep, "auto_inject_path_params", []):
         param = _path_var_to_param(var)
         if var.lower() == "orgid":
             if _active_base_url_override == BASE_URL_CC:
                 lines.append(f"    {param} = get_cc_org_id(api.session)")
-            elif _active_base_url_override == BASE_URL_FS:
-                lines.append(f"    {param} = get_cc_org_id(api.session)")
             else:
                 lines.append(f"    {param} = resolve_org_id(api.session)")
-        elif var.lower() == "projectid":
-            if _active_base_url_override == BASE_URL_FS:
-                lines.append(f"    {param} = get_fs_project_id()")
     return lines
 
 
@@ -749,13 +750,12 @@ _TRACKED_SPECS = Path(__file__).resolve().parent.parent / "specs"
 # separately as findings D07/D08; when it is fixed it should read this dict
 # instead of the prefix test, not add a second mapping beside it.
 #
-# webex-flow-store.json is deliberately None, and the reason is reproducibility,
-# not scope: it is gitignored and dev-only, absent from a fresh clone and from
-# the shipped wheel, so letting it contribute to the collision index below would
-# make generated help text differ between this machine and a clone. That is the
-# same premise drift check 8 rests on. A spec present on disk with no entry here
-# raises rather than being skipped, so a future tracked spec cannot join
-# silently and inherit the dev-only exemption.
+# A spec present on disk with no entry here raises rather than being skipped,
+# so a future tracked spec cannot join silently. webex-flow-store.json is
+# deliberately ABSENT: the WxCC Flow Store CLI (fs-*) was retired 2026-10-13
+# (ADR-11, docs/architecture/02-decisions.md). If that spec is ever dropped
+# back into specs/, this raise fails every regen — that IS the guard that keeps
+# the fs-* groups from coming back. Do not re-add it here, not even as None.
 SPEC_PRODUCT = {
     "webex-cloud-calling.json": "Calling",
     "webex-device.json": "Devices",
@@ -766,7 +766,6 @@ SPEC_PRODUCT = {
     "webex-ucm.json": "UCM",
     "webex-broadworks.json": "BroadWorks",
     "webex-wholesale.json": "Wholesale",
-    "webex-flow-store.json": None,
 }
 
 
@@ -821,7 +820,10 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
             raise UnknownSpecProductError(
                 f"{name} has no SPEC_PRODUCT entry in command_renderer.py. Add "
                 f"one naming the Webex product it describes, or map it to None "
-                f"if it is dev-only and absent from a fresh clone.")
+                f"if it is dev-only and absent from a fresh clone. Exception: "
+                f"webex-flow-store.json is RETIRED (ADR-11 in "
+                f"docs/architecture/02-decisions.md) — delete the file, do not "
+                f"map it.")
         # None means dev-only: it still walks, so producer pointers are
         # unchanged, but it contributes nothing to the collision index.
         product = SPEC_PRODUCT[name]
@@ -1253,6 +1255,14 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         help_text = _enum_help(qp)
         if qp.required:
             params.append(f'    {param}: str = typer.Option(..., "--{qp.python_name}", help="{help_text}"),')
+        elif qp.name in _OPT_IN_PAGE_ENVELOPE_PARAMS:
+            # Opt-in paging envelope (`includePagination`, cc-flow list): ON by
+            # default. Without it the endpoint returns a bare array with no
+            # total, so a single fetch that left pages behind could not say so
+            # (10 of 56 flows, silently). The records are extracted from `data`
+            # either way, so the output is unchanged; `--include-pagination
+            # false` still sends false.
+            params.append(f'    {param}: str = typer.Option("true", "--{qp.python_name}", help="{help_text}"),')
         else:
             params.append(f'    {param}: str = typer.Option(None, "--{qp.python_name}", help="{help_text}"),')
 
@@ -1341,6 +1351,12 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         walker = {"link": "follow_pagination",
                   "page": "follow_page_param",
                   "scim": "follow_scim"}[ep.pagination_style]
+        # A page-style walker must page with the size name the spec declares.
+        # Emitted only when it differs from the walker's default, so the ~109
+        # `pageSize` commands render byte-identically.
+        walker_extra = ""
+        if ep.pagination_style == "page" and ep.page_size_param != "pageSize":
+            walker_extra = f', size_param="{ep.page_size_param}"'
         fetch_block = [
             "    result = None",
             "    try:",
@@ -1348,7 +1364,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             # Assigns `result`, not `items`: this branch shares the non-paginating
             # tail below, which re-derives items from result and would otherwise
             # overwrite them. A list falls through that expression unchanged.
-            f'            result = list(api.session.{walker}(url=url, params=params, item_key="{list_key}"))',
+            f'            result = list(api.session.{walker}(url=url, params=params, item_key="{list_key}"{walker_extra}))',
             "        else:",
             "            result = api.session.rest_get(url, params=params)",
         ]
@@ -2213,17 +2229,10 @@ def render_command_file(
     _active_get_paths = {e.url_path for e in endpoints if e.method.upper() == "GET"}
     needs_verify = any(_can_verify(e) for e in endpoints)
     needs_cc_url = base_url_override == BASE_URL_CC
-    needs_fs_url = base_url_override == BASE_URL_FS
-    needs_fs_project_id = needs_fs_url and any(
-        "projectId" in getattr(ep, "auto_inject_path_params", [])
-        for ep in endpoints
-    )
-    needs_cc_org_id = (needs_cc_url or needs_fs_url) and needs_org_id
+    needs_cc_org_id = needs_cc_url and needs_org_id
     # Detect product area from CLI name prefix
     if cli_name.startswith("cc-"):
         product = "Webex Contact Center"
-    elif cli_name.startswith("fs-"):
-        product = "WxCC Flow Store"
     elif cli_name.startswith("meeting"):
         product = "Webex Meetings"
     else:
@@ -2231,7 +2240,6 @@ def render_command_file(
     sections = [
         _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path,
                         include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id,
-                        include_fs_url=needs_fs_url, include_fs_project_id=needs_fs_project_id,
                         include_verify=needs_verify),
         f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]

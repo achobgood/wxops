@@ -34,6 +34,11 @@ _ERROR_TIPS = {
 }
 
 _MESSAGE_TIPS = {
+    # A 401 whose cause is the org id, not the token: the generic 401 tip
+    # ("missing, expired, or revoked") sent people to re-run configure with a
+    # perfectly good token. Live 2026-10-13 on the Contact Center host, which
+    # rejected the base64 Webex org id with this text and accepted the bare UUID.
+    "does not have access to OrgId": "The token itself is valid — the org id sent with the request is the problem. Contact Center APIs want the org's bare UUID, not the base64 Webex org id, and they also refuse an org this token does not administer. Check the 'Target:' line of: wxcli whoami — if it names the wrong org, run: wxcli switch-org <orgId> (or wxcli clear-org to use the token's own org).",
     "Target user not authorized": "This endpoint needs a user-level OAuth token, not an admin or service app token. Re-run: wxcli configure with the target user's own access token, then confirm the owner with: wxcli whoami",
     # Measured 2026-08-01: four person-setting reads (do-not-disturb, call
     # waiting, call forwarding, voicemail) all returned this shape for one

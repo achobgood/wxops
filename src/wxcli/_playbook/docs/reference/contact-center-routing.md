@@ -661,26 +661,77 @@ Authorization: Bearer {cc_token}
 Flows define the IVR and routing logic for contact center interactions. Subflows are reusable
 components within flows. The Flow API supports listing, importing, exporting, drafting,
 validating, locking, and publishing flows. Uses the `/{orgId}/project/{projectId}/flows` path
-family -- note the `projectId` is required for all operations. 11 commands.
+family -- note the `projectId` is required for all operations. 17 commands (the 4 activity-catalog
+commands were added 2026-10-13).
 
 ### Commands
 
 | CLI Command | HTTP | Description |
 |---|---|---|
 | `wxcli cc-flow list` | GET /{orgId}/project/{projectId}/flows | List Flows or Subflows |
+| `wxcli cc-flow list-search` | GET /{orgId}/project/{projectId}/flows:search | Search Flows (`--query` required, case-sensitive) |
 | `wxcli cc-flow show` | GET /{orgId}/project/{projectId}/v2/flows/{flowId} | Get a Flow |
+| `wxcli cc-flow delete` | DELETE /{orgId}/project/{projectId}/flows/{flowId} | Delete a Flow or Subflow |
 | `wxcli cc-flow create-flows` | POST /{orgId}/project/{projectId}/v2/flows/{flowId} | Save a Flow Draft |
 | `wxcli cc-flow update` | PATCH /{orgId}/project/{projectId}/v2/flows/{flowId} | Patch a Flow Draft |
 | `wxcli cc-flow create-import` | POST /{orgId}/project/{projectId}/v2/flows:import | Import a Flow |
 | `wxcli cc-flow export` | GET /{orgId}/project/{projectId}/v2/flows/{flowId}:export | Export a Flow |
 | `wxcli cc-flow publish` | POST /{orgId}/project/{projectId}/flows/{flowId}:publish | Publish a Flow or Subflow |
 | `wxcli cc-flow create-validate` | POST /{orgId}/project/{projectId}/v2/flows:validate | Validate a Flow |
-| `wxcli cc-flow list-validate` | GET /{orgId}/project/{projectId}/v2/flows/{flowId}:validate | Validate an existing Flow Draft |
+| `wxcli cc-flow list-validate` | GET /{orgId}/project/{projectId}/v2/flows/{flowId}:validate | Validate an existing Flow Draft (returns `{valid, results}`, verified 2026-10-13) |
+| `wxcli cc-flow list-activities` | GET /{orgId}/project/{projectId}/v2/activities | List activity definitions: `list-activities PROJECT_ID` |
+| `wxcli cc-flow show-activity` | GET /{orgId}/project/{projectId}/v2/activities/{activityName} | Describe one activity: `show-activity PROJECT_ID ACTIVITY_NAME` |
+| `wxcli cc-flow list-activity-choices` | GET /{orgId}/project/{projectId}/v2/activities/{activityName}/inputs/{inputName}/choices | Input choices: `list-activity-choices PROJECT_ID ACTIVITY_NAME INPUT_NAME`; optional `--search`, `--validate`. A dependent input needs `--parent-input-name` and `--parent-value` or it returns 400 "requires a parent value" |
+| `wxcli cc-flow list-event-specifications` | GET /{orgId}/project/{projectId}/v2/event-specifications | List event specifications: `list-event-specifications PROJECT_ID` |
 | `wxcli cc-flow create-lock` | POST /{orgId}/project/{projectId}/flows/{flowId}:lock | Lock a Flow or Subflow |
 | `wxcli cc-flow create-unlock` | POST /{orgId}/project/{projectId}/flows/{flowId}:unlock | Unlock a Flow or Subflow |
 
 > **Argument-order trap:** `publish`, `create-lock`, and `create-unlock` take `FLOW_ID` **before**
-> `PROJECT_ID`. Every other `cc-flow` command takes `PROJECT_ID` first. Always check `--help`.
+> `PROJECT_ID`. Every other `cc-flow` command (`show`, `export`, `list-validate`, `delete`, ...)
+> takes `PROJECT_ID` first. Always check `--help`. Verified live 2026-10-13: `export PROJECT_ID FLOW_ID`
+> returns 200; `export FLOW_ID PROJECT_ID` returns 404 "Flow ... not found".
+
+> **Verified live, 2026-10-13** (org "the sandbox tenant", full-admin PAT):
+> - **Finding the project ID.** No `cc-*` command lists projects. Get a flow id from
+>   `cc-entry-point show <id>` (field `flowId`), then read the `projectId` field of
+>   `cc-flow show <project-id> <flow-id>`; if you already know a project id, `cc-flow list <project-id>`
+>   gives flow ids. On reads the server does not enforce `projectId` in the path (a made-up project id
+>   returned the real flow).
+> - **`export` vs `show`.** `cc-flow export` emits the full export envelope (15 keys incl.
+>   `schemaVersion`, `id`, `name`, `nodes`, `edges`, `variables`, `eventFlows`, `preferences`), verified
+>   2026-10-13 (identical to raw HTTP; `--version draft` also works). An earlier CLI build printed only
+>   the `nodes` array; that was a CLI rendering bug, fixed 2026-10-13. `cc-flow show -o json` returns the
+>   full flow definition (FlowIr schema 2.0).
+> - **Exports do not round-trip (as observed).** `create-validate` on export-derived bodies returned
+>   `valid:false` with errors such as "key not found: eventSourceName" and "Condition 'default' is not
+>   valid for activity 'bridged-transfer'". Likely cause (attribution, not proven): the start node's
+>   incomplete `flowType` plus the validator false positives described in "Building a flow from scratch".
+> - **`create-import` works with a well-formed FlowIr body (supersedes the earlier "500 / not demonstrated"
+>   note).** Verified live 2026-10-13: `cc-flow create-import <project-id> --json-body file://flow.json`
+>   created a 43-node, 108-edge flow on the first attempt; `cc-flow show` then matched the body sent
+>   (the server added only `activityId` and connector display fields). It is a **full create**, not a
+>   merge: it returns `409 FLOW_ALREADY_EXISTS` ("set overwrite to yes or rename it") when the name is
+>   taken, unless `--overwrite true` is passed. The response can carry non-fatal preflight warnings
+>   (`preflightWarningsCount`, severity WARNING) that dry-run `create-validate` does not report. The
+>   earlier 500s ("Oops... Something broke", trackingIds `<trackingId-1>`,
+>   `<trackingId-2>`) were on export-derived bodies, and no flow was created. Their
+>   cause is unproven. **Hypothesis (not re-tested):** the incomplete start-node `flowType`, the same
+>   defect that makes `create-validate` say "key not found: eventSourceName". See "Building a flow from
+>   scratch" below for the body shape.
+> - **`list` paging fixed 2026-10-13.** `cc-flow list --all` now returns every flow (56 of 56 live); the
+>   default fetch returns 10 and prints a note ("more pages ... `--page 1`"). Earlier builds stopped at 10
+>   because the CLI sent `pageSize`, which this endpoint ignores (it takes `size`). No `--size 100`
+>   workaround is needed. `--offset` does nothing here; use `--page`.
+> - **`list-search` returned 404.** `cc-flow list-search` returned 404 on the sandbox org even via raw
+>   HTTP (2026-10-13), so the endpoint or feature may not be live there; it is unverified.
+> - **Lock/unlock.** `create-lock` / `create-unlock` return 200 "OK", but no command exposes lock state
+>   for read-back.
+> - **`create-validate` changes nothing, but it is not an authoritative verdict.** It is a POST that
+>   writes no state, so it is safe to run, but `valid:false` can be a false positive. Two are proven
+>   against Designer-built flows (Verified live 2026-10-13): the collect-digits success edge (below), and
+>   FC1038 "Variable ... is referenced but not declared" on `{{Node.Output}}` references. It also reports
+>   **one** edge-condition error per call, and edge checks gate the FC semantic checks, so errors surface
+>   one layer at a time. See "Building a flow from scratch" -> "What the validators get wrong".
 
 ### Key Parameters
 
@@ -712,8 +763,9 @@ wxcli cc-flow list <project-id> --partial-name-search "Main-IVR"
 # Export a flow definition (latest published version)
 wxcli cc-flow export <project-id> <flow-id> --version latest -o json
 
-# Import a flow from exported JSON
-wxcli cc-flow create-import <project-id> --json-body "$(cat flow-export.json)"
+# Import (create) a flow from a FlowIr 2.0 body -- see "Building a flow from scratch" below.
+# 409 FLOW_ALREADY_EXISTS if the name is taken; add --overwrite true to replace it.
+wxcli cc-flow create-import <project-id> --json-body file://flow.json
 
 # Publish a flow -- NOTE: flow-id comes BEFORE project-id here
 wxcli cc-flow publish <flow-id> <project-id>
@@ -734,8 +786,153 @@ GET https://api.wxcc-us1.cisco.com/{orgId}/project/{projectId}/v2/flows/{flowId}
 # Import a flow
 POST https://api.wxcc-us1.cisco.com/{orgId}/project/{projectId}/v2/flows:import
 Content-Type: application/json
-{...flow definition JSON...}
+{...FlowIr 2.0 body, see "Building a flow from scratch" below...}
 ```
+
+### Building a flow from scratch
+
+Verified live 2026-10-13 (org "the sandbox tenant", full-admin PAT, region us1): a 43-node, 108-edge
+bilingual IVR (language menu, business hours, emergency fast path, outage lookup with callback, billing,
+service) was written by hand, imported with `cc-flow create-import`, published as version 1 with
+`cc-flow publish` (validation not skipped), and wired to a new entry point. **No test call was placed**, so
+nothing here is runtime-verified (TTS voices, expressions, callback). The flow was not opened in Flow
+Designer; FlowIr carries no node positions, so the canvas layout is unknown.
+
+To look up activity names, their inputs/output ports and valid choice values while writing a body, use
+`cc-flow list-activities PROJECT_ID`, `cc-flow show-activity PROJECT_ID ACTIVITY_NAME` and
+`cc-flow list-activity-choices` (added 2026-10-13, all returned 200 live: 54 activities;
+`show-activity queue-contact` 16 inputs). Raw `GET /v2/activities` remains the fallback.
+
+**The documented body shape is wrong.** The spec's FlowV2 schema and the `--help` example for
+`create-validate` / `create-import` / `create-flows` show nodes `{name, activityName, inputs, outputs,
+position}`, edges `{key, from_node, from_port, to_node, condition}`, `flowName`, and `eventFlows` as an
+array. The server does not read that shape. Verified live 2026-10-13, `create-validate` on a body in the
+spec shape returned `400 BAD_REQUEST`: `main flow edge from must not be empty.; main flow edge to must not
+be empty.` plus `No start node found. Add one node with activityType='start'`. The server reads **FlowIr
+2.0**:
+
+- **Top level:** `{schemaVersion: "2.0", name, flowType: "FLOW", description, variables: [], nodes: [],
+  edges: [], eventFlows: {nodes: [], edges: []}, preferences: []}`. `eventFlows` is an **object**, not an
+  array. `name` was accepted; `flowName` was not tested. There is no `position`.
+- **Node:** `{name, activityType: "start" | "action" | "end", properties: {activityName, <inputs flat>}}`.
+  Inputs sit directly in `properties` (not under `inputs`). The working body also repeated `name` inside
+  `properties`.
+- **Edge:** `{from, to, condition}` (node names). The working body also set `properties: {value: <condition>}`.
+
+A `cc-flow show -o json` of an existing flow is a reliable template **for shape only**; its start-node
+values are not trustworthy (next point).
+
+**Minimum valid start node.** Verified live 2026-10-13: this start node gave a minimal `valid:true` and
+imported. Two traps: the start activity is `NewContact` (`NewPhoneContact`, used by older Designer flows
+and the spec example, returns `FC1024 Activity is not allowed for the current flow type ... flowType =
+FLOW, channelType = telephony`), and the three `*Name` fields must be present even though the activity
+definition's own default `flowType` omits them (without them: `FC0000 Validation pipeline error: key not
+found: eventSourceName`).
+
+```json
+{"name": "NewContact", "activityType": "start", "properties": {
+  "name": "NewContact", "activityName": "NewContact", "activityId": "start", "event": "NewContact",
+  "flowType": {
+    "eventSourceId": "5eff0e2eb10162499bc9f932", "eventSourceName": "WebexContactCenter",
+    "eventClassificationId": "5f10475cf021306e89e1692c", "eventClassificationName": "VoiceInteractions",
+    "eventSpecificationId": "5f2d02144332507e39cc8a7f", "eventSpecificationName": "ContactStartWorkflow"}}}
+```
+
+**Edge-condition port names observed.** Port names differ per activity, and the activity catalog does
+not match the validators in two places. The names below are the `condition` values that appeared in the
+imported, published body (Verified live 2026-10-13; whether each fires correctly at runtime is untested):
+
+| Activity | `condition` values used | Note |
+|---|---|---|
+| start (`NewContact`), `set-variable` | `out`, `error` | start has `out` only |
+| `play-message`, `play-music` | `default`, `error` | |
+| `ivr-menu` | the digit (`1`, `2`, `9`...), plus `timeout`, `invalid`, `error` | one edge per menu digit |
+| `ivr-collectdigits` | `default`, plus `timeout`, `invalid`, `error` | the validator rejects `default` (below); Designer writes it |
+| `condition-activity` | `true`, `false`, `error` | |
+| `business-hours` | `workingHours`, `holidays`, `override`, `default`, `error` | accepted |
+| `queue-contact` | `default` (queued), `failure` | `failure` draws a preflight WARNING on import (below) |
+| `callback` | `default`, `failure` | |
+| `disconnect-contact` | none | `activityType: "end"` |
+
+The spec's edge description ("`done` is rewritten to `out`") did **not** hold for collect-digits: `done`
+was rejected verbatim, as were `out` and `success`.
+
+**What the validators get wrong.** All verified live 2026-10-13; the first two are proven against
+Designer-built flows, so the flow is not at fault:
+
+- *ivr-collectdigits has no accepted success edge.* `create-validate` says `Condition 'default' is not
+  valid for activity 'ivr-collectdigits'. Use one of: error, invalid, timeout`, and `out`, `done` and
+  `success` get the same error. The Designer-built `CCBootCampTest` fails identically, so Flow Designer
+  itself writes `default`. Import and publish both accepted `default`.
+- *FC1038 "Variable 'X' is referenced but not declared"* fires on every `{{Node.Output}}` reference
+  (`{{CollectZip.DigitsEntered}}`, `{{QueueNode.QueueId}}`) except the start node's (`{{NewContact.ANI}}`
+  passes), even when the node is directly upstream or has `outputs` declared. The published Designer flow
+  `Record_Agent_Greeting` fails `list-validate` with the same code.
+- *One edge error per call; edge checks gate the FC checks.* Fix one, re-run, and a new layer appears.
+  Four errors (FC1015 twice, FC1038 twice) only surfaced after the edge error was removed.
+- *Preflight WARNINGs on import contradict the catalog.* The import response carried
+  `preflightWarningsCount: 5`, each `Condition 'failure' is not valid for activity 'queue-contact'. Use
+  one of: default`, although `GET /v2/activities` (`cc-flow list-activities` / `show-activity queue-contact`) lists `failure` as a queue-contact output port. Only
+  the tail of the response was captured, so three of the five are named (the callback, billing and
+  service queues); the other two are presumably the emergency and outage queues (unverified).
+- *Publish does not enforce what `list-validate` calls ERROR.* `cc-flow publish` without
+  `--skip-validation` returned 200 with `latestVersion.version: 1` while `cc-flow list-validate` reported
+  `ERROR FC1038` on the same draft. Publish's validation is evidently not the same check as either
+  validate endpoint; which checks it does enforce was not mapped.
+
+**Variables in FlowIr.** `variables` entries are `{name, description, type, value, isCAD, desktopLabel,
+isAgentEditable, source, isReportable, overwrite, isSecure, id, isExternalized, resourceType}`. A
+**global variable** is a FlowIr variable with `source: "GLOBAL"` and `id` set to the global's id (from
+`cc-global-vars list-cad-variable`); a flow-local variable has `source: ""` and `id: ""`. An agent-viewable
+variable (`isCAD: true`) needs a non-empty `desktopLabel`, including a global re-declared in the flow;
+otherwise `FC1015 Desktop label is required for agent viewable variable`. Verified live 2026-10-13.
+
+**Minimal example body.** Start, play a message, hang up. Every shape below also appears in the
+working 43-node body; this three-node cut itself was not imported separately (**unverified as a
+standalone body**). It declares no variables.
+
+```json
+{
+  "schemaVersion": "2.0", "name": "Minimal_Greeting", "flowType": "FLOW",
+  "description": "Start, greet, hang up",
+  "variables": [],
+  "nodes": [
+    {"name": "NewContact", "activityType": "start", "properties": {
+      "name": "NewContact", "activityName": "NewContact", "activityId": "start", "event": "NewContact",
+      "flowType": {
+        "eventSourceId": "5eff0e2eb10162499bc9f932", "eventSourceName": "WebexContactCenter",
+        "eventClassificationId": "5f10475cf021306e89e1692c", "eventClassificationName": "VoiceInteractions",
+        "eventSpecificationId": "5f2d02144332507e39cc8a7f", "eventSpecificationName": "ContactStartWorkflow"}}},
+    {"name": "Greeting", "activityType": "action", "properties": {
+      "name": "Greeting", "activityName": "play-message", "description": "Greeting",
+      "toggle": true, "connector": "Cisco Cloud Text-to-Speech", "connector_name": "Cisco Cloud Text-to-Speech",
+      "promptsTts": [{"type": "tts", "value": "Thank you for calling.", "name": "Thank you for calling."}],
+      "speakingRate": 1, "volumeGainDb": 0}},
+    {"name": "Disconnect", "activityType": "end", "properties": {
+      "name": "Disconnect", "activityName": "disconnect-contact", "description": "Hang up"}}
+  ],
+  "edges": [
+    {"from": "NewContact", "to": "Greeting", "condition": "out", "properties": {"value": "out"}},
+    {"from": "Greeting", "to": "Disconnect", "condition": "default", "properties": {"value": "default"}},
+    {"from": "Greeting", "to": "Disconnect", "condition": "error", "properties": {"value": "error"}}
+  ],
+  "eventFlows": {"nodes": [], "edges": []},
+  "preferences": [{"name": "hideSecureCADWarning", "value": "false", "type": "Boolean"},
+                  {"name": "autoSave", "value": "true", "type": "Boolean"}]
+}
+```
+
+**Recipe notes (not runtime-tested; no test call was placed):**
+
+- *Callback without a node-output reference.* `callback` with `toggleCallbackDestination: false` calls the
+  caller back into the queue the contact is already in, so you avoid `{{QueueNode.QueueId}}` (and its
+  FC1038 false positive). The working body queued the contact first (`queue-contact`), then ran `callback`
+  with `callbackDn: "{{NewContact.ANI}}"`.
+- *Bilingual TTS.* With the built-in "Cisco Cloud Text-to-Speech" connector, the voice comes from the
+  `Global_Language` / `Global_VoiceName` globals, set per call with `set-variable` (`es-US` /
+  `es-US-Alonso` for Spanish; `en-US` / `Automatic` for English). The pattern was copied from an existing
+  flow (`Retail_IVR_Test`), then reused. One set of nodes speaks `{{msgX}}` prompt-text variables, loaded
+  by a language-specific `set-variable` node, so the menus are not duplicated per language.
 
 ---
 
@@ -1257,7 +1454,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 |---|---|---|
 | POST | /v1/captures/query | `cc-captures create` |
 
-### Flows (11)
+### Flows (15)
 
 | Method | Path | CLI Command |
 |---|---|---|
@@ -1272,6 +1469,10 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 | PATCH | /{orgId}/project/{projectId}/v2/flows/{flowId} | `cc-flow update` |
 | GET | /{orgId}/project/{projectId}/v2/flows/{flowId}:validate | `cc-flow list-validate` |
 | GET | /{orgId}/project/{projectId}/v2/flows/{flowId}:export | `cc-flow export` |
+| GET | /{orgId}/project/{projectId}/v2/activities | `cc-flow list-activities` |
+| GET | /{orgId}/project/{projectId}/v2/activities/{activityName} | `cc-flow show-activity` |
+| GET | /{orgId}/project/{projectId}/v2/activities/{activityName}/inputs/{inputName}/choices | `cc-flow list-activity-choices` |
+| GET | /{orgId}/project/{projectId}/v2/event-specifications | `cc-flow list-event-specifications` |
 
 ### Audio Files (4)
 
@@ -1348,7 +1549,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 
 5. **Contact list and DNC APIs use `/v3/campaign-management/` paths.** Yet another path family, distinct from both config and dialer paths. All require a campaign ID in the path.
 
-6. **Flow APIs use `/flow-store/{orgId}/project/{projectId}/flows`.** This is the only path family that requires a `projectId`. You must know your project ID before working with flows.
+6. **Flow APIs use `/{orgId}/project/{projectId}/flows` (the `cc-flow` commands call this path).** This is the only path family that requires a `projectId`. You must know your project ID before working with flows.
 
 7. **Data Sources use `/dataSources` (no orgId prefix).** The only resource in this doc that does not include the org ID in the URL path. Auth still determines the org context.
 
@@ -1358,12 +1559,11 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 
 10. **EWT is read-only.** A single GET endpoint with no write operations. It reports queue wait time estimates, not configuration.
 
-11. **Five distinct path families.** This doc covers endpoints across five different URL patterns:
+11. **Five distinct path families.** This doc covers endpoints across five different URL patterns (the flow-store `/flow-store/{orgId}/...` API is not covered here; its hosts did not work with production tokens on 2026-10-13):
     - `/organization/{orgid}/...` -- Config API (dial plans, dial numbers, outdial ANI, contact numbers, overrides, audio files, resource collections)
     - `/v1/callbacks/...` -- Callback runtime API
     - `/v1/dialer/...` and `/v1/captures/...` -- Dialer and capture runtime APIs
     - `/v3/campaign-management/...` -- Campaign management API
-    - `/flow-store/{orgId}/...` -- Flow store API
     - `/dataSources/...` -- Data sources API
 
 12. **`cc-callbacks create` fails until an entry point has callbacks enabled.** Verified live 2026-09-14: create returns HTTP 400 `Callback default Entry Point is not configured` on an org where no entry point has `callbackEnabled: true`, even with every required field valid. Enable callbacks on an entry point first (`wxcli cc-entry-point` — see `contact-center-core.md`), then retry. `cc-callbacks list` is unaffected and returns 200 with `totalRecords: 0`.
@@ -1372,7 +1572,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 
 14. **Before wxcli 1.7.6.1, every `/v1/` Contact Center command called the wrong URL (404).** The generator stripped the spec's `/v1` prefix for all paths because the Webex Calling base URL already ends in `/v1` — but the CC base URL (`https://api.wxcc-{region}.cisco.com`) does not. Affected: `cc-callbacks`, `cc-tasks`, `cc-agents`, `cc-call-monitoring`, `cc-subscriptions`, `cc-journey` (progressive-profile/events), `cc-campaign` (dialer), `cc-agent-wellbeing`, `cc-captures`, `cc-ewt`, `cc-notification`, `cc-queue-stats`, `cc-realtime`. Unversioned config paths (`/organization/{orgid}/...`) were never affected. If an older wxcli returns 404 on one of these, upgrade.
 
-12. **CC APIs require CC-scoped OAuth.** Standard Webex admin tokens will not work. You need tokens with `cjp:config_read` and/or `cjp:config_write` scopes. If you get a 403, run `wxcli set-cc-region <region>` and verify your token has CC scopes.
+12. **CC config APIs need `cjp:config_read` / `cjp:config_write` on the token.** Verified live 2026-10-13: a full-admin personal access token (PAT) from developer.webex.com worked on org "the sandbox tenant" — `cc-flow` list/show/export/list-validate/create-validate/create-lock/create-unlock, `cc-queue list`, `cc-entry-point list` and `cc-global-vars list-cad-variable` all returned 200, no 403. (An April 2026 claim that PATs get 403 came from global variables on this same org; that now returns 200.) If you get a 403 (`ccconfig_` trackingId), the token lacks those scopes: use an OAuth integration or Service App with them selected and re-authorize after adding scopes; also run `wxcli set-cc-region <region>` and verify the region.
 
 13. **Region matters.** All CC API calls go to `api.wxcc-{region}.cisco.com`. Valid regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. Using the wrong region returns 401/403. Set with `wxcli set-cc-region`.
 
@@ -1397,6 +1597,8 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 17. **Flow Designer HTTP connector requires a full absolute URL.** Relative paths like `/publish/v1/api/event` return HTTP 500 "is not a valid HTTP URL". Always prefix with `https://api.wxcc-{region}.cisco.com`.
 
 18. **Use JDS alias lookup to detect returning callers in a flow.** Query `GET /admin/v1/api/person/workspace-id/{workspaceId}/aliases/{callerANI}` at flow entry. If the person exists and has prior events (events with timestamps before the current contact), they are a returning caller. If NOT_FOUND or no prior events, treat as first-time. WXCC writes ANI in E.164 format (`+15551234567`) — pass the number with `+1` prefix in the lookup or it will miss.
+
+19. **`cc-flow create-validate` / `list-validate` verdicts are not authoritative, and `publish` does not enforce them.** Verified live 2026-10-13: `valid:false` came back for correct flows because of two proven false positives (no accepted success edge on `ivr-collectdigits`; FC1038 on every `{{Node.Output}}` reference except the start node's), only one edge-condition error is reported per call, and a draft that `list-validate` flagged `ERROR FC1038` published without `--skip-validation`. Use validate to find real errors (FC1015, FC1024, missing start-node fields), not as a pass/fail gate. Details and the working body shape are in §11, "Building a flow from scratch".
 
 ---
 

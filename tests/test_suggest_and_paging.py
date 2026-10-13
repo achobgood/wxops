@@ -237,6 +237,41 @@ class TestPageNote:
         out = self._note(capsys, _Resp(NEXT, 100), monkeypatch=monkeypatch)
         assert "--limit 0" not in out.err
 
+    def test_flows_page_info_fires_and_names_page(self, capsys, monkeypatch):
+        """cc-flow list: 10 of 56 came back with no note at all (live,
+        2026-10-13). The total lives under `pageInfo`, and the endpoint pages
+        by number, so the remedy is `--page`, not an `--offset` it ignores."""
+        resp = _Resp(items=10)
+        resp.json = lambda: {"data": [{"id": i} for i in range(10)],
+                             "pageInfo": {"currentPage": 0, "totalRecords": 56,
+                                          "pageSize": 10, "totalPages": 6}}
+        out = self._note(capsys, resp, monkeypatch=monkeypatch)
+        assert "more pages" in out.err
+        assert "--page 1" in out.err and "--offset" not in out.err
+
+    def test_last_numbered_page_stays_silent(self, capsys, monkeypatch):
+        """Comparing the collection total with THIS page's count fired on every
+        page after the first, the last one included."""
+        resp = _Resp(items=6)
+        resp.json = lambda: {"data": [{"id": i} for i in range(6)],
+                             "pageInfo": {"currentPage": 5, "totalRecords": 56,
+                                          "pageSize": 10, "totalPages": 6}}
+        assert self._note(capsys, resp, monkeypatch=monkeypatch).err == ""
+
+    def test_cc_meta_page_names_the_next_page(self, capsys, monkeypatch):
+        resp = _Resp(items=5)
+        resp.json = lambda: {"data": [{"id": i} for i in range(5)],
+                             "meta": {"page": 2, "pageSize": 5,
+                                      "totalPages": 5, "totalRecords": 21}}
+        out = self._note(capsys, resp, monkeypatch=monkeypatch)
+        assert "--page 3" in out.err
+
+    def test_a_page_numbered_link_names_its_page(self, capsys, monkeypatch):
+        """CC v1 lists send a Link header whose next URL pages by number."""
+        link = '</organization/o/contact-service-queue?page=1&pageSize=5>; rel="next"'
+        out = self._note(capsys, _Resp(link, 5), monkeypatch=monkeypatch)
+        assert "--page 1" in out.err and "--offset" not in out.err
+
     def test_env_var_silences_it(self, capsys, monkeypatch):
         monkeypatch.setenv("WXCLI_NO_PAGE_WARN", "1")
         from wxcli.auth import _warn_if_more_pages

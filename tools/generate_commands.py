@@ -12,7 +12,7 @@ from tools.postman_parser import (
     load_overrides,
     apply_endpoint_overrides,
 )
-from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC, BASE_URL_FS
+from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC
 
 
 DEFAULT_SPEC = Path(__file__).parent.parent / "specs" / "webex-cloud-calling.json"
@@ -171,7 +171,7 @@ MANIFEST_HEADER = '''"""Registration manifest for generated command groups.
 
 Emitted by tools/generate_commands.py — do NOT edit by hand.
 main.py imports GENERATED_GROUPS and mounts each (module, group) pair;
-hand-written seams, aliases, and the dev-only fs_* block stay explicit
+hand-written seams and aliases stay explicit
 in main.py. A stale entry whose module is missing fails import loudly.
 """
 
@@ -265,8 +265,6 @@ def generate_tag(
     """Generate commands for one tag. Returns (module_name, cli_name, command_count)."""
     omit_qp = list(overrides.get("omit_query_params", []))
     auto_inject_qp = set(overrides.get("auto_inject_from_config", ["orgId"]))
-    if base_url_override == BASE_URL_FS:
-        auto_inject_qp.add("projectId")
     folder_ovr = overrides.get(f"_tag_ovr:{tag_name}", {})
     exclude_paths = overrides.get("_resolved_tag_op_excludes", {}).get(tag_name)
     endpoints, skipped_uploads = parse_tag(
@@ -407,17 +405,7 @@ def main():
     parser.add_argument("--spec", default=str(DEFAULT_SPEC))
     parser.add_argument("--overrides", default=str(DEFAULT_OVERRIDES))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
-    parser.add_argument(
-        "--dev-only", action="store_true",
-        help="Skip the registration manifest (dev-only specs keep the guarded "
-             "manual block in main.py so fresh clones don't break)",
-    )
     args = parser.parse_args()
-
-    # Flow-store is dev-only/untracked — never let a local regen write its
-    # groups into the tracked manifest
-    if "flow-store" in Path(args.spec).name:
-        args.dev_only = True
 
     # Handle backward-compat aliases
     tag = args.tag or args.tag_alias
@@ -435,8 +423,6 @@ def main():
     spec_name = Path(args.spec).stem
     if "contact-center" in spec_name:
         base_url_override = BASE_URL_CC
-    elif "flow-store" in spec_name:
-        base_url_override = BASE_URL_FS
     else:
         base_url_override = None
 
@@ -572,16 +558,7 @@ def main():
 
     if not args.dry_run and generated_modules:
         print(f"\nTotal: {len(targets)} tags, {total_cmds} commands")
-        if args.dev_only:
-            print(f"\n{'='*60}")
-            print("  Dev-only spec — manifest NOT updated. Guarded block for main.py:")
-            print(f"{'='*60}")
-            for module_name, cli_name in generated_modules:
-                var = f"{module_name}_app"
-                print(f"from wxcli.commands.{module_name} import app as {var}")
-                print(f'app.add_typer({var}, name="{cli_name}")')
-        else:
-            update_manifest(generated_modules, output_dir)
+        update_manifest(generated_modules, output_dir)
 
 
 if __name__ == "__main__":

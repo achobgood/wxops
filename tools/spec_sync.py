@@ -9,8 +9,10 @@ suite, then land everything as ONE commit:
     python3.14 tools/spec_sync.py [--skip-update] [--run-dir DIR]
     git add -u specs src/wxcli/commands src/wxcli/_playbook tools/spec_semantics.json tools/command_name_lock.json docs/arch/deliberate-gaps.md CLAUDE.md README.md
 
-The untracked dev-only spec (webex-flow-store.json) is never synced here —
-regen it manually; the generator auto-applies --dev-only for it.
+Only git-tracked specs are regenerated. The WxCC Flow Store spec
+(webex-flow-store.json) and its fs-* groups are RETIRED (ADR-11 in
+docs/architecture/02-decisions.md): update-specs.py never downloads it, and a
+copy left in specs/ fails the regen via command_renderer.SPEC_PRODUCT.
 """
 import argparse
 import subprocess

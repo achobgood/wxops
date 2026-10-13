@@ -136,17 +136,31 @@ def test_same_product_collisions_are_deliberately_left_unqualified():
     assert not QUALIFIER.search(mine)
 
 
-def test_dev_only_flow_store_contributes_no_qualifier():
-    """fs-* modules are gitignored and absent from a fresh clone, so letting
-    webex-flow-store.json into the collision index would make generated help
-    differ between this machine and a clone -- drift check 8's premise."""
-    from tools.command_renderer import SPEC_PRODUCT
+def test_retired_flow_store_spec_fails_generation_if_it_returns(tmp_path):
+    """The WxCC Flow Store CLI (fs-*) was retired 2026-10-13 (ADR-11). The
+    guard that keeps it retired is SPEC_PRODUCT having NO entry for its spec:
+    a webex-flow-store.json dropped back into specs/ must hard-fail the
+    producer index, which every regen builds. Paired with a control so the
+    test cannot pass on an index that raises for every spec."""
+    import tools.command_renderer as cr
 
-    assert SPEC_PRODUCT["webex-flow-store.json"] is None
-    for path in COMMANDS.glob("fs_*.py"):
-        for name, hidden, help_text in _decorators(path):
-            if help_text:
-                assert not QUALIFIER.search(help_text), f"{path.stem} {name}"
+    assert "webex-flow-store.json" not in cr.SPEC_PRODUCT
+    assert not (SPECS / "webex-flow-store.json").exists(), (
+        "retired spec is back in specs/ -- delete it (ADR-11)")
+    assert not sorted(COMMANDS.glob("fs_*.py")), (
+        "retired fs_* command modules are on disk -- delete them (ADR-11)")
+
+    probe = tmp_path / "specs"
+    probe.mkdir()
+    shutil.copy(SPECS / "webex-ucm.json", probe / "webex-ucm.json")
+    cr._producer_index = None
+    try:
+        cr.build_producer_index(probe)          # control: a known spec is fine
+        shutil.copy(SPECS / "webex-ucm.json", probe / "webex-flow-store.json")
+        with pytest.raises(cr.UnknownSpecProductError, match="RETIRED"):
+            cr.build_producer_index(probe)
+    finally:
+        cr._producer_index = None
 
 
 def test_every_spec_on_disk_declares_a_product():

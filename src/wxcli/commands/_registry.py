@@ -2,7 +2,7 @@
 
 Emitted by tools/generate_commands.py — do NOT edit by hand.
 main.py imports GENERATED_GROUPS and mounts each (module, group) pair;
-hand-written seams, aliases, and the dev-only fs_* block stay explicit
+hand-written seams and aliases stay explicit
 in main.py. A stale entry whose module is missing fails import loudly.
 """
 

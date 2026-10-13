@@ -32,7 +32,7 @@ def create(
     params = {}
     org_id = get_org_id()
     if org_id is not None:
-        params["orgId"] = org_id
+        params["orgId"] = get_cc_org_id(api.session)
     if json_body:
         body = load_json_body(json_body)
     else:

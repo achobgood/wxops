@@ -661,6 +661,45 @@ def _pagination_style(op: dict) -> str:
     return "none"
 
 
+def _page_size_param(op: dict) -> str:
+    """The page-size query parameter a 'page'-style operation declares.
+
+    `pageSize` on 109 Contact Center GETs, `size` on the Flows endpoints
+    (`/flows`, `/flows:search`). The walker must send the declared name: the
+    server silently ignores an unknown one and answers with its default page,
+    which the short-page stop then reads as the last page. `size` alone does not
+    make an operation page-style — it is too generic a name — it only decides
+    which spelling a page-style operation is walked with.
+    """
+    names = {
+        pr.get("name")
+        for pr in (op.get("parameters") or [])
+        if isinstance(pr, dict) and pr.get("in") == "query"
+    }
+    if "pageSize" in names:
+        return "pageSize"
+    if "size" in names:
+        return "size"
+    return "pageSize"
+
+
+def _is_single_resource_action_get(method: str, path: str) -> bool:
+    """GET whose last segment is `{param}:<action>` — e.g. `{flowId}:export`.
+
+    The action runs on ONE resource, so the response is that one result, never
+    a collection — even when the object happens to carry array properties.
+    `detect_command_type` cannot see this: its "ends with {param} -> show" rule
+    does not match `{flowId}:export`, so the array-property heuristic classified
+    these as lists and the renderer emitted only the first array (`nodes` of an
+    export, `results` of a validation), dropping the envelope — an export that
+    cannot be re-imported, a validation that hides `valid: false`.
+    """
+    if method.upper() != "GET":
+        return False
+    last = path.rstrip("/").split("/")[-1]
+    return bool(re.fullmatch(r"\{[^}]+\}:[A-Za-z][\w-]*", last))
+
+
 def parse_operation(
     method: str,
     path: str,
@@ -739,6 +778,7 @@ def parse_operation(
         content_type=content_type,
         paginates=paginates,
         pagination_style=pagination_style,
+        page_size_param=_page_size_param(op),
         real_semantics=classify_real_semantics(name, body_fields),
         response_item_fields=response_item_fields,
         path_var_meta=path_var_meta,
@@ -840,4 +880,19 @@ def parse_tag(
                 )
 
     _dedup_command_names(endpoints)
+
+    # Render a single-resource action GET (`{flowId}:export`) as `show`, so the
+    # whole response is emitted instead of its first array. Applied AFTER names
+    # are derived, deliberately: the name comes from the classification, and
+    # re-deriving would move every shipped name of this shape (`cc-flow
+    # list-validate`, `cc-legacy-flows list`, the `list-export` alias) — the
+    # name-lock churn a behaviour fix should not cause. This is exactly what a
+    # `command_type_overrides` entry does, made a rule so the next operation of
+    # this shape is rendered correctly without anyone having to notice it.
+    for ep in endpoints:
+        if ep.command_type == "list" and _is_single_resource_action_get(
+                ep.method, "/" + ep.url_path):
+            ep.command_type = "show"
+            ep.response_list_key = None
+            ep.response_item_fields = {}
     return endpoints, skipped_uploads

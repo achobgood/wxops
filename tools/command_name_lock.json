@@ -1725,6 +1725,15 @@
    "list": [
     "GET /{}/project/{}/flows"
    ],
+   "list-activities": [
+    "GET /{}/project/{}/v2/activities"
+   ],
+   "list-activity-choices": [
+    "GET /{}/project/{}/v2/activities/{}/inputs/{}/choices"
+   ],
+   "list-event-specifications": [
+    "GET /{}/project/{}/v2/event-specifications"
+   ],
    "list-search": [
     "GET /{}/project/{}/flows:search"
    ],
@@ -1736,6 +1745,9 @@
    ],
    "show": [
     "GET /{}/project/{}/v2/flows/{}"
+   ],
+   "show-activity": [
+    "GET /{}/project/{}/v2/activities/{}"
    ],
    "update": [
     "PATCH /{}/project/{}/v2/flows/{}"

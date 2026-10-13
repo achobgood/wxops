@@ -437,7 +437,7 @@ The 2026-07-01 coherence audit (docs/arch/) found: specs refreshed twice without
 
 - One atomic sync makes "specs updated, regen forgotten" impossible to commit silently.
 - A generator-emitted manifest makes "generated but unregistered" structurally impossible; a stale manifest entry fails import loudly at startup instead of silently at runtime. Explicit literal `(module, group)` lines keep it greppable (adversarial critique R2).
-- Dev-only specs (flow-store) are excluded from the manifest (`--dev-only`, auto-detected) so local regens can't break fresh clones (critique R9a).
+- Dev-only specs (flow-store) are excluded from the manifest (`--dev-only`, auto-detected) so local regens can't break fresh clones (critique R9a). *Superseded 2026-10-13 by ADR-11: the flow-store spec and its `fs-*` groups were retired, and `--dev-only` was removed with them.*
 - Deliberate gaps (skip_tags, multipart uploads, untagged ops, keep_endpoints) are emitted to `docs/arch/deliberate-gaps.md` so "no CLI" is always classifiable as deliberate vs drift.
 
 ### Consequences
@@ -482,6 +482,54 @@ Install was `git clone && pip install -e .`; the working tree **was** the runnin
 
 ---
 
+## ADR-11: Retire the WxCC Flow Store CLI (`fs-*`); Delete Its Spec
+
+### Decision
+
+Remove the 11 Flow Store command groups (`fs-flows`, `fs-resources`, `fs-templates`, `fs-tracing`, `fs-flows-v2`, `fs-user-prefs`, `fs-connectors`, `fs-expression-test`, `fs-flow-props`, `fs-flow-versions`, `fs-projects`) and **delete** `specs/webex-flow-store.json`, together with every piece of machinery that existed only for them: the `FS_DEV_GROUPS` mount in `_lazy.py`, the `get_fs_base_url` / `get_fs_project_id` / `save_fs_datacenter` / `FS_DATACENTERS` config helpers, the generator's `--dev-only` flag and flow-store base-URL branch, the renderer's `BASE_URL_FS` path, the drift gate's `FS_MODULES` audit, and the spec's `field_overrides.yaml` sections. The supported flow surface is `cc-flow` (plus `cc-legacy-flows` export) on the Contact Center API host; neither is touched.
+
+### Context
+
+Verified live 2026-10-13: the CLI's default Flow Store host, `flow-store.intgus1.ciscoccservice.com`, is Cisco's **integration** environment and returns 401 `FAIL_VALIDATE_TOKEN` for production tokens; the alternative `flow-store.us1.ciscoccservice.com` does not resolve in DNS. The groups were old, could not work against a customer org, and must not be exposed. They were already gitignored and absent from the shipped wheel, but any source checkout holding the local spec and modules mounted all 11 in `wxcli --help`.
+
+The weekly spec-sync never touched this spec — `update-specs.py` does not download it and `spec_sync.py` regenerates only git-tracked specs — so the realistic way back is a local copy, not the cloud routine.
+
+### Alternatives Considered
+
+- **Keep the spec on disk but stop generating from it** (a skip list or exclusion in the generator). *Rejected:* it keeps the file plus new exclusion code that must be maintained forever, all to preserve a surface that cannot be used. More machinery, same outcome.
+- **Delete the spec, chosen.** No new code. The guard already exists: `command_renderer.SPEC_PRODUCT` must name every spec on disk or `build_producer_index` raises `UnknownSpecProductError`, and every regen builds that index. Leaving `webex-flow-store.json` *out* of `SPEC_PRODUCT` (it used to map to `None`) turns that existing check into the tripwire: a copy dropped back into `specs/` fails every regen and `tests/test_command_naming_residue.py`. Mutation-proven on 2026-10-13 (planted spec → regen raised, 4 tests failed; removed → green).
+
+### Rationale
+
+- Least machinery: removal plus one deleted dict entry; no allow/deny lists to rot.
+- `.gitignore` keeps both patterns (`specs/webex-flow-store.json`, `src/wxcli/commands/fs_*.py`) so a stale local copy can never be committed or counted, and the CLI no longer contains any code that would mount one.
+- The CC spec's own `/flow-store/...` tags (`Activities`, `Templates`, `Events`) remain in `skip_tags`, so spec-sync cannot reintroduce the surface through the tracked CC spec either.
+- `cc-legacy-flows` was checked and is unaffected: it calls `{cc_base_url}/flow-store/...:export` on the Contact Center host via `get_cc_base_url`, never the Flow Store host or `get_fs_*`.
+
+### Consequences
+
+**Enables:** no unusable groups in `wxcli --help`; one fewer special case in the generator, renderer, config and drift gate.
+**Forecloses:** using the Flow Store API from wxcli. Reviving it needs a new decision, a production-reachable host, and a `SPEC_PRODUCT` entry — not a revert of the mount.
+**Gotchas:** source checkouts that still hold the old untracked files must delete them by hand (`specs/webex-flow-store.json`, `src/wxcli/commands/fs_*.py`); until then the spec makes every regen raise, by design. Published group counts do not change — the `fs-*` groups were never counted.
+
+### Amendment, 2026-10-13 — the activity catalog is carved out
+
+**What changed.** Of the three Flow Store tags embedded in the tracked CC spec, `Activities` (3 ops) and `Events` (1 op) are no longer skipped; they render into `cc-flow` through a per-spec `tag_merge` (`Flows` ← `Activities`, `Events`). `Templates` (2 ops) stays in `skip_tags`. New commands: `cc-flow list-activities`, `show-activity`, `list-activity-choices`, `list-event-specifications`.
+
+**Why the retirement reasoning does not apply to them.** ADR-11 retired a surface that *could not work*: the Flow Store host rejects production tokens. These four operations are not on that host. Their spec paths (`/{orgId}/project/{projectId}/v2/activities…`, `…/v2/event-specifications`) resolve against the Contact Center API host, and all four returned 200 with a production full-admin token, read-only, on 2026-10-13 (54 activities; `show-activity queue-contact` with 16 inputs; `list-activity-choices … queue-contact channelType` → 4 choices, `… destination --parent-input-name channelType --parent-value TELEPHONY` → 11 queues; 20 event specifications). They are the catalog a flow author needs, which is why they belong in `cc-flow` rather than in a group of their own. `…/v2/activities/{name}/schema` 404s live, and it is not in the spec.
+
+**Alternatives considered.**
+- *An operation-level allowlist inside the generator.* Rejected: drift check 1, the gaps doc and the check-19 snapshot all read the spec's raw `tags[0]` against `skip_tags`, so a per-operation carve-out would need the same rule taught to four places. The tag merge is already understood by all of them.
+- *Leave them skipped.* Rejected: the skip was justified by an unreachable host, and that justification is false for these four.
+
+**How the narrowness is kept.** A whole-tag merge would silently absorb anything Cisco adds to these two tags. `tests/test_generate_commands.py::TestActivityCatalogCarveOut` pins the exact operationIds each tag carries, so an addition fails CI and forces a read-only live check first. Their paths sort before `/flows`, so unpinned they would have taken the bare `list`/`show` from the flow commands; `tag_overrides` → `Flows` → `command_name_overrides` swaps the names back (measured with `--dry-run` before regenerating; check 22: 0 moved, 4 locked).
+
+### Status
+
+**Active** since 2026-10-13. Supersedes ADR-9's dev-only-spec bullet. Amended the same day (activity-catalog carve-out, above).
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -498,6 +546,7 @@ Install was `git clone && pip install -e .`; the working tree **was** the runnin
 | ADR-9 (Spec sync + drift gate) | ADR-8 (Playbook) | Gate check 2 enforces that skills only cite commands the built CLI resolves |
 | ADR-10 (PyPI distribution) | ADR-1 (Generated commands) | setuptools-scm stamps the built wheel; the release workflow's version guard protects that stamp |
 | ADR-10 (PyPI distribution) | ADR-8 (Playbook) | The playbook stays repo-hosted, so the `git clone` source install is retained alongside the PyPI CLI install |
+| ADR-11 (Flow Store retired) | ADR-9 (Spec sync + drift gate) | Removes the dev-only spec exemption (`--dev-only`, the fs audit); `SPEC_PRODUCT`'s unknown-spec raise is what keeps the retired spec out of every regen |
 
 ---
 
