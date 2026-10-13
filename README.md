@@ -1,4 +1,4 @@
-# wxcli — Webex Calling CLI
+# wxcli — Webex CLI
 
 A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 192 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
 
