@@ -3775,10 +3775,12 @@ CHECK_PRINT["25"] = (
 # src/wxcli/config.py (read, never imported): get_org_id / resolve_org_id
 # return the saved org id as stored — the base64 Webex id; get_cc_org_id /
 # decode_webex_id return the bare UUID the Contact Center host wants.
-_B64_ORG_CALL = re.compile(r"(?:get_org_id|resolve_org_id)\(")
+_B64_ORG_CALL = re.compile(r"\b(?:get_org_id|resolve_org_id)\(")
 _UUID_ORG_CALL = re.compile(r"(?:get_cc_org_id|decode_webex_id)\(")
-_CC_BASE_CALL = re.compile(r"\bget_cc_base_url\(\)")
+# Any arguments: an argument added to get_cc_base_url must not blind the check.
+_CC_BASE_CALL = re.compile(r"\bget_cc_base_url\(")
 _VAR_ASSIGN = re.compile(r"^[ \t]*(\w+)[ \t]*=[ \t]*(\S.*?)[ \t]*$", re.M)
+_WALRUS_ASSIGN = re.compile(r"\b(\w+)[ \t]*:=[ \t]*(\S.*?)[ \t]*$", re.M)
 _ORGID_QUERY_WRITE = re.compile(
     r"""\bparams\[\s*["']orgId["']\s*\]\s*=\s*(\S.*?)\s*$""", re.M | re.I)
 _BARE_VALUE = re.compile(r"(?:str\(\s*)?(\w+)\s*\)?")
@@ -3790,7 +3792,7 @@ def _sends_base64_org_id(text: str, url: str) -> bool:
     `orgId` query param or inside its URL."""
     b64: set[str] = set()
     uuid: set[str] = set()
-    for name, rhs in _VAR_ASSIGN.findall(text):
+    for name, rhs in _VAR_ASSIGN.findall(text) + _WALRUS_ASSIGN.findall(text):
         if _B64_ORG_CALL.match(rhs):
             b64.add(name)
         elif _UUID_ORG_CALL.match(rhs):
