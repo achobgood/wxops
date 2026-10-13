@@ -924,7 +924,8 @@ def group_label_spec(cli_name: str, spec_filename: str) -> str:
     wins, so a label read off "the spec rendering now" depended on render
     order: a full spec_sync regen and a one-spec regen disagreed on 5 groups
     (calling-metrics, events, webhooks, workspace-locations,
-    workspace-metrics), and the weekly job would have flipped them. The answer
+    workspace-metrics), so each one-spec regen undid the full regen's label
+    and the next full regen put it back. The answer
     is now a function of the GROUP: of every spec that renders a command into
     it, the first by _label_rank. A spec not among the group's owners (a test
     fixture, a spec outside specs/) keeps its own product.

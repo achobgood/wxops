@@ -986,20 +986,17 @@ class TestGroupHelpProduct:
         code = render_command_file("asset", [_make_endpoint()], {}, spec_filename=spec)
         assert f'app = typer.Typer(help="Manage {label}: asset.")' in code
 
-    def test_shipped_unprefixed_cc_groups_say_contact_center(self):
-        cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
-        for mod in ("asset", "channel"):
-            src = (cmd_dir / f"{mod}.py").read_text()
-            assert "get_cc_base_url" in src
-            assert f'help="Manage Webex Contact Center: {mod}."' in src
-
     def test_every_cc_host_module_is_labelled_contact_center(self):
+        """Covers the unprefixed CC groups (`asset`, `channel` at the time of
+        writing) without naming any, so an upstream tag rename cannot fail it."""
         cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
-        wrong = [f.name for f in sorted(cmd_dir.glob("*.py"))
-                 if "cc_base_url = get_cc_base_url()" in f.read_text()
+        cc = [f for f in sorted(cmd_dir.glob("*.py"))
+              if "cc_base_url = get_cc_base_url()" in f.read_text()]
+        assert len(cc) >= 1, "no CC-host module found -- the marker moved?"
+        wrong = [f.name for f in cc
                  # prefix without the colon: cc_ai_assistant.py is a kept
                  # CLI-ahead module no regen writes, labelled before 2026-10-13
-                 and 'typer.Typer(help="Manage Webex Contact Center' not in f.read_text()]
+                 if 'typer.Typer(help="Manage Webex Contact Center' not in f.read_text()]
         assert not wrong, wrong
 
     # Seven groups are written by two specs (last writer wins), and five of
@@ -1028,6 +1025,14 @@ class TestGroupHelpProduct:
         """Umbrella pair (admin + meetings; admin walks first), a walk-order
         tie (cloud-calling + device), and a single-owner group."""
         from tools import command_renderer as cr
+        from tools import postman_parser, spec_overlay
+        # Isolated from repo state: empty overrides, so a future edit to
+        # tools/field_overrides.yaml (a tag_merge, a skip pattern) cannot
+        # reshape the fixture index; and no overlays, because load_spec merges
+        # specs/overlays/<stem>.overlay.json by FILENAME into any spec of that
+        # name (the cloud-calling overlay adds a customer-assist group).
+        monkeypatch.setattr(postman_parser, "load_overrides", lambda path: {})
+        monkeypatch.setattr(spec_overlay, "OVERLAY_DIR", tmp_path / "no-overlays")
         specs = {
             "webex-admin.json": ["Zz Umbrella Probe"],
             "webex-meetings.json": ["Zz Umbrella Probe"],
@@ -1042,8 +1047,8 @@ class TestGroupHelpProduct:
         return index
 
     def test_fixture_index_records_every_owner_in_walk_order(self, probe_index):
-        # Filtered to the probes: the real field_overrides.yaml still applies
-        # (tag_merge can synthesize a group of its own on a cloud-calling spec).
+        # Filtered to the probes, belt and braces: the fixture stubs overrides
+        # and overlays, but only the probe groups are this test's business.
         assert _probes(probe_index["group_specs"]) == {
             "zz-umbrella-probe": ["webex-admin.json", "webex-meetings.json"],
             "zz-order-probe": ["webex-cloud-calling.json", "webex-device.json"],
