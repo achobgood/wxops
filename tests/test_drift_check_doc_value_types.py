@@ -167,6 +167,18 @@ def test_placeholders_never_fire(tree, value):
     assert drift_check.CHECK_EXAMINED["29"]["examined"] == 1
 
 
+@pytest.mark.parametrize("value", ["true", "false", "True"])
+def test_literal_boolean_for_integer_flag_fires(tree, value):
+    """A literal boolean is a value, never a placeholder — the no-digit
+    exemption must not swallow it (`cc-tasks list --limit true`)."""
+    findings = tree([_inv(["--from", value])], _get_spec())
+    assert [(f["where"], f["value"]) for f in findings] == [("--from", value)]
+
+
+def test_literal_boolean_for_string_flag_passes(tree):
+    assert tree([_inv(["--from", "true"])], _get_spec(from_schema=STR)) == []
+
+
 def test_two_specs_one_string_does_not_fire(tree):
     """A path two specs declare fires only when no spec types the name as
     non-numeric — under-report rather than fail a command one spec describes
@@ -225,6 +237,25 @@ def test_unparseable_json_body_is_skipped_and_counted(tree, body):
                 _put_spec({"skillValue": {"type": "integer"}}),
                 module_src=BODY_BLOCK) == []
     assert drift_check.CHECK_EXAMINED["29"] == {"examined": 1, "skipped": 1}
+
+
+def test_json_body_string_boolean_for_integer_key_fires(tree):
+    findings = tree(
+        [_inv(["--json-body", '{"skillValue": "true"}'], command="update-skill")],
+        _put_spec({"skillValue": {"type": "integer"}}), module_src=BODY_BLOCK)
+    assert [f["where"] for f in findings] == ["--json-body skillValue"]
+
+
+@pytest.mark.parametrize("odd", [["not", "a", "dict"], "schema", 7])
+def test_non_dict_body_schema_is_skipped_never_raised(tree, monkeypatch, odd):
+    """body_schema returning a truthy non-dict must not crash the gate (a
+    crash exits 2 and fails the unattended run)."""
+    monkeypatch.setattr(drift_check, "body_schema", lambda op, spec: odd)
+    assert tree(
+        [_inv(["--json-body", '{"skillValue": "x1"}'], command="update-skill")],
+        _put_spec({"skillValue": {"type": "integer"}}),
+        module_src=BODY_BLOCK) == []
+    assert drift_check.CHECK_EXAMINED["29"]["examined"] == 1
 
 
 # ------------------------------------------------- resolution and blindness
