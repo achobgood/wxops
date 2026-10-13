@@ -990,6 +990,9 @@ wxcli call-queue switch-mode-for LOC_ID QUEUE_ID
 wxcli hunt-group switch-mode-for LOC_ID HG_ID
 ```
 
+> **Unverified:** the `callForwarding` wrapper in the three `update-call-forwarding` bodies is
+> from the spec (it is required on the auto attendant), not a live call.
+
 ---
 
 ## 5. Common Data Models (HG/CQ Base)

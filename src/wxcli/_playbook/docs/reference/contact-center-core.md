@@ -442,9 +442,6 @@ wxcli cc-user-profiles create --json-body '{
   "permissionAccessLevel": "ALL",
   "resourceAccessLevel": "ALL"
 }'
-# Unverified (spec, not live): name, profileType, active, permissionAccessLevel and
-# resourceAccessLevel are required. There is no accessRights key: to limit the profile to
-# particular resources set resourceAccessLevel SPECIFIC and list resourceCollections.
 
 # Get profile ACL (v3) — returns the whole ACL object (JSON); before 2026-10-13 the CLI printed []
 wxcli cc-user-profiles list-acl "profile-uuid"
@@ -452,6 +449,11 @@ wxcli cc-user-profiles list-acl "profile-uuid"
 # Delete a user profile (v3)
 wxcli cc-user-profiles delete "profile-uuid"
 ```
+
+> **Unverified:** the `create` body is from the spec, not a live call. `name`, `profileType`,
+> `active`, `permissionAccessLevel` and `resourceAccessLevel` are required. There is no
+> `accessRights` key: to limit a profile to particular resources, set `resourceAccessLevel` to
+> `SPECIFIC` and list `resourceCollections`.
 
 ### Raw HTTP
 
@@ -558,7 +560,6 @@ wxcli cc-queue create-reassign-agents "queue-uuid" --json-body '{
   "add": ["agent1-uuid", "agent2-uuid"],
   "remove": []
 }'
-# Unverified (spec, not live): the body is two lists, add and remove, not an action verb.
 
 # List all queues (v1)
 wxcli cc-queue list
@@ -589,6 +590,9 @@ wxcli cc-queue create-fetch-by-grouped-assistant-skill --json-body '{
   "assistantSkillIds": ["skill-uuid-1", "skill-uuid-2"]
 }'
 ```
+
+> **Unverified:** the `create-reassign-agents` body is from the spec, not a live call: it is two
+> lists of agent ids, `add` and `remove`, not an `agentIds` list with an action verb.
 
 ### Raw HTTP
 
@@ -738,7 +742,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/entry-point" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/entry-point" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Main IVR","channelType":"telephony","serviceLevel":60}'
+  -d '{"name":"Main IVR","entryPointType":"INBOUND","channelType":"TELEPHONY","active":true,"serviceLevelThreshold":60,"maximumActiveContacts":100}'
 ```
 
 ---
@@ -833,10 +837,15 @@ Skills are attributes assigned to agents for skill-based routing. Each skill has
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `serviceLevelThreshold`, `skillType` (TEXT, PROFICIENCY, BOOLEAN, ENUM) and `active` (spec). An enum skill's values go in `enumSkillValues`, one `{"name": …}` object each (spec, not live-verified)
-- **PROFICIENCY type:** Values 0-10, used for competency-based routing
-- **BOOLEAN type:** True/false, used for capability flags (e.g., "speaks_spanish")
-- **ENUM type:** Requires `enumSkillValues` — one `{"name": …}` object per allowed value
+- **Create:** Requires `name`, `serviceLevelThreshold`, `skillType` and `active`. The spec spells the `skillType` values `Proficiency`, `Boolean`, `Text` and `enum`
+- **Proficiency type:** Values 0-10, used for competency-based routing
+- **Boolean type:** True/false, used for capability flags (e.g., "speaks_spanish")
+- **enum type:** Requires `enumSkillValues` — one `{"name": …}` object per allowed value
+
+> **Unverified:** the required keys, the `skillType` spellings and the `enumSkillValues` shape
+> are from the spec, not a live call. Only `Proficiency` appears in a command this doc runs
+> (`cc-skill update --skill-type "Proficiency"` below). Gotcha 21 shows the CC API rejects the
+> upper-case spelling of a sibling enum (`variableType`), so the spec's casing is used here.
 - **TEXT type:** Free-form text value
 
 ### CLI Examples
@@ -848,7 +857,7 @@ wxcli cc-skill list-skill
 # Create a proficiency skill
 wxcli cc-skill create --json-body '{
   "name": "Product Knowledge",
-  "skillType": "PROFICIENCY",
+  "skillType": "Proficiency",
   "serviceLevelThreshold": 60,
   "active": true
 }'
@@ -856,7 +865,7 @@ wxcli cc-skill create --json-body '{
 # Create a boolean skill
 wxcli cc-skill create --json-body '{
   "name": "Spanish Speaker",
-  "skillType": "BOOLEAN",
+  "skillType": "Boolean",
   "serviceLevelThreshold": 60,
   "active": true
 }'
@@ -864,7 +873,7 @@ wxcli cc-skill create --json-body '{
 # Create an enum skill
 wxcli cc-skill create --json-body '{
   "name": "Region",
-  "skillType": "ENUM",
+  "skillType": "enum",
   "serviceLevelThreshold": 60,
   "active": true,
   "enumSkillValues": [{"name": "EAST"}, {"name": "WEST"}, {"name": "CENTRAL"}]
@@ -892,7 +901,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/skill" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/skill" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Product Knowledge","skillType":"PROFICIENCY","serviceLevelThreshold":60,"active":true}'
+  -d '{"name":"Product Knowledge","skillType":"Proficiency","serviceLevelThreshold":60,"active":true}'
 ```
 
 ---
@@ -1505,7 +1514,7 @@ Global variables (CAD variables -- Customer Activity Data) store key-value data 
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `type` (STRING, INTEGER, BOOLEAN, DECIMAL, DATE, DATETIME), optional `defaultValue`
+- **Create:** Requires `name`, `variableType` (`String`, `Integer`, `Boolean`, `Decimal`, `DateTime` — title case, gotcha 21), `defaultValue`, `active`, `reportable`, `agentViewable` and `agentEditable` (spec `required`), plus `desktopLabel` when `agentViewable` is true (gotcha 22)
 - **Reportable:** Variables marked as reportable appear in CC analytics. There is a maximum reportable count -- check with `list-reportable-count`.
 - **Agent viewable/editable:** Controls whether agents see and can modify the variable on the desktop
 
@@ -1536,6 +1545,9 @@ wxcli cc-global-vars show "var-uuid"
 # Delete a variable
 wxcli cc-global-vars delete "var-uuid"
 ```
+
+> **Unverified:** the `create` body follows the spec's required keys; `active` was added from the
+> spec, not a live call. `variableType` title case and `desktopLabel` come from gotchas 21 and 22.
 
 ### Raw HTTP
 

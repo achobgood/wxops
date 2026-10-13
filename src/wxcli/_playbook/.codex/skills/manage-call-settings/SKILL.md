@@ -50,6 +50,8 @@ wxcli location-voicemail show LOCATION_ID -o json          # Location voicemail 
 wxcli location-voicemail update LOCATION_ID --json-body '{"voicemailTranscriptionEnabled": true}'
 wxcli user-settings update-voicemail PERSON_ID --json-body '{"enabled": true, "emailCopyOfMessage": {"enabled": true, "emailId": "user@example.com"}}'
 ```
+> **Unverified:** the location key is `voicemailTranscriptionEnabled` per the spec (required on
+> that PUT) and `docs/reference/location-calling-core.md`; not live-verified.
 
 ### Voicemail self-service (user-level OAuth)
 ```bash
@@ -91,6 +93,7 @@ wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
 }'
 ```
 Note: 4 blocks — `always`, `busy` and `noAnswer` nest under `callForwarding`; `businessContinuity` is its sibling at the top level. selectiveForward is a SEPARATE API.
+> **Unverified:** the `callForwarding` wrapper is from the spec and `docs/reference/person-call-settings-handling.md`, not a live call.
 
 ### Workspace hoteling
 ```bash
@@ -119,7 +122,12 @@ wxcli user-settings show-criteria-simultaneous-ring PERSON_ID ID -o json
 wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID --json-body '{"ringEnabled":true}'
 wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID ID
 ```
-- Criteria body (spec, not live-verified): `callsFrom` and `ringEnabled` are required; with `callsFrom: SELECT_PHONE_NUMBERS`, `phoneNumbers`, `anonymousCallersEnabled` and `unavailableCallersEnabled` are required too. The criteria's toggle is `ringEnabled` — criteria with `ringEnabled: false` take priority.
+
+> **Unverified:** the criteria bodies are from the spec, not a live call. `callsFrom` and
+> `ringEnabled` are required; with `callsFrom: SELECT_PHONE_NUMBERS`, `phoneNumbers`,
+> `anonymousCallersEnabled` and `unavailableCallersEnabled` are required too. The criteria's
+> toggle is `ringEnabled` — criteria with `ringEnabled: false` take priority.
+
 - Person SimRing now has an admin path via `user-settings` — `list-simultaneous-ring` / `update-simultaneous-ring` configure the base setting (enabled, do-not-ring-if-on-call, numbers); the `criteria-simultaneous-ring` commands manage schedule-based ring criteria.
 - **Workspace SimRing is also admin-configurable:** `wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID` and `update-simultaneous-ring` exist. Use those for workspaces instead of the `user-settings` commands.
 - SNR (`single-number-reach`) remains a valid alternative for the desk + mobile ring-simultaneously use case, but it is no longer the only admin-configurable option for person SimRing:
@@ -761,6 +769,7 @@ wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
 }'
 ```
 Forwarding has 4 blocks: always, busy and noAnswer under `callForwarding`, plus top-level businessContinuity. selectiveForward is a SEPARATE API.
+> **Unverified:** the `callForwarding` wrapper is from the spec and `docs/reference/person-call-settings-handling.md`, not a live call.
 
 #### Pattern: Voicemail configuration
 

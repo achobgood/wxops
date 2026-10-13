@@ -474,6 +474,9 @@ wxcli emergency-services update-building Y2lzY29...locationId \
   --json-body '{"address": {"addressLine1": "100 Main St", "city": "Austin", "stateOrProvince": "TX", "zipOrPostalCode": "78701", "country": "US"}}'
 ```
 
+> **Unverified:** the `update-building` body is from the spec, not a live call: the PUT body
+> carries only `address`, so the alerting email set at create time is not changed here.
+
 ### Emergency Call Notifications (Org-Level)
 
 #### Read Notification Settings
@@ -810,6 +813,8 @@ api.session.rest_put(
     json={"address": {"addressLine1": "100 Main St", "city": "Austin",
                      "stateOrProvince": "TX", "zipOrPostalCode": "78701", "country": "US"}})
 ```
+
+> **Unverified:** the update body is from the spec, not a live call (see the CLI note above).
 
 ### Emergency Address (PSTN)
 

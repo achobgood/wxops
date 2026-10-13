@@ -699,6 +699,8 @@ screening = api.session.rest_get(
 )
 ```
 
+> **Unverified:** the assigned-assistants body (`assistantIds`) is from the spec, not a live call.
+
 **CLI commands:** `show-executive-assistant`, `update-executive-assistant`
 **CLI commands (self):** `list-assigned-assistants`, `update-assigned-assistants`, `list-available-assistants`, `show-assistant`, `update-assistant`
 
@@ -782,6 +784,9 @@ wxcli user-settings update-screening Y2lzY29...execPersonId \
 # Disable screening
 wxcli user-settings update-screening Y2lzY29...execPersonId --no-enabled
 ```
+
+> **Unverified:** the `update-assigned-assistants` body is from the spec, not a live call: a
+> flat `assistantIds` list of person ids (not `assistants: [{id}]`); `null` removes them all.
 
 ---
 

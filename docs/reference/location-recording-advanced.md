@@ -218,7 +218,7 @@ result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/vendorUser
 result = api.session.rest_get(f"{BASE}/telephony/config/callRecording/vendors")
 
 # PUT — Set org vendor (returns jobId)
-body = {"vendorId": "<vendor_id>", "storageRegion": "US", "failureBehavior": "PROCEED_WITH_CALL_NO_ANNOUNCEMENT"}
+body = {"vendorId": "<vendor_id>", "failureBehavior": "PROCEED_WITH_CALL_NO_ANNOUNCEMENT"}  # storageRegion moved to data-policies (§ 1.7)
 result = api.session.rest_put(f"{BASE}/telephony/config/callRecording/vendor", json=body)
 # Response 200: {"jobId": "..."} or 204 for immediate
 

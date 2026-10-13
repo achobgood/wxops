@@ -458,7 +458,6 @@ wxcli cc-overrides show <override-id>
 wxcli cc-overrides create --json-body '{"name":"Holiday-Override","description":"Route to overflow during holidays"}'
 
 # Update an override
-# (PUT: name, timezone and overrides are required by the spec, and there is no active flag)
 wxcli cc-overrides update <override-id> --json-body '{"name":"Holiday-Override","timezone":"America/New_York","overrides":[{"name":"Christmas","startDateTime":"2026-12-25T00:00","endDateTime":"2026-12-25T23:59","workingHours":false,"frequency":"DontRepeat"}]}'
 
 # Delete an override
@@ -467,6 +466,11 @@ wxcli cc-overrides delete <override-id>
 # Dump all overrides as JSON (there is no bulk-export command for overrides)
 wxcli cc-overrides list-overrides -o json
 ```
+
+> **Unverified:** the `update` body is from the spec, not a live call. It is a PUT: `name`,
+> `timezone` and `overrides` are required, and there is no `active` flag. Each override needs
+> `name` and `workingHours`; `frequency` is `DontRepeat`, `Daily`, `Weekly`, `Monthly` or
+> `Yearly`.
 
 ### Raw HTTP
 
@@ -601,17 +605,15 @@ dialer from calling specific phone numbers. Uses the `/v3/campaign-management/` 
 wxcli cc-contact-list list <campaign-id>
 
 # Create a contact list
-# (spec: supportedChannels is required, plus activationTimeLagMinutes or activationDateTime;
-#  there is no name or contacts key — add contacts with create-contacts)
-wxcli cc-contact-list create <campaign-id> --json-body '{"supportedChannels":["TELEPHONY"],"activationTimeLagMinutes":0}'
+wxcli cc-contact-list create <campaign-id> --json-body '{"supportedChannels":["Voice"],"activationTimeLagMinutes":0}'
 
 # Add contacts to a list
 wxcli cc-contact-list create-contacts <campaign-id> <list-id> --json-body '{"contacts":[{"phoneNumber":"+15551234567","firstName":"Jane"}]}'
 
-# Close a contact (spec: contactStatus accepts only CLOSED)
+# Close a contact
 wxcli cc-contact-list update <campaign-id> <list-id> <contact-id> --json-body '{"contactStatus":"CLOSED"}'
 
-# Update list status (spec example: EXPIRED; the value is not case-sensitive)
+# Update list status
 wxcli cc-contact-list update-status <campaign-id> <list-id> --json-body '{"contactListStatus":"EXPIRED"}'
 
 # Add a phone number to DNC list
@@ -623,6 +625,12 @@ wxcli cc-dnc show <dnc-list-name> +15559876543
 # Remove a number from DNC list
 wxcli cc-dnc delete <dnc-list-name> +15559876543
 ```
+
+> **Unverified:** the contact-list bodies are from the spec, not a live call. `create` requires
+> `supportedChannels` (`Voice`, `SMS` or `Email`) plus `activationTimeLagMinutes` or
+> `activationDateTime`; there is no `name` or `contacts` key, so add contacts with
+> `create-contacts`. A contact's `contactStatus` accepts only `CLOSED`. A list's
+> `contactListStatus` takes values like the spec's `EXPIRED` (not case-sensitive).
 
 ### Raw HTTP
 

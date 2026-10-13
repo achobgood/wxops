@@ -726,8 +726,9 @@ wxcli cc-multimedia-profile create --json-body '{
 }'
 ```
 
-Each channel is its own integer limit (`telephony` 0–1, `chat`/`email`/`social` 0–5); all
-eight keys above are required by the spec.
+> **Unverified:** from the spec, not a live call: each channel is its own integer limit
+> (`telephony` 0–1, `chat`/`email`/`social` 0–5), not a `mediaTypes` list; all eight keys
+> above are required. `docs/reference/contact-center-core.md` shows the same body.
 
 **List multimedia profiles:**
 
@@ -1195,8 +1196,8 @@ wxcli cc-subscriptions create --json-body '{
 }'
 ```
 
-The webhook target is `destinationUrl` (HTTPS); `name`, `eventTypes` and `destinationUrl`
-are required by the spec.
+> **Unverified:** from the spec, not a live call: the webhook target is `destinationUrl`
+> (HTTPS), not `callbackUrl`; `name`, `eventTypes` and `destinationUrl` are required.
 
 **List subscriptions:**
 
