@@ -243,6 +243,14 @@ Checks (docs/arch/target-architecture.md §A6):
       cannot be re-imported) and `cc-flow list-validate` dropped
       `valid: false`. A collection keyed by a path id (`{data, meta}`) drops
       nothing and passes; a bare-array response has no key and is exempt.
+  26. Contact Center base64 org id: a block that builds its URL on
+      get_cc_base_url() must not send, as the `orgId` query param or inside
+      its URL, a name assigned from get_org_id()/resolve_org_id() (the saved
+      base64 Webex id) and never from get_cc_org_id()/decode_webex_id(). The
+      CC host wants the bare UUID and answered 401 `Token does not have
+      access to OrgId:Y2lz…` to 14 commands in 6 groups (`cc-queue-stats
+      list`, `cc-subscriptions` x8, …). Calling-host blocks are out of
+      scope; no spec is read.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -3762,6 +3770,89 @@ CHECK_PRINT["25"] = (
                f"{f['op']}  ({f['spec']})"))
 
 
+# ----------------------------------------------------------------- check 26
+
+# src/wxcli/config.py (read, never imported): get_org_id / resolve_org_id
+# return the saved org id as stored — the base64 Webex id; get_cc_org_id /
+# decode_webex_id return the bare UUID the Contact Center host wants.
+_B64_ORG_CALL = re.compile(r"(?:get_org_id|resolve_org_id)\(")
+_UUID_ORG_CALL = re.compile(r"(?:get_cc_org_id|decode_webex_id)\(")
+_CC_BASE_CALL = re.compile(r"\bget_cc_base_url\(\)")
+_VAR_ASSIGN = re.compile(r"^[ \t]*(\w+)[ \t]*=[ \t]*(\S.*?)[ \t]*$", re.M)
+_ORGID_QUERY_WRITE = re.compile(
+    r"""\bparams\[\s*["']orgId["']\s*\]\s*=\s*(\S.*?)\s*$""", re.M | re.I)
+_BARE_VALUE = re.compile(r"(?:str\(\s*)?(\w+)\s*\)?")
+_URL_PLACEHOLDER = re.compile(r"\{(\w+)\}")
+
+
+def _sends_base64_org_id(text: str, url: str) -> bool:
+    """True when the block sends a base64-org-id variable (or call) as the
+    `orgId` query param or inside its URL."""
+    b64: set[str] = set()
+    uuid: set[str] = set()
+    for name, rhs in _VAR_ASSIGN.findall(text):
+        if _B64_ORG_CALL.match(rhs):
+            b64.add(name)
+        elif _UUID_ORG_CALL.match(rhs):
+            uuid.add(name)
+    # A name ever assigned the UUID is not judged (under-report, never guess
+    # which assignment reaches the request).
+    b64 -= uuid
+    for value in _ORGID_QUERY_WRITE.findall(text):
+        bare = _BARE_VALUE.fullmatch(value)
+        if _B64_ORG_CALL.match(value) or (bare and bare.group(1) in b64):
+            return True
+    if _B64_ORG_CALL.search(url):
+        return True
+    return any(name in b64 for name in _URL_PLACEHOLDER.findall(url))
+
+
+def check_cc_base64_org_id(commands_dir: Path = COMMANDS_DIR) -> list[dict]:
+    """A Contact Center command sending the base64 Webex org id.
+
+    The saved org id is the base64 Webex id. `_render_auto_inject_params`
+    emitted `params["orgId"] = org_id` from `get_org_id()` on every host; the
+    CC host wants the bare UUID and answered 401 `Token does not have access
+    to OrgId:Y2lz…` to 14 commands in 6 groups (`cc-queue-stats list`,
+    `cc-subscriptions` x8, …; live 2026-10-13). Exit 1 with a misleading
+    "token" error on every CC runtime/analytics command that sent it.
+
+    A block is Contact Center when it calls `get_cc_base_url()`. It fires
+    when it sends, as the `orgId` query param (any case) or in its URL, a
+    name assigned from `get_org_id()` / `resolve_org_id(…)` — or such a call
+    inline — and that name is never assigned from `get_cc_org_id(…)` /
+    `decode_webex_id(…)`. Path injection is in scope by the same rule
+    (`_render_path_inject` emits `get_cc_org_id` under the CC host; neither
+    tree has a base64 path instance today). Calling-host blocks send the
+    base64 id correctly and are not examined. Needs no spec.
+    """
+    findings: list[dict] = []
+    examined = 0
+    for block in iter_command_blocks(commands_dir):
+        if not _CC_BASE_CALL.search(block.text):
+            continue
+        examined += 1
+        url_m = _BLOCK_URL.search(block.text)
+        url = url_m.group(1) if url_m else ""
+        if not _sends_base64_org_id(block.text, url):
+            continue
+        for base in URL_BASES:
+            if url.startswith(base):
+                url = url[len(base):]
+                break
+        findings.append({"group": block.group, "command": block.command,
+                         "op": f"{block.method} {url}"})
+    return record_examined("26", findings, examined,
+                           helper_skip_count("modules", "blocks"),
+                           "Contact Center commands")
+
+
+CHECK_PRINT["26"] = (
+    "Contact Center commands sending the base64 Webex org id as orgId",
+    "Contact Center commands",
+    lambda f: f"wxcli {f['group']} {f['command']}  {f['op']}")
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -4723,6 +4814,7 @@ def main() -> int:
     inert_window_flags = check_inert_window_flags()
     walker_params = check_undeclared_walker_params()
     single_object_lists = check_single_object_list_render()
+    cc_base64_org_ids = check_cc_base64_org_id()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -4768,6 +4860,7 @@ def main() -> int:
         "23_inert_window_flags": inert_window_flags,
         "24_undeclared_walker_params": walker_params,
         "25_single_object_list_render": single_object_lists,
+        "26_cc_base64_org_id": cc_base64_org_ids,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -4784,7 +4877,7 @@ def main() -> int:
                   or name_lock_missing or name_lock["retargeted"] or name_lock["removed"]
                   or name_lock["removed_modules"] or name_lock["unlocked"]
                   or inert_window_flags or walker_params
-                  or single_object_lists)
+                  or single_object_lists or cc_base64_org_ids)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -5018,6 +5111,7 @@ def main() -> int:
         print_check_findings("23", inert_window_flags)
         print_check_findings("24", walker_params)
         print_check_findings("25", single_object_lists)
+        print_check_findings("26", cc_base64_org_ids)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
