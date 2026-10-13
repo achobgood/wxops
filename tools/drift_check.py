@@ -234,6 +234,15 @@ Checks (docs/arch/target-architecture.md §A6):
       come from the page_param=/size_param= kwargs (auth.py defaults
       page/pageSize) or follow_scim's startIndex/count; follow_pagination
       (Link header) sends no name and is exempt.
+  25. Single resource rendered as a list: a GET whose path ends in a path
+      parameter, optionally with a `:action` (`/flows/{flowId}`,
+      `/flows/{flowId}:export`), must not render through the list extractor
+      when the spec's 200 object declares a property that extractor drops
+      (anything but the extracted key and a paging envelope such as `meta`
+      or a total). `cc-flow export` emitted only `nodes` (an export that
+      cannot be re-imported) and `cc-flow list-validate` dropped
+      `valid: false`. A collection keyed by a path id (`{data, meta}`) drops
+      nothing and passes; a bare-array response has no key and is exempt.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -3629,6 +3638,125 @@ CHECK_PRINT["24"] = (
                f"{f['param']}  {f['op']}  ({f['spec']})"))
 
 
+# ----------------------------------------------------------------- check 25
+
+# A path that ends in a path parameter, optionally followed by a `:action`
+# (`/flows/{}`, `/flows/{}:export`) names ONE resource.
+_SINGLE_RESOURCE_TAIL = re.compile(r"\{\}(?::[\w-]+)?$")
+# Siblings a genuine collection carries beside its array: a paging/meta
+# envelope, never data. Measured over the list commands at HEAD (2026-10-13):
+# `meta` (81, CC/JDS), the bulk-export page fields (`totalResources`,
+# `pageSize`, `pageNumber`, `rel`), SCIM (`totalResults`, `itemsPerPage`,
+# `startIndex`, `schemas`), plus the totals and page objects the runtime's
+# `_body_says_more` reads.
+_LIST_ENVELOPE_KEYS = frozenset({
+    "meta", "totalResources", "pageSize", "pageNumber", "rel", "totalResults",
+    "itemsPerPage", "startIndex", "schemas", "total", "totalCount",
+    "totalRecords", "count", "pageInfo", "paging", "links", "_links"})
+
+
+def response_object_props(op: dict, spec: dict) -> set[str]:
+    """Top-level property names of `op`'s 200 response object, over EVERY
+    media type (`*/*` included), `$ref` and `allOf` resolved. Empty when there
+    is no 200, no content or no usable schema. Never raises."""
+    if not isinstance(op, dict) or not isinstance(spec, dict):
+        return set()
+    responses = op.get("responses")
+    if not isinstance(responses, dict):
+        return set()
+    resp = _resolve_ref(spec, responses.get("200", responses.get(200)))
+    content = resp.get("content")
+    if not isinstance(content, dict):
+        return set()
+    names: set[str] = set()
+    for media in content.values():
+        if isinstance(media, dict):
+            names |= {n for n in _object_props(spec, media.get("schema"))
+                      if isinstance(n, str)}
+    return names
+
+
+def check_single_object_list_render(commands_dir: Path = COMMANDS_DIR,
+                                    specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A GET on one resource rendered through the list extractor.
+
+    `detect_command_type`'s "ends in `{param}` -> show" rule could not see
+    `{flowId}:export`, so the array-property heuristic made it a list and the
+    renderer emitted only `result["nodes"]` — a flow export that cannot be
+    re-imported. `cc-flow list-validate` dropped `valid: false` the same way,
+    and `cc-legacy-flows list` (an export) emitted only `associatedChannels`
+    (2026-10-13). Exit 0, plausible output, most of the object gone.
+
+    For each GET block whose path ends in `{}` or `{}:<action>` and that
+    extracts `result.get("<key>", result.get("data", …))`, the spec op's 200
+    object is read. A finding needs the object to declare a property the
+    extractor drops: anything but the extracted key and a paging envelope
+    (_LIST_ENVELOPE_KEYS). That is a measured tightening, not an ack — 17
+    ops at HEAD are genuine collections keyed by a path id
+    (`…/workspace-id/{workspaceId}` -> `{data, meta}`,
+    `…/availability/{clusterId}` -> `{items}`); listing them drops nothing.
+    A bare-array response (response_array_props is None) has no key to
+    extract and is out of scope by construction.
+
+    A path several specs declare passes if ANY of them describes a bare array
+    or a drop-nothing collection (under-report rather than fail a correct
+    command, as checks 9/23/24 do). Blocks with no matching spec op, or whose
+    response declares no properties at all, are skipped and counted.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method != "GET" or not _SINGLE_RESOURCE_TAIL.search(block.npath):
+            continue
+        sops = index.get(("GET", block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        key = list_extractor_key(block.text)
+        if key is None:
+            examined += 1       # rendered as a single object: correct
+            continue
+        dropped: set[str] = set()
+        collection = False
+        for sop in sops:
+            if response_array_props(sop.op, sop.spec) is None:
+                collection = True       # bare array: nothing to drop
+                continue
+            props = response_object_props(sop.op, sop.spec)
+            if not props:
+                continue
+            lost = props - {key} - _LIST_ENVELOPE_KEYS
+            if not lost:
+                collection = True
+            dropped |= lost
+        if not collection and not dropped:
+            skipped += 1                # no declared shape: never guessed
+            continue
+        examined += 1
+        if collection:
+            continue
+        findings.append({
+            "group": block.group,
+            "command": block.command,
+            "op": f"GET {sops[0].path}",
+            "extracts": key,
+            "spec": ", ".join(sorted({s.spec_file for s in sops})),
+        })
+    return record_examined(
+        "25", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "single-resource GETs")
+
+
+CHECK_PRINT["25"] = (
+    "single-resource GETs rendered through the list extractor",
+    "single-resource GETs",
+    lambda f: (f"wxcli {f['group']} {f['command']}  extracts {f['extracts']}  "
+               f"{f['op']}  ({f['spec']})"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -4589,6 +4717,7 @@ def main() -> int:
     name_lock_missing = not name_lock_file.get("modules")
     inert_window_flags = check_inert_window_flags()
     walker_params = check_undeclared_walker_params()
+    single_object_lists = check_single_object_list_render()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -4633,6 +4762,7 @@ def main() -> int:
         "22_name_lock_missing": name_lock_missing,
         "23_inert_window_flags": inert_window_flags,
         "24_undeclared_walker_params": walker_params,
+        "25_single_object_list_render": single_object_lists,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -4648,7 +4778,8 @@ def main() -> int:
                   or ungated_destructive
                   or name_lock_missing or name_lock["retargeted"] or name_lock["removed"]
                   or name_lock["removed_modules"] or name_lock["unlocked"]
-                  or inert_window_flags or walker_params)
+                  or inert_window_flags or walker_params
+                  or single_object_lists)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -4881,6 +5012,7 @@ def main() -> int:
         _print_name_lock_findings(name_lock)
         print_check_findings("23", inert_window_flags)
         print_check_findings("24", walker_params)
+        print_check_findings("25", single_object_lists)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
