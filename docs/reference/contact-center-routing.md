@@ -117,7 +117,7 @@ customer calls a mapped number, the call routes to the configured entry point an
 |---|---|---|
 | `wxcli cc-dial-number list` | GET /organization/{orgid}/dial-number | List Dialed Number Mapping(s) (org) |
 | `wxcli cc-dial-number create` | POST /organization/{orgid}/dial-number | Create a new Dialed Number Mapping |
-| `wxcli cc-dial-number delete` | DELETE /organization/{orgid}/dial-number | Delete all Dialed Number Mapping(s) |
+| `wxcli cc-dial-number delete` | DELETE /organization/{orgid}/dial-number | **⚠ Deletes EVERY dialed number mapping in the org.** Takes no ID; its confirm prompt reads only "Delete Dial Number for <orgid>?". To delete one mapping use `delete-dial-number <id>` |
 | `wxcli cc-dial-number create-bulk` | POST /organization/{orgid}/dial-number/bulk | Bulk save |
 | `wxcli cc-dial-number list-numbers-only` | GET /organization/{orgid}/dial-number/numbers-only | List only dialed numbers |
 | `wxcli cc-dial-number list-bulk-export` | GET /organization/{orgid}/dial-number/bulk-export | Bulk export |
@@ -130,7 +130,12 @@ customer calls a mapped number, the call routes to the configured entry point an
 
 ### Key Parameters
 
-- `--json-body` -- Full JSON body for create/update operations
+- `--dialled-number` -- the DN to map, E.164 (`dialledNumber` in the body — double "l", NOT `dialNumber`)
+- `--entry-point-id` / `--entry-point-name` -- the inbound entry point the DN routes to (the name comes from `cc-entry-point list-entry-point`)
+- `--location` -- the Webex Calling location's **bare UUID** — the tail of the decoded `wxcli locations list` id (`ciscospark://us/LOCATION/<uuid>`). The spec calls it optional; the API does not: omitting it returns 400 `location: should not be null or blank` (live 2026-10-13)
+- `--region-id` -- the telephony region id. Also optional in the spec and required by the API: omitting it returns 400 `Telephony regionId should be provided.` (live 2026-10-13). No `wxcli` command lists regions; copy `regionId` from an existing mapping (`wxcli cc-dial-number list --all -o json`). On the 2026-10-13 sandbox all 3 mappings carried the same `regionId` and the same `location`
+- Since 2026-10-13 `create --help` marks `--entry-point-id`, `--entry-point-name`, `--location` and `--region-id` required and the CLI refuses locally when one is missing (generator `make_required` override on this operation)
+- `--json-body` -- Full JSON body for create/update operations (same field names as above)
 - `id` (argument) -- Dialed number mapping ID for show/update/delete
 
 ### CLI Examples
@@ -145,14 +150,22 @@ wxcli cc-dial-number list-numbers-only
 # Get a specific mapping
 wxcli cc-dial-number show <mapping-id>
 
-# Create a new dialed number mapping
-wxcli cc-dial-number create --json-body '{"dialNumber":"+15551234567","entryPointId":"ep-id-here"}'
+# Read location/regionId off an existing mapping (there is no region-list command)
+wxcli cc-dial-number list --all -o json --fields '[].{dn:dialledNumber,location:location,regionId:regionId}'
 
-# Delete a specific mapping
+# Create a new dialed number mapping (flags form verified live 2026-10-13)
+wxcli cc-dial-number create --dialled-number +15551234567 \
+  --entry-point-id ENTRY_POINT_ID --entry-point-name "Main Inbound EP" \
+  --location LOCATION_UUID --region-id REGION_ID
+# ...or the same as a body:
+wxcli cc-dial-number create --json-body '{"dialledNumber":"+15551234567","entryPointId":"ENTRY_POINT_ID","entryPointName":"Main Inbound EP","location":"LOCATION_UUID","regionId":"REGION_ID"}'
+
+# Delete a specific mapping (verified live 2026-10-13: {"status": "deleted", ...})
 wxcli cc-dial-number delete-dial-number <mapping-id>
 
-# CAUTION: Delete ALL dialed number mappings
-wxcli cc-dial-number delete
+# NOTE: bare `cc-dial-number delete` takes NO id and deletes EVERY mapping in the
+# org (DELETE /organization/{orgid}/dial-number). It is deliberately not shown as
+# an example; never run it to remove one number.
 
 # Bulk export all mappings
 wxcli cc-dial-number list-bulk-export -o json
@@ -165,10 +178,10 @@ wxcli cc-dial-number list-bulk-export -o json
 GET https://api.wxcc-us1.cisco.com/organization/{orgId}/v2/dial-number
 Authorization: Bearer {cc_token}
 
-# Create a dialed number mapping
+# Create a dialed number mapping (`location` = bare UUID of the Calling location)
 POST https://api.wxcc-us1.cisco.com/organization/{orgId}/dial-number
 Content-Type: application/json
-{"dialNumber":"+15551234567","entryPointId":"ep-id-here"}
+{"dialledNumber":"+15551234567","entryPointId":"ENTRY_POINT_ID","entryPointName":"Main Inbound EP","location":"LOCATION_UUID","regionId":"REGION_ID"}
 
 # Delete ALL dialed number mappings (use with extreme caution)
 DELETE https://api.wxcc-us1.cisco.com/organization/{orgId}/dial-number
@@ -218,8 +231,9 @@ wxcli cc-outdial-ani list-outdial-ani
 # Create an outdial ANI profile
 wxcli cc-outdial-ani create --json-body '{"name":"US-OutdialANI","description":"US outbound caller ID"}'
 
-# Add an entry to an ANI profile
-wxcli cc-outdial-ani create-entry <ani-id> --json-body '{"dialNumber":"+15551234567"}'
+# Add an entry to an ANI profile. `create-entry --help` requires --name and --number;
+# the body field is `number`, not `dialNumber` (from --help; not live-tested)
+wxcli cc-outdial-ani create-entry <ani-id> --name "Main line" --number +15551234567
 
 # List entries for a specific ANI (v2)
 wxcli cc-outdial-ani list-entry-outdial-ani-1 <ani-id>
@@ -241,7 +255,7 @@ Authorization: Bearer {cc_token}
 # Create an entry under an ANI profile
 POST https://api.wxcc-us1.cisco.com/organization/{orgId}/outdial-ani/{outDialAniId}/entry
 Content-Type: application/json
-{"dialNumber":"+15551234567"}
+{"name":"Main line","number":"+15551234567"}
 ```
 
 ---
@@ -537,7 +551,7 @@ wxcli cc-campaign-group list CAMPAIGN_GROUP_NAME --campaign-status Running --pag
 #### Gotchas
 
 - **The positional is a group NAME, not an ID.** Most `cc-*` commands take a UUID; the spec declares this one as `campaignGroupName` and it goes into the URL path verbatim. What the API does with a UUID passed here is untested.
-- **`--page` / `--page-size` are the endpoint's own paging controls**, separate from `--limit` / `--offset`. `--page-size` must be between 1 and 100. Use `--all` to walk every page.
+- **`--page` / `--page-size` are the endpoint's own paging controls; `--limit` / `--offset` are translated onto them.** On every page-numbered `cc-*` list command (since 2026-10-13) `--limit N` is sent as the page size and `--offset N` returns records N onward, record-exact, by fetching the right page(s) — before that they were sent as `max`/`start`, which these endpoints ignore. `--page-size` must be between 1 and 100. Use `--all` to walk every page.
 - **There is no create/update/delete here.** The tracked spec declares one operation for this group, so the CLI has one command — creating or deleting a campaign group is not an API surface wxcli can reach.
 
 ---
@@ -635,13 +649,15 @@ for querying rather than GET -- the request body contains the search criteria. 1
 
 ### Key Parameters
 
-- `--json-body` -- Query body with filters (required)
+- `--json-body` -- `{"query":{"taskIds":[...]}}` (required). Captures are looked up **by task ID** — there is no date range or queue filter. Optional `query` fields: `orgId` (filled from the token if omitted), `urlExpiration`, `includeSegments`, `includeVARecordings`, `includeScreenRecordings`, `includeAllDigitalVersions` (see `--generate-json-body`). Get task IDs from `cc-tasks list --from <epoch-ms>` or `cc-search create`.
 
 ### CLI Examples
 
 ```bash
-# Query captures for a date range
-wxcli cc-captures create --json-body '{"from":"2026-03-01T00:00:00Z","to":"2026-03-28T23:59:59Z","filters":{"queueId":"queue-id"}}' -o json
+# Get captures (recording URLs) for specific tasks.
+# Verified live 2026-10-13: this shape returns 200 ({meta:{orgId,urlExpiration}, data:[{taskId,...}]});
+# the old {"from","to","filters"} body returned 400 "Invalid request entity". Real-capture content untested.
+wxcli cc-captures create --json-body '{"query":{"taskIds":["TASK_ID"]}}' -o json
 ```
 
 ### Raw HTTP
@@ -651,7 +667,7 @@ wxcli cc-captures create --json-body '{"from":"2026-03-01T00:00:00Z","to":"2026-
 POST https://api.wxcc-us1.cisco.com/v1/captures/query
 Content-Type: application/json
 Authorization: Bearer {cc_token}
-{"from":"2026-03-01T00:00:00Z","to":"2026-03-28T23:59:59Z"}
+{"query":{"taskIds":["TASK_ID"]}}
 ```
 
 ---
@@ -719,11 +735,19 @@ commands were added 2026-10-13).
 >   defect that makes `create-validate` say "key not found: eventSourceName". See "Building a flow from
 >   scratch" below for the body shape.
 > - **`list` paging fixed 2026-10-13.** `cc-flow list --all` now returns every flow (56 of 56 live); the
->   default fetch returns 10 and prints a note ("more pages ... `--page 1`"). Earlier builds stopped at 10
+>   default fetch returns 10 and prints a note ("more pages ... `--offset 10`"). Earlier builds stopped at 10
 >   because the CLI sent `pageSize`, which this endpoint ignores (it takes `size`). No `--size 100`
->   workaround is needed. `--offset` does nothing here; use `--page`.
-> - **`list-search` returned 404.** `cc-flow list-search` returned 404 on the sandbox org even via raw
->   HTTP (2026-10-13), so the endpoint or feature may not be live there; it is unverified.
+>   workaround is needed. `--offset` works here too (translated to `page`/`size`; live 2026-10-13:
+>   `--offset 25 --limit 10` returned flows 25-34 of the `--all` order, from pages 2 and 3 at size 10).
+> - **`list-search` is not routed on us1 — use `list --all` with `--fields` instead.** Verified live
+>   2026-10-13: `GET …/flows:search` returns 404 with an **empty body** from the API gateway
+>   (`server: istio-envoy`, `TrackingID: GTWY_…`), i.e. no route, not an application "not found". The same
+>   empty 404 came back for `?query=Test`, `?query=Test&page=0&size=10&flowType=ALL`, no query at all,
+>   `flows%3Asearch`, `flows/search`, `v2/flows:search` and `/flow-store/…/flows:search`, while
+>   `…/flows?size=2` on the same org/project returned 200. The spec path is not wrong in any way a probe
+>   could find; the route is simply absent. Search by name client-side:
+>   `wxcli cc-flow list PROJECT_ID --all --fields "[?contains(name, 'Test')].name" -o json` (verified live).
+>   The command's `--help` carries the same note.
 > - **Lock/unlock.** `create-lock` / `create-unlock` return 200 "OK", but no command exposes lock state
 >   for read-back.
 > - **`create-validate` changes nothing, but it is not an authoritative verdict.** It is a POST that
@@ -1348,7 +1372,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 | Method | Path | CLI Command |
 |---|---|---|
 | GET | /organization/{orgid}/dial-number | `cc-dial-number list` |
-| DELETE | /organization/{orgid}/dial-number | `cc-dial-number delete` |
+| DELETE | /organization/{orgid}/dial-number | `cc-dial-number delete` — **⚠ deletes ALL mappings in the org; no ID** |
 | POST | /organization/{orgid}/dial-number | `cc-dial-number create` |
 | POST | /organization/{orgid}/dial-number/bulk | `cc-dial-number create-bulk` |
 | GET | /organization/{orgid}/dial-number/bulk-export | `cc-dial-number list-bulk-export` |
@@ -1578,7 +1602,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 
 14. **Bulk operations use different patterns.** Config resources support `/bulk` (POST for bulk save) and `/bulk-export` (GET for bulk export). The bulk save `create` commands expect an `items` array with `requestAction` per item.
 
-15. **`/bulk-export` endpoints deprecated April 2026.** The GET `/bulk-export` endpoints are deprecated in favor of the list endpoints. Prefer `list-dial-plan`, `list-dial-number-v2`, `list-outdial-ani`, `list-overrides`, `list-audio-file`, etc. Dial plans, outdial ANIs, overrides, and audio files no longer have a `list-bulk-export` command at all -- use their list command with `-o json` instead. A `list-bulk-export` command still exists for `cc-dial-number`, `cc-contact-number`, `cc-entry-point`, `cc-site`, `cc-address-book`, `cc-aux-code`, and `cc-multimedia-profile`, but should not be used in new code.
+15. **`/bulk-export` endpoints deprecated April 2026.** The GET `/bulk-export` endpoints are deprecated in favor of the list endpoints. Prefer `list-dial-plan`, `list-dial-number-v2`, `list-outdial-ani`, `list-overrides`, `list-audio-file`, etc. Dial plans, outdial ANIs, overrides, and audio files no longer have a `list-bulk-export` command at all -- use their list command with `-o json` instead. A `list-bulk-export` command still exists for `cc-dial-number`, `cc-contact-number`, `cc-entry-point`, `cc-site`, `cc-address-book`, `cc-aux-code`, and `cc-multimedia-profile` (and `cc-global-vars list` / `cc-work-types list` are bulk exports too), but should not be used in new code. **Before 2026-10-13 the seven `*/*`-typed bulk exports printed 0 rows**: their records sit under `resources`, which the CLI never extracted, and a false "server has more pages" note followed (`cc-global-vars list`: 0 of the org's variables). Fixed in the generator; live 2026-10-13 they return 13 aux codes, 3 dial numbers, 9 global variables, 2 multimedia profiles, 7 inbound entry points, 1 site. Their `pageNumber` field does NOT track the page served (page=0 → 1, page=1 → 2, page=2 → 2); read `rel` (`next`/`last`) instead — the CLI does.
 
 16. **Posting JDS events from Flow Designer requires `workspaceId` as a query parameter.** Use an HTTP Request node with method POST and full absolute URL: `https://api.wxcc-us1.cisco.com/publish/v1/api/event?workspaceId={{CJDS_Workspace_ID}}`. The body does not contain `workspaceId` — it goes on the query string only. Minimum body:
     ```json

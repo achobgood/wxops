@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-agents.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-agents.")
 
 
 _BODY_SKELETON_CREATE = '{"dialNumber":"...","roles":["..."],"teamId":"...","isExtension":true,"deviceType":"...","deviceId":"..."}'
@@ -256,8 +256,8 @@ def list_activities(
     page: str = typer.Option(None, "--page", help="Page number to be passed. Maximum number of records that can be fetched for the given from and to is 10,000. So maximum page number allowed is based on it. Defaults to 0."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -280,10 +280,8 @@ def list_activities(
         params["pageSize"] = page_size
     if page is not None:
         params["page"] = page
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = get_cc_org_id(api.session)
@@ -291,6 +289,8 @@ def list_activities(
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:

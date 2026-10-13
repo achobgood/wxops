@@ -1279,9 +1279,24 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     limit_param_key = "limit" if has_spec_limit else "max"
     offset_param_key = "offset" if has_spec_offset else "start"
 
+    # Page-numbered endpoints (Contact Center `page`/`pageSize`) read neither
+    # `max` nor `start`: --limit and --offset used to be sent under those names,
+    # ignored by the server, and exit 0 with page 0 (verified live 2026-10-13:
+    # `cc-queue list --limit 2` -> `?max=2` -> 17 records; `cc-flow list
+    # --offset 10` -> page 0 again). Both flags stay on every list command —
+    # uniform by design, see the --all comment below and ADR-12 — and are
+    # TRANSLATED here instead: --limit is sent as the page size, --offset is
+    # served record-exactly by `fetch_from_offset`. Excludes `paginates`
+    # endpoints, which take the Link-walking branch (none are page-numbered).
+    page_numbered = ep.pagination_style == "page" and not ep.paginates
+
     params.extend(_render_output_options("table"))
-    params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
-    params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
+    if page_numbered:
+        params.append(f'    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size ({ep.page_size_param}); 0 = the server default page. Ignored with --all."),')
+        params.append('    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),')
+    else:
+        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
+        params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     # Uniform on EVERY list command, including the ones the spec calls
     # unpaginated. An option present on most commands but not all teaches a
     # rule that breaks unpredictably, which costs an agent a failed call plus a
@@ -1300,8 +1315,13 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             continue
         param = _safe_param_name(qp.python_name)
         param_build.append(f'    if {param} is not None:\n        params["{qp.name}"] = {param}')
-    param_build.append(f'    if limit > 0:\n        params["{limit_param_key}"] = limit')
-    param_build.append(f'    if offset > 0:\n        params["{offset_param_key}"] = offset')
+    if page_numbered:
+        # An explicit page-size flag wins; --all walks with its own page size.
+        size = ep.page_size_param
+        param_build.append(f'    if limit > 0 and not all_pages and params.get("{size}") is None:\n        params["{size}"] = limit')
+    else:
+        param_build.append(f'    if limit > 0:\n        params["{limit_param_key}"] = limit')
+        param_build.append(f'    if offset > 0:\n        params["{offset_param_key}"] = offset')
 
     list_key = ep.response_list_key or "items"
 
@@ -1357,6 +1377,12 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         walker_extra = ""
         if ep.pagination_style == "page" and ep.page_size_param != "pageSize":
             walker_extra = f', size_param="{ep.page_size_param}"'
+        offset_branch = []
+        if page_numbered:
+            offset_branch = [
+                "        elif offset > 0:",
+                f'            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="{list_key}"{walker_extra})',
+            ]
         fetch_block = [
             "    result = None",
             "    try:",
@@ -1365,6 +1391,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             # tail below, which re-derives items from result and would otherwise
             # overwrite them. A list falls through that expression unchanged.
             f'            result = list(api.session.{walker}(url=url, params=params, item_key="{list_key}"{walker_extra}))',
+            *offset_branch,
             "        else:",
             "            result = api.session.rest_get(url, params=params)",
         ]
@@ -2207,7 +2234,7 @@ def _apply_command_confirms(endpoints: list[Endpoint], folder_overrides: dict) -
 
 def render_command_file(
     folder_name: str, endpoints: list[Endpoint], folder_overrides: dict,
-    base_url_override: str | None = None,
+    base_url_override: str | None = None, spec_filename: str | None = None,
 ) -> str:
     _infer_missing_path_vars(endpoints)
     _apply_command_help_notes(endpoints, folder_overrides)
@@ -2230,13 +2257,16 @@ def render_command_file(
     needs_verify = any(_can_verify(e) for e in endpoints)
     needs_cc_url = base_url_override == BASE_URL_CC
     needs_cc_org_id = needs_cc_url and needs_org_id
-    # Detect product area from CLI name prefix
-    if cli_name.startswith("cc-"):
-        product = "Webex Contact Center"
-    elif cli_name.startswith("meeting"):
-        product = "Webex Meetings"
-    else:
-        product = "Webex Calling"
+    # The group-help label names the product of the SPEC the group comes from.
+    # It used to be guessed from the CLI-name prefix ("cc-" -> Contact Center,
+    # "meeting" -> Meetings, everything else -> Calling), which labelled every
+    # admin, device, messaging and unprefixed CC group "Webex Calling" — `asset`
+    # and `channel` call the Contact Center host and said "Manage Webex Calling
+    # asset." (findings D07/D08). SPEC_PRODUCT is the one mapping; no second one.
+    # "Webex <Product>: <group>." — the colon keeps it readable when the group
+    # repeats the product word ("Manage Webex Devices: devices.").
+    spec_product = SPEC_PRODUCT.get(spec_filename) if spec_filename else None
+    product = f"Webex {spec_product}:" if spec_product else "Webex"
     sections = [
         _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path,
                         include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id,

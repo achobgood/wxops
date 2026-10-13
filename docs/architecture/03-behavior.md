@@ -307,12 +307,12 @@ How the system behaves at runtime: failure modes, fragility points, performance 
 
 | Limitation | Code Path | Why It Exists | Workaround in Code |
 |------------|-----------|---------------|-------------------|
-| Virtual line ID type mismatch | CLAUDE.md Known Issue #11 | `virtual-extensions` commands use VIRTUAL_EXTENSION-encoded IDs, but virtual lines are VIRTUAL_LINE | `cleanup.py` uses raw REST DELETE instead of CLI commands |
+| Virtual line ID type mismatch | CLAUDE.md Known Issue #9 | `virtual-extensions` commands use VIRTUAL_EXTENSION-encoded IDs, but virtual lines are VIRTUAL_LINE | `cleanup.py` uses raw REST DELETE instead of CLI commands |
 | No retry logic in sync CLI | `auth.py:21-43` | Design choice — CLI commands are short-lived, user can re-run | Migration engine has full retry (async); CLI doesn't |
 | 6 person settings are user-only | Known Issue #4 | No admin API path exists | Use `wxcli my-call-settings` with user OAuth |
 | Partial bulk failure treated as total | execute/CLAUDE.md | `fallback_context` not wired in `run_batch_ops` | Primitives exist, just not connected — entire bulk op marked failed, retry re-submits everything |
 | Workspace settings require Professional license | Known Issue #6 | API returns 405 on Basic workspace | No workaround — feature limitation |
-| Contact Center requires CC-scoped OAuth | Known Issue #13 | PATs don't carry `cjp:config` scopes even for CC admins | User must create OAuth integration with explicit CC scopes |
+| Contact Center needs `cjp:config` scopes on the token | Known Issue #11 | CC config calls 403 when the token lacks `cjp:config_read`/`cjp:config_write`. A full-admin PAT carries them (verified live 2026-10-13: 200 on `cc-flow`, `cc-queue`, `cc-entry-point`, `cc-global-vars` and CC analytics; the April 2026 "PATs get 403" claim no longer reproduces) | On a 403, use an OAuth integration or Service App with those scopes explicitly selected and re-authorize; `errors.py` prints this tip on a CC 403 |
 
 ### Workarounds in Code (Deliberate Technical Debt)
 

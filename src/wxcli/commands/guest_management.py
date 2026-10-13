@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling guest-management.")
+app = typer.Typer(help="Manage Webex Admin: guest-management.")
 
 
 _BODY_SKELETON_CREATE = '{"subject":"...","displayName":"..."}'

@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling caller-reputation.")
+app = typer.Typer(help="Manage Webex Calling: caller-reputation.")
 
 
 @app.command("show", short_help="Get Caller Reputation Provider Service Settings.")

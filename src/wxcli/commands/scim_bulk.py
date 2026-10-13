@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import resolve_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling scim-bulk.")
+app = typer.Typer(help="Manage Webex Admin: scim-bulk.")
 
 
 _BODY_SKELETON_CREATE = '{"schemas":["..."],"failOnErrors":0,"operations":[{"method":"POST","path":"...","data":"...","bulkId":"..."}]}'

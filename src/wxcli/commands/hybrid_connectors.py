@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling hybrid-connectors.")
+app = typer.Typer(help="Manage Webex Admin: hybrid-connectors.")
 
 
 @app.command("list", short_help="List Hybrid Connectors.")

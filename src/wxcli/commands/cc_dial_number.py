@@ -9,7 +9,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-dial-number.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-dial-number.")
 
 
 @app.command("list", short_help="List Dialed Number Mapping(s).")
@@ -20,8 +20,8 @@ def cmd_list(
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -39,14 +39,14 @@ def cmd_list(
         params["page"] = page
     if page_size is not None:
         params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="items")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -74,8 +74,8 @@ def create(
     entry_point_id: str = typer.Option(None, "--entry-point-id", help="(required) The identifier of an entry point to which you want to map the DN."),
     entry_point_name: str = typer.Option(None, "--entry-point-name", help="(required) The entryPoint name of the entryPointId."),
     default_ani: bool = typer.Option(None, "--default-ani/--no-default-ani", help="The default dial number for the tenant to make outdial calls. The default dial number is displayed in the customer's caller ID, if an agent does not select a specific outdial ANI (Automatic Number Identification) for an outdial call. A default value is automatically set once and entry point mapping..."),
-    location: str = typer.Option(None, "--location", help="The ID of the location as configured on Webex Calling(applicable only for Webex Calling)."),
-    region_id: str = typer.Option(None, "--region-id", help="Specify the telephony region id. You can pass id for one of these regions: US (USA), CA (Canada), MX (Mexico), AU (Australia), SG (Singapore), GB (United Kingdom), DE (Germany) You can retrieve it by calling /api/global/telephony-region API."),
+    location: str = typer.Option(None, "--location", help="(required) The ID of the location as configured on Webex Calling(applicable only for Webex Calling)."),
+    region_id: str = typer.Option(None, "--region-id", help="(required) Specify the telephony region id. You can pass id for one of these regions: US (USA), CA (Canada), MX (Mexico), AU (Australia), SG (Singapore), GB (United Kingdom), DE (Germany) You can retrieve it by calling /api/global/telephony-region API."),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
     last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
     dialled_number_digits: str = typer.Option(None, "--dialled-number-digits", help=""),
@@ -85,7 +85,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Dialed Number Mapping.\n\n\b\nExample: wxcli cc-dial-number create --entry-point-id ENTRY_POINT_ID --entry-point-name ENTRY_POINT_NAME\n\n\b\nExample --json-body: '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."}'"""
+    """Create a new Dialed Number Mapping.\n\n\b\nExample: wxcli cc-dial-number create --entry-point-id ENTRY_POINT_ID --entry-point-name ENTRY_POINT_NAME --location LOCATION --region-id REGION_ID\n\n\b\nExample --json-body: '{"entryPointId":"...","entryPointName":"...","organizationId":"...","id":"...","version":0,"dialledNumber":"...","extension":"...","routingPrefix":"...","esn":"...","routePointId":"...","defaultAni":true,"location":"...","regionId":"...","createdTime":0,"lastUpdatedTime":0,"dialledNumberDigits":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -129,7 +129,7 @@ def create(
             body["lastUpdatedTime"] = last_updated_time
         if dialled_number_digits is not None:
             body["dialledNumberDigits"] = dialled_number_digits
-        _missing = [f for f in ['entryPointId', 'entryPointName'] if f not in body or body[f] is None]
+        _missing = [f for f in ['entryPointId', 'entryPointName', 'location', 'regionId'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -226,8 +226,8 @@ def list_bulk_export(
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -241,14 +241,14 @@ def list_bulk_export(
         params["page"] = page
     if page_size is not None:
         params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="resources"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="resources")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -256,7 +256,7 @@ def list_bulk_export(
     except httpx.HTTPError as e:
         handle_network_error(e)
     result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("resources", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
@@ -442,8 +442,8 @@ def list_incoming_references(
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -459,14 +459,14 @@ def list_incoming_references(
         params["page"] = page
     if page_size is not None:
         params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -474,7 +474,7 @@ def list_incoming_references(
     except httpx.HTTPError as e:
         handle_network_error(e)
     result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
@@ -489,8 +489,8 @@ def list_dial_number_v2(
     include_entry_point_name: str = typer.Option(None, "--include-entry-point-name", help="If includeEntryPointName is set to true and entryPointName is in the attributes, the API will return entryPointName in the Get All response, and filtering, searching, and sorting on entryPointName will also be enabled."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -512,14 +512,14 @@ def list_dial_number_v2(
         params["pageSize"] = page_size
     if include_entry_point_name is not None:
         params["includeEntryPointName"] = include_entry_point_name
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -527,7 +527,7 @@ def list_dial_number_v2(
     except httpx.HTTPError as e:
         handle_network_error(e)
     result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 
@@ -542,8 +542,8 @@ def list_dial_number_v3(
     include_entry_point_name: str = typer.Option(None, "--include-entry-point-name", help="If includeEntryPointName is set to true and entryPointName is in the attributes, the API will return entryPointName in the Get All response, and filtering, searching, and sorting on entryPointName will also be enabled."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -565,14 +565,14 @@ def list_dial_number_v3(
         params["pageSize"] = page_size
     if include_entry_point_name is not None:
         params["includeEntryPointName"] = include_entry_point_name
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -580,7 +580,7 @@ def list_dial_number_v3(
     except httpx.HTTPError as e:
         handle_network_error(e)
     result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

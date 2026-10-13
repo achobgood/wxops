@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling emergency-services.")
+app = typer.Typer(help="Manage Webex Calling: emergency-services.")
 
 
 _BODY_SKELETON_UPDATE = '{"enabled":true,"companyId":"...","secret":"...","externalTenantEnabled":true,"email":"...","password":"..."}'

@@ -114,11 +114,14 @@ wxcli cc-agents update-state-session-1 --json-body '{
 # List the agent roster (this is NOT in cc-agents)
 wxcli cc-users list -o json
 
-# Get agent activities for a date range — an event log, not the roster
-wxcli cc-agents list-activities --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
+# Get agent activities — an event log, not the roster.
+# --from/--to are EPOCH MILLISECONDS and the window must be <= 24 hours (verified live 2026-10-13:
+# ISO strings -> 400 "from should be of type java.lang.Long"; a 27-day window -> 400 "The duration
+# between from and to cannot exceed 1 days"; from older than 12 months -> 400). Example = 2026-10-12 UTC.
+wxcli cc-agents list-activities --from 1791763200000 --to 1791849600000
 
-# Get agent statistics
-wxcli cc-agents list-statistics --agent-ids "..." --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
+# Get agent statistics (same rules: epoch ms, <= 24h — 400 "Querying only supported for 24 hours at a time")
+wxcli cc-agents list-statistics --agent-ids "..." --from 1791763200000 --to 1791849600000
 
 # Log out agent (v2)
 wxcli cc-agents update-logout --json-body '{"agentId": "..."}'
@@ -140,7 +143,7 @@ curl -X PUT "https://api.wxcc-us1.cisco.com/v2/agents/session/state" \
   -d '{"agentId":"...","state":"Available"}'
 
 # Get Activities
-curl "https://api.wxcc-us1.cisco.com/v1/agents/activities?from=2026-03-01T00:00:00Z&to=2026-03-28T00:00:00Z" \
+curl "https://api.wxcc-us1.cisco.com/v1/agents/activities?orgId={orgUuid}&from=1791763200000&to=1791849600000" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -420,7 +423,7 @@ wxcli cc-user-profiles create --json-body '{
   "accessRights": {"queues": ["queue-uuid-1", "queue-uuid-2"]}
 }'
 
-# Get profile ACL (v3)
+# Get profile ACL (v3) — returns the whole ACL object (JSON); before 2026-10-13 the CLI printed []
 wxcli cc-user-profiles list-acl "profile-uuid"
 
 # Delete a user profile (v3)
@@ -624,17 +627,19 @@ Runtime queue statistics. Uses the runtime path family (`/v1/queues/`), separate
 ### CLI Examples
 
 ```bash
-# Get queue statistics
-wxcli cc-queue-stats list --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z"
+# Get queue statistics. --from/--to are EPOCH MILLISECONDS and the window must be under 24 hours
+# (verified live 2026-10-13: ISO strings -> 400 "from should be of type java.lang.Long"; a 27-day
+# window -> 400 "Querying only supported for 24 hours at a time"). Example = 2026-10-12 UTC.
+wxcli cc-queue-stats list --from 1791763200000 --to 1791849600000
 
 # Get statistics for a specific queue (--from/--to are required on every call)
-wxcli cc-queue-stats list --from "2026-03-01T00:00:00Z" --to "2026-03-28T00:00:00Z" --queue-ids "queue-uuid"
+wxcli cc-queue-stats list --from 1791763200000 --to 1791849600000 --queue-ids "queue-uuid"
 ```
 
 ### Raw HTTP
 
 ```bash
-curl "https://api.wxcc-us1.cisco.com/v1/queues/statistics?from=2026-03-01T00:00:00Z&to=2026-03-28T00:00:00Z" \
+curl "https://api.wxcc-us1.cisco.com/v1/queues/statistics?orgId={orgUuid}&from=1791763200000&to=1791849600000" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -1897,6 +1902,18 @@ For teardown, reverse this order.
 29. **Entry point to flow wiring is `flowId` plus `flowTagId`; new flows publish with only the `Latest` tag.** Verified live 2026-10-13: `cc-entry-point create` with `flowId` set to a just-published flow and `flowTagId: "Latest"` saved, and `show` returned both with the entry point active. Live, Test and Dev tags also exist, but the flow published that day had only `Latest` pointing at its version (Dev/Live/Test unset); pointing an entry point at a tag the flow never received was not tested. Mapping a dial number to the entry point (`cc-dial-number`) is a separate step, without which the flow cannot be called.
 
 30. **CC business hours use `workingHours`, not `businessHours`.** Verified live 2026-10-13: `workingHours:[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"07:00","endTime":"19:00"}]` created OK and appeared in the flow-designer choices for the `business-hours` activity. The older `businessHours:[{day:"monday",...}]` shape shown here before 2026-10-13 does not match `--help`. The holiday-list body (§16) was not re-tested.
+
+31. **A CC-routable Calling number shows a `CONTACT_CENTER_ADAPTER` owner in `numbers list`.** Verified live 2026-10-13 (read-only audit, `wxcli numbers list --all -o json`, three numbers on one location): all three were `ACTIVE`, `PRIMARY`, `PSTN_NUMBER`, no extension, location Site1, and each was owned by its own `CONTACT_CENTER_ADAPTER` named "Contact Center RTMS" (the owner id decodes to a `wcc_…_WCC@<cluster>` address). The two numbers that already took calls and the newly mapped one were structurally identical, so that shape is the comparison target for a new number. **Not established:** whether `cc-dial-number create` is what creates that owner or it already existed, and whether the carrier actually delivers calls to the number (nothing in the API shows delivery). Pass `--all` on `numbers list`; the default is one page. On the CC side the matching record is the dial-number mapping (`cc-dial-number list --all`): the new mapping matched a working one in every field except `entryPointId` and `id` (`defaultAni: true` marked the tenant's default outdial number on a third mapping). Creating the mapping (verified live 2026-10-13): `cc-dial-number create --dialled-number E164 --entry-point-id ID --entry-point-name NAME --location LOC --region-id REG` created it and `show` confirmed. **`--location` and `--region-id` are both required by the API (the spec says optional); since 2026-10-13 `create --help` marks both required.** Observed before that fix: omitting `--location` returns `400 "location: should not be null or blank"`, omitting `--region-id` returns `400 "Telephony regionId should be provided."`; copy both from an existing mapping. In `--json-body` the field is `dialledNumber` (not `dialNumber`). **Warning:** bare `cc-dial-number delete` (no ID) means "Delete all Dialed Number Mapping(s)" and removes every mapping in the org (confirmation unless `--force`); remove one with `cc-dial-number delete-dial-number ID --force` (returned `{"status":"deleted"}`).
+
+32. **Whether an agent is logged in is not in `cc-agents`' roster or in `cc-users`; read it from the activity log or the Search API.** Verified live 2026-10-13: `cc-agents list-activities` is an event log, and its `--from` is epoch milliseconds with a 24 h maximum window per call (verified live 2026-10-13: ISO timestamps → 400 `from should be of type java.lang.Long`; >24 h → 400; §1's examples now use epoch ms). In `cc-search create`, `from`/`to` are GraphQL arguments inside the query and also take unquoted epoch-ms integers (a quoted ISO string → 400 "not a valid 'Long'"). 14 consecutive 24 h windows returned 0 rows, which on its own proves nothing, so the audit cross-checked with `cc-search create` (GraphQL) over the `agentSession` type: a 365-day query returned 66 sessions (proving the query can return data) and the count with `isActive: true` was 0. Use a long-window query that is known to return history as the control, then count the active ones. `cc-search-metadata list` shows what the search surface accepts. The query text itself was not recorded.
+
+33. **A queue with no logged-in agent keeps callers waiting until `maxTimeInQueue` (expected behavior, not observed on a call).** The 2026-10-13 audit found a queue chain with every configuration link correct and zero active agent sessions, and concluded from the queue settings (`maxTimeInQueue: 900`, hold loop in the flow) that a caller would hear menus, then music, and be dropped at 900 s. No test call was placed, so this is inferred from configuration. It is an operations gap, not a configuration gap: a person must sign in to Agent Desktop and set Available.
+
+34. **What makes a user an eligible voice agent (as read, 2026-10-13).** For each of three agents: `cc-users list` showed `contactCenterEnabled` and `agentCapabilitiesEnabled` true and active; `people show <ciUserId> --calling-data true` and `licenses list --all` showed a Contact Center agent license (a Premium Agent SKU, CJPPRM) plus a Webex Calling Professional license (BCSTD). One agent had `invitePending: true` in Webex identity and had never logged in; a user in that state probably cannot sign in (inferred, not tested). Voice also depends on two profiles: the desktop profile (`cc-desktop-profile show`, `loginVoiceOptions` must include the option used, §14) and the multimedia profile (`cc-multimedia-profile show`, telephony slot of 1 or more). An agent with no multimedia profile of its own appeared to inherit from the site (the team had none, the site's profile had telephony 1); this is the audit's reading of the data, not a documented inheritance order.
+
+35. **To validate a new resource, diff it against one that already works.** Verified live 2026-10-13: `cc-entry-point show` on a new entry point vs two working ones differed only in `callbackEnabled` (intended); `cc-flow list` rows showed the same tag pattern (Latest set, Live/Test/Dev unset) and the same `lockedBy` admin as working flows (an editor lock, no runtime effect); four new queues matched an existing queue except for intended values (SLA, recording, `maxTimeInQueue`), but only when read with `show-contact-service-queue-v2` (gotcha 28). For IDs inside a flow, `cc-flow list-activity-choices … --validate true --search ID` is a point lookup; include a negative control (an all-zeros UUID should return `[]`) so a hit is distinguishable from a probe that always answers. A callback needs no queue-side setting: the queue object had no callback fields, and the flow's `callback` activity drives it.
+
+36. **A global variable record's `agentViewable` does not make it appear on the desktop; the flow's own declaration decides.** Verified live 2026-10-13: two global records were `agentViewable` with labels, but the flow re-declared them with `isCAD:false`, so they would not display; showing them needed `isCAD:true` plus a `desktopLabel` on the flow variable and a republish. Separately, a record with `agentEditable:true` that the flow declares `isAgentEditable:false` is read-only for the agent. The system default "Global Layout" (`cc-desktop-layout list-desktop-layout --all`) displays agent-viewable variables, so no custom layout was needed. Whether the desktop actually renders them is unverified (needs a live call).
 
 ---
 

@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling attachment-actions.")
+app = typer.Typer(help="Manage Webex Messaging: attachment-actions.")
 
 
 _BODY_SKELETON_CREATE_AN_ATTACHMENT = '{"type":"submit","messageId":"...","inputs":{"Name":"...","Url":"...","Email":"...","Tel":"..."}}'

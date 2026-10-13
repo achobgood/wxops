@@ -9,7 +9,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-users.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-users.")
 
 
 @app.command("list", short_help="List Users.")
@@ -21,8 +21,8 @@ def cmd_list(
     single_object_response: str = typer.Option(None, "--single-object-response", help="Specify whether to include array fields in the response. This query parameter should be used only when the response contains a single record. It is not supported for responses with multiple objects and throws an exception."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -42,14 +42,14 @@ def cmd_list(
         params["pageSize"] = page_size
     if single_object_response is not None:
         params["singleObjectResponse"] = single_object_response
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="items")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -574,8 +574,8 @@ def list_incoming_references(
     page_size: str = typer.Option(None, "--page-size", help="Defines the number of items to be displayed on a page. If the number specified is more than allowed max page size, the API will automatically adjust the page size to the max page size."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -591,14 +591,14 @@ def list_incoming_references(
         params["page"] = page
     if page_size is not None:
         params["pageSize"] = page_size
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -683,8 +683,8 @@ def list_user(
     include_dynamic_skills_limit_reached: str = typer.Option(None, "--include-dynamic-skills-limit-reached", help="If true, includes whether each user has reached the dynamic skills assignment limit."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -718,14 +718,14 @@ def list_user(
         params["includeAIMappingCount"] = include_ai_mapping_count
     if include_dynamic_skills_limit_reached is not None:
         params["includeDynamicSkillsLimitReached"] = include_dynamic_skills_limit_reached
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:

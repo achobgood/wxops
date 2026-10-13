@@ -282,15 +282,17 @@ To list or fetch generated summaries by ID, use the `wxcli cc-summaries` group (
 
 ### Key Parameters
 
-- `--json-body` — Search/filter criteria in the request body
+- `--json-body` — `{"orgId","searchType":"AGENT","interactionId","agentCiUserId"}`. This is a lookup of **one interaction for one agent**, not a date-range search: `from`/`to` added to the body are ignored. `orgId` is the bare CC org UUID; `agentCiUserId` is the agent's Webex (CI) user ID.
 
 ### CLI Examples
 
 ```bash
-# Search summaries
-wxcli cc-agent-summaries create --json-body '{
-  "filter": {"agentId": "agent-456", "from": "2026-03-01T00:00:00Z"}
-}'
+# Look up the generated summary for one interaction + agent.
+# Verified live 2026-10-13: this shape returns 200 ({orgId, agentCiUserId, interactionId, queueId,
+# searchType, summaries}); the old {"filter":{"agentId","from"}} body returned 401
+# "Unauthorized, Check user, role or scope!" (a body error reported as 401, not a scope problem).
+# Content with a real interaction id is untested.
+wxcli cc-agent-summaries create --json-body '{"orgId":"ORG_UUID","searchType":"AGENT","interactionId":"INTERACTION_ID","agentCiUserId":"AGENT_CI_USER_ID"}'
 ```
 
 ### Raw HTTP
@@ -301,7 +303,7 @@ POST https://api.wxcc-us1.cisco.com/generated-summaries/search
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{"filter": {"agentId": "agent-456", "from": "2026-03-01T00:00:00Z"}}
+{"orgId": "ORG_UUID", "searchType": "AGENT", "interactionId": "INTERACTION_ID", "agentCiUserId": "AGENT_CI_USER_ID"}
 ```
 
 ---
@@ -563,14 +565,20 @@ and wrap up tasks. The API also handles preview dialer tasks and recording contr
 - `campaign-id` (positional) — Campaign ID (for preview dialer tasks)
 - `--channel-types` — Filter by channel type(s) (for list)
 - `--from` / `--to` — Epoch timestamp filters (for list)
-- `--page-size` — Results per page (for list)
+- `--page-size` — Results per page (for list; max 1000, default 100)
+- `--offset` / `--limit` / `--all` — paging for `list`. `/v1/tasks` declares only `pageSize` (no `page`), so there is no `--page` flag, but the server pages by `page` and says so in a `Link` header (live 2026-10-13: `rel="next"` → `/v1/tasks?from=…&page=1&pageSize=100`). `--offset N` is translated to that `page`, `--limit N` to `pageSize`, and `--all` walks it (226 of 226 tasks, 2 requests, no repeats)
 - `--json-body` — Request body for create/update/action operations
 
 ### CLI Examples
 
 ```bash
-# List active tasks
+# List tasks created since an epoch-ms time (--from is required; it cannot be older
+# than 12 months, and --from..--to cannot span more than 184 days — live 400s, 2026-10-13)
 wxcli cc-tasks list --from 1784592000000 --channel-types telephony
+
+# Every page, or records 100-104 only
+wxcli cc-tasks list --from 1784592000000 --all -o json
+wxcli cc-tasks list --from 1784592000000 --offset 100 --limit 5 -o json
 
 # Create a task
 wxcli cc-tasks create --json-body '{
@@ -688,7 +696,13 @@ Content-Type: application/json
 CLI groups: `wxcli cc-search` (1 command), `wxcli cc-search-metadata` (1 command)
 
 Search for tasks using POST with query criteria in the request body (not GET with
-query parameters).
+query parameters). The body's `query` is a **GraphQL query string**, not a JSON object:
+`from`/`to` are epoch milliseconds passed as arguments of the query type (`task(from:…,
+to:…)`), and the selection set names the fields you want back. Verified live 2026-10-13:
+both forms below returned 200 with `{"data": {"task": {"tasks": [...]}}}`, newest first. The
+command's default `-o id` prints the whole JSON (a search returns no `id`); `-o json` is
+equivalent. Use `wxcli cc-search-metadata list` (below) to see which query types and fields
+exist.
 
 ### Commands
 
@@ -699,15 +713,11 @@ query parameters).
 ### CLI Examples
 
 ```bash
-# Search for tasks by agent and time range
-wxcli cc-search create --json-body '{
-  "query": {
-    "agentId": "agent-456",
-    "channelType": "telephony",
-    "from": "2026-03-01T00:00:00Z",
-    "to": "2026-03-28T23:59:59Z"
-  }
-}'
+# Tasks in a time window (epoch ms), selected fields only
+wxcli cc-search create --query '{task(from: 1776112146000, to: 1778704146000){tasks{id channelType createdTime status}}}' -o json
+
+# Same, as a body (add "variables" if the query declares any)
+wxcli cc-search create --json-body '{"query":"{task(from: 1776112146000, to: 1778704146000){tasks{id status}}}"}' -o json
 ```
 
 ### Raw HTTP
@@ -717,14 +727,7 @@ POST https://api.wxcc-us1.cisco.com/search
 Authorization: Bearer {cc_token}
 Content-Type: application/json
 
-{
-  "query": {
-    "agentId": "agent-456",
-    "channelType": "telephony",
-    "from": "2026-03-01T00:00:00Z",
-    "to": "2026-03-28T23:59:59Z"
-  }
-}
+{"query": "{task(from: 1776112146000, to: 1778704146000){tasks{id channelType createdTime status}}}"}
 ```
 
 ### Search Metadata
@@ -1291,7 +1294,7 @@ All 92 endpoints tabulated below, across 15 CLI groups. Regional base URL: `http
 
 16. **Queue Statistics and Agent Statistics REST APIs reach EOL March 31, 2027.** Both are deprecated in favor of the GraphQL Search API. Same auth scopes apply (`cjp:config` or `cjp:config_read`). Migrate before the EOL date.
 
-    **CLI 401 (fixed 2026-10-13):** `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-ewt show` and `cc-search create` used to return 401 `Token does not have access to OrgId:<base64>` because they sent the saved base64 Spark org id as the `orgId` query parameter (not a scope failure). The CLI now sends the bare UUID; verified 200 on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-tasks list` and `cc-subscriptions`, and 204 on `cc-ewt show`. `cc-search create` was not live-tested. If this 401 appears on an older wxcli, upgrade.
+    **CLI 401 (fixed 2026-10-13):** `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-ewt show` and `cc-search create` used to return 401 `Token does not have access to OrgId:<base64>` because they sent the saved base64 Spark org id as the `orgId` query parameter (not a scope failure). The CLI now sends the bare UUID; verified 200 on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-tasks list` and `cc-subscriptions`, and 204 on `cc-ewt show`; `cc-search create` verified 200 the same day (GraphQL task query, `?orgId=<uuid>`). If this 401 appears on an older wxcli, upgrade.
 
 17. **Bulk export APIs deprecated April 2026.** The `/bulk-export` GET endpoints across 19 config resources (Address Book, Auxiliary Code, Business Hours, Desktop Layout, Skills, Teams, Users, and others) are deprecated. Use the corresponding list endpoints (`/v2/` or `/v3/` variants) instead. The `list-bulk-export` CLI commands for these resources will stop working after removal.
 

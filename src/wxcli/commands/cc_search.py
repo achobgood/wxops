@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id, get_cc_base_url, get_cc_org_id
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-search.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-search.")
 
 
 _BODY_SKELETON_CREATE = '{"variables":{},"query":"..."}'

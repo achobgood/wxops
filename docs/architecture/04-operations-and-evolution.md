@@ -257,7 +257,7 @@ State is in SQLite. Commands are idempotent. Re-run the failed command. Check `-
 Resources have dependency ordering. `wxcli cleanup` handles this automatically with a 13-layer deletion cascade. If cleaning up manually, delete in reverse dependency order (users before locations, features before users). See `.claude/rules/cleanup.md`.
 
 **Contact Center commands return 403:**
-Standard admin tokens (PATs) don't carry `cjp:config` scopes. Create an OAuth integration with `cjp:config_read` and `cjp:config_write` explicitly selected, then re-authenticate.
+The token lacks the `cjp:config_read` / `cjp:config_write` scopes. A full-admin personal access token carries them (verified live 2026-10-13 — 200 on `cc-flow`, `cc-queue`, `cc-entry-point`, `cc-global-vars` and CC analytics; the April 2026 claim that PATs always get 403 is disproven), so first check the account is a full admin. Otherwise use an OAuth integration or Service App with `cjp:config_read` and `cjp:config_write` explicitly selected, and re-authorize after adding the scopes. See root `CLAUDE.md` Known Issue #11.
 
 ---
 

@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling broadworks-workspaces.")
+app = typer.Typer(help="Manage Webex BroadWorks: broadworks-workspaces.")
 
 
 _BODY_SKELETON_CREATE = '{"provisioningId":"...","userId":"...","spEnterpriseId":"...","displayName":"...","primaryPhoneNumber":"...","extension":"..."}'

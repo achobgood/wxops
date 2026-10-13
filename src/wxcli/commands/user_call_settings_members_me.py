@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling user-call-settings-members-me.")
+app = typer.Typer(help="Manage Webex Calling: user-call-settings-members-me.")
 
 
 @app.command("show", hidden=True)

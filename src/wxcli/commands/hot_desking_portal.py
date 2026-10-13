@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling hot-desking-portal.")
+app = typer.Typer(help="Manage Webex Calling: hot-desking-portal.")
 
 
 @app.command("show", short_help="Voice Portal Hot desking sign in details for a location.")

@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling device-configurations.")
+app = typer.Typer(help="Manage Webex Devices: device-configurations.")
 
 
 @app.command("show", short_help="List Device Configurations for device.")

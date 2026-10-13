@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling data-sources.")
+app = typer.Typer(help="Manage Webex Admin: data-sources.")
 
 
 _BODY_SKELETON_CREATE = '{"audience":"...","nonce":"...","schemaId":"...","subject":"...","tokenLifetimeMinutes":0,"url":"..."}'

@@ -187,7 +187,7 @@ def handle_rest_error(e: WebexError) -> None:
     elif _id_kind_tip():
         tip = _id_kind_tip()
     elif _is_cc_403(e, err):
-        tip = "Contact Center APIs need CC-scoped OAuth (cjp:config_read / cjp:config_write); a personal access token or plain admin token always gets 403 here. Create an integration with those scopes at developer.webex.com, complete the OAuth flow, then re-run: wxcli configure with that token."
+        tip = "A 403 here means this token lacks the Contact Center scopes cjp:config_read / cjp:config_write. A full-admin personal access token carries them (verified 2026-10-13), so check the account's admin role first; otherwise use an OAuth integration or Service App with those scopes explicitly selected, re-authorize after adding them, then re-run: wxcli configure with that token."
     else:
         tip = _STATUS_TIPS.get(e.status_code)
 

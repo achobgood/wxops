@@ -237,17 +237,19 @@ class TestPageNote:
         out = self._note(capsys, _Resp(NEXT, 100), monkeypatch=monkeypatch)
         assert "--limit 0" not in out.err
 
-    def test_flows_page_info_fires_and_names_page(self, capsys, monkeypatch):
+    def test_flows_page_info_fires_and_names_absolute_offset(self, capsys, monkeypatch):
         """cc-flow list: 10 of 56 came back with no note at all (live,
-        2026-10-13). The total lives under `pageInfo`, and the endpoint pages
-        by number, so the remedy is `--page`, not an `--offset` it ignores."""
+        2026-10-13). The total lives under `pageInfo`. The remedy is the
+        ABSOLUTE `--offset` of the next record: page-numbered commands translate
+        it to page/pageSize (fetch_from_offset), and unlike `--page` it exists
+        on every list command — `cc-tasks list` has no `--page` flag."""
         resp = _Resp(items=10)
         resp.json = lambda: {"data": [{"id": i} for i in range(10)],
                              "pageInfo": {"currentPage": 0, "totalRecords": 56,
                                           "pageSize": 10, "totalPages": 6}}
         out = self._note(capsys, resp, monkeypatch=monkeypatch)
         assert "more pages" in out.err
-        assert "--page 1" in out.err and "--offset" not in out.err
+        assert "--offset 10 " in out.err and "--page" not in out.err
 
     def test_last_numbered_page_stays_silent(self, capsys, monkeypatch):
         """Comparing the collection total with THIS page's count fired on every
@@ -258,19 +260,50 @@ class TestPageNote:
                                           "pageSize": 10, "totalPages": 6}}
         assert self._note(capsys, resp, monkeypatch=monkeypatch).err == ""
 
-    def test_cc_meta_page_names_the_next_page(self, capsys, monkeypatch):
+    def test_cc_meta_page_names_the_next_records_offset(self, capsys, monkeypatch):
         resp = _Resp(items=5)
         resp.json = lambda: {"data": [{"id": i} for i in range(5)],
                              "meta": {"page": 2, "pageSize": 5,
                                       "totalPages": 5, "totalRecords": 21}}
         out = self._note(capsys, resp, monkeypatch=monkeypatch)
-        assert "--page 3" in out.err
+        assert "--offset 15 " in out.err   # (page 2 + 1) * pageSize 5
 
-    def test_a_page_numbered_link_names_its_page(self, capsys, monkeypatch):
-        """CC v1 lists send a Link header whose next URL pages by number."""
-        link = '</organization/o/contact-service-queue?page=1&pageSize=5>; rel="next"'
-        out = self._note(capsys, _Resp(link, 5), monkeypatch=monkeypatch)
-        assert "--page 1" in out.err and "--offset" not in out.err
+    def test_a_page_numbered_link_names_its_offset(self, capsys, monkeypatch):
+        """CC v1 lists and /v1/tasks send a Link header whose next URL pages by
+        number (live 2026-10-13: `/v1/tasks?from=…&page=1&pageSize=100`)."""
+        link = '</v1/tasks?from=1&page=2&pageSize=100>; rel="next"'
+        out = self._note(capsys, _Resp(link, 100), monkeypatch=monkeypatch)
+        assert "--offset 200 " in out.err and "--page" not in out.err
+
+    def test_request_page_without_body_position(self, capsys, monkeypatch):
+        """No page metadata in the body: the request's own page/pageSize."""
+        resp = _Resp(items=5)
+        resp.json = lambda: {"data": [{"id": i} for i in range(5)],
+                             "totalRecords": 40}
+        out = self._note(capsys, resp, {"page": 3, "pageSize": 5}, monkeypatch=monkeypatch)
+        assert "--offset 20 " in out.err
+
+    def test_bulk_export_counts_resources_and_trusts_rel(self, capsys, monkeypatch):
+        """CC bulk-export (`cc-global-vars list`) wraps records in `resources`.
+        Counting `items`/`data` saw 0 of 6 and printed the note on a complete
+        response (live 2026-10-13). `rel` says whether pages remain; its
+        `pageNumber` does not track the page served (page=0 -> 1, page=1 -> 2,
+        page=2 -> 2, live), so the offset comes from the request."""
+        resp = _Resp(items=9)
+        resp.json = lambda: {"totalResources": 9, "pageNumber": 0, "pageSize": 50,
+                             "rel": "last", "resources": [{"id": i} for i in range(9)]}
+        assert self._note(capsys, resp, monkeypatch=monkeypatch).err == ""
+        resp.json = lambda: {"totalResources": 9, "pageNumber": 1, "pageSize": 4,
+                             "rel": "next", "resources": [{"id": i} for i in range(4)]}
+        err = self._note(capsys, resp, {"page": 0, "pageSize": 4}, monkeypatch=monkeypatch).err
+        assert "4 records returned" in err and "--offset 4 " in err
+        resp.json = lambda: {"totalResources": 9, "pageNumber": 2, "pageSize": 4,
+                             "rel": "next", "resources": [{"id": i} for i in range(4)]}
+        err = self._note(capsys, resp, {"page": 1, "pageSize": 4}, monkeypatch=monkeypatch).err
+        assert "--offset 8 " in err
+        resp.json = lambda: {"totalResources": 9, "pageNumber": 2, "pageSize": 4,
+                             "rel": "last", "resources": [{"id": 8}]}
+        assert self._note(capsys, resp, {"page": 2, "pageSize": 4}, monkeypatch=monkeypatch).err == ""
 
     def test_env_var_silences_it(self, capsys, monkeypatch):
         monkeypatch.setenv("WXCLI_NO_PAGE_WARN", "1")

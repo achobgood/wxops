@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Meetings meeting-transcripts.")
+app = typer.Typer(help="Manage Webex Meetings: meeting-transcripts.")
 
 
 @app.command("list", short_help="List Meeting Transcripts.")

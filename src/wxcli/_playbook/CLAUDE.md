@@ -476,6 +476,8 @@ Practical rule: any question of the form *how many*, *which ones*, or *are there
 
 Watch the inverse too: on a command whose default already walks every page, passing `--limit N` **switches it to a single fetch** and silently drops the rest. `--limit` narrows; it never just "caps the display."
 
+**`--offset N` means "skip N records" on every list command**, including the page-numbered Contact Center ones (`page`/`pageSize`), where the CLI translates it to the right page(s) and `--limit N` to the page size (ADR-12, 2026-10-13; before that both were sent under names those endpoints ignore). The truncation note always names the absolute `--offset` of the next record, so following it works whether or not the command also has a `--page` flag (`cc-tasks list` has none).
+
 ### Partner Multi-Org Support
 
 wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a single partner token.

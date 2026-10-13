@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling workspace-locations.")
+app = typer.Typer(help="Manage Webex Devices: workspace-locations.")
 
 
 @app.command("list", short_help="List Workspace Locations.")

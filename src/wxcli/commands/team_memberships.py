@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling team-memberships.")
+app = typer.Typer(help="Manage Webex Messaging: team-memberships.")
 
 
 @app.command("list", short_help="List Team Memberships.")

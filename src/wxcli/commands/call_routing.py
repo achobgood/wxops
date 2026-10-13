@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling call-routing.")
+app = typer.Typer(help="Manage Webex Calling: call-routing.")
 
 
 _BODY_SKELETON_TEST_CALL_ROUTING = '{"originatorId":"...","originatorType":"PEOPLE","destination":"...","originatorNumber":"...","includeAppliedServices":true}'

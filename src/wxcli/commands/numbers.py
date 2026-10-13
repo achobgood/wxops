@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling numbers.")
+app = typer.Typer(help="Manage Webex Calling: numbers.")
 
 
 _BODY_SKELETON_CREATE = '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'

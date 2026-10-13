@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling device-dynamic-settings.")
+app = typer.Typer(help="Manage Webex Calling: device-dynamic-settings.")
 
 
 @app.command("list", short_help="Read the List of Supported Devices.")

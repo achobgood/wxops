@@ -186,6 +186,11 @@ class TestContactCenter403:
         err = capsys.readouterr().err
         assert "cjp:config_read" in err
         assert "wxcli configure" in err
+        # The April 2026 "PATs always get 403" claim was disproven live on
+        # 2026-10-13 (full-admin PAT: 200 on cc-flow/cc-queue/cc-entry-point/
+        # cc-global-vars). The tip must not repeat it.
+        assert "always gets 403" not in err
+        assert "full-admin personal access token carries them" in err
 
     def test_cc_403_survives_a_leading_global_flag(self, capsys, monkeypatch):
         run("Forbidden", status=403,

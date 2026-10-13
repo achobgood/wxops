@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling room-tabs.")
+app = typer.Typer(help="Manage Webex Messaging: room-tabs.")
 
 
 @app.command("list", short_help="List Room Tabs.")

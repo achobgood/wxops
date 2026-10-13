@@ -9,7 +9,7 @@ from wxcli.config import resolve_org_id, get_cc_base_url, get_cc_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Contact Center cc-monitoring-schedules.")
+app = typer.Typer(help="Manage Webex Contact Center: cc-monitoring-schedules.")
 
 
 _BODY_SKELETON_CREATE = '{"name":"...","timezone":"...","recurrence":true,"teams":[{"id":"...","name":"..."}],"contactServiceQueues":[{"id":"...","name":"..."}],"startTimestamp":0,"endTimestamp":0,"userId":"...","paused":true,"organizationId":"...","id":"...","version":0,"daysOfWeek":["SUN"],"agentsAccessType":"...","agents":[{"id":"...","userDetails":{"firstName":"...","lastName":"...","email":"..."}}],"userDetails":{"firstName":"...","lastName":"...","email":"..."},"filtersCount":{"specificAgents":0,"specificCsqs":0,"specificTeams":0},"createdTime":0,"lastUpdatedTime":0}'
@@ -363,8 +363,8 @@ def cmd_list(
     include_total_call_monitoring_count_in_org: str = typer.Option(None, "--include-total-call-monitoring-count-in-org", help="If set to true, the API response will include the total number of call monitoring schedules for the organization in the metadata."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (pageSize); 0 = the server default page. Ignored with --all."),
+    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
@@ -390,14 +390,14 @@ def cmd_list(
         params["includeFiltersCount"] = include_filters_count
     if include_total_call_monitoring_count_in_org is not None:
         params["includeTotalCallMonitoringCountInOrg"] = include_total_call_monitoring_count_in_org
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
+    if limit > 0 and not all_pages and params.get("pageSize") is None:
+        params["pageSize"] = limit
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
+        elif offset > 0:
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
         else:
             result = api.session.rest_get(url, params=params)
     except WebexError as e:
@@ -405,7 +405,7 @@ def cmd_list(
     except httpx.HTTPError as e:
         handle_network_error(e)
     result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    items = result.get("data", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
     emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
 
 

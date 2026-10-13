@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling workspace-settings.")
+app = typer.Typer(help="Manage Webex Calling: workspace-settings.")
 
 
 @app.command("show", short_help="Retrieve Call Forwarding Settings for a Workspace.")

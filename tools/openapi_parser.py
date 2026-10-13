@@ -39,18 +39,22 @@ def resolve_ref(spec: dict, ref: str) -> dict:
 
 
 def _get_response_schema(
-    op: dict, spec: dict, status_code: str = "200"
+    op: dict, spec: dict, status_code: str = "200", wildcard: bool = False,
 ) -> dict | None:
     """Get the resolved response schema for a given status code.
 
     Handles $ref resolution, allOf merging, and both application/json
-    and application/json;charset=UTF-8 content types.
+    and application/json;charset=UTF-8 content types. `wildcard=True` also
+    reads a `*/*` response — see extract_response_list_key for why that is
+    opt-in rather than the default.
     """
     resp = op.get("responses", {}).get(status_code, {})
     content = resp.get("content", {})
     json_content = (
         content.get("application/json")
-        or content.get("application/json;charset=UTF-8", {})
+        or content.get("application/json;charset=UTF-8")
+        or (content.get("*/*") if wildcard else None)
+        or {}
     )
     schema = json_content.get("schema", {})
     if not schema:
@@ -461,8 +465,19 @@ def extract_response_list_key(op: dict, spec: dict) -> str | None:
 
     Returns None for direct array responses (renderer handles raw list).
     For multiple array properties, prefers required ones, then first.
+
+    Reads `*/*` responses too. The Contact Center spec declares 121 GET 200s
+    as `*/*` only, and reading none of them left the key at the renderer's
+    default `items`: the 7 CC bulk-export lists (`{totalResources, pageNumber,
+    pageSize, resources}`) extracted `items`, then `data`, found neither, and
+    printed 0 rows plus a "server has more pages" note (`cc-global-vars list`:
+    0 of 6). Only the KEY is widened here: command-type detection and column
+    derivation still read JSON-typed responses only. Widening type detection
+    would reclassify `cad-variable/reportable-count` (list -> settings-get, a
+    rename) and widening columns would re-derive the table of the 67 `*/*` CC lists that carry an array —
+    each a separate decision, not part of this fix (measured 2026-10-13).
     """
-    schema = _get_response_schema(op, spec, "200")
+    schema = _get_response_schema(op, spec, "200", wildcard=True)
     if not schema:
         return None
 

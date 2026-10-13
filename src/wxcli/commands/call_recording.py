@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling call-recording.")
+app = typer.Typer(help="Manage Webex Calling: call-recording.")
 
 
 @app.command("show", short_help="Get Call Recording Settings.")

@@ -9,7 +9,7 @@ from wxcli.config import get_org_id
 from wxcli.common import verify_write
 
 
-app = typer.Typer(help="Manage Webex Calling user-settings.")
+app = typer.Typer(help="Manage Webex Calling: user-settings.")
 
 
 @app.command("show", short_help="Retrieve a person's Application Services Settings New.")

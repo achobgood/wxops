@@ -7,7 +7,7 @@ from wxcli.output import print_table, print_json
 from wxcli.common import emit, load_json_body
 
 
-app = typer.Typer(help="Manage Webex Calling live-monitoring.")
+app = typer.Typer(help="Manage Webex Admin: live-monitoring.")
 
 
 _BODY_SKELETON_CREATE = '{"siteIds":[0],"siteUrl":"..."}'

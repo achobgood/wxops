@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_cc_base_url
 
 
-app = typer.Typer(help="Manage Webex Calling usage-reports.")
+app = typer.Typer(help="Manage Webex Contact Center: usage-reports.")
 
 
 @app.command("list", hidden=True)

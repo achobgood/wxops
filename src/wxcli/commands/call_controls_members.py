@@ -8,7 +8,7 @@ from wxcli.common import emit, load_json_body
 from wxcli.config import get_org_id
 
 
-app = typer.Typer(help="Manage Webex Calling call-controls-members.")
+app = typer.Typer(help="Manage Webex Calling: call-controls-members.")
 
 
 _BODY_SKELETON_CREATE_WRAPUPREASONS = '{"wrapupReasons":["..."]}'
