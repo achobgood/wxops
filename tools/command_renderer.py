@@ -1289,11 +1289,19 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     # served record-exactly by `fetch_from_offset`. Excludes `paginates`
     # endpoints, which take the Link-walking branch (none are page-numbered).
     page_numbered = ep.pagination_style == "page" and not ep.paginates
+    # SCIM endpoints (`startIndex`/`count`) read neither `max` nor `start`
+    # either: the same inert pair on 5 commands (`scim-users list`, `groups
+    # list`, …), caught by drift check 23. Translated the same way: --limit is
+    # the page size (`count`), --offset is the 1-based `startIndex` (offset + 1).
+    scim_window = ep.pagination_style == "scim" and not ep.paginates
 
     params.extend(_render_output_options("table"))
     if page_numbered:
         params.append(f'    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size ({ep.page_size_param}); 0 = the server default page. Ignored with --all."),')
         params.append('    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),')
+    elif scim_window:
+        params.append('    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (count); 0 = the server default page. Ignored with --all."),')
+        params.append('    offset: int = typer.Option(0, "--offset", help="Skip this many records (sent as the 1-based startIndex = offset + 1)."),')
     else:
         params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
         params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
@@ -1319,6 +1327,10 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         # An explicit page-size flag wins; --all walks with its own page size.
         size = ep.page_size_param
         param_build.append(f'    if limit > 0 and not all_pages and params.get("{size}") is None:\n        params["{size}"] = limit')
+    elif scim_window:
+        # An explicit --count / --start-index wins, as on page-numbered lists.
+        param_build.append('    if limit > 0 and not all_pages and params.get("count") is None:\n        params["count"] = limit')
+        param_build.append('    if offset > 0 and params.get("startIndex") is None:\n        params["startIndex"] = offset + 1')
     else:
         param_build.append(f'    if limit > 0:\n        params["{limit_param_key}"] = limit')
         param_build.append(f'    if offset > 0:\n        params["{offset_param_key}"] = offset')

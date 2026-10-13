@@ -908,6 +908,21 @@ class TestPageNumberedLimitOffset:
         assert 'params["max"] = limit' in code and 'params["start"] = offset' in code
         assert "fetch_from_offset" not in code
 
+    def test_scim_list_sends_count_and_one_based_start_index(self):
+        """SCIM (`startIndex`/`count`) reads neither `max` nor `start` either —
+        drift check 23 found it on 5 commands (`scim-users list`, …)."""
+        ep = _make_endpoint(command_type="list", method="GET",
+                            query_params=[_make_field(name="startIndex", python_name="start-index"),
+                                          _make_field(name="count", python_name="count")])
+        ep.pagination_style = "scim"
+        code = render_command_file("Things", [ep], {})
+        assert 'params["max"]' not in code and 'params["start"]' not in code
+        assert ('if limit > 0 and not all_pages and params.get("count") is None:\n'
+                '        params["count"] = limit') in code
+        assert ('if offset > 0 and params.get("startIndex") is None:\n'
+                '        params["startIndex"] = offset + 1') in code
+        assert "sent as the 1-based startIndex = offset + 1" in code
+
 
 class TestWildcardResponseListKey:
     """Issue 5 (2026-10-13): `cc-global-vars list` printed 0 rows and a "server

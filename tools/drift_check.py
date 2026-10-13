@@ -215,6 +215,16 @@ Checks (docs/arch/target-architecture.md §A6):
       repurposing; --force is the human's override and sync_guard.py
       (Phase C) fails a run whose lock diff is not purely additive.
 
+  23. Inert --offset/--limit: a GET list command must not send its --offset
+      or --limit value under a query-param name the spec op does not declare
+      when the op DOES declare a name for that concept (an offset/page name,
+      or a page-size name). The renderer sent `start`/`max` everywhere, so on
+      the 105 Contact Center page-numbered lists and the 5 SCIM lists both
+      flags were ignored and the command exited 0 with the first page
+      (`cc-queue list --limit 2` -> `?max=2` -> 17 rows). --offset routed
+      through fetch_from_offset counts as translated. An op declaring no such
+      name gives the CLI nothing to translate to and is out of scope.
+
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
 skip an operation whose declaring specs disagree rather than unioning them —
@@ -3290,6 +3300,103 @@ def check_undeclared_paging(acks: dict | None = None,
     return findings, stale
 
 
+# ----------------------------------------------------------------- check 23
+
+# What checks 23-30 looked at on their most recent call, keyed by check number,
+# so main() can print "(examined N …)" beside a count and a vacuous 0 shows up
+# in the unattended log: {"23": {"examined": N, "skipped": K}}.
+CHECK_EXAMINED: dict[str, dict[str, int]] = {}
+
+# The names an endpoint can declare for each window concept. `size` is a page
+# size only beside `page`, and `count` only beside `startIndex` — alone each is
+# too generic a word (openapi_parser._page_size_param says the same of `size`).
+_OFFSET_NAMES = frozenset({"offset", "start", "startIndex", "page"})
+_SIZE_NAMES = frozenset({"limit", "max", "pageSize"})
+_PARAM_WRITE = re.compile(r'\bparams\["([^"]+)"\]\s*=\s*(?:str\(\s*)?(\w+)\b')
+
+
+def _declared_window_names(flag: str, declared: set[str]) -> set[str]:
+    if flag == "--offset":
+        return set(declared & _OFFSET_NAMES)
+    names = set(declared & _SIZE_NAMES)
+    if "size" in declared and "page" in declared:
+        names.add("size")
+    if "count" in declared and "startIndex" in declared:
+        names.add("count")
+    return names
+
+
+def check_inert_window_flags(commands_dir: Path = COMMANDS_DIR,
+                             specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A list command's `--offset`/`--limit` sent under a name the endpoint does not read.
+
+    Every generated list command carries both flags; the renderer used to send
+    them as `max`/`start` regardless, so on the 105 Contact Center page-numbered
+    endpoints (which read `page`/`pageSize`) both were ignored and the command
+    exited 0 with page 0 (`cc-queue list --limit 2` -> `?max=2` -> 17 rows,
+    live 2026-10-13). Flag exists, flag does not work.
+
+    For each GET block carrying either flag, the query param the flag's value
+    is written into (`params["X"] = offset|limit`, via flag_query_map) is
+    compared with the spec op's declared query params. A finding needs all of:
+      * the endpoint DECLARES a name for the concept — an offset/page name for
+        `--offset`, a page-size name for `--limit` (see _declared_window_names);
+      * no write of the flag's variable reaches a declared param;
+      * for `--offset`, the block does not call `fetch_from_offset(` — the
+        runtime translation of a record offset onto a page number.
+    An endpoint declaring no such name is out of scope by construction: the
+    spec gives the CLI nothing to translate to, and whether an undeclared
+    `start` is honoured there (the 42 Link-cursor lists declaring only `max`)
+    cannot be decided statically. That is a measured tightening, not an ack.
+
+    A path several specs declare counts as declared if ANY of them declares the
+    name (under-report rather than fail a correct command, as check 9 does).
+    Blocks with no matching spec op (hand-written, CLI-ahead) are skipped and
+    counted in CHECK_EXAMINED["23"]["skipped"].
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method != "GET" or not (
+                '"--offset"' in block.text or '"--limit"' in block.text):
+            continue
+        sops = index.get(("GET", block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        examined += 1
+        declared: set[str] = set()
+        for sop in sops:
+            declared |= query_param_names(sop.op, sop.spec)
+        sends_map = flag_query_map(block.text)
+        writes = [(m.group(1), m.group(2))
+                  for m in _PARAM_WRITE.finditer(block.text)]
+        for flag in ("--offset", "--limit"):
+            sends = sends_map.get(flag)
+            if sends is None or sends in declared:
+                continue
+            if not _declared_window_names(flag, declared):
+                continue
+            if flag == "--offset" and "fetch_from_offset(" in block.text:
+                continue
+            flag_vars = {var for name, var in writes if name == sends}
+            if any(name in declared for name, var in writes if var in flag_vars):
+                continue
+            findings.append({
+                "group": block.group,
+                "command": block.command,
+                "op": f"GET {sops[0].path}",
+                "flag": flag,
+                "sends": sends,
+                "spec": ", ".join(sorted({s.spec_file for s in sops})),
+            })
+    skipped += len(HELPER_SKIPS["modules"]) + len(HELPER_SKIPS["specs"])
+    CHECK_EXAMINED["23"] = {"examined": examined, "skipped": skipped}
+    return findings
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -4248,6 +4355,8 @@ def main() -> int:
     name_lock_file = load_name_lock()
     name_lock = check_name_lock(locked=name_lock_file.get("modules") or {})
     name_lock_missing = not name_lock_file.get("modules")
+    inert_window_flags = check_inert_window_flags()
+    window_stats = CHECK_EXAMINED.get("23", {"examined": 0, "skipped": 0})
 
     results = {
         "1_spec_cli_parity": parity,
@@ -4290,6 +4399,7 @@ def main() -> int:
         "22_name_lock_removed_modules": name_lock["removed_modules"],
         "22_name_lock_unlocked": name_lock["unlocked"],
         "22_name_lock_missing": name_lock_missing,
+        "23_inert_window_flags": inert_window_flags,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -4304,7 +4414,8 @@ def main() -> int:
                   or spec_structural or spec_flips or undocumented_groups
                   or ungated_destructive
                   or name_lock_missing or name_lock["retargeted"] or name_lock["removed"]
-                  or name_lock["removed_modules"] or name_lock["unlocked"])
+                  or name_lock["removed_modules"] or name_lock["unlocked"]
+                  or inert_window_flags)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -4535,6 +4646,15 @@ def main() -> int:
               f"{len(name_lock['unlocked'])} unlocked"
               + ("   (NO LOCK FILE — run --refresh-name-lock)" if name_lock_missing else ""))
         _print_name_lock_findings(name_lock)
+        print(f"[23] list flags (--offset/--limit) sent as a query param the "
+              f"endpoint does not declare: {len(inert_window_flags)}"
+              f"   (examined {window_stats['examined']} list commands, "
+              f"skipped {window_stats['skipped']})")
+        for f in inert_window_flags[:20]:
+            print(f"      wxcli {f['group']} {f['command']}  {f['flag']} -> "
+                  f"{f['sends']}  {f['op']}  ({f['spec']})")
+        if len(inert_window_flags) > 20:
+            print(f"      ... and {len(inert_window_flags) - 20} more (--json for all)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
