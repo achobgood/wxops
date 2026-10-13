@@ -86,6 +86,7 @@ tests/*
 !tests/test_drift_check_single_object.py
 !tests/test_drift_check_cc_org_id.py
 !tests/test_drift_check_list_key.py
+!tests/test_drift_check_product_label.py
 !tests/test_spec_sync.py
 !tests/test_sync_guard.py
 !tests/test_sync_classify.py

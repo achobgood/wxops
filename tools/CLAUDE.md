@@ -1344,6 +1344,53 @@ exactly these 4 operations.
 columns and create-id extraction, and changing those was not needed for this
 fix. Drift check 27 gates this class of defect ("no array, drops: …").
 
+### A group two specs render gets ONE label, whatever the render order (2026-10-13)
+
+Seven groups are rendered by two specs: `calling-metrics`, `events`,
+`locations`, `meeting-qualities`, `webhooks`, `workspace-locations` and
+`workspace-metrics`. Each spec writes the whole module, and the last writer
+wins. All seven render identical commands from both specs; only the group-help
+label differed, because it named the product of whichever spec was rendering
+at that moment. A full `spec_sync.py --skip-update` regen rewrote 5 committed
+labels. A one-spec regen would have written them differently again. The
+weekly job would have churned them, and check 28 would have had nothing
+stable to hold.
+
+**The rule (`command_renderer.group_label_spec`).** The label names the
+product of one spec, chosen from every spec that renders at least one command
+into the group (`build_producer_index()["group_specs"]`):
+- **`webex-admin.json` ranks last.** It is the umbrella spec. It re-declares
+  operations that belong to a product spec, so the product spec names the
+  group better.
+- **Otherwise, the first spec in walk order wins.** Walk order is
+  `spec_sync.PREFERRED_ORDER`, then the remaining specs sorted.
+
+A spec that is not among the group's owners keeps its own product. That covers
+test fixtures and specs outside `specs/`.
+
+**One definition for both uses.** `group_product`, the source of the
+cross-product short_help qualifier, uses the same rule. So a group's label and
+its qualifier can never name two different products.
+
+**Rejected alternatives:**
+- **"The spec that owns the most operations."** Measured: every one of the 7
+  groups has the same command count from both specs. The count would have
+  decided nothing, and the tie-break would have done all the work.
+- **Matching today's committed labels exactly.** That needs Devices ranked
+  ahead of Calling, which contradicts `PREFERRED_ORDER`. It also contradicts
+  the `spec_authority` record for `GET /locations`: there the calling spec is
+  right and the device spec invents fields.
+
+The rule changed exactly one committed label: `locations` went from Devices
+to Calling.
+
+**Evidence:** a forward-order and a reverse-order regen into temp
+directories were byte-identical. After a `spec_sync.py` regen,
+`git status --porcelain src/wxcli/commands` is empty. Drift check 28 accepts
+any owning spec's product, so it holds no opinion on the choice.
+`tests/test_command_renderer.py::TestGroupHelpProduct` pins the rule and the
+shipped labels.
+
 ## Known Issues — Generator / Pipeline Only
 
 These were removed from root CLAUDE.md (not needed by the builder agent at runtime):

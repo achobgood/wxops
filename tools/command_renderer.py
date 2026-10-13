@@ -806,6 +806,11 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
     # wrong commands.
     summary_groups: dict[str, set[str]] = {}
     group_product: dict[str, str] = {}
+    # {group -> [spec, ...]} every spec that renders at least one command into
+    # the group, in walk order. Read by group_label_spec: five groups are
+    # written by two specs, so "the spec rendering right now" is not a stable
+    # answer to "which product is this group".
+    group_specs: dict[str, list[str]] = {}
 
     # Same order spec_sync generates in, so that where two specs declare one
     # path the index names the same group the CLI actually ships it under.
@@ -871,6 +876,8 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
             group = cli_ovr.get(tag) or folder_name_to_module(tag)[1]
             if product is not None:
                 group_product.setdefault(group, product)
+                if endpoints and name not in group_specs.setdefault(group, []):
+                    group_specs[group].append(name)
             for ep in endpoints:
                 apply_endpoint_overrides(ep, tag_ovr)
                 if product is not None:
@@ -886,8 +893,48 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
                         (literals, ep.url_path, f"{group} {ep.command_name}"))
     for entries in by_tail.values():
         entries.sort(key=lambda e: (len(e[0]), len(e[1]), e[1]))
+    # A group's product is its label spec's product (see _label_rank), so the
+    # group-help label and the cross-product short_help qualifier can never
+    # name two different products for one group.
+    for group, owners in group_specs.items():
+        group_product[group] = SPEC_PRODUCT[min(owners, key=_label_rank(owners))]
     return {"by_path": by_path, "by_tail": by_tail, "scoping": scoping,
-            "summary_groups": summary_groups, "group_product": group_product}
+            "summary_groups": summary_groups, "group_product": group_product,
+            "group_specs": group_specs}
+
+
+# The umbrella spec: webex-admin.json re-declares operations that belong to a
+# product spec (calling metrics, compliance events, meeting qualities,
+# workspace locations/metrics). Where it shares a group with one, the product
+# spec names the group better, so it ranks last.
+_UMBRELLA_SPECS = frozenset({"webex-admin.json"})
+
+
+def _label_rank(owners: list[str]):
+    """Sort key over `owners` (walk order = spec_sync.PREFERRED_ORDER, then
+    sorted): umbrella specs last, otherwise walk order."""
+    return lambda name: (name in _UMBRELLA_SPECS, owners.index(name))
+
+
+def group_label_spec(cli_name: str, spec_filename: str) -> str:
+    """The spec whose product the group-help label of `cli_name` names.
+
+    A group rendered by several specs is written once per spec, last writer
+    wins, so a label read off "the spec rendering now" depended on render
+    order: a full spec_sync regen and a one-spec regen disagreed on 5 groups
+    (calling-metrics, events, webhooks, workspace-locations,
+    workspace-metrics), and the weekly job would have flipped them. The answer
+    is now a function of the GROUP: of every spec that renders a command into
+    it, the first by _label_rank. A spec not among the group's owners (a test
+    fixture, a spec outside specs/) keeps its own product.
+    """
+    global _producer_index
+    if _producer_index is None:
+        _producer_index = build_producer_index()
+    owners = _producer_index.get("group_specs", {}).get(cli_name) or []
+    if spec_filename not in owners:
+        return spec_filename
+    return min(owners, key=_label_rank(owners))
 
 
 def _subsequence_remainder(candidate: list[str], target: list[str]) -> list[str] | None:
@@ -2280,7 +2327,10 @@ def render_command_file(
     # asset." (findings D07/D08). SPEC_PRODUCT is the one mapping; no second one.
     # "Webex <Product>: <group>." — the colon keeps it readable when the group
     # repeats the product word ("Manage Webex Devices: devices.").
-    spec_product = SPEC_PRODUCT.get(spec_filename) if spec_filename else None
+    # A group two specs render takes the product group_label_spec picks, not
+    # the current spec's, so the label does not depend on render order.
+    spec_product = (SPEC_PRODUCT.get(group_label_spec(cli_name, spec_filename))
+                    if spec_filename in SPEC_PRODUCT else None)
     product = f"Webex {spec_product}:" if spec_product else "Webex"
     sections = [
         _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path,

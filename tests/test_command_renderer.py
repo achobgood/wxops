@@ -992,6 +992,50 @@ class TestGroupHelpProduct:
                  and 'typer.Typer(help="Manage Webex Contact Center' not in f.read_text()]
         assert not wrong, wrong
 
+    # Five groups are written by two specs (last writer wins), so a label read
+    # off "the spec rendering now" flipped with render order: a full spec_sync
+    # regen and a one-spec regen disagreed on calling-metrics, events,
+    # webhooks, workspace-locations and workspace-metrics.
+
+    @pytest.mark.parametrize("spec", ["webex-messaging.json", "webex-meetings.json"])
+    def test_multi_spec_group_label_ignores_render_order(self, spec):
+        code = render_command_file("webhooks", [_make_endpoint()], {}, spec_filename=spec)
+        assert 'app = typer.Typer(help="Manage Webex Messaging: webhooks.")' in code
+
+    def test_label_rank_puts_the_umbrella_spec_last(self):
+        from tools.command_renderer import _label_rank
+        owners = ["webex-admin.json", "webex-meetings.json", "webex-messaging.json"]
+        assert min(owners, key=_label_rank(owners)) == "webex-meetings.json"
+        owners = ["webex-cloud-calling.json", "webex-device.json"]
+        assert min(owners, key=_label_rank(owners)) == "webex-cloud-calling.json"
+        assert min(["webex-admin.json"], key=_label_rank(["webex-admin.json"])) \
+            == "webex-admin.json"
+
+    def test_group_label_spec_on_the_real_index(self):
+        from tools.command_renderer import group_label_spec
+        assert group_label_spec("meeting-qualities", "webex-admin.json") == "webex-meetings.json"
+        assert group_label_spec("calling-metrics", "webex-admin.json") == "webex-cloud-calling.json"
+        assert group_label_spec("workspace-metrics", "webex-admin.json") == "webex-device.json"
+        assert group_label_spec("locations", "webex-device.json") == "webex-cloud-calling.json"
+        # Not an owner (a fixture, a spec outside specs/): its own product.
+        assert group_label_spec("asset", "webex-admin.json") == "webex-admin.json"
+
+    def test_shipped_multi_spec_groups_carry_the_ranked_label(self):
+        """The tree invariant a full regen must reproduce byte-for-byte."""
+        from tools.command_renderer import (
+            SPEC_PRODUCT, _label_rank, build_producer_index)
+        cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
+        shared = {g: o for g, o in build_producer_index()["group_specs"].items()
+                  if len(o) > 1}
+        assert len(shared) >= 5, shared     # 7 today; catches an empty index
+        wrong = []
+        for group, owners in shared.items():
+            product = SPEC_PRODUCT[min(owners, key=_label_rank(owners))]
+            want = f'app = typer.Typer(help="Manage Webex {product}: {group}.")'
+            if want not in (cmd_dir / f"{group.replace('-', '_')}.py").read_text():
+                wrong.append(want)
+        assert not wrong, wrong
+
 
 class TestSingleResourceActionGet:
     """Bug 3: `cc-flow export` printed only result["nodes"] — the list-style
