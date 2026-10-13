@@ -262,6 +262,16 @@ Checks (docs/arch/target-architecture.md §A6):
       `{"enabled": true}`). Several arrays pass when any is reachable; a
       bare-array response is exempt; a response declaring no properties at
       all is skipped and counted.
+  28. Wrong product label: a command group's `typer.Typer(help="…")` must be
+      exactly "Manage Webex <Product>: <group>." for a product
+      (command_renderer.SPEC_PRODUCT) of some spec declaring an operation the
+      group's commands call. The CLI-name-prefix guess labelled `asset` and
+      `channel` (Contact Center host) and every admin/device/messaging group
+      "Manage Webex Calling <group>." (D07/D08). A group two specs render
+      accepts either product; the generator picks one by a fixed rule
+      (command_renderer.group_label_spec). Groups with no matching spec op,
+      ops only in a spec SPEC_PRODUCT lacks, or no readable label are
+      skipped and counted.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -3970,6 +3980,103 @@ CHECK_PRINT["27"] = (
                + f"{f['op']}  ({f['spec']})"))
 
 
+# ----------------------------------------------------------------- check 28
+
+_GROUP_HELP = re.compile(r'typer\.Typer\([^)\n]*?\bhelp="((?:[^"\\\n]|\\.)*)"')
+_REGISTRY_PAIR = re.compile(r'\(\s*"([A-Za-z0-9_]+)"\s*,\s*"([^"]+)"\s*\)')
+
+
+def _registered_group_names(commands_dir: Path) -> dict[str, str]:
+    """{module: registered CLI name} from `<commands_dir>/_registry.py`, read
+    as text (never imported). Missing or unreadable -> {}."""
+    try:
+        text = (Path(commands_dir) / "_registry.py").read_text()
+    except (OSError, UnicodeDecodeError):
+        return {}
+    return dict(_REGISTRY_PAIR.findall(text))
+
+
+def check_wrong_product_label(commands_dir: Path = COMMANDS_DIR,
+                              specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A command group whose help names the wrong product.
+
+    The group-help label was guessed from the CLI-name prefix (`cc-` ->
+    Contact Center, else Calling): `asset` and `channel` call the Contact
+    Center host and said "Manage Webex Calling asset."; every admin, device
+    and messaging group (`rooms`, `devices`, …) announced itself as Webex
+    Calling (findings D07/D08). The generator now writes "Manage Webex
+    <Product>: <group>." from command_renderer.SPEC_PRODUCT.
+
+    Per module, the accepted products are SPEC_PRODUCT of every spec that
+    declares an operation one of its command blocks calls (method +
+    normalized path). The module fires when its `typer.Typer(help="…")` is
+    not EXACTLY "Manage Webex <p>: <name>." for some accepted p — so the
+    pre-fix colon-less format fails too: the label is the generator's output
+    or it has drifted. A module two specs render accepts either product (the
+    generator picks one deterministically, command_renderer.group_label_spec;
+    this check does not re-derive that choice). <name> is the module's
+    group (module with `_` -> `-`, which is what the generator writes) or,
+    if `_registry.py` registers it under another name, that name; findings
+    report the registered name.
+
+    Skipped and counted, never guessed or raised: a module none of whose
+    blocks match a spec op (hand-written seams, aliases); one whose ops live
+    only in a spec SPEC_PRODUCT does not know (a new upstream spec); one with
+    no readable label.
+    """
+    try:
+        from tools.command_renderer import SPEC_PRODUCT
+    except Exception:   # noqa: BLE001 — unattended gate: report BLIND, not crash
+        SPEC_PRODUCT = {}
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    registered = _registered_group_names(commands_dir)
+    products: dict[str, set[str]] = {}
+    matched: set[str] = set()
+    for block in blocks:
+        mod = products.setdefault(block.module, set())
+        for sop in index.get((block.method, block.npath)) or ():
+            matched.add(block.module)
+            product = SPEC_PRODUCT.get(sop.spec_file)
+            if isinstance(product, str) and product:
+                mod.add(product)
+    for module in sorted(products):
+        accepted = products[module]
+        if module not in matched or not accepted:
+            skipped += 1            # no spec op, or only in an unmapped spec
+            continue
+        try:
+            source = (Path(commands_dir) / f"{module}.py").read_text()
+        except (OSError, UnicodeDecodeError):
+            skipped += 1
+            continue
+        found = _GROUP_HELP.search(source)
+        if not found:
+            skipped += 1            # no readable label: never guessed
+            continue
+        examined += 1
+        label = found.group(1)
+        group = module.replace("_", "-")
+        names = {group, registered.get(module) or group}
+        if any(label == f"Manage Webex {p}: {n}." for p in accepted for n in names):
+            continue
+        findings.append({"group": registered.get(module) or group,
+                         "label": label, "expected": sorted(accepted)})
+    return record_examined(
+        "28", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "command groups")
+
+
+CHECK_PRINT["28"] = (
+    "command groups whose help names the wrong product",
+    "command groups",
+    lambda f: (f"wxcli {f['group']}  help \"{f['label']}\"  "
+               f"expected product: {' or '.join(f['expected'])}"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -4933,6 +5040,7 @@ def main() -> int:
     single_object_lists = check_single_object_list_render()
     cc_base64_org_ids = check_cc_base64_org_id()
     unreachable_list_keys = check_unreachable_list_key()
+    wrong_product_labels = check_wrong_product_label()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -4980,6 +5088,7 @@ def main() -> int:
         "25_single_object_list_render": single_object_lists,
         "26_cc_base64_org_id": cc_base64_org_ids,
         "27_unreachable_list_key": unreachable_list_keys,
+        "28_wrong_product_label": wrong_product_labels,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -4997,7 +5106,7 @@ def main() -> int:
                   or name_lock["removed_modules"] or name_lock["unlocked"]
                   or inert_window_flags or walker_params
                   or single_object_lists or cc_base64_org_ids
-                  or unreachable_list_keys)
+                  or unreachable_list_keys or wrong_product_labels)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -5233,6 +5342,7 @@ def main() -> int:
         print_check_findings("25", single_object_lists)
         print_check_findings("26", cc_base64_org_ids)
         print_check_findings("27", unreachable_list_keys)
+        print_check_findings("28", wrong_product_labels)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
