@@ -3690,9 +3690,11 @@ def check_single_object_list_render(commands_dir: Path = COMMANDS_DIR,
     For each GET block whose path ends in `{}` or `{}:<action>` and that
     extracts `result.get("<key>", result.get("data", …))`, the spec op's 200
     object is read. A finding needs the object to declare a property the
-    extractor drops: anything but the extracted key and a paging envelope
-    (_LIST_ENVELOPE_KEYS). That is a measured tightening, not an ack — 17
-    ops at HEAD are genuine collections keyed by a path id
+    extractor drops: anything but the key it actually emits (the named key,
+    or `data` via its fallback when the named key is absent) and a paging
+    envelope (_LIST_ENVELOPE_KEYS). That is a measured tightening, not an
+    ack — 18 ops at HEAD (2026-10-13) are genuine collections keyed by a
+    path id
     (`…/workspace-id/{workspaceId}` -> `{data, meta}`,
     `…/availability/{clusterId}` -> `{items}`); listing them drops nothing.
     A bare-array response (response_array_props is None) has no key to
@@ -3727,7 +3729,10 @@ def check_single_object_list_render(commands_dir: Path = COMMANDS_DIR,
             props = response_object_props(sop.op, sop.spec)
             if not props:
                 continue
-            lost = props - {key} - _LIST_ENVELOPE_KEYS
+            # The rendered extractor is result.get(key, result.get("data", …)):
+            # with `key` absent and `data` present, it emits `data`.
+            emitted = key if key in props or "data" not in props else "data"
+            lost = props - {emitted} - _LIST_ENVELOPE_KEYS
             if not lost:
                 collection = True
             dropped |= lost

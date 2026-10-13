@@ -68,7 +68,7 @@ def _block(template, cmd="export", path=EXPORT_URL, key="nodes"):
             .replace("KEY", key))
 
 
-def _obj(props, required=None):
+def _obj(props):
     return {"type": "object", "properties": props}
 
 
@@ -175,7 +175,7 @@ def test_bare_id_path_with_list_extractor_fires(tree):
 
 def test_id_keyed_collection_wrapper_passes(tree):
     """`…/workspace-id/{workspaceId}` -> `{data, meta}` is a collection keyed
-    by a path id (17 such ops at HEAD). Listing it drops nothing."""
+    by a path id (18 such ops at HEAD). Listing it drops nothing."""
     path = "/zz/person/workspace-id/{workspaceId}"
     findings = tree(
         _block(LIST_BLOCK, cmd="list", path="zz/person/workspace-id/{workspace_id}",
@@ -223,6 +223,28 @@ def test_extracted_key_absent_from_a_single_object_fires(tree):
     findings = tree(
         _block(LIST_BLOCK, cmd="list", path="zz/things/{thing_id}", key="items"),
         _spec(_obj({"editableFolderIds": ARR, "name": STR}), path=path))
+    assert [f["extracts"] for f in findings] == ["items"]
+
+
+def test_data_fallback_on_a_collection_wrapper_passes(tree):
+    """The extractor is result.get(key, result.get("data", …)): a `{data,
+    meta}` collection rendered with key `items` emits `data`, dropping nothing."""
+    path = "/zz/person/workspace-id/{workspaceId}"
+    findings = tree(
+        _block(LIST_BLOCK, cmd="list", path="zz/person/workspace-id/{workspace_id}",
+               key="items"),
+        _spec(_obj({"data": ARR, "meta": STR}), path=path))
+    assert findings == []
+    assert drift_check.CHECK_EXAMINED["25"] == {"examined": 1, "skipped": 0}
+
+
+def test_data_fallback_beside_other_fields_fires(tree):
+    """The fallback emits `data` but a sibling field is still dropped."""
+    path = "/zz/person/workspace-id/{workspaceId}"
+    findings = tree(
+        _block(LIST_BLOCK, cmd="list", path="zz/person/workspace-id/{workspace_id}",
+               key="items"),
+        _spec(_obj({"data": ARR, "meta": STR, "name": STR}), path=path))
     assert [f["extracts"] for f in findings] == ["items"]
 
 
