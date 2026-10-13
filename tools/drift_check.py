@@ -3307,6 +3307,29 @@ def check_undeclared_paging(acks: dict | None = None,
 # in the unattended log: {"23": {"examined": N, "skipped": K}}.
 CHECK_EXAMINED: dict[str, dict[str, int]] = {}
 
+
+def record_examined(check: str, findings: list[dict], examined: int,
+                    skipped: int, noun: str) -> list[dict]:
+    """Record what check `check` examined; return `findings`, plus a gated
+    blind-run finding when it examined nothing.
+
+    Shared by checks 23-30. A check over zero items reports a confident 0 —
+    indistinguishable from a clean tree — so a zero-examined run FAILS with a
+    single `{"check", "error"}` finding instead (main() prints it as BLIND).
+    `skipped` should include the HELPER_SKIPS entries the check's readers set.
+    """
+    CHECK_EXAMINED[check] = {"examined": examined, "skipped": skipped}
+    if examined == 0:
+        return list(findings) + [{
+            "check": check,
+            "error": f"examined 0 {noun} — helpers blind? (skipped {skipped})"}]
+    return findings
+
+
+def helper_skip_count() -> int:
+    """Everything the shared readers could not parse on their last call."""
+    return sum(len(HELPER_SKIPS.get(k) or ()) for k in ("modules", "blocks", "specs"))
+
 # The names an endpoint can declare for each window concept. `size` is a page
 # size only beside `page`, and `count` only beside `startIndex` — alone each is
 # too generic a word (openapi_parser._page_size_param says the same of `size`).
@@ -3317,7 +3340,15 @@ _PARAM_WRITE = re.compile(r'\bparams\["([^"]+)"\]\s*=\s*(?:str\(\s*)?(\w+)\b')
 
 def _declared_window_names(flag: str, declared: set[str]) -> set[str]:
     if flag == "--offset":
-        return set(declared & _OFFSET_NAMES)
+        names = set(declared & _OFFSET_NAMES)
+        # A page-style size alone still declares a page scheme: /v1/tasks
+        # declares only `pageSize` and pages by `page` live (2026-10-13), so a
+        # record offset sent as `start` there is inert.
+        if "pageSize" in declared:
+            names.add("pageSize")
+        if "size" in declared and "page" in declared:
+            names.add("size")
+        return names
     names = set(declared & _SIZE_NAMES)
     if "size" in declared and "page" in declared:
         names.add("size")
@@ -3392,9 +3423,8 @@ def check_inert_window_flags(commands_dir: Path = COMMANDS_DIR,
                 "sends": sends,
                 "spec": ", ".join(sorted({s.spec_file for s in sops})),
             })
-    skipped += len(HELPER_SKIPS["modules"]) + len(HELPER_SKIPS["specs"])
-    CHECK_EXAMINED["23"] = {"examined": examined, "skipped": skipped}
-    return findings
+    return record_examined("23", findings, examined,
+                           skipped + helper_skip_count(), "list commands")
 
 
 # ----------------------------------------------------------------- check 18
@@ -4651,6 +4681,9 @@ def main() -> int:
               f"   (examined {window_stats['examined']} list commands, "
               f"skipped {window_stats['skipped']})")
         for f in inert_window_flags[:20]:
+            if "error" in f:   # record_examined's blind-run finding
+                print(f"      BLIND  {f['error']}")
+                continue
             print(f"      wxcli {f['group']} {f['command']}  {f['flag']} -> "
                   f"{f['sends']}  {f['op']}  ({f['spec']})")
         if len(inert_window_flags) > 20:

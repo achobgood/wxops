@@ -923,6 +923,16 @@ class TestPageNumberedLimitOffset:
                 '        params["startIndex"] = offset + 1') in code
         assert "sent as the 1-based startIndex = offset + 1" in code
 
+    def test_count_only_scim_style_op_is_not_translated(self):
+        """`scim` style is set by either name alone. A count-only op must not
+        get --offset sent as a `startIndex` it does not declare."""
+        ep = _make_endpoint(command_type="list", method="GET",
+                            query_params=[_make_field(name="count", python_name="count")])
+        ep.pagination_style = "scim"
+        code = render_command_file("Things", [ep], {})
+        assert 'params["startIndex"]' not in code
+        assert "1-based startIndex" not in code
+
 
 class TestWildcardResponseListKey:
     """Issue 5 (2026-10-13): `cc-global-vars list` printed 0 rows and a "server

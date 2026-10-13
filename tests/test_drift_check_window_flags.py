@@ -113,6 +113,24 @@ def test_fetch_from_offset_exempts_offset_even_with_a_stray_write(tree):
     assert findings == []
 
 
+def test_offset_on_page_size_only_endpoint_fires(tree):
+    """`cc-tasks list` before dc91c40: /v1/tasks declares only `pageSize` (it
+    pages by `page` live), and --offset was sent as `start`."""
+    findings = tree(_block(_w("start", "offset")), _spec(["pageSize", "from"]))
+    assert [(f["flag"], f["sends"]) for f in findings] == [("--offset", "start")]
+
+
+def test_offset_on_page_size_only_endpoint_via_fetch_from_offset_passes(tree):
+    findings = tree(_block(_w("pageSize", "limit"), VIA_OFFSET),
+                    _spec(["pageSize", "from"]))
+    assert findings == []
+
+
+def test_offset_on_size_beside_page_endpoint_fires(tree):
+    findings = tree(_block(_w("start", "offset")), _spec(["size", "page"]))
+    assert [(f["flag"], f["sends"]) for f in findings] == [("--offset", "start")]
+
+
 def test_limit_sent_as_undeclared_max_fires(tree):
     findings = tree(_block(_w("max", "limit")), _spec(["page", "pageSize"]))
     assert [(f["flag"], f["sends"]) for f in findings] == [("--limit", "max")]
@@ -207,19 +225,53 @@ def test_generic_size_without_page_is_not_a_page_size(tree):
 
 # --------------------------------------------------------------------- scope
 
+BLIND = [{"check": "23", "error": "examined 0 list commands — helpers blind? (skipped 1)"}]
+
+
 def test_skips_block_without_a_spec_op(tree):
+    """Skipped and counted. The only block is skipped, so 0 were examined —
+    which is itself a failure (record_examined), not a quiet pass."""
     findings = tree(_block(_w("start", "offset")),
                     _spec(["page", "pageSize"], path="/v1/somewhereElse"))
-    assert findings == []
+    assert findings == BLIND
     assert drift_check.CHECK_EXAMINED["23"] == {"examined": 0, "skipped": 1}
 
 
 def test_skips_non_get_blocks(tree):
+    """A POST is out of scope; with a GET beside it only the GET is examined."""
+    post = _block(_w("start", "offset")).replace(
+        "api.session.rest_get(url, params=params)",
+        "api.session.rest_post(url, json=body, params=params)").replace(
+        '@app.command("list")', '@app.command("create")')
+    get = _block(_w("pageSize", "limit"))
+    spec = _spec(["page", "pageSize"])
+    spec["paths"]["/v1/zzProbe"]["post"] = _spec(
+        ["page", "pageSize"], method="post")["paths"]["/v1/zzProbe"]["post"]
+    findings = tree(post + "\n" + get, spec)
+    assert findings == []
+    assert drift_check.CHECK_EXAMINED["23"]["examined"] == 1
+
+
+def test_zero_examined_fails_visibly(tree):
+    """A run that examined nothing must not read as a clean 0."""
     src = _block(_w("start", "offset")).replace(
         "api.session.rest_get(url, params=params)",
         "api.session.rest_post(url, json=body, params=params)")
     findings = tree(src, _spec(["page", "pageSize"], method="post"))
-    assert findings == []
+    assert len(findings) == 1 and "examined 0 list commands" in findings[0]["error"]
+    assert drift_check.CHECK_EXAMINED["23"]["examined"] == 0
+
+
+def test_skipped_counts_helper_block_skips(tree):
+    """A named block with a URL but no recognisable call (HELPER_SKIPS
+    "blocks") is counted in the printed skipped number."""
+    odd = _block(_w("pageSize", "limit")).replace(
+        "api.session.rest_get(url, params=params)", "do_something_else(url)").replace(
+        '@app.command("list")', '@app.command("odd")')
+    good = _block(_w("pageSize", "limit"))
+    tree(odd + "\n" + good, _spec(["page", "pageSize"]))
+    assert drift_check.HELPER_SKIPS["blocks"] == ["zz_probe odd"]
+    assert drift_check.CHECK_EXAMINED["23"] == {"examined": 1, "skipped": 1}
 
 
 def test_examined_count_is_reported(tree):
@@ -239,8 +291,9 @@ def test_odd_input_never_raises(tmp_path):
         "/v1/zzProbe": {"get": {"parameters": "nope"}}}}))
     assert drift_check.check_inert_window_flags(
         commands_dir=cmds, specs_dir=specs) == []
-    assert drift_check.check_inert_window_flags(
-        commands_dir=tmp_path / "missing", specs_dir=tmp_path / "missing") == []
+    missing = drift_check.check_inert_window_flags(
+        commands_dir=tmp_path / "missing", specs_dir=tmp_path / "missing")
+    assert [f["check"] for f in missing] == ["23"] and "error" in missing[0]
 
 
 # ----------------------------------------------------------------- live tree
