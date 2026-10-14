@@ -324,6 +324,13 @@ import sys
 from pathlib import Path
 from typing import Callable, NamedTuple
 
+if not __package__:
+    # Run as `python tools/drift_check.py`: Python put tools/ (not the repo root)
+    # on sys.path, so `from tools import …` fails — and the bare fallbacks below
+    # are not enough, because generate_commands itself imports `tools.openapi_parser`.
+    # Make the repo root importable so every `tools.` import works in script form.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 try:  # runnable as `python tools/drift_check.py` and as an imported module
     from tools.spec_overlay import load_overlay, merge_overlay, superseded_paths
     from tools import verb_naming
