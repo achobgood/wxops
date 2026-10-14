@@ -379,7 +379,7 @@ def list_vendor_users_call_recording(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="members"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -498,7 +498,7 @@ def list_vendor_users_call_recording_1(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="members"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -534,7 +534,7 @@ def list_call_recording(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -595,7 +595,7 @@ def list_errors(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

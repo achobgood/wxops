@@ -187,7 +187,9 @@ class TestPageNote:
         from wxcli.auth import _warn_if_more_pages
         if monkeypatch is not None:
             monkeypatch.delenv("WXCLI_NO_PAGE_WARN", raising=False)
-        _warn_if_more_pages(resp, params)
+        # Remedies are required since ADR-18; these cases test a list that
+        # offers both, the shape whose wording predates that ADR.
+        _warn_if_more_pages(resp, params, ("all", "offset"))
         return capsys.readouterr()
 
     def test_silent_when_there_is_no_next_page(self, capsys, monkeypatch):
@@ -308,5 +310,5 @@ class TestPageNote:
     def test_env_var_silences_it(self, capsys, monkeypatch):
         monkeypatch.setenv("WXCLI_NO_PAGE_WARN", "1")
         from wxcli.auth import _warn_if_more_pages
-        _warn_if_more_pages(_Resp(NEXT, 100), None)
+        _warn_if_more_pages(_Resp(NEXT, 100), None, ("all", "offset"))
         assert capsys.readouterr().err == ""

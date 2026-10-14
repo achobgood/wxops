@@ -88,7 +88,7 @@ def cmd_list(
         params["orgId"] = org_id
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:

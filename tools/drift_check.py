@@ -320,6 +320,14 @@ Checks (docs/arch/target-architecture.md §A6):
       exit 2 without `--team-dto`, 400 with it); the parser now moves such a
       parameter into the body (ADR-16). Examined = every write command with
       a spec op, so an upstream fix reads 0, never BLIND.
+  33. Truncation note recommends a flag the command does not offer: every
+      command that calls rest_get/fetch_from_offset prints "the server has
+      more pages" and names the `remedies=` it passes (default read from
+      auth.py; a runtime with no such parameter named --all and --offset on
+      every call). `--all` must be a visible option that reaches a page
+      walker; `--offset` a visible option the command does not refuse. Live
+      2026-10-13: `licenses show … --limit 2` advised --all (show has none);
+      `people list` advised --offset, which /v1/people ignores (ADR-18).
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -2985,10 +2993,11 @@ def check_inert_overrides() -> tuple[list, list]:
     return findings, stale
 
 
-# ------------------------------------------- shared helpers for checks 23-32
+# ------------------------------------------- shared helpers for checks 23-33
 #
 # Checks 23-32 each compare a rendered command block (what the CLI sends) with
-# the spec operation it renders (what the API declares). These helpers are the
+# the spec operation it renders (what the API declares); check 33 compares a
+# block with its own options and the runtime in src/wxcli/auth.py. These helpers are the
 # single reader for both sides. Contract: they NEVER raise on odd input — a
 # missing response, a non-dict schema, an unreadable module or spec is
 # returned as empty/None and the consuming check skips it (and counts it).
@@ -3473,7 +3482,7 @@ def check_undeclared_paging(acks: dict | None = None,
 
 # ----------------------------------------------------------------- check 23
 
-# What checks 23-32 looked at on their most recent call, keyed by check number,
+# What checks 23-33 looked at on their most recent call, keyed by check number,
 # so main() can print "(examined N …)" beside a count and a vacuous 0 shows up
 # in the unattended log: {"23": {"examined": N, "skipped": K}}.
 CHECK_EXAMINED: dict[str, dict[str, int]] = {}
@@ -3484,7 +3493,7 @@ def record_examined(check: str, findings: list[dict], examined: int,
     """Record what check `check` examined; return `findings`, plus a gated
     blind-run finding when it examined nothing.
 
-    Shared by checks 23-32. A check over zero items reports a confident 0 —
+    Shared by checks 23-33. A check over zero items reports a confident 0 —
     indistinguishable from a clean tree — so a zero-examined run FAILS with a
     single `{"check", "error"}` finding instead (main() prints it as BLIND).
     `skipped` should include the HELPER_SKIPS entries the check's readers set.
@@ -3504,7 +3513,7 @@ def helper_skip_count(*keys: str) -> int:
     return sum(len(HELPER_SKIPS.get(k) or ()) for k in keys)
 
 
-# How main() prints each of checks 23-32: {"NN": (label, noun, formatter)}.
+# How main() prints each of checks 23-33: {"NN": (label, noun, formatter)}.
 # The formatter renders ONE ordinary finding; print_check_findings renders the
 # blind-run finding itself, so a formatter never sees a dict without its keys.
 CHECK_PRINT: dict[str, tuple[str, str, Callable[[dict], str]]] = {}
@@ -4983,6 +4992,172 @@ CHECK_PRINT["32"] = (
                f"({f['spec']})"))
 
 
+# ----------------------------------------------------------------- check 33
+
+# The runtime calls that print the truncation note (src/wxcli/auth.py). Read,
+# never imported.
+_NOTE_METHODS = ("rest_get", "fetch_from_offset")
+_NOTE_CALL = re.compile(r"\.(rest_get|fetch_from_offset)\(")
+# What a runtime with no `remedies` parameter names: the pre-2026-10-13 note
+# said "Re-run with --all …, or --offset N …" on every call, unconditionally.
+_LEGACY_REMEDIES = ("all", "offset")
+_PAGE_WALKERS = re.compile(r"\.(follow_pagination|follow_page_param|follow_scim)\(")
+# The renderer's refusal of an ignored --offset (ADR-18): `if offset > 0:`
+# followed, inside the if, by `raise typer.Exit(2)`.
+_OFFSET_REFUSED = re.compile(
+    r"^(\s*)if offset > 0:\n(?:\1\s+[^\n]*\n)*?\1\s+raise typer\.Exit\(2\)", re.M)
+_HIDDEN_TRUE = re.compile(r"\bhidden\s*=\s*True\b")
+
+
+def note_remedy_defaults(auth_src: str) -> dict[str, tuple] | None:
+    """{"rest_get": (…), "fetch_from_offset": (…)}: what each note-printing
+    method names when its caller passes no `remedies=` — the literal default
+    of that parameter, or _LEGACY_REMEDIES when the method has none (the
+    pre-fix runtime). None when the source does not parse, either method is
+    missing, or a default is not a literal: the check cannot judge then."""
+    try:
+        tree = ast.parse(auth_src)
+    except (SyntaxError, ValueError):
+        return None
+    found: dict[str, tuple] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef) or node.name not in _NOTE_METHODS:
+            continue
+        a = node.args
+        positional = a.posonlyargs + a.args
+        pairs = list(zip(positional[len(positional) - len(a.defaults):], a.defaults))
+        pairs += [(arg, d) for arg, d in zip(a.kwonlyargs, a.kw_defaults) if d is not None]
+        named = {arg.arg for arg in positional + a.kwonlyargs}
+        if "remedies" not in named:
+            found[node.name] = _LEGACY_REMEDIES
+            continue
+        default = next((d for arg, d in pairs if arg.arg == "remedies"), None)
+        try:
+            value = ast.literal_eval(default) if default is not None else None
+        except (ValueError, SyntaxError):
+            return None
+        if not isinstance(value, (tuple, list)):
+            return None
+        found[node.name] = tuple(value)
+    return found if set(found) == set(_NOTE_METHODS) else None
+
+
+def _call_remedies(args: str, default: tuple) -> tuple | None:
+    """The remedies one note-printing call names: its literal `remedies=`, or
+    `default`. None when the call does not parse or the value is not a
+    literal."""
+    try:
+        call = ast.parse(f"_({args})", mode="eval").body
+    except (SyntaxError, ValueError):
+        return None
+    for kw in getattr(call, "keywords", []):
+        if kw.arg == "remedies":
+            try:
+                value = ast.literal_eval(kw.value)
+            except (ValueError, SyntaxError):
+                return None
+            return tuple(value) if isinstance(value, (tuple, list)) else None
+    return default
+
+
+def _visible_option(text: str, flag: str) -> bool:
+    """The block declares `flag` as an option that --help shows."""
+    for m in _OPTION_DECL.finditer(text):
+        args = _call_args(text, m.end())
+        if f'"{flag}"' in args and not _HIDDEN_TRUE.search(args):
+            return True
+    return False
+
+
+def check_paging_advice(commands_dir: Path = COMMANDS_DIR,
+                        auth_py: Path | None = None) -> list[dict]:
+    """The truncation note recommending a flag the command does not offer.
+
+    `rest_get` and `fetch_from_offset` print "the server has more pages" and
+    name the remedies their caller passes (`remedies=`); every generated
+    command calls one of them. Live 2026-10-13 (ADR-18): `licenses show …
+    --limit 2` printed "Re-run with --all", and `show` has no `--all`;
+    `people list` advised `--offset 5`, which `/v1/people` ignores, so the
+    note looped back to page one (the CLI now refuses that `--offset`).
+
+    For every block that calls either method, the remedies each call names
+    (its literal `remedies=`, else the default read from `auth_py`) are
+    compared with what the block offers:
+      * `--all` counts only if it is a visible option AND the block calls a
+        page walker — a hidden inert `--all` (single-object `list*` reads) or
+        a visible inert one (unpaged lists) is not a remedy;
+      * `--offset` counts only if it is a visible option the block does not
+        refuse (`if offset > 0: … raise typer.Exit(2)`).
+    A runtime whose methods have no `remedies` parameter is the pre-fix one,
+    which named both on every call. What it cannot see: whether an offered
+    `--offset` is honoured by the server — a live-only fact, recorded in the
+    `offset_ignored` set the generator reads, not here.
+
+    Static only; no ack key (ADR-13 rules). Examined = blocks that call a
+    note-printing method. A call whose `remedies=` is not a literal is
+    skipped and counted; an unreadable runtime makes the run BLIND.
+    """
+    auth_py = Path(auth_py) if auth_py is not None else REPO / "src" / "wxcli" / "auth.py"
+    findings: list[dict] = []
+    examined = skipped = 0
+    try:
+        defaults = note_remedy_defaults(auth_py.read_text())
+    except (OSError, UnicodeDecodeError):
+        defaults = None
+    if defaults is None:
+        return record_examined("33", findings, 0, helper_skip_count("modules", "blocks"),
+                               f"note-printing commands (runtime {auth_py.name} unreadable)")
+    for block in iter_command_blocks(commands_dir):
+        text = block.text
+        calls = list(_NOTE_CALL.finditer(text))
+        if not calls:
+            continue
+        advised: set[str] = set()
+        readable = True
+        for m in calls:
+            args = _balanced_call_args(text, m.end())
+            names = None if args is None else _call_remedies(args, defaults[m.group(1)])
+            if names is None:
+                readable = False
+                break
+            advised |= set(names)
+        if not readable:
+            skipped += 1
+            continue
+        examined += 1
+        offered: set[str] = set()
+        if _visible_option(text, "--all") and _PAGE_WALKERS.search(text):
+            offered.add("all")
+        refused = bool(_OFFSET_REFUSED.search(text))
+        if _visible_option(text, "--offset") and not refused:
+            offered.add("offset")
+        wrong = sorted(advised & {"all", "offset"} - offered)
+        if not wrong:
+            continue
+        why = []
+        if "all" in wrong:
+            why.append("no visible --all that reaches a page walker")
+        if "offset" in wrong:
+            why.append("refuses --offset (offset_ignored)" if refused
+                       else "no visible --offset")
+        findings.append({
+            "group": block.group,
+            "command": block.command,
+            "advises": [f"--{r}" for r in wrong],
+            "why": "; ".join(why),
+        })
+    return record_examined("33", findings, examined,
+                           skipped + helper_skip_count("modules", "blocks"),
+                           "note-printing commands")
+
+
+CHECK_PRINT["33"] = (
+    "truncation note recommends a flag the command does not offer",
+    "note-printing commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  advises "
+               f"{', '.join(f['advises'])}: {f['why']}"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -5956,6 +6131,7 @@ def main() -> int:
     list_drops_object_fields = check_list_drops_object_fields()
     query_body_findings = check_query_body_params()
     query_body_spec_ops = count_query_body_spec_ops()
+    paging_advice = check_paging_advice()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -6011,6 +6187,7 @@ def main() -> int:
         "30_doc_body_unparseable": unparseable_bodies,
         "31_list_drops_object_fields": list_drops_object_fields,
         "32_query_body_params": query_body_findings,
+        "33_paging_advice": paging_advice,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -6030,7 +6207,8 @@ def main() -> int:
                   or single_object_lists or cc_base64_org_ids
                   or unreachable_list_keys or wrong_product_labels
                   or doc_value_types or doc_body_keys
-                  or list_drops_object_fields or query_body_findings)
+                  or list_drops_object_fields or query_body_findings
+                  or paging_advice)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -6274,6 +6452,7 @@ def main() -> int:
         print_check_findings("32", query_body_findings,
                              note=f"({query_body_spec_ops} spec ops declare "
                                   f"their body as a query param)")
+        print_check_findings("33", paging_advice)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

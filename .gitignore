@@ -93,6 +93,8 @@ tests/*
 !tests/test_drift_check_list_siblings.py
 !tests/test_inert_list_flags.py
 !tests/test_drift_check_query_body.py
+!tests/test_drift_check_paging_advice.py
+!tests/test_paging_remedies.py
 !tests/test_query_body_param.py
 !tests/test_spec_sync.py
 !tests/test_sync_guard.py

@@ -45,7 +45,7 @@ def list_dial_patterns(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="dialPatterns"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -85,7 +85,7 @@ def list_calling_details(
         params["orgId"] = org_id
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("locations", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
@@ -694,7 +694,7 @@ def list_route_choices(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="routeIdentities"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -740,7 +740,7 @@ def list_available_numbers_external_caller_id(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -783,7 +783,7 @@ def list_available_numbers_locations(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -823,7 +823,7 @@ def list_available_numbers_webex_go(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -866,7 +866,7 @@ def list_available_numbers_emergency_callback_number(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -912,7 +912,7 @@ def list_available_numbers_call_intercept(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1162,7 +1162,7 @@ def list_available_numbers_charge_number(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1198,7 +1198,7 @@ def list_delete_calling_location(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

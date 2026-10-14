@@ -425,6 +425,13 @@
       # CLI's most-used list command. A list-valued accessor already yields
       # its first element (output.py:144).
       - ["Email", "emails"]
+  # ADR-18. Measured live 2026-10-13 (CLI, read-only): `people list --offset 2
+  # --limit 3` returned items 0-2 of `--all`, not 2-4; `GET /v1/people?max=3&start=2`
+  # returns the same first page, and its Link header pages by `cursor=`, so the
+  # endpoint ignores `start`. `max` IS honoured (3 rows came back). The CLI now
+  # refuses --offset here (exit 2) and its truncation note names --all only.
+  offset_ignored:
+    list: "measured live 2026-10-13: --offset 2 --limit 3 returned items 0-2"
 
 "Devices":
   table_columns:
@@ -516,6 +523,15 @@
       - ["Name", "name"]
       - ["Total Units", "totalUnits"]
       - ["Consumed", "consumedUnits"]
+  # ADR-18. Measured live 2026-10-13 (CLI, read-only; docs/reference/
+  # admin-licensing.md): `licenses list -o json --limit 3 --offset 3` still
+  # returned all 18 licenses (`?max=3&start=3`), and `--limit 3` alone returned
+  # all 18 with no Link header and no stderr note, so the endpoint ignores
+  # `start` AND `max`. The CLI now refuses --offset here (exit 2). --limit is
+  # still sent as `max` (ignored by the server); it caps the PRINTED rows in
+  # `-o table` only, and `-o json` prints every record.
+  offset_ignored:
+    list: "measured live 2026-10-13: -o json --limit 3 --offset 3 returned all 18 (start and max ignored)"
 
 "Organizations":
   list:
@@ -1291,8 +1307,9 @@ undeclared_paging_ack:
     `startIndex`/`count` nor a Link header, so it renders non-paginating and all
     three paging controls miss: `--limit` sends `max`, `--offset` sends `start`,
     `--all` is inert. SCIM reads `startIndex`/`count`, so the stderr truncation
-    note (which DOES fire here, since _body_says_more reads totalResults) names
-    two remedies that cannot work on this command. Fixing it means routing this
+    note (which DOES fire here, since _body_says_more reads totalResults) named
+    two remedies that cannot work on this command (since ADR-18 it names none,
+    as the command has no page walker). Fixing it means routing this
     operation to the scim walker, i.e. a generator change plus a regen — out of
     scope for the documentation pass that added this check. Stops qualifying if
     upstream declares the SCIM parameters or the generator learns to read the

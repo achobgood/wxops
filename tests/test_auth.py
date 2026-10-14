@@ -480,3 +480,17 @@ def test_follow_pagination_raises_webex_error_on_failure(monkeypatch):
     with pytest.raises(WebexError) as exc_info:
         list(session.follow_pagination("https://api/x"))
     assert exc_info.value.status_code == 404
+
+
+def test_webex_error_carries_response_headers_for_the_tracking_id(monkeypatch):
+    """An error with an EMPTY body has nothing to show but the trackingId header;
+    the raiser must hand the response headers to WebexError (errors.py reads them)."""
+    def fake(method, url, headers=None, json=None, params=None, timeout=None):
+        return httpx.Response(400, content=b"", headers={"Trackingid": "ROUTERGW_test-1"},
+                              request=httpx.Request(method, url))
+
+    monkeypatch.setattr("httpx.request", fake)
+    with pytest.raises(WebexError) as exc_info:
+        WebexSession("tok").rest_get("https://x/p")
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.headers["trackingid"] == "ROUTERGW_test-1"

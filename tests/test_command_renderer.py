@@ -848,7 +848,8 @@ class TestCcFlowsPaging:
         # 2 commands x (the --all walker + the --offset window), both in `size`.
         import re
         assert len(re.findall(r'follow_page_param\([^)]*size_param="size"\)', code)) == 2
-        assert len(re.findall(r'fetch_from_offset\([^)]*size_param="size"\)', code)) == 2
+        # fetch_from_offset also carries `remedies=(...)` (ADR-18) after the size.
+        assert len(re.findall(r'fetch_from_offset\([^)]*size_param="size"[,)]', code)) == 2
 
     def test_include_pagination_defaults_on(self):
         _, code = _cc_render("Flows")

@@ -275,7 +275,7 @@ def cmd_list(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="phoneNumbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -311,7 +311,7 @@ def list_manage_numbers(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -485,7 +485,7 @@ def list_errors(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

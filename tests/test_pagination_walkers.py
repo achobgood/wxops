@@ -248,13 +248,14 @@ class TestFetchFromOffset:
     def test_more_records_print_the_next_offset(self, capsys, monkeypatch):
         monkeypatch.delenv("WXCLI_NO_PAGE_WARN", raising=False)
         s = PagedServer(56)
-        s.fetch_from_offset("u", offset=25, count=10)
+        s.fetch_from_offset("u", offset=25, count=10, remedies=("all", "offset"))
         assert "--offset 35 " in capsys.readouterr().err
 
     def test_no_total_looks_one_record_ahead(self, capsys, monkeypatch):
         monkeypatch.delenv("WXCLI_NO_PAGE_WARN", raising=False)
         s = PagedServer(30, declare_total=False)
-        assert self.ids(s.fetch_from_offset("u", offset=10, count=10)) == list(range(10, 20))
+        assert self.ids(s.fetch_from_offset("u", offset=10, count=10,
+                                            remedies=("all", "offset"))) == list(range(10, 20))
         assert "--offset 20 " in capsys.readouterr().err
         s = PagedServer(20, declare_total=False)
         assert self.ids(s.fetch_from_offset("u", offset=10, count=10)) == list(range(10, 20))

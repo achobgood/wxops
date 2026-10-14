@@ -12,7 +12,7 @@ from tools.postman_parser import (
     load_overrides,
     apply_endpoint_overrides,
 )
-from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC
+from tools.command_renderer import render_command_file, folder_name_to_module, BASE_URL_CC, OffsetIgnoredError
 
 
 DEFAULT_SPEC = Path(__file__).parent.parent / "specs" / "webex-cloud-calling.json"
@@ -54,6 +54,10 @@ COMMAND_KEYED_OVERRIDES = (
     "table_columns", "add_query_params", "command_type_overrides",
     "url_overrides", "response_list_keys", "make_optional", "make_required", "body_defaults",
     "command_help_notes", "command_confirms", "param_name_overrides",
+    # ADR-18: list commands whose endpoint ignores the `start` the CLI sends
+    # for --offset, measured live. {command: evidence}. The renderer refuses
+    # --offset on them (exit 2) and their truncation note never names it.
+    "offset_ignored",
 )
 
 
@@ -359,6 +363,20 @@ def generate_tag(
                 f"that drops part of an object.", file=sys.stderr)
             sys.exit(1)
 
+    # `offset_ignored` describes a list's --offset; on a command that renders
+    # no list there is no --offset to refuse, so the entry would be inert.
+    ignored = (folder_ovr or {}).get("offset_ignored")
+    if isinstance(ignored, dict):
+        not_lists = sorted(k for k in ignored if k in types and types[k] != "list")
+        if not_lists:
+            print(
+                f"\nERROR: offset_ignored in tag {tag_name!r} names "
+                f"{len(not_lists)} command(s) that render no list: "
+                f"{', '.join(f'{k} ({types[k]})' for k in not_lists)}.\n"
+                f"       Only a list command sends --offset. Delete the entry.",
+                file=sys.stderr)
+            sys.exit(1)
+
     # Known issue #20: refuse to render a destructive op behind a name that
     # gives no hint it destroys. Runs after command_name_overrides, so a name
     # pinned to the truth clears the gate without an ack.
@@ -398,8 +416,13 @@ def generate_tag(
             for name in skipped_uploads:
                 print(f"  {'SKIP':30s} {'':6s} {'upload':15s} {name}")
     else:
-        code = render_command_file(cli_name, endpoints, folder_ovr, base_url_override=base_url_override,
-                                   spec_filename=overrides.get("_spec_filename"))
+        try:
+            code = render_command_file(cli_name, endpoints, folder_ovr, base_url_override=base_url_override,
+                                       spec_filename=overrides.get("_spec_filename"))
+        except OffsetIgnoredError as e:
+            # A human fix (ADR-18, spec-sync contract §6): never auto-repaired.
+            print(f"\nERROR: {e} (tag {tag_name!r})", file=sys.stderr)
+            sys.exit(1)
         out_path = output_dir / f"{module_name}.py"
         out_path.write_text(code)
         print(

@@ -115,7 +115,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-32 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-33 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -158,14 +158,15 @@ The renaming machinery this feeds is already built and proven by 28 renames:
 `command_name_overrides` plus an automatic hidden alias. To fix instead of acking, rename
 there and delete the ack.
 
-**GATED SINCE 2026-10-13 — checks 23-32.** A live session that day found about 15 Contact
+**GATED SINCE 2026-10-13 — checks 23-33.** A live session that day found about 15 Contact
 Center defects that the weekly routine could never have seen: it never calls the API, it never
 re-audits existing groups, and it may not edit the generator (`tools/sync_guard.py`
 `FORBIDDEN_PATHS`). Checks 23-30 cover the half that can be detected statically. The
 decision, the rejected options and the before/after proof are in ADR-13
 (`docs/architecture/02-decisions.md`); check 31, added the same day after a Calling read
 printed `[]` for a populated object, is ADR-14; check 32, added after `cc-team create` would not
-take a bare `--json-body`, is ADR-16. **None has an ack, allowlist or exemption key.** A
+take a bare `--json-body`, is ADR-16; check 33, added after the truncation note advised `--all` on
+`licenses show`, is ADR-18. **None has an ack, allowlist or exemption key.** A
 finding is either a real defect, which you fix, or a sign the rule is wrong, which you tighten in
 a reviewed commit. "To clear" below is the only way out.
 
@@ -275,6 +276,28 @@ a reviewed commit. "To clear" below is the only way out.
   how check 30 found 3 wrong `contact-center` SKILL bodies the day it landed (`multimediaProfileId`,
   `skills`, `desktopLayoutId`). `tests/test_drift_check_query_body.py` pins the two copies of
   the rule to the same answers.
+- **[33] The truncation note recommends a flag the command does not offer** (added 2026-10-13,
+  ADR-18). `rest_get`/`fetch_from_offset` print "the server has more pages" and name the
+  `remedies=` their caller passes (default: none; read from `src/wxcli/auth.py`'s signature —
+  a runtime with no such parameter is the pre-fix one, which named `--all` and `--offset` on
+  every call). A block fires when a call names `--all` and the block has no visible `--all`
+  that reaches a page walker, or names `--offset` and the block has no visible `--offset` or
+  refuses it (`if offset > 0: … raise typer.Exit(2)`). 2026-10-13: `licenses show … --limit 2`
+  printed "Re-run with --all" (`show` has no `--all`); pre-fix tree: 667 blocks (514 show or
+  single-object reads, 153 unpaged lists whose visible `--all` walks nothing). **To clear:**
+  `_render_list_command` passes `remedies=` per shape (walker lists: `("all", "offset")`;
+  `offset_ignored` walker lists: `("all",)`; everything else, unpaged `offset_ignored` lists included: nothing) — fix the renderer and regen.
+  **What it cannot see:** advice that went MISSING — it fires on a note naming a flag the
+  command does not offer, never on a walker list that stopped passing `remedies=` (measured:
+  pre-fix commands against the new runtime read 0). `tests/test_paging_remedies.py`'s renderer
+  tests (`test_paginating_list_offers_both`, `test_link_walker_list_offers_both`,
+  `test_page_numbered_list_offers_both_on_both_calls`) are what catch a lost remedy. Nor can it
+  see whether a server honours an offered `--offset`. That is live-only;
+  the measured answers live in the per-tag `offset_ignored` key (`people list`, `licenses
+  list`), which makes the renderer refuse `--offset` (exit 2) and drop it from the note. The
+  generator validates the key like every command-keyed override and refuses it on a
+  non-list or a translated (page-numbered/SCIM) list. Add a command only on a live
+  measurement: `--offset 2 --limit 3` vs items 2-4 of `--all`.
 
 Checks 6, 9, 10, 11a and 11b also moved off the first `@app.command` decorator the same day.
 On the ~102 renamed commands that decorator is the hidden alias, so documented calls of the
@@ -284,7 +307,7 @@ labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both
 `LOCATION_ID`. Checks 6, 11a and 11b found nothing new; a live-tree mutation showed that 6 and
 11a now fire on a renamed command.
 
-**Shared mechanics of checks 23-32 (`drift_check.py`, under "check 23").**
+**Shared mechanics of checks 23-33 (`drift_check.py`, under "check 23").**
 - **`record_examined(check, findings, examined, skipped, noun)`** fills `CHECK_EXAMINED`. A check
   that examined nothing adds a gated `{"check", "error"}` finding, which prints as `BLIND`. A
   blind run fails; it never passes quietly.
@@ -307,7 +330,7 @@ labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both
 **The no-ack trade-off, accepted on purpose.** Checks 29 and 30 use the spec as the oracle, and
 nothing can ack a finding. So an upstream spec that drops a key or retypes a value the live API
 still accepts fails the gate, and the weekly release stays blocked until a human edits the doc.
-An escape hatch the unattended routine could reach would defeat the point. For checks 23-28, 31 and 32 the
+An escape hatch the unattended routine could reach would defeat the point. For checks 23-28 and 31-33 the
 fix is in generator code or override keys, which `tools/sync_guard.py` keeps out of the routine
 (`FORBIDDEN_PATHS`, `yaml_key_findings`), so the routine fails closed and a human fixes it. For
 checks 29/30 the routine may spend its repair attempts on a finding ONLY when the finding's
@@ -967,7 +990,7 @@ What it cannot do is offer a working remedy.
 
 | Command | Response declares | What the CLI actually sends |
 |---|---|---|
-| `archive-users list` | `totalResults` (the SCIM spelling) | `--limit`→`max`, `--offset`→`start`, `--all` inert. SCIM pages on `startIndex`/`count`, so **all three controls are inert** and the truncation note names two remedies that cannot work on this command |
+| `archive-users list` | `totalResults` (the SCIM spelling) | `--limit`→`max`, `--offset`→`start`, `--all` inert. SCIM pages on `startIndex`/`count`, so **all three controls are inert** and the truncation note named two remedies that cannot work on this command (since ADR-18 it names none: no page walker) |
 | `org-contacts list` | `total` | `--limit`→`limit`, `--offset`→`start`, `--all` inert. Whether `start` is the offset name this endpoint reads is **unverified** |
 
 Static evidence only — no live call was made against either. Confirming them needs a

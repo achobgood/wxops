@@ -59,7 +59,7 @@ def cmd_list(
         params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
@@ -189,7 +189,7 @@ def list_recordings_admin(
         params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
@@ -646,7 +646,7 @@ def list_recordings_group(
         params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
