@@ -74,22 +74,23 @@ def list_errors(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Bulk Activation Email Resend Job Errors.\n\n\b\nExample: wxcli activation-email list-errors JOB_ID"""
+    if offset > 0:
+        typer.echo("Error: this endpoint ignores --offset: its spec declares no offset parameter, and every such endpoint measured returned the first page again (ADR-18). Drop --offset and slice " + ("the --all output instead, e.g. --fields '[2:5]'." if all_pages else "every page instead, e.g. --all --fields '[2:5]'."), err=True)
+        raise typer.Exit(2)
     api = get_api(debug=debug)
     org_id = resolve_org_id(api.session)
     url = f"https://webexapis.com/identity/organizations/{org_id}/jobs/sendActivationEmails/{job_id}/errors"
     params = {}
     if limit > 0:
         params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
+            result = api.session.rest_get(url, params=params, remedies=("all",))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:

@@ -1,0 +1,160 @@
+# --offset live probe, the sandbox tenant, 2026-10-14, read-only. Test: --offset 2 --limit 3 vs items 2-4 of --all and vs --limit 3. See ADR-18 amendment (docs/architecture/02-decisions.md). Phase 2 the same day re-tested 11 commands on temporary data.
+group	command	verdict	records	note
+activation-email	list-errors	NEEDS_INPUT		needs job_id; no activation-email resend jobs exist in org (no producer list)
+admin-recordings	list	NOT_ENOUGH_DATA	0	
+admin-recordings	list-recordings-admin	NOT_ENOUGH_DATA	0	
+admin-recordings	list-recordings-group	ERROR		."}],"trackingId":"ROUTERGW_ba8c8db7-f129-489c-9308-6248fa627e35"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+ai-receptionist	list	NOT_ENOUGH_DATA	0	
+ai-receptionist	list-available-numbers	NOT_ENOUGH_DATA	2	
+ai-receptionist	list-documents	NEEDS_INPUT		needs knowledge_base_id; ai-receptionist list-knowledge-bases returned 0
+ai-receptionist	list-knowledge-bases	NOT_ENOUGH_DATA	0	
+announcements	list	NOT_ENOUGH_DATA	0	
+auto-attendant	list	NOT_ENOUGH_DATA	0	
+auto-attendant	list-available-numbers-alternate	NOT_ENOUGH_DATA	2	
+auto-attendant	list-available-numbers-auto-attendants	NOT_ENOUGH_DATA	2	
+auto-attendant	list-available-numbers-call-forwarding	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+broadworks-subscribers	list	NOT_ENOUGH_DATA	0	
+call-park	list	NOT_ENOUGH_DATA	0	
+call-park	list-available-recall-hunt-groups	HONOURED	7	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+call-park	list-available-users	HONOURED	20	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+call-park	list-call-park-extensions	NOT_ENOUGH_DATA	0	
+call-pickup	list	NOT_ENOUGH_DATA	0	
+call-pickup	list-available-users	HONOURED	20	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+call-queue	list	NOT_ENOUGH_DATA	0	
+call-queue	list-agents	NOT_ENOUGH_DATA	0	
+call-queue	list-available-agents-queues	HONOURED	20	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+call-queue	list-available-agents-supervisors	NOT_ENOUGH_DATA	0	
+call-queue	list-available-numbers-alternate	NOT_ENOUGH_DATA	2	
+call-queue	list-available-numbers-call-forwarding	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+call-queue	list-available-numbers-dnis	NOT_ENOUGH_DATA	2	
+call-queue	list-available-numbers-queues	NOT_ENOUGH_DATA	2	
+call-queue	list-available-supervisors	HONOURED	20	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+call-queue	list-supervisors	NOT_ENOUGH_DATA	0	
+call-recording	list-call-recording	NOT_ENOUGH_DATA	0	
+call-recording	list-errors	NEEDS_INPUT		needs job_id; call-recording list-call-recording returned 0 jobs
+call-recording	list-vendor-users-call-recording	NOT_ENOUGH_DATA	0	
+call-recording	list-vendor-users-call-recording-1	NOT_ENOUGH_DATA	0	
+call-routing	list	NEEDS_INPUT		needs trunk/route-group/route-list id; list-trunks, list-route-groups, list-route-lists all returned 0
+call-routing	list-dial-plans	NOT_ENOUGH_DATA	0	
+call-routing	list-numbers	NEEDS_INPUT		needs trunk/route-group/route-list id; list-trunks, list-route-groups, list-route-lists all returned 0
+call-routing	list-route-groups	NOT_ENOUGH_DATA	0	
+call-routing	list-route-lists	NOT_ENOUGH_DATA	0	
+call-routing	list-translation-patterns	NOT_ENOUGH_DATA	0	
+call-routing	list-trunks	NOT_ENOUGH_DATA	0	
+call-routing	list-usage-call-to-extension-route-groups	NEEDS_INPUT		needs trunk/route-group/route-list id; list-trunks, list-route-groups, list-route-lists all returned 0
+call-routing	list-usage-call-to-extension-trunks	NEEDS_INPUT		needs trunk/route-group/route-list id; list-trunks, list-route-groups, list-route-lists all returned 0
+call-routing	list-usage-dial-plan	NEEDS_INPUT		needs trunk/route-group/route-list id; list-trunks, list-route-groups, list-route-lists all returned 0
+call-routing	list-usage-pstn-connection-route-groups	NEEDS_INPUT		needs trunk/route-group/route-list id; list-trunks, list-route-groups, list-route-lists all returned 0
+call-routing	list-usage-route-list	NEEDS_INPUT		needs trunk/route-group/route-list id; list-trunks, list-route-groups, list-route-lists all returned 0
+cdr	list	ERROR		rbidden"}],"trackingId":"NA_9716aa2b-9d86-459f-99a1-7a145f772c0b"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+cdr	list-cdr_stream	ERROR		rbidden"}],"trackingId":"NA_20be0deb-5715-48e9-a6a0-70d68c6f4cdd"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+converged-recordings	list	ERROR		k"}],"trackingId":"ROUTERGW_31cdd179-64cb-4567-817a-db30f4523711"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+converged-recordings	list-converged-recordings	NOT_ENOUGH_DATA	0	
+customer-assist	list-available-agents-org	HONOURED	16	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+dect-devices	list-available-members	HONOURED	16	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+device-dynamic-settings	list	IGNORED	136	--all, --offset 2 --limit 3 and --limit 3 each returned all 136 (start and max ignored); re-verified by controller
+device-dynamic-settings	list-dynamic-device-settings	NOT_ENOUGH_DATA	2	
+device-dynamic-settings	list-errors	NOT_ENOUGH_DATA	0	
+device-settings	list-available-members	ERROR		one, of kind CALLING_DEVICE. Webex reports the mismatch as 'device not found', which reads as though the phone does not exist, so this is easy to misdiagnose. Get the right id with: wxcli devices s...
+device-settings	list-call-device-settings	NOT_ENOUGH_DATA	3	
+device-settings	list-errors-call-device-settings	NOT_ENOUGH_DATA	0	
+device-settings	list-supported-devices-dect-networks	NOT_ENOUGH_DATA	2	
+device-settings	list-supported-devices-dects	NOT_ENOUGH_DATA	2	
+ecm	list	NEEDS_INPUT		needs --room-id; rooms list returned 0
+events	list	ERROR		."}],"trackingId":"ROUTERGW_0e42b07b-18d3-4e71-9790-378ebfc3349f"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+hot-desking-members	list	HONOURED	19	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+hunt-group	list-available-numbers-alternate	NOT_ENOUGH_DATA	2	
+hunt-group	list-available-numbers-call-forwarding	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+hunt-group	list-available-numbers-hunt-groups	NOT_ENOUGH_DATA	2	
+location-schedules	list	NOT_ENOUGH_DATA	2	
+location-settings	list-available-numbers-call-intercept	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+location-settings	list-available-numbers-charge-number	HONOURED	10	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+location-settings	list-available-numbers-emergency-callback-number	HONOURED	5	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+location-settings	list-available-numbers-external-caller-id	HONOURED	10	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+location-settings	list-available-numbers-locations	HONOURED	10	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+location-settings	list-available-numbers-webex-go	NOT_ENOUGH_DATA	2	
+location-settings	list-calling-details	NOT_ENOUGH_DATA	3	
+location-settings	list-delete-calling-location	HONOURED	8	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+location-settings	list-dial-patterns	NEEDS_INPUT		needs dial_plan_id; call-routing list-dial-plans returned 0
+location-settings	list-route-choices	NOT_ENOUGH_DATA	0	
+location-voicemail	list	NOT_ENOUGH_DATA	0	
+location-voicemail	list-available-numbers-fax-message	NOT_ENOUGH_DATA	2	
+location-voicemail	list-available-numbers-voice-portal	NOT_ENOUGH_DATA	2	
+location-voicemail	list-available-numbers-voicemail-groups	NOT_ENOUGH_DATA	2	
+locations	list	IGNORED	5	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+meeting-invitees	list	IGNORED	10	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+meeting-participants	list	NEEDS_INPUT		needs --meeting-id; org has 0 meetings
+meeting-polls	list-poll-results	NEEDS_INPUT		needs --meeting-id; org has 0 meetings
+meeting-polls	list-respondents	NEEDS_INPUT		needs meeting-id/poll_id/question_id; org has 0 meetings
+meeting-qa	list	NEEDS_INPUT		needs --meeting-id; org has 0 meetings
+meeting-qa	list-answers	NEEDS_INPUT		needs meeting-id/question_id; org has 0 meetings
+meeting-reports	list	NOT_ENOUGH_DATA	0	
+meeting-reports	list-attendees	ERROR		19-4c31-b00a-402fdb857d23"} | Tip: The request body or a parameter was rejected. Re-check every ID you passed against the list command of the group it came from; if this command sends a body, re-ru...
+meeting-slido	list	NEEDS_INPUT		needs --session-org-id/--session-id of a meeting instance; org has 0 meetings
+meeting-transcripts	list	NOT_ENOUGH_DATA	0	
+meeting-transcripts	list-meeting-transcripts	ERROR		."}],"trackingId":"ROUTERGW_86b71516-cde9-40c3-aac5-5daeda2550fe"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+meeting-transcripts	list-snippets	NEEDS_INPUT		needs transcript_id; meeting-transcripts list returned 0
+meetings	list	NEEDS_INPUT		requires meetingNumber or webLink (400); org has 0 meetings
+meetings	list-group-meetings	ERROR		."}],"trackingId":"ROUTERGW_0e22c5cc-dac4-4993-a069-0a0eff381fab"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+meetings	list-meetings	IGNORED	5	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+meetings	list-registrants	IGNORED	5	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+meetings	list-survey-results	NEEDS_INPUT		needs meeting_id; meetings list-meetings returned 0
+memberships	list	IGNORED	6	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+messages	list	IGNORED	5	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+my-call-settings	list-assigned-numbers	ERROR		user-token-only (admin gets no-Calling-license error 4008 per KI#3): 34c498df50"}],"trackingId":"ROUTERGW_6f96239c-2f9f-476c-9af1-b19f4016be3c"} | Tip: The target user has no Webex Calling license....
+my-call-settings	list-available-hosts	ERROR		user-token-only (admin gets no-Calling-license error 4008 per KI#3): 34c498df50"}],"trackingId":"ROUTERGW_c402a6f2-3ccf-4524-83c8-652140b4d3c6"} | Tip: The target user has no Webex Calling license....
+my-call-settings	list-available-members	ERROR		user-token-only (admin gets no-Calling-license error 4008 per KI#3): 34c498df50"}],"trackingId":"ROUTERGW_9e6ad30b-7d20-487a-a940-e7e79488069a"} | Tip: The target user has no Webex Calling license....
+my-call-settings	list-organization	ERROR		user-token-only (admin gets no-Calling-license error 4008 per KI#3): 34c498df50"}],"trackingId":"ROUTERGW_6cf16f06-c69b-494b-bec3-71b4c1cfb3dc"} | Tip: The target user has no Webex Calling license....
+numbers	list-errors	NEEDS_INPUT		needs job_id; numbers list-manage-numbers returned 0 jobs
+numbers	list-manage-numbers	NOT_ENOUGH_DATA	0	
+operating-modes	list	NOT_ENOUGH_DATA	0	
+operating-modes	list-available-numbers	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+paging-group	list	NOT_ENOUGH_DATA	0	
+paging-group	list-available-numbers	NOT_ENOUGH_DATA	2	
+partner-tags	list-organizations	ERROR		Error: HTTP Status 403 – Forbidden | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the token owner and the 'Target:' o...
+partner-tags	list-subscriptions	ERROR		Error: HTTP Status 403 – Forbidden | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the token owner and the 'Target:' o...
+recording-report	list	NOT_ENOUGH_DATA	0	
+recording-report	list-access-detail	NEEDS_INPUT		needs --recording-id; recording-report list returned 0
+recording-report	list-meeting-archive-summaries	NOT_ENOUGH_DATA	0	
+resource-group-memberships	list	IGNORED	84	--offset 2 --limit 3 returned the same 3 ids as --limit 3 (not items 2-4 of --all), repeated; re-verified by controller
+resource-group-memberships	list-v2	IGNORED	84	--offset 2 --limit 3 returned the same 3 ids as --limit 3 (not items 2-4 of --all), repeated; re-verified by controller
+room-tabs	list	IGNORED	5	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all; --limit 3 also returned all records (max ignored)
+rooms	list	IGNORED	10	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+security-audit	list	ERROR		t"}],"trackingId":"ROUTERGW_97eceefd-aa7c-47c3-8254-a8038d0b53fc"} | Tip: The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the...
+single-number-reach	list	NOT_ENOUGH_DATA	2	
+team-memberships	list	IGNORED	6	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+teams	list	IGNORED	5	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+user-settings	list-available-assistants	ERROR		y or a parameter was rejected. Re-check every ID you passed against the list command of the group it came from; if this command sends a body, re-run it with --generate-json-body to print the exact ...
+user-settings	list-available-features	NOT_ENOUGH_DATA	0	
+user-settings	list-available-members-applications	NEEDS_INPUT		needs application_id; no producer resolved
+user-settings	list-available-members-applications-1	HONOURED	19	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+user-settings	list-available-members-hot-desking	HONOURED	19	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+user-settings	list-available-members-monitoring	HONOURED	19	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+user-settings	list-available-members-speed-dials	HONOURED	19	B equals items 2-4 of --all and differs from --limit 3 (compared on id)
+user-settings	list-available-numbers-call-forwarding	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+user-settings	list-available-numbers-call-intercept	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+user-settings	list-available-numbers-emergency-callback-number	HONOURED	5	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+user-settings	list-available-numbers-fax-message	NOT_ENOUGH_DATA	2	
+user-settings	list-available-numbers-primary	NOT_ENOUGH_DATA	2	
+user-settings	list-available-numbers-secondary	NOT_ENOUGH_DATA	2	
+user-settings	list-errors	NOT_ENOUGH_DATA	0	
+user-settings	list-move-location	NOT_ENOUGH_DATA	1	
+user-settings	list-schedules	NOT_ENOUGH_DATA	2	
+virtual-extensions	list	NOT_ENOUGH_DATA	0	
+virtual-extensions	list-virtual-extension-ranges	NOT_ENOUGH_DATA	0	
+virtual-line-settings	list	NOT_ENOUGH_DATA	4	
+virtual-line-settings	list-available-numbers-call-forwarding	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+virtual-line-settings	list-available-numbers-call-intercept	HONOURED	30	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+virtual-line-settings	list-available-numbers-emergency-callback-number	HONOURED	5	re-verified by controller comparing phoneNumber/name (first-pass key was identical on every record)
+virtual-line-settings	list-available-numbers-fax-message	NOT_ENOUGH_DATA	2	
+virtual-line-settings	list-available-numbers-virtual-lines	NOT_ENOUGH_DATA	2	
+webhooks	list	IGNORED	6	phase 2 (temporary data created and deleted): --offset 2 --limit 3 returned the same ids as --limit 3, not items 2-4 of --all
+wholesale-billing-reports	list	NOT_ENOUGH_DATA	0	
+workspace-settings	list-available-members-monitoring	NEEDS_INPUT		needs workspace_id; workspaces list returned 0
+workspace-settings	list-available-members-speed-dials	NEEDS_INPUT		needs workspace_id; workspaces list returned 0
+workspace-settings	list-available-numbers-call-forwarding	NEEDS_INPUT		needs workspace_id; workspaces list returned 0
+workspace-settings	list-available-numbers-call-intercept	NEEDS_INPUT		needs workspace_id; workspaces list returned 0
+workspace-settings	list-available-numbers-emergency-callback-number	NEEDS_INPUT		needs workspace_id; workspaces list returned 0
+workspace-settings	list-available-numbers-fax-message	NEEDS_INPUT		needs workspace_id; workspaces list returned 0
+workspace-settings	list-available-numbers-secondary	NEEDS_INPUT		needs workspace_id; workspaces list returned 0
+workspace-settings	list-available-numbers-workspaces	NOT_ENOUGH_DATA	2	

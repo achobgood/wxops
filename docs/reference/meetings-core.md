@@ -143,7 +143,7 @@ Meeting
 | `--current` | Return only the current scheduled meeting in a series |
 | `--integration-tag TEXT` | Filter by integration application tag |
 | `--limit N` | Max results (0 = all pages) |
-| `--offset N` | Start offset |
+| `--offset N` | **Refused (exit 2).** `/meetings` ignores `start` — verified live 2026-10-14: `--offset 2 --limit 3` returned the same 3 meetings as `--limit 3` (ADR-18 amendment). Use `--all` and slice with `--fields '[2:5]'`. |
 | `--output table\|json` | Output format |
 
 #### `meetings create`
@@ -188,7 +188,8 @@ These are the admin-scoped commands (`GET /admin/meetings` and `GET /admin/meeti
 | `--meeting-number TEXT` | Filter by meeting number |
 | `--web-link TEXT` | Filter by meeting join link (URL-encoded) |
 | `--current TEXT` | Return only the current scheduled meeting in a series |
-| `--limit N` / `--offset N` | Pagination |
+| `--limit N` | Max results |
+| `--offset N` | **Refused (exit 2)** on `meetings list`: its spec declares no offset parameter, and every endpoint measured without one ignored it (ADR-18 amendment). Use `--all` and slice with `--fields '[2:5]'`. |
 
 There is no `--host-email` option on either admin command; the admin scope of the token determines which meetings are visible.
 
