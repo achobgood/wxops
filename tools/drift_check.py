@@ -632,8 +632,11 @@ def parse_module_flags(module: str) -> dict[str, set[str]]:
     for node in ast.walk(ast.parse(path.read_text())):
         if not isinstance(node, ast.FunctionDef):
             continue
-        name = _command_name(node)
-        if name is None:
+        # Every decorator name: a renamed command stacks its hidden alias
+        # FIRST, and keying on `_command_name` left the visible name with no
+        # entry, which check_flags reads as "a mounted sub-typer" and skips.
+        cmd_names = [n for n, _hidden in command_names(node)]
+        if not cmd_names:
             continue
         flags = {"--help"}  # typer adds it to every command
         for default in node.args.defaults + list(node.args.kw_defaults):
@@ -648,7 +651,8 @@ def parse_module_flags(module: str) -> dict[str, set[str]]:
                     continue
                 # boolean pairs declare both names at once: "--x/--no-x"
                 flags.update(p for p in arg.value.split("/") if p.startswith("-"))
-        out.setdefault(name, set()).update(flags)
+        for name in cmd_names:
+            out.setdefault(name, set()).update(flags)
     return out
 
 
@@ -1368,7 +1372,8 @@ def parse_module_columns(module: str, commands_dir: Path) -> list:
     for node in ast.walk(ast.parse(src)):
         if not isinstance(node, ast.FunctionDef):
             continue
-        name = _command_name(node)
+        # Label by the name --help shows, not a renamed command's hidden alias.
+        name = _visible_command_name(node)
         if name is None:
             continue
         columns = None
@@ -1881,7 +1886,7 @@ def parse_module_arg_kinds(
         names = command_names(node)
         if not names:
             continue
-        visible = next((n for n, hidden in names if not hidden), names[0][0])
+        visible = _visible_command_name(node)
         params = node.args.args + node.args.kwonlyargs
         defaults = ([None] * (len(node.args.args) - len(node.args.defaults))
                     + list(node.args.defaults) + list(node.args.kw_defaults))
@@ -1945,10 +1950,12 @@ def _tokens(text: str) -> set[str]:
 
 
 def check_arg_kinds(surface: dict, positional_surface: dict,
-                    kind_surface: dict) -> tuple[list, list]:
+                    kind_surface: dict) -> tuple[list, list, list]:
     """Doc placeholders that name a different resource than the argument takes.
 
-    Returns (mismatches, advisories) — two tiers, deliberately not one number.
+    Returns (mismatches, advisories, mislabelled) — two doc-side tiers,
+    deliberately not one number, plus the CLI-side mislabelled-argument list
+    (each function once, under its visible name).
 
     TIER 1 (mismatches, GATED). The argument declares a specific kind and the
     placeholder positively names a DIFFERENT kind that exists elsewhere in this
@@ -2020,9 +2027,14 @@ def check_arg_kinds(surface: dict, positional_surface: dict,
                 prod_cmd = decl["producer"].split(" ", 1)[1]
                 if toks & _tokens(prod_cmd.replace("-", "_")):
                     continue  # placeholder matches the producer's own name
+                # A renamed command's hidden alias is the SAME function, not a
+                # sibling: same `visible` name on its kind-surface record.
+                group_kinds = kind_surface.get(group, {})
                 sibling = sorted(
                     c for c in surface.get(group, {})
-                    if c != command and toks & _tokens(c.replace("-", "_")))
+                    if c != command and toks & _tokens(c.replace("-", "_"))
+                    and not (group_kinds.get(c) and group_kinds[c][0].get(
+                        "visible", c) == decl.get("visible", command)))
                 if not sibling:
                     continue
                 advisories.append({
@@ -2277,6 +2289,15 @@ def command_names(node: ast.FunctionDef) -> list[tuple[str, bool]]:
                     name = kw.value.value
         out.append((name or node.name.replace("_", "-"), hidden))
     return out
+
+
+def _visible_command_name(node: ast.FunctionDef) -> str | None:
+    """The name `--help` shows: the first non-hidden decorator name, else the
+    first name (a function whose every name is hidden), else None."""
+    names = command_names(node)
+    if not names:
+        return None
+    return next((n for n, hidden in names if not hidden), names[0][0])
 
 
 class CommandFacts:

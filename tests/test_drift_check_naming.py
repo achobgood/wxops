@@ -271,3 +271,110 @@ def test_mislabelled_argument_is_reported_once_under_its_visible_name(
     _mm, _adv, mislabelled = dc.check_arg_kinds(surface, positional, kinds)
     assert [(m["command"], m["arg"]) for m in mislabelled] == [
         ("show-mislabelled", "location_id")]
+
+
+# --------------------------- checks 6 / 9 / 11b siblings: stacked aliases
+
+def test_flags_key_every_decorator_name(tmp_path, monkeypatch):
+    (tmp_path / "zz_probe.py").write_text(STACKED_PROBE)
+    monkeypatch.setattr(dc, "COMMANDS_DIR", tmp_path)
+    flags = dc.parse_module_flags("zz_probe")
+    for name in ("list", "list-activities"):
+        assert {"--from", "--to", "--output"} <= flags[name]
+
+
+@pytest.mark.parametrize("cited, dead", [
+    ("wxcli probe-group list-activities --from 1 --to 2 --bogus", ["--bogus"]),
+    ("wxcli probe-group list-activities --from 1 --to 2", []),
+    ("wxcli probe-group list --from 1 --to 2 --bogus", ["--bogus"]),
+])
+def test_renamed_command_citing_a_flag_it_lacks_fires_6(
+        tmp_path, monkeypatch, cited, dead):
+    """`check_flags` read a missing flag-surface entry as "a mounted
+    sub-typer" and skipped it, so every flag cited on the visible name of a
+    renamed command went unchecked."""
+    surface, _positional = _stacked(tmp_path)
+    monkeypatch.setattr(dc, "COMMANDS_DIR", tmp_path)
+    flag_surface = {"probe-group": dc.parse_module_flags("zz_probe")}
+    _scan(tmp_path, monkeypatch, f"```bash\n{cited}\n```\n")
+    assert [d["flag"] for d in dc.check_flags(surface, flag_surface)] == dead
+
+
+COLUMNS_PROBE = '''"""Probe module."""
+import typer
+
+app = typer.Typer()
+
+
+@app.command("list-old", hidden=True)
+@app.command("list-things")
+def list_things():
+    """Probe."""
+    url = f"https://webexapis.com/v1/things"
+    result = api.session.rest_get(url)
+    items = result.get("items", [])
+    emit(items, columns=[("Name", "name")])
+'''
+
+
+def test_column_findings_carry_the_visible_name(tmp_path):
+    (tmp_path / "zz_probe.py").write_text(COLUMNS_PROBE)
+    rows = dc.parse_module_columns("zz_probe", tmp_path)
+    assert [r[0] for r in rows] == ["list-things"]
+
+
+SIBLING_PROBE = '''"""Probe module."""
+import typer
+
+app = typer.Typer()
+
+
+@app.command("show-gadget", hidden=True)
+@app.command("show-widget")
+def show_widget(
+    widget_id: str = typer.Argument(help="UUID, from: wxcli probe-group list"),
+):
+    """Probe: renamed; the hidden alias's name matches the placeholder."""
+'''
+
+SIBLING_REAL = '''
+
+@app.command("show-gadget-config")
+def show_gadget_config(
+    gadget_id: str = typer.Argument(help="UUID, from: wxcli probe-group list"),
+):
+    """Probe: a genuinely different command named for the placeholder."""
+'''
+
+
+@pytest.mark.parametrize("extra, siblings", [
+    ("", []), (SIBLING_REAL, ["show-gadget-config"])])
+def test_11b_advisory_never_names_a_commands_own_alias_as_sibling(
+        tmp_path, monkeypatch, extra, siblings):
+    (tmp_path / "zz_probe.py").write_text(SIBLING_PROBE + extra)
+    sig = dc.parse_module_signatures("zz_probe", commands_dir=tmp_path)
+    surface = {"probe-group": {name: [] for name in sig}}
+    kinds = {"probe-group": dc.parse_module_arg_kinds(
+        "zz_probe", commands_dir=tmp_path)}
+    _scan(tmp_path, monkeypatch,
+          "```bash\nwxcli probe-group show-widget GADGET_ID\n```\n")
+    _mm, advisories, _mis = dc.check_arg_kinds(
+        surface, {"probe-group": sig}, kinds)
+    assert [a["sibling"] for a in advisories] == siblings
+
+
+def test_all_hidden_function_falls_back_to_its_first_name(tmp_path):
+    (tmp_path / "zz_probe.py").write_text('''"""Probe."""
+import typer
+
+app = typer.Typer()
+
+
+@app.command("old-a", hidden=True)
+@app.command("old-b", hidden=True)
+def gone(location_id: str = typer.Argument(help="Webex PEOPLE id")):
+    """Probe: every name hidden."""
+''')
+    kinds = dc.parse_module_arg_kinds("zz_probe", commands_dir=tmp_path)
+    assert kinds["old-a"][0]["visible"] == "old-a"
+    assert kinds["old-b"][0]["visible"] == "old-a"

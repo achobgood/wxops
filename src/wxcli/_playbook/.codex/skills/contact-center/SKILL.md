@@ -566,7 +566,7 @@ wxcli cc-skill create --json-body '{
 }'
 ```
 
-Skill types: `Proficiency` (1-10 scale), `Boolean` (true/false), `Text` (string match), `enum` (set of values). Create requires `name`, `skillType`, `serviceLevelThreshold` and `active`.
+Skill types: `Proficiency` (0-10 scale), `Boolean` (true/false), `Text` (string match), `enum` (set of values). Create requires `name`, `skillType`, `serviceLevelThreshold` and `active`.
 
 > **Unverified:** the required keys and the `skillType` spellings are from the spec (`SkillDTO`), not a live create. See `docs/reference/contact-center-core.md` (Skills, Key Parameters).
 
