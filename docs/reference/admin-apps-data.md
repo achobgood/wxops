@@ -320,15 +320,16 @@ wxcli admin-recordings delete-recordings-recycle \
 # Hard-delete a specific recording (admin)
 wxcli admin-recordings delete RECORDING_ID_HERE --force
 
-# Share a recording with email notification
+# Share a recording with email notification. --json-body replaces the whole
+# body, so --host-email/--send-email beside it are dropped — put them in the body.
 wxcli admin-recordings create-access-list-recordings RECORDING_ID_HERE \
-  --host-email host@example.com \
-  --send-email \
-  --json-body '{"addEmails": ["recipient@example.com"]}'
+  --json-body '{"hostEmail": "host@example.com", "sendEmail": true, "addEmails": ["recipient@example.com"]}'
 
 # List group recordings for a person
 wxcli admin-recordings list-recordings-group --person-id PERSON_ID_HERE
 ```
+
+> **Unverified:** the `create-access-list-recordings` body keys are from the spec, not a live call — see "Share a Recording" under Raw HTTP Fallback below.
 
 ### Recording Lifecycle States
 
