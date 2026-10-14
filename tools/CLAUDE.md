@@ -261,8 +261,10 @@ An escape hatch the unattended routine could reach would defeat the point. For c
 fix is in generator code or override keys, which `tools/sync_guard.py` keeps out of the routine
 (`FORBIDDEN_PATHS`, `yaml_key_findings`), so the routine fails closed and a human fixes it. For
 checks 29/30 the routine may spend its repair attempts on a finding ONLY when the finding's
-`file:line` is a line this run added (it shows as `+` in `git diff origin/main -- <file>`, i.e.
-new-group coverage written under contract §2 B/C). Otherwise it fails closed for a human, because
+`file:line` is inside a pure-addition hunk of `git diff origin/main -- <file>` (every changed
+line in the hunk is `+`, none is `-`), i.e. text this run wrote fresh for new-group coverage
+under contract §2 B/C. A `+` line sharing a hunk with a `-` line is an edited pre-existing line
+and does NOT qualify, even if this run made that edit earlier. Otherwise it fails closed for a human, because
 the spec is often wrong against live behaviour (2026-10-13: the FlowV2 import shape;
 `cc-dial-number create` needing `location`/`regionId`), and an unattended edit "to match the
 spec" can silently replace a live-verified example (`docs/spec-sync-contract.md` §6).
