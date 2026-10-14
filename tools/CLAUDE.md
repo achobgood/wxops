@@ -293,11 +293,19 @@ a reviewed commit. "To clear" below is the only way out.
   tests (`test_paginating_list_offers_both`, `test_link_walker_list_offers_both`,
   `test_page_numbered_list_offers_both_on_both_calls`) are what catch a lost remedy. Nor can it
   see whether a server honours an offered `--offset`. That is live-only;
-  the measured answers live in the per-tag `offset_ignored` key (`people list`, `licenses
-  list`), which makes the renderer refuse `--offset` (exit 2) and drop it from the note. The
+  the measured answers live in the per-tag `offset_ignored` key (16 commands since
+  2026-10-14: `people list`, `licenses list`, `locations list`, `webhooks list`, …), which makes the
+  renderer refuse `--offset` (exit 2) and drop it from the note. **Since 2026-10-14 the renderer
+  also refuses it, unmeasured, on every page-walking list whose spec declares no `start`/`offset`**
+  (`offset_spec_absent`; 34 commands at the time) — 48 of 48 measured lists matched their spec
+  (ADR-18 amendment). Its message says "its spec declares no offset parameter", never "measured live".
+  A measured entry overrides that wording; an endpoint that honours an undeclared `start` would need an
+  opt-out override that does not exist yet. The
   generator validates the key like every command-keyed override and refuses it on a
   non-list or a translated (page-numbered/SCIM) list. Add a command only on a live
-  measurement: `--offset 2 --limit 3` vs items 2-4 of `--all`.
+  measurement: `--offset 2 --limit 3` vs items 2-4 of `--all`, AND `--limit 3` — on a key that
+  differs between records (the 2026-10-14 probe first compared a field identical on every row, so
+  16 commands "passed" a test that could not fail; ADR-18 amendment).
 
 Checks 6, 9, 10, 11a and 11b also moved off the first `@app.command` decorator the same day.
 On the ~102 renamed commands that decorator is the hidden alias, so documented calls of the

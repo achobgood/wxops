@@ -49,11 +49,14 @@ def list_poll_results(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Meeting PollResults.\n\n\b\nExample: wxcli meeting-polls list-poll-results --meeting-id MEETING_ID"""
+    if offset > 0:
+        typer.echo("Error: this endpoint ignores --offset: its spec declares no offset parameter, and every such endpoint measured returned the first page again (ADR-18). Drop --offset and slice " + ("the --all output instead, e.g. --fields '[2:5]'." if all_pages else "every page instead, e.g. --all --fields '[2:5]'."), err=True)
+        raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/pollResults"
     params = {}
@@ -61,11 +64,9 @@ def list_poll_results(
         params["meetingId"] = meeting_id
     if limit > 0:
         params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
+            result = api.session.rest_get(url, params=params, remedies=("all",))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
@@ -86,11 +87,14 @@ def list_respondents(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Respondents of a Question.\n\n\b\nExample: wxcli meeting-polls list-respondents POLL_ID QUESTION_ID --meeting-id MEETING_ID"""
+    if offset > 0:
+        typer.echo("Error: this endpoint ignores --offset: its spec declares no offset parameter, and every such endpoint measured returned the first page again (ADR-18). Drop --offset and slice " + ("the --all output instead, e.g. --fields '[2:5]'." if all_pages else "every page instead, e.g. --all --fields '[2:5]'."), err=True)
+        raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/polls/{poll_id}/questions/{question_id}/respondents"
     params = {}
@@ -98,11 +102,9 @@ def list_respondents(
         params["meetingId"] = meeting_id
     if limit > 0:
         params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
+            result = api.session.rest_get(url, params=params, remedies=("all",))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:

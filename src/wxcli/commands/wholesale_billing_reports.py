@@ -21,11 +21,14 @@ def cmd_list(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Wholesale Billing Reports."""
+    if offset > 0:
+        typer.echo("Error: this endpoint ignores --offset: its spec declares no offset parameter, and every such endpoint measured returned the first page again (ADR-18). Drop --offset and slice " + ("the --all output instead, e.g. --fields '[2:5]'." if all_pages else "every page instead, e.g. --all --fields '[2:5]'."), err=True)
+        raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/wholesale/billing/reports"
     params = {}
@@ -43,14 +46,12 @@ def cmd_list(
         params["subPartnerOrgId"] = sub_partner_org_id
     if limit > 0:
         params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     result = None
     try:
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
+            result = api.session.rest_get(url, params=params, remedies=("all",))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

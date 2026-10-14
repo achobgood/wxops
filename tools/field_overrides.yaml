@@ -515,6 +515,21 @@
       - ["Model", "model"]
       - ["Display Name", "displayName"]
       - ["Type", "type"]
+  # ADR-18 amendment. Measured live 2026-10-14 (CLI, read-only, CC Bootcamp
+  # Sandbox): `list --all`, `--offset 2 --limit 3` and `--limit 3` each returned
+  # all 136 supported devices, so `GET /telephony/config/supportedDevices`
+  # ignores `start` AND `max`. Its spec declares neither (only a Link header).
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 and --limit 3 both returned all 136 (start and max ignored)"
+
+"Resource Group Memberships":
+  # ADR-18 amendment. Measured live 2026-10-14 (CLI, read-only, CC Bootcamp
+  # Sandbox, 84 memberships): on both commands `--offset 2 --limit 3` returned
+  # the same 3 records as `--limit 3`, not items 2-4 of `--all`; repeated, same
+  # result. `max` IS honoured. The spec declares `max` but no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned items 0-2 (84 records)"
+    list-v2: "measured live 2026-10-14: --offset 2 --limit 3 returned items 0-2 (84 records)"
 
 "Licenses":
   list:
@@ -588,6 +603,11 @@
       - ["City", "address.city"]
       - ["State", "address.state"]
       - ["Time Zone", "timeZone"]
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (5 records)"
 
 "Workspace Locations":
   table_columns:
@@ -607,12 +627,22 @@
       - ["ID", "id"]
       - ["Title", "title"]
       - ["Type", "type"]
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (10 records)"
 
 "Teams":
   list:
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (5 records)"
 
 "Messages":
   list:
@@ -628,6 +658,26 @@
       - ["Name", "name"]
       - ["Target URL", "targetUrl"]
       - ["Resource", "resource"]
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (6 records)"
+
+"Room Tabs":
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  # `--limit 3` also returned all 5: `max` is ignored too.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3; --limit 3 returned all 5 (start and max ignored)"
+
+"Team Memberships":
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (6 members of one team)"
 
 "Authorizations":
   list:
@@ -644,6 +694,11 @@
       - ["Person", "personDisplayName"]
       - ["Email", "personEmail"]
       - ["Moderator", "isModerator"]
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (6 members of one space)"
 
 # "Workspace Metrics" table_columns removed 2026-10-13 (drift check 31): both
 # commands render as single-object reads now (the 200 echoes workspaceId,
@@ -721,6 +776,12 @@
       - ["Site URL", "siteUrl"]
       - ["Service", "service"]
       - ["Type", "type"]
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list-meetings: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (5 scheduled meetings)"
+    list-registrants: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (5 registrants)"
 
 "Participants":
   list:
@@ -737,6 +798,11 @@
       - ["ID", "id"]
       - ["Display Name", "displayName"]
       - ["Email", "email"]
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
+  # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
+  # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
+  offset_ignored:
+    list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (10 invitees on one meeting)"
 
 # Per-command style: the old `list: {table_columns:}` block applied to every
 # list-shaped command in the tag, so the transcript columns leaked onto
@@ -1810,6 +1876,13 @@ tag_overrides:
     "Hybrid Data Security":
       command_name_overrides:
         "list": "list-clusters"
+    # ADR-18 amendment. Here, not in the top-level "Messages" block: the meetings
+    # spec has its own "Messages" tag (meeting-messages), which has no `list`.
+    # Measured live 2026-10-14 on 5 temporary messages in one space (deleted):
+    # `--offset 2 --limit 3` returned the same records as `--limit 3`.
+    "Messages":
+      offset_ignored:
+        list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (5 messages in one space)"
 
 # Tag-level override for Operating Modes
 "Features: Operating Modes":

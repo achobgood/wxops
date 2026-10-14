@@ -1364,8 +1364,8 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     # Their `--offset` is refused (exit 2) instead of sent, and their note never
     # names it. A translated --offset (page-numbered, SCIM) works by
     # construction, so declaring it ignored there is a contradiction.
-    offset_ignored = ep.command_name in (folder_overrides.get("offset_ignored") or {})
-    if offset_ignored and (page_numbered or scim_window):
+    offset_measured = ep.command_name in (folder_overrides.get("offset_ignored") or {})
+    if offset_measured and (page_numbered or scim_window):
         raise OffsetIgnoredError(
             f"offset_ignored names {ep.command_name!r}, whose --offset is now "
             f"translated ({ep.pagination_style} paging: the spec gained a page or "
@@ -1376,13 +1376,26 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     # an unpaged list's --all walks nothing (`licenses list` returns every row
     # whatever is sent), so there the only advice is to drop --offset and slice.
     walks = ep.paginates or ep.pagination_style in ("link", "page", "scim")
+    # ADR-18 amendment (2026-10-14): a page-walking list whose spec declares no
+    # offset name (`start`/`offset`) is refused too, without a measurement.
+    # Every one of the 48 lists measured live matched its spec: the 32 that
+    # declare `start` honoured it, the 16 that do not ignored it (`locations`,
+    # `webhooks`, `rooms`, `meetings list-meetings`, …), returning page one
+    # with exit 0. A wrong refusal is loud and harmless (`--all` still works);
+    # a wrong pass is a silent wrong answer. Unpaged lists (no walker) are not
+    # covered by this rule; a measured entry above still applies to them.
+    offset_spec_absent = (walks and not page_numbered and not scim_window
+                          and not (has_spec_start or has_spec_offset))
+    offset_ignored = offset_measured or offset_spec_absent
+    basis = ("measured live" if offset_measured
+             else "inferred from its spec, which declares no offset parameter")
 
     params.extend(_render_output_options("table"))
     if offset_ignored:
         params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
         slice_hint = ("Use --all and slice the output, e.g. --fields \'[2:5]\'." if walks
                       else "Slice the output instead, e.g. --fields \'[2:5]\'.")
-        params.append(f'    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, measured live. {slice_hint}"),')
+        params.append(f'    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, {basis}. {slice_hint}"),')
     elif page_numbered:
         params.append(f'    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size ({ep.page_size_param}); 0 = the server default page. Ignored with --all."),')
         params.append('    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),')
@@ -1431,10 +1444,13 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     if not offset_ignored:
         offset_guard = []
     elif walks:
+        why = ("it returns the first page again whatever offset is sent (measured live, ADR-18)"
+               if offset_measured else
+               "its spec declares no offset parameter, and every such endpoint measured "
+               "returned the first page again (ADR-18)")
         offset_guard = [
             "    if offset > 0:",
-            '        typer.echo("Error: this endpoint ignores --offset: it returns the '
-            "first page again whatever offset is sent (measured live, ADR-18). Drop "
+            f'        typer.echo("Error: this endpoint ignores --offset: {why}. Drop '
             "--offset and slice \" + (\"the --all output instead, e.g. --fields '[2:5]'.\" "
             "if all_pages else \"every page instead, e.g. --all --fields '[2:5]'.\"), err=True)",
             "        raise typer.Exit(2)",

@@ -184,13 +184,19 @@ ALL_ONLY = 'remedies=("all",)'
 IGNORED = {"offset_ignored": {"list": "measured live"}}
 
 
+# A walker list offers --offset only when its spec declares `start` (ADR-18
+# amendment); without it the spec rule refuses --offset (tests further down).
+START = [_qp("max"), _qp("start")]
+
+
 def test_paginating_list_offers_both():
-    code = _render_list_command(_ep(paginates=True, pagination_style="link"), {})
+    code = _render_list_command(_ep(paginates=True, pagination_style="link",
+                                    query_params=START), {})
     assert f"api.session.rest_get(url, params=params, {BOTH})" in code
 
 
 def test_link_walker_list_offers_both():
-    code = _render_list_command(_ep(pagination_style="link"), {})
+    code = _render_list_command(_ep(pagination_style="link", query_params=START), {})
     assert f"api.session.rest_get(url, params=params, {BOTH})" in code
 
 
@@ -357,7 +363,8 @@ def test_offset_zero_is_not_refused():
 
 
 def test_ordinary_command_still_sends_offset():
-    app, session = _app(_render(_ep(paginates=True, pagination_style="link"), {}))
+    app, session = _app(_render(_ep(paginates=True, pagination_style="link",
+                                    query_params=START), {}))
     result = CliRunner().invoke(app, ["--offset", "2", "--limit", "3"])
     assert result.exit_code == 0, result.output
     name, params, kw = session.calls[0]
@@ -372,9 +379,11 @@ def test_offset_ignored_is_a_command_keyed_override():
     assert "offset_ignored" in COMMAND_KEYED_OVERRIDES
 
 
-def test_declared_set_is_exactly_the_two_measured_commands():
+def test_declared_set_is_exactly_the_measured_commands():
     """ADR-18: a declared, measured set — not a guess. Adding a command here
-    needs a live measurement (`--offset 2 --limit 3` vs items 2-4 of `--all`)."""
+    needs a live measurement (`--offset 2 --limit 3` vs items 2-4 of `--all`).
+    People/Licenses measured 2026-10-13; the rest 2026-10-14 (the last 11 on
+    temporary data created and deleted for the probe)."""
     import yaml
     from pathlib import Path
     ovr = yaml.safe_load((Path(__file__).resolve().parent.parent
@@ -385,4 +394,60 @@ def test_declared_set_is_exactly_the_two_measured_commands():
     declared |= {(tag, cmd) for spec in (ovr.get("tag_overrides") or {}).values()
                  for tag, block in (spec or {}).items()
                  for cmd in ((block or {}).get("offset_ignored") or {})}
-    assert declared == {("People", "list"), ("Licenses", "list")}
+    assert declared == {
+        ("People", "list"), ("Licenses", "list"),
+        ("Device Call Settings With Device Dynamic Settings", "list"),
+        ("Resource Group Memberships", "list"),
+        ("Resource Group Memberships", "list-v2"),
+        ("Locations", "list"), ("Rooms", "list"), ("Teams", "list"),
+        ("Webhooks", "list"), ("Memberships", "list"), ("Room Tabs", "list"),
+        ("Team Memberships", "list"), ("Invitees", "list"),
+        ("Meetings", "list-meetings"), ("Meetings", "list-registrants"),
+        ("Messages", "list"),   # under tag_overrides webex-messaging.json
+    }
+
+
+# ── ADR-18 amendment: a walker list whose spec declares no offset name ──
+
+
+def test_walker_without_spec_start_refuses_offset_by_spec():
+    """No measurement, no override: the spec declares only `max`, so --offset is
+    refused and the wording says why — it must not claim a live measurement."""
+    app, session = _app(_render(_ep(paginates=True, pagination_style="link"), {}))
+    result = CliRunner().invoke(app, ["--offset", "2", "--limit", "3"])
+    assert result.exit_code == 2 and session.calls == []
+    assert "its spec declares no offset parameter" in result.output
+    assert "measured live" not in result.output
+    code = _render_list_command(_ep(paginates=True, pagination_style="link"), {})
+    assert ALL_ONLY in code and BOTH not in code
+    assert 'params["start"]' not in code
+    assert "inferred from its spec" in code          # --offset help
+
+
+def test_measured_entry_keeps_measured_wording_on_a_spec_less_walker():
+    code = _render_list_command(_ep(paginates=True, pagination_style="link"), IGNORED)
+    assert "measured live, ADR-18" in code
+    assert "inferred from its spec" not in code
+
+
+def test_spec_rule_skips_unpaged_lists():
+    """The rule covers page-walking lists only; an unpaged list with no `start`
+    in its spec is untouched unless a measured entry names it."""
+    code = _render_list_command(_ep(), {})
+    assert 'params["start"] = offset' in code
+    assert "ignores --offset" not in code
+
+
+def test_spec_rule_skips_translated_lists():
+    ep = _ep(pagination_style="page", query_params=[_qp("page"), _qp("pageSize")])
+    assert "ignores --offset" not in _render_list_command(ep, {})
+    ep = _ep(pagination_style="scim", query_params=[_qp("startIndex"), _qp("count")])
+    assert "ignores --offset" not in _render_list_command(ep, {})
+
+
+def test_spec_rule_accepts_offset_named_offset():
+    """An endpoint that names its skip parameter `offset` declares one."""
+    ep = _ep(paginates=True, pagination_style="link",
+             query_params=[_qp("limit"), _qp("offset")])
+    code = _render_list_command(ep, {})
+    assert 'params["offset"] = offset' in code and BOTH in code

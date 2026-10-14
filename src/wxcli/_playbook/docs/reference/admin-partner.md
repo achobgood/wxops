@@ -147,9 +147,9 @@ Tag customer organizations and subscriptions for categorization (region, tier, v
 | `list` | Retrieve all customer tags | `--type TYPE` (required), `--limit N`, `--offset N` |
 | `create` | Create or replace the target org's tags | `--json-body` |
 | `show` | Get the target org's tags | (none) |
-| `list-organizations` | Fetch all customers matching a set of tags | `--tags TAG1,TAG2` (required), `--limit N`, `--offset N` |
+| `list-organizations` | Fetch all customers matching a set of tags | `--tags TAG1,TAG2` (required), `--limit N` (`--offset` is refused, exit 2: the spec declares no offset parameter — ADR-18; use `--all` and slice) |
 | `create-assign-tags` | Create or replace subscription tags | `SUBSCRIPTION_ID` (arg), `--json-body` |
-| `list-subscriptions` | List subscriptions matching a set of tags | `--tags TAG1,TAG2` (required), `--limit N`, `--offset N` |
+| `list-subscriptions` | List subscriptions matching a set of tags | `--tags TAG1,TAG2` (required), `--limit N` (`--offset` is refused, exit 2: the spec declares no offset parameter — ADR-18; use `--all` and slice) |
 | `show-subscriptions` | Fetch a specific subscription | `SUBSCRIPTION_ID` (arg) |
 
 **These commands take no `ORG_ID` argument.** `create`, `show`, `create-assign-tags`, and `show-subscriptions` resolve the target org from your saved config -- set it with `wxcli switch-org` before running them, and confirm it with `wxcli whoami`. If no org is saved, they fall back to the token's own org.
