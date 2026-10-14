@@ -205,22 +205,12 @@
       - ["Pattern", "matchingPattern"]
       - ["Level", "level"]
 
-# Re-verified against the 200 item schemas 2026-07-29, when the shadowing that
-# made this whole block inert was fixed. Five of the six entries were deleted:
-# four (list-base-stations, list-dect-networks-people,
-# list-dect-networks-workspaces, list-available-members) were byte-identical to
-# what _derive_default_columns already produces, and `list` was a strict subset
-# of it. Only list-handsets expresses a choice the schema cannot: the derived
-# default reaches `accessCode`, the handset pairing code, and a default table is
-# the wrong place to print it. `primaryEnabled` is what an operator is actually
-# looking for on that list.
-"DECT Devices Settings":
-  table_columns:
-    list-handsets:
-      - ["ID", "id"]
-      - ["Display Name", "defaultDisplayName"]
-      - ["Index", "index"]
-      - ["Primary", "primaryEnabled"]
+# "DECT Devices Settings" table_columns removed 2026-10-13 (drift check 31):
+# its last entry, list-handsets, renders as a single-object read now — the 200
+# is `{handsets, numberOfHandsetsAssigned, numberOfLinesAssigned}` and the list
+# extractor dropped both counts — so it prints JSON and reads no columns. The
+# entry existed to keep the handset pairing code (`accessCode`) out of the
+# default TABLE; `-o json` always carried it, and now the default does too.
 
 "Numbers":
   table_columns:
@@ -238,10 +228,8 @@
 
 "User Call Settings":
   table_columns:
-    list-numbers:
-      - ["Number", "directNumber"]
-      - ["Extension", "extension"]
-      - ["Primary", "primary"]
+    # list-numbers lost its entry 2026-10-13 (drift check 31): the 200 is
+    # `{distinctiveRingEnabled, phoneNumbers}`, a single-object read now.
     list-schedules:
       - ["ID", "id"]
       - ["Name", "name"]
@@ -335,12 +323,10 @@
       Apply line key template to every device in scope (all locations unless
       locationIds was set)?
   table_columns:
-    list:
-      - ["ID", "id"]
-      - ["First Name", "firstName"]
-      - ["Last Name", "lastName"]
-      - ["Extension", "extension"]
-      - ["Line Type", "lineType"]
+    # `list`, `list-devices-people` and `list-devices-workspaces` lost their
+    # entries 2026-10-13 (drift check 31): each 200 is one object (`members`
+    # beside `model`/`maxLineCount`; `devices` beside the device-count limits)
+    # and renders as a single-object read, which draws no table.
     list-available-members:
       - ["ID", "id"]
       - ["First Name", "firstName"]
@@ -360,16 +346,6 @@
       - ["Model", "model"]
       - ["Display Name", "displayName"]
       - ["Base Stations", "numberOfBaseStations"]
-    list-devices-people:
-      - ["ID", "id"]
-      - ["Model", "model"]
-      - ["MAC", "mac"]
-      - ["Type", "type"]
-    list-devices-workspaces:
-      - ["ID", "id"]
-      - ["Model", "model"]
-      - ["MAC", "mac"]
-      - ["Type", "type"]
     list-line-key-templates:
       - ["ID", "id"]
       - ["Template Name", "templateName"]
@@ -506,49 +482,17 @@
       - ["Phone Number", "phoneNumber"]
       - ["State", "state"]
 
-# monitoredElements is a UNION, verified live 2026-07-27 against a real
-# monitored user: every entry is wrapped — {"member": {...}} — never flat.
-# (The spec's own example shows flat records with id/displayName at the top
-# level; the example is wrong, the schema is right. Settled by a live GET, not
-# by reading.) Each row populates exactly ONE of member / callparkextension /
-# speedDial, so one column per kind is the only set that covers all three; the
-# other columns resolve empty on that row, which _resolve_accessor handles.
-# Nothing here can be derived from the schema — the item's own properties are
-# all objects, so the renderer's schema-derived default correctly declines and
-# these three commands need an explicit override.
-_monitored_element_cols: &monitored_element_cols
-  - ["Member", "member.displayName"]
-  - ["Email", "member.email"]
-  - ["Call Park Extension", "callparkextension.name"]
-  - ["Extension", "callparkextension.extension"]
-  - ["Speed Dial", "speedDial.displayName"]
-
-"Person Call Settings":
-  table_columns:
-    list: *monitored_element_cols
-
-# "My Call Settings", not the spec tag "Call Settings For Me": tag_merges folds
-# that tag plus the three UserHub phase tags into this one group, and overrides
-# are looked up by the MERGED name. Keying it on the source tag is silently
-# inert — the entry parses, the tests pass, and the columns never apply.
-"My Call Settings":
-  table_columns:
-    list-monitoring: *monitored_element_cols
-
-# The THIRD of the three commands the note above names, and the one that never
-# got the fix: this block was shadowed whole by its tag_overrides entry, so
-# `workspace-settings list-monitoring` still shipped the [ID, Name] fallback —
-# two columns that resolve empty on every row, which check 9 excuses because the
-# item declares no scalar field at all. Un-shadowed 2026-07-29.
-#
-# The block's other entry, `list: [directNumber, extension]`, was deleted: the
-# bare `list` in this group is GET /workspaces/{id}/features/callerId, which
-# extracts `types` and declares no item schema. Those two fields belong to
-# `list-numbers`, where the derived default already declares both plus
-# primary/action/ringPattern.
-"Workspace Call Settings":
-  table_columns:
-    list-monitoring: *monitored_element_cols
+# The monitoredElements union columns (`member.displayName` / `member.email` /
+# `callparkextension.name` / `callparkextension.extension` /
+# `speedDial.displayName`) were removed 2026-10-13 (drift check 31) from all
+# three commands that carried them — `person-call-settings list`,
+# `my-call-settings list-monitoring`, `workspace-settings list-monitoring`.
+# Each 200 is one object (`monitoredElements` beside
+# `callParkNotificationEnabled`, and `availableEntriesCount` on two of them),
+# so each renders as a single-object read now, which draws no table. The live
+# fact the columns encoded still holds (2026-07-27): every element is wrapped —
+# `{"member": {...}}` — never flat as the spec's example shows. See tools/CLAUDE.md,
+# "Table columns come from the response schema".
 
 # A "Features: Customer Experience Essentials" table_columns block sat here
 # until 2026-07-29. Upstream renamed the tag to "Features: Customer Assist", so
@@ -685,17 +629,9 @@ _monitored_element_cols: &monitored_element_cols
       - ["Email", "personEmail"]
       - ["Moderator", "isModerator"]
 
-"Workspace Metrics":
-  table_columns:
-    list:
-      - ["Start", "start"]
-      - ["End", "end"]
-      - ["Metric", "metricName"]
-      - ["Value", "value"]
-    list-workspace-duration-metrics:
-      - ["Start", "start"]
-      - ["End", "end"]
-      - ["Duration", "duration"]
+# "Workspace Metrics" table_columns removed 2026-10-13 (drift check 31): both
+# commands render as single-object reads now (the 200 echoes workspaceId,
+# metricName, aggregation, from/to, unit beside `items`), so no table is drawn.
 
 # Migrated 2026-07-29 from the old-style folder-level `list: {table_columns:}`
 # form, which had never applied (shadowed whole by the tag_overrides entry for
@@ -747,11 +683,6 @@ _monitored_element_cols: &monitored_element_cols
       - ["Start", "start"]
       - ["End", "end"]
       - ["State", "state"]
-    list-registration:
-      - ["ID", "id"]
-      - ["Question", "question"]
-      - ["Type", "type"]
-      - ["Required", "required"]
     list-registrants:
       - ["ID", "id"]
       - ["First Name", "firstName"]
@@ -763,10 +694,6 @@ _monitored_element_cols: &monitored_element_cols
       - ["Name", "name"]
       - ["Start Time", "startTime"]
       - ["End Time", "endTime"]
-    list-survey:
-      - ["ID", "id"]
-      - ["Question", "question"]
-      - ["Type", "type"]
     list-invitation-sources:
       - ["ID", "id"]
       - ["Source ID", "sourceId"]
@@ -829,10 +756,9 @@ _monitored_element_cols: &monitored_element_cols
       - ["ID", "id"]
       - ["Name", "name"]
       - ["Site URL", "siteUrl"]
-    list-tracking-codes:
-      - ["ID", "id"]
-      - ["Name", "name"]
-      - ["Value", "value"]
+    # list-tracking-codes lost its entry 2026-10-13 (drift check 31): its 200
+    # is `{siteUrl, personId, email, trackingCodes}`, rendered as a
+    # single-object read, which draws no table.
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Global settings

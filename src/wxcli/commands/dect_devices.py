@@ -411,11 +411,11 @@ def list_handsets(
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
     basestation_id: str = typer.Option(None, "--basestation-id", help="Search handset details in the specified DECT base station ID."),
     member_id: str = typer.Option(None, "--member-id", help="ID of the member of the handset. Members can be of type PEOPLE, PLACE, or VIRTUAL_LINE."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get List of Handsets for a DECT Network ID.\n\n\b\nExample: wxcli dect-devices list-handsets LOCATION_ID DECT_NETWORK_ID"""
@@ -426,23 +426,16 @@ def list_handsets(
         params["basestationId"] = basestation_id
     if member_id is not None:
         params["memberId"] = member_id
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("handsets", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'defaultDisplayName'), ('Index', 'index'), ('Primary', 'primaryEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 

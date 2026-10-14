@@ -10,7 +10,7 @@ What the codebase contains and how the pieces connect. Module inventory (core CL
 
 ### 02 — Decisions
 
-Thirteen architectural decision records (ADRs) capturing the choices that shaped the project:
+Fifteen architectural decision records (ADRs) capturing the choices that shaped the project:
 
 | ADR | Topic |
 |-----|-------|
@@ -27,6 +27,8 @@ Thirteen architectural decision records (ADRs) capturing the choices that shaped
 | 11 | Retire the WxCC Flow Store CLI (`fs-*`); delete its spec |
 | 12 | `--limit`/`--offset` stay on every list command and are translated on page-numbered endpoints |
 | 13 | Eight gated static drift checks (23-30) for the bug classes found live on 2026-10-13 |
+| 14 | A list GET that returns one object renders as a single-object read; drift check 31 gates it |
+| 15 | `POST` and `PATCH` are retried on 429 only, never on 5xx |
 
 Includes a cross-reference matrix showing which ADRs interact and a list of open questions.
 
@@ -58,7 +60,7 @@ If you're trying to understand or modify something, start here:
 | Understand why a design choice was made | 02 (Decisions) | 05 (Purpose — constraints and tradeoffs) |
 | Add a new skill or modify the builder agent | 02 ADR-8 (Playbook Structure) | 01 §1 (Module Inventory, agents/skills rows) |
 | Understand cleanup deletion ordering | 03 §1b (Cleanup Failures) | 01 §3 (Key Abstractions — dependency DAG) |
-| Add or change a drift-gate check, or clear a weekly spec-sync failure | `tools/CLAUDE.md` (drift-gate section) | 02 ADR-9 (drift gate), ADR-13 (checks 23-30 and how each is cleared); `docs/spec-sync-contract.md` §4/§6 |
+| Add or change a drift-gate check, or clear a weekly spec-sync failure | `tools/CLAUDE.md` (drift-gate section) | 02 ADR-9 (drift gate), ADR-13 (checks 23-30 and how each is cleared), ADR-14 (check 31); `docs/spec-sync-contract.md` §4/§6 |
 | Run or modify tests | 04 §1 (Build and Test) | 01 §1 (Module Inventory, tests row) |
 | Assess what's technically feasible vs. out of scope | 05 (Purpose — Out of Scope) | 02 (Decisions — Open Questions) |
 | Onboard to the project | 05 (Purpose) → 01 (Structure) → 02 (Decisions) | 03 and 04 as needed |

@@ -15,34 +15,27 @@ app = typer.Typer(help="Manage Webex Calling: device-settings.")
 @app.command("list", short_help="Get Device Members.")
 def cmd_list(
     device_id: str = typer.Argument(help="Webex CALLING_DEVICE id, from: wxcli devices list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Device Members.\n\n\b\nExample: wxcli device-settings list DEVICE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/members"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('First Name', 'firstName'), ('Last Name', 'lastName'), ('Extension', 'extension'), ('Line Type', 'lineType')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -429,34 +422,27 @@ def update_devices_config(
 @app.command("list-devices-people", short_help="Get Person Devices.")
 def list_devices_people(
     person_id: str = typer.Argument(help="Webex PERSON id, from: wxcli people list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Person Devices.\n\n\b\nExample: wxcli device-settings list-devices-people PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/devices"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("devices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Model', 'model'), ('MAC', 'mac'), ('Type', 'type')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -503,34 +489,27 @@ def update_hoteling(
 @app.command("list-devices-workspaces", short_help="Get Workspace Devices.")
 def list_devices_workspaces(
     workspace_id: str = typer.Argument(help="Webex PERSON id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Workspace Devices.\n\n\b\nExample: wxcli device-settings list-devices-workspaces WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/devices"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("devices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Model', 'model'), ('MAC', 'mac'), ('Type', 'type')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -1231,34 +1210,27 @@ def list_errors_call_device_settings(
 @app.command("list-layout", short_help="Get Device Layout by Device ID.")
 def list_layout(
     device_id: str = typer.Argument(help="Webex DEVICE id, from: wxcli devices list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Device Layout by Device ID.\n\n\b\nExample: wxcli device-settings list-layout DEVICE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/devices/{device_id}/layout"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("lineKeys", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Line Key Index', 'lineKeyIndex'), ('Line Key Type', 'lineKeyType'), ('Line Key Label', 'lineKeyLabel'), ('Line Key Value', 'lineKeyValue'), ('Shared Line Index', 'sharedLineIndex')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 

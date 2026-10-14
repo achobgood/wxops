@@ -209,11 +209,11 @@ def delete(
 def list_tracking_codes(
     site_url: str = typer.Option(None, "--site-url", help="URL of the Webex site from which the API retrieves the tracking code. If not specified, the API retrieves the tracking code from the user's preferred site. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list)..."),
     person_id: str = typer.Option(None, "--person-id", help="Unique identifier for the user whose tracking codes are being retrieved. The admin user can specify the `personId` of a user on a site they manage and the API returns details for the user's tracking codes. At least one parameter of `personId` or `email` is required."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get User Tracking Codes."""
@@ -224,20 +224,13 @@ def list_tracking_codes(
         params["siteUrl"] = site_url
     if person_id is not None:
         params["personId"] = person_id
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("trackingCodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Value', 'value')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 

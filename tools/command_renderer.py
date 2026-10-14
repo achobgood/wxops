@@ -885,7 +885,13 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
                     summary = _normalise_summary(ep.name)
                     if summary:
                         summary_groups.setdefault(summary, set()).add(group)
-                if ep.command_type != "list":
+                # A `list-*` name rendered as a single-object read still
+                # returns the collection, inside its object: `dect-devices
+                # list-handsets` emits `{handsets: [...], …}` since drift check
+                # 31, and is still where a handset id comes from. Names are
+                # derived before that reclassification, so the name says so.
+                if ep.command_type != "list" and not (
+                        ep.method == "GET" and ep.command_name.startswith("list")):
                     continue
                 by_path.setdefault(ep.url_path, f"{group} {ep.command_name}")
                 literals = _path_literals(ep.url_path)
@@ -1506,6 +1512,41 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     return "\n".join(lines)
 
 
+_INERT_LIST_FLAGS = (
+    ("limit", "int", "0", "--limit"),
+    ("offset", "int", "0", "--offset"),
+    ("all_pages", "bool", "False", "--all"),
+)
+
+
+def _render_inert_list_flags(ep: Endpoint) -> list[str]:
+    """Hidden no-op --limit/--offset/--all on a `list*`-named single-object read.
+
+    ADR-14 (amended 2026-10-13, Adam's decision) re-renders a list-classified
+    GET whose 200 is one object as `show`, keeping its `list*` name. The paging
+    flags are uniform on every list command by design (root CLAUDE.md, ADR-12):
+    a script or agent that passes `--all` to any `list*` command must not get
+    "No such option". So these accept the three flags, hidden from --help, and
+    ignore them: nothing reads the variables, nothing reaches `params`.
+
+    Keyed on the VISIBLE name (`cc-flow export`, hidden alias `list-export`, is
+    not a list). A flag whose parameter or flag name the spec already claims on
+    this command is skipped, so a real spec `--limit` is never shadowed.
+    """
+    name = ep.command_name or ""
+    if not (name == "list" or name.startswith("list-")):
+        return []
+    claimed = _used_param_names(ep) | {
+        _safe_param_name(qp.python_name) for qp in ep.query_params}
+    claimed_flags = {f"--{qp.python_name}" for qp in ep.query_params}
+    return [
+        f'    {var}: {typ} = typer.Option({default}, "{flag}", hidden=True, '
+        f'help="Accepted and ignored: this command returns one object."),'
+        for var, typ, default, flag in _INERT_LIST_FLAGS
+        if var not in claimed and flag not in claimed_flags
+    ]
+
+
 def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
@@ -1514,6 +1555,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     qp_defs, qp_build = _render_query_params(ep)
     params.extend(qp_defs)
     params.extend(_render_output_options("json"))
+    params.extend(_render_inert_list_flags(ep))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
     url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,

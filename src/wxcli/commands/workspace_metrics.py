@@ -19,11 +19,11 @@ def cmd_list(
     to: str = typer.Option(None, "--to", help="List data points before a specific date and time (ISO 8601 timestamp)"),
     unit: str = typer.Option(None, "--unit", help="Choices: celsius, fahrenheit"),
     sort_by: str = typer.Option(None, "--sort-by", help="Choices: newestFirst, oldestFirst"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Workspace Metrics.\n\n\b\nExample: wxcli workspace-metrics list --workspace-id WORKSPACE_ID --metric-name soundLevel"""
@@ -44,20 +44,13 @@ def cmd_list(
         params["unit"] = unit
     if sort_by is not None:
         params["sortBy"] = sort_by
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Start', 'start'), ('End', 'end'), ('Metric', 'metricName'), ('Value', 'value')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -68,11 +61,11 @@ def list_workspace_duration_metrics(
     measurement: str = typer.Option(None, "--measurement", help="Choices: timeUsed, timeBooked"),
     from_param: str = typer.Option(None, "--from", help="Include data points after a specific date and time (ISO 8601 timestamp)."),
     to: str = typer.Option(None, "--to", help="Include data points before a specific date and time (ISO 8601 timestamp)."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Workspace Duration Metrics.\n\n\b\nExample: wxcli workspace-metrics list-workspace-duration-metrics --workspace-id WORKSPACE_ID"""
@@ -89,19 +82,12 @@ def list_workspace_duration_metrics(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Start', 'start'), ('End', 'end'), ('Duration', 'duration')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 

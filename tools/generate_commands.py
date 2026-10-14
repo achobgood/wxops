@@ -333,6 +333,32 @@ def generate_tag(
                 f"tag_merge folds this tag.", file=sys.stderr)
             sys.exit(1)
 
+    # A table override on a command that renders no table is inert the same
+    # way: `_render_show_command` emits the whole object and reads no columns.
+    # Drift check 31 (2026-10-13) re-rendered 107 list-classified GETs whose
+    # 200 is one object as single-object reads, which silently retired the
+    # table_columns of 13 of them; this keeps the next one from rotting.
+    types = {ep.command_name: ep.command_type for ep in endpoints}
+    for family in ("table_columns", "response_list_keys"):
+        entry = (folder_ovr or {}).get(family)
+        if not isinstance(entry, dict):
+            continue
+        tableless = sorted(k for k in entry
+                           if k in types and types[k] != "list")
+        if tableless:
+            print(
+                f"\nERROR: {family} in tag {tag_name!r} names {len(tableless)} "
+                f"command(s) that render no list: "
+                f"{', '.join(f'{k} ({types[k]})' for k in tableless)}.\n"
+                f"       A single-object read emits the whole response and "
+                f"reads no columns or list key. Delete the entry. If the "
+                f"response really is a collection, the parser's rule is wrong "
+                f"for this shape: fix openapi_parser._drops_object_fields and "
+                f"regen. Do NOT pin it with command_type_overrides: list -- "
+                f"drift check 31 reads the rendered command and fails a list "
+                f"that drops part of an object.", file=sys.stderr)
+            sys.exit(1)
+
     # Known issue #20: refuse to render a destructive op behind a name that
     # gives no hint it destroys. Runs after command_name_overrides, so a name
     # pinned to the truth clears the gate without an ack.

@@ -152,34 +152,27 @@ def update_call_waiting(
 @app.command("list", short_help="Read Caller ID Settings for a Workspace.")
 def cmd_list(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read Caller ID Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/callerId"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("types", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -256,34 +249,27 @@ def update_caller_id(
 @app.command("list-monitoring", short_help="Retrieve Monitoring Settings for a Workspace.")
 def list_monitoring(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Monitoring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-monitoring WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/monitoring"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("monitoredElements", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Member', 'member.displayName'), ('Email', 'member.email'), ('Call Park Extension', 'callparkextension.name'), ('Extension', 'callparkextension.extension'), ('Speed Dial', 'speedDial.displayName')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -434,34 +420,27 @@ def list_available_members_monitoring(
 @app.command("list-numbers", short_help="List numbers associated with a specific workspace.")
 def list_numbers(
     workspace_id: str = typer.Argument(help="Webex ORGANIZATION id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List numbers associated with a specific workspace.\n\n\b\nExample: wxcli workspace-settings list-numbers WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/numbers"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Extension', 'extension'), ('Primary', 'primary'), ('Action', 'action'), ('Direct Number', 'directNumber'), ('Ring Pattern', 'ringPattern')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -547,34 +526,27 @@ def update_incoming_permission(
 @app.command("list-outgoing-permission", short_help="Retrieve Outgoing Permission Settings for a Workspace.")
 def list_outgoing_permission(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Outgoing Permission Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-outgoing-permission WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/workspaces/{workspace_id}/features/outgoingPermission"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("callingPermissions", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Call Type', 'callType'), ('Action', 'action'), ('Transfer Enabled', 'transferEnabled'), ('Is Call Type Restriction Enabled', 'isCallTypeRestrictionEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -1051,34 +1023,27 @@ def delete_access_codes(
 @app.command("list-digit-patterns", short_help="Retrieve all Digit Patterns for a Workspace.")
 def list_digit_patterns(
     workspace_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve all Digit Patterns for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-digit-patterns WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/outgoingPermission/digitPatterns"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("digitPatterns", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Pattern', 'pattern'), ('Action', 'action'), ('Transfer Enabled', 'transferEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -1904,34 +1869,27 @@ def update_call_bridge(
 @app.command("list-push-to-talk", short_help="Read Push-to-Talk Settings for a Workspace.")
 def list_push_to_talk(
     workspace_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Read Push-to-Talk Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-push-to-talk WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/pushToTalk"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("members", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Type', 'type')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -1990,34 +1948,27 @@ def update_push_to_talk(
 @app.command("list-privacy", short_help="Retrieve Privacy Settings for a Workspace.")
 def list_privacy(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Privacy Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-privacy WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/privacy"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("monitoringAgents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Type', 'type')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -2511,34 +2462,27 @@ def create_criteria_sequential_ring(
 @app.command("list-sequential-ring", short_help="Retrieve Sequential Ring Settings for a Workspace.")
 def list_sequential_ring(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Sequential Ring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-sequential-ring WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/sequentialRing"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Answer Confirmation Required Enabled', 'answerConfirmationRequiredEnabled'), ('Number Of Rings', 'numberOfRings')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -2603,34 +2547,27 @@ def update_sequential_ring(
 @app.command("list-simultaneous-ring", short_help="Retrieve Simultaneous Ring Settings for a Workspace.")
 def list_simultaneous_ring(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Simultaneous Ring Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/simultaneousRing"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Answer Confirmation Required Enabled', 'answerConfirmationRequiredEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -2880,34 +2817,27 @@ def create_criteria_simultaneous_ring(
 @app.command("list-selective-reject", short_help="Retrieve Selective Reject Settings for a Workspace.")
 def list_selective_reject(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Selective Reject Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-selective-reject WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/selectiveReject"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Reject Enabled', 'rejectEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -3194,34 +3124,27 @@ def update_numbers(
 @app.command("list-selective-accept", short_help="Retrieve Selective Accept Settings for a Workspace.")
 def list_selective_accept(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Selective Accept Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-selective-accept WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/selectiveAccept"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Accept Enabled', 'acceptEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -3465,34 +3388,27 @@ def create_criteria_selective_accept(
 @app.command("list-priority-alert", short_help="Retrieve Priority Alert Settings for a Workspace.")
 def list_priority_alert(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Priority Alert Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-priority-alert WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/priorityAlert"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Notification Enabled', 'notificationEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -3736,34 +3652,27 @@ def create_criteria_priority_alert(
 @app.command("list-selective-forward", short_help="Retrieve Selective Forward Settings for a Workspace.")
 def list_selective_forward(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve Selective Forward Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings list-selective-forward WORKSPACE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/workspaces/{workspace_id}/selectiveForward"
     params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("criteria", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Schedule Name', 'scheduleName'), ('Source', 'source'), ('Ring Enabled', 'ringEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -4110,6 +4019,9 @@ def list_outbound_billing_plan(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Retrieve a Workspace's Outbound Billing Plan.\n\n\b\nExample: wxcli workspace-settings list-outbound-billing-plan WORKSPACE_ID"""

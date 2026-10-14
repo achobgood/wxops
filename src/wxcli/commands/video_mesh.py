@@ -149,11 +149,11 @@ def list_media_health_monitor_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Media Health Monitoring Tool Test results V2.\n\n\b\nExample: wxcli video-mesh list-media-health-monitor-test --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -166,23 +166,16 @@ def list_media_health_monitor_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -192,11 +185,11 @@ def list_clusters_media_health_monitor_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Media Health Monitoring Tool Test results for clusters V2.\n\n\b\nExample: wxcli video-mesh list-clusters-media-health-monitor-test --cluster-id CLUSTER_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -211,20 +204,13 @@ def list_clusters_media_health_monitor_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -234,11 +220,11 @@ def list_nodes_media_health_monitor_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Media Health Monitoring Tool Test results for node V2.\n\n\b\nExample: wxcli video-mesh list-nodes-media-health-monitor-test --node-id NODE_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -253,20 +239,13 @@ def list_nodes_media_health_monitor_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -470,11 +449,11 @@ def list_reachability_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Reachability Test results V2.\n\n\b\nExample: wxcli video-mesh list-reachability-test --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -487,23 +466,16 @@ def list_reachability_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -513,11 +485,11 @@ def list_clusters_reachability_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Reachability Test results for cluster V2.\n\n\b\nExample: wxcli video-mesh list-clusters-reachability-test --cluster-id CLUSTER_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -532,20 +504,13 @@ def list_clusters_reachability_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -555,11 +520,11 @@ def list_nodes_reachability_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Reachability Test results for node V2.\n\n\b\nExample: wxcli video-mesh list-nodes-reachability-test --node-id NODE_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -574,20 +539,13 @@ def list_nodes_reachability_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -731,11 +689,11 @@ def create_nodes(
 @app.command("list-test-status", short_help="Get Triggered test status.")
 def list_test_status(
     command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test API."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Triggered test status.\n\n\b\nExample: wxcli video-mesh list-test-status --command-id COMMAND_ID"""
@@ -744,31 +702,24 @@ def list_test_status(
     params = {}
     if command_id is not None:
         params["commandId"] = command_id
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("nodes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Node ID', 'nodeId'), ('Status', 'status')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
 @app.command("list-test-results", short_help="Get Triggered test results.")
 def list_test_results(
     command_id: str = typer.Option(..., "--command-id", help="The unique command ID generated from Trigger on-demand test API."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Triggered test results.\n\n\b\nExample: wxcli video-mesh list-test-results --command-id COMMAND_ID"""
@@ -777,20 +728,13 @@ def list_test_results(
     params = {}
     if command_id is not None:
         params["commandId"] = command_id
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("results", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -799,11 +743,11 @@ def list_network_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Network Test results.\n\n\b\nExample: wxcli video-mesh list-network-test --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -816,23 +760,16 @@ def list_network_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -842,11 +779,11 @@ def list_clusters_network_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Network Test results for cluster.\n\n\b\nExample: wxcli video-mesh list-clusters-network-test --cluster-id CLUSTER_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -861,20 +798,13 @@ def list_clusters_network_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -884,11 +814,11 @@ def list_nodes_network_test(
     trigger_type: str = typer.Option(..., "--trigger-type", help="Choices: OnDemand, Periodic, All"),
     from_param: str = typer.Option(..., "--from", help="The start date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. The `from` parameter cannot have date and time values that exceed `to`."),
     to: str = typer.Option(..., "--to", help="The end date and time of the requested data in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Network Test results for node.\n\n\b\nExample: wxcli video-mesh list-nodes-network-test --node-id NODE_ID --trigger-type OnDemand --from FROM_PARAM --to TO"""
@@ -903,20 +833,13 @@ def list_nodes_network_test(
         params["from"] = from_param
     if to is not None:
         params["to"] = to
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -1009,11 +932,11 @@ def list_event_thresholds(
     event_name: str = typer.Option(None, "--event-name", help="Choices: clusterCallsRedirected, orgCallsOverflowed"),
     cluster_id: str = typer.Option(None, "--cluster-id", help="Unique ID of the Video Mesh Cluster."),
     event_scope: str = typer.Option(None, "--event-scope", help="Choices: CLUSTER, ORG"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Event Threshold Configuration."""
@@ -1026,23 +949,16 @@ def list_event_thresholds(
         params["clusterId"] = cluster_id
     if event_scope is not None:
         params["eventScope"] = event_scope
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("eventThresholds", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Event Threshold ID', 'eventThresholdId'), ('Event Name', 'eventName'), ('Event Scope', 'eventScope'), ('Entity ID', 'entityId')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 

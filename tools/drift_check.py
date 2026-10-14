@@ -295,6 +295,21 @@ Checks (docs/arch/target-architecture.md §A6):
       and keys of a SCIM 2.0 operation (path under /identity/scim/) compare
       case-insensitively (RFC 7643 §2.1). Unparseable bodies (`$(cat f.json)`, `file://`, `@file`, `-`, invalid
       JSON) are counted separately, never fired.
+  31. List extractor drops part of one object: a GET list command that calls
+      no page walker (the spec declares no paging) must not extract one
+      property of a 200 object that declares another non-envelope property —
+      a scalar sibling or a second array. `detect_command_type` called a
+      settings object with any array property a list, so `call-queue
+      list-night-service` printed `[]` for the whole night-service object and
+      `user-settings list-privacy` dropped every privacy switch (live
+      2026-10-13) while check 27 passed: the key did name a declared array.
+      Paging metadata (`meta`, totals, `start`/`limit`, SCIM `schemas`) is not
+      data. A paged command (it calls a page walker) is a collection by
+      declaration and fires only when it extracts an array of scalars while
+      dropping an array of objects (`device-dynamic-settings list` took
+      `upgradeChannelList` and dropped `devices`). Extractors that reach
+      nothing are check 27's; a path several specs declare passes if any
+      describes a clean collection.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -2949,9 +2964,9 @@ def check_inert_overrides() -> tuple[list, list]:
     return findings, stale
 
 
-# ------------------------------------------- shared helpers for checks 23-30
+# ------------------------------------------- shared helpers for checks 23-31
 #
-# Checks 23-30 each compare a rendered command block (what the CLI sends) with
+# Checks 23-31 each compare a rendered command block (what the CLI sends) with
 # the spec operation it renders (what the API declares). These helpers are the
 # single reader for both sides. Contract: they NEVER raise on odd input — a
 # missing response, a non-dict schema, an unreadable module or spec is
@@ -3437,7 +3452,7 @@ def check_undeclared_paging(acks: dict | None = None,
 
 # ----------------------------------------------------------------- check 23
 
-# What checks 23-30 looked at on their most recent call, keyed by check number,
+# What checks 23-31 looked at on their most recent call, keyed by check number,
 # so main() can print "(examined N …)" beside a count and a vacuous 0 shows up
 # in the unattended log: {"23": {"examined": N, "skipped": K}}.
 CHECK_EXAMINED: dict[str, dict[str, int]] = {}
@@ -3448,7 +3463,7 @@ def record_examined(check: str, findings: list[dict], examined: int,
     """Record what check `check` examined; return `findings`, plus a gated
     blind-run finding when it examined nothing.
 
-    Shared by checks 23-30. A check over zero items reports a confident 0 —
+    Shared by checks 23-31. A check over zero items reports a confident 0 —
     indistinguishable from a clean tree — so a zero-examined run FAILS with a
     single `{"check", "error"}` finding instead (main() prints it as BLIND).
     `skipped` should include the HELPER_SKIPS entries the check's readers set.
@@ -3468,7 +3483,7 @@ def helper_skip_count(*keys: str) -> int:
     return sum(len(HELPER_SKIPS.get(k) or ()) for k in keys)
 
 
-# How main() prints each of checks 23-30: {"NN": (label, noun, formatter)}.
+# How main() prints each of checks 23-31: {"NN": (label, noun, formatter)}.
 # The formatter renders ONE ordinary finding; print_check_findings renders the
 # blind-run finding itself, so a formatter never sees a dict without its keys.
 CHECK_PRINT: dict[str, tuple[str, str, Callable[[dict], str]]] = {}
@@ -3757,11 +3772,16 @@ _SINGLE_RESOURCE_TAIL = re.compile(r"\{\}(?::[\w-]+)?$")
 # `meta` (81, CC/JDS), the bulk-export page fields (`totalResources`,
 # `pageSize`, `pageNumber`, `rel`), SCIM (`totalResults`, `itemsPerPage`,
 # `startIndex`, `schemas`), plus the totals and page objects the runtime's
-# `_body_says_more` reads.
+# `_body_says_more` reads. `start`/`limit` added for check 31: the window echo
+# of `GET /contacts/organizations/{orgId}/contacts/search` (`{result, start,
+# limit, total}`, whose spec describes both as the request's offset and cap).
+# Mirrored by tools/openapi_parser._LIST_ENVELOPE_KEYS, which decides the
+# same thing at generation time.
 _LIST_ENVELOPE_KEYS = frozenset({
     "meta", "totalResources", "pageSize", "pageNumber", "rel", "totalResults",
     "itemsPerPage", "startIndex", "schemas", "total", "totalCount",
-    "totalRecords", "count", "pageInfo", "paging", "links", "_links"})
+    "totalRecords", "count", "pageInfo", "paging", "links", "_links",
+    "start", "limit"})
 
 
 def response_object_props(op: dict, spec: dict) -> set[str]:
@@ -4627,6 +4647,160 @@ CHECK_PRINT["30"] = (
     "documented --json-body examples with keys the request does not accept",
     "documented --json-body examples",
     _fmt_body_keys)
+
+
+# ----------------------------------------------------------------- check 31
+
+# The four page walkers in src/wxcli/auth.py (read, never imported). The
+# renderer emits one exactly when the spec declares paging (`ep.paginates` or
+# a link/page/scim `pagination_style`), so a block that calls none is a
+# command whose endpoint, by the spec's own account, does not page.
+_ANY_WALKER_CALL = re.compile(
+    r"\.(?:follow_pagination|follow_page_param|fetch_from_offset|follow_scim)\(")
+
+
+def _array_item_kind(spec: dict, node) -> str | None:
+    """"object" / "scalar" for an array property whose items say so; None
+    when `node` is not an array or its items are undeclared or composed."""
+    node = _resolve_ref(spec, node)
+    if not _is_array_schema(node):
+        return None
+    items = _resolve_ref(spec, node.get("items"))
+    if not items:
+        return None
+    if (items.get("type") == "object" or isinstance(items.get("properties"), dict)
+            or isinstance(items.get("allOf"), list)):
+        return "object"
+    if items.get("type") in ("string", "integer", "number", "boolean"):
+        return "scalar"
+    return None
+
+
+def _media_drops(spec: dict, media, key: str,
+                 paged: bool = False) -> tuple[str, set[str]]:
+    """Judge one media type of a 200 against the list extractor for `key`.
+
+    Returns ("clean", ∅) for a bare array, an object whose only data is the
+    one property the extractor emits, or an object the extractor reaches
+    nothing in (check 27's class, judged there); ("drops", lost) when it emits
+    one property and loses others; ("shapeless", ∅) when there is no schema
+    or no property to judge. Paging metadata (_LIST_ENVELOPE_KEYS) is never
+    counted as lost. On a `paged` block only one loss counts: the extractor
+    emits an array of scalars while an array of objects (the records) is
+    dropped — a paged collection's other siblings are per-page context.
+    """
+    if not isinstance(media, dict):
+        return "shapeless", set()
+    schema = _resolve_ref(spec, media.get("schema"))
+    if not schema:
+        return "shapeless", set()
+    if _is_array_prop(spec, schema):
+        return "clean", set()
+    props = {n for n in _object_props(spec, schema) if isinstance(n, str)}
+    if not props:
+        return "shapeless", set()
+    # The rendered extractor is result.get(key, result.get("data", …)).
+    emitted = key if key in props else ("data" if "data" in props else None)
+    if emitted is None:
+        return "clean", set()
+    lost = props - {emitted} - _LIST_ENVELOPE_KEYS
+    if paged and lost:
+        declared = _object_props(spec, schema)
+        lost = ({n for n in lost
+                 if _array_item_kind(spec, declared.get(n)) == "object"}
+                if _array_item_kind(spec, declared.get(emitted)) == "scalar"
+                else set())
+    return ("drops", lost) if lost else ("clean", set())
+
+
+def check_list_drops_object_fields(commands_dir: Path = COMMANDS_DIR,
+                                   specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A list command that emits one property of an object and drops the rest.
+
+    `detect_command_type` calls a GET a list as soon as its 200 declares ANY
+    array property, so a settings object that happens to carry an array was
+    rendered through `result.get("<array>", …)` and everything else was
+    thrown away. Live 2026-10-13: `call-queue list-night-service` printed
+    `[]` while the server returned the whole night-service object (`[]` reads
+    as "service off"); `user-settings list-privacy` and
+    `list-simultaneous-ring` printed `[]` for objects whose scalars ARE the
+    setting. Check 27 passed every one: the key did name a declared array.
+
+    For each GET block that extracts `result.get("<key>", result.get("data",
+    …))`, each spec op's 200 is read per media type (_media_drops). A finding
+    needs every declaring spec to describe an object from which the
+    extractor emits one property and drops another non-envelope property: a
+    scalar sibling, or a second array. `drops` names what is lost. Paging
+    metadata (`meta`, totals, the window echo `start`/`limit`, SCIM
+    `schemas`, …: _LIST_ENVELOPE_KEYS) is not data.
+
+    A block that calls a page walker (_ANY_WALKER_CALL) is a collection by the
+    spec's own declaration: a single-object rendering would cost `--all`, so
+    its siblings are per-page context (`people list` drops `notFoundIds` on
+    purpose). It fires on one thing only — the extractor emits an array of
+    SCALARS while an array of OBJECTS is dropped: the records themselves.
+    `device-dynamic-settings list` (Link-paged supportedDevices) extracted
+    `upgradeChannelList` (channel names) and dropped the 136 `devices`.
+
+    Out of scope, by construction: an extractor that reaches nothing
+    (neither `<key>` nor `data` is declared) — that is check 27's finding,
+    not a second one here.
+    A path several specs declare passes if ANY of them (in any media type)
+    describes a bare array or a drop-nothing object — under-report rather
+    than fail a correct command, as checks 9/23-27 do. Blocks with no
+    matching spec op, or with no declared property in any spec, are skipped
+    and counted. Overlap with check 25 (an `{id}`-tailed GET) is accepted:
+    one fix — render it as a single-object read — clears both.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method != "GET":
+            continue
+        key = list_extractor_key(block.text)
+        if key is None:
+            continue                # not rendered as a list: out of scope
+        paged = bool(_ANY_WALKER_CALL.search(block.text))
+        sops = index.get(("GET", block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        clean = False
+        drops: set[str] = set()
+        for sop in sops:
+            content = _response_200_content(sop.op, sop.spec) or {}
+            for media in content.values():
+                verdict, lost = _media_drops(sop.spec, media, key, paged)
+                if verdict == "clean":
+                    clean = True
+                drops |= lost
+        if not clean and not drops:
+            skipped += 1            # no declared shape: never guessed
+            continue
+        examined += 1
+        if clean:
+            continue
+        findings.append({
+            "group": block.group,
+            "command": block.command,
+            "op": f"GET {sops[0].path}",
+            "extracts": key,
+            "drops": sorted(drops),
+            "spec": ", ".join(sorted({s.spec_file for s in sops})),
+        })
+    return record_examined(
+        "31", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "list commands")
+
+
+CHECK_PRINT["31"] = (
+    "list commands that drop part of the response object",
+    "list commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  extracts {f['extracts']}  "
+               f"drops: {', '.join(f['drops'])}  {f['op']}  ({f['spec']})"))
 
 
 # ----------------------------------------------------------------- check 18
@@ -5599,6 +5773,7 @@ def main() -> int:
     doc_value_types = check_doc_value_types(invocations, command_blocks, ops_by_key)
     doc_body_keys, unparseable_bodies = check_doc_body_keys(
         invocations, command_blocks, ops_by_key)
+    list_drops_object_fields = check_list_drops_object_fields()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -5652,6 +5827,7 @@ def main() -> int:
         # Not a failure — the bodies check 30 could not read, so a run can
         # trend them (`--json` had only the findings list before).
         "30_doc_body_unparseable": unparseable_bodies,
+        "31_list_drops_object_fields": list_drops_object_fields,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -5670,7 +5846,8 @@ def main() -> int:
                   or inert_window_flags or walker_params
                   or single_object_lists or cc_base64_org_ids
                   or unreachable_list_keys or wrong_product_labels
-                  or doc_value_types or doc_body_keys)
+                  or doc_value_types or doc_body_keys
+                  or list_drops_object_fields)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -5910,6 +6087,7 @@ def main() -> int:
         print_check_findings("29", doc_value_types)
         print_check_findings("30", doc_body_keys,
                              note=f"({unparseable_bodies} unparseable, not checked)")
+        print_check_findings("31", list_drops_object_fields)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

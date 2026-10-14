@@ -1230,6 +1230,177 @@ class TestSingleObjectResponseGet:
         assert by_path["people/{personId}/numbers"].command_type == "list"
 
 
+_A_OBJ = {"type": "array", "items": {"type": "object",
+                                     "properties": {"id": {"type": "string"}}}}
+_A_STR = {"type": "array", "items": {"type": "string"}}
+_BOOL = {"type": "boolean"}
+
+
+def _drop_spec(schema: dict, params: list | None = None,
+               headers: dict | None = None, components: dict | None = None,
+               media: str = "application/json") -> dict:
+    resp = {"description": "ok", "content": {media: {"schema": schema}}}
+    if headers:
+        resp["headers"] = headers
+    spec = {"paths": {"/queues/{queueId}/nightService": {"get": {
+        "tags": ["Probe"], "operationId": "getNight",
+        "summary": "Get Night Service",
+        "parameters": [{"name": "queueId", "in": "path", "required": True,
+                        "schema": {"type": "string"}}] + (params or []),
+        "responses": {"200": resp}}}}}
+    if components:
+        spec["components"] = {"schemas": components}
+    return spec
+
+
+def _night_ep(spec: dict):
+    endpoints, _ = parse_tag("Probe", spec)
+    assert len(endpoints) == 1
+    return endpoints[0]
+
+
+class TestListDropsObjectFields:
+    """Check 31. `detect_command_type` calls a GET a list as soon as its 200
+    declares any array, so a settings object that carries one was rendered
+    through `result.get("<array>", …)`: `call-queue list-night-service`
+    printed `[]` for the whole night-service object (live 2026-10-13). A
+    list-classified GET whose spec declares NO paging, and whose 200 object
+    declares a non-envelope property besides one array, renders as `show`,
+    after naming. A paged endpoint stays a list: it is a collection by
+    declaration, and `show` would cost `--all`."""
+
+    _NIGHT = {"type": "object", "properties": {
+        "nightServiceEnabled": _BOOL, "action": {"type": "string"},
+        "audioFiles": _A_OBJ, "businessHourSchedules": _A_OBJ}}
+
+    def test_settings_object_renders_whole_response_name_kept(self):
+        ep = _night_ep(_drop_spec(self._NIGHT))
+        assert ep.command_type == "show"
+        assert ep.response_list_key is None
+        assert ep.response_item_fields == {}
+        # Named BEFORE the reclassification, so the shipped list-name is kept
+        # (the tag's only list op takes the bare `list`), never `show`.
+        assert ep.command_name == "list"
+        code = render_command_file("Probe", [ep], {})
+        body = _function_body(code, _safe_func_name(ep.command_name))
+        assert "emit(result, output=output, fields=fields)" in body
+        assert 'result.get("audioFiles"' not in body
+        # The paging flags stay accepted, hidden and inert (ADR-14 amendment;
+        # tests/test_inert_list_flags.py), never visible.
+        assert '"--all", hidden=True' in body and '"--limit", hidden=True' in body
+        assert '"--all", help=' not in body and '"--limit", help=' not in body
+
+    @pytest.mark.parametrize("props", [
+        {"monitoringAgents": _A_OBJ, "aaExtensionDialingEnabled": _BOOL},
+        {"settingsGroups": _A_OBJ, "settingsTabs": _A_OBJ},     # two arrays
+        {"participants": _A_OBJ, "state": {"type": "string"}},
+    ])
+    def test_one_array_plus_any_data_is_show(self, props):
+        ep = _night_ep(_drop_spec({"type": "object", "properties": props}))
+        assert ep.command_type == "show"
+
+    @pytest.mark.parametrize("props", [
+        {"audioFiles": _A_OBJ},                                 # pure list
+        {"data": _A_OBJ, "meta": {"type": "object"}},           # CC v2
+        {"result": _A_OBJ, "start": {"type": "number"},
+         "limit": {"type": "number"}, "total": {"type": "number"}},
+        {"backgroundImages": _A_OBJ, "count": {"type": "string"}},
+        {"Resources": _A_OBJ, "schemas": _A_STR,
+         "totalResults": {"type": "integer"}},                  # SCIM
+    ])
+    def test_array_plus_paging_metadata_stays_a_list(self, props):
+        ep = _night_ep(_drop_spec({"type": "object", "properties": props}))
+        assert ep.command_type == "list"
+
+    @pytest.mark.parametrize("params,headers", [
+        ([{"name": "max", "in": "query", "schema": {"type": "integer"}}], None),
+        ([{"name": "page", "in": "query", "schema": {"type": "integer"}}], None),
+        ([{"name": "startIndex", "in": "query", "schema": {"type": "integer"}}],
+         None),
+        (None, {"Link": {"schema": {"type": "string"}}}),
+    ])
+    def test_paged_endpoint_stays_a_list(self, params, headers):
+        """`people list` (`items` + `notFoundIds`) pages: keep `--all`."""
+        ep = _night_ep(_drop_spec(self._NIGHT, params=params, headers=headers))
+        assert ep.command_type == "list"
+
+    @pytest.mark.parametrize("response", [
+        # an unresolvable property ref
+        {"content": {"application/json": {"schema": {"type": "object",
+            "properties": {"audioFiles": _A_OBJ,
+                           "mode": {"$ref": "#/components/schemas/Gone"}}}}}},
+        # one media type is a clean collection
+        {"content": {"application/json": {"schema": {"type": "object",
+            "properties": {"audioFiles": _A_OBJ, "enabled": _BOOL}}},
+                     "text/plain": {"schema": {"type": "object",
+            "properties": {"audioFiles": _A_OBJ}}}}},
+        # a bare array, no schema, no content
+        {"content": {"application/json": {"schema": _A_OBJ}}},
+        {"content": {"application/json": {}}},
+        {"description": "no content"},
+    ])
+    def test_any_doubt_keeps_the_list(self, response):
+        """As `_declares_single_object`: a doubt never re-renders a list."""
+        from tools.openapi_parser import _drops_object_fields
+        spec = {"components": {"schemas": {}}}
+        assert _drops_object_fields(
+            {"responses": {"200": response}}, spec) is False
+
+    def test_star_media_type_and_refs_are_read(self):
+        components = {"Night": {"allOf": [
+            {"$ref": "#/components/schemas/Base"},
+            {"type": "object", "properties": {"audioFiles": {
+                "$ref": "#/components/schemas/Rows"}}}]},
+            "Base": {"type": "object", "properties": {"enabled": _BOOL}},
+            "Rows": _A_OBJ}
+        ep = _night_ep(_drop_spec({"$ref": "#/components/schemas/Night"},
+                                  components=components, media="*/*"))
+        assert ep.command_type == "show"
+
+
+class TestListKeyPrefersRecordArray:
+    """Check 31, paged half. `device-dynamic-settings list` (supportedDevices,
+    a Link-paged endpoint) declares `upgradeChannelList` (strings) before
+    `devices` (objects) and extracted the strings: the table asked for
+    model/displayName/type on a list of channel names, and the 136 devices
+    were dropped. `archive-users list` extracted SCIM `schemas` instead of
+    `Resources`. The key is the array of records: a paging-metadata array is
+    never chosen, and an array of objects beats an array of scalars."""
+
+    @pytest.mark.parametrize("props,want", [
+        ({"upgradeChannelList": _A_STR, "devices": _A_OBJ}, "devices"),
+        ({"schemas": _A_STR, "Resources": _A_OBJ}, "Resources"),
+        ({"items": _A_OBJ, "notFoundIds": _A_STR}, "items"),    # unchanged
+        ({"rows": _A_OBJ}, "rows"),
+        ({"names": _A_STR}, "names"),           # scalars only: still chosen
+        ({"a": _A_OBJ, "b": _A_OBJ}, "a"),      # tie: first, as before
+    ])
+    def test_key(self, props, want):
+        from tools.openapi_parser import extract_response_list_key
+        op = {"responses": {"200": {"content": {"application/json": {
+            "schema": {"type": "object", "properties": props}}}}}}
+        assert extract_response_list_key(op, {}) == want
+
+    def test_required_still_breaks_a_tie_between_record_arrays(self):
+        from tools.openapi_parser import extract_response_list_key
+        op = {"responses": {"200": {"content": {"application/json": {
+            "schema": {"type": "object", "required": ["b"],
+                       "properties": {"a": _A_OBJ, "b": _A_OBJ,
+                                      "c": _A_STR}}}}}}}
+        assert extract_response_list_key(op, {}) == "b"
+
+    def test_ref_item_schema_counts_as_records(self):
+        from tools.openapi_parser import extract_response_list_key
+        spec = {"components": {"schemas": {"Dev": {
+            "type": "object", "properties": {"model": {"type": "string"}}}}}}
+        op = {"responses": {"200": {"content": {"application/json": {
+            "schema": {"type": "object", "properties": {
+                "upgradeChannelList": _A_STR,
+                "devices": {"type": "array", "items": {
+                    "$ref": "#/components/schemas/Dev"}}}}}}}}}
+        assert extract_response_list_key(op, spec) == "devices"
+
+
 # ── folder_name_to_module ───────────────────────────────────────────────────
 
 

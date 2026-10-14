@@ -115,7 +115,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-30 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-31 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -158,12 +158,13 @@ The renaming machinery this feeds is already built and proven by 28 renames:
 `command_name_overrides` plus an automatic hidden alias. To fix instead of acking, rename
 there and delete the ack.
 
-**GATED SINCE 2026-10-13 — checks 23-30.** A live session that day found about 15 Contact
+**GATED SINCE 2026-10-13 — checks 23-31.** A live session that day found about 15 Contact
 Center defects that the weekly routine could never have seen: it never calls the API, it never
 re-audits existing groups, and it may not edit the generator (`tools/sync_guard.py`
-`FORBIDDEN_PATHS`). These eight checks cover the half that can be detected statically. The
+`FORBIDDEN_PATHS`). Checks 23-30 cover the half that can be detected statically. The
 decision, the rejected options and the before/after proof are in ADR-13
-(`docs/architecture/02-decisions.md`). **None has an ack, allowlist or exemption key.** A
+(`docs/architecture/02-decisions.md`); check 31, added the same day after a Calling read
+printed `[]` for a populated object, is ADR-14. **None has an ack, allowlist or exemption key.** A
 finding is either a real defect, which you fix, or a sign the rule is wrong, which you tighten in
 a reviewed commit. "To clear" below is the only way out.
 
@@ -225,6 +226,30 @@ a reviewed commit. "To clear" below is the only way out.
   "fix"). Mark every change `> **Unverified:**` unless you tested it live; prefer a live call
   against a sandbox over a spec guess (root `CLAUDE.md`, "A value from the spec is a hypothesis"). What it admits beyond the schema, and why none of that can fire
   falsely, is in "Check 30 — what it accepts beyond the schema" below.
+- **[31] A list command emits one property of an object and drops the rest** (added
+  2026-10-13, ADR-14). `detect_command_type` called a GET a list as soon as its 200 declared
+  ANY array, so a settings object that carries one was cut down to that array: `call-queue
+  list-night-service` printed `[]` for the whole night-service object (HTTP 200, 236 bytes),
+  `user-settings list-privacy`/`list-simultaneous-ring` printed `[]` for objects whose scalars
+  ARE the setting. Check 27 passed them: the key did name a declared array. A block with no
+  page walker fires when every declaring spec describes an object with a non-envelope property
+  besides the one the extractor emits (a scalar, or a second array). Paging metadata
+  (`_LIST_ENVELOPE_KEYS`: `meta`, totals, the `start`/`limit` window echo, SCIM `schemas`, …)
+  is not data. A paged block (it calls a walker) is a collection by declaration and fires only
+  when it extracts an array of scalars while dropping an array of objects:
+  `device-dynamic-settings list` took `upgradeChannelList` and dropped the `devices`. An
+  extractor that reaches nothing is check 27's. **To clear:** nothing to pin by hand — the
+  parser renders a non-paging list-classified GET whose 200 is such an object as `show`
+  (`_drops_object_fields`, applied in `parse_tag` after naming), and
+  `extract_response_list_key` picks the array of records (never an envelope array, objects
+  before scalars). If a new finding appears, the rule is wrong for that shape: fix the parser
+  and regen. A `command_type_overrides: list` pin does not clear it — the check reads the
+  rendered command, so the pin just fires it again. The generator now refuses a
+  `table_columns` / `response_list_keys` entry on a command that renders no list, because 13
+  entries went silently inert when this landed (they were deleted). A `list*`-named
+  single-object read still accepts `--all`/`--limit`/`--offset` as hidden, ignored options
+  (`_render_inert_list_flags`; ADR-14 amendment), so check 23 examines it and finds nothing
+  sent.
 
 Checks 6, 9, 10, 11a and 11b also moved off the first `@app.command` decorator the same day.
 On the ~102 renamed commands that decorator is the hidden alias, so documented calls of the
@@ -234,7 +259,7 @@ labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both
 `LOCATION_ID`. Checks 6, 11a and 11b found nothing new; a live-tree mutation showed that 6 and
 11a now fire on a renamed command.
 
-**Shared mechanics of checks 23-30 (`drift_check.py`, under "check 23").**
+**Shared mechanics of checks 23-31 (`drift_check.py`, under "check 23").**
 - **`record_examined(check, findings, examined, skipped, noun)`** fills `CHECK_EXAMINED`. A check
   that examined nothing adds a gated `{"check", "error"}` finding, which prints as `BLIND`. A
   blind run fails; it never passes quietly.
@@ -1454,6 +1479,18 @@ exactly these 4 operations.
 `_get_response_schema` itself was deliberately NOT widened. It also feeds
 columns and create-id extraction, and changing those was not needed for this
 fix. Drift check 27 gates this class of defect ("no array, drops: …").
+
+**Extended the same day to objects that carry an array (ADR-14, drift check
+31).** `_drops_object_fields` re-renders a list-classified GET as `show` when
+the spec declares no paging for it and its 200 object holds, paging metadata
+aside, more than one array or an array plus a scalar. 107 commands moved
+(`call-queue list-night-service` had printed `[]` for a populated object, live).
+`extract_response_list_key` now picks the array of records (no envelope array,
+objects before scalars), which fixed `device-dynamic-settings list` and
+`archive-users list`. `build_producer_index` still counts a `list-*`-named
+single-object read as an ID producer, or 14 argument-help pointers would have
+vanished. Paged endpoints keep the list rendering on purpose: see the ADR's
+rejected alternatives before widening it.
 
 ### A group two specs render gets ONE label, whatever the render order (2026-10-13)
 

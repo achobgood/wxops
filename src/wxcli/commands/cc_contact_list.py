@@ -239,11 +239,11 @@ def cmd_list(
     campaign_id: str = typer.Argument(help="e.g. CCV_123456789"),
     status: str = typer.Option(None, "--status", help="Choices: Active, Expired, UploadFailed"),
     source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Contact Lists within a Campaign.\n\n\b\nExample: wxcli cc-contact-list list CCV_123456789"""
@@ -255,20 +255,13 @@ def cmd_list(
         params["status"] = status
     if source is not None:
         params["source"] = source
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("contactLists", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Contact List ID', 'contactListId'), ('Contact List Source File Name', 'contactListSourceFileName'), ('Contact List Status', 'contactListStatus'), ('Contact List Source', 'contactListSource'), ('Contact List Counts Timestamp Utc', 'contactListCountsTimestampUtc')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -277,11 +270,11 @@ def list_contact_lists(
     campaign_id: str = typer.Argument(help="e.g. CCV_123456789"),
     status: str = typer.Option(None, "--status", help="Choices: Active, Expired, UploadFailed"),
     source: str = typer.Option(None, "--source", help="Choices: API, SFTP, ManualFile"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Contact Lists within a Campaign.\n\n\b\nExample: wxcli cc-contact-list list-contact-lists CCV_123456789"""
@@ -293,19 +286,12 @@ def list_contact_lists(
         params["status"] = status
     if source is not None:
         params["source"] = source
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("contactLists", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Contact List ID', 'contactListId'), ('Contact List Source File Name', 'contactListSourceFileName'), ('Contact List Status', 'contactListStatus'), ('Contact List Source', 'contactListSource'), ('Contact List Counts Timestamp Utc', 'contactListCountsTimestampUtc')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 

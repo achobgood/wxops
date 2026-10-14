@@ -113,31 +113,23 @@ def create(
 @app.command("list-single-number-reach", short_help="Get Single Number Reach Settings For A Person.")
 def list_single_number_reach(
     person_id: str = typer.Argument(help="Webex PERSON id, from: wxcli people list"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Single Number Reach Settings For A Person.\n\n\b\nExample: wxcli single-number-reach list-single-number-reach PERSON_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/config/people/{person_id}/singleNumberReach"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("numbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Phone Number', 'phoneNumber'), ('Enabled', 'enabled'), ('Do Not Forward Calls Enabled', 'doNotForwardCallsEnabled')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 

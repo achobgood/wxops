@@ -629,7 +629,7 @@ Check 10 was widened as a side effect of check 29: `parse_module_signatures`, wh
 The 2026-10-13 instances (checks 23-26, 28 and 29, and check 27's first 8) were fixed on `main` in `e5e85fe`/`dc91c40`, before this work. Building the checks also turned up defects still present on `main` at `dc91c40`. All are fixed on this branch:
 
 1. **5 SCIM-style lists ignored `--offset`/`--limit`** (check 23). `groups list`, `groups list-members`, `scim-groups list`, `scim-groups list-members` and `scim-users list` sent `max`/`start` to endpoints that page by `startIndex`/`count`. The generator now sends `count` and a 1-based `startIndex = offset + 1` (`4dec4b0`). Verified live on `groups list`; `scim-users` returns 403 for a PAT.
-2. **4 flat-object GETs printed `[]`** (check 27, widened). `user-settings`, `virtual-line-settings` and `workspace-settings list-outbound-billing-plan`, plus `guest-management list` (`/guests/count`), were rendered as lists, so the extractor dropped the whole object. The parser now renders them as `show`; names are unchanged (`ba49ccf`). The flags are not: as single-object reads, all four lost `--limit`, `--offset` and `--all`, and `--output` now defaults to `json` instead of `table`. Nothing is lost by dropping those flags. `--limit`/`--offset` went out as `max`/`start`, which none of the four endpoints declares, and there is no page of one object to cut short. `--all` was the inert no-paging branch. Verified live: `user-settings list-outbound-billing-plan` now prints `{"enabled": true}`. `guest-management list` returns 403 for this PAT and is **unverified** live.
+2. **4 flat-object GETs printed `[]`** (check 27, widened). `user-settings`, `virtual-line-settings` and `workspace-settings list-outbound-billing-plan`, plus `guest-management list` (`/guests/count`), were rendered as lists, so the extractor dropped the whole object. The parser now renders them as `show`; names are unchanged (`ba49ccf`). The flags are not: as single-object reads, all four lost `--limit`, `--offset` and `--all`, and `--output` now defaults to `json` instead of `table`. Nothing is lost by dropping those flags. `--limit`/`--offset` went out as `max`/`start`, which none of the four endpoints declares, and there is no page of one object to cut short. `--all` was the inert no-paging branch. Verified live: `user-settings list-outbound-billing-plan` now prints `{"enabled": true}`. `guest-management list` returns 403 for this PAT and is **unverified** live. *Superseded the same day by ADR-14's amendment: the three flags are accepted again on all four, hidden and ignored.*
 3. **Group-help labels depended on render order** (check 28). The label of a group that two specs render (7 groups) named whichever spec rendered last, so a one-spec regen and a full regen disagreed. `command_renderer.group_label_spec` now picks deterministically. A forward-order and a reverse-order regen are byte-identical, and the rule changed one committed label: `locations`, Devices → Calling (`306edb7`).
 4. **65 request-body errors found in docs** (check 30): 22 in 5 skills, 43 in 11 reference docs. 58 were fixed, from the spec or from a live call where one existed (e.g. the `reporting-cc` `cc-agent-summaries` body), and marked `> **Unverified:**` unless tested live (`8818243`, `bd862cf`). The other 7 were the SCIM bulk bodies. They were reverted to RFC 7644 `Operations` under `> **Unverified:**` notes, and check 30 now compares SCIM keys case-insensitively (`bd862cf`). That rule is why check 30's pre-fix count is 68, not 75.
 5. **2 positional-argument doc bugs** (check 10, widened). `cc-users update-dynamic-skill` was missing `SKILL_ID` (its body was rebuilt from the spec and labelled Unverified), and `call-queue show` was missing `LOCATION_ID` (`07e0e20`, `bb71a49`).
@@ -645,6 +645,110 @@ The 2026-10-13 instances (checks 23-26, 28 and 29, and check 27's first 8) were 
 ### Status
 
 **Active** since 2026-10-13 on branch `feat/static-drift-checks`. Gate `--enforce` PASS at HEAD, every check 0. Design spec (local-only, gitignored): `docs/superpowers/specs/2026-10-13-static-drift-checks-design.md`. The Decision and Alternatives sections above reproduce it, so this ADR is the tracked record.
+
+---
+
+## ADR-14: A List GET That Returns One Object Renders as a Single-Object Read; Drift Check 31 Gates It
+
+### Decision
+
+A GET the parser classifies `list` is re-rendered as `show` — after its name is derived, so no name moves — when the spec declares **no paging** for it (no `Link` header, no paging query parameter: `ep.paginates` false and `pagination_style == "none"`) and, in every media type its 200 declares, the response is an object whose properties, paging metadata aside, are something other than exactly one array: one array plus a scalar, or two arrays (`openapi_parser._drops_object_fields`). This extends ADR-13 item 2 (`_declares_single_object`, flat objects with no array) to objects that carry an array. Paging metadata is a measured set, `_LIST_ENVELOPE_KEYS` (`meta`, the totals, `pageNumber`/`pageSize`/`rel`, SCIM `schemas`/`itemsPerPage`/`startIndex`, `count`, `pageInfo`, `links`, and the `start`/`limit` window echo of `/contacts/organizations/{orgId}/contacts/search`), held identically in the parser and in `drift_check.py`.
+
+Two companion changes:
+
+- **The list key is the array of records.** `extract_response_list_key` never picks an envelope array, and prefers an array of objects over an array of scalars; only then do `required` and spec order decide. That moved two keys on commands that stay lists: `device-dynamic-settings list` (`upgradeChannelList` → `devices`) and `archive-users list` (`schemas` → `Resources`).
+- **Drift check 31 gates the class**, with no ack key (ADR-13's rules: static, `record_examined`/`BLIND`, `CHECK_PRINT`, never raises). A list command with no page walker fires when every declaring spec describes an object from which the extractor emits one property and drops another non-envelope one. A paged command fires only when it extracts an array of scalars while dropping an array of objects. CI's completion assertion now greps `^\[31\]`.
+
+Result, measured by a full `spec_sync.py --skip-update` regen: **109 commands changed**, exactly the 109 that check 31 reports on the pre-fix tree — 107 render as single-object reads (names unchanged; `--output` defaults to `json`; `--limit`, `--offset` and `--all` are still accepted, hidden and ignored — see the amendment below), and the 2 key moves above. No other command changed *in that first pass*; a second regen produced no diff. (The amendment below later touched 8 more commands, so the final count is 115.)
+
+| Group | Commands now single-object reads |
+|---|---|
+| `user-settings` (18) | `list`, `list-assistant`, `list-call-filtering`, `list-digit-patterns`, `list-members-applications`, `list-members-applications-1`, `list-members-hot-desking`, `list-ms-teams`, `list-numbers`, `list-outgoing-permission`, `list-preferred-answer-endpoint`, `list-privacy`, `list-push-to-talk`, `list-reception`, `list-selective-accept`, `list-selective-forward`, `list-selective-reject`, `list-simultaneous-ring` |
+| `my-call-settings` (17) | `list-assistant`, `list-call-notify`, `list-call-park-secondary-lines`, `list-call-park-settings`, `list-call-pickup-group-secondary-lines`, `list-call-pickup-group-settings`, `list-monitoring`, `list-priority-alert`, `list-queues-secondary-lines`, `list-queues-settings`, `list-selective-accept`, `list-selective-forward`, `list-selective-reject`, `list-sequential-ring`, `list-simultaneous-ring`, `list-single-number-reach`, `list-speed-dials` |
+| `workspace-settings` (13) | `list`, `list-digit-patterns`, `list-monitoring`, `list-numbers`, `list-outgoing-permission`, `list-priority-alert`, `list-privacy`, `list-push-to-talk`, `list-selective-accept`, `list-selective-forward`, `list-selective-reject`, `list-sequential-ring`, `list-simultaneous-ring` |
+| `video-mesh` (12) | `list-media-health-monitor-test`, `list-clusters-media-health-monitor-test`, `list-nodes-media-health-monitor-test`, `list-reachability-test`, `list-clusters-reachability-test`, `list-nodes-reachability-test`, `list-network-test`, `list-clusters-network-test`, `list-nodes-network-test`, `list-test-status`, `list-test-results`, `list-event-thresholds` |
+| `virtual-line-settings` (6) | `list-caller-id`, `list-devices`, `list-digit-patterns`, `list-outgoing-permission`, `list-privacy`, `list-push-to-talk` |
+| `hds` (5) | `list-alarms`, `list-availability`, `list-network-test`, `list-resource-usage`, `list-tenants` |
+| `call-queue` (4) | `list-forced-forward`, `list-holiday-service`, `list-night-service`, `list-stranded-calls` |
+| `device-settings` (4) | `list`, `list-devices-people`, `list-devices-workspaces`, `list-layout` |
+| `conference` (3), `meeting-preferences` (3) | `list`, `list-conference-me`, `list-conference-members`; `list`, `list-personal-meeting-room`, `list-scheduling-options` |
+| 2 each | `cc-contact-list` `list`, `list-contact-lists`; `cc-flow` `list-activity-choices`, `list-event-specifications`; `meetings` `list-registration`, `list-survey`; `workspace-metrics` `list`, `list-workspace-duration-metrics` |
+| 1 each | `activation-email list`, `ai-receptionist list-templates`, `announcement-playlists list-playlists`, `call-recording list-vendors`, `client-settings list`, `cq-playlists list`, `customer-assist list-settings`, `dect-devices list-handsets`, `device-dynamic-settings list-settings-groups`, `hot-desking-members list-members`, `meeting-tracking-codes list-tracking-codes`, `person-call-settings list`, `single-number-reach list-single-number-reach`, `webhook-interest-registrations list` |
+
+### Context
+
+Live 2026-10-13: `call-queue list-night-service LOC QUEUE -o json` printed `[]` while the server answered HTTP 200 with 236 bytes — the night-service switch, its action and schedule. `[]` reads as "service off", a false negative on a setting. `user-settings list-simultaneous-ring` and `list-privacy` printed `[]` for `{"enabled":false,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[],"criteriasEnabled":false,"criteria":[]}`-shaped objects. Cause: `detect_command_type` calls a GET a list as soon as its 200 declares any array property, and the list extractor emits that one array. Check 27 passed every case, because it only asks whether the key reaches *some* declared array. Check 25 only covers `{id}`-tailed GETs.
+
+### Alternatives Considered
+
+- **Make the runtime extractor return the whole object when the response has siblings.** *Rejected.* The output type would then depend on what one response happened to contain: a list on one call, an object on the next, so an agent's `--fields '[].id'` or a table breaks unpredictably. The runtime has no schema, so it cannot tell paging metadata (`meta`, totals) from data. A table cannot render the object either, because its columns come from the item schema. `--limit`, `--offset` and `--all` would stay on commands where they mean nothing. And the gate reads the rendered command: a runtime patch leaves the generated code wrong-looking, so check 31 could not tell fixed from broken. The shape is known when the code is generated, so that is where it is decided — the same call ADR-13 item 2 made.
+- **Apply the rule to paged endpoints too.** *Rejected.* A spec that declares paging declares a collection; rendering it as one object would remove `--all` from commands that really page. `people list` drops `notFoundIds` that way on purpose. Paged commands are judged only for the wrong-array case.
+- **Treat echoed request fields (`orgId`, `from`, `to`, HDS `context`/`timeRange`) as metadata,** to keep tables on `video-mesh`/`hds`/`workspace-metrics`. *Rejected:* "echo or data" is a judgement per field, not a measured rule, and a single-object read is a superset of what the table showed. The video-mesh skill already directs operators to `-o json`.
+- **109 `command_type_overrides: show` pins.** *Rejected:* the next upstream operation of this shape would ship broken. A rule in the parser, as ADR-13 item 2 did.
+- **An ack or allowlist key for check 31.** *Rejected*, as for checks 23-30 (ADR-13).
+
+### Proof — 0 at HEAD, fires on the pre-fix tree
+
+HEAD is this change's regenerated tree, measured with `--enforce`. Pre-fix is the new check-31 code run against a worktree of `71856a6`, by passing its `src/wxcli/commands` and `specs` (and pointing `REPO`/`SPECS_DIR`/`COMMANDS_DIR`/`MAIN_PY` at it, as ADR-13 describes). Manual step; no test references that tree.
+
+| Check | HEAD (examined, skipped) | Pre-fix 71856a6 (examined, skipped) | Named pre-fix instances |
+|---|---|---|---|
+| 31 | **0** (426 list commands, 8) | **109** (533 list commands, 8) | `call-queue list-night-service` (extracts `audioFiles`, drops the switch, action, schedules), `user-settings list-privacy`, `user-settings list-simultaneous-ring`, `person-call-settings list` (drops `callParkNotificationEnabled`, `availableEntriesCount`), `device-dynamic-settings list` (extracts `upgradeChannelList`, drops `devices`), `archive-users list` (extracts `schemas`, drops `Resources`) |
+
+The 109 pre-fix findings and the 109 commands the regen changed are the same set (compared by group and command name). The gate's first line is unchanged (`192 command sets (195 registered names incl. aliases), 2164 commands, 1991 non-skipped spec ops (152 deliberately skipped)`); checks 23 and 27 examine 107 fewer list commands, because those are no longer lists. Mutation: dropping the envelope subtraction fails 8 of the 36 check-31 tests, judging paged blocks as non-paged fails 8, and ignoring a clean media type fails 20.
+
+### Consequences
+
+**Enables:** these reads return the whole object, so `[]` no longer stands in for a populated setting.
+**Changes for users:** the 107 commands print the whole object, as JSON by default (`-o table` is still accepted). They still accept `--limit`, `--offset` and `--all`, which are hidden from `--help` and ignored (amendment below). Whether any of these endpoints pages without declaring it is **not known**: no paging is declared in the spec (no `Link` header, no paging query parameter), but an undeclared parameter is not proof the server ignores it — ADR-12's `/v1/tasks` pages by an undeclared `page`. If one ever returns `Link: rel="next"`, `rest_get`'s truncation note will say "Re-run with --all", and `--all` is accepted there but walks nothing.
+**`dect-devices list-handsets` now prints `accessCode` by default — kept, recorded here.** Before, the default was a table (ID / Display Name / Index / Primary) whose override existed to keep the handset pairing code out of a default table; `-o json` always printed it. Now the default is the whole object as JSON, `accessCode` included. This is not new exposure in kind: the single-handset read, `dect-devices show-handsets`, already defaults to JSON, and its spec schema (`DECTHandsetGet`) declares `accessCode` (verified in `specs/webex-cloud-calling.json`). It does reverse that override's intent; nobody has decided otherwise.
+**Config retired:** 13 `table_columns` entries became inert (a single-object read draws no table) and were deleted, among them the live-verified monitoredElements union (the fact it encoded is kept in a comment and in `tools/CLAUDE.md`). `generate_tag` now refuses a `table_columns`/`response_list_keys` entry on a command that renders no list, so the next one cannot rot silently. `build_producer_index` keeps a `list-*`-named single-object read as an ID producer, so 14 argument-help pointers (`from: wxcli dect-devices list-handsets`, …) survive.
+**Verified live 2026-10-13 (read-only, after the regen):** `call-queue list-night-service`, `list-holiday-service`, `list-forced-forward` and `list-stranded-calls` return multi-key JSON objects (HTTP 200); `user-settings list-simultaneous-ring`, `list-privacy` and `list-outgoing-permission` return the full objects; `device-dynamic-settings list` returns 136 device-model records. **Not re-run live:** the other 101 converted commands and `archive-users list`. The doc and skill passages that described the pre-fix output ("prints `[]`", "prints only the `types` array") were rewritten the same day: those for the live-verified commands say so; every other one says the command now prints the whole response object and was not re-run live.
+**Side effect of adding `start`/`limit` to the shared paging-metadata set** (`_LIST_ENVELOPE_KEYS`, read by the parser, by check 25 and by check 31; checks 23, 24 and 26-30 do not read it). Measured by removing the two keys from both copies in-process and re-running: of 2233 parsed operations across the 9 specs, exactly one changes — `GET /contacts/organizations/{orgId}/contacts/search` (`org-contacts`) would become a single-object read instead of a list on `result`; check 31 then reports 1 instead of 0 against today's rendered tree; check 25 stays 0 with the same 231 examined. So today the two keys protect that one list and change nothing else. The cost is a future false negative, never a false failure: `start` is real data (a timestamp or object) in the 200 of `/meetings/{meetingId}`, `/admin/meetings/{meetingId}`, `/recordingReport/meetingArchives/{archiveId}` and the call-recording announcements reads, so a future object shaped `{items: […], start: <timestamp>}` would be judged a clean collection and its `start` dropped without a finding.
+
+### Amendment, 2026-10-13 — the paging flags stay, hidden and inert
+
+**Decision (Adam, 2026-10-13).** Every `list*`-named command rendered as a single-object read keeps `--all`, `--limit` and `--offset` as **hidden options that do nothing**: absent from `--help`, never written to `params`, no effect on output (`command_renderer._render_inert_list_flags`, called from `_render_show_command`). This **supersedes** the "flags dropped" outcome of this ADR as first written and of ADR-13 item 2.
+
+**Why.** The flag is uniform on every list command by design (root `CLAUDE.md` Common Flags; ADR-12's rejected alternative): an option present on most list commands but not all costs an agent a failed call plus a `--help` round trip, and a script that learned `--all` on one `list*` command would have got "No such option" on the 111 that ADR-13 item 2 and this ADR converted. The names were kept on purpose, so these still read as list commands. With the hidden flags, root `CLAUDE.md`'s "`--all` on every `list` command" is true again; one sentence there now says the flags are accepted and ignored on single-object `list*` commands.
+
+**Scope, keyed on the visible name.** 115 commands carry them: the 107 above, the 4 from ADR-13 item 2 (`user-settings`/`virtual-line-settings`/`workspace-settings list-outbound-billing-plan`, `guest-management list`), and 4 older `list*`-named single-object reads that had also lost them (`cc-flow list-validate`, `cc-legacy-flows list`, `cc-user-profiles list-acl`, `pstn list-connection`). `cc-flow export` (hidden alias `list-export`) is not a list and gets none. A flag whose name the spec already claims on a command is skipped, so a real spec `--limit` is never shadowed. Non-`list*` commands (`show`, `create`, …) and real lists are unchanged; the 2 re-keyed lists (`device-dynamic-settings list`, `archive-users list`) keep their visible flags.
+
+**Gate effect:** check 23 examines every GET carrying `--offset`/`--limit` text, so its examined count rose from 433 to 548 list commands, still 0 findings (the hidden flags feed no `params`). Check 16 (`--all` inert on a paging endpoint) reads these blocks too and stays 0. Command names, the name lock, `_registry.py` and `tools/spec_semantics.json` did not change. Pinned by `tests/test_inert_list_flags.py` (synthetic fixtures; the behavioural cases exec the rendered module with stubbed `wxcli` imports and prove `--help` omits the flags, that passing them changes neither the request nor the output, and that `show … --all` still exits 2).
+
+### Known gap / follow-up — not built
+
+The weekly spec-sync can silently flip a command between list and single-object read. `_drops_object_fields` decides from the 200 schema, so an upstream refresh that adds one scalar to a non-paged list's response (an echo field such as `orgId` is the realistic case) re-renders it as a single-object read: `-o json` changes from an array to an object, so `--fields '[].id'` and `jq '.[]'` break, and the default output changes from a table to JSON. The reverse happens when upstream removes the last scalar sibling. No gate sees it: check 22 and `tools/sync_classify.py` compare names and operations only (`command_name_lock.json` stores no command type), and check 31 is satisfied by the flip. Where the command carries a `table_columns` override, the same benign upstream change instead stops the regen at `generate_tag`'s guard (fail-closed), which `docs/spec-sync-contract.md` §6 does not list. **Exposure today: 136 list commands** call no page walker and have an object-wrapped 200 (review count, e.g. `call-controls list`, `authorizations list`, `call-queue list-dnis`, `call-recording list`, `cc-agents list-statistics`). **Proposed follow-up:** record each command's type (list or single-object) in the name lock, and make `sync_classify` route a list↔single-object change on an existing name to a human as breaking. **Adam has not approved building it.**
+
+### Status
+
+**Active** since 2026-10-13. Gate `--enforce` PASS, check 31 at 0.
+
+---
+
+## ADR-15: `POST` and `PATCH` Are Retried on 429 Only, Never on 5xx
+
+### Decision
+
+`WebexSession._request` (`src/wxcli/auth.py`) keeps its bounded retry (4 attempts, `Retry-After` honoured up to 30 s, jittered backoff) on 429/500/502/503/504 for `GET`, `PUT` and `DELETE`, but retries `POST` and `PATCH` on **429 only** (`NON_IDEMPOTENT_METHODS`). The one-shot connect-error retry is unchanged and applies to every method.
+
+### Context
+
+A 2026-10-13 live spot-check sent `cc-team create` without `teamType`; the server answered 500 and the CLI sent the request four times (three retries). No ghost team was created that time, but a 5xx on a create can mean the server half-processed it, and a resend could create a second resource. A 429 is different: the request was rejected before any work was done, so resending is safe. `GET`, `PUT` and `DELETE` are idempotent by contract, so retrying them on 5xx cannot duplicate anything. Evidence is one observed case; the rule rests on HTTP semantics, not on a measured duplicate.
+
+### Alternatives Considered
+
+- **Keep retrying everything (status quo).** *Rejected:* the downside is an unrecoverable duplicate resource, the upside is saving a manual re-run.
+- **Exempt `/search` and `/query` POSTs, which only read.** *Rejected:* a path heuristic is fragile. The three read-only POSTs that lose their 5xx retry (`cc-search create`, and the meetings registrant and participant `/query` endpoints) cost one manual re-run.
+- **Retry `POST` only when the body carries an idempotency key.** *Rejected:* Webex does not document one for these endpoints.
+
+### Consequences
+
+A create that hits a flaky 5xx now fails on the first response instead of recovering by itself; the operator re-runs it after checking whether the resource exists. `WXCLI_RETRY_MODE=off` is unchanged. Tests: `tests/test_auth.py` (`test_non_idempotent_write_is_not_retried_on_5xx`, `..._still_retried_on_429`, `test_idempotent_methods_are_still_retried_on_5xx`); documented in `docs/reference/authentication.md`.
+
+### Status
+
+**Active** since 2026-10-13.
 
 ---
 
@@ -668,6 +772,9 @@ The 2026-10-13 instances (checks 23-26, 28 and 29, and check 27's first 8) were 
 | ADR-12 (Paging flags translated) | ADR-1 (Generated commands) | The translation is emitted by the renderer per endpoint paging style; the runtime half lives in `auth.py` so a regen cannot drift from it |
 | ADR-13 (Static checks 23-30) | ADR-9 (Spec sync + drift gate) | Eight more gated checks in the gate the weekly routine already runs; a hit fails closed, since the fixes sit in generator paths the routine may not edit |
 | ADR-13 (Static checks 23-30) | ADR-12 (Paging flags translated) | Check 23 gates the paging translation: a list flag sent under a name the endpoint does not declare fails the build |
+| ADR-14 (Single-object list GETs) | ADR-13 (Static checks 23-30) | Extends ADR-13 item 2 from flat objects to objects carrying an array; check 31 gates what check 27 could not see (a key that reaches one array of an object) |
+| ADR-15 (POST/PATCH not retried on 5xx) | ADR-2 (Raw HTTP) | The retry loop lives in the sync `WebexSession` that ADR-2 keeps as the CLI's execution layer; the rule is by HTTP method, not by endpoint |
+| ADR-14 (Single-object list GETs) | ADR-12 (Paging flags translated) | Only GETs with no declared paging are re-rendered, so no command that ADR-12's translation serves loses `--offset`/`--limit`/`--all` |
 
 ---
 
