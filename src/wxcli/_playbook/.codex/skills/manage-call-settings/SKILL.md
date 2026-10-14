@@ -279,13 +279,14 @@ wxcli workspace-settings list-outbound-billing-plan WORKSPACE_ID -o json
 wxcli virtual-line-settings list-outbound-billing-plan VIRTUAL_LINE_ID -o json
 ```
 - All three `update-outbound-billing-plan` commands are **`--json-body` only** — no field flags are generated. Read the current plan first and send the modified object back.
+- The three `list-outbound-billing-plan` commands return **one object** (e.g. `{"enabled": true}`), not a list, and take no `--limit`/`--offset`/`--all`. Before 2026-10-13 they printed `[]` for every person (verified live 2026-10-13; ADR-13).
 
 ### Guest calling tokens (`guest-management`) — read this before using it
 
 `guest-management` is the **Webex Guest Issuer API** (`/v1/guests/token`, `/v1/guests/count`), NOT a per-person call setting. It mints guest identities for guest calling/SDK embedding.
 
 ```bash
-wxcli guest-management list -o json                                        # guest count for the org
+wxcli guest-management list -o json                                        # guest count for the org (one object, not a list; printed [] before 2026-10-13)
 wxcli guest-management create --subject "ext-user-42" --display-name "Jane Guest"
 ```
 - Requires a **Guest Issuer application** (JWT-signed credentials), not a normal admin token. A standard admin/PAT will not mint guest tokens.
