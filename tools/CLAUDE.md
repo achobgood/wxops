@@ -115,7 +115,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-20 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-30 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -157,6 +157,104 @@ fail).
 The renaming machinery this feeds is already built and proven by 28 renames:
 `command_name_overrides` plus an automatic hidden alias. To fix instead of acking, rename
 there and delete the ack.
+
+**GATED SINCE 2026-10-13 — checks 23-30.** A live session that day found about 15 Contact
+Center defects that the weekly routine could never have seen: it never calls the API, it never
+re-audits existing groups, and it may not edit `tools/**`. These eight checks cover the half that
+can be detected statically. The decision, the rejected options and the before/after proof are in
+ADR-13 (`docs/architecture/02-decisions.md`). **None has an ack, allowlist or exemption key.** A
+finding is either a real defect, which you fix, or a sign the rule is wrong, which you tighten in
+a reviewed commit. "To clear" below is the only way out.
+
+- **[23] `--offset`/`--limit` sent under a name the endpoint does not declare.** It fires only
+  when the endpoint declares its own name for that concept (`offset`/`start`/`startIndex`/
+  `page`, or `limit`/`max`/`pageSize`; `size` only beside `page`, `count` only beside
+  `startIndex`) and the command sends a different one. An `--offset` routed through
+  `fetch_from_offset` counts as translated. 2026-10-13: 105 CC page-numbered lists sent
+  `start`/`max` (`cc-queue list --limit 2` → 17 rows). This branch also found and fixed the 5
+  SCIM-style lists (`groups list`, `groups list-members`, `scim-groups list`, `scim-groups
+  list-members`, `scim-users list` now send `count`/`startIndex`). **To clear:** teach the
+  renderer the endpoint's paging style (`_render_list_command`) and regen. Out of scope by
+  construction: endpoints that declare no paging name (the uniform no-op flags, ADR-12), and
+  Link-cursor lists that declare only `max`.
+- **[24] A page walker sends a page/size name the endpoint does not declare,** while the
+  endpoint does declare one. 2026-10-13: `cc-flow list --all` walked with `pageSize`; Flows take
+  `size` (10 of 56). **To clear:** `Endpoint.page_size_param` in the parser, then regen.
+  `/v1/tasks` declares only `pageSize` but pages by `page`. That is deliberately not a finding,
+  because the endpoint declares no page name to compare against, and it was verified live.
+- **[25] A single-resource GET rendered through the list extractor** (`…/{id}` or
+  `…/{id}:<action>`), where the response declares a field the list output drops. 2026-10-13:
+  `cc-flow export`, `cc-flow list-validate`, `cc-legacy-flows list`. **To clear:** `parse_tag`
+  already reclassifies `{id}:action` paths. For a new case, add `command_type_overrides: show` and
+  regen. 18 GETs ending in `{id}` are real collections; the "drops a field" condition keeps them
+  quiet if one is ever rendered as a list.
+- **[26] A Contact Center command sends the base64 Webex org id as `orgId`** (from
+  `get_org_id()`/`resolve_org_id` instead of `get_cc_org_id()`, in the query or the path).
+  2026-10-13: 14 commands in 6 CC analytics modules → 401. **To clear:** the CC branch of
+  `_render_auto_inject_params`, then regen.
+- **[27] A list command's extractor reaches none of the response's arrays** (any media type,
+  including `*/*`), or the 200 response is one object with no array, so the whole thing is
+  dropped. 2026-10-13: 7 bulk-export lists printed 0 rows (`resources`), plus `cc-user-profiles
+  list-acl`. Widened on this branch after `user-settings list-outbound-billing-plan` printed `[]`
+  while the API returned `{"enabled": true}` (verified live). **To clear:** fix the parser if
+  the shape is general. If not, pin it per tag in `field_overrides.yaml`: use `response_list_keys`
+  when the array is under a key the generator missed, or `command_type_overrides: show` when the
+  response is a single object. Then regen. A response with no declared schema or properties is
+  skipped and counted, because there is nothing to judge it against.
+- **[28] A group's help names the wrong product.** The label must be exactly `Manage Webex
+  <Product>: <group>.` for the `SPEC_PRODUCT` of some spec that owns the group's operations.
+  2026-10-13: `asset`/`channel` were labelled "Webex Calling". **To clear:** `SPEC_PRODUCT` /
+  `group_label_spec` in `command_renderer.py`, then regen. A module whose ops live only in a spec
+  `SPEC_PRODUCT` does not know yet (a new upstream spec) is skipped and counted, not raised.
+- **[29] A documented value whose type contradicts the spec.** A `--flag` value or inline
+  `--json-body` value that is not numeric, where the spec types it integer/number. 2026-10-13:
+  `cc-agents list-activities --from "2026-03-01T00:00:00Z"` (the spec says int64 epoch ms).
+  **To clear: fix the doc.** Placeholders never fire (`FROM_PARAM`, `<epoch-ms>`, `$FROM`,
+  `{{var}}`, `"..."`, any value with no digit except `true`/`false`). **Known future false
+  positives:** the spec types Meetings registrants `zipCode` and voicemail-group `extension` as
+  `number`, though the real values are strings. A doc showing a ZIP+4 or a non-numeric extension
+  would fire. No doc does today. If one does, the doc is right, so tighten the rule in a reviewed
+  commit; do not reach for an ack.
+- **[30] A documented `--json-body` key that the request schema does not accept** (only closed
+  schemas are judged). 2026-10-13: `cc-captures create` with `{from, to, filters}`, `cc-dial-number
+  create` with `dialNumber`. **To clear: fix the doc from the spec**, and mark it `> **Unverified:**`
+  unless you tested it live. What it admits beyond the schema, and why none of that can fire
+  falsely, is in "Check 30 — what it accepts beyond the schema" below.
+
+Checks 6, 9, 10, 11a and 11b also moved off the first `@app.command` decorator the same day.
+On the ~102 renamed commands that decorator is the hidden alias, so documented calls of the
+visible name went unchecked. Checks 6, 10, 11a and 11b now key on every decorator name; check 9
+labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both fixed:
+`cc-users update-dynamic-skill` was missing `SKILL_ID`, and `call-queue show` was missing
+`LOCATION_ID`. Checks 6, 11a and 11b found nothing new; a live-tree mutation showed that 6 and
+11a now fire on a renamed command.
+
+**Shared mechanics of checks 23-30 (`drift_check.py`, under "check 23").**
+- **`record_examined(check, findings, examined, skipped, noun)`** fills `CHECK_EXAMINED`. A check
+  that examined nothing adds a gated `{"check", "error"}` finding, which prints as `BLIND`. A
+  blind run fails; it never passes quietly.
+- **`helper_skip_count(*keys)`** adds the shared readers' `HELPER_SKIPS` (modules, blocks and
+  specs that `iter_command_blocks`/`spec_ops_by_key` could not parse) to that check's skipped
+  count.
+- **`print_check_findings` + the `CHECK_PRINT` registry** print every result as `[NN] <label>: N
+  (examined M <noun>, skipped K)`, using check 16's layout. The helper never raises. A `BLIND`
+  finding bypasses the formatter, and a formatter that raises prints `FORMAT-ERROR <repr>`
+  instead of crashing the gate (exit 2).
+- **The tripwire:** `tests/test_drift_check_static_helpers.py::test_live_tree_helpers_are_not_blind`
+  fails if a render-style change makes the block parser drop most commands. The routine's
+  pytest pass bar runs it.
+- **Each check's live-tree test asserts only a loose "examined" floor.** It catches blindness,
+  not a regression. The evidence that a check still works is the `examined` count beside its 0
+  in the log.
+- **New upstream input never crashes these checks.** An unknown spec, an odd schema or an
+  unreadable module is skipped and counted.
+
+**The no-ack trade-off, accepted on purpose.** Checks 29 and 30 use the spec as the oracle, and
+nothing can ack a finding. So an upstream spec that drops a key or retypes a value the live API
+still accepts fails the gate, and the weekly release stays blocked until a human edits the doc.
+An escape hatch the unattended routine could reach would defeat the point. For checks 23-28 the
+fix is in the generator, which the routine is forbidden to edit (`tools/sync_guard.py`
+`FORBIDDEN_PATHS`), so the routine fails closed and a human fixes it.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race

@@ -565,6 +565,89 @@ Verified live 2026-10-13 on the CC Bootcamp Sandbox: `cc-queue list --limit 2` s
 
 ---
 
+## ADR-13: Eight Gated Static Drift Checks (23-30) for the Bug Classes Found Live on 2026-10-13
+
+### Decision
+
+Add eight gated checks, numbered 23-30, to `tools/drift_check.py`. The weekly spec-sync routine already runs `python3 -m tools.drift_check --enforce` in its pass bar (`docs/spec-sync-contract.md` §4), so every new check runs weekly with no change to the routine. On a hit the routine **fails closed**: it commits nothing, and the liveness workflow opens a `spec-sync` issue. It does not repair, because the fixes live in the generator, which an unattended job must not edit (`tools/sync_guard.py` `FORBIDDEN_PATHS`; contract §6).
+
+| # | Detects | 2026-10-13 instance |
+|---|---|---|
+| 23 | `--offset`/`--limit` written to a query param the spec op does not declare, where the op declares its own name for that concept (and no `fetch_from_offset`) | 105 CC list commands sent `start`/`max` to page-numbered endpoints |
+| 24 | a page walker whose page/size param name the spec op does not declare, where it declares another | `cc-flow list --all` walked with `pageSize`; the op takes `size` |
+| 25 | a GET on a single resource (`…/{id}` or `…/{id}:<action>`) rendered through the list extractor, dropping a declared field | `cc-flow export`, `list-validate`, `cc-legacy-flows list` |
+| 26 | a CC-host command that sends `orgId` from `get_org_id()` (base64) instead of `get_cc_org_id()` | 14 commands in 6 CC analytics modules → 401 |
+| 27 | a list command whose extractor key chain reaches none of the 200 response's array properties (any media type, incl. `*/*`), or whose response is one object with no array | 7 bulk-export lists printed 0 rows (`resources`) |
+| 28 | a group help label naming a product other than the owning spec's `SPEC_PRODUCT` | `asset`/`channel` labelled "Webex Calling" |
+| 29 | a documented flag or `--json-body` value whose type contradicts the spec | `cc-agents list-activities --from "2026-03-01T00:00:00Z"` |
+| 30 | a documented `--json-body` whose top-level keys are not properties of the op's closed request schema | `cc-captures create` `{from,to,filters}`; `cc-dial-number create` `dialNumber` |
+
+The same work moved checks 6, 10, 11a and 11b off the first `@app.command` decorator onto every decorator name, and made check 9 label its findings by the visible name. On the ~102 renamed commands the first decorator is the hidden alias, so documented calls of the visible name had never been checked.
+
+### Context
+
+A live session on 2026-10-13 (commits `e5e85fe`, `dc91c40`) found about 15 defects in the Contact Center surface. All of them predate the weekly routine (live since 2026-09-09), and the oldest date to 2026-03-28. The routine missed them by design. It never calls the live API (contract §3), it only writes docs for *new* groups, it may not edit the generator, and it runs on a clean clone, so gitignored local files never reach it. About half the defects can be detected **statically**, from the specs, the rendered command modules and the docs. Those became gated checks.
+
+### Alternatives Considered
+
+- **Let the routine repair these.** *Rejected:* the repairs live in the generator, and an unattended generator edit is how a bad release ships.
+- **Live verification inside the cloud routine.** *Rejected for now:* PATs expire in 12 h, so it would need a long-lived Service App credential stored in the routine. Adam's call, later.
+- **Advisory (non-gating) checks.** *Rejected:* an advisory line in an unattended log is read by no one, and each rule here is mechanical, not a judgement call.
+- **An ack / allowlist key per check.** *Rejected:* an escape hatch the unattended routine could reach would defeat the point. A finding at HEAD is either a true positive (fix the doc, or fix the generator and regen) or a false positive (tighten the rule).
+
+### Rationale
+
+- **Every check is gated and has no exemption key.** Where a literal rule produced false positives at HEAD, the rule was tightened, with tests on both sides, rather than acked. Check 23's literal form reported 594 at HEAD; check 24's flagged `cc-tasks list`, which works live; check 30's first run had 7 false positives (5 where the spec's own request example contradicts its schema, 1 "Patchable fields:" list, 1 catch-all `JsonValue` body).
+- **A blind check fails.** Each check records what it examined (`record_examined` → `CHECK_EXAMINED`) and prints `(examined N …, skipped K)` beside its count. A run that examined nothing produces a gated `BLIND` finding, not a quiet 0. What the shared readers could not parse (`HELPER_SKIPS`, summed by `helper_skip_count`) is counted as skipped. `print_check_findings` (via the `CHECK_PRINT` registry) never raises: a formatter error prints `FORMAT-ERROR <repr>`, because a crash exits 2 and fails the routine. `tests/test_drift_check_static_helpers.py::test_live_tree_helpers_are_not_blind` is the tripwire for the shared block parser. Each check's live-tree test asserts only a loose examined floor, so it catches blindness, not a regression.
+- **New upstream input never crashes a check.** A spec missing from `SPEC_PRODUCT`, an odd schema or an unreadable module is skipped and counted. The checks are static only: no network, no `import wxcli`, and no syntax newer than Python 3.11 (the cloud interpreter).
+
+### Proof — each check is 0 at HEAD and fires on the pre-fix tree
+
+HEAD is this branch's final tree, measured with `--enforce`. "Pre-fix" is the same check code run against a worktree of `1fa94dc` (the tree before the 2026-10-13 fixes, at `/tmp/dc-pre`), by pointing the module's `REPO`/`SPECS_DIR`/`COMMANDS_DIR`/`MAIN_PY` at it. The pre-fix proof is a manual step: no test references that tree, git or `1fa94dc`, so the suite passes in a clean clone.
+
+| Check | HEAD (examined) | Pre-fix (examined) | Named pre-fix instances |
+|---|---|---|---|
+| 23 | 0 (540 list cmds) | **220** (545) | 105 CC page-numbered lists + 5 SCIM-style lists: `cc-queue list` (`--offset`→`start`, `--limit`→`max`), `cc-queue list-incoming-references`, `asset list-asset`, `cc-address-book list`, `cc-tasks list` (`--offset`→`start`) |
+| 24 | 0 (110 walkers) | **2** (110) | `cc-flow list`, `cc-flow list-search` (walked with `pageSize`; spec declares `size`) |
+| 25 | 0 (231 GETs) | **3** (230) | `cc-flow export`, `cc-flow list-validate`, `cc-legacy-flows list` |
+| 26 | 0 (467 CC cmds) | **14** (463) | `cc-agents list-activities`/`list-statistics`, `cc-ewt show`, `cc-queue-stats list`, `cc-search create`, `cc-tasks list`, `cc-subscriptions` ×8 |
+| 27 | 0 (533 list cmds) | **12** (538) | `cc-global-vars list` + 6 CC `list-bulk-export` (extract `items`, spec array `resources`); `cc-user-profiles list-acl`; `user-settings`/`virtual-line-settings`/`workspace-settings list-outbound-billing-plan`; `guest-management list` |
+| 28 | 0 (186 groups) | **186** (186) | 59 name a wrong product (`asset`, `channel` → Contact Center; `rooms` → Messaging); 127 the pre-colon format (`devices`, every `cc-*`) |
+| 29 | 0 (4754 doc invocations) | **8** (4600) | `contact-center-core.md`:118/121/626/629: `cc-agents list-activities`, `list-statistics`, `cc-queue-stats list` with ISO `--from`/`--to`; spec says int64 epoch ms |
+| 30 | 0 (467 bodies; 61 unparseable) | **68** (470; 58 unparseable) | `contact-center-routing.md:644` `cc-captures create` `{filters,from,to}`; `contact-center-analytics.md:291` and `reporting-cc` SKILL `cc-agent-summaries create`; `cc-dial-number create` `dialNumber` (routing doc :149, contact-center SKILL :586). Measured 75 before the SCIM case-folding rule; the 7 RFC-cased `Operations` bodies no longer count |
+| **23-30 total** | **0** | **513** | |
+| 6 (widened) | 0 | 0 | No pre-fix instance. 197 citations of 75 renamed commands are checked for the first time. Live-tree mutation: adding `--bogus-flag` to `contact-center-core.md:121` → 1 with the widening, 0 without |
+| 9 (relabelled) | 0 | 0 | Label-only change (visible name instead of hidden alias) |
+| 10 (widened) | 0 | **2** | `contact-center` SKILL `cc-users update-dynamic-skill` (missing `SKILL_ID`); `org-health` SKILL `call-queue show` (missing `LOCATION_ID`) |
+| 11a (widened) | 0 | 0 | No pre-fix instance. Live-tree mutation: removing `--from` from `contact-center-core.md:121` → 1 with the widening, 0 without |
+| 11b (widened) | 0 | 0 | No instance in either tree; pinned by tests |
+
+Check 10 was widened as a side effect of check 29: `parse_module_signatures`, which both read, now records every decorator name.
+
+### Real defects these checks surfaced, fixed on this branch
+
+The 2026-10-13 instances (checks 23-26, 28 and 29, and check 27's first 8) were fixed on `main` in `e5e85fe`/`dc91c40`, before this work. Building the checks also turned up defects still present on `main` at `dc91c40`. All are fixed on this branch:
+
+1. **5 SCIM-style lists ignored `--offset`/`--limit`** (check 23). `groups list`, `groups list-members`, `scim-groups list`, `scim-groups list-members` and `scim-users list` sent `max`/`start` to endpoints that page by `startIndex`/`count`. The generator now sends `count` and a 1-based `startIndex = offset + 1` (`4dec4b0`). Verified live on `groups list`; `scim-users` returns 403 for a PAT.
+2. **4 flat-object GETs printed `[]`** (check 27, widened). `user-settings`, `virtual-line-settings` and `workspace-settings list-outbound-billing-plan`, plus `guest-management list` (`/guests/count`), were rendered as lists, so the extractor dropped the whole object. The parser now renders them as `show`; names are unchanged (`ba49ccf`). Verified live: `user-settings list-outbound-billing-plan` now prints `{"enabled": true}`. `guest-management list` returns 403 for this PAT and is **unverified** live.
+3. **Group-help labels depended on render order** (check 28). The label of a group that two specs render (7 groups) named whichever spec rendered last, so a one-spec regen and a full regen disagreed. `command_renderer.group_label_spec` now picks deterministically. A forward-order and a reverse-order regen are byte-identical, and the rule changed one committed label: `locations`, Devices → Calling (`306edb7`).
+4. **65 request-body errors in docs** (check 30): 22 in 5 skills, 43 in 11 reference docs. Each was fixed from the spec and marked `> **Unverified:**` unless tested live (`8818243`, `bd862cf`).
+5. **2 positional-argument doc bugs** (check 10, widened). `cc-users update-dynamic-skill` was missing `SKILL_ID` (its body was rebuilt from the spec and labelled Unverified), and `call-queue show` was missing `LOCATION_ID` (`07e0e20`, `bb71a49`).
+6. **Flags silently dropped beside `--json-body`.** This was found while editing the docs, not by a check. The `admin-apps-data` recordings-share example passed `--host-email`/`--send-email` alongside `--json-body`, which replaces the whole body. The fields moved into the JSON (`aca40bd`).
+
+### Consequences
+
+**Enables:** the eight 2026-10-13 bug classes cannot come back through a regen or a doc edit without failing the weekly job and the CI gate. CI asserts the gate printed `[30]`, the last check, so a run that dies early is caught.
+**Forecloses:** acking a finding. The way out is a doc fix, a generator fix plus regen, or the existing per-tag overrides (`command_type_overrides: show`, `response_list_keys`) plus regen. `tools/CLAUDE.md` ("GATED SINCE 2026-10-13") says, check by check, how a human clears a finding.
+**Gotchas — the no-ack trade-off, accepted on purpose:** checks 29 and 30 use the spec as the oracle. An upstream refresh that drops a key, or retypes a value, that the live API still accepts fails the gate, and the weekly release stays blocked until a human edits the doc. Known future false positives for check 29: the spec types Meetings registrants `zipCode` and voicemail-group `extension` as `number`, so a doc showing a ZIP+4 or a non-numeric extension would fire. No doc does today. Check 30 deliberately admits a few keys it should not (a measured false-negative hole, documented in `tools/CLAUDE.md` under "Check 30 — what it accepts beyond the schema"), so that a spec contradiction cannot block the routine.
+**Not covered:** the 42 Link-cursor lists that send `--offset` as `start` while declaring only `max` (whether the server honours it cannot be decided statically); `/v1/tasks` paging by an undeclared `page` (verified working live); and the other half of the 2026-10-13 defects, which only a live call can see.
+
+### Status
+
+**Active** since 2026-10-13 on branch `feat/static-drift-checks`. Gate `--enforce` PASS at HEAD, every check 0. Design spec (local-only, gitignored): `docs/superpowers/specs/2026-10-13-static-drift-checks-design.md`. The Decision and Alternatives sections above reproduce it, so this ADR is the tracked record.
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -583,6 +666,8 @@ Verified live 2026-10-13 on the CC Bootcamp Sandbox: `cc-queue list --limit 2` s
 | ADR-10 (PyPI distribution) | ADR-8 (Playbook) | The playbook stays repo-hosted, so the `git clone` source install is retained alongside the PyPI CLI install |
 | ADR-11 (Flow Store retired) | ADR-9 (Spec sync + drift gate) | Removes the dev-only spec exemption (`--dev-only`, the fs audit); `SPEC_PRODUCT`'s unknown-spec raise is what keeps the retired spec out of every regen |
 | ADR-12 (Paging flags translated) | ADR-1 (Generated commands) | The translation is emitted by the renderer per endpoint paging style; the runtime half lives in `auth.py` so a regen cannot drift from it |
+| ADR-13 (Static checks 23-30) | ADR-9 (Spec sync + drift gate) | Eight more gated checks in the gate the weekly routine already runs; a hit fails closed, since the fixes sit in generator paths the routine may not edit |
+| ADR-13 (Static checks 23-30) | ADR-12 (Paging flags translated) | Check 23 gates the paging translation: a list flag sent under a name the endpoint does not declare fails the build |
 
 ---
 

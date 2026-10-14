@@ -91,6 +91,8 @@ Then exit non-zero. The run record goes **to that branch only** (not `main`). Th
 
 Pass bar failed after two repairs · a locked name still moved after two pin attempts · a command or group removed upstream · blast radius over 40 · a download failed two weeks running · no successful run in 10 days.
 
+A failure in drift checks 23-30 is a generator or doc defect for a human: do not spend a repair on it, fail closed (§4). The fix for 23-28 is generator code, which `tools/sync_guard.py` `FORBIDDEN_PATHS` keeps out of this routine; 29-30 compare a doc against the spec, which this run cannot verify live (§3). See `tools/CLAUDE.md`, "GATED SINCE 2026-10-13".
+
 ## Cloud environment (probed 2026-09-09)
 
 One-time read-only routine `spec-sync-environment-probe` (session `cse_01PK6oxsaJsp86bTLVCs3QGU`, model claude-sonnet-5, environment `Default`), 145 s, nothing committed, pushed, tagged or released. Every row below is measured, not assumed.
