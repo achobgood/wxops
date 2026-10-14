@@ -292,6 +292,28 @@ def test_visible_name_of_stacked_alias_has_a_signature(tmp_path):
     assert sigs["list-activities"]["flags"]["--from"] is True
 
 
+# ------------------------------------------- help strings ending in a backslash
+
+# `help="…\\"` closes its string. A scanner that reads every quote after a
+# backslash as escaped handed flag_query_map None, and check 29 crashed
+# (exit 2) on the block of every resolved invocation.
+_BACKSLASH_BLOCK = BLOCK.replace('help="Start time, epoch ms."',
+                                 r'help="Start time, epoch ms. C:\\"')
+
+
+def test_backslash_help_string_does_not_crash_and_still_fires(tree):
+    assert r'C:\\"' in _BACKSLASH_BLOCK
+    findings = tree([_inv(["--from", "2026-03-01T00:00:00Z", "--to", "1"])],
+                    _get_spec(), module_src=_BACKSLASH_BLOCK)
+    assert [(f["where"], f["value"]) for f in findings] == [
+        ("--from", "2026-03-01T00:00:00Z")]
+
+
+def test_backslash_help_string_epoch_value_passes(tree):
+    assert tree([_inv(["--from", "1791763200000", "--to", "1"])],
+                _get_spec(), module_src=_BACKSLASH_BLOCK) == []
+
+
 # ---------------------------------------------------------------- live tree
 
 def test_live_tree_is_clean():

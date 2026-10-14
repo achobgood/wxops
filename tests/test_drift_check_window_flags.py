@@ -296,6 +296,30 @@ def test_odd_input_never_raises(tmp_path):
     assert [f["check"] for f in missing] == ["23"] and "error" in missing[0]
 
 
+# ------------------------------------------- help strings ending in a backslash
+
+# `_escape_help` renders a description ending in a backslash as `help="…\\"`.
+# A scanner that treats every quote after a backslash as escaped never closes
+# that string; flag_query_map then got None and check 23 crashed (exit 2).
+_BACKSLASH_HELP = r'help="Max results C:\\"'
+
+
+def test_backslash_help_string_does_not_crash_and_still_fires(tree):
+    src = _block(_w("start", "offset")).replace('help="Max results"',
+                                                _BACKSLASH_HELP)
+    assert _BACKSLASH_HELP in src
+    findings = tree(src, _spec(["page", "pageSize"]))
+    assert [(f["flag"], f["sends"]) for f in findings] == [("--offset", "start")]
+
+
+def test_backslash_help_string_maps_both_flags(tree):
+    src = _block(_w("pageSize", "limit") + "\n" + _w("page", "offset")).replace(
+        'help="Max results"', _BACKSLASH_HELP)
+    assert drift_check.flag_query_map(src) == {"--limit": "pageSize",
+                                               "--offset": "page"}
+    assert tree(src, _spec(["page", "pageSize"])) == []
+
+
 # ----------------------------------------------------------------- live tree
 
 def test_live_tree_is_clean():
