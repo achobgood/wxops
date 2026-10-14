@@ -144,6 +144,7 @@ wxcli virtual-line-settings update-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUx
 # NOT a code: "en_us" and "en_US" both fail with 400 {"errorCode":25046,"message":"Invalid Language."}.
 # Also: --first-name/--last-name changes do not refresh the read-only displayName, and --verify reports
 # --extension as "not present in read-back" even though it took (the field reads back under number.extension).
+# Since ADR-17 it lists it as "could not be verified", not as a difference (unit-tested; not re-run live).
 wxcli virtual-line-settings update-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
   --time-zone "America/Chicago" --announcement-language "English"
 

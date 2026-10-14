@@ -95,6 +95,10 @@ wxcli licenses-api list --limit 10 --offset 0
 # Verified live 2026-10-13: /v1/licenses does not paginate. --limit/--offset go out as
 # ?max=&start= and are ignored: `-o json --limit 3 --offset 3` still returned all 18
 # licenses. In the default table view --limit only caps the printed rows ("... N more").
+# Generator fix 2026-10-13 (ADR-18; unit-tested, not re-run live): --offset above 0 now
+# exits 2 ("Error: this endpoint ignores --offset ... Drop --offset and slice the output
+# instead, e.g. --fields '[2:5]'." -- not --all, which walks nothing here) and sends nothing; --offset 0,
+# as above, still runs. --limit is unchanged (sent as max, ignored by the server).
 ```
 
 **Table columns:** ID, Name, Total Units, Consumed.
@@ -115,6 +119,9 @@ wxcli licenses-api show "Y2lzY29zcGFyazov..." --include-assigned-to user --limit
 # Verified live 2026-10-13: with --limit smaller than the holder count the CLI prints
 # "Note: This response was partial and the server has more pages. Re-run with --all
 # to fetch every page." -- but `show` has no --all option (`No such option: --all`).
+# Generator fix 2026-10-13 (ADR-18; unit-tested, not re-run live): the note on `show`
+# no longer names --all; it ends "This command does not walk pages; see its --help
+# for a cursor or paging option."
 # Without --limit, all holders came back in one response (19 on the sandbox's Calling
 # Professional license). `show --help` lists a --next option for continuing; it was not exercised.
 ```
@@ -236,7 +243,7 @@ wxcli licenses show "Y2lzY29zcGFyazov..."
 
 **Table columns:** ID, Name, Total Units, Consumed. (Verified live 2026-10-13: `licenses list` prints `Total Units`; this previously said `Total`.)
 
-> **Gotcha — there is no `--calling-only` filter.** `licenses list` takes only `--output/-o`, `--fields`, `--limit`, `--offset`, `--all` (listed in `--help` as of 2026-10-13; the endpoint returned all 18 licenses in one response regardless), and `--debug`. Earlier revisions of this doc described a `--calling-only` convenience flag; it is not present on the command. To narrow to calling licenses, use `--fields` to filter the output (for example, `wxcli licenses list --fields "[?contains(name, 'Calling')]" -o json` — the JSON output is a bare array, not an `items`-wrapped object), and note that this is a case-sensitive substring match, so it may miss licenses with non-standard naming or unexpected casing.
+> **Gotcha — there is no `--calling-only` filter.** `licenses list` takes only `--output/-o`, `--fields`, `--limit`, `--offset`, `--all` (listed in `--help` as of 2026-10-13; the endpoint returned all 18 licenses in one response regardless; `--offset` above 0 is refused with exit 2 since ADR-18), and `--debug`. Earlier revisions of this doc described a `--calling-only` convenience flag; it is not present on the command. To narrow to calling licenses, use `--fields` to filter the output (for example, `wxcli licenses list --fields "[?contains(name, 'Calling')]" -o json` — the JSON output is a bare array, not an `items`-wrapped object), and note that this is a case-sensitive substring match, so it may miss licenses with non-standard naming or unexpected casing.
 
 ---
 

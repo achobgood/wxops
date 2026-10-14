@@ -62,7 +62,9 @@ Two kinds of evidence belong here:
 - **`--verify` on the write** — available on update commands that have a same-path GET.
   It re-reads the resource after the write and reports any field you *sent* that did not
   take, printing either `Verified: re-read <url> and all N sent field(s) match.` or one
-  `<field>: sent X, now Y` line per mismatch. It never changes the exit code, so record
+  `<field>: sent X, now Y` line per mismatch (nested fields by path), plus a separate
+  "could not be verified" list for sent fields the read-back does not carry — treat those
+  as unchecked, not as passed or failed. It never changes the exit code, so record
   what it printed, not whether the command exited 0.
 - **Read-back** — for creates, deletes, and anything with no `--verify` flag, re-read the
   resource with the matching `show` / `list` command and compare against the plan.
@@ -72,7 +74,7 @@ Two kinds of evidence belong here:
 | User exists and is Calling-enabled | `wxcli people show Y2lzY29... --calling-data true -o json --fields '{ext:extension,loc:locationId}'` | PASS — Austin location; no extension yet (Step 3 failed) |
 | Phone number assigned to the user | `wxcli numbers list --location-id Y2lzY29... --phone-number "+15125550101" --all -o json` | FAIL — no matching number in the location, confirming Step 3 did not complete |
 | Voicemail enabled | `wxcli user-settings update-voicemail Y2lzY29... --enabled --verify` (Step 4) | PASS — `Verified: ... all 1 sent field(s) match.` |
-| Call forwarding busy destination | `wxcli user-settings update-call-forwarding Y2lzY29... --json-body '{"callForwarding":{"busy":{"enabled":true,"destination":"5125554000"}}}' --verify` (Step 5) | PASS — `callForwarding: sent {...'destination': '5125554000'...}, now {...'destination': '+15125554000'...}`; server normalized to E.164 and filled defaults, accepted |
+| Call forwarding busy destination | `wxcli user-settings update-call-forwarding Y2lzY29... --json-body '{"callForwarding":{"busy":{"enabled":true,"destination":"5125554000"}}}' --verify` (Step 5) | PASS — `callForwarding.busy.destination: sent '5125554000', now '+15125554000'`; server normalized to E.164 (added defaults are ignored), accepted |
 | [Additional checks] | | |
 
 **Reading these results:**

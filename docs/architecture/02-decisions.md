@@ -534,7 +534,7 @@ The weekly spec-sync never touched this spec — `update-specs.py` does not down
 
 ### Decision
 
-Keep `--limit` and `--offset` on all list commands, including the 105 page-numbered ones (measured on the regenerated tree, 2026-10-13: Contact Center `page`/`pageSize`, the Flows `page`/`size`, and `/v1/tasks`, which declares only `pageSize`). On those commands the generator no longer sends them as `max`/`start`: `--limit N` is sent as the endpoint's own page-size parameter (unless the explicit page-size flag is given, and never with `--all`), and `--offset N` is served by a runtime helper, `WebexSession.fetch_from_offset`, that returns records N … N+count **record-exactly** — page `N // size`, skip `N % size`, continue onto the next page when the window spans two. The truncation note names `--offset <absolute next record>` on every command, page-numbered or not.
+Keep `--limit` and `--offset` on all list commands, including the 105 page-numbered ones (measured on the regenerated tree, 2026-10-13: Contact Center `page`/`pageSize`, the Flows `page`/`size`, and `/v1/tasks`, which declares only `pageSize`). On those commands the generator no longer sends them as `max`/`start`: `--limit N` is sent as the endpoint's own page-size parameter (unless the explicit page-size flag is given, and never with `--all`), and `--offset N` is served by a runtime helper, `WebexSession.fetch_from_offset`, that returns records N … N+count **record-exactly** — page `N // size`, skip `N % size`, continue onto the next page when the window spans two. The truncation note names `--offset <absolute next record>` on every command, page-numbered or not. *(Narrowed by ADR-18: only where `--offset` is offered and not measured to be ignored.)*
 
 ### Context
 
@@ -700,7 +700,7 @@ The 109 pre-fix findings and the 109 commands the regen changed are the same set
 ### Consequences
 
 **Enables:** these reads return the whole object, so `[]` no longer stands in for a populated setting.
-**Changes for users:** the 107 commands print the whole object, as JSON by default (`-o table` is still accepted). They still accept `--limit`, `--offset` and `--all`, which are hidden from `--help` and ignored (amendment below). Whether any of these endpoints pages without declaring it is **not known**: no paging is declared in the spec (no `Link` header, no paging query parameter), but an undeclared parameter is not proof the server ignores it — ADR-12's `/v1/tasks` pages by an undeclared `page`. If one ever returns `Link: rel="next"`, `rest_get`'s truncation note will say "Re-run with --all", and `--all` is accepted there but walks nothing.
+**Changes for users:** the 107 commands print the whole object, as JSON by default (`-o table` is still accepted). They still accept `--limit`, `--offset` and `--all`, which are hidden from `--help` and ignored (amendment below). Whether any of these endpoints pages without declaring it is **not known**: no paging is declared in the spec (no `Link` header, no paging query parameter), but an undeclared parameter is not proof the server ignores it — ADR-12's `/v1/tasks` pages by an undeclared `page`. If one ever returns `Link: rel="next"`, `rest_get`'s truncation note will say "Re-run with --all", and `--all` is accepted there but walks nothing. *(Superseded by ADR-18: the note on these commands now names no remedy.)*
 **`dect-devices list-handsets` now prints `accessCode` by default — kept, recorded here.** Before, the default was a table (ID / Display Name / Index / Primary) whose override existed to keep the handset pairing code out of a default table; `-o json` always printed it. Now the default is the whole object as JSON, `accessCode` included. This is not new exposure in kind: the single-handset read, `dect-devices show-handsets`, already defaults to JSON, and its spec schema (`DECTHandsetGet`) declares `accessCode` (verified in `specs/webex-cloud-calling.json`). It does reverse that override's intent; nobody has decided otherwise.
 **Config retired:** 13 `table_columns` entries became inert (a single-object read draws no table) and were deleted, among them the live-verified monitoredElements union (the fact it encoded is kept in a comment and in `tools/CLAUDE.md`). `generate_tag` now refuses a `table_columns`/`response_list_keys` entry on a command that renders no list, so the next one cannot rot silently. `build_producer_index` keeps a `list-*`-named single-object read as an ID producer, so 14 argument-help pointers (`from: wxcli dect-devices list-handsets`, …) survive.
 **Verified live 2026-10-13 (read-only, after the regen):** `call-queue list-night-service`, `list-holiday-service`, `list-forced-forward` and `list-stranded-calls` return multi-key JSON objects (HTTP 200); `user-settings list-simultaneous-ring`, `list-privacy` and `list-outgoing-permission` return the full objects; `device-dynamic-settings list` returns 136 device-model records. **Not re-run live:** the other 101 converted commands and `archive-users list`. The doc and skill passages that described the pre-fix output ("prints `[]`", "prints only the `types` array") were rewritten the same day: those for the live-verified commands say so; every other one says the command now prints the whole response object and was not re-run live.
@@ -812,6 +812,125 @@ The regen changed exactly 3 modules (`cc_team.py`, `cc_skill_profile.py`, `cc_de
 
 ---
 
+## ADR-17: `--verify` Checks That the Read-Back Contains What Was Sent; a Field the Read-Back Lacks Is "Could Not Be Verified"
+
+### Decision
+
+`verify_write` (`src/wxcli/common.py`) still compares **only the fields you sent** and still **never changes the exit code**. What changed is how one sent field is judged against the read-back:
+
+- **Scalars** are equal after one normalisation: a string that spells the number (`'30'` vs `30`, `'2.5'` vs `2.5`) or the boolean (`'true'`/`'false'`, either case, vs `True`/`False`) is equal to it, in both directions. A boolean is never equal to a number (Python says `True == 1`; a boolean field reading back `1` proves nothing). `'030'` is not `30`. A rewritten value (an E.164 phone number `+12094571613` read back as `+1-2094571613`) still differs: there is no safe rule for it.
+- **Objects** match when every sent key matches, recursively; keys only the read-back has (defaults, server-added ids, empty arrays) are ignored. A nested difference is reported by its path: `callForwarding.always.enabled: sent True, now False`.
+- **Lists of scalars** compare as multisets: order is ignored, duplicates count, and an extra or missing element is a difference.
+- **Lists of objects** must also come back with **exactly as many elements** as were sent, and each sent element must be matched by a **distinct** read-back element under the object rule, so extra keys *inside* an element are ignored. Same order is tried first; otherwise iterative augmenting-path matching runs, so a first-fit choice cannot block a real match and no input recurses deeply. Above 1,000 elements an out-of-order list is not matched (that is n² element compares). It raises `ListTooLongToMatch` and is reported as described below.
+- **Nothing in the compare can change the exit code.** The compare runs after the write succeeded and before its result is printed, so it is wrapped. Any exception prints `Note: --verify could not compare the read-back (<ExceptionType>)` and returns.
+- **A sent key absent from the read-back**, at any depth **outside a list element**, is not reported as differing. It goes in a separate bucket: `<path>: could not be verified — not present in the read-back (the endpoint may name it differently)`, under a summary of `N matched, M could not be verified`. The summary never says "all … match" while that bucket is non-empty. When a difference is also printed, the bucket's count is in paths (`K sent path(s) could not be verified`), so it always equals the lines listed under it. Two edge cases:
+  - **Missing key inside a list element.** The element simply does not match, so the list is reported as differing (the safe direction). Once order is free, there is no single element path to call unverifiable.
+  - **Sent `null` with the key omitted from the read-back.** This counts as matched, and is stated in root `CLAUDE.md` as the one exception to "never all match". Omitting a cleared field is how these endpoints read it back (`preferredAnswerEndpointId`). If the server had ignored the clear, the old value would come back present and show as differing, which is pinned by test `TestSentNull`. The cost: a `null` sent for a field the endpoint never returns (case d) reads as matched.
+
+The message for a real difference is unchanged: `Note: --verify re-read <url> and D of N sent field(s) differ. …` followed by `  <path>: sent X, now Y`.
+
+### Context
+
+Measured live 2026-10-13 by five agents, 8+ cases. Each write had applied (checked with `show`), yet `--verify` printed "differ", because it compared each top-level field with `!=`:
+
+- (a) **String-typed numeric flags.** `calling-service update --number-of-days-for-message-expiry 30` printed `numberOfDaysForMessageExpiry: sent '30', now 30`; also `workspace-locations update-floors --floor-number 3` and `update-alert --next-assistant-number-of-rings 4`. The generator types body numbers as `str`.
+- (b) **The read-back is a superset.** `call-queue update-call-forwarding`, `hunt-group update`, `location-call-handling update-outgoing-permission`, `device-settings` member updates, `cc-multimedia-profile update` (adds `workItem`/`customMessaging`), `cc-desktop-profile update` (`viewableStatistics` gains an `id` and empty arrays).
+- (c) **Reordered arrays.** `cc-business-hour` `days`, `cc-skill-profile` `activeSkills`.
+- (d) **Write and read keys differ.** `update-monitoring` writes `enableCallParkNotification` and reads `callParkNotificationEnabled`; `virtual-line-settings update-virtual-lines --extension` reads back under `number.extension`; `device-settings update-devices-workspaces` re-reads an endpoint with no hoteling field. These printed `now '<not present in read-back>'` in the same list as real failures.
+
+A check that cries wolf on most writes trains its reader to ignore it, which removes the one thing `--verify` exists for: the silent drop (a second `HOTDESKING_GUEST` member accepted with 200 and discarded, `person-call-settings-behavior.md`).
+
+### Alternatives Considered
+
+- **Keep `!=` and document the false alarms per command (status quo).** *Rejected:* eight documented exceptions and growing; every caveat was a reader told to ignore the tool.
+- **Per-command key maps for case (d)** (`enableCallParkNotification` → `callParkNotificationEnabled`). *Rejected:* hand-maintained pins that drift on regen, and the measured cases are not one pattern (a rename, a move under `number.`, an endpoint without the field). Naming the field as unverifiable is honest and needs no map.
+- **Type the generated numeric flags as `int`.** *Not chosen here:* it is a generator change (another implementer's files this round) and would not fix (b), (c) or (d). The normalisation stays correct after such a change.
+- **Ignore extra elements in a read-back object list (round 1).** *Reversed in round 2.* Reviewer D showed `sent {"agents":[{"id":"A"}]}` against `[{"id":"A"},{"id":"B"}]` printing "all 1 sent field(s) match". A PUT replaces the list, so that is a removal the server ignored, which is the "accepted, not applied" failure the flag exists for. None of the measured cases needed extras ignored: (b) adds keys *inside* elements, and (c) reorders lists of the same length.
+- **Keep recursive matching and add only a try/except.** *Rejected.* About 1,100 interchangeable elements hit `RecursionError`. Catching it would have turned a correct answer into "could not compare" for ordinary long lists, so the matching was made iterative as well.
+- **Count an unverifiable field as matched, or as differing.** *Rejected* both: either reads as a verdict the tool did not reach.
+
+### Consequences
+
+The measured (a), (b) and (c) cases now print `Verified: … all N sent field(s) match.`; (d) prints `N matched, M could not be verified` with the field named. Real differences, lists of a different length and rewritten values still print as before, with nested paths instead of whole top-level objects. Residual blind spots, both in the safe direction:
+- A sent list of id strings read back as a list of objects (`monitoredElements`) still reads as differing, because the comparison does not guess across shapes.
+- `{"assistantIds": null}` read back as `[]` reads as differing.
+
+Tests in `tests/test_verify_flag.py`:
+- Round 1: `TestScalarNormalisation`, `TestSupersetReadBack`, `TestReorderedLists`, `TestAbsentFromReadBack`. One pre-existing test (`test_verify_flags_a_field_absent_from_the_read_back`) was updated for the new wording.
+- Round 2: `TestListLengthIsExact`, `TestSentNull`, `TestCompareCannotEscape` (5,000-element inputs), `TestSummaryCountsAgree`, `TestAbsentKeyInsideAListElement`. Unit-tested only; not re-run live. Root `CLAUDE.md` ("Common Flags"), the affected reference docs and skills now describe this behaviour.
+
+### Live verification
+
+Verified live 2026-10-13 against the sandbox (change-and-restore; read back): `calling-service update --message-expiry-enabled --number-of-days-for-message-expiry 30 --verify` printed `Verified: ... all 2 sent field(s) match.` (it printed `sent '30', now 30` before), and the restore did the same with the voicemail settings reading back identical to the original. `user-settings update-call-recording --enabled --record Always` returned the Dubber terms-of-service body and a Tip naming `termsOfServiceUrl` (no "still referenced ... wxcli cleanup run"; the numeric status is not printed). `user-settings update-reception ... receptionEnabled:true` returned an empty 400 and the CLI printed `Error: HTTP 400 with an empty response body (trackingId: ROUTERGW_...)` instead of a bare `Error: `. `people list --location-id LOC` without `--calling-data` now tips `--calling-data true`. The round-2 list-length, null and 5,000-element cases remain unit-tested only.
+
+### Status
+
+**Active** since 2026-10-13.
+
+---
+
+## ADR-18: The Truncation Note Names Only the Flags the Command Offers; a Measured Set Refuses `--offset`; Drift Check 33 Gates the Advice
+
+### Decision
+
+1. **The note's remedies are declared by the caller.** `WebexSession.rest_get` and `fetch_from_offset` (`src/wxcli/auth.py`) take a keyword-only `remedies` (default `()`); the private helpers that print the note (`_warn_if_more_pages`, `_more_pages_note`) take it with no default, so a future direct caller cannot silently bring back the old advice, which check 33 would not see. The note names `--all` only when `"all"` is passed and `--offset N` only when `"offset"` is passed. With `("all", "offset")` the wording is unchanged (`Re-run with --all to fetch every page, or --offset N for just the next one.`); with `("all",)` it says `Re-run with --all … (this endpoint ignores --offset; slice the --all output instead, e.g. --fields '[100:200]').`; with nothing it says `This command does not walk pages; see its --help for a cursor or paging option.`
+2. **The generator passes what each shape offers** (`command_renderer._render_list_command`): a list that calls a page walker (`paginates`, or `link`/`page`/`scim` paging) passes `("all", "offset")` on every `rest_get`/`fetch_from_offset` call; a list in the `offset_ignored` set passes `("all",)`; everything else passes nothing — show commands, the hidden-flag single-object `list*` reads (ADR-14 amendment), lists the spec says do not page (their visible `--all` walks nothing), hand-written commands, `verify_write`, raw-Python callers.
+3. **A declared, measured set refuses `--offset`.** New per-tag, command-keyed override `offset_ignored: {command: evidence}` in `tools/field_overrides.yaml`, today exactly `People: list` and `Licenses: list`, each with its measurement in a comment. On those commands `--offset N` with N > 0 exits 2 before authentication, `--offset` is no longer written to `params`, and its help says so. `--offset 0` still runs. The message is worded by shape. On a walker list (`people list`): `Error: this endpoint ignores --offset: it returns the first page again whatever offset is sent (measured live, ADR-18). Drop --offset and slice every page instead, e.g. --all --fields '[2:5]'.`, or `… slice the --all output instead, e.g. --fields '[2:5]'.` when `--all` was already passed (refusing `--all --offset 2` is deliberate: honouring `--all` would silently start at record 0). On an unpaged list (`licenses list`, whose `--all` walks nothing and whose endpoint returns every row): `… it returns the same records whatever offset is sent … Drop --offset and slice the output instead, e.g. --fields '[2:5]'.`, never naming `--all`. The generator validates the key like every command-keyed override (`COMMAND_KEYED_OVERRIDES`, so gate check 15 re-checks it), exits 1 when it names a command that renders no list, and exits 1 with `ERROR: offset_ignored names …` (`OffsetIgnoredError`, caught in `generate_tag`) when it names a page-numbered or SCIM list, whose `--offset` is translated and works by construction — the shape a declared list takes if upstream adds page or `startIndex` paging. Both are human fixes (`docs/spec-sync-contract.md` §6).
+4. **`licenses list` `--limit`** (the endpoint ignores `max` too) is unchanged: still sent as `max`, still ignored by the server. It caps the printed rows in `-o table` only; `-o json` prints every license. No client-side slicing was built.
+5. **Drift check 33 gates the advice** (ADR-13 rules: static, `record_examined`/`BLIND`, `CHECK_PRINT`, never raises, no ack key). Every block that calls `rest_get`/`fetch_from_offset` is examined; the remedies each call names are its literal `remedies=`, else the default read from `auth.py`'s own signature (a runtime with no such parameter is the pre-fix one, which named both on every call). A block fires when a call names `--all` and the block has no visible `--all` that reaches a page walker, or names `--offset` and the block has no visible `--offset` or refuses it. CI's completion assertion now greps `^\[33\]`; `docs/spec-sync-contract.md` lists 33 with the generator checks the routine never repairs.
+
+### Context
+
+Measured live 2026-10-13 (read-only CLI; the controller reproduced the first two):
+
+| Command | `--offset 2 --limit 3` vs items 2–4 of `--all` | Verdict |
+|---|---|---|
+| `devices list` | equal | honours `start` |
+| `workspaces list` | equal | honours `start` |
+| `numbers list` (`/telephony/config/numbers`) | equal | honours `start` |
+| `hunt-group list` | equal | honours `start` |
+| `people list` | returned items 0–2; `GET /v1/people?max=3&start=2` = the first page; Link pages by `cursor=` | **ignores `start`** (honours `max`) |
+| `licenses list` | `-o json --limit 3 --offset 3` (`?max=3&start=3`) returned all 18 rows (`docs/reference/admin-licensing.md`); `--limit 3` alone also returned all 18, no Link header, stderr empty | **ignores `start` and `max`** |
+
+The `people list` note nonetheless said `… or --offset 5 for just the next one`, so following it looped back to page one. Separately, `licenses show ID --include-assigned-to user --limit 2` printed `Re-run with --all to fetch every page`, and `licenses show … --all` is `No such option: --all`: every generated command calls `rest_get`, which printed the same advice whatever the command offered. Adam's decision, 2026-10-13: stop printing the hint for endpoints that ignore `start`; say so clearly instead of looping.
+
+**What the spec says about the six (static, measured 2026-10-13 against `specs/`).** The four that honour `start` all declare it (`GET /devices`, `/workspaces`, `/telephony/config/numbers`, `/telephony/config/huntGroups` declare `max` and `start`); `GET /people` declares only `max` (every spec that carries it), and `GET /licenses` declares no paging parameter at all. On the regenerated tree, **48 walker lists** send `--offset` as a `start` their spec does not declare — `people list`'s shape (`locations list`, `memberships list`, `messages list`, `rooms list`, `webhooks list`, `cdr list`, the meetings and recording-report lists, …) — and **110 more** declare `start` but were not sampled. (The brief this ADR was written from estimated "about 36" untested; the static count is 48 + 110.) All of them keep `("all", "offset")`: an undeclared `start` is not proof the server ignores it (ADR-12: `/v1/tasks` pages by an undeclared `page`), so none joins the set without a live measurement. The 152 lists that send an undeclared `start` and call no walker now print no remedy at all (decision 2), whatever their `start` does.
+
+### Alternatives Considered
+
+- **A blanket client-side skip** (fetch from the start and drop N records) on every Link-cursor list. *Rejected:* 4 of the 6 sampled endpoints honour `start`, so it would re-walk N records on commands that work, to fix two that do not. The set is declared from measurements instead, and grows only by measurement.
+- **Detect "ignored" at runtime** (compare the first record with and without `start`). *Rejected:* an extra request on every `--offset` call, and an empty or one-page collection cannot tell the two apart (the "probe on an empty dataset proves nothing" lesson).
+- **Remove or hide `--offset` on the two commands.** *Rejected:* the uniform-flag rule (ADR-12, ADR-14 amendment); "No such option" teaches nothing. Exit 2 with the reason and the workaround does.
+- **Keep sending `start` and only change the note.** *Rejected:* `--offset 2` would still return page one with exit 0 — a confident wrong answer.
+- **Keep the old default (both remedies) for callers that pass nothing.** *Rejected:* the 514 show and single-object blocks would keep advising `--all`. The safe default names nothing.
+- **Choose the remedies in `auth.py` by URL.** *Rejected:* special-casing by URL; the generator already knows each command's shape.
+- **Derive the set from the spec ("no declared `start`" = ignored).** *Rejected:* it matches the six samples (the four that honour `start` declare it; `people` and `licenses` do not), but six is a sample, not a rule, and an undeclared paging parameter is honoured elsewhere (`/v1/tasks`, ADR-12). It would refuse `--offset` on 48 untested commands at once. Check 33 therefore gates only the advice against the code; the `offset_ignored` set carries the live facts, and the spec correlation is the place to probe first.
+
+### Proof — 0 at HEAD, fires on the pre-fix tree
+
+HEAD is this change's regenerated tree, measured with `--enforce`. Pre-fix is the new check-33 code run against a worktree of `e31faef`, with `commands_dir` and `auth_py` pointed at it (ADR-13's method; manual step, no test references that tree).
+
+| Check | HEAD (examined, skipped) | Pre-fix e31faef (examined, skipped) | Named pre-fix instances |
+|---|---|---|---|
+| 33 | **0** (946 note-printing commands, 2) | **667** (946, 2) | 514 call sites that would advise `--all` and `--offset` with neither offered — show and single-object reads: `licenses show`, `call-queue list-night-service`, `user-settings list-privacy`; 153 that would advise an `--all` whose visible flag walks nothing — unpaged lists: `licenses list`. "Would": the note prints only when a response carries `Link: rel="next"` or a body total, which some of these (a single settings object) are unlikely ever to do |
+
+The 2 skipped are the hand-written blocks `HELPER_SKIPS` names. `people list` does **not** fire on the pre-fix tree: its code offered a visible `--offset` that it sent as `start`, and that the server ignores it is a live fact no static rule can see (Alternatives). It is pinned instead by `tests/test_paging_remedies.py` (renders the refusal and `remedies=("all",)`; execs the rendered module: `--offset 2` exits 2 and sends nothing) and by a check-33 test that fires when a refusing block still advises `--offset`.
+
+The regen changed 105 command modules and nothing else under `src/wxcli/commands`: 384 note-printing calls gained `remedies=` (278 `rest_get` and 105 `fetch_from_offset` with `("all", "offset")`, 1 `rest_get` with `("all",)` on `people list`), and `people list`/`licenses list` each gained the refusal, lost `params["start"] = offset`, and changed their `--offset` help. A second regen produced a byte-identical `git diff -- src/wxcli/commands tools src/wxcli/auth.py` and `git status --porcelain` (md5 `5898ff7f…` / `abf398da…` both times; after the review round that reworded the refusal by shape, again two identical regens, `1488ddd2…` / `35a7107f…`). The name lock, `_registry.py` and `tools/spec_semantics.json` did not change, and the gate's first line is unchanged (`192 command sets (195 registered names incl. aliases), 2164 commands, 1991 non-skipped spec ops (152 deliberately skipped)`).
+
+### Consequences
+
+**Changes for users.** **Verified live 2026-10-13** (by the controller, after the first regen): `people list --offset 2 --limit 3` exits 2 and names `--all`; `people list --all --fields '[2:5].id'` returns the 3 items; `hunt-group list --offset 2 --limit 3` still equals items [2:5] of `--all` (7 records), so a walker list that honours `start` is untouched. **Unit-tested; not re-run live:** the shape-specific refusal wording (reworded after that live run), `licenses list --offset N` exiting 2, the `people list` note naming `--all` only, and the note on a show command, single-object `list*` read or unpaged list naming neither flag — the `licenses show` case did not reproduce on the license the controller tried, so that note is not live-verified. Lists with a page walker print exactly what they printed before.
+**Blind spot of check 33:** it sees advice that names a flag the command does not offer, never advice that went missing. If the renderer stopped passing `remedies=` to walker lists, they would lose their `--all`/`--offset` advice and the gate would stay green (measured: pre-fix commands against the new runtime read 0). The renderer tests in `tests/test_paging_remedies.py` (`test_paginating_list_offers_both`, `test_link_walker_list_offers_both`, `test_page_numbered_list_offers_both_on_both_calls`) are what catch a lost remedy; that file is tracked and runs in CI.
+**Not covered:** the 48 walker lists that send an undeclared `start`, and the 110 that declare it, are unmeasured; if one ignores `start`, its note still names `--offset` and loops. **Follow-up, not built:** probe them live (`--offset 2 --limit 3` vs items 2–4 of `--all`) when the sandbox has more than 5 records per collection, starting with the 48, and add each measured offender to `offset_ignored`. The note's wording for the no-remedy case points at `--help`; `licenses show` has a `--next` cursor there, which was not exercised.
+**Supersedes:** ADR-12's "the truncation note names `--offset <absolute next record>` on every command" (now: on every command that offers a working `--offset`), and ADR-14's consequence that a converted single-object read would print "Re-run with --all" (it now names no remedy).
+
+### Status
+
+**Active** since 2026-10-13. Gate `--enforce` PASS, check 33 at 0.
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -837,6 +956,10 @@ The regen changed exactly 3 modules (`cc_team.py`, `cc_skill_profile.py`, `cc_de
 | ADR-14 (Single-object list GETs) | ADR-12 (Paging flags translated) | Only GETs with no declared paging are re-rendered, so no command that ADR-12's translation serves loses `--offset`/`--limit`/`--all` |
 | ADR-16 (Query-declared body lifted) | ADR-13 (Static checks 23-30) | Check 32 follows ADR-13's rules (static, `BLIND`, no ack); the gate's body readers now see the lifted body, so check 30 judges these six commands' doc bodies for the first time |
 | ADR-16 (Query-declared body lifted) | ADR-14 (Single-object list GETs) | Same policy as the ADR-14 amendment: an option the regen made meaningless (`--team-dto`) stays accepted, hidden and ignored rather than becoming "No such option" |
+| ADR-17 (`--verify` subset compare) | ADR-1 (Generated commands) | The generator types numeric body flags as `str`; `verify_write` normalises `'30'`/`30` rather than depending on that typing, so it stays correct if the generator changes |
+| ADR-18 (Note names offered remedies; check 33) | ADR-12 (Paging flags translated) | Narrows ADR-12's "the note names `--offset` everywhere" to commands whose `--offset` works; the translated page-numbered/SCIM `--offset` cannot be declared ignored |
+| ADR-18 (Note names offered remedies; check 33) | ADR-14 (Single-object list GETs) | The hidden inert `--all` on single-object `list*` reads counts as not offered, so their note names no remedy |
+| ADR-18 (Note names offered remedies; check 33) | ADR-13 (Static checks 23-30) | Check 33 follows ADR-13's rules (static, `BLIND`, no ack); the live-only half (which servers ignore `start`) is a declared, measured override set instead |
 
 ---
 
