@@ -304,3 +304,101 @@ class TestWhoamiRoutesThroughTheHandler:
         out = self._out(result)
         assert "Tip:" in out
         assert "Traceback" not in out
+
+
+# ── tips that named the wrong cause, measured live 2026-10-13 ────────────────
+
+
+def run_full(err, *, status, headers=None, argv=None, monkeypatch=None):
+    """Like run(), but builds WebexError the way auth.py does (status + body)."""
+    import json as _json
+    if argv is not None:
+        monkeypatch.setattr("sys.argv", argv)
+    try:
+        parsed = _json.loads(err) if err else None
+    except ValueError:
+        parsed = None
+    kwargs = {"status_code": status, "body": parsed}
+    if headers is not None:
+        kwargs["headers"] = headers
+    with pytest.raises(typer.Exit) as exc:
+        handle_rest_error(WebexError(err, **kwargs))
+    assert exc.value.exit_code == 1
+
+
+class TestLiveMisdirectedTips:
+    def test_409_recording_vendor_terms_not_accepted(self, capsys, monkeypatch):
+        """user-settings / virtual-line-settings update-call-recording."""
+        live = ('{"vendorId":"fecb634e-...","vendorName":"Dubber",'
+                '"termsOfServiceUrl":"https://www.dubber.net/terms"}')
+        run_full(live, status=409, argv=["wxcli", "user-settings", "update-call-recording"],
+                 monkeypatch=monkeypatch)
+        err = capsys.readouterr().err
+        assert "terms of service" in err
+        assert "Dubber" in err and "https://www.dubber.net/terms" in err
+        assert "wxcli call-recording update-terms-of-service fecb634e-..." in err
+        assert "wxcli cleanup run" not in err
+        assert "Delete the dependents" not in err
+
+    def test_409_same_type_job_already_running(self, capsys):
+        """location-settings create-delete-calling-location, second job."""
+        live = ('{"message":"Customer has job of same type already running.",'
+                '"errors":[{"description":"Customer has job of same type already running.",'
+                '"errorCode":"BATCH-1001004"}]}')
+        run_full(live, status=409)
+        err = capsys.readouterr().err
+        assert "still running" in err
+        assert "wxcli location-settings show-delete-calling-location" in err
+        assert "wxcli cleanup run" not in err
+
+    def test_409_job_running_keyed_on_the_code_alone(self, capsys):
+        run_full('{"errors":[{"errorCode":"BATCH-1001004"}]}', status=409)
+        err = capsys.readouterr().err
+        assert "still running" in err and "wxcli cleanup run" not in err
+
+    def test_409_still_referenced_keeps_the_cleanup_tip(self, capsys):
+        """Control: the dependents tip is still right for a real reference."""
+        run_full('{"message":"Location is being referenced, cannot be deleted",'
+                 '"errors":[{"errorCode":50003}]}', status=409)
+        assert "wxcli cleanup run" in capsys.readouterr().err
+
+    def test_400_calling_flag_not_set_names_calling_data(self, capsys, monkeypatch):
+        # Live: the message text is exact; the surrounding envelope is the
+        # standard Webex error shape, reconstructed.
+        run_full('{"message":"Calling flag not set","errors":[{"description":"Calling flag not set"}]}',
+                 status=400, argv=["wxcli", "people", "list", "--location-id", "LOC"],
+                 monkeypatch=monkeypatch)
+        err = capsys.readouterr().err
+        assert "--calling-data true" in err
+        assert "not an admin" not in err
+        assert "--generate-json-body" not in err
+
+    def test_403_bifrost_b10005_is_an_entitlement_not_a_token(self, capsys, monkeypatch):
+        # Live: a 403 whose body carried BIFROST-B10005; the envelope is reconstructed.
+        live = ('{"message":"BIFROST-B10005: Forbidden","errors":'
+                '[{"description":"BIFROST-B10005: Forbidden"}]}')
+        run_full(live, status=403, argv=["wxcli", "ai-receptionist", "create"],
+                 monkeypatch=monkeypatch)
+        err = capsys.readouterr().err
+        assert "entitle" in err
+        assert "usually" in err
+        assert "is not an admin of the target org" not in err
+
+    def test_empty_body_is_never_a_bare_error(self, capsys):
+        run_full("", status=400, headers={"Trackingid": "ROUTER_abc123"})
+        err = capsys.readouterr().err
+        first = err.splitlines()[0]
+        assert first != "Error: "
+        assert "HTTP 400 with an empty response body" in first
+        assert "ROUTER_abc123" in err
+
+    def test_empty_body_tracking_id_header_is_case_insensitive(self, capsys):
+        run_full("  ", status=500, headers={"TrackingID": "WEBEX_x"})
+        err = capsys.readouterr().err
+        assert "HTTP 500 with an empty response body" in err and "WEBEX_x" in err
+
+    def test_empty_body_without_headers(self, capsys):
+        run_full("", status=400)
+        err = capsys.readouterr().err
+        assert "HTTP 400 with an empty response body" in err
+        assert "trackingId" not in err

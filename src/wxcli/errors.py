@@ -14,10 +14,14 @@ class WebexError(Exception):
     enrichments so handlers can key off status instead of substring matching.
     """
 
-    def __init__(self, message: str, status_code: int | None = None, body: dict | None = None):
+    def __init__(self, message: str, status_code: int | None = None, body: dict | None = None,
+                 headers=None):
         super().__init__(message)
         self.status_code = status_code
         self.body = body
+        # Response headers, when the raiser passes them. Only read for the
+        # trackingId of an empty-body error, which has nothing else to show.
+        self.headers = headers
 
 
 # Code 4003 is deliberately absent. It is real but ambiguous: the Cloud Calling
@@ -33,6 +37,8 @@ _ERROR_TIPS = {
     28018: "CX Essentials is not enabled for this queue. Use --has-cx-essentials true when creating/querying CX queues.",
 }
 
+_JOB_RUNNING_TIP = "Another job of this same type is still running in the org, and only one may run at a time — nothing about this resource is blocked. Wait for it to finish, then retry. For a location calling-disable job: wxcli location-settings list-delete-calling-location, then poll wxcli location-settings show-delete-calling-location JOB_ID until latestExecutionStatus is COMPLETED."
+
 _MESSAGE_TIPS = {
     # A 401 whose cause is the org id, not the token: the generic 401 tip
     # ("missing, expired, or revoked") sent people to re-run configure with a
@@ -46,6 +52,17 @@ _MESSAGE_TIPS = {
     # the generic 400 ("re-check every ID", "try --generate-json-body"), which
     # sends you to audit ids and request bodies when nothing is wrong with
     # either. The fault is the TARGET USER, so say so.
+    # Measured 2026-10-13, all three: the generic status tip named the wrong cause.
+    # 400 on `people list --location-id` / `people create` with licenses and a
+    # locationId, both without --calling-data. Got "re-check every ID".
+    "Calling flag not set": "This usually means the request needs --calling-data true: people list filtered by --location-id, and people create/update with licenses, locationId or extension, all fail this way without it. If you already passed it, the location may not be enabled for Webex Calling yet — check that it has calling details with: wxcli location-settings show <locationId>",
+    # 403 on `ai-receptionist create`. Got "not an admin / lacks scope", which
+    # sends you to replace a token that works everywhere else.
+    "BIFROST-B10005": "This usually means the org is not entitled to this service (for example AI Receptionist), not that the token is wrong — replacing the token will not help. Confirm the token and org are the ones you expect with: wxcli whoami; if they are, the feature has to be enabled or licensed for the org first.",
+    # 409 on a second `location-settings create-delete-calling-location`. Got
+    # "delete the dependents first — wxcli cleanup run", for a resource that has none.
+    "BATCH-1001004": _JOB_RUNNING_TIP,
+    "job of same type already running": _JOB_RUNNING_TIP,
     "Unauthorized request:": "This is about the target user, not your request — the ids and body are probably fine. Most often the user has no ACTIVE Webex Calling license: an invite-pending or unlicensed person returns this on every person-setting read. Check with: wxcli people show <personId> --calling-data true — coming back with no extension or locationId means they are not calling-active, and no person setting will read or write until they are. If the user IS calling-active, this endpoint may be one of the 19 that have no admin path (Known Issue #4): retry as that user with wxcli my-call-settings and their own OAuth token.",
 }
 
@@ -171,6 +188,46 @@ def _is_cc_403(e: WebexError, err: str) -> bool:
     return e.status_code == 403 and (_invoked_group().startswith("cc-") or "wxcc" in err)
 
 
+def _parsed_body(e: WebexError, err: str) -> dict | None:
+    if isinstance(e.body, dict):
+        return e.body
+    try:
+        body = json.loads(err)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    return body if isinstance(body, dict) else None
+
+
+def _body_shape_tip(e: WebexError, err: str) -> str | None:
+    """A tip keyed on the fields of the response body, not on its text.
+
+    Measured 2026-10-13: `update-call-recording` (user-settings,
+    virtual-line-settings) returned 409 with a body that is the recording
+    vendor's terms-of-service record and nothing else. The 409 status tip said
+    "delete the dependents first", which is the wrong cause entirely.
+    """
+    body = _parsed_body(e, err)
+    if not body or "termsOfServiceUrl" not in body:
+        return None
+    vendor = body.get("vendorName") or "the call-recording vendor"
+    url = body.get("termsOfServiceUrl") or "(no URL in the response)"
+    vendor_id = body.get("vendorId") or "<vendorId>"
+    return (f"This usually means the org has not accepted {vendor}'s terms of service for "
+            f"call recording (termsOfServiceUrl: {url}), so recording cannot be enabled yet. "
+            f"Accepting them is an org-level change: wxcli call-recording "
+            f"update-terms-of-service {vendor_id} --terms-of-service-enabled — then retry.")
+
+
+def _tracking_id(e: WebexError) -> str | None:
+    headers = getattr(e, "headers", None)
+    if not headers:
+        return None
+    for k, v in headers.items():
+        if k.lower() == "trackingid":
+            return v
+    return None
+
+
 def handle_rest_error(e: WebexError) -> None:
     """Centralized error handler with actionable tips."""
     err = str(e)
@@ -180,7 +237,9 @@ def handle_rest_error(e: WebexError) -> None:
     # takes the earlier branch, which is correct: no code in _ERROR_TIPS is
     # documented as arriving with a 403 (4008/25409 are 404/405, 25008/28018 are
     # 400), so an errorCode on a 403 is new information the scope tip would hide.
-    if code and code in _ERROR_TIPS:
+    if _body_shape_tip(e, err):
+        tip = _body_shape_tip(e, err)
+    elif code and code in _ERROR_TIPS:
         tip = _ERROR_TIPS[code]
     elif any(msg in err for msg in _MESSAGE_TIPS):
         tip = next(v for k, v in _MESSAGE_TIPS.items() if k in err)
@@ -191,7 +250,15 @@ def handle_rest_error(e: WebexError) -> None:
     else:
         tip = _STATUS_TIPS.get(e.status_code)
 
-    typer.echo(f"Error: {_truncate_html(err)}", err=True)
+    if err.strip():
+        typer.echo(f"Error: {_truncate_html(err)}", err=True)
+    else:
+        # Live 2026-10-13: `user-settings update-reception` answered 400 with no
+        # body and the CLI printed a bare "Error: ", which reads like a crash.
+        status = f"HTTP {e.status_code}" if e.status_code else "HTTP error"
+        tracking = _tracking_id(e)
+        suffix = f" (trackingId: {tracking})" if tracking else ""
+        typer.echo(f"Error: {status} with an empty response body{suffix}", err=True)
     if tip:
         typer.echo(f"Tip: {tip}", err=True)
 
