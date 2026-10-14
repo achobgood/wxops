@@ -145,7 +145,7 @@ No additional prerequisites beyond location + agents. Can be created with zero a
 
 | Prerequisite | Verification | If missing |
 |-------------|-------------|-----------|
-| Originators/targets exist | `wxcli users list --calling-data true -o json` | Originators and targets are added via `wxcli paging-group update` AFTER creation (not in the create call) |
+| Originators/targets exist | `wxcli users list --calling-data true -o json` | Originators and targets can go in the create body (`--json-body`, plain ID strings) or be added later with `wxcli paging-group update` (both verified live 2026-10-13) |
 
 #### Call Park
 
@@ -211,16 +211,23 @@ Collect from user:
 
 **CLI command:**
 
-> **NOTE:** The CLI automatically provides default menus (key 0 = EXIT, extension dialing enabled, DEFAULT greeting) so the create command succeeds without specifying menu details. To customize menus with specific key-press actions, use `wxcli auto-attendant update` after creation.
+> **NOTE (verified live 2026-10-13):** the CLI does **not** supply default menus. `wxcli auto-attendant create LOCATION_ID --name ... --extension ... --business-schedule ...` (flags only) fails `400 25008 "Missing Mandatory field name:  businessHoursMenu"`. Create needs `--json-body` containing both menus. `businessSchedule` must be the exact **name** of an existing schedule at that location (`wxcli location-schedules list LOCATION_ID`), not a made-up label.
 
 ```bash
-wxcli auto-attendant create LOCATION_ID \
-  --name "Main Menu" \
-  --extension 1000 \
-  --business-schedule "Business Hours"
+wxcli auto-attendant create LOCATION_ID --json-body '{
+  "name": "Main Menu",
+  "extension": "1000",
+  "businessSchedule": "EXACT_SCHEDULE_NAME",
+  "businessHoursMenu": {"greeting": "DEFAULT", "extensionEnabled": true,
+    "keyConfigurations": [{"key": "0", "action": "EXIT"}]},
+  "afterHoursMenu": {"greeting": "DEFAULT", "extensionEnabled": true,
+    "keyConfigurations": [{"key": "0", "action": "EXIT"}]}
+}'
 ```
 
-Optional flags: `--phone-number`, `--holiday-schedule`, `--extension-dialing`, `--name-dialing`, `--first-name`, `--last-name`, `--language-code`, `--time-zone`.
+To change menus later use `wxcli auto-attendant update LOCATION_ID AA_ID --json-body '{"businessHoursMenu": {...}}'`. A menu you send **replaces** that whole menu (sending keys 1 and 0 removed an existing key 2), so resend every key you want to keep.
+
+Other flags (usable only when you do not pass `--json-body`, which overrides them): `--phone-number`, `--holiday-schedule`, `--extension-dialing`, `--name-dialing`, `--first-name`, `--last-name`, `--language-code`, `--time-zone`.
 
 ---
 
@@ -238,7 +245,7 @@ Collect from user:
 | Queue size | Yes | Max calls in queue before overflow triggers |
 | Overflow action | No | `PERFORM_BUSY_TREATMENT`, `TRANSFER_TO_PHONE_NUMBER`, `PLAY_RINGING_UNTIL_CALLER_HANGS_UP` |
 | Overflow transfer number | If overflow=transfer | Destination number |
-| Call bounce settings | No | `max_rings` (default 5), `agent_unavailable_enabled` |
+| Call bounce settings | No | `max_rings` (server default 8 when `callBounce` is omitted), `agent_unavailable_enabled` (default false); verified live 2026-10-13 |
 | Agent join/unjoin enabled | No | Let agents toggle themselves in/out |
 
 **Announcement chain** (all optional, configure as needed):
@@ -252,15 +259,14 @@ Collect from user:
 
 **CLI command:**
 
-> **NOTE:** The API may accept call queue creates without `callPolicies` for non-CX queues (using server-side defaults), but the spec marks it required. For CX Essentials queues, `callPolicies` is strictly required — pass via `--json-body`. Agents are added after creation.
+> **NOTE (verified live 2026-10-13):** `callPolicies.policy` is required for EVERY call queue, not just CX Essentials. `wxcli call-queue create LOCATION_ID --name ... --extension ...` (flags only) fails `400 25008 "Missing Mandatory field name:  callPolicies"`; `"callPolicies":{}` fails `"...callPolicies.policy"`. (`hunt-group create` is different: the CLI injects a default `callPolicies` for it; `call-queue create` does not.) Agents, `queueSettings` and `routingType` are optional on create.
 
 ```bash
 wxcli call-queue create LOCATION_ID \
-  --name "Support Queue" \
-  --extension 2000
+  --json-body '{"name": "Support Queue", "extension": "2000", "callPolicies": {"policy": "CIRCULAR"}}'
 ```
 
-Optional flags: `--phone-number`.
+`--json-body` overrides the other flags, so put `name`/`extension` (or `phoneNumber`) inside it.
 
 To add agents after creation, use the update command with `--json-body`:
 
@@ -329,7 +335,7 @@ wxcli hunt-group create LOCATION_ID --json-body '{
 }'
 ```
 
-**callPolicies structure (required by API):**
+**callPolicies structure.** Verified live 2026-10-13: only `policy` is required inside it -- `{"callPolicies":{"policy":"CIRCULAR"}}` created a hunt group and the server filled in `noAnswer` (server defaults: nextAgentEnabled **false**, nextAgentRings 5, forwardEnabled false, numberOfRings 15 — read back from a `{"callPolicies":{"policy":"REGULAR"}}` create; the "nextAgentEnabled true, rings 3" you see after a plain `hunt-group create` comes from the CLI's own injected default, not the server). The **raw API requires `callPolicies`**: a direct POST without it returns `400 25008 "Missing Mandatory field name:  callPolicies"`. A `noAnswer` object that omits `destinationVoicemailEnabled` is also accepted. The `Yes` marks on the `noAnswer.*` rows below are what the spec says, not what the API enforces. If you pass no `callPolicies` at all, `wxcli hunt-group create` injects one.
 
 | Field | Required | Notes |
 |-------|:--------:|-------|
@@ -387,7 +393,7 @@ To list existing paging groups:
 wxcli paging-group list --location-id LOCATION_ID --output json
 ```
 
-> **NOTE:** Originator and target assignment requires `wxcli paging-group update` after creation. The CLI create command creates the group with name, extension, and enabled status.
+> **NOTE (verified live 2026-10-13):** the create flags only cover name/extension/etc., but `--json-body` accepts `originators`, `targets` and `originatorCallerIdEnabled` in the same create call, as **plain ID strings** -- `wxcli paging-group create LOCATION_ID --json-body '{"name":"Warehouse Page","extension":"8100","originatorCallerIdEnabled":true,"originators":["PERSON_ID"],"targets":["PERSON_ID"]}'`. `[{"id": ...}]` objects fail `400 25024 "Invalid field value: targets"`. `wxcli paging-group update` can change them later.
 
 ---
 
@@ -401,16 +407,18 @@ Collect from user:
 | Agents | No | People/workspaces eligible to receive parked calls |
 | Call Park Extensions | No | Dedicated park extensions (create these first) |
 | Park on agents enabled | No | Whether calls can be parked directly on agents |
-| Recall behavior | No | `ALERT_PARKING_USER_ONLY` (default), `ALERT_PARKING_USER_FIRST_THEN_HUNT_GROUP`, `ALERT_HUNT_GROUP_ONLY` |
+| Recall behavior | No | `recall.option` is **required** on create (no server default): `ALERT_PARKING_USER_ONLY`, `ALERT_PARKING_USER_FIRST_THEN_HUNT_GROUP`, `ALERT_HUNT_GROUP_ONLY` |
 | Recall hunt group | If recall uses HG | Must be an existing hunt group at the location |
 
 **CLI command:**
 
-> **NOTE:** The CLI automatically provides the required `recall` field (defaults to `parking_user_only`), so the create succeeds with just a name.
+> **NOTE (verified live 2026-10-13):** the CLI does **not** supply `recall`. `wxcli call-park create LOCATION_ID --name "Lobby Park"` fails `400 25008 "message=Missing required field(s)."`. Pass `name` AND `recall.option` in `--json-body` (it overrides the flags, so `--name` plus a body without `name` fails too).
 
 ```bash
-wxcli call-park create LOCATION_ID --name "Lobby Park"
+wxcli call-park create LOCATION_ID --json-body '{"name": "Lobby Park", "recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
 ```
+
+`agents` and `callParkExtensions` in the body are plain ID strings, not `{"id":...}` objects (objects fail `400 25024 "Invalid field value: agents"`).
 
 Note: `LOCATION_ID` is a positional argument for call-park commands.
 
@@ -469,17 +477,20 @@ Collect from user:
 
 **CLI command:**
 
-> **NOTE:** The CLI handles the known `VoicemailGroupDetail.for_create()` SDK bug (missing `by_alias=True`) internally. It uses `model_dump(by_alias=True)` and raw HTTP under the hood, so the command just works.
+> **NOTE (verified live 2026-10-13):** the flags-only form does **not** work. `wxcli location-voicemail create LOCATION_ID --name ... --extension ... --passcode ... --language-code en_us` fails `400 25008 "...Missing Mandatory field name:  messageStorageType"`: the CLI does not fill in `messageStorage`, `notifications`, `faxMessage`, `transferToNumber` or `emailCopyOfMessage`. Use `--json-body` with every field in it (the body overrides the flags, so `name`/`extension` must be inside it too -- a body without `name` fails `"Missing Mandatory field name:  name"`). `passcode` as a string (`"740384"`) is accepted.
 
 ```bash
-wxcli location-voicemail create LOCATION_ID \
-  --name "Support VM" \
-  --extension 8200 \
-  --passcode 740384 \
-  --language-code en_us
+wxcli location-voicemail create LOCATION_ID --json-body '{
+  "name": "Support VM", "extension": "8200", "passcode": "740384", "languageCode": "en_us",
+  "messageStorage": {"storageType": "INTERNAL"},
+  "notifications": {"enabled": false},
+  "faxMessage": {"enabled": false},
+  "transferToNumber": {"enabled": false},
+  "emailCopyOfMessage": {"enabled": false}
+}'
 ```
 
-Optional flags: `--phone-number`, `--first-name`, `--last-name`.
+Optional body fields: `phoneNumber`, `firstName`, `lastName`, `dialByName`.
 
 ---
 
@@ -510,17 +521,17 @@ wxcli announcements show --output json
 
 `list` also filters with `--name`, `--file-name`, `--file-type`, `--media-file-type`, and sorts with `--order`.
 
-**Create an announcement.** `create` (org) and `create-announcements LOCATION_ID` take a file **URI**, not a local file path — all four flags are required:
+**Create an announcement.** `create` (org) and `create-announcements LOCATION_ID` take a file **URI**, not a local file path — all four flags are required. **The URI must be a Calling Media File Service reference (`cmf://customers/<org>/media/tmp/<id>`), not an open-web URL.** Verified live 2026-10-13: `--file-uri https://example.com/welcome.wav` and a real, reachable public WAV (`https://www.kozco.com/tech/piano2.wav`, HTTP 200) both fail `400 27917 "Error retrieving announcement file from Calling Media File Service"`. The only way found to obtain a valid `cmf://` URI through the CLI is the TTS flow below (`tts-status` returns it as `fileUri`):
 
 ```bash
 wxcli announcements create \
   --name "Welcome Greeting" \
-  --file-uri "https://example.com/welcome.wav" \
+  --file-uri "cmf://customers/ORG_UUID/media/tmp/TTS_FILE_ID" \
   --file-name "welcome.wav" \
-  --no-is-text-to-speech
+  --is-text-to-speech
 ```
 
-Use `--is-text-to-speech` instead of `--no-is-text-to-speech` when registering a TTS-generated prompt.
+Use `--no-is-text-to-speech` only for a non-TTS file; `update` / `update-announcements` need `name`, `fileName` AND `fileUri` together (a name-only body fails `400 25008 "Missing Mandatory field name:  fileName"`, then `"... fileUri"`), and omitting `--is-text-to-speech` on update drops the TTS metadata. Verified live 2026-10-13.
 
 **Delete (both scopes need `--force` for non-interactive runs):**
 
@@ -529,7 +540,7 @@ wxcli announcements delete ANNOUNCEMENT_ID --force
 wxcli announcements delete-announcements LOCATION_ID ANNOUNCEMENT_ID --force
 ```
 
-**Before deleting, check what references the announcement.** The details command returns `featureReferences` and `playlists` — an announcement in use by an AA/CQ/playlist should not be deleted blind:
+**Before deleting, check what references the announcement.** The details command returns `featureReferenceCount` and `playlists` (`[{id,name}]`; verified live 2026-10-13 — the skill's earlier `featureReferences` name was not observed, an announcement with no feature references shows `featureReferenceCount: 0`). A delete of an announcement that sits in a playlist is refused (`400 6575 "cannot be deleted because it is being used by a group or user"`), so delete the playlist first; an AA/CQ greeting reference was not tested:
 
 ```bash
 wxcli announcements show-announcements-config ANNOUNCEMENT_ID --output json
@@ -544,9 +555,10 @@ Generate spoken audio from text instead of recording and uploading a WAV. The fl
 wxcli announcements tts-voices --output json
 
 # 2. Generate the prompt
-wxcli announcements tts-generate --voice VOICE_ID --text "Thank you for calling. Please hold." --language-code en_US
+wxcli announcements tts-generate --voice VOICE_ID --text "Thank you for calling. Please hold." --language-code en_us
 
-# 3. Check generation status (tts-status requires a ttsId)
+# 3. Check generation status (tts-status requires the ttsId that tts-generate returned as {"id": ...})
+#    -> {id, voice, text, languageCode, status: "SUCCESS", promptUrl, kmsKeyUri, fileUri: "cmf://..."}
 wxcli announcements tts-status TTS_ID --output json
 
 # 4. Check TTS quota/consumption for the org
@@ -555,7 +567,7 @@ wxcli announcements tts-usage --output json
 
 All four flags on `tts-generate` (`--voice`, `--text`, `--language-code`, plus `--json-body`) are optional per `--help`, but voice and text are needed for a usable prompt. Use `tts-voices` to get a valid `--voice` ID and `--language-code` rather than guessing.
 
-> **Unverified — confirm on first run:** the existence of a separate `tts-status TTS_ID` command implies generation is asynchronous and that `tts-generate` returns a `ttsId` to poll, but this flow has not been executed live. Capture the actual `tts-generate` output on first use and check the prompt reached a completed state before wiring it into a feature.
+> **Verified live 2026-10-13:** `tts-generate --voice calvin --text "..." --language-code en_us` returned `{"id": "<ttsId>"}`; `tts-status <ttsId>` returned `status: "SUCCESS"` on the first poll (short text) with a `fileUri` of the form `cmf://customers/<org>/media/tmp/<uuid>`; passing that `fileUri` to `announcements create --is-text-to-speech` (org) and `create-announcements LOCATION_ID` (location) created announcements; `tts-usage` went from `noOfApiCalls` 0 to 2 of `maxAllowedApiCalls` 150. **`--language-code` must be lower-case as `tts-voices` returns it (`en_us`); `en_US` fails `400 1014 "The requested language is not supported for this customer"`.** A prompt shorter than 5 s cannot go into a playlist (`400 6536 "Duration is too short for use with Music On Hold. The file must be 5 seconds or longer"`).
 
 ---
 
@@ -568,7 +580,7 @@ A playlist groups announcement files into a rotation (typically music on hold) a
 | Parameter | Required | Notes |
 |-----------|:--------:|-------|
 | Name | Yes | Unique name for the playlist |
-| Announcement IDs | No (on create) | Array of announcement IDs — `--json-body` only, no flag exists |
+| Announcement IDs | **Yes (on create)** | Array of announcement IDs (`announcementIds`) — `--json-body` only, no flag exists. `create --name X` alone fails `400 25008 "Missing Mandatory field name:  announcements"` (verified live 2026-10-13) |
 | Location IDs | No | Assigned separately via `update-playlists` |
 
 ```bash
@@ -639,7 +651,7 @@ The call queue itself is still created here (see Call Queue section above). Once
 > | Command | What it ACTUALLY does |
 > |---------|----------------------|
 > | `show` / `update` | Internal **dialing** config — not a generic show/update |
-> | `list` | Gets the location's **outgoing permission** — returns one settings object, not a list |
+> | `list` | Gets the location's **outgoing permission** — prints a JSON **array** of per-call-type entries (13 live, each `{callType, action, transferEnabled, isCallTypeRestrictionEnabled}`; verified 2026-10-13) |
 > | `create` | Creates an **access code** |
 > | `update-access-codes` | **DELETES** specific access codes (body is `deleteCodes`) — it does not update anything |
 > | `delete` | **DELETES ALL** access codes for the location |
@@ -664,7 +676,7 @@ Controls whether calls to an unknown extension are routed off-net to a trunk or 
 wxcli location-call-handling update LOCATION_ID --json-body '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"ROUTE_GROUP_ID","type":"ROUTE_GROUP"}}'
 ```
 
-`--enable-unknown-extension-route-policy` / `--no-enable-unknown-extension-route-policy` toggles the policy alone; setting the route target requires `--json-body`. The trunk or route group must already exist — create it with the `configure-routing` skill first.
+`--enable-unknown-extension-route-policy` / `--no-enable-unknown-extension-route-policy` toggles the policy alone, but **enabling it without a route target fails** `400 27344 "Unknown extension premises route identity need to be configured..."` (verified live 2026-10-13); setting the route target requires `--json-body`. The trunk or route group must already exist — create it with the `configure-routing` skill first.
 
 #### Location intercept (`show-intercept`, `update-intercept`)
 
@@ -695,7 +707,7 @@ wxcli location-call-handling show-auto-transfer-numbers LOCATION_ID --output jso
 wxcli location-call-handling update-auto-transfer-numbers LOCATION_ID --auto-transfer-number1 "+15551234567"
 ```
 
-Flags: `--auto-transfer-number1`, `--auto-transfer-number2`, `--auto-transfer-number3`.
+Flags: `--auto-transfer-number1`, `--auto-transfer-number2`, `--auto-transfer-number3`. Numbers read back normalised (`+15551234567` -> `+1-5551234567`); to clear one send `--json-body '{"autoTransferNumber1":""}'` (verified live 2026-10-13: read-back returned to `{}`).
 
 #### Access codes (`show-access-codes`, `create`, `update-access-codes`, `delete`)
 
@@ -706,7 +718,7 @@ Authorization codes that let a caller bypass an outgoing permission restriction.
 wxcli location-call-handling create LOCATION_ID --json-body '{"accessCodes":{"code":"123456","description":"Front desk override"}}'
 
 # Delete SPECIFIC codes (yes, the command is named "update-access-codes")
-wxcli location-call-handling update-access-codes LOCATION_ID --json-body '{"deleteCodes":["123456"]}'
+wxcli location-call-handling update-access-codes LOCATION_ID --json-body '{"deleteCodes":["123456"]}' --force   # without --force: "[y/N]" prompt -> "Aborted!", nothing deleted (verified live 2026-10-13)
 
 # Delete ALL access codes at the location
 wxcli location-call-handling delete-access-codes-all LOCATION_ID --force
@@ -902,10 +914,10 @@ Handle errors explicitly:
 
 **Feature-specific errors:**
 - **400 on AA create (schedule reference):** The business hours schedule doesn't exist or the schedule ID is wrong. Verify with `wxcli location-schedules list LOCATION_ID -o json`.
-- **400 on CQ create (missing callPolicies):** CX Essentials queues require `callPolicies` in the create body. Add via `--json-body`.
-- **400 on CQ update (callingLineIdPolicy=CUSTOM):** Sending the full queue object on update triggers this. Use individual flags (`--name`, `--extension`) instead of `--json-body` with the full object. The CLI handles partial updates automatically.
+- **400 25008 on CQ create (missing callPolicies):** every call queue (CX or not) needs `callPolicies.policy` in the create body; the call-queue flags cannot supply it. Add via `--json-body`.
+- **400 on CQ update (callingLineIdPolicy=CUSTOM):** Sending the full queue object on update triggers this. Use individual flags (`--name`, `--extension`) instead of `--json-body` with the full object. The CLI handles partial updates automatically. (Live 2026-10-13: this 400 did NOT reproduce — a queue with `callingLineIdPolicy` CUSTOM + `callingLineIdPhoneNumber` was read with `call-queue show` and the whole object PUT back via `--json-body file://` returned 2xx. Partial updates are still the safe default.)
 - **28018 on CX operations:** "CX Essentials is not enabled for this Call center" — the queue isn't a CX queue. Must pass `--has-cx-essentials true` on list commands and create with `callPolicies`.
-- **400 on VM Group create (passcode):** Passcode doesn't meet requirements: 6+ digits, no repeating sequences, no common patterns.
+- **400 on VM Group create (passcode):** error `5432 "Invalid portal passcode."`. Passcode doesn't meet requirements: 6+ digits, no repeating sequences, no common patterns. Verified live 2026-10-13: `111111` (repeating), `12345` (too short) and `123456` (sequential) were each rejected with 5432; `740384` was accepted.
 - **ID changed after rename (Call Park, Call Pickup):** These features generate new IDs when renamed. Always re-fetch the list after a rename: `wxcli call-park list LOCATION_ID -o json`.
 
 ## Step 7: Verify creation
@@ -987,24 +999,24 @@ Next steps:
 5. **Audio file upload is not supported via API** -- custom greetings for AA and CQ must be uploaded through Webex Control Hub.
 6. **Call Park and Call Pickup IDs change on name modification.** Always re-fetch after renaming.
 7. **CQ routing policy limits** -- `SIMULTANEOUS` max 50 agents; `WEIGHTED` max 100 agents; `CIRCULAR`/`REGULAR`/`UNIFORM` max 1,000 agents.
-8. **Paging Group: originators require update** -- the CLI create command does not accept originator/target lists; use `wxcli paging-group update` after creation.
+8. **Paging Group: originators/targets via `--json-body`.** The create *flags* do not cover originator/target lists, but `--json-body` accepts `originators`/`targets` (plain ID strings) on create, and `wxcli paging-group update` changes them later. Both verified live 2026-10-13.
 9. **Call Pickup one-group-per-user constraint** -- a user can only belong to one pickup group.
 10. **Customer Assist (CX Essentials) has its own skill.** Use the `customer-assist` skill for screen pop, wrap-up, queue recording, and supervisor configuration. Call queue creation stays in this skill.
 11. **Hunt Group holiday/night service** uses forwarding rules (schedule-based), not a dedicated policy API like Call Queues have.
 12. **Voicemail Group passcode is required** on create -- the CLI enforces this via `--passcode` (required option).
-13. **AA create: menus are auto-populated by the CLI.** The CLI provides default menus (key 0 = EXIT, extension dialing enabled) so the create command succeeds. Customize menus via `wxcli auto-attendant update` after creation.
+13. **AA create needs both menus in `--json-body`.** The CLI does NOT auto-populate menus: flags-only create fails `400 25008 "Missing Mandatory field name:  businessHoursMenu"` (verified live 2026-10-13). An `auto-attendant update` menu replaces that whole menu.
 14. **CQ update uses partial objects.** The CLI `update` command avoids the `callingLineIdPolicy=CUSTOM` 400 error by sending only changed fields.
-15. **VM Group SDK bug is handled by the CLI.** The `wxcli location-voicemail create` command works around the `by_alias=True` bug internally.
+15. **VM Group create needs the full body.** `wxcli location-voicemail create` with flags only fails `400 25008 "...Missing Mandatory field name:  messageStorageType"`; use `--json-body` with name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber and emailCopyOfMessage (verified live 2026-10-13).
 16. **Before deleting, check for cross-feature references.** Some features are referenced by others and deleting them silently breaks the dependent feature:
-    - Hunt Groups may be referenced by Call Park recall configuration. Check: `wxcli call-park list LOCATION_ID -o json` and inspect `recall.huntGroupId`.
+    - Hunt Groups may be referenced by Call Park recall configuration. Check: `wxcli call-park show LOCATION_ID PARK_ID -o json` for each park and compare `recall.huntGroupName` (NOT `recall.huntGroupId` -- the server returns that in a different encoding from the hunt group's own `id`, so an ID comparison never matches; `call-park list` returns no `recall` field, so you must `show` each park). Verified live 2026-10-13: deleting a hunt group that a call park used succeeded and reset that park's recall to `ALERT_PARKING_USER_ONLY`, so the effect is a silent downgrade rather than a dangling reference.
     - Auto Attendants may be referenced by Call Queues (overflow destination) or other AAs (key-press routing). Check overflow settings on any CQ at the location.
     - Call Queues may be referenced by AAs as overflow targets.
     Run the relevant checks before executing any delete.
 
-17. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules.
+17. **Location-scoped deletes take LOCATION_ID as the FIRST argument** — `wxcli hunt-group delete --force LOCATION_ID HG_ID`, not `hunt-group delete --force HG_ID`. This applies to all location-scoped features: hunt-group, auto-attendant, call-queue, paging-group, call-park, call-pickup, location-voicemail, location-schedules. Exception in shape: `location-schedules delete` takes THREE arguments, `LOCATION_ID TYPE SCHEDULE_ID` (`wxcli location-schedules delete --force LOCATION_ID businessHours SCHEDULE_ID`); passing two fails `Missing argument 'schedule_id'`. Delete with `--force` verified live 2026-10-13 for hunt-group, call-queue, auto-attendant, paging-group, call-pickup, location-voicemail and location-schedules.
 17. **Always use `--force` for programmatic deletes** — Without `--force`, delete commands prompt `[y/N]` which blocks non-interactive execution.
-18. **Agent/member format differs by feature type.** Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets`/`originators` as plain string arrays. Using the wrong format returns 400 "Invalid field value". Always check `docs/reference/call-features-additional.md` if unsure.
-19. **Call Parks and Call Pickups require location for listing.** `wxcli call-park list` and `wxcli call-pickup list` without a location argument return empty. Must pass `LOCATION_ID` as first positional arg: `wxcli call-park list LOCATION_ID -o json`.
+18. **Agent/member format differs by feature type.** Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets`/`originators` as plain string arrays. Call Parks take `agents` and `callParkExtensions` as plain string arrays. Using the wrong format returns 400 25024 "Invalid field value: agents" (re-verified live 2026-10-13 for pickup, paging and call park). **A call-pickup update that omits `agents` empties the group** -- always resend the full list. Always check `docs/reference/call-features-additional.md` if unsure.
+19. **Call Parks and Call Pickups require location for listing.** `wxcli call-park list` and `wxcli call-pickup list` without a location argument exit 1 with `Error: Missing argument 'location_id'.` (verified live 2026-10-13). Must pass `LOCATION_ID` as first positional arg: `wxcli call-park list LOCATION_ID -o json`.
 20. **Cross-skill handoffs:**
     - CX Essentials configuration → `customer-assist` skill (screen pop, wrap-up, recording, supervisors)
     - Person/workspace call settings → `manage-call-settings` skill (voicemail, forwarding, DND, etc.)
@@ -1015,12 +1027,14 @@ Next steps:
 22. **Three commands in `location-call-handling` delete everything at a location** — `delete-access-codes-all` (all access codes), `delete-digit-patterns-outgoing-permission` (all digit patterns), and enabling `update-intercept` (overrides all call handling). The single-item digit pattern delete is the `-1` suffixed variant. Confirm scope with the user first.
 23. **`announcements show` is repository usage, not announcement details.** Use `show-announcements-config ANN_ID` (org) or `show-announcements-locations LOC_ID ANN_ID` (location).
 24. **Announcements are scoped org-level OR location-level, with different commands for each.** Location-level commands are the `*-announcements`/`*-announcements-locations` variants and take `LOCATION_ID` first. Passing a location announcement ID to an org command returns 404.
-25. **Check references before deleting an announcement or playlist.** `wxcli announcements show-announcements-config ANN_ID -o json` returns `featureReferences` and `playlists`; `wxcli cq-playlists list PLAYLIST_ID -o json` shows which queues/locations use a playlist. Deleting an in-use file silently breaks the AA/CQ that plays it.
+25. **Check references before deleting an announcement or playlist.** `wxcli announcements show-announcements-config ANN_ID -o json` returns `featureReferenceCount` and `playlists`; `wxcli cq-playlists list PLAYLIST_ID -o json` shows which queues/locations use a playlist. Verified live 2026-10-13: an announcement inside a playlist cannot be deleted (`400 6575`), so it is not silently broken; AA/CQ greeting references were not tested.
 26. **Playlist location assignment is a full replace.** `announcement-playlists update-playlists` overwrites the whole list — read `list-playlists PLAYLIST_ID` first and re-include every location you want to keep.
 27. **`caller-reputation` is org-level and uses `--organization-id`**, not the standard orgId injection. Score thresholds are **strings** — quote them (`--call-block-score-threshold "80"`).
-28. **`external-voicemail create` and `create-mwi` require a Service App token** with `spark-admin:calls_write`. Admin tokens and PATs fail. Neither has a read-back command. **Unverified** for `create-mwi`: the Service App requirement is the spec's own text for that endpoint, not observed.
-29. **Announcement `create` takes a file URI, not a local path.** `--file-uri`, `--file-name`, `--name`, and the `--is-text-to-speech`/`--no-is-text-to-speech` flag are all required. For a spoken prompt without an audio file, use the `tts-generate` flow instead.
-30. **The TTS flow is not live-verified.** The `tts-generate` → `tts-status` sequence is inferred from the command surface, not from an executed run. Capture the real `tts-generate` output on first use, confirm the prompt completed, and correct this skill if the flow differs.
+28. **`external-voicemail create` and `create-mwi` require a Service App token** with `spark-admin:calls_write`. Neither has a read-back command. (Observed 2026-10-13: with the admin PAT, `create --id <person> --action CLEAR` was NOT rejected as 401/403 — it reached business validation and failed `112130 "External MWI Control not allowed for user with an internal mailbox"`. So "PATs fail" is not confirmed for the auth layer; a success case could not be produced because every user in the sandbox has an internal mailbox.) **Unverified** for `create-mwi`: the Service App requirement is the spec's own text for that endpoint, not observed.
+29. **Announcement `create` takes a `cmf://` media-service URI, not a local path or an open-web URL.** `--file-uri`, `--file-name`, `--name`, and the `--is-text-to-speech`/`--no-is-text-to-speech` flag are all required. Public https URLs fail `400 27917` (verified live 2026-10-13); use the `fileUri` that `tts-status` returns.
+30. **The TTS flow is live-verified (2026-10-13).** `tts-generate` → `{"id"}` → `tts-status` → `fileUri` → `announcements create`. `--language-code` is lower-case (`en_us`).
+31. **`location-call-handling update-access-codes` needs `--force`** (it is a delete under a misleading name); without it, non-interactive runs print `Aborted!` and delete nothing. Enabling the internal-dialing unknown-extension policy alone (`update --enable-unknown-extension-route-policy`) fails `400 27344` until a route target is in the body (no route group/trunk existed to test the target form). `update-auto-transfer-numbers` stores numbers normalised (`+1-5551234567`); `{"autoTransferNumber1":""}` clears one (verified live 2026-10-13). `location-call-handling list` returns a JSON **array** of per-call-type entries, not a single object.
+32. **Delete order and gaps verified live 2026-10-13.** `location-schedules delete` takes `LOCATION_ID TYPE SCHEDULE_ID` (`businessHours`|`holidays` is the second argument). Deleting a hunt group still named in a call park's recall succeeded and the park's recall reset itself to `ALERT_PARKING_USER_ONLY`. Deleting an AI Receptionist knowledge base that still held a document succeeded (the document went with it); the receptionist-first ordering could not be tested because the org lacks the `callingAiReceptionist` entitlement (`403 BIFROST-B10005` on `ai-receptionist create`, while the CLI tip wrongly blames the token).
 
 ---
 

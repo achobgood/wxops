@@ -139,9 +139,13 @@ wxcli virtual-line-settings create \
 wxcli virtual-line-settings update-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
   --first-name "Sales" --last-name "Main Line" --extension 8501
 
-# Update time zone and announcement language
+# Update time zone and announcement language.
+# Verified live 2026-10-13: --announcement-language takes the language NAME as the read-back shows it ("English"),
+# NOT a code: "en_us" and "en_US" both fail with 400 {"errorCode":25046,"message":"Invalid Language."}.
+# Also: --first-name/--last-name changes do not refresh the read-only displayName, and --verify reports
+# --extension as "not present in read-back" even though it took (the field reads back under number.extension).
 wxcli virtual-line-settings update-virtual-lines Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
-  --time-zone "America/Chicago" --announcement-language "en_us"
+  --time-zone "America/Chicago" --announcement-language "English"
 
 # Delete a virtual line
 wxcli virtual-line-settings delete Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
@@ -162,17 +166,23 @@ wxcli virtual-line-settings list-devices Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8
 # Read call forwarding settings
 wxcli virtual-line-settings show-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
 
+# Verified live 2026-10-13: unlike the person endpoint, the virtual-line PUT REQUIRES BOTH top-level keys,
+# `callForwarding` AND `businessContinuity`. A body with only one of them fails with
+# 400 {"errorCode":25008,"message":"Missing Mandatory field name:  businessContinuity"} (or `callForwarding`).
+# Inside callForwarding, always/busy/noAnswer are optional and omitted blocks keep their values.
+
 # Enable always-forward (nested settings require --json-body)
 wxcli virtual-line-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
-  --json-body '{"callForwarding":{"always":{"enabled":true,"destination":"+15551234567","ringReminderEnabled":true}}}'
+  --json-body '{"callForwarding":{"always":{"enabled":true,"destination":"+15551234567","ringReminderEnabled":true}},"businessContinuity":{"enabled":false}}'
 
 # Enable no-answer forwarding with 5 rings
 wxcli virtual-line-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
-  --json-body '{"callForwarding":{"noAnswer":{"enabled":true,"destination":"+15556667777","numberOfRings":5}}}'
+  --json-body '{"callForwarding":{"noAnswer":{"enabled":true,"destination":"+15556667777","numberOfRings":5}},"businessContinuity":{"enabled":false}}'
 
-# Enable business continuity forwarding
+# Enable business continuity forwarding (callForwarding must still be present with at least one block;
+# an empty "callForwarding":{} returns 400 {"errorCode":25008,"message":"Missing Mandatory field name: "})
 wxcli virtual-line-settings update-call-forwarding Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
-  --json-body '{"businessContinuity":{"enabled":true,"destination":"+18889990000"}}'
+  --json-body '{"callForwarding":{"always":{"enabled":false}},"businessContinuity":{"enabled":true,"destination":"+18889990000"}}'
 
 # Read call waiting settings
 wxcli virtual-line-settings show-call-waiting Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
@@ -208,6 +218,8 @@ wxcli virtual-line-settings update-voicemail Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTEl
 wxcli virtual-line-settings update-voicemail Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --enabled
 
 # Read caller ID settings
+# Verified live 2026-10-13: this prints only the `types` array (e.g. ["LOCATION_NUMBER","CUSTOM"]), not `selected` or the rest of the
+# object, and every update-caller-id-virtual-lines call must include --selected (omitting it: 400 25024 Invalid field value: selected)
 wxcli virtual-line-settings list-caller-id Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
 
 # Update caller ID to use direct line
@@ -223,6 +235,8 @@ wxcli virtual-line-settings update-caller-id-virtual-lines Y2lzY29zcGFyazovL3VzL
 wxcli virtual-line-settings show Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
 
 # Enable call recording (always record)
+# Verified live 2026-10-13: returns the recording vendor's terms-of-service body ({"vendorName":"Dubber","termsOfServiceUrl":...})
+# and exit 1 until the org accepts the vendor terms; the CLI's "resource still referenced" tip does not apply
 wxcli virtual-line-settings update Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 \
   --enabled --record "Always"
 
@@ -630,6 +644,7 @@ api.session.rest_put(f"{BASE}/telephony/config/virtualLines/{vl_id}/voicemail", 
 fwd = api.session.rest_get(f"{BASE}/telephony/config/virtualLines/{vl_id}/callForwarding")
 api.session.rest_put(f"{BASE}/telephony/config/virtualLines/{vl_id}/callForwarding", json={
     "callForwarding": {"always": {"enabled": True, "destination": "+15551234567"}},
+    "businessContinuity": {"enabled": False},   # REQUIRED alongside callForwarding on virtual lines (400 25008 without it; Verified live 2026-10-13)
 })
 
 # ── Call Recording ───────────────────────────────────────────────
@@ -792,8 +807,8 @@ result = api.session.rest_post(
 6. **`orgLevelOnly` is mutually exclusive with `locationId`/`locationName`** -- Only one filter type is allowed when listing virtual extensions or ranges.
 7. **No auto-pagination** -- Use `max=1000` for the first page. Check for pagination links if you have more results.
 8. **Virtual line call settings path vs workspace features path** -- Virtual lines use `/telephony/config/virtualLines/{id}/{feature}`. Workspaces use `/workspaces/{id}/features/{feature}`. These are completely different base paths.
-9. **`virtual-extensions` CLI commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`). The `wxcli cleanup` command already uses raw REST for this reason. The `virtual-line-settings` group uses the correct path family but only has settings commands, not CRUD. <!-- Documented from CLI known issue, 2026-03-31 -->
-10. **Clearing a virtual line's preferred answer endpoint needs a JSON `null`, not the flag.** The spec says the field "must be set to null" to clear and that omitting it leaves it unchanged. `--preferred-answer-endpoint-id` on `virtual-line-settings update-answer-settings` is a plain string option, so `--preferred-answer-endpoint-id null` would send the string `"null"`; use `--json-body '{"preferredAnswerEndpointId": null}'`. Answer settings are admin-only (`spark-admin:telephony_config_read`/`_write`). **Unverified:** read from the spec and the generated command code; no live call has been made.
+9. **`virtual-extensions` CLI commands use wrong ID type.** The generated `virtual-extensions` command group maps to the Virtual Extensions API which uses `VIRTUAL_EXTENSION`-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, and `virtual-extensions delete` returns 400. **Workaround:** Use raw REST calls (`DELETE /v1/telephony/config/virtualLines/{id}`) **or `wxcli virtual-line-settings delete VIRTUAL_LINE_ID --force`**. The `wxcli cleanup` command already uses raw REST for this reason. Verified live 2026-10-13: `virtual-extensions show|delete <VIRTUAL_LINE id>` returns 400 `Wrong type of Webex ID provided in path - expected VIRTUAL_EXTENSION, found VIRTUAL_LINE`, while a real virtual extension (created with `virtual-extensions create`) listed, showed, updated (`--verify` matched) and deleted normally. The earlier sentence that `virtual-line-settings` "only has settings commands, not CRUD" is wrong: `list`, `create`, `show-virtual-lines`, `update-virtual-lines` and `delete` all worked (create → settings → delete round trip). <!-- Documented from CLI known issue, 2026-03-31; corrected live 2026-10-13 -->
+10. **Clearing a virtual line's preferred answer endpoint needs a JSON `null`, not the flag.** The spec says the field "must be set to null" to clear and that omitting it leaves it unchanged. `--preferred-answer-endpoint-id` on `virtual-line-settings update-answer-settings` is a plain string option, so `--preferred-answer-endpoint-id null` would send the string `"null"`; use `--json-body '{"preferredAnswerEndpointId": null}'`. Answer settings are admin-only (`spark-admin:telephony_config_read`/`_write`). Verified live 2026-10-13 on a **person** (`user-settings update-answer-settings`, same body shape; not repeated on a virtual line): `--json-body '{"preferredAnswerEndpointId": null}'` returned 2xx; sending the string `"null"` (the flag form) made the server answer 502 (the CLI retries three times, then fails). On a virtual line, `show-answer-settings` on a new line read `{"preferredAnswerEndpointRequired": true, "autoAnswerEnabled": false, "isPreferredEndpointClearableByPerson": true}`; `--auto-answer-enabled` and `--no-is-preferred-endpoint-clearable-by-person` both applied (`--verify` matched), and `list-available-preferred-answer-endpoints` returned `[]` for a virtual line with no device.
 
 ---
 

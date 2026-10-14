@@ -19,7 +19,7 @@ Every setting in this group follows the same REST pattern: endpoints resolve to 
 | Voicemail PIN Reset | `spark-admin:people_write` | `spark-admin:people_write` | Write-only action |
 | Caller ID | `spark-admin:people_read` | `spark-admin:people_write` | Self: `spark:people_read` / `spark:people_write` |
 | Agent Caller ID | `spark-admin:telephony_config_read` | `spark-admin:telephony_config_write` | Available caller IDs uses `spark-admin:people_read` |
-| Anonymous Call Rejection | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` | Workspace-only admin endpoint. No admin-level `/people/{id}` path exists; self-service via `/me` only.  |
+| Anonymous Call Rejection | `spark-admin:workspaces_read` | `spark-admin:workspaces_write` | Admin endpoint exists for people AND workspaces (Verified live 2026-10-13: `GET/PUT /telephony/config/people/{id}/anonymousCallReject`); self-service via `/me` also exists. |
 | Privacy | `spark-admin:people_read` | `spark-admin:people_write` | |
 | Barge-In | `spark-admin:people_read` | `spark-admin:people_write` | Self: `spark:people_read` / `spark:people_write` |
 | Call Recording | `spark-admin:people_read` | `spark-admin:people_write` | |
@@ -93,6 +93,8 @@ Top-level settings object returned by `read()` and passed to `configure()`.
 #### Default Settings
 
 By default, voicemail is enabled with unanswered calls sent to voicemail after 3 rings using the default greeting, and internal message storage with MWI on; send-all-calls, send-busy-calls, notifications, transfer-to-number, email-copy, and fax-message all start disabled.
+
+> **Verified live 2026-10-13:** those defaults are not universal. A brand-new Professional user at a location of the sandbox tenant read back `sendBusyCalls.enabled: true`, `sendUnansweredCalls.numberOfRings: 8`, `voiceMessageForwardingEnabled: true`, `messageStorage.externalEmail` populated with the user's email, and `notifications.destination: null` (not `""`). A new virtual line at the same location read `numberOfRings: 3` with `sendBusyCalls.enabled: true`. Read the setting before assuming a default.
 
 ### CLI Examples
 
@@ -220,7 +222,9 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/voicemail/pass
 
 **Gotchas:**
 - Exclude read-only fields from PUT body: `greetingUploaded`, `systemMaxNumberOfRings`, `voiceMessageForwardingEnabled`.
-- Passcode endpoint uses `telephony/config/people` path (not `people/{id}/features`). Requires `spark-admin:telephony_config_write` scope. Passcode must be 6-30 characters.
+- Passcode endpoint uses `telephony/config/people` path (not `people/{id}/features`). Requires `spark-admin:telephony_config_write` scope. Passcode must be 6-30 characters **and pass the org's passcode-strength rules** — Verified live 2026-10-13: `123456`, `111111` and `12345678` were rejected with 400 `[Error 5432] Invalid portal passcode.`; `135790`, `246810`, `924681` were accepted. Do not use the `123456` example from this page.
+- **The greeting-upload CLI commands cannot upload a file.** Verified live 2026-10-13: `wxcli user-settings configure-busy-voicemail PERSON_ID` (bare, or with `--json-body '{"type":"CUSTOM"}'`) and `configure-no-answer` / `configure-call-intercept` all return 400 `Current request is not a multipart request`; the commands have no file option. Upload the `.wav` with a multipart POST (see Raw HTTP) instead.
+- `wxcli user-settings reset-voicemail-pin PERSON_ID` has no `--force` flag (Verified live 2026-10-13: `No such option: --force`); run it bare — it returned `{}` with exit 0.
 - Greeting uploads use POST with multipart/form-data, not JSON. When uploading from binary content rather than a file path, specify a target filename ending in `.wav`.
 
 ---
@@ -360,7 +364,11 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callerId", json=body)
 - `selected` values: `"DIRECT_LINE"`, `"LOCATION_NUMBER"`, `"MOBILE_NUMBER"`, `"CUSTOM"`.
 - `externalCallerIdNamePolicy` values: `"DIRECT_LINE"`, `"LOCATION"`, `"OTHER"`.
 - When `selected` is `"CUSTOM"`, include `customNumber` in the body.
-- The PUT endpoint accepts partial updates -- you only need to send the fields you want to change, not the full object.
+- **`selected` is mandatory on every PUT** (Verified live 2026-10-13). The PUT otherwise merges — fields you omit keep their value — but a body without `selected` is rejected with 400 `{"errorCode":25024,"message":"message=Invalid field value: selected;..."}`. So every `wxcli user-settings update-caller-id-features` call must carry `--selected`, including the `--external-caller-id-name-policy`, `--block-in-forward-calls-enabled` and `--dial-by-*-name` examples above. Read `selected` first (`types` lists the values allowed for that user; `DIRECT_LINE` returned 400 `{"errorCode":25042,"message":"message=Invalid Operation.;..."}` for a user with no direct number).
+- `selected: DIRECT_LINE` returns 400 `25042 Invalid Operation` for a user with only an extension (no direct number) — the read-back `types` list shows what is allowed (`["LOCATION_NUMBER","CUSTOM"]`); `selected: CUSTOM` with a number not on the location returns 400 `[Error 5209] DN not found` (Verified live 2026-10-13, person and virtual line).
+- `--custom-external-caller-id-name` is sticky: after switching the policy back from `OTHER` the old custom name stays until you send `--custom-external-caller-id-name ""`, which removes it.
+- `--dial-by-first-name`/`--dial-by-last-name` also change the `firstName`/`lastName` shown in the read-back (Verified live 2026-10-13: `Grace` -> `Gracie` in both places).
+- **CLI bug:** `wxcli user-settings list PERSON_ID -o json` (the "read" command above) prints only the `types` array (`["LOCATION_NUMBER","CUSTOM"]`), not the settings object. Read with Raw HTTP until fixed.
 
 ---
 
@@ -471,6 +479,7 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/agent/callerId
 **Gotchas:**
 - Uses `telephony_config_read`/`write` scopes (not `people_read`/`write`).
 - Pass `null` for `selectedCallerId` to revert to agent's own caller ID.
+- **Response shape differs from the sample above — Verified live 2026-10-13:** `GET .../agent/callerId` on a user with no queue selected returned `{"selectedCallerId": {}}` (not `queueCallerIdEnabled`/`selectedQueue`), and `GET .../agent/availableCallerIds` returned `{"availableCallerIds": []}` even for a user who was an agent of a freshly created call queue. A `PUT {"selectedCallerId": "<queue id>"}` against that queue returned HTTP 500 `{"message":"closed"}`. The populated shape with a queue selected could not be confirmed.
 
 ---
 
@@ -480,7 +489,7 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/agent/callerId
 
 When enabled, blocks all incoming calls from unidentified or blocked caller IDs.
 
-> **Note from source:** This API is documented as "only available for professional licensed workspaces," and live testing confirms this. The OpenAPI spec only defines endpoints for `/me` (self) and `/workspaces/{id}` -- no admin-level `/people/{id}` endpoint exists. Attempting `GET /v1/telephony/config/people/{personId}/anonymousCallReject` returns 404. The workspace endpoint requires a Professional-licensed workspace (error 25409 returned for non-professional workspaces).
+> **Note from source:** This API is documented as "only available for professional licensed workspaces," and live testing confirms this. An earlier version of this note said no admin-level `/people/{id}` endpoint exists; that is WRONG — Verified live 2026-10-13: `GET /v1/telephony/config/people/{personId}/anonymousCallReject` returns 200 `{"enabled":false}` with an admin token, `PUT` returns 204 and reads back, and `wxcli user-settings show-anonymous-call-reject`/`update-anonymous-call-reject` work (`--verify` matched). Only `people/{personId}/features/anonymousCallReject` returns 404. The workspace endpoint requires a Professional-licensed workspace (error 25409 returned for non-professional workspaces).
 
 ### CLI Examples
 
@@ -499,7 +508,7 @@ wxcli workspace-settings update-anonymous-call-reject WORKSPACE_ID --no-enabled
 
 ### Raw HTTP
 
-> **WARNING: No admin-level person endpoint exists.** The path `people/{personId}/features/anonymousCallReject` returns 404. Only the workspace admin path and the self-service `/me` path work.
+> **Person admin path is `/telephony/config/people/{personId}/anonymousCallReject`** (Verified live 2026-10-13: GET 200, PUT 204). The classic `people/{personId}/features/anonymousCallReject` path returns 404. CLI: `wxcli user-settings show-anonymous-call-reject PERSON_ID` / `update-anonymous-call-reject PERSON_ID --enabled|--no-enabled`.
 
 #### Read Anonymous Call Rejection (Workspace — admin token)
 
@@ -953,6 +962,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callRecording", json=b
 - Exclude read-only fields from PUT body: `serviceProvider`, `externalGroup`, `externalIdentifier`.
 - `record` values: `"Always"`, `"Never"`, `"On Demand"`, `"Always with Pause/Resume"`, `"On Demand with User Initiated Start"`.
 - `notification.type`: API returns `"None"` as a string on reads but expects JSON `null` on writes. Pass `None` (Python) which serializes to `null`.
+- **Enabling recording needs the vendor's terms of service accepted first — Verified live 2026-10-13:** `update-call-recording --enabled --record "Always"` returned a body of `{"vendorId": "...", "vendorName": "Dubber", "termsOfServiceUrl": "https://www.dubber.net/terms"}` and exit 1, and the CLI's tip ("resource is still referenced by something else … Delete the dependents first") is wrong for it. A user without the Call Recording service returns 400 `[Error 4410] Service is not assigned to this subscriber: Call Recording`. Because of this the `selectiveCallRecordingSettings` write could not be exercised (the sandbox vendor ToS was not accepted — that is an org-level change). Reads work: a user's GET returned all four selective toggles `false` and `repeat.audience: "ALL_PARTICIPANTS"` (an undocumented field next to `interval`/`enabled`).
 
 ---
 
@@ -1203,6 +1213,8 @@ command names are bare. `user-settings` carries only the available-members looku
 the complete `monitoredElements` list — read with `person-call-settings list` first if you are
 adding to an existing set.
 
+Verified live 2026-10-13 (person, admin token): the PUT field is `enableCallParkNotification` but the GET returns it as `callParkNotificationEnabled` (plus `monitoredElements[].member{...}` and `availableEntriesCount`), so `--verify` reports both sent fields as differing even though the write took (read-back `true`). Sending `"monitoredElements":[]` clears the list. **CLI bug:** `wxcli person-call-settings list PERSON_ID` prints only the `monitoredElements` array (or `[]` when empty) and drops `callParkNotificationEnabled`; read the flag with Raw HTTP.
+
 The workspace equivalents live in their own group — see `devices-workspaces.md`:
 
 ```bash
@@ -1258,6 +1270,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/monitoring", json=body
 - Maximum 50 monitored elements.
 - For updates, pass a flat list of IDs (person, place, or call park extension IDs). Reads return full objects with nested `member` or `callparkextension` details.
 - The JSON key for call park extensions is `callparkextension` (lowercase, no hyphen).
+- **Omitted `monitoredElements` keeps the list; `[]` clears it — Verified live 2026-10-13.** `person-call-settings update PERSON_ID --enable-call-park-notification` (flag only) left an existing monitored person in place; `--json-body '{"enableCallParkNotification":false,"monitoredElements":[]}'` emptied it, after which the GET omitted `monitoredElements` entirely. `wxcli person-call-settings list PERSON_ID` prints `[]` for a person with no elements, hiding `callParkNotificationEnabled`.
 
 ---
 
@@ -1355,6 +1368,8 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/pushToTalk", json=body
 
 **Gotchas:**
 - `members` accepts a flat list of person IDs for updates, even though reads return full member objects.
+- **Members must be a flat list of ID strings — Verified live 2026-10-13:** `"members": [{"id": "<person id>"}]` (the form `person-call-settings-behavior.md` §16 once showed) returns 400 `25024 Invalid field value: members`; `"members": ["<person id>"]` is accepted and reads back as full objects.
+- **CLI read bug (Verified live 2026-10-13):** `wxcli user-settings list-push-to-talk PERSON_ID` prints only the `members` array (and `[]` when there are none), dropping `allowAutoAnswer`, `connectionType` and `accessType`. `list-privacy` likewise prints `[]` for a populated object. Read with Raw HTTP.
 - `connectionType` values: `"ONE_WAY"`, `"TWO_WAY"`.
 - `accessType` values: `"ALLOW_MEMBERS"`, `"BLOCK_MEMBERS"`.
 
@@ -1398,6 +1413,8 @@ wxcli user-settings show-music-on-hold PERSON_ID -o json
 wxcli user-settings update-music-on-hold PERSON_ID --moh-enabled --greeting DEFAULT
 
 # Enable music on hold with custom greeting
+# Verified live 2026-10-13: this exact command fails with 400 [Error 6515] "A media file is required for general
+# source when custom message is selected" — --greeting CUSTOM needs --json-body with audioAnnouncementFile (below)
 wxcli user-settings update-music-on-hold PERSON_ID --moh-enabled --greeting CUSTOM
 
 # Disable music on hold
@@ -1525,7 +1542,7 @@ Not all settings apply equally to all entity types:
 | Voicemail | Yes | Yes | Yes |
 | Caller ID | Yes | Yes | Yes |
 | Agent Caller ID | Yes | -- | Yes |
-| Anonymous Call Rejection | No (admin `/people/{id}` endpoint does not exist; self via `/me` only) | Yes (Professional-licensed workspaces only) | -- |
+| Anonymous Call Rejection | Yes (`/telephony/config/people/{id}/anonymousCallReject`; Verified live 2026-10-13) | Yes (Professional-licensed workspaces only) | -- |
 | Privacy | Yes | Yes | Yes |
 | Barge-In | Yes | Yes | Yes |
 | Call Recording | Yes | Yes | Yes |
@@ -1621,9 +1638,9 @@ curl "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/members
 
 - **`list-memberships` does not list the messages in a mailbox — it lists the shared voicemail boxes a member can reach.** Per the spec, each entry is a call queue, hunt group, or auto attendant (`type` is `CALL_QUEUE`, `HUNT_GROUP` or `AUTO_ATTENDANT`) whose shared mailbox the member has access to. The name reads like a sibling of `list-voice-messages` and returns something else entirely, which is the shape of mistake that produces a confident wrong answer with exit 0. A third form, `user-settings list-memberships` (`GET /telephony/voiceMessages/memberships`), is **not** org-wide: the spec describes it as the *authenticated user's* own memberships, the same answer as `user-call-settings-members-me list-memberships` reached through the older path with a `people_read` scope instead of `calls_read`. **Unverified:** read from the spec's descriptions, not confirmed against a live mailbox.
 - **`create-mark-as-read` with no `--message-id` marks every message in the mailbox, not none.** The spec defines an absent `messageId` as "all voicemail messages for the user". Pass `--message-id` whenever you mean one message. `create-mark-as-unread` behaves the same way. **Unverified:** taken from the spec text and `--help`; no live call was made.
-- **The `MEMBER_ID` positional is not only a person ID, whatever `--help` says.** `--help` types it "Webex PEOPLE id", but the spec's `memberId` accepts a person, workspace, virtual line, hunt group, call queue, or auto attendant — so a workspace's or a hunt group's mailbox is reachable here. Where help and doc disagree on an ID kind, the doc is right (see CLAUDE.md, Source of Truth Precedence). **Unverified:** no non-person member ID has been tried live.
+- **The `MEMBER_ID` positional is not only a person ID, whatever `--help` says.** `--help` types it "Webex PEOPLE id", but the spec's `memberId` accepts a person, workspace, virtual line, hunt group, call queue, or auto attendant — so a workspace's or a hunt group's mailbox is reachable here. Where help and doc disagree on an ID kind, the doc is right (see CLAUDE.md, Source of Truth Precedence). **Verified live 2026-10-13 for a virtual line:** `GET .../members/{virtualLineId}/summary` returned 204 (accepted), while a made-up ID returned 400 `9003 Invalid ID`. Workspace, hunt group, call queue and auto attendant IDs were not tried.
 - **Deleting a message cannot be undone — confirm the ID before you answer the prompt.** `delete-voice-messages` asks for confirmation unless `--force` is passed; in a script or agent, `--force` removes the only safety step. There is no undo or recycle bin on this surface, so read the list first and delete by an ID you have actually looked at. **Unverified:** no live deletion was performed to confirm the 204 response.
-- **The member-scoped family appears to be built for Service Apps.** Every member-scoped operation takes an optional `orgId` whose spec text says "If not provided, the orgId of the Service App is used". An ordinary admin token may still work — `list-memberships` names `spark-admin:calls_read` — but treat a 401/403 here as a token-type question before a permissions one. **Unverified:** no live call with either token type.
+- **The member-scoped family appears to be built for Service Apps.** Every member-scoped operation takes an optional `orgId` whose spec text says "If not provided, the orgId of the Service App is used". An ordinary admin token may still work — `list-memberships` names `spark-admin:calls_read` — but treat a 401/403 here as a token-type question before a permissions one. **Verified live 2026-10-13:** a full-admin personal access token (not a Service App) works on the member-scoped commands — `show-summary`, `list-voice-messages`, `list-memberships` and `create-mark-as-read` all returned 2xx. **Empty mailbox shapes:** `summary`, `voiceMessages` and `memberships` each return HTTP 204 with no body, which the CLI prints as `{}` / `[]` / `[]`; `create-mark-as-read` with no `--message-id` on an empty mailbox printed `Created.` with exit 0, and a bogus `--message-id` returned `Message id is not found` (code 110003). `user-settings list-memberships` and `user-call-settings-members-me list-memberships` failed with 503 retries and then `9000 Feature Toggle not enabled for wxc-integrated-voicemail-for-calling-features-call-159126` on this org. A populated mailbox (message list shape, real delete) was not testable — the sandbox users had no voicemail.
 
 ---
 
@@ -1635,7 +1652,7 @@ curl "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/members
 - **Scope mismatch between read and write.** Agent Caller ID uses `people_read` for listing available IDs but `telephony_config_read` for reading the current selection. Always check the specific scope required per method.
 - **Music on Hold depends on location-level setting.** Even if `mohEnabled` is `true` for a person, MoH will not play unless `mohLocationEnabled` is also `true` at the location level. The person-level API cannot change the location-level setting.
 - **`notification.type` null serialization.** Call Recording's `notification.type` returns the string `"None"` on reads but expects JSON `null` on writes. In wxcli, pass `"type": null` in `--json-body`.
-- **Anonymous Call Rejection has NO admin-level person endpoint.** Live API testing confirms that `GET /v1/people/{personId}/features/anonymousCallReject` and `GET /v1/telephony/config/people/{personId}/anonymousCallReject` both return 404. The only working paths are: (1) workspace admin: `/telephony/config/workspaces/{workspaceId}/anonymousCallReject` (requires Professional-licensed workspace, error 25409 otherwise), and (2) self-service: `/telephony/config/people/me/settings/anonymousCallReject` (requires calling-licensed user token with `spark:telephony_config_read/write`). The wxcli CLI only exposes it under `workspace-settings`, not `user-settings`.
+- **Anonymous Call Rejection HAS an admin-level person endpoint.** Verified live 2026-10-13 (this corrects an earlier claim that it did not): `GET`/`PUT /v1/telephony/config/people/{personId}/anonymousCallReject` return 200/204 with an admin token; only the classic `/v1/people/{personId}/features/anonymousCallReject` path returns 404. Three paths work: (1) person admin above (CLI: `wxcli user-settings show-anonymous-call-reject`/`update-anonymous-call-reject`), (2) workspace admin `/telephony/config/workspaces/{workspaceId}/anonymousCallReject` (Professional-licensed workspace, error 25409 otherwise; CLI `workspace-settings`), (3) self-service `/telephony/config/people/me/settings/anonymousCallReject` (calling-licensed user token).
 - **Monitoring has a 50-element maximum.** The `monitoredElements` list accepts at most 50 entries (persons, places, virtual lines, and call park extensions combined). The API does not surface this limit in error messages clearly.
 - **Members lists return objects but accept IDs.** Privacy (`monitoringAgents`), Monitoring (`monitoredElements`), and Push-to-Talk (`members`) all return full member objects on reads but accept flat lists of ID strings on writes.
 
@@ -1647,9 +1664,10 @@ curl "https://webexapis.com/v1/telephony/voiceMessages/members/MEMBER_ID/members
   before reaching for the `-me` voicemail-message commands (§13): they act on
   the token holder's own mailbox, so an admin token reads the admin's mailbox,
   not a user's. That doc also explains the 404 (error 4008) a user without a
-  Calling licence gets on self-service endpoints. **Unverified:** whether the
-  `/telephony/voiceMessages/members/me/` paths return that same error has not
-  been tested live.
+  Calling licence gets on self-service endpoints. **Verified live 2026-10-13:**
+  with an admin token the `/telephony/voiceMessages/members/me/summary` path
+  returns 400 `{"message":"Target user not authorized","code":9601}` — the
+  call-controls shape, not the 404 / 4008 one.
 - [`location-calling-core.md`](location-calling-core.md) §4 — go there for the
   older self-scoped `/telephony/voiceMessages` path (the `user-settings`
   `show-summary` / `list-voice-messages` commands) and the message data

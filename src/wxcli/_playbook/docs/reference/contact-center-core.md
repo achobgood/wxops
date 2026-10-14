@@ -758,7 +758,7 @@ Teams group agents for routing and reporting. A team is assigned to a site, and 
 | GET | `/organization/{orgid}/team` | `list` | List Team(s) |
 | POST | `/organization/{orgid}/team` | `create` | Create |
 | POST | `/organization/{orgid}/team/bulk` | `create-bulk` | Bulk save |
-| GET | `/organization/{orgid}/team/bulk-export` | `list-bulk-export` | Bulk export |
+| GET | `/organization/{orgid}/team/bulk-export` | _(no CLI command)_ | Bulk export (the `cc-team` group has no `list-bulk-export` subcommand: "No such command", verified live 2026-10-13) |
 | POST | `/organization/{orgid}/team/purge-inactive-entities` | `delete-purge-inactive-entities` | Purge inactive |
 | GET | `/organization/{orgid}/team/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/team/{id}` | `delete` | Delete |
@@ -768,8 +768,10 @@ Teams group agents for routing and reporting. A team is assigned to a site, and 
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `siteId` (team must belong to a site)
-- **Update:** Can reassign team to different site, rename, change capacity
+- **Create:** Requires `name`, `siteId` (team must belong to a site), `active`, `teamType` and `teamStatus`. Verified live 2026-10-13: `{name, siteId}` alone (the old example) → `400 "[active: should be either true or false.]"`; adding `active` but not `teamType` → `500 "Processing failed"` (the CLI retries it three times first); adding `teamType` but not `teamStatus` → `409 "Column 'team_status' cannot be null"`. Enums are UPPER CASE: `teamType` is `AGENT` or `CAPACITY` (`"Agent"` → 400 listing `[CAPACITY, AGENT]`); `teamStatus` is `IN_SERVICE` or `NOT_AVAILABLE`. Optional `description`, `skillProfileId`, `userIds`, `desktopLayoutId`, `multiMediaProfileId` (the last two read back on `show`, verified live 2026-10-13 — **the desktop layout is attached to the team, not to the desktop profile**, see §14).
+- **CLI quirk:** `cc-team create` and `cc-team update` mark `--team-dto` required even when `--json-body` is given, so a bare `--json-body` call exits `Missing option '--team-dto'` (verified live 2026-10-13). Pass any placeholder (`--team-dto x`); `--json-body` overrides it.
+- **Update:** Can reassign team to different site, rename, change capacity. It is a full replace and the body **must carry `"id"` equal to the URL id** (`400 "Invalid id: id in payload and URL should be same"` otherwise). `--verify` works and reported `all 7 sent field(s) match` (verified live 2026-10-13).
+- **List vs show:** `list` / `list-team` omit `userIds`, `skillProfileId`, `desktopLayoutId`, `multiMediaProfileId`, `description` and `queueRankings`; read team membership with `show` (verified live 2026-10-13).
 - **References:** Shows which queues, routing strategies, and profiles reference this team
 
 ### CLI Examples
@@ -778,20 +780,26 @@ Teams group agents for routing and reporting. A team is assigned to a site, and 
 # List all teams (v2)
 wxcli cc-team list-team
 
-# Create a team
-wxcli cc-team create --json-body '{
+# Create a team (verified live 2026-10-13; --team-dto is a required-but-ignored placeholder, see Key Parameters)
+wxcli cc-team create --team-dto x --json-body '{
   "name": "Sales Team",
-  "siteId": "site-uuid"
+  "siteId": "site-uuid",
+  "active": true,
+  "teamType": "AGENT",
+  "teamStatus": "IN_SERVICE"
 }'
 
 # Get a specific team
 wxcli cc-team show "team-uuid"
 
-# Bulk save multiple teams
-wxcli cc-team create-bulk --json-body '[
-  {"name": "Support Team A", "siteId": "site-uuid"},
-  {"name": "Support Team B", "siteId": "site-uuid"}
-]'
+# Bulk save multiple teams. The body is {"items":[{"itemIdentifier":N,"item":{...}}]}; the
+# earlier bare-array form returns 400 "Bad payload: Cannot deserialize" (verified live 2026-10-13).
+# Each item needs the same fields as a single create; `requestAction` was not needed to create.
+# (Tested with a single item; a second item uses the same shape.)
+wxcli cc-team create-bulk --json-body '{"items":[
+  {"itemIdentifier":0,"item":{"name":"Support Team A","siteId":"site-uuid","active":true,"teamType":"AGENT","teamStatus":"IN_SERVICE"}},
+  {"itemIdentifier":1,"item":{"name":"Support Team B","siteId":"site-uuid","active":true,"teamType":"AGENT","teamStatus":"IN_SERVICE"}}
+]}'
 
 # Delete a team
 wxcli cc-team delete "team-uuid"
@@ -811,7 +819,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/team" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/team" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Sales Team","siteId":"site-uuid"}'
+  -d '{"name":"Sales Team","siteId":"site-uuid","active":true,"teamType":"AGENT","teamStatus":"IN_SERVICE"}'
 ```
 
 ---
@@ -929,8 +937,10 @@ Skill profiles bundle skill-value pairs and are assigned to agents. When a queue
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `skills` array with `{skillId, skillValue}` entries
-- **Skill values:** Must match the skill's type (0-10 for proficiency, true/false for boolean, enum value for enum, text for text)
+- **Create:** Requires `name` and at least one entry in `activeSkills` (non-enum skills) or `activeEnumSkills` (enum skills). Verified live 2026-10-13: the body this section showed before that date (`skills:[{skillId, skillValue}]`) returns `400 "Atleast one skill is mandatory."` — `skills` and `skillValue` are not fields. A profile read back with `show` carries `activeSkills[]` (`id`, `skillId`, plus `proficiencyValue` or `booleanValue`) — that is the shape to send.
+- **Skill values:** a `PROFICIENCY` skill takes `{"skillId":"…","proficiencyValue":8}`; a `BOOLEAN` skill takes `{"skillId":"…","booleanValue":true}` (both created and read back live 2026-10-13); an `ENUM` skill goes in the separate `activeEnumSkills` array as `{"enumSkillValueId":"<id of one value of the enum skill>"}` (created and read back live 2026-10-13; the ids come from `enumSkillValues[].id` on `cc-skill show`). `TEXT` skills use `textValue` per the spec — **Unverified:** not tested live.
+- **CLI quirk:** `cc-skill-profile create` and `update` mark `--skill-profile-dto` required even with `--json-body` (`Missing option '--skill-profile-dto'`); pass a placeholder (`--skill-profile-dto x`). Same pattern as `cc-team` (§9). Verified live 2026-10-13.
+- **Update:** full replace with `"id"` in the body. Re-sending `activeSkills` **without each entry's own `id`** returns `409 "Duplicate entry '<org>-<profile>-…' for key 'active_skill.UK…'"`; copy the `activeSkills[].id` values from `show` and the update works (`proficiencyValue` 8 → 5 read back; `--verify` reports `activeSkills` as "differ" only because the server reorders the array). Verified live 2026-10-13.
 
 ### CLI Examples
 
@@ -938,20 +948,25 @@ Skill profiles bundle skill-value pairs and are assigned to agents. When a queue
 # List all skill profiles (v2)
 wxcli cc-skill-profile list-skill-profile
 
-# Create a skill profile
-wxcli cc-skill-profile create --json-body '{
+# Create a skill profile (proficiency + boolean skills; verified live 2026-10-13: created, read back, updated, deleted)
+wxcli cc-skill-profile create --skill-profile-dto x --json-body '{
   "name": "Senior Sales Agent",
-  "skills": [
-    {"skillId": "product-knowledge-uuid", "skillValue": 8},
-    {"skillId": "spanish-speaker-uuid", "skillValue": true},
-    {"skillId": "region-uuid", "skillValue": "EAST"}
+  "activeSkills": [
+    {"skillId": "product-knowledge-uuid", "proficiencyValue": 8},
+    {"skillId": "spanish-speaker-uuid", "booleanValue": true}
   ]
+}'
+
+# An ENUM skill is attached by the id of one of its values, in a separate array (verified live 2026-10-13)
+wxcli cc-skill-profile create --skill-profile-dto x --json-body '{
+  "name": "East Region",
+  "activeEnumSkills": [{"enumSkillValueId": "east-value-uuid"}]
 }'
 
 # Get a specific skill profile
 wxcli cc-skill-profile show "profile-uuid"
 
-# Bulk export all skill profiles
+# List skill profiles (v1 list, GET /skill-profile; there is no bulk-export command, see the table)
 wxcli cc-skill-profile list
 
 # Delete a skill profile
@@ -969,7 +984,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/skill-profile" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/skill-profile" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Senior Sales Agent","skills":[{"skillId":"...","skillValue":8}]}'
+  -d '{"name":"Senior Sales Agent","activeSkills":[{"skillId":"...","proficiencyValue":8}]}'
 ```
 
 ---
@@ -995,7 +1010,11 @@ Multimedia profiles define channel capacity for agents: how many concurrent cont
 
 ### Key Parameters
 
-- **Create:** Requires `name`, channel capacities (`telephony`, `chat`, `email`, `social` counts)
+- **Create:** Requires `name`, channel capacities (`telephony`, `chat`, `email`, `social` counts), `active`, `blendingModeEnabled`, `blendingMode` **and a `manuallyAssignable` object**. Verified live 2026-10-13: without `manuallyAssignable` every create returned `400 "Manually Assignable missing for the multimedia Profile type"` — including the two bodies this section showed before that date; `"manuallyAssignable":{}` was rejected the same way, and `{"telephony":0,"chat":0,"email":0,"social":0}` was accepted (the server fills `workItem` and `customMessaging` with 0). Omitting `active`/`blendingModeEnabled`/`blendingMode` → `400` naming each.
+- **`blendingMode` enum (UPPER CASE):** `BLENDED`, `BLENDED_REALTIME`, `EXCLUSIVE` (lower case `blended` → 400 listing exactly these three; verified live 2026-10-13). `EXCLUSIVE` with `blendingModeEnabled:false` created and read back correctly. The system default profiles use `BLENDED` with `blendingModeEnabled:false`.
+- **Limits:** `telephony` above 1 → `400 "Maximum limit 1 reached for telephony assigned to multimedia profile."` (verified live 2026-10-13).
+- **Update:** full replace, and the body must carry `"id"` equal to the URL id (`400 "Invalid id: id in payload and URL should be same"` without it). A `version` in the body is not enforced (`version:99` accepted; the server increments its own). `show` does not return `version`, so `--verify` always reports `version` and the six-key `manuallyAssignable` expansion as "differ" — server normalisation, not a failed write (verified live 2026-10-13).
+- **Delete:** a profile used by a site returns `412 "referred in other entities"` with `"referencedEntities":["site"]`; `list-incoming-references` names the site (verified live 2026-10-13).
 - **Blended mode:** When set, agent can handle contacts across multiple channels simultaneously
 
 ### CLI Examples
@@ -1013,7 +1032,8 @@ wxcli cc-multimedia-profile create --json-body '{
   "social": 0,
   "active": true,
   "blendingModeEnabled": false,
-  "blendingMode": "EXCLUSIVE"
+  "blendingMode": "EXCLUSIVE",
+  "manuallyAssignable": {"telephony": 0, "chat": 0, "email": 0, "social": 0}
 }'
 
 # Create a blended profile (voice + chat)
@@ -1025,8 +1045,10 @@ wxcli cc-multimedia-profile create --json-body '{
   "social": 2,
   "active": true,
   "blendingModeEnabled": true,
-  "blendingMode": "BLENDED"
+  "blendingMode": "BLENDED",
+  "manuallyAssignable": {"telephony": 0, "chat": 0, "email": 0, "social": 0}
 }'
+# Both bodies above verified live 2026-10-13 (created, read back with `show`, deleted).
 
 # Get a specific profile
 wxcli cc-multimedia-profile show "mm-profile-uuid"
@@ -1046,7 +1068,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/multimedia-profile"
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/multimedia-profile" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Voice Only","telephony":1,"chat":0,"email":0,"social":0}'
+  -d '{"name":"Voice Only","telephony":1,"chat":0,"email":0,"social":0,"active":true,"blendingModeEnabled":false,"blendingMode":"BLENDED","manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0}}'
 ```
 
 ---
@@ -1072,8 +1094,8 @@ Desktop layouts define the Agent Desktop UI: widget placement, header, navigatio
 ### Key Parameters
 
 - **Create:** Requires `name`, `editedBy`, `jsonFileName`, `jsonFileContent` (the layout JSON as a string), `global`, `status`, `defaultJsonModified`, `validated`
-- **Layout JSON:** Defines widget areas, header, navigation panel, and auxiliary info panel
-- **Update:** PUT replaces the entire layout -- GET first, modify, then PUT back
+- **Layout JSON:** Defines widget areas, header, navigation panel, and auxiliary info panel. **The server validates it.** Verified live 2026-10-13: the placeholder `{"header":{},"navigation":{},"panel":{}}` this section showed before that date → `400 "Provided layout json is not valid"` with `"layoutJsonErrors":["no 'area' property found"]`; a minimal `{"agent":{"version":"0.1.0","appTitle":"zz","area":{"advancedHeader":[],"panel":{},"navigation":[]}}}` → `layoutJsonErrors":["error in 'agent' layout","panel - property 'comp' is REQUIRED [line: 1]"]`. The real shape is `{"agent":{…,"area":{"advancedHeader":[…],"panel":{"comp":…},"navigation":[…]}},"supervisor":{…},"supervisorAgent":{…}}`. The reliable way to author one is to `show` the system "Global Layout" (`list-desktop-layout`), copy its `jsonFileContent`, and edit that. A copy of it created (`global:false`, `status:true`, `validated:true`), read back, updated with `--verify` (`all 10 sent field(s) match`) and deleted.
+- **Update:** PUT replaces the entire layout -- GET first, modify, then PUT back (full body including `jsonFileContent`)
 
 ### CLI Examples
 
@@ -1081,12 +1103,14 @@ Desktop layouts define the Agent Desktop UI: widget placement, header, navigatio
 # List desktop layouts (v2)
 wxcli cc-desktop-layout list-desktop-layout
 
-# Create a desktop layout
+# Create a desktop layout. jsonFileContent must be a VALID layout (see Key Parameters) — the
+# placeholder below is rejected with 400 "Provided layout json is not valid" (verified live 2026-10-13);
+# paste the jsonFileContent string of the system "Global Layout" instead.
 wxcli cc-desktop-layout create --json-body '{
   "name": "Custom Sales Layout",
   "editedBy": "admin@example.com",
   "jsonFileName": "sales-layout.json",
-  "jsonFileContent": "{\"header\":{},\"navigation\":{},\"panel\":{}}",
+  "jsonFileContent": "{\"agent\":{…},\"supervisor\":{…},\"supervisorAgent\":{…}}",
   "global": false,
   "status": true,
   "defaultJsonModified": true,
@@ -1111,14 +1135,14 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/desktop-layout" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/desktop-layout" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Custom Sales Layout","desktopLayoutJson":"{}"}'
+  -d '{"name":"Custom Sales Layout","editedBy":"admin@example.com","jsonFileName":"sales-layout.json","jsonFileContent":"<valid layout JSON as a string>","global":false,"status":true,"defaultJsonModified":true,"validated":true}'
 ```
 
 ---
 
 ## 14. Desktop Profiles (`cc-desktop-profile`)
 
-Desktop profiles (API path: `agent-profile`) control agent desktop behavior: which layout to use, dial number settings, agent-available options, buddy team access, and feature toggles.
+Desktop profiles (API path: `agent-profile`) control agent desktop behavior: which login voice options an agent may use, which queues / entry points / idle and wrap-up codes / buddy teams they can access, outdial, auto wrap-up and other feature toggles. (Which layout an agent sees is set on the team, not here — see Key Parameters.)
 
 ### Endpoints
 
@@ -1137,8 +1161,12 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `desktopLayoutId`, optional `dialNumberSettings`, `agentAvailableOptions`, `loginVoiceOptions`
-- **Desktop layout link:** The profile references a desktop layout by ID
+- **Create:** Verified live 2026-10-13 — the body this section showed before that date (`name`, `desktopLayoutId`, `dialNumberSettings`) is rejected, and a body with only `name` is rejected with a `400` listing what is missing. Required: `name`, `parentType` (`ORGANIZATION` or `SITE`; anything else → 400 listing both), `accessQueue`, `accessEntryPoint`, `accessBuddyTeam` (each `ALL`, `SPECIFIC` or `NONE`), `accessIdleCode`, `accessWrapUpCode` (each `ALL` or `SPECIFIC` — no `NONE`), `agentDNValidation` (`PROVISIONED_VALUE`, `SPECIFIC` or `NONE`), `viewableStatistics` (an object, e.g. `{"agentStats":true,"accessQueueStats":"ALL","loggedInTeamStats":true,"accessTeamStats":"ALL"}`) and `loginVoiceOptions` (a non-empty array of `BROWSER`, `AGENT_DN`, `EXTENSION`; `"WEBRTC"` → 400 listing those three). `active` defaults to `false` when omitted — send `"active": true`.
+- **No `desktopLayoutId`, `dialNumberSettings` or `agentAvailableOptions` on a profile.** Verified live 2026-10-13: a PUT carrying all three returned 200 and `--verify` reported each `sent … now '<not present in read-back>'` — accepted and silently dropped. The desktop layout is attached to the **team** (`desktopLayoutId` on `cc-team`, §9; read back live), not the profile. Do not infer a layout link from a profile.
+- **CLI quirk:** `cc-desktop-profile create` and `update` mark `--agent-profile-dto` required even with `--json-body`; pass a placeholder (`--agent-profile-dto x`) — same pattern as `cc-team` (§9).
+- **Update:** full replace; the body must carry `"id"` equal to the URL id (`400 "Invalid id: id in payload and URL should be same"` otherwise). `viewableStatistics` always shows as "differ" under `--verify` because the server adds an `id` and empty arrays to it — normalisation, not a failed write.
+- **Outdial:** `outdialEnabled:true` requires `outdialEntryPointId` (`400 "outdialEntryPointId should be specified when outdialEnabled is true"`) and, when `dialPlanEnabled` is false, an `addressBookId` (`400 "addressBookId should be specified when outdialEnabled is true and dialPlanEnabled is false"`). `outdialANIId` points at an Outdial ANI profile (`cc-outdial-ani`, see [contact-center-routing.md](contact-center-routing.md) §3); with it set, the ANI profile's `list-incoming-references` names the desktop profile and deleting the ANI returns `412 "referred in other entities"` with `"referencedEntities":["desktop-profile"]`. Verified live 2026-10-13.
+- **List omits `loginVoiceOptions`.** `list`, `list-agent-profile` return `loginVoiceOptions: null` for every profile (the system default "Agent-Profile" really holds `["BROWSER","EXTENSION","AGENT_DN"]`), and `--attributes loginVoiceOptions` → `400 "Invalid requested columns :loginVoiceOptions"`. Read it with `show` per profile (verified live 2026-10-13). The list also omits `dialPlans`, `viewableStatistics`, `wrapUpCodes`, `idleCodes`, `queues`, `entryPoints` and `buddyTeams`.
 - **Buddy teams:** Configure which teams an agent can see and consult/transfer to
 - **`loginVoiceOptions`** — array of `AGENT_DN` | `EXTENSION` | `BROWSER` (`AgentProfileDTO` in `specs/webex-contact-center.json`). This is the **gate on browser/WebRTC audio**: it is what an agent's `Profile.loginVoiceOptions` reads back as, and `stationLogin({loginOption:'BROWSER'})` fails for an agent whose profile omits `BROWSER` even when everything else is correct. `dialNumberSettings` and `agentAvailableOptions` are *not* this field — do not read either one to decide whether browser audio is available. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §1.
 
@@ -1149,10 +1177,19 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 wxcli cc-desktop-profile list-agent-profile
 
 # Create a desktop profile
-wxcli cc-desktop-profile create --json-body '{
+# (verified live 2026-10-13: created, read back, deleted; `active` defaults to false so it is sent)
+wxcli cc-desktop-profile create --agent-profile-dto x --json-body '{
   "name": "Sales Desktop Profile",
-  "desktopLayoutId": "layout-uuid",
-  "dialNumberSettings": {"agentDN": true, "otherDN": false}
+  "parentType": "ORGANIZATION",
+  "active": true,
+  "accessQueue": "ALL",
+  "accessEntryPoint": "ALL",
+  "accessBuddyTeam": "ALL",
+  "accessIdleCode": "ALL",
+  "accessWrapUpCode": "ALL",
+  "agentDNValidation": "NONE",
+  "loginVoiceOptions": ["BROWSER"],
+  "viewableStatistics": {"agentStats": true, "accessQueueStats": "ALL", "loggedInTeamStats": true, "accessTeamStats": "ALL"}
 }'
 
 # Get a specific profile
@@ -1173,7 +1210,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/agent-profile" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/agent-profile" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Sales Desktop Profile","desktopLayoutId":"layout-uuid"}'
+  -d '{"name":"Sales Desktop Profile","parentType":"ORGANIZATION","active":true,"accessQueue":"ALL","accessEntryPoint":"ALL","accessBuddyTeam":"ALL","accessIdleCode":"ALL","accessWrapUpCode":"ALL","agentDNValidation":"NONE","loginVoiceOptions":["BROWSER"],"viewableStatistics":{"agentStats":true,"accessQueueStats":"ALL","loggedInTeamStats":true,"accessTeamStats":"ALL"}}'
 ```
 
 ---
@@ -1189,7 +1226,7 @@ Business hours define when the contact center is open. Entry points and routing 
 | GET | `/organization/{orgid}/business-hours` | `list` | List |
 | POST | `/organization/{orgid}/business-hours` | `create` | Create |
 | POST | `/organization/{orgid}/business-hours/bulk` | `create-bulk` | Bulk save |
-| GET | `/organization/{orgid}/business-hours/bulk-export` | `list-bulk-export` | Bulk export |
+| GET | `/organization/{orgid}/business-hours/bulk-export` | _(no CLI command)_ | Bulk export (`cc-business-hour --help` lists no `list-bulk-export`; verified live 2026-10-13) |
 | GET | `/organization/{orgid}/business-hours/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/business-hours/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/business-hours/{id}` | `update` | Update |
@@ -1201,6 +1238,7 @@ Business hours define when the contact center is open. Entry points and routing 
 - **Create:** Requires `name`, `timezone`, `workingHours` (array of `{name, days, startTime, endTime}` entries). Verified live 2026-10-13: `"workingHours":[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"07:00","endTime":"19:00"}]` created OK; this matches `cc-business-hour create --help`. An earlier version of this doc and the skill showed `businessHours:[{day:"monday",...}]`, which is not what `--help` shows (gotcha 30)
 - **Business hours structure:** Each `workingHours` entry names a block, lists its days as three-letter codes (`MON`..`SUN`), and gives a start and end time
 - **Timezone:** Important for multi-region deployments; hours are evaluated in the configured timezone
+- **Update and read-back:** the doc's create body (08:00-17:00, `America/New_York`) created and read back, and a PUT with `"id"` in the body changed the hours to 09:00-18:00 (verified live 2026-10-13). The server returns `days` in arbitrary order (`TUE, THU, FRI, MON, WED`), so `--verify` flags `workingHours` as "differ" after an update — a reorder, not a failed write.
 
 ### CLI Examples
 
@@ -1251,7 +1289,7 @@ Holiday lists define dates when the contact center applies holiday treatment ins
 | GET | `/organization/{orgid}/holiday-list` | `list` | List |
 | POST | `/organization/{orgid}/holiday-list` | `create` | Create |
 | POST | `/organization/{orgid}/holiday-list/bulk` | `create-bulk` | Bulk save |
-| GET | `/organization/{orgid}/holiday-list/bulk-export` | `list-bulk-export` | Bulk export |
+| GET | `/organization/{orgid}/holiday-list/bulk-export` | _(no CLI command)_ | Bulk export (`cc-holiday-list --help` lists no `list-bulk-export`; verified live 2026-10-13) |
 | GET | `/organization/{orgid}/holiday-list/{id}` | `show` | Get by ID |
 | DELETE | `/organization/{orgid}/holiday-list/{id}` | `delete` | Delete |
 | PUT | `/organization/{orgid}/holiday-list/{id}` | `update` | Update |
@@ -1260,9 +1298,9 @@ Holiday lists define dates when the contact center applies holiday treatment ins
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `holidays` array with `{name, date}` entries
+- **Create:** Requires `name`, `holidays` array with `{name, startDate, endDate}` entries. Verified live 2026-10-13: `{name, date}` (the shape this section showed before that date) → `400 "holidays[1].endDate: Format excepted (yyyy-MM-dd)"` (sic); `{"name":"New Year","startDate":"2026-01-01","endDate":"2026-01-01"}` (a one-day holiday repeats the date) created and read back with `show`. Update (`--verify`) is a full replace with `"id"` in the body and reported `all N sent field(s) match`.
 - **Date format:** `YYYY-MM-DD`
-- **Recurring:** Some implementations support `recurring: true` for annual holidays
+- **Recurring:** the spec's per-holiday field is `frequency` (example value `DontRepeat`) with an optional `recurrence` object. Verified live 2026-10-13: `"frequency":"DontRepeat"` is accepted and read back; `"DONT_REPEAT"` → `400 "Bad payload: Cannot deserialize"` (no value list in the message). **Unverified:** the other `frequency` values and the `recurrence` fields; `recurring: true` (the earlier claim here) is not a field.
 
 ### CLI Examples
 
@@ -1274,14 +1312,14 @@ wxcli cc-holiday-list list-holiday-list
 wxcli cc-holiday-list create --json-body '{
   "name": "US Federal Holidays 2026",
   "holidays": [
-    {"name": "New Year", "date": "2026-01-01"},
-    {"name": "MLK Day", "date": "2026-01-19"},
-    {"name": "Presidents Day", "date": "2026-02-16"},
-    {"name": "Memorial Day", "date": "2026-05-25"},
-    {"name": "Independence Day", "date": "2026-07-04"},
-    {"name": "Labor Day", "date": "2026-09-07"},
-    {"name": "Thanksgiving", "date": "2026-11-26"},
-    {"name": "Christmas", "date": "2026-12-25"}
+    {"name": "New Year", "startDate": "2026-01-01", "endDate": "2026-01-01"},
+    {"name": "MLK Day", "startDate": "2026-01-19", "endDate": "2026-01-19"},
+    {"name": "Presidents Day", "startDate": "2026-02-16", "endDate": "2026-02-16"},
+    {"name": "Memorial Day", "startDate": "2026-05-25", "endDate": "2026-05-25"},
+    {"name": "Independence Day", "startDate": "2026-07-04", "endDate": "2026-07-04"},
+    {"name": "Labor Day", "startDate": "2026-09-07", "endDate": "2026-09-07"},
+    {"name": "Thanksgiving", "startDate": "2026-11-26", "endDate": "2026-11-26"},
+    {"name": "Christmas", "startDate": "2026-12-25", "endDate": "2026-12-25"}
   ]
 }'
 
@@ -1303,7 +1341,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/holiday-list" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/holiday-list" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"US Federal Holidays 2026","holidays":[{"name":"New Year","date":"2026-01-01"}]}'
+  -d '{"name":"US Federal Holidays 2026","holidays":[{"name":"New Year","startDate":"2026-01-01","endDate":"2026-01-01"}]}'
 ```
 
 ---
@@ -1330,9 +1368,11 @@ Auxiliary (idle/wrap-up) codes categorize agent non-available time. When an agen
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `defaultCode` (boolean), `active`, `workTypeId`, `workTypeCode` (IDLE_CODE or WRAP_UP_CODE)
-- **Bulk partial update:** PATCH with array of partial updates -- only specified fields are changed
-- **Default code:** One idle code and one wrap-up code can be marked as default
+- **Create:** Requires `name`, `defaultCode` (boolean), `active`, `workTypeId`, `workTypeCode` (IDLE_CODE or WRAP_UP_CODE). Verified live 2026-10-13: the CLI examples below create correctly when `workTypeId` is a real work-type ID from `cc-work-types list-work-type` (a made-up one → `400 "Given workTypeId does not belong to the organization"`); `{name}` alone → `400 "defaultCode: should be either true or false."`; no `workTypeCode` → `409 "Column 'work_type_code' cannot be null"`; `Idle_Code` (wrong case) → `400 "Bad payload: Cannot deserialize"`. **The server does not check that `workTypeCode` matches the work type's own code** — a `WRAP_UP_CODE` created against the Default Idle Work Type was accepted and read back with that mismatch. The field names are `workTypeCode` and `active`; `codeType` / `isActive` (used in the older Raw HTTP example) are not fields — that body returned `400 "active: should be either true or false."`.
+- **Bulk partial update (`cc-aux-code update`, PATCH):** the body is `{"items":[{"itemIdentifier":0,"item":{"id":"…", …changed fields…}}]}`, **not** a bare array — the bare-array form (with `isActive`) shown here before 2026-10-13 returns `400 "Bad payload: Cannot deserialize"`. `name` and `description` changes applied and read back. **`active` is silently ignored:** `{"id":…,"active":false}` returned `status:200, operationType:UPDATE` but `show` still read `active:true`, and the reverse (`active:true` on an inactive code, bare or with `"requestAction":"save"`) also changed nothing; `requestAction` accepts only `save` or `delete`, and upper case `"SAVE"` worked too (a name/description change with it returned `status:200, operationType:UPDATE` and read back; `active` still ignored in 3 of 3 attempts, including a full item with `workTypeId`/`workTypeCode`/`defaultCode`) (`400 "Request action should be valid (save|delete)"`). To deactivate, use the PUT (`update-auxiliary-code`, full body incl. `id`; `--verify` confirmed `active:false`).
+- **Default code:** One idle code and one wrap-up code can be marked as default. **Creating a code with `defaultCode:true` silently demotes the current default of the same type** — verified live 2026-10-13: creating a default idle code flipped the org's existing default idle code (`Meeting`) to `defaultCode:false` with no warning; re-setting the old default (`update` with `{"id":…,"defaultCode":true}`, which worked) demoted the new one. (Whether deleting the new default alone would have restored the old one was not tested.) Check `list-auxiliary-code --fields '[?defaultCode].name'` before and after.
+- **Bulk export omits system codes:** on this org `list-auxiliary-code --all` and `list --all` returned 21 codes (8 with `isSystemCode:true`: Agent_Busy, RONA, WellbeingBreak, …) while `list-bulk-export --all` returned 13, none of them system codes (verified live 2026-10-13). Count or audit codes from the list, not the export.
+- **Delete:** a deleted code returns 404 on `show` afterwards and is gone from the list (hard delete from the API's view). A work type that a code uses cannot be deleted: `412 "referred in other entities"`, `"referencedEntities":["auxiliary-code"]` (§18).
 
 ### CLI Examples
 
@@ -1358,11 +1398,11 @@ wxcli cc-aux-code create --json-body '{
   "active": true
 }'
 
-# Bulk partial update
-wxcli cc-aux-code update --json-body '[
-  {"id": "code1-uuid", "isActive": false},
-  {"id": "code2-uuid", "name": "Extended Break"}
-]'
+# Bulk partial update (verified live 2026-10-13: `name` / `description` / `defaultCode` apply;
+# `active` is silently ignored — deactivate with `update-auxiliary-code`, a full PUT)
+wxcli cc-aux-code update --json-body '{"items":[
+  {"itemIdentifier": 0, "item": {"id": "code2-uuid", "name": "Extended Break"}}
+]}'
 
 # Delete an aux code
 wxcli cc-aux-code delete "code-uuid"
@@ -1379,7 +1419,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/auxiliary-code" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/auxiliary-code" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Lunch Break","codeType":"IDLE_CODE","defaultCode":false,"isActive":true}'
+  -d '{"name":"Lunch Break","workTypeCode":"IDLE_CODE","workTypeId":"<idle work type id>","defaultCode":false,"active":true}'
 ```
 
 ---
@@ -1408,10 +1448,14 @@ Work types categorize agent activities for reporting. They are referenced in aux
 # List work types (v2)
 wxcli cc-work-types list-work-type
 
-# Create a work type
+# Create a work type. `workTypeCode` (IDLE_CODE or WRAP_UP_CODE) and `active` are required —
+# verified live 2026-10-13: without them the old `{name, description}` body returned
+# 400 "workTypeCode: Allowed values: [WRAP_UP_CODE, IDLE_CODE]", then 400 "active: should be either true or false."
 wxcli cc-work-types create --json-body '{
   "name": "Outbound Campaign",
-  "description": "Outbound dialing work"
+  "description": "Outbound dialing work",
+  "workTypeCode": "IDLE_CODE",
+  "active": true
 }'
 
 # Get a specific work type
@@ -1432,7 +1476,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/work-type" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/work-type" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Outbound Campaign","description":"Outbound dialing work"}'
+  -d '{"name":"Outbound Campaign","description":"Outbound dialing work","workTypeCode":"IDLE_CODE","active":true}'
 ```
 
 ---
@@ -1458,8 +1502,9 @@ Sites represent physical or logical locations in the contact center. Teams are a
 
 ### Key Parameters
 
-- **Create:** Requires `name`
-- **Dependencies:** Teams reference sites via `siteId`. Delete all teams from a site before deleting the site.
+- **Create:** Requires `name`, `active` and `multimediaProfileId` (an existing multimedia profile, §12 — a site cannot be created without one). Verified live 2026-10-13: `{"name": "…"}` alone (the old example) → `400 "[multimediaProfileId: should not be null or blank., active: should be either true or false.]"`; `{name, active:true, multimediaProfileId}` created and `show`/`list-site` read it back.
+- **Update:** full replace; the body must carry `"id"` equal to the URL id (`400 "Invalid id: id in payload and URL should be same"` otherwise). `--verify` reported `all 5 sent field(s) match`.
+- **Dependencies:** Teams reference sites via `siteId`. Delete all teams from a site before deleting the site: with teams present the delete returns `412 "Entity with id … is referred in other entities."` plus `"referencedEntities":["team"]`, and `list-incoming-references` names the teams (verified live 2026-10-13). A site also pins its multimedia profile — that profile cannot be deleted until the site is gone (`412`, `["site"]`).
 
 ### CLI Examples
 
@@ -1468,7 +1513,7 @@ Sites represent physical or logical locations in the contact center. Teams are a
 wxcli cc-site list-site
 
 # Create a site
-wxcli cc-site create --json-body '{"name": "US East Coast"}'
+wxcli cc-site create --json-body '{"name": "US East Coast", "active": true, "multimediaProfileId": "mm-profile-uuid"}'
 
 # Get a specific site
 wxcli cc-site show "site-uuid"
@@ -1491,7 +1536,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/site" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/site" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"US East Coast"}'
+  -d '{"name":"US East Coast","active":true,"multimediaProfileId":"mm-profile-uuid"}'
 ```
 
 ---
@@ -1855,7 +1900,7 @@ Most CC config entities follow a standard CRUD pattern with these operations:
 
 4. **Incoming references:** Before deleting an entity, check incoming references to see what depends on it. Deleting an entity that is referenced by another entity may fail or cause cascading issues.
 
-5. **PUT is full replace:** All update endpoints use PUT (full replacement). Always GET the entity first, modify the fields you need, and PUT the full object back. The exceptions are the bulk PATCH endpoints on `auxiliary-code` and `user`, and the per-record PATCH commands on call monitoring schedules (`cc-monitoring-schedules update-call-monitoring`, §21) and organization settings (`cc-org-settings update-organization-setting`, §22). Tenant configuration (§23) has no PATCH.
+5. **PUT is full replace, and the body must carry `"id"`:** All update endpoints use PUT (full replacement). Always GET the entity first, modify the fields you need, and PUT the full object back. Verified live 2026-10-13 on `cc-site`, `cc-team`, `cc-multimedia-profile`, `cc-desktop-profile`, `cc-aux-code update-auxiliary-code` and `cc-outdial-ani update-entry`: a PUT body without `"id"` equal to the URL id returns `400 "Invalid id: id in payload and URL should be same"`, and a partial body (e.g. `{name, chat}`) returns a 400 listing every missing required field. The exceptions are the bulk PATCH endpoints on `auxiliary-code` and `user`, and the per-record PATCH commands on call monitoring schedules (`cc-monitoring-schedules update-call-monitoring`, §21) and organization settings (`cc-org-settings update-organization-setting`, §22). Tenant configuration (§23) has no PATCH.
 
 6. **orgId auto-injection:** The `{orgid}` path parameter is automatically injected from your saved config. You never need to pass it manually in CLI commands.
 
@@ -1864,17 +1909,17 @@ Most CC config entities follow a standard CRUD pattern with these operations:
 When building a CC deployment from scratch, create entities in this order:
 
 ```
-1. Sites
+1. Multimedia Profiles (a Site requires one — verified live 2026-10-13; the system default profiles also qualify)
 2. Business Hours + Holiday Lists
 3. Skills
 4. Skill Profiles (references Skills)
-5. Multimedia Profiles
+5. Sites (references a Multimedia Profile)
 6. Aux Codes (Idle + Wrap-Up)
 7. Work Types
 8. Global Variables
 9. Desktop Layouts
-10. Desktop Profiles (references Desktop Layouts)
-11. Teams (references Sites)
+10. Desktop Profiles (no layout reference — the layout is set on the Team; verified live 2026-10-13)
+11. Teams (references Sites; may reference a Desktop Layout and a Multimedia Profile)
 12. User Profiles (references Queues, Wrap-Up Codes)
 13. Queues (references Skill Profiles, Teams)
 14. Entry Points (references Queues)
@@ -1909,9 +1954,9 @@ For teardown, reverse this order.
 
 11. **Global Variables API path is "cad-variable".** The `cc-global-vars` CLI group maps to `/organization/{orgid}/cad-variable`. CAD stands for Customer Activity Data, the legacy term for these variables. The CLI uses the friendlier name `cc-global-vars`.
 
-12. **Incoming references before delete.** Always check `list-incoming-references` before deleting a config entity. Deleting an entity that is referenced by queues, teams, or routing strategies can produce 409 Conflict errors or leave orphaned references.
+12. **Incoming references before delete.** Always check `list-incoming-references` before deleting a config entity. Deleting an entity that is referenced by queues, teams, or routing strategies can produce errors or leave orphaned references. Verified live 2026-10-13: deleting a referenced site, multimedia profile, work type or outdial ANI returns **`412`** (not 409) with `"reason":"Entity with id … is referred in other entities."` and a `referencedEntities` array naming the referencing types (`["team"]`, `["site"]`, `["auxiliary-code"]`, `["desktop-profile"]`). A `409` from these groups instead means a database null-column error (e.g. `Column 'team_status' cannot be null`).
 
-13. **Skill value types must match.** When creating skill profiles, the `skillValue` must match the skill's `skillType`: integer 0-10 for `PROFICIENCY`, boolean for `BOOLEAN`, string for `ENUM` (must be a defined enum value), or string for `TEXT` (`skillType` values are upper case — verified live 2026-10-13).
+13. **Skill value types must match.** When creating skill profiles there is no generic `skillValue` field (verified live 2026-10-13: `skills:[{skillId, skillValue}]` → `400 "Atleast one skill is mandatory."`). Use `proficiencyValue` (integer 0-10) for `PROFICIENCY`, `booleanValue` for `BOOLEAN` (both under `activeSkills`), and `activeEnumSkills:[{enumSkillValueId}]` for `ENUM` (all three created and read back live 2026-10-13); `TEXT` uses `textValue` per the spec (**Unverified**). `skillType` values are upper case (verified live 2026-10-13). **Unverified:** what the server does when the value field does not match the skill's type — not tested.
 
 14. **Sites must exist before teams.** A team requires a `siteId`. Create sites first, then teams. Similarly, skill profiles require skills, and queues can require skill profiles.
 
@@ -1945,7 +1990,7 @@ For teardown, reverse this order.
 
 29. **Entry point to flow wiring is `flowId` plus `flowTagId`; new flows publish with only the `Latest` tag.** Verified live 2026-10-13: `cc-entry-point create` with `flowId` set to a just-published flow and `flowTagId: "Latest"` saved, and `show` returned both with the entry point active. Live, Test and Dev tags also exist, but the flow published that day had only `Latest` pointing at its version (Dev/Live/Test unset); pointing an entry point at a tag the flow never received was not tested. Mapping a dial number to the entry point (`cc-dial-number`) is a separate step, without which the flow cannot be called.
 
-30. **CC business hours use `workingHours`, not `businessHours`.** Verified live 2026-10-13: `workingHours:[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"07:00","endTime":"19:00"}]` created OK and appeared in the flow-designer choices for the `business-hours` activity. The older `businessHours:[{day:"monday",...}]` shape shown here before 2026-10-13 does not match `--help`. The holiday-list body (§16) was not re-tested.
+30. **CC business hours use `workingHours`, not `businessHours`.** Verified live 2026-10-13: `workingHours:[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"07:00","endTime":"19:00"}]` created OK and appeared in the flow-designer choices for the `business-hours` activity. The older `businessHours:[{day:"monday",...}]` shape shown here before 2026-10-13 does not match `--help`. The holiday-list body (§16) was re-tested the same day: it uses `startDate`/`endDate`, not `date`.
 
 31. **A CC-routable Calling number shows a `CONTACT_CENTER_ADAPTER` owner in `numbers list`.** Verified live 2026-10-13 (read-only audit, `wxcli numbers list --all -o json`, three numbers on one location): all three were `ACTIVE`, `PRIMARY`, `PSTN_NUMBER`, no extension, location Site1, and each was owned by its own `CONTACT_CENTER_ADAPTER` named "Contact Center RTMS" (the owner id decodes to a `wcc_…_WCC@<cluster>` address). The two numbers that already took calls and the newly mapped one were structurally identical, so that shape is the comparison target for a new number. **Not established:** whether `cc-dial-number create` is what creates that owner or it already existed, and whether the carrier actually delivers calls to the number (nothing in the API shows delivery). Pass `--all` on `numbers list`; the default is one page. On the CC side the matching record is the dial-number mapping (`cc-dial-number list --all`): the new mapping matched a working one in every field except `entryPointId` and `id` (`defaultAni: true` marked the tenant's default outdial number on a third mapping). Creating the mapping (verified live 2026-10-13): `cc-dial-number create --dialled-number E164 --entry-point-id ID --entry-point-name NAME --location LOC --region-id REG` created it and `show` confirmed. **`--location` and `--region-id` are both required by the API (the spec says optional); since 2026-10-13 `create --help` marks both required.** Observed before that fix: omitting `--location` returns `400 "location: should not be null or blank"`, omitting `--region-id` returns `400 "Telephony regionId should be provided."`; copy both from an existing mapping. In `--json-body` the field is `dialledNumber` (not `dialNumber`). **Warning:** bare `cc-dial-number delete` (no ID) means "Delete all Dialed Number Mapping(s)" and removes every mapping in the org (confirmation unless `--force`); remove one with `cc-dial-number delete-dial-number ID --force` (returned `{"status":"deleted"}`).
 

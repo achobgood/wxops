@@ -106,7 +106,7 @@ Accepted values: `on`, `off`, `none`.
 | `hybrid_calling` | `WorkspaceCallingHybridCalling` (optional) | Only when `type` is `hybridCalling` |
 | `webex_calling` | `WorkspaceWebexCalling` (optional) | Only when `type` is `webexCalling` |
 
-**Important:** Due to a backend limitation, `webex_calling` details are never returned by the workspace GET API. They are only used when creating a workspace.
+**Important:** Due to a backend limitation, `webex_calling` details are only partly returned by the workspace GET API: `phoneNumber`, `extension` and `locationId` are write-only (read them back from `workspace-settings list-numbers`), but `licenses` **is** returned. Verified live 2026-10-13: both the create response and a later `workspaces show` carried `calling.webexCalling.licenses` (the auto-applied license ID) and nothing else under `webexCalling`.
 
 #### WorkspaceWebexCalling
 
@@ -198,13 +198,15 @@ Each `WorkspaceHealthIssue` has: `id`, `created_at`, `title`, `description`, `re
 - `phoneNumber` and `extension` are not applicable
 - `deviceHostedMeetings` and `calendar` are not applicable
 
+Verified live 2026-10-13: a workspace is "hot desk only" because of its **license** (`Webex Calling - Hot desk only`), not because `hotdeskingStatus` is `on`. `hotdeskingStatus: "on"` with an `extension` and no `licenses` was accepted (it got a normal `Webex Calling - Workspaces` license and kept the extension). The same body with the Hot desk only license ID in `licenses` returned 400 `The following fields cannot be set on this Workspace type [DIRECTORY_NUMBER]`. `hotdeskingStatus: "on"` with no extension, no number and no license returned 400 `The following fields are required for this Workspace type [DIRECTORY_NUMBER_OR_EXTERNAL_NUMBER]` — pass the Hot desk only license ID to create one with no number.
+
 #### Workspace details
 
 `GET /v1/workspaces/{workspaceId}` returns full details for a single workspace. Pass `includeDevices=true` to embed device details.
 
 #### Updating a workspace
 
-`PUT /v1/workspaces/{workspaceId}` updates a workspace. Include all fields from a GET response — omitting optional fields (`capacity`, `type`, `notes`) clears them. `locationId`, `supportedDevices`, `calendar`, and `calling` are preserved when omitted.
+`PUT /v1/workspaces/{workspaceId}` updates a workspace. The spec says to include all fields from a GET response because omitting optional fields (`capacity`, `type`, `notes`) clears them; `locationId`, `supportedDevices`, `calendar`, and `calling` are preserved when omitted. **Verified live 2026-10-13: omitted fields were NOT cleared.** A raw `PUT {"displayName": "..."}` left `capacity`, `type` and `notes` exactly as they were (read back with `GET`). Still send the full object if you need the result to be independent of that behaviour.
 
 **Restrictions:**
 - `calling` can only be updated if the current type is `freeCalling`, `none`, `thirdPartySipCalling`, or `webexCalling`.
@@ -241,7 +243,7 @@ The settings below are exposed under `/telephony/config/workspaces/{workspaceId}
 | Call waiting | `callWaiting` | Call waiting |
 | Caller ID | `callerId` | Caller ID configuration |
 | Do Not Disturb | `doNotDisturb` | Do Not Disturb |
-| Emergency callback number | `ecbn` | Emergency callback number |
+| Emergency callback number | `emergencyCallbackNumber` | Emergency callback number (live 2026-10-13: `/ecbn` is 404; `/emergencyCallbackNumber` is 200 on Basic and Professional) |
 | Call forwarding | `callForwarding` | Call forwarding rules |
 | Monitoring | `monitoring` | Monitoring (busy lamp field) |
 | Music on hold | `musicOnHold` | Music on hold |
@@ -270,7 +272,7 @@ Manages telephony devices assigned to a workspace.
 
 #### Modifying hoteling
 
-`PUT /v1/telephony/config/workspaces/{workspaceId}/devices/hoteling` modifies hoteling settings for workspace devices (`enabled`, `limitGuestUse`, `guestHotelingLimit`).
+`PUT /v1/telephony/config/workspaces/{workspaceId}/devices` modifies hoteling settings for workspace devices (`enabled`, `limitGuestUse`, `guestHoursLimit`); the CLI command is `wxcli device-settings update-devices-workspaces WORKSPACE_ID`. Verified live 2026-10-13: there is no `.../devices/hoteling` path (404 `No static resource`), the hours field is `guestHoursLimit` (a body with `guestHotelingLimit` returns 204 and is silently ignored — the read-back stayed at 24), and `enabled` is mandatory (400 `Missing Mandatory field name: enabled`). The current value is on each device under `hoteling` in the `GET .../devices` response.
 
 ### Workspace Numbers API
 
@@ -347,7 +349,7 @@ Webex IDs (`id` and the org portion) are base64-encoded; decode to extract the r
 
 #### Creating a workspace location
 
-`POST /v1/workspaceLocations` creates a workspace location. Requires `displayName`, `address`, `countryCode`, `latitude`, and `longitude`; `cityName` and `notes` are optional.
+`POST /v1/workspaceLocations` creates a workspace location. Requires `displayName`, `address`, `countryCode`, `latitude`, and `longitude`; `cityName` and `notes` are optional. Verified live 2026-10-13: the response carries a `locationId`, and the new record **also appeared in `wxcli locations list`** (as a not-yet-calling-enabled location with the same name); deleting the workspace location removed it from both lists. The two groups are two views of the same object, not two unrelated ones.
 
 #### Workspace location details
 
@@ -488,7 +490,7 @@ body = {
 result = api.session.rest_post(f"{BASE}/workspaces", json=body)
 new_ws_id = result["id"]
 
-# ── Update a workspace (full PUT -- include all fields) ──────────
+# ── Update a workspace (full PUT -- include all fields; live, omitted fields were kept) ──
 ws = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}")
 ws["displayName"] = "Lobby Phone (Updated)"
 result = api.session.rest_put(f"{BASE}/workspaces/{workspace_id}", json=ws)
@@ -524,6 +526,8 @@ api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/callerId", json
 
 # ── Monitoring (BLF) ────────────────────────────────────────────
 mon = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/monitoring")
+# The PUT field is enableCallParkNotification but the GET field is callParkNotificationEnabled.
+# Verified live 2026-10-13: sending callParkNotificationEnabled returns 204 and changes nothing.
 api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/monitoring", json={
     "enableCallParkNotification": True,
 })
@@ -588,10 +592,11 @@ result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id
 devices = result.get("devices", [])
 
 # ── Modify hoteling ─────────────────────────────────────────────
-api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices/hoteling", json={
+# Verified live 2026-10-13: the path is .../devices (no /hoteling) and the field is guestHoursLimit
+api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices", json={
     "enabled": True,
     "limitGuestUse": True,
-    "guestHotelingLimit": 12,
+    "guestHoursLimit": 12,
 })
 ```
 
@@ -601,8 +606,8 @@ api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices
 2. **No auto-pagination** -- Use `max=1000` for the first page. The Workspaces API does not auto-paginate; check for a `next` link in the response if you have more than 1000 workspaces.
 3. **`includeDevices` and `includeCapabilities` are strings** -- Pass `"true"` not `True` in query params.
 4. **Two different base paths** -- CRUD and features use `/workspaces/{id}` and `/workspaces/{id}/features/*`. Telephony device operations use `/telephony/config/workspaces/{id}/devices`.
-5. **Update is full PUT** -- Omitting optional fields (`capacity`, `type`, `notes`) clears them. `locationId`, `supportedDevices`, `calendar`, and `calling` are preserved when omitted.
-6. **`webexCalling` details not returned on GET** -- The `calling.webexCalling` object is write-only (used on create). GET responses only include `calling.type`.
+5. **Update is documented as a full PUT** -- the spec says omitting optional fields (`capacity`, `type`, `notes`) clears them. Verified live 2026-10-13 that it does not: a PUT with only `displayName` kept all three. `locationId`, `supportedDevices`, `calendar`, and `calling` are preserved when omitted.
+6. **`webexCalling` details mostly not returned on GET** -- `phoneNumber`, `extension` and `locationId` under `calling.webexCalling` are write-only (used on create). Verified live 2026-10-13: GET and the create response do return `calling.webexCalling.licenses`.
 7. **Migration tool populates workspace `call_settings` from CUCM common-area phones.** `WorkspaceMapper._extract_workspace_call_settings` translates CUCM `dndStatus`, `voiceMailProfile`, per-line `callForward*`, and `privacy` into Webex `/telephony/config/workspaces/{id}/{feature}` PUT bodies. Output is license-gated: Workspace-tier workspaces only keep `doNotDisturb` and `musicOnHold`; everything else requires Professional Workspace. Under the default license-tier inference, most workspaces land at Workspace tier, so only `doNotDisturb` actually migrates — `voicemail`, `callForwarding`, and `privacy` only activate when an operator overrides the tier to Professional Workspace during decision review.
 
 ---
@@ -614,7 +619,7 @@ Three `wxcli` command groups cover workspace operations:
 | CLI Group | Commands | Purpose |
 |-----------|----------|---------|
 | `wxcli workspaces` | 6 | Workspace CRUD + capabilities |
-| `wxcli workspace-settings` | 96 | Workspace call settings (mirrors person settings) |
+| `wxcli workspace-settings` | 103 | Workspace call settings (mirrors person settings) — 103 counted from `--help` 2026-10-13 |
 | `wxcli workspace-locations` | 10 | Legacy workspace locations + floors |
 
 ### Workspaces CRUD
@@ -686,7 +691,9 @@ wxcli workspaces delete <workspace_id> --force
 
 > **License note:** Most `/telephony/config/workspaces/{id}/` settings require **Professional** license. Basic workspaces only support `musicOnHold` and `doNotDisturb` at this path. For Basic workspaces, use the `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring). See the [endpoint access by license tier table](#key-patterns-and-gotchas) in Gotchas for the full matrix.
 
-The `wxcli workspace-settings` group has 96 commands mirroring person call settings. All take a `workspace_id` as a positional argument.
+The `wxcli workspace-settings` group has 103 commands mirroring person call settings. All take a `workspace_id` as a positional argument.
+
+> **Silent partial reads — verified live 2026-10-13.** Several `list-*` commands print only the first array-valued key of the response and drop the rest, so a "no data" `[]` can sit on top of real settings. Confirmed against the raw GET: `workspace-settings list` (Caller ID) prints only `["LOCATION_NUMBER","CUSTOM"]` (the `types` list — `selected`, `locationNumber`, `externalCallerIdNamePolicy` are dropped); `list-monitoring` prints `[]` while the raw response is `{"callParkNotificationEnabled": false, "availableEntriesCount": 50}`; `list-privacy`, `list-push-to-talk`, `list-simultaneous-ring`, `list-selective-accept|reject|forward` and `list-priority-alert` print `[]` while the raw responses are objects (`{"enabled": false, "criteria": []}` etc.); `list-sequential-ring` prints only `phoneNumbers`. Treat these commands as incomplete and read the raw path (`GET /telephony/config/workspaces/{id}/<segment>`, or `/workspaces/{id}/features/<segment>` for Basic) when the value matters. The `show-*` commands printed the whole object.
 
 #### Call Handling
 
@@ -782,7 +789,9 @@ wxcli workspace-settings update-voicemail <workspace_id> --no-enabled
 # Show caller ID settings
 wxcli workspace-settings list <workspace_id>
 
-# Set caller ID to direct line
+# Set caller ID to direct line (needs a direct number on the workspace — verified live
+# 2026-10-13: on an extension-only workspace this returns 400 25042 "Invalid Operation";
+# the GET `types` list only offered LOCATION_NUMBER and CUSTOM there)
 wxcli workspace-settings update-caller-id <workspace_id> --selected DIRECT_LINE
 
 # Set caller ID to location number
@@ -790,7 +799,8 @@ wxcli workspace-settings update-caller-id <workspace_id> \
   --selected LOCATION_NUMBER \
   --external-caller-id-name-policy LOCATION
 
-# Set caller ID to custom number
+# Set caller ID to custom number (the number must exist in the org: a made-up +1555...
+# number returned 400 5209 "DN not found" — verified live 2026-10-13)
 wxcli workspace-settings update-caller-id <workspace_id> \
   --selected CUSTOM --custom-number "+15551234567"
 
@@ -817,6 +827,10 @@ wxcli workspace-settings update-music-on-hold <workspace_id> --json-body '{
 wxcli workspace-settings update-music-on-hold <workspace_id> --no-moh-enabled
 
 # ── Call Recording (Professional license required) ───────────────
+# Enabling also needs the org to have accepted the recording vendor's terms (Dubber).
+# Verified live 2026-10-13: on an org that had not, every enabling call below returned an
+# error whose body was {"vendorId": "...", "vendorName": "Dubber", "termsOfServiceUrl": ...}
+# (and the CLI's "resource still referenced" tip is wrong for it). Not exercised past that.
 # Show call recording settings
 wxcli workspace-settings show-call-recordings <workspace_id>
 
@@ -916,12 +930,16 @@ wxcli workspace-settings update-numbers <workspace_id> --json-body '{
   ]
 }'
 
-# Remove a number
+# Remove a number — `primary` is mandatory even on DELETE. Verified live 2026-10-13: a
+# body without it returns 400 25008 "Missing Mandatory field name: numbers.primary";
+# with "primary": false it succeeded (CLI printed status: updated) and the number went back to
+# unassigned (confirmed with `wxcli numbers list --phone-number`).
 wxcli workspace-settings update-numbers <workspace_id> --json-body '{
   "phoneNumbers": [
     {
       "action": "DELETE",
-      "directNumber": "+15551234567"
+      "directNumber": "+15551234567",
+      "primary": false
     }
   ]
 }'
@@ -955,7 +973,8 @@ All 103 `workspace-settings` commands:
 | **Call Forwarding** | `show`, `update` |
 | **Call Waiting** | `show-call-waiting`, `update-call-waiting` |
 | **Caller ID** | `list` (show), `update-caller-id` |
-| **Monitoring** | `show-monitoring`, `update-monitoring` |
+| **Monitoring** | `list-monitoring` (there is no `show-monitoring` — checked against `--help` 2026-10-13), `update-monitoring`, `list-available-members-monitoring`, `list-available-members-speed-dials` |
+| **Outbound Billing Plan** | `list-outbound-billing-plan`, `update-outbound-billing-plan` |
 | **Numbers** | `list-numbers`, `update-numbers` |
 | **Incoming Permissions** | `show-incoming-permission`, `update-incoming-permission` |
 | **Outgoing Permissions** | `list-outgoing-permission`, `update-outgoing-permission` |
@@ -1023,7 +1042,7 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
 
 5. **Workspace Locations API is deprecated** — Use the `/locations` API instead for new integrations (`wxcli locations`).
 
-6. **Hot desk workspaces** — When creating with `hotdesking_status=on`, `phone_number`, `extension`, `device_hosted_meetings`, and `calendar` are not applicable and will cause errors if provided.
+6. **Hot desk workspaces** — The "not applicable" fields (`phone_number`, `extension`, `device_hosted_meetings`, `calendar`) only error on a **Hot desk only**-licensed workspace. `hotdesking_status=on` alone does not make one; see the live-verified detail under "Hot desk only workspace restrictions" above (2026-10-13).
 
 7. **License handling** — When creating a Webex Calling workspace, you can provide multiple license IDs; the oldest suitable one is applied. If omitted, auto-assigned from active subscriptions.
 
@@ -1033,7 +1052,9 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
 
 10. **Workspace call settings endpoint access by license tier.**
 
-    **Rule of thumb:** Under `/telephony/config/workspaces/{id}/`, only `musicOnHold` and `doNotDisturb` work on Basic. Everything else returns 405 "Invalid Professional Place". For Basic workspaces, use the `/workspaces/{id}/features/` path family instead (5 endpoints listed below).
+    **Rule of thumb:** Under `/telephony/config/workspaces/{id}/`, the signalling/behaviour settings (anonymousCallReject, bargeIn, callBridge, callPolicies, priorityAlert, privacy, pushToTalk, selective*, sequentialRing, simultaneousRing, voicemail, `features/callRecordings`, and a `PUT` to `numbers`) return 405 "Invalid Professional Place" on a Basic workspace. Several others work on Basic: `musicOnHold`, `doNotDisturb`, `answerSettings`, `availablePreferredAnswerEndpoints`, `emergencyCallbackNumber`, `outboundBillingPlan`, `outgoingPermission/digitPatterns`, `devices` and `devices/settings`. For call forwarding, waiting, caller ID, intercept, monitoring, numbers (read) and in/outgoing permissions use the `/workspaces/{id}/features/` path family on both tiers.
+
+    **Re-measured live 2026-10-13** with two workspaces created in `Site1`: Basic = created with the auto-applied `Webex Calling - Workspaces` license, Professional = created with `licenses: [<Webex Calling - Professional license id>]` (the org has no separate "Professional Workspace" license and the Professional user license was accepted on a workspace). Rows below marked "(live)" were probed with `GET` on both tiers. The "Duplicate of /features/ path" rows that earlier versions of this table listed under `/telephony/config/workspaces/{id}/` (callForwarding, callWaiting, callerId, intercept, monitoring, incomingPermission, outgoingPermission, `callRecording`, `ecbn`) do not exist at those paths — every one returned 404 `No static resource` on **both** tiers; the real call-recording path is `/telephony/config/workspaces/{id}/features/callRecordings` and the real ECBN path is `/telephony/config/workspaces/{id}/emergencyCallbackNumber`.
 
     | Endpoint Path | Basic | Professional | Notes |
     |---------------|:-----:|:------------:|-------|
@@ -1045,7 +1066,7 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
     | `/workspaces/{id}/features/monitoring` | 200 | 200 | |
     | `/workspaces/{id}/features/incomingPermission` | 200 | 200 | |
     | `/workspaces/{id}/features/outgoingPermission` | 200 | 200 | |
-    | `/workspaces/{id}/features/voicemail` | 404 | N/A | Wrong path for voicemail; use `/telephony/config/` |
+    | `/workspaces/{id}/features/voicemail` | 404 | 404 | Wrong path for voicemail on both tiers (live 2026-10-13); use `/telephony/config/` |
     | **`/telephony/config/workspaces/{id}/` path (Basic exceptions)** | | | |
     | `/telephony/config/workspaces/{id}/musicOnHold` | 200 | 200 | Basic exception |
     | `/telephony/config/workspaces/{id}/doNotDisturb` | 200 | 200 | Basic exception |
@@ -1053,15 +1074,20 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
     | `/telephony/config/workspaces/{id}/anonymousCallReject` | 405 | 200 | |
     | `/telephony/config/workspaces/{id}/bargeIn` | 405 | 200 | |
     | `/telephony/config/workspaces/{id}/callBridge` | 405 | 200 | |
-    | `/telephony/config/workspaces/{id}/callForwarding` | 405 | 200 | Duplicate of `/features/` path |
+    | `/telephony/config/workspaces/{id}/callForwarding` | 404 | 404 | (live 2026-10-13) path does not exist — use `/features/callForwarding` |
     | `/telephony/config/workspaces/{id}/callPolicies` | 405 | 200 | |
-    | `/telephony/config/workspaces/{id}/callRecording` | 405 | 200 | |
-    | `/telephony/config/workspaces/{id}/callWaiting` | 405 | 200 | Duplicate of `/features/` path |
-    | `/telephony/config/workspaces/{id}/callerId` | 405 | 200 | Duplicate of `/features/` path |
-    | `/telephony/config/workspaces/{id}/ecbn` | 405 | 200 | |
-    | `/telephony/config/workspaces/{id}/intercept` | 405 | 200 | Duplicate of `/features/` path |
-    | `/telephony/config/workspaces/{id}/monitoring` | 405 | 200 | Duplicate of `/features/` path |
-    | `/telephony/config/workspaces/{id}/numbers` | 405 | 200 | |
+    | `/telephony/config/workspaces/{id}/features/callRecordings` | 405 | 200 | (live) the real call-recording path; `/callRecording` is 404 on both tiers |
+    | `/telephony/config/workspaces/{id}/callWaiting` | 404 | 404 | (live) path does not exist — use `/features/callWaiting` |
+    | `/telephony/config/workspaces/{id}/callerId` | 404 | 404 | (live) path does not exist — use `/features/callerId` |
+    | `/telephony/config/workspaces/{id}/emergencyCallbackNumber` | 200 | 200 | (live) real ECBN path; `/ecbn` is 404 on both tiers; works on Basic |
+    | `/telephony/config/workspaces/{id}/intercept` | 404 | 404 | (live) path does not exist — use `/features/intercept` |
+    | `/telephony/config/workspaces/{id}/monitoring` | 404 | 404 | (live) path does not exist — use `/features/monitoring` |
+    | `/telephony/config/workspaces/{id}/numbers` | 405 (PUT) | 200 (PUT) | (live) `GET` is 404 on both tiers (read with `/features/numbers`); `PUT` is Professional-only |
+    | `/telephony/config/workspaces/{id}/answerSettings` | 200 | 200 | (live) works on Basic — see gotcha 11 |
+    | `/telephony/config/workspaces/{id}/availablePreferredAnswerEndpoints` | 200 | 200 | (live) |
+    | `/telephony/config/workspaces/{id}/outboundBillingPlan` | 200 | 200 | (live) |
+    | `/telephony/config/workspaces/{id}/outgoingPermission/digitPatterns` | 200 | 200 | (live) |
+    | `/telephony/config/workspaces/{id}/devices` and `.../devices/settings` | 200 | 200 | (live) |
     | `/telephony/config/workspaces/{id}/priorityAlert` | 405 | 200 | |
     | `/telephony/config/workspaces/{id}/privacy` | 405 | 200 | |
     | `/telephony/config/workspaces/{id}/pushToTalk` | 405 | 200 | |
@@ -1072,7 +1098,9 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
     | `/telephony/config/workspaces/{id}/simultaneousRing` | 405 | 200 | |
     | `/telephony/config/workspaces/{id}/voicemail` | 405 | 200 | |
 
-11. **Workspace answer settings have no clearable-by-person field and may need a Professional licence.** The workspace `answerSettings` object carries `preferredAnswerEndpointId`, `autoAnswerEnabled` and the read-only `preferredAnswerEndpointType` / `preferredAnswerEndpointIdType` / `preferredAnswerEndpointRequired` — but not `isPreferredEndpointClearableByPerson`, which the person and virtual-line versions have, so `update-answer-settings` here offers no such flag. It lives under `/telephony/config/workspaces/{id}/`, the path family that returned 405 on Basic workspaces for everything except `musicOnHold` and `doNotDisturb` (gotcha 10), so expect 405 on a Basic workspace. To clear the preferred endpoint, send a JSON null with `--json-body '{"preferredAnswerEndpointId": null}'`; the `--preferred-answer-endpoint-id` flag is a plain string and would send `"null"`. **Unverified:** the field list is from the spec; the 405-on-Basic expectation is inferred from gotcha 10's pattern, not measured for this endpoint.
+11. **Workspace answer settings have no clearable-by-person field, and they work on a Basic workspace.** The workspace `answerSettings` object carries `preferredAnswerEndpointId`, `autoAnswerEnabled` and the read-only `preferredAnswerEndpointType` / `preferredAnswerEndpointIdType` / `preferredAnswerEndpointRequired` — but not `isPreferredEndpointClearableByPerson`, which the person and virtual-line versions have, so `update-answer-settings` here offers no such flag. It lives under `/telephony/config/workspaces/{id}/` but is **not** Professional-only. Verified live 2026-10-13 on a Basic (`Webex Calling - Workspaces`) workspace: `show-answer-settings` and `list-available-preferred-answer-endpoints` returned 200 (`{"preferredAnswerEndpointRequired": true, "autoAnswerEnabled": false}` and `{"endpoints": []}`), `update-answer-settings --auto-answer-enabled --verify` reported all sent fields matched, `--json-body '{"preferredAnswerEndpointId": null}'` was accepted, and `--no-auto-answer-enabled` restored the prior value. To clear the preferred endpoint, send a JSON null with `--json-body '{"preferredAnswerEndpointId": null}'`; the `--preferred-answer-endpoint-id` flag is a plain string and would send `"null"`. **Unverified:** the field list is from the spec; setting a real `preferredAnswerEndpointId` was not exercised (the workspaces had no candidate endpoints).
+
+12. **Device limits per workspace depend on the license tier.** Verified live 2026-10-13 with made-up MACs (`devices create --mac ... --model "DMS Cisco 8845" --workspace-id ...`): a Basic workspace holds **one** phone — the second returned 400 `{"errorCode":"2022","message":"Exceeded max number of devices"}`, and adding a DECT handset to it returned 400 `[Error 5682] Exceeded max number of devices, the user currently has 1 devices, 0 applications. Only 1 device is allowed.` A Professional workspace accepted five and rejected the sixth with the same 2022. A phone activation code (`create-activation-code --workspace-id ... --model ...`) creates a device record in `activating` state immediately, so it counts too: the next code or MAC create on that Basic workspace got 2022 (a code with no `--model`, which is for RoomOS devices, was still issued on a workspace that already held its one phone). Deleting the workspace removed all of its devices (4 remaining devices gone after one `workspaces delete`).
 
 ## CLI: `workspace-metrics` (Workspace Sensor Metrics)
 

@@ -69,14 +69,17 @@ At minimum, one of `displayName`, `firstName`, or `lastName` is required. For a 
 
 The update is a **full PUT** -- you must include all fields, not just the changed ones. Standard pattern: GET details first, modify, then PUT.
 
+Verified live 2026-10-13: the API is more forgiving than "all fields" — a body of just `displayName` plus the changed field (e.g. `title`, `department`, `extension`) updated the person and left `firstName`, `lastName`, `emails` and `licenses` intact. **`displayName` is the one field that is mandatory**: any update without it fails `400 "displayName cannot be null."`. `wxcli people update PERSON_ID --title X` therefore fails unless `--display-name` is passed with it (the CLI sends only the flags you give it; it does not GET-merge first). When a `licenses` array *is* sent it **replaces** the list (sending one non-calling license dropped the user from 4 licenses to 3; only system-implicit ones survive).
+
 **Key constraints on update:**
 - When assigning a Webex Calling license, **either a telephone number or an extension must already be assigned** to the person, or be supplied in the same request payload. A license with neither is rejected. *(Added upstream 2026-08-03.)*
-- When `callingData` is `true`, a **Webex Calling license must be present in the `licenses` array**. Asking for calling fields on a person who has no calling license is an error, not an empty response. *(Added upstream 2026-08-03.)*
+- When `callingData` is `true`, a **Webex Calling license must be present in the `licenses` array**. Asking for calling fields on a person who has no calling license is an error, not an empty response. *(Added upstream 2026-08-03.)* **Not reproduced live:** Verified live 2026-10-13 on the sandbox tenant — `people show`, `people list --email` and `people update` with `--calling-data true` on a user holding **no** calling license all returned 200 (calling fields simply came back absent/null), and so did an update whose explicit `licenses` array held no calling license. Treat this rule as unenforced spec text, not observed behavior.
 - `location_id` can only be set when **first assigning** a calling license. It cannot be changed for an existing calling user.
 - The `extension` field value should **not** include the location routing prefix. The `work_extension` phone number in the response *will* include it, but when setting `extension` on update, omit the prefix.
 - When updating a user with multiple email addresses, the **primary email must be listed first** in the array.
 - Some licenses are implicitly assigned by the system and cannot be removed. If you get an error about implicit licenses, make sure they remain in the `licenses` array.
-- A PUT that returns an error **may still have partially modified** the person. Always do a GET afterward to verify current state.
+- A PUT that returns an error **may still have partially modified** the person. Always do a GET afterward to verify current state. Verified live 2026-10-13: a `phoneNumbers: [{"type":"mobile","value":"+19175550142"}]` update returned `400 "Phone number should be present either in User level or in calling license properties, not in both places"` and the `mobile` entry was nonetheless present on the next read.
+- `phoneNumbers` entries of type `alternate1`/`alternate2` for a number that is **not in the org's number inventory** are **silently dropped**: the PUT returned 200 and the read-back had no such entry (twice). A 2xx proves only "accepted"; `--verify` is what surfaces it (`phoneNumbers: sent [...alternate1...], now [...]`). Existing alternate numbers read back as `{"type":"alternate1","value":"12094571618","primary":false}` — note the value had **no leading `+`**. Assigning an alternate from real inventory was not exercised (it would re-own an existing number).
 
 ### Deleting a Person
 
@@ -174,12 +177,21 @@ wxcli people show <person_id> -o table
 wxcli people show-me --calling-data true
 
 # ── Create a person ───────────────────────────────────────────────
-wxcli people create --first-name "John" --last-name "Smith" \
-  --display-name "John Smith" --location-id <location_id> \
-  --extension "1001"
+# Flags alone FAIL: there is no --email flag, so the API rejects with
+# 400 "emails can't be empty" (verified live 2026-10-13). Always pass emails
+# via --json-body (next example); a plain non-calling user needs only
+# emails + names:
+wxcli people create --json-body '{"emails":["jsmith@example.com"],"firstName":"John","lastName":"Smith","displayName":"John Smith"}'
 
-# ── Create with full JSON body (for emails, licenses, phoneNumbers)
-wxcli people create --json-body '{
+# ── Create a CALLING user in one call (emails, licenses, location, extension)
+# --calling-data true is REQUIRED for this body. Verified live 2026-10-13: the
+# same body without it fails 400 "Calling flag not set" (nothing created);
+# with it, 201 and a read-back with --calling-data true shows the extension
+# and locationId. phoneNumbers must be a number already in the location's
+# inventory -- a number that is not fails 400 "[Error 4250] +1... phone
+# number(s) not added.  Verify that the number(s) are not already assigned."
+# and the person is STILL created, with no extension/locationId (read back).
+wxcli people create --calling-data true --json-body '{
   "emails": ["jsmith@example.com"],
   "displayName": "John Smith",
   "firstName": "John",
@@ -191,9 +203,11 @@ wxcli people create --json-body '{
 }'
 
 # ── Update a person ───────────────────────────────────────────────
-wxcli people update <person_id> --extension "2002"
+# --display-name is MANDATORY on every update (400 "displayName cannot be
+# null." otherwise) -- verified live 2026-10-13. Pass it alongside the change:
+wxcli people update <person_id> --display-name "John Smith" --extension "2002" --calling-data true
 wxcli people update <person_id> --display-name "John A. Smith"
-wxcli people update <person_id> --department "Engineering" --title "Senior Engineer"
+wxcli people update <person_id> --display-name "John Smith" --department "Engineering" --title "Senior Engineer"
 
 # ── Delete a person ───────────────────────────────────────────────
 wxcli people delete <person_id>
@@ -207,7 +221,7 @@ wxcli people delete <person_id> --force
 - `wxcli people show` defaults to JSON output; use `-o table` for a summary view.
 - The `--calling-data true` flag is the CLI equivalent of the API's `callingData=true` query parameter. Pass it when you need calling fields (locationId, extension, phoneNumbers).
 - For create/update operations with complex nested fields (emails, licenses, phoneNumbers), use `--json-body` with the full JSON payload.
-- The `--limit` and `--offset` flags control client-side pagination of results.
+- `--limit` works (it becomes `max=`), but **`--offset` is silently ignored on `people list`** — verified live 2026-10-13: `--limit 3 --offset 3` returned the same first three people as `--limit 3`, because the CLI sends `?max=3&start=3` and `/v1/people` has no `start` parameter. The "re-run with `--offset N`" hint printed on a truncated read therefore loops back to page one. Use `--all` to get every person. (`numbers list --offset` does skip records.)
 
 ### Gotchas
 
@@ -218,10 +232,10 @@ The single most common mistake. Without `calling_data=True` on `list()`, `detail
 Assigning a Webex Calling license to a person who has neither a telephone number nor an extension fails unless the request payload supplies one. In practice: set `extension` (or a `work` phone number) in the same PUT that adds the license, rather than adding the license first and the number after. Stated in the operation's spec `description` since 2026-08-03 — and the CLI structurally cannot surface it, because the generator renders an operation's `summary` into `--help` and never its `description`. This doc is the only place it lives.
 
 **`callingData=true` requires the person to actually have a calling license.**
-Upstream 2026-08-03: when `callingData` is `true`, a Webex Calling license must be in the `licenses` array. Do not read `--calling-data true` as "also show me calling fields if there are any" on a non-calling user — pair it with the license, not with a hope. This is the write-side counterpart to the read-side trap above: on a read, omitting the flag hands back a confident empty answer; on a write, passing it without a license is an error.
+Upstream 2026-08-03: when `callingData` is `true`, a Webex Calling license must be in the `licenses` array. Do not read `--calling-data true` as "also show me calling fields if there are any" on a non-calling user — pair it with the license, not with a hope. This is the write-side counterpart to the read-side trap above: on a read, omitting the flag hands back a confident empty answer; on a write, passing it without a license is an error. **Not reproduced live (2026-10-13):** `--calling-data true` on `people show`/`list`/`update` for a user with no calling license returned 200, not an error (see the Updating a Person constraint above). The read-side trap is the one that bites; the write-side error is unobserved.
 
 **`location_id` is write-once for calling users.**
-You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. The preferred path for moving a calling user to a different location is the dedicated **Move Users Job API**: `POST /v1/people/{personId}/actions/moveLocation`. This moves the user without removing and re-adding the calling license. See `User Call Settings - Validate or Initiate Move Users Job` in the API docs. As a fallback, you can remove the calling license and re-add it with the new `location_id`, but the Move Users Job API is preferred.
+You can set `location_id` when you first assign a calling license to a user. After that, `location_id` **cannot be changed** via the People API update. The preferred path for moving a calling user to a different location is the dedicated **Move Users Job API**: `POST /v1/telephony/config/jobs/person/moveLocation` (CLI: `wxcli user-settings create-move-location`; verified live 2026-10-13 in `"validate": true` mode, 200 with an `impacts` list — body `{"usersList":[{"locationId":"...","validate":true,"users":[{"userId":"...","extension":"..."}]}]}`; the older `POST /v1/people/{personId}/actions/moveLocation` path previously written here does not exist: verified live 2026-10-13, `POST` to it returns `404 "The requested resource could not be found."`). Verified live end to end on a temp user: the same body with `"validate": false` started job `moveusers`; `wxcli user-settings show-move-location JOB_ID` reached `COMPLETED` (`moved: 1, failed: 0`) within ~10 s and `people show --calling-data true` read back the new `locationId` with the extension unchanged. By contrast, `people update --location-id NEW` on a calling user fails `400 "Failed to update people. Delete Calling Location in request is invalid"` (verified live 2026-10-13) and the location does not change. This moves the user without removing and re-adding the calling license. See `User Call Settings - Validate or Initiate Move Users Job` in the API docs. As a fallback, you can remove the calling license and re-add it with the new `location_id`, but the Move Users Job API is preferred.
 
 **The People API is a composite of multiple microservices.**
 A create or update call can **partially succeed**. For example, the user may be created but the phone number assignment may fail (especially with invalid numbers). Always verify with a subsequent GET after errors.
@@ -231,7 +245,7 @@ The live API allows up to **100 results per page** with `callingData=true` (or 5
 
 **Extension vs. work_extension.**
 - When **writing**: set `person.extension = '1001'` (no routing prefix).
-- When **reading**: `phone_numbers` of type `work_extension` will have the value `<routing_prefix><extension>` (e.g., `'8001001'` where `800` is the prefix and `1001` is the extension).
+- When **reading**: `phone_numbers` of type `work_extension` will have the value `<routing_prefix><extension>` (e.g., `'8001001'` where `800` is the prefix and `1001` is the extension) **when the location has a routing prefix**. Verified live 2026-10-13: at a location with no routing prefix (Site1) the read-back is the bare extension (`"value": "8892"`). On the wire the field is `type`, not `number_type` (see PhoneNumber below).
 
 **Deleting a calling user may have delayed side effects.**
 After deleting a user, their phone numbers may not be immediately available for reassignment. Numbers may take up to ~10 seconds to free up after deletion, especially if you encounter 502 errors on retry.
@@ -301,10 +315,14 @@ body = {
         }
     ]
 }
-api.session.rest_post(f"{BASE}/licenses/users", json=body)
+# Verified live 2026-10-13: this endpoint is PATCH only -- POST and PUT both
+# return 405 "Request method 'POST' is not supported"; PATCH reached validation
+# (400 "LicenseId format is incorrect." on a bogus ID). `wxcli licenses update`
+# issues PATCH. rest_patch exists in wxcli.auth (see authentication.md).
+api.session.rest_patch(f"{BASE}/licenses/users", json=body)
 ```
 
-**Note:** The Licenses API is read-only for license inventory (list/details). License assignment to users is done via the `/licenses/users` PATCH-style endpoint (implemented as POST). There is no create/update/delete for license definitions themselves.
+**Note:** The Licenses API is read-only for license inventory (list/details). License assignment to users is done via `PATCH /v1/licenses/users` (verified live 2026-10-13: POST returns 405; this note previously said "implemented as POST"). There is no create/update/delete for license definitions themselves.
 
 ### Gotchas
 
@@ -355,6 +373,8 @@ api.session.rest_post(  # POST — not PUT; URL path should be verified against 
 ```
 
 The `announcement_language` field is **required** when enabling a location for Webex Calling. It must be **lowercase** (`en_us`, not `en_US`) -- see gotchas #13 and #14.
+
+**The snippet above is a sketch, not a complete body.** Verified live 2026-10-13 (`wxcli location-settings create`): the enable call needs `id`, `name`, `timeZone`, `preferredLanguage`, `announcementLanguage` **and `address`** — with the same five fields minus `address` (flags-only, or `--json-body` without it) the API returns `400 "Validation failure"`; adding the `address` object turned it into `201 Created`. `en_US` as `announcementLanguage` returned `400 ... errorCode = '25046', error = 'Invalid Language Code.: en_US'`. Because the CLI has no address flag, enable via `--json-body`.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -408,6 +428,9 @@ api.session.rest_delete(f"{BASE}/locations/{loc_id}")
 body = {
     "announcementLanguage": "en_us",  # MUST be lowercase -- see gotcha #13
 }
+# NOTE (verified live 2026-10-13 via `wxcli location-settings create`): the CLI POSTs the
+# full body to /v1/telephony/config/locations (no {loc_id} in the path) with
+# id, name, timeZone, preferredLanguage, announcementLanguage AND address -- see above.
 api.session.rest_post(  # POST — not PUT; URL path should be verified against live API reference
     f"{BASE}/telephony/config/locations/{loc_id}",
     json=body,
@@ -440,12 +463,16 @@ wxcli locations show <location_id>
 wxcli locations show <location_id> -o table
 
 # ── Create a location (all required fields) ───────────────────────
+# --json-body REPLACES the flags: combining --name/--time-zone/... with an
+# address-only --json-body sent a body with no name and failed
+# 400 "location name cannot be null or empty" (verified live 2026-10-13).
+# Put every field in the one JSON body:
 wxcli locations create \
-  --name "San Jose Office" \
-  --time-zone "America/Los_Angeles" \
-  --preferred-language "en_us" \
-  --announcement-language "en_us" \
   --json-body '{
+    "name": "San Jose Office",
+    "timeZone": "America/Los_Angeles",
+    "preferredLanguage": "en_us",
+    "announcementLanguage": "en_us",
     "address": {
       "address1": "123 Main St",
       "city": "San Jose",
@@ -456,13 +483,18 @@ wxcli locations create \
   }'
 
 # ── Update a location ────────────────────────────────────────────
-wxcli locations update <location_id> --name "San Jose HQ"
-wxcli locations update <location_id> --time-zone "America/New_York"
+# Verified live 2026-10-13: the CLI sends only the flags you pass, and the API
+# treats it as a near-full PUT. `--name` is mandatory, and an update that sends
+# only `--name` silently DROPPED the location's preferredLanguage (en_US -> absent)
+# while `--verify` still said "all 1 sent field(s) match". Send the whole object:
+wxcli locations update <location_id> --json-body '{"name":"San Jose HQ","timeZone":"America/New_York","preferredLanguage":"en_US","address":{"address1":"123 Main St","city":"San Jose","state":"CA","postalCode":"95113","country":"US"}}' --verify
+# `wxcli locations update <location_id> --time-zone "America/New_York"` alone
+# fails: 400 "location name cannot be null or empty".
 ```
 
 **CLI notes:**
 - The `locations` group covers both REST CRUD (list, create, show, update, delete) and floors management.
-- `wxcli locations create` requires `--name`, `--time-zone`, `--preferred-language`, and `--announcement-language`. The address must be passed via `--json-body` since it is a nested object.
+- `wxcli locations create` requires `--name`, `--time-zone`, `--preferred-language`, and `--announcement-language`, plus an address. There is no address flag, and `--json-body` overrides the other flags (verified live 2026-10-13), so pass **everything** in `--json-body`.
 - Use lowercase language codes (e.g., `en_us` not `en_US`) for `--announcement-language` to avoid "Invalid Language Code" errors when later enabling calling.
 - Location names must be 80 characters or fewer if the location will be enabled for Webex Calling.
 
@@ -592,10 +624,16 @@ wxcli numbers update <location_id> --action DEACTIVATE --json-body '{
 }'
 
 # ── Remove phone numbers from a location ──────────────────────────
-wxcli numbers delete <location_id>
+# The numbers to remove MUST be in --json-body; a bare `numbers delete <location_id> --force`
+# exits 1 with "required body field(s) missing: phoneNumbers" (verified live 2026-10-13).
+wxcli numbers delete <location_id> --json-body '{
+  "phoneNumbers": ["+15551234567"]
+}'
 
 # ── Remove without confirmation prompt ────────────────────────────
-wxcli numbers delete <location_id> --force
+wxcli numbers delete <location_id> --force --json-body '{
+  "phoneNumbers": ["+15551234567"]
+}'
 
 # ── Validate phone numbers before adding ──────────────────────────
 wxcli numbers validate-phone-numbers --json-body '{
@@ -608,7 +646,8 @@ wxcli numbers validate-phone-numbers --json-body '{
 - `wxcli numbers list` returns org-wide numbers by default. Use `--location-id` to scope to a specific location.
 - Adding and activating numbers requires `--json-body` with a `phoneNumbers` array since the CLI cannot flatten nested array body fields into flags.
 - Numbers must be added to a location (`create`) and activated (`update --action ACTIVATE`) before they can be assigned to users.
-- Use `validate-phone-numbers` to check number validity before adding them to avoid errors.
+- Use `validate-phone-numbers` to check number validity before adding them to avoid errors. Verified live 2026-10-13: it returns `status: OK` with `state: "Available"` per number — and `Available` did **not** mean addable: the same numbers were then refused (see next note).
+- Adding a number needs PSTN configured at the location. Verified live 2026-10-13 on the sandbox: `numbers create` on a location without PSTN returned `404 "Location ... not found or PSTN for the location is not configured"`, and on Site1 (which has PSTN) a `{"phoneNumbers":["+19175550142"],"numberType":"DID"}` add returned `400 ERR.V.TRM.PSP61001 "Order creation failed on PSTN provider"`. The add/activate/delete-with-body paths were therefore **not exercised**; `numbers list` filters (`--available`, `--state`, `--owner-type`, `--number-type`, `--phone-number`, `--location-id`, `--extension`) were, and all work.
 
 ---
 
@@ -676,7 +715,7 @@ This approach uses the dedicated `assign_licenses_to_users` PATCH endpoint, whic
 
 | Field | Type | Values |
 |-------|------|--------|
-| `number_type` | `PhoneNumberType` | `work`, `work_extension`, `mobile`, `fax`, `enterprise`, `alternate1`, `alternate2` |
+| `number_type` (JSON key on the wire: **`type`**, verified live 2026-10-13) | `PhoneNumberType` | `work`, `work_extension`, `mobile`, `fax`, `enterprise`, `alternate1`, `alternate2` |
 | `value` | `str` | The phone number or extension value |
 | `primary` | `bool` | Whether this is the primary number |
 
@@ -820,7 +859,7 @@ calling is disabled.
 The working sequence is entirely API-driven:
 1. Delete all location-scoped resources first (virtual lines, call parks, hunt groups, call queues, schedules, trunks, devices, workspaces, users)
 2. `wxcli location-settings safe-delete-check LOCATION_ID` — inspect visible blockers. `UNBLOCKED` means "no dependencies block deletion", **not** "deletable now": a still-calling-enabled location reports UNBLOCKED with every count at 0 and then 409s
-3. `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"` — starts an async disable job that completes in roughly six seconds. Add `--force-delete` only if calling features or an unused trunk remain and you intend to remove them
+3. `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"` — starts an async disable job that completes in roughly six seconds. Add `--force-delete` only if calling features or an unused trunk remain and you intend to remove them. Only **one** disable job per org can run at a time: verified live 2026-10-13, starting a second while the first was running returned `409 ... "Customer has job of same type already running."` (`BATCH-1001004`) — wait for the first to reach `COMPLETED`, then start the next. The job also accepts a location ID that does not exist (`202`) and then ends `FAILED`, so poll it rather than trusting the 202
 4. `wxcli location-settings show-delete-calling-location JOB_ID` — poll until `latestExecutionStatus` is `COMPLETED`
 5. `wxcli locations delete --force LOCATION_ID`
 

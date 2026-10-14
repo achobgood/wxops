@@ -80,7 +80,7 @@ wxcli my-call-settings list-available-hosts -o json        # List available hote
 - Requires **user-level OAuth** token. Admin tokens will not work.
 - The admin path for hoteling guest is `wxcli user-settings update-hoteling PERSON_ID`. Use the self-service path when the user is configuring their own hoteling.
 
-### Call forwarding (PUT replaces entire object — read first, carry ALL blocks)
+### Call forwarding (read first and send the full object to be safe)
 ```bash
 wxcli user-settings show-call-forwarding PERSON_ID -o json
 wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
@@ -93,7 +93,8 @@ wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
 }'
 ```
 Note: 4 blocks — `always`, `busy` and `noAnswer` nest under `callForwarding`; `businessContinuity` is its sibling at the top level. selectiveForward is a SEPARATE API.
-> **Unverified:** the `callForwarding` wrapper is from the spec and `docs/reference/person-call-settings-handling.md`, not a live call.
+
+Verified live 2026-10-13 (person, admin token): the `callForwarding` wrapper is correct. The PUT is a **block-level merge**, not a full replace — a body containing only `callForwarding.noAnswer` left an already-enabled `always` block untouched, and `businessContinuity` can be sent alone. Inside a block, however, an omitted boolean is reset (`always.ringReminderEnabled` went `true` -> `false` when only `{"enabled":false}` was sent) while an omitted `destination` is kept. To clear a destination send `"destination":""` (read-back then omits the field). Sending the full object is still the safe habit.
 
 ### Workspace hoteling
 ```bash
@@ -101,6 +102,7 @@ wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled  # Enable
 wxcli user-settings update-hoteling PERSON_ID --json-body '{"enabled": true}'  # Person hoteling guest (simple toggle)
 ```
 - Workspace hoteling host requires **Professional** workspace license (Basic returns 405).
+- Verified live 2026-10-13 (Professional desk workspace): `device-settings update-devices-workspaces WORKSPACE_ID --enabled` returns 200 but the write cannot be read back — `--verify` reports `enabled` as `<not present in read-back>` (its re-read is `GET /telephony/config/workspaces/{id}/devices`, which returns only `devices`/`maxDeviceCount`), and `GET .../workspaces/{id}/features/hoteling` and `.../telephony/config/workspaces/{id}/hoteling` both 404. Treat the result as unconfirmed.
 - Supports `--limit-guest-use` + `--guest-hours-limit N` for time-limited guest sessions.
 - Guest users must ALSO have person-level hoteling enabled (`user-settings update-hoteling`) to sign in.
 
@@ -116,17 +118,14 @@ wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled":
 ### SimRing for persons (admin-configurable)
 ```bash
 wxcli user-settings list-simultaneous-ring PERSON_ID -o json
-wxcli user-settings update-simultaneous-ring PERSON_ID --enabled --json-body '{"enabled":true,"phoneNumbers":[{"phoneNumber":"+15551234567"}]}'
+wxcli user-settings update-simultaneous-ring PERSON_ID --json-body '{"enabled":true,"phoneNumbers":[{"phoneNumber":"+15551234567","answerConfirmationRequiredEnabled":false}]}'
 wxcli user-settings create-criteria-simultaneous-ring PERSON_ID --json-body '{"scheduleName":"After hours","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"SELECT_PHONE_NUMBERS","phoneNumbers":["+15551234567"],"anonymousCallersEnabled":false,"unavailableCallersEnabled":false,"ringEnabled":true}'
 wxcli user-settings show-criteria-simultaneous-ring PERSON_ID ID -o json
 wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID --json-body '{"ringEnabled":true}'
-wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID ID
+wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID ID --force
 ```
 
-> **Unverified:** the criteria bodies are from the spec, not a live call. `callsFrom` and
-> `ringEnabled` are required; with `callsFrom: SELECT_PHONE_NUMBERS`, `phoneNumbers`,
-> `anonymousCallersEnabled` and `unavailableCallersEnabled` are required too. The criteria's
-> toggle is `ringEnabled` — criteria with `ringEnabled: false` take priority.
+Verified live 2026-10-13 (person, admin token): the base update body needs `answerConfirmationRequiredEnabled` on **every** phone number or it fails with 400 `{"errorCode":25008,"message":"Missing Mandatory field name:  numbers.answerConfirmationEnabled"}` (the message names the field wrong). The recipe body above (`{"phoneNumber":"+15551234567"}` only) fails for that reason; use `{"phoneNumber":"+15551234567","answerConfirmationRequiredEnabled":false}`. Criteria: `callsFrom` and `ringEnabled` are required; `scheduleName` must name an existing schedule (an unknown name returned 400 `[Error 4167] The time schedule cannot be found`, so the recipe's `"After hours"`/`PEOPLE` example only works if a person schedule of that name exists). A location schedule worked with `"scheduleName":"openHours","scheduleLevel":"LOCATION"` (and also `GROUP`, which reads back as `LOCATION`), `callsFrom: ANY_PHONE_NUMBER`. `show-` / `update-` (`{"ringEnabled":false}`) / `delete-criteria-simultaneous-ring` (needs `--force` to skip the prompt) all worked. `user-settings list-simultaneous-ring` prints `[]` although the object exists — see the read-command trap below.
 
 - Person SimRing now has an admin path via `user-settings` — `list-simultaneous-ring` / `update-simultaneous-ring` configure the base setting (enabled, do-not-ring-if-on-call, numbers); the `criteria-simultaneous-ring` commands manage schedule-based ring criteria.
 - **Workspace SimRing is also admin-configurable:** `wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID` and `update-simultaneous-ring` exist. Use those for workspaces instead of the `user-settings` commands.
@@ -216,7 +215,10 @@ Assigns which member lines appear on a person's hot desking device (`/telephony/
 ```bash
 wxcli user-settings list-available-members-hot-desking PERSON_ID --location-id LOCATION_ID -o json
 wxcli user-settings list-members-hot-desking PERSON_ID -o json
-wxcli user-settings update-members-hot-desking PERSON_ID --json-body '{"members":[{"id":"MEMBER_ID","port":1,"primaryOwner":"false","lineType":"SHARED_CALL_APPEARANCE","lineWeight":1}]}'
+wxcli user-settings update-members-hot-desking PERSON_ID --verify --json-body '{"members":[{"id":"PERSON_ID","port":1,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":1,"allowCallDeclineEnabled":true},{"id":"MEMBER_ID","port":2,"primaryOwner":false,"lineType":"SHARED_CALL_APPEARANCE","lineWeight":1}]}'
+# Verified live 2026-10-13: the body must re-send the person's own primary-owner entry (read list-members first);
+# omitting it returns 400 {"errorCode":25486,"message":"Only one member can be the primary owner."}. lineWeight must be 1-16.
+# A second member with lineType HOTDESKING_GUEST returns 200 but is silently dropped; SHARED_CALL_APPEARANCE persists.
 ```
 - **Bare-name trap:** `hot-desking-members list` is **search available members**, NOT the assigned list. Assigned list is `list-members`.
 - `update` is a PUT — read the current members first and send the complete list.
@@ -379,9 +381,7 @@ wxcli user-settings update-answer-settings PERSON_ID --json-body '{"preferredAns
   self-service equivalent. Reach for `*-answer-settings` when auto answer is
   involved, or for a workspace or virtual line. Detail:
   `docs/reference/person-call-settings-behavior.md` §10.
-- **Unverified:** no live call has been made. `--preferred-answer-endpoint-id`
-  is a plain string option in the generated code, so `null` would be sent as
-  the string `"null"` — clear with `--json-body` instead.
+- Verified live 2026-10-13 (person): set endpoint + `--auto-answer-enabled` with `--verify` matched; clearing with `--json-body '{"preferredAnswerEndpointId": null}'` works. The flag form `--preferred-answer-endpoint-id null` sends the string `"null"` and the server answered 502 — always clear with `--json-body`. Workspace and virtual-line variants were not tested here.
 
 
 ---
@@ -522,7 +522,7 @@ For small batches, use a shell loop. For large batches (50+ users), use the migr
 | **Voicemail PIN** | `user-settings reset-voicemail-pin PERSON_ID` | — | — | — | `my-call-settings update-voicemail-pin` |
 | **Voicemail PIN Rules** | — | — | — | — | `my-call-settings show-voicemail-rules` |
 | **Call Recording** | `user-settings show-call-recording PERSON_ID` | `workspace-settings show-call-recordings WS_ID` | — | `call-recording show` (vendor config) | — |
-| **Music on Hold** | SDK only (telephony_config) | SDK only | `location-settings` (must enable first) | — | — |
+| **Music on Hold** | `user-settings show-music-on-hold PERSON_ID` / `update-music-on-hold` (Verified live 2026-10-13) | SDK only (untested) | `location-settings` (must enable first) | — | — |
 | **Call Intercept** | `user-settings show-intercept PERSON_ID` | `workspace-settings show-intercept WS_ID` | Location defaults apply | — | — |
 | **Call Forwarding** | `user-settings show-call-forwarding PERSON_ID` | `workspace-settings show WS_ID` (bare `show` **is** call forwarding) | — | — | — |
 | **Hoteling Guest** | `user-settings show-hoteling PERSON_ID` | — | — | — | `my-call-settings show-hoteling-guest` |
@@ -530,7 +530,7 @@ For small batches, use a shell loop. For large batches (50+ users), use the migr
 
 #### User-only settings (no admin endpoint — 404 guaranteed)
 
-These 5 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **always** get 404. With a **user-level OAuth token**, use `wxcli my-call-settings` (120 commands covering all self-service `/people/me/` endpoints including these 5). Without user-level OAuth, the user must configure these via the Webex app.
+These settings exist ONLY at `/people/me/settings/{feature}` (Verified live 2026-10-13 for sequentialRing, priorityAlert, callNotify, callPolicies: admin path returns 404). Anonymous Call Reject is NOT one of them — it has an admin path (see below). With a **user-level OAuth token**, use `wxcli my-call-settings` (120 commands covering all self-service `/people/me/` endpoints including these 5). Without user-level OAuth, the user must configure these via the Webex app.
 
 **Simultaneous Ring is no longer in this table** — it now has an admin path via `user-settings list-simultaneous-ring` / `update-simultaneous-ring` (plus `*-criteria-simultaneous-ring` for schedule-based criteria). See the SimRing recipe above.
 
@@ -539,7 +539,6 @@ These 5 settings exist ONLY at `/people/me/settings/{feature}`. Admin tokens **a
 | Sequential Ring | `/me/settings/sequentialRing` | `my-call-settings` | No |
 | Priority Alert | `/me/settings/priorityAlert` | `my-call-settings` | No |
 | Call Notify | `/me/settings/callNotify` | `my-call-settings` | No |
-| Anonymous Call Reject | `/me/settings/anonymousCallReject` | `my-call-settings` | **Yes:** `workspace-settings` has admin endpoint |
 | Call Policies | `/me/settings/callPolicies` | `my-call-settings` | **Yes:** workspace-level admin endpoint (Professional license required) |
 
 **Self-service voicemail / hoteling commands** (`my-call-settings show-voicemail-settings`, `show-hoteling-guest`, `update-voicemail-pin`, `show-voicemail-rules`, `list-available-hosts`): These are NOT user-only — they have admin-path equivalents (`user-settings show-voicemail`, `user-settings update-hoteling`, `user-settings reset-voicemail-pin`). They provide the self-service path for users to manage their own voicemail and hoteling settings with a user-level token. Route to them when the user is configuring their own settings rather than an admin configuring someone else's. `show-personal-assistant` / `update-personal-assistant` are self-service **only** — there is no admin path for personal assistant.
@@ -573,14 +572,16 @@ Present the user with the settings categories. Ask which settings they want to r
 | Voicemail PIN Rules | `my-call-settings show-voicemail-rules` | — | User-level OAuth only. Read-only PIN policy |
 | Voicemail PIN Reset | — | `my-call-settings update-voicemail-pin` | User-level OAuth only. User resets own PIN |
 | Caller ID | `list` | `update-caller-id-features` | |
-| Anonymous Call Rejection | — | — | **USER-ONLY: No admin endpoint. Requires user-level OAuth via `/me/settings/anonymousCallReject`; workspace-level uses `workspaces/{id}/anonymousCallReject`** |
+| Anonymous Call Rejection | `show-anonymous-call-reject` | `update-anonymous-call-reject` | **Admin path exists** (`/telephony/config/people/{id}/anonymousCallReject`; Verified live 2026-10-13, `--verify` matched). Workspaces: `workspace-settings show/update-anonymous-call-reject` (Professional only) |
 | Privacy | `list-privacy` | `update-privacy` | Controls line monitoring, AA extension/name dialing |
 | Barge-In | `show-barge-in` | `update-barge-in` | Enables FAC-based barge-in across locations |
 | Call Recording | `show-call-recording` | `update-call-recording` | **Read scope is `people_read` not `people_write` (SDK doc bug)**; inherits from location recording vendor config. `selectiveCallRecordingSettings` (4 direction toggles, added 2026-08-03) has **no flag** — `--json-body` only; same object on virtual lines and workspaces |
 | Call Intercept | `show-intercept` | `update-intercept` | Takes phone out of service; greeting upload via `configure-call-intercept` |
 | Monitoring | `person-call-settings list` | `person-call-settings update` | **NOT in `user-settings`** — `list-monitoring`/`update-monitoring` do not exist. Use the `person-call-settings` group (monitoring ONLY). Candidate lookup: `user-settings list-available-members-monitoring`. Max 50 elements |
 | Push-to-Talk | `list-push-to-talk` | `update-push-to-talk` | One-way or two-way intercom; allow/block member lists |
-| Music on Hold | — | — | **Requires location-level MoH enabled first**; uses `telephony_config` scopes (SDK only for now) |
+| Music on Hold | `show-music-on-hold` | `update-music-on-hold` | Verified live 2026-10-13 (`--moh-enabled`/`--no-moh-enabled`, `--greeting DEFAULT`; read shows `mohLocationEnabled`). Location-level MoH must be enabled first; uses `telephony_config` scopes |
+
+> **Read-command trap (Verified live 2026-10-13, person, admin token):** `user-settings list` (caller ID) prints only the `types` array, and `list-privacy`, `list-push-to-talk`, `list-simultaneous-ring` and `person-call-settings list` (monitoring) print `[]` or just the inner array although the server returned a full object. An empty `[]` here does NOT mean "not configured". Read the real values with `api.session.rest_get` on `/people/{id}/features/callerId|privacy|pushToTalk|monitoring` or `/telephony/config/people/{id}/simultaneousRing`. The writes (`update-*`) are unaffected.
 
 #### Category 3: Permissions
 
@@ -602,27 +603,27 @@ Present the user with the settings categories. Ask which settings they want to r
 | Hoteling (self-service) | `my-call-settings show-hoteling-guest` | `my-call-settings update-hoteling-guest` | User-level OAuth only. User manages own hoteling guest settings |
 | Available Hoteling Hosts | `my-call-settings list-available-hosts` | — | User-level OAuth only. Lists hosts the user can sign into |
 | Receptionist Client | `list-reception` | `update-reception` | `receptionEnabled` must be `true` if members set. Path: `/features/reception` (NOT receptionist) |
-| Numbers | `list-numbers` | — | Primary + alternate numbers; distinctive ring patterns |
+| Numbers | `list-numbers` | `update-numbers` | Primary + alternate numbers; distinctive ring patterns. Verified live 2026-10-13: `update-numbers PERSON_ID --json-body '{"phoneNumbers":[{"primary":false,"action":"ADD","directNumber":"+1..."}]}'` added an alternate number and `action: DELETE` removed it (`external` is accepted as a synonym of `directNumber`). Candidates: `list-available-numbers-secondary`. `list-numbers` prints only the phoneNumbers array (drops `distinctiveRingEnabled`) |
 | Preferred Answer Endpoint | `list-preferred-answer-endpoint` | `update-preferred-answer-endpoint` | Which device/app answers by default. Self-service: `my-call-settings show`/`update` |
 | Answer Settings | `show-answer-settings` | `update-answer-settings` | Preferred endpoint **plus** auto answer; candidates via `list-available-preferred-answer-endpoints`. Same three on `workspace-settings`/`virtual-line-settings`. See the Answer settings recipe above |
 | MS Teams | `list-ms-teams` | `update-ms-teams` | Person-level accepts **HIDE_WEBEX_APP only**. For PRESENCE_SYNC use org-level `wxcli client-settings update` |
 | Mode Management | `list-mode-management` | `update-mode-management` | Admin path assigns *which features* a user may mode-manage (`list-available-features` lists candidates). **Switching** a mode is user-OAuth-only via the `mode-management` group |
 | Hot Desking Members | `list-members-hot-desking` | `update-members-hot-desking` | Member lines on the person's hot desk device. `list-available-members-hot-desking` searches candidates. Alias group: `hot-desking-members` |
 | Outbound Billing Plan | `list-outbound-billing-plan` | `update-outbound-billing-plan` | `--json-body` only (no field flags). Also exists on `workspace-settings` and `virtual-line-settings` |
-| Personal Assistant | — | — | Away status, transfer, alerting (SDK only for now) |
-| Emergency Callback Number | — | — | DIRECT_LINE, LOCATION_ECBN, or LOCATION_MEMBER_NUMBER (SDK only for now) |
+| Personal Assistant | `show-personal-assistant` | `update-personal-assistant` | Away status, transfer, alerting. Verified live 2026-10-13 (admin token, `--verify`). Clear `transferNumber` with `--json-body '{"transferNumber":null}'` (`--transfer-number ""` is rejected with 400 6004) |
+| Emergency Callback Number | `emergency-services show-emergency-callback-number-people` | `emergency-services update-emergency-callback-number-people` | `--selected` DIRECT_LINE, LOCATION_ECBN, or LOCATION_MEMBER_NUMBER (+ `--location-member-id`); `--elin-enabled`/`--elin-for-webex-app-enabled`. Verified live 2026-10-13 (LOCATION_ECBN + ELIN flag, `--verify` matched). LOCATION_MEMBER_NUMBER with an extension-only member returned 400 `[Error 27402] ... does not have a valid phone number` |
 
 All CLI commands above are under `wxcli user-settings` unless otherwise noted. Run `wxcli user-settings --help` to see the full list. Self-service commands are under `wxcli my-call-settings` (run `wxcli my-call-settings --help`).
 
 ### Settings without CLI commands ("SDK only")
 
-**6 USER-ONLY settings (no admin endpoint — require user-level OAuth token):**
-SimRing, SequentialRing, PriorityAlert, CallNotify, AnonymousCallReject, CallPolicies (person-level).
+**4 USER-ONLY settings (no admin endpoint — require user-level OAuth token):**
+SequentialRing, PriorityAlert, CallNotify, CallPolicies (person-level). (SimRing and AnonymousCallReject have admin paths — Verified live 2026-10-13.)
 These ONLY work at `/telephony/config/people/me/settings/{feature}` with a user token. Admin tokens get 404.
 
 **MS Teams and Mode Management are NOT SDK-only** — both have verified CLI commands (`user-settings list-ms-teams`/`update-ms-teams`, `user-settings list-mode-management`/`update-mode-management`, plus org-level `client-settings` and user-level `mode-management`). See the Quick Recipes above. Virtual lines likewise have a full 65-command group (`virtual-line-settings`) — do not fall back to raw HTTP for them.
 
-For settings still marked "SDK only" above (Music on Hold, Feature Access Controls, Personal Assistant, ECBN), use the raw HTTP fallback pattern with an **admin** token:
+For settings still marked "SDK only" above (Feature Access Controls — whose documented endpoints returned 404 live on 2026-10-13), use the raw HTTP fallback pattern with an **admin** token:
 
 ```bash
 # Read the current setting value
@@ -1010,7 +1011,7 @@ Common errors:
 
 ### Settings-specific errors
 
-- **404 on person settings (anonymousCallReject, sequentialRing, priorityAlert, callNotify, callPolicies):** These 5 settings have NO admin endpoint. Admin tokens always get 404. See the "User-only settings" table in Step 3. Offer the workspace-level alternative if applicable. (Simultaneous Ring is no longer in this list — it now has an admin path via `user-settings list-simultaneous-ring` / `update-simultaneous-ring`.)
+- **404 on person settings (sequentialRing, priorityAlert, callNotify, callPolicies):** These settings have NO admin endpoint (Verified live 2026-10-13). anonymousCallReject is NOT in this list — it has an admin path via `user-settings show/update-anonymous-call-reject`. Admin tokens always get 404. See the "User-only settings" table in Step 3. Offer the workspace-level alternative if applicable. (Simultaneous Ring is no longer in this list — it now has an admin path via `user-settings list-simultaneous-ring` / `update-simultaneous-ring`.)
 - **404 on person settings (all others):** Verify the person has a Webex Calling license. Unlicensed users return 404 on all `/telephony/config/people/{id}/` endpoints.
 - **405 "Invalid Professional Place" on workspace settings:** The workspace has a Basic license. Most `/telephony/config/workspaces/{id}/` settings require Professional. Only `musicOnHold` and `doNotDisturb` work on Basic. Use the `/workspaces/{id}/features/` path family for Basic workspaces (callForwarding, callWaiting, callerId, intercept, monitoring).
 - **403 on Single Number Reach:** SNR uses `spark-admin:telephony_config_read/write` scopes, not `spark-admin:people_read/write`. Check token scopes.
