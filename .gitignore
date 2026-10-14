@@ -83,6 +83,7 @@ tests/*
 !tests/test_drift_check_static_helpers.py
 !tests/test_drift_check_window_flags.py
 !tests/test_drift_check_walker_params.py
+!tests/test_drift_check_script_mode.py
 !tests/test_drift_check_single_object.py
 !tests/test_drift_check_cc_org_id.py
 !tests/test_drift_check_list_key.py
