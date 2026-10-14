@@ -254,7 +254,12 @@ nothing can ack a finding. So an upstream spec that drops a key or retypes a val
 still accepts fails the gate, and the weekly release stays blocked until a human edits the doc.
 An escape hatch the unattended routine could reach would defeat the point. For checks 23-28 the
 fix is in the generator, which the routine is forbidden to edit (`tools/sync_guard.py`
-`FORBIDDEN_PATHS`), so the routine fails closed and a human fixes it.
+`FORBIDDEN_PATHS`), so the routine fails closed and a human fixes it. For checks 29/30 the
+routine may spend its repair attempts only on a doc section it wrote in the same run (new-group
+coverage, contract §2 B/C). A finding in any pre-existing doc fails closed for a human, because
+the spec is often wrong against live behaviour (2026-10-13: the FlowV2 import shape;
+`cc-dial-number create` needing `location`/`regionId`), and an unattended edit "to match the
+spec" can silently replace a live-verified example (`docs/spec-sync-contract.md` §6).
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
