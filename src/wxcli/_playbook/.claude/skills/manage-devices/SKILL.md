@@ -222,7 +222,7 @@ Run the commands in order. For multi-step operations (e.g., workspace + device +
 Handle errors explicitly:
 - **401/403**: Token expired or insufficient scopes -- run `wxcli configure` to re-authenticate
 - **400 "MAC address unavailable"**: MAC already registered to another device -- check with `wxcli device-settings validate-a-list` (live 2026-10-13: a MAC in use came back as `UNAVAILABLE`, error 5675 "MAC Address is in use")
-- **400 "Model not supported"**: check the catalog with raw `GET /v1/telephony/config/supportedDevices` (136 models live 2026-10-13). No `wxcli` command returns it: `list-supported-devices-dect-networks` / `-dects` return only the two DECT bases, and `device-dynamic-settings list` returns only the upgrade-channel list.
+- **400 "Model not supported"**: check the catalog with `wxcli device-dynamic-settings list -o json`, which reads `GET /v1/telephony/config/supportedDevices` (Verified live 2026-10-13 after the generator fix: 136 device-model records; before the fix it returned only the upgrade-channel list). `list-supported-devices-dect-networks` / `-dects` return only the two DECT bases.
 - **400 `2022` "Exceeded max number of devices"**: the workspace is full (Basic workspace = 1 device, Professional = 5; a pending activation-code device counts) -- delete a device or use a Professional license. See `docs/reference/devices-workspaces.md` gotcha 12.
 - **409**: Name or resource conflict -- ask user for alternate
 
@@ -625,7 +625,8 @@ wxcli device-settings update-layout DEVICE_ID --json-body '{
     {"lineKeyIndex": 2, "lineKeyType": "SPEED_DIAL", "lineKeyLabel": "Lobby", "lineKeyValue": "2000"}
   ]
 }'
-# list-layout prints only the lineKeys array (drops layoutMode/userReorderEnabled — CLI bug, live 2026-10-13)
+# list-layout printed only the lineKeys array (dropped layoutMode/userReorderEnabled — CLI bug, live 2026-10-13);
+# it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command)
 ```
 
 **Background images:**
@@ -713,9 +714,10 @@ wxcli hot-desking-portal show-guest PERSON_ID --output json
 **Discover what a model supports first:**
 
 ```bash
-# "list" is a CLI bug: it prints only the upgrade-channel list ["STABLE_DELAY","STABLE","PREVIEW"],
-# not devices (live 2026-10-13, with or without --type). Use raw GET /v1/telephony/config/supportedDevices
-# to see each model's deviceSettingsConfiguration.
+# Verified live 2026-10-13 after the generator fix: "list" returns the device catalog (136 device-model
+# records). Before the fix it printed only the upgrade-channel list ["STABLE_DELAY","STABLE","PREVIEW"].
+# Each model's deviceSettingsConfiguration is in its `devices` record (per the spec; read it with -o json).
+# --type filtering was not re-checked live after the fix.
 wxcli device-dynamic-settings list --type MPP --output json
 
 # Which setting groups/tabs exist for a device FAMILY. The value must be a family — MPP, ATA, Poly,
@@ -890,7 +892,7 @@ These are the **exact group names** registered in `wxcli`. Do not use any other 
 | `wxcli device-settings` | `device_settings.py` | 46 commands (members, LKT, layout, settings, hoteling, validation, background images, jobs) |
 | `wxcli dect-devices` | `dect_devices.py` | 23 commands (networks, base stations, handsets, bulk, associations, serviceability). Deletes are `delete NETWORK`, `delete-location-base-stations-dect-networks LOCATION NETWORK BASE_STATION`, `delete-location-handsets-dect-networks LOCATION NETWORK HANDSET` (there is no `delete-handsets`/`delete-base-stations`; verified live 2026-10-13, handset then base station then network) |
 | `wxcli workspaces` | `workspaces.py` | list, create, show, update, delete, show-capabilities |
-| `wxcli workspace-settings` | `workspace_settings.py` | 103 commands (call settings, monitoring, permissions, voicemail, recording; counted from `--help` 2026-10-13). Several `list-*` commands print only part of the response — see `docs/reference/devices-workspaces.md` |
+| `wxcli workspace-settings` | `workspace_settings.py` | 103 commands (call settings, monitoring, permissions, voicemail, recording; counted from `--help` 2026-10-13). Several `list-*` commands printed only part of the response; since the 2026-10-13 generator fix they print the whole object (not re-run live for the workspace commands) — see `docs/reference/devices-workspaces.md` |
 | `wxcli device-configurations` | `device_configurations.py` | show, update (PhoneOS/RoomOS config keys) |
 | `wxcli device-dynamic-settings` | `device_dynamic_settings.py` | 10 commands (supported devices, settings groups, org/location/device reads, per-device update, bulk job create, job status, job errors) |
 | `wxcli workspace-locations` | `workspace_locations.py` | 10 commands (legacy workspace locations + floors CRUD) |

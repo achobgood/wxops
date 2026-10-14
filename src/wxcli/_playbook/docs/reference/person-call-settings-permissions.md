@@ -274,7 +274,7 @@ api.session.rest_post(
 )
 ```
 
-**CLI commands:** `list-outgoing-permission`, `update-outgoing-permission` (Verified live 2026-10-13: there is no `show-outgoing-permission` — the read command is `list-outgoing-permission`, and it prints only the `callingPermissions` array, dropping `useCustomEnabled`/`useCustomPermissions`; read those flags with Raw HTTP `GET people/{personId}/features/outgoingPermission`)
+**CLI commands:** `list-outgoing-permission`, `update-outgoing-permission` (Verified live 2026-10-13: there is no `show-outgoing-permission` — the read command is `list-outgoing-permission`. It used to print only the `callingPermissions` array, dropping `useCustomEnabled`/`useCustomPermissions`; after the generator fix it prints the whole object, those flags included — Verified live 2026-10-13, ADR-14)
 
 ### CLI Examples
 
@@ -703,7 +703,7 @@ screening = api.session.rest_get(
 )
 ```
 
-> **Verified live 2026-10-13:** the assigned-assistants body is `{"assistantIds": ["<person id>"]}`; `{"assistantIds": null}` removes every assistant (read-back `{"assistants": []}`), and setting the executive to `UNASSIGNED` clears the assistant's `executive/assistant` list (read-back `{"forwardFilteredCallsEnabled": false, "executives": []}`) while the assistant's own type stays `EXECUTIVE_ASSISTANT` until you set it to `UNASSIGNED` too. `wxcli user-settings list-call-filtering PERSON_ID` prints `[]` although `GET .../executive/callFiltering` returns `{"enabled": false, "filterType": "ALL_CALLS", "criteria": []}` (CLI drops the object).
+> **Verified live 2026-10-13:** the assigned-assistants body is `{"assistantIds": ["<person id>"]}`; `{"assistantIds": null}` removes every assistant (read-back `{"assistants": []}`), and setting the executive to `UNASSIGNED` clears the assistant's `executive/assistant` list (read-back `{"forwardFilteredCallsEnabled": false, "executives": []}`) while the assistant's own type stays `EXECUTIVE_ASSISTANT` until you set it to `UNASSIGNED` too. `wxcli user-settings list-call-filtering PERSON_ID` printed `[]` although `GET .../executive/callFiltering` returns `{"enabled": false, "filterType": "ALL_CALLS", "criteria": []}` (the CLI dropped the object); it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command).
 
 **CLI commands:** `show-executive-assistant`, `update-executive-assistant`
 **CLI commands (self):** `list-assigned-assistants`, `update-assigned-assistants`, `list-available-assistants`, `show-assistant`, `update-assistant`

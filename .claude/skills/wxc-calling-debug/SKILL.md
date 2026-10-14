@@ -480,7 +480,7 @@ If a reference doc was wrong or incomplete, update it per the Reference Doc Sync
 
 ## Quick Reference: Rate Limit Handling
 
-wxcli does NOT auto-retry 429 errors in normal CLI mode — it raises an error. For bulk operations, use the migration engine's async pattern which handles 429 retries with exponential backoff:
+wxcli DOES auto-retry 429 (and, for GET/PUT/DELETE, 500/502/503/504) up to 4 attempts, honoring `Retry-After` capped at 30 s (`docs/reference/authentication.md`; `POST`/`PATCH` are retried on 429 only); it raises only after the attempts are exhausted. For bulk operations, use the migration engine's async pattern which handles 429 retries with exponential backoff:
 
 ```python
 # For bulk async with controlled concurrency, use the migration engine's async pattern:

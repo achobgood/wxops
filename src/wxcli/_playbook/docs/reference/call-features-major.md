@@ -635,11 +635,10 @@ wxcli call-queue list-agents --queue-id Y2lzY29zcGFyazovL_QUEUE_ID
 wxcli call-queue show-call-forwarding Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
 
 # View holiday service settings
-# WARNING (CLI bug, verified live 2026-10-13): list-holiday-service, list-night-service,
-# list-forced-forward and list-stranded-calls print `[]` even though the API returns 200 with the
-# settings (they only look for an `audioFiles` key in a single-object response). `[]` does NOT mean
-# the service is off. Until fixed, read the state with raw HTTP (GET .../queues/{id}/nightService etc.);
-# `--verify` on the matching `update-*` command only confirms the fields you just sent.
+# list-holiday-service, list-night-service, list-forced-forward and list-stranded-calls print the whole
+# settings object as JSON (Verified live 2026-10-13 after the generator fix, ADR-14: multi-key objects,
+# HTTP 200). Before the fix they printed `[]` (they only looked for an `audioFiles` key), which did NOT
+# mean the service was off. `--verify` on the matching `update-*` command only confirms the fields you just sent.
 wxcli call-queue list-holiday-service Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
 
 # View night service, stranded calls, forced forward

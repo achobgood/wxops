@@ -232,7 +232,10 @@ wxcli cc-outdial-ani list-outdial-ani
 wxcli cc-outdial-ani create --json-body '{"name":"US-OutdialANI","description":"US outbound caller ID"}'
 
 # Add an entry to an ANI profile. `create-entry --help` requires --name and --number;
-# the body field is `number`, not `dialNumber` (from --help; not live-tested)
+# the body field is `number`, not `dialNumber`. Verified live 2026-10-13 (sandbox agent run): create-entry returned
+# `Created: <id>`, `list-entry-outdial-ani-1` read back {name, number, defaultANIEntry:false}, `update-entry --verify`
+# matched all 3 fields (the update body must carry "id"), and `delete-entry` returned {"status":"deleted"}.
+# A 555-style test number was accepted.
 wxcli cc-outdial-ani create-entry <ani-id> --name "Main line" --number +15551234567
 
 # List entries for a specific ANI (v2)
@@ -244,6 +247,13 @@ wxcli cc-outdial-ani delete-entry <ani-id> <entry-id>
 # Dump all ANIs as JSON (there is no bulk-export command for outdial ANIs)
 wxcli cc-outdial-ani list-outdial-ani -o json
 ```
+
+> **`cc-outdial-ani update <id>` is a full replace, and it deletes the profile's entries if the body omits them.**
+> Verified live 2026-10-13 (sandbox agent run, 2 of 2 attempts): a PUT without `outdialANIEntries` returned success,
+> then `show` gave `outdialANIEntries: null` and `show-entry` gave 404; `update-entry` on the lost entry then returned
+> `422 "Existing entity [...] not present for update"`. `--verify` still printed "all 3 sent field(s) match", so it
+> does not flag the loss. To rename a profile, `show` it first and send its `outdialANIEntries` back in the body.
+> `cc-outdial-ani create --json-body '{"name":…,"description":…}'` works with no placeholder option (unlike `cc-team`, `cc-desktop-profile` and `cc-skill-profile`, whose create/update demand a dummy DTO option).
 
 ### Raw HTTP
 
