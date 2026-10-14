@@ -569,7 +569,7 @@ Verified live 2026-10-13 on the sandbox tenant: `cc-queue list --limit 2` sent `
 
 ### Decision
 
-Add eight gated checks, numbered 23-30, to `tools/drift_check.py`. The weekly spec-sync routine already runs `python3 -m tools.drift_check --enforce` in its pass bar (`docs/spec-sync-contract.md` §4), so every new check runs weekly with no change to the routine. On a hit the routine **fails closed**: it commits nothing, and the liveness workflow opens a `spec-sync` issue. It does not repair, because the fixes live in the generator, which an unattended job must not edit (`tools/sync_guard.py` `FORBIDDEN_PATHS`; contract §6).
+Add eight gated checks, numbered 23-30, to `tools/drift_check.py`. The weekly spec-sync routine already runs `python3 -m tools.drift_check --enforce` in its pass bar (`docs/spec-sync-contract.md` §4), so every new check runs weekly with no change to the routine. On a hit the routine **fails closed**: it commits nothing, and the liveness workflow opens a `spec-sync` issue. For checks 23-28 it never repairs, because the fixes live in the generator, which an unattended job must not edit (`tools/sync_guard.py` `FORBIDDEN_PATHS`). For the doc checks 29/30 it may spend its §4 repair attempts only on a section written in that same run (new-group coverage, contract §2 B/C); a finding in any pre-existing doc fails closed for a human. The spec is often wrong against live behaviour (2026-10-13: the FlowV2 import shape; `cc-dial-number create` needing `location`/`regionId` the spec calls optional), so an unattended edit of an existing doc "to match the spec" could silently replace a live-verified example (contract §6).
 
 | # | Detects | 2026-10-13 instance |
 |---|---|---|

@@ -91,7 +91,7 @@ Then exit non-zero. The run record goes **to that branch only** (not `main`). Th
 
 Pass bar failed after two repairs · a locked name still moved after two pin attempts · a command or group removed upstream · blast radius over 40 · a download failed two weeks running · no successful run in 10 days.
 
-A failure in drift checks 23-30 is a generator or doc defect for a human: do not spend a repair on it, fail closed (§4). The fix for 23-28 is generator code, which `tools/sync_guard.py` `FORBIDDEN_PATHS` keeps out of this routine; 29-30 compare a doc against the spec, which this run cannot verify live (§3). See `tools/CLAUDE.md`, "GATED SINCE 2026-10-13".
+Drift checks 23-30. **23-28** are generator defects: never repair them, fail closed (§4) — the fix is generator code, which `tools/sync_guard.py` `FORBIDDEN_PATHS` keeps out of this routine. **29-30** are doc defects: spend §4 repair attempts on one ONLY when the finding is in a section this same run wrote (new-group coverage, §2 B/C); a 29-30 finding in any pre-existing doc fails closed for a human. The OpenAPI spec is often wrong against live behaviour (2026-10-13: the FlowV2 import shape; `cc-dial-number create` needing `location`/`regionId` the spec calls optional), so an unattended edit of an existing doc "to match the spec" can silently replace a live-verified example. See `tools/CLAUDE.md`, "GATED SINCE 2026-10-13".
 
 ## Cloud environment (probed 2026-09-09)
 
