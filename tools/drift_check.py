@@ -600,22 +600,6 @@ def parse_module_commands(module: str) -> dict[str, list[tuple[str, str]]]:
     return commands
 
 
-def _command_name(node: ast.FunctionDef) -> str | None:
-    """Command name from an @app.command(...) decorator, or None if undecorated."""
-    for deco in node.decorator_list:
-        call = deco if isinstance(deco, ast.Call) else None
-        func = call.func if call else deco
-        if not (isinstance(func, ast.Attribute) and func.attr == "command"):
-            continue
-        if call and call.args and isinstance(call.args[0], ast.Constant):
-            return call.args[0].value
-        for kw in (call.keywords if call else []):
-            if kw.arg == "name" and isinstance(kw.value, ast.Constant):
-                return kw.value.value
-        return node.name.replace("_", "-")
-    return None
-
-
 def parse_module_flags(module: str) -> dict[str, set[str]]:
     """Parse a command module with ast: command name -> accepted flags.
 
@@ -633,7 +617,7 @@ def parse_module_flags(module: str) -> dict[str, set[str]]:
         if not isinstance(node, ast.FunctionDef):
             continue
         # Every decorator name: a renamed command stacks its hidden alias
-        # FIRST, and keying on `_command_name` left the visible name with no
+        # FIRST. Keyed on the first decorator alone, the visible name had no
         # entry, which check_flags reads as "a mounted sub-typer" and skips.
         cmd_names = [n for n, _hidden in command_names(node)]
         if not cmd_names:
@@ -1511,8 +1495,8 @@ def parse_module_signatures(module: str,
         if not isinstance(node, ast.FunctionDef):
             continue
         # Every decorator name, not just the first: a renamed command stacks
-        # its hidden alias FIRST, so `_command_name` alone recorded only the
-        # alias, and documented calls of 102 renamed commands (e.g.
+        # its hidden alias FIRST, so keying on the first decorator recorded only
+        # the alias, and documented calls of 102 renamed commands (e.g.
         # `cc-agents list-activities`) were invisible to doc_invocations.
         cmd_names = [n for n, _hidden in command_names(node)]
         if not cmd_names:
@@ -1655,7 +1639,7 @@ def parse_module_required_options(
         if not isinstance(node, ast.FunctionDef):
             continue
         # Every decorator name, as parse_module_signatures does: a renamed
-        # command stacks its hidden alias FIRST, so keying on `_command_name`
+        # command stacks its hidden alias FIRST, so keying on the first decorator
         # left the visible name (`cc-agents list-activities`) with no required
         # options and every citation of it unchecked.
         cmd_names = [n for n, _hidden in command_names(node)]
@@ -2265,8 +2249,8 @@ def command_names(node: ast.FunctionDef) -> list[tuple[str, bool]]:
     """Every `@app.command` name on one function, as (name, hidden).
 
     102 generated functions carry two decorators (measured 2026-10-13): a
-    hidden deprecated alias FIRST, then the visible name. `_command_name` returns whichever it meets
-    first, which is fine for a resolvable key and wrong for a report an operator
+    hidden deprecated alias FIRST, then the visible name. Reading only the first
+    decorator is fine for a resolvable key and wrong for a report an operator
     reads — `announcements generate-a-text` is not in --help at all while
     `tts-generate` is.
     """
@@ -5243,11 +5227,11 @@ def parse_module_confirms(module: str) -> dict[str, bool]:
     (05-safety.md 2). The gate must not inherit that.
 
     Keyed by `command_names` — EVERY decorator name on the function, not
-    `_command_name`'s first one. That asymmetry is 02-drift.md F1 and it bit
+    just the first. That asymmetry is 02-drift.md F1 and it bit
     this check during development: `parse_module_commands` (which
     `build_cli_surface` uses) emits an entry per decorator, so a renamed
     command appears under both its hidden legacy alias and its visible name,
-    while `_command_name` returns only the alias. Keying on the first name left
+    while the first decorator is only the alias. Keying on the first name left
     every renamed destructive command looking ungated and the check reported 15
     findings on a tree where all 15 were correctly gated.
 
