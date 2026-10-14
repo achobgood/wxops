@@ -1959,6 +1959,8 @@ For teardown, reverse this order.
 
 36. **A global variable record's `agentViewable` does not make it appear on the desktop; the flow's own declaration decides.** Verified live 2026-10-13: two global records were `agentViewable` with labels, but the flow re-declared them with `isCAD:false`, so they would not display; showing them needed `isCAD:true` plus a `desktopLabel` on the flow variable and a republish. Separately, a record with `agentEditable:true` that the flow declares `isAgentEditable:false` is read-only for the agent. The system default "Global Layout" (`cc-desktop-layout list-desktop-layout --all`) displays agent-viewable variables, so no custom layout was needed. Whether the desktop actually renders them is unverified (needs a live call).
 
+37. **Skill `skillType` is UPPER CASE; Global Variable `variableType` is title case — and the spec/`--help` get the first one wrong.** Verified live 2026-10-13: `cc-skill create` accepts `PROFICIENCY`, `BOOLEAN`, `TEXT`, `ENUM` and rejects the spec's (and the generated `--help` example's) `Proficiency` with a 400 that lists the valid values. `variableType` is the opposite: `String`, `Integer`, … (gotcha 21). Do not "normalize" one field's casing to the other's, and do not change either to match the spec without a live call — an automated spec-driven pass on 2026-10-13 regressed the correct `PROFICIENCY` examples in this doc for exactly that reason.
+
 ---
 
 ## 26. See Also

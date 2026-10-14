@@ -218,8 +218,12 @@ a reviewed commit. "To clear" below is the only way out.
   commit; do not reach for an ack.
 - **[30] A documented `--json-body` key that the request schema does not accept** (only closed
   schemas are judged). 2026-10-13: `cc-captures create` with `{from, to, filters}`, `cc-dial-number
-  create` with `dialNumber`. **To clear: fix the doc from the spec**, and mark it `> **Unverified:**`
-  unless you tested it live. What it admits beyond the schema, and why none of that can fire
+  create` with `dialNumber`. **To clear: fix the doc's KEYS from the spec, and keep its VALUES**
+  (enum spellings, formats, example IDs) unless a live call confirms the spec's — check 30 judges
+  keys only, and spec values are often wrong (2026-10-13: the spec's `skillType` `Proficiency`
+  is rejected live; the docs' original `PROFICIENCY` was right and was regressed by a spec-only
+  "fix"). Mark every change `> **Unverified:**` unless you tested it live; prefer a live call
+  against a sandbox over a spec guess (root `CLAUDE.md`, "A value from the spec is a hypothesis"). What it admits beyond the schema, and why none of that can fire
   falsely, is in "Check 30 — what it accepts beyond the schema" below.
 
 Checks 6, 9, 10, 11a and 11b also moved off the first `@app.command` decorator the same day.

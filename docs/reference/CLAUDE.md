@@ -98,6 +98,11 @@ are about to skip one of these, make sure it is a decision.
 - **Date anything verified live, and label anything that is not.** `Verified live,
   2026-07-31:` and `> **Unverified:** …` are both in use and both carry more weight than
   a confident sentence. A spec-derived claim and an observed one must not read alike.
+- **Never "correct" an existing example to the spec without a live call.** The spec — and
+  `--help`, which is generated from it — is often wrong about enum spellings, example values
+  and requiredness. 2026-10-13: a spec-driven pass changed `cc-skill create`'s `skillType`
+  from `PROFICIENCY` (right) to `Proficiency` (rejected live with a 400). If you only have the
+  spec, leave the existing value, or change it and label it `> **Unverified:**`.
 - **Cross-reference with a reason.** `- [Contact Center: Routing](contact-center-routing.md)
   — Flow Designer is where a **Set Variable** node marks a variable Agent Viewable, which is
   what makes it appear in `callFlowParams`` beats a bare title. Reciprocal linking is *not*

@@ -69,6 +69,16 @@ both ways — `--event all` works though the enum omits it, and `announcements
 --location-id` advertises a sample ID that exits 1. On these two, a live call settles it,
 not a re-read of `--help`.
 
+**A value from the spec is a hypothesis, not a correction.** `--help` is generated from the
+OpenAPI spec, so it inherits the spec's mistakes in enum spellings, example values and
+requiredness. Never change an existing doc or skill example to match the spec or a `--help`
+example unless a live call confirms it, and label any spec-only change `> **Unverified:**`.
+Measured 2026-10-13: an automated pass "corrected" `cc-skill create`'s `skillType` from
+`PROFICIENCY` to the spec's `Proficiency`; the live API rejects title case (400 listing
+`BOOLEAN, ENUM, PROFICIENCY, TEXT`) — while the sibling Global Variable `variableType`
+requires title case. The same day the spec was also wrong on the flow-import body shape and
+on what `cc-dial-number create` requires (`location`, `regionId`).
+
 ## Discovery-First Rule
 
 Applies to ALL work — reads, queries, and builds — not just execution. When checking
