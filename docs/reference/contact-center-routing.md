@@ -253,7 +253,7 @@ wxcli cc-outdial-ani list-outdial-ani -o json
 > then `show` gave `outdialANIEntries: null` and `show-entry` gave 404; `update-entry` on the lost entry then returned
 > `422 "Existing entity [...] not present for update"`. `--verify` still printed "all 3 sent field(s) match", so it
 > does not flag the loss. To rename a profile, `show` it first and send its `outdialANIEntries` back in the body.
-> `cc-outdial-ani create --json-body '{"name":…,"description":…}'` works with no placeholder option (unlike `cc-team`, `cc-desktop-profile` and `cc-skill-profile`, whose create/update demand a dummy DTO option).
+> `cc-outdial-ani create --json-body '{"name":…,"description":…}'` works with no placeholder option. (`cc-team`, `cc-desktop-profile` and `cc-skill-profile` create/update demanded a dummy DTO option until the generator fix of 2026-10-13, ADR-16; they no longer do — not re-run live for those commands.)
 
 ### Raw HTTP
 

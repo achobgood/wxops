@@ -62,28 +62,56 @@ def cmd_list(
 
 
 
+_BODY_SKELETON_CREATE = '{"name":"...","activeSkills":[{"booleanValue":true,"skillId":"...","organizationId":"...","id":"...","version":0,"textValue":"...","proficiencyValue":0,"createdTime":0,"lastUpdatedTime":0,"skillName":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","activeEnumSkills":[{"enumSkillValueId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0,"enumSkillName":"...","enumSkillValue":"...","enumSkillId":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+
 @app.command("create", short_help="Create a new Skill Profile.")
 def create(
-    skill_profile_dto: str = typer.Option(..., "--skill-profile-dto", help="Skill profile configuration data"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="(required) Indicates the name of the skill Profile. It is required only during a create or an update operation."),
+    description: str = typer.Option(None, "--description", help="A short description of the skill profile."),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    skill_profile_dto: str = typer.Option(None, "--skill-profile-dto", hidden=True, help="Accepted and ignored: the request body is --json-body (or the body flags)."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Skill Profile.\n\n\b\nExample: wxcli cc-skill-profile create --skill-profile-dto SKILL_PROFILE_DTO"""
+    """Create a new Skill Profile.\n\n\b\nExample: wxcli cc-skill-profile create --json-body '{"name":"...","activeSkills":[{"booleanValue":true,"skillId":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","activeSkills":[{"booleanValue":true,"skillId":"...","organizationId":"...","id":"...","version":0,"textValue":"...","proficiencyValue":0,"createdTime":0,"lastUpdatedTime":0,"skillName":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","activeEnumSkills":[{"enumSkillValueId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0,"enumSkillName":"...","enumSkillValue":"...","enumSkillId":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill-profile"
-    params = {}
-    if skill_profile_dto is not None:
-        params["skillProfileDTO"] = skill_profile_dto
     if json_body:
         body = load_json_body(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -166,36 +194,60 @@ def show(
 
 
 
+_BODY_SKELETON_UPDATE = '{"name":"...","activeSkills":[{"booleanValue":true,"skillId":"...","organizationId":"...","id":"...","version":0,"textValue":"...","proficiencyValue":0,"createdTime":0,"lastUpdatedTime":0,"skillName":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","activeEnumSkills":[{"enumSkillValueId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0,"enumSkillName":"...","enumSkillValue":"...","enumSkillId":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+
 @app.command("update", short_help="Update specific Skill Profile by ID.")
 def update(
     id: str = typer.Argument(help="UUID, from: wxcli cc-skill-profile list"),
-    skill_profile_dto: str = typer.Option(..., "--skill-profile-dto", help="Skill profile configuration data for update"),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="Indicates the name of the skill Profile. It is required only during a create or an update operation."),
+    description: str = typer.Option(None, "--description", help="A short description of the skill profile."),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    skill_profile_dto: str = typer.Option(None, "--skill-profile-dto", hidden=True, help="Accepted and ignored: the request body is --json-body (or the body flags)."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Skill Profile by ID.\n\n\b\nExample: wxcli cc-skill-profile update ID --skill-profile-dto SKILL_PROFILE_DTO"""
+    """Update specific Skill Profile by ID.\n\n\b\nExample: wxcli cc-skill-profile update ID --json-body '{"name":"...","activeSkills":[{"booleanValue":true,"skillId":"..."}]}'\n\n\b\nExample --json-body: '{"name":"...","activeSkills":[{"booleanValue":true,"skillId":"...","organizationId":"...","id":"...","version":0,"textValue":"...","proficiencyValue":0,"createdTime":0,"lastUpdatedTime":0,"skillName":"..."}],"organizationId":"...","id":"...","version":0,"description":"...","activeEnumSkills":[{"enumSkillValueId":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0,"enumSkillName":"...","enumSkillValue":"...","enumSkillId":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/skill-profile/{id}"
-    params = {}
-    if skill_profile_dto is not None:
-        params["skillProfileDTO"] = skill_profile_dto
     if json_body:
         body = load_json_body(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
-        result = api.session.rest_put(url, json=body, params=params)
+        result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
     if verify:
-        verify_write(api, url, params, body)
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

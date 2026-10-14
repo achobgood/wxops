@@ -84,6 +84,11 @@ class Endpoint:
     # so ordering, URL substitution, and every existing path_vars consumer are
     # untouched. Absent for a var backfilled by _infer_missing_path_vars.
     path_var_meta: dict[str, dict] = field(default_factory=dict)
+    # CLI flag names (kebab) of query parameters the spec used as the request
+    # body, which the parser moved into the body (ADR-16,
+    # openapi_parser._lift_query_body). Rendered as hidden options that are
+    # accepted and ignored, so `--team-dto x --json-body …` keeps working.
+    lifted_query_params: list[str] = field(default_factory=list)
 
 
 # Known issue #20: command_type comes from the HTTP method, but Cisco models
