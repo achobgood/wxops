@@ -160,9 +160,10 @@ there and delete the ack.
 
 **GATED SINCE 2026-10-13 — checks 23-30.** A live session that day found about 15 Contact
 Center defects that the weekly routine could never have seen: it never calls the API, it never
-re-audits existing groups, and it may not edit `tools/**`. These eight checks cover the half that
-can be detected statically. The decision, the rejected options and the before/after proof are in
-ADR-13 (`docs/architecture/02-decisions.md`). **None has an ack, allowlist or exemption key.** A
+re-audits existing groups, and it may not edit the generator (`tools/sync_guard.py`
+`FORBIDDEN_PATHS`). These eight checks cover the half that can be detected statically. The
+decision, the rejected options and the before/after proof are in ADR-13
+(`docs/architecture/02-decisions.md`). **None has an ack, allowlist or exemption key.** A
 finding is either a real defect, which you fix, or a sign the rule is wrong, which you tighten in
 a reviewed commit. "To clear" below is the only way out.
 
@@ -253,10 +254,11 @@ labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both
 nothing can ack a finding. So an upstream spec that drops a key or retypes a value the live API
 still accepts fails the gate, and the weekly release stays blocked until a human edits the doc.
 An escape hatch the unattended routine could reach would defeat the point. For checks 23-28 the
-fix is in the generator, which the routine is forbidden to edit (`tools/sync_guard.py`
-`FORBIDDEN_PATHS`), so the routine fails closed and a human fixes it. For checks 29/30 the
-routine may spend its repair attempts only on a doc section it wrote in the same run (new-group
-coverage, contract §2 B/C). A finding in any pre-existing doc fails closed for a human, because
+fix is in generator code or override keys, which `tools/sync_guard.py` keeps out of the routine
+(`FORBIDDEN_PATHS`, `yaml_key_findings`), so the routine fails closed and a human fixes it. For
+checks 29/30 the routine may spend its repair attempts on a finding ONLY when the finding's
+`file:line` is a line this run added (it shows as `+` in `git diff origin/main -- <file>`, i.e.
+new-group coverage written under contract §2 B/C). Otherwise it fails closed for a human, because
 the spec is often wrong against live behaviour (2026-10-13: the FlowV2 import shape;
 `cc-dial-number create` needing `location`/`regionId`), and an unattended edit "to match the
 spec" can silently replace a live-verified example (`docs/spec-sync-contract.md` §6).
