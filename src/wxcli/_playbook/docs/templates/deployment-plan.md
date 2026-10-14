@@ -173,6 +173,7 @@ the per-field result, do not infer success from the exit status.
 wxcli user-settings update-call-forwarding PERSON_ID --json-body '{...}' --verify
 # → Verified: … all N sent field(s) match.
 # → or: sent X, now Y   (server normalised the value, or the write did not take)
+# → or: N matched, M could not be verified   (field absent from the read-back — check with show)
 ```
 
 **b) Read-back for creates, deletes, and commands without `--verify`.**

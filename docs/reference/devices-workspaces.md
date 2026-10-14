@@ -830,7 +830,9 @@ wxcli workspace-settings update-music-on-hold <workspace_id> --no-moh-enabled
 # Enabling also needs the org to have accepted the recording vendor's terms (Dubber).
 # Verified live 2026-10-13: on an org that had not, every enabling call below returned an
 # error whose body was {"vendorId": "...", "vendorName": "Dubber", "termsOfServiceUrl": ...}
-# (and the CLI's "resource still referenced" tip is wrong for it). Not exercised past that.
+# (and the CLI's "resource still referenced" tip was wrong for it; since 2026-10-13 the tip names the
+# vendor's terms of service and `call-recording update-terms-of-service` — unit-tested, not re-run live).
+# Not exercised past that.
 # Show call recording settings
 wxcli workspace-settings show-call-recordings <workspace_id>
 
