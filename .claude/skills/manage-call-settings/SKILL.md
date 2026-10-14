@@ -104,7 +104,8 @@ Verified live 2026-10-13 (person, admin token): the `callForwarding` wrapper is 
 wxcli device-settings update-devices-workspaces WORKSPACE_ID --enabled  # Enable workspace hoteling host
 wxcli user-settings update-hoteling PERSON_ID --json-body '{"enabled": true}'  # Person hoteling guest (simple toggle)
 ```
-- Workspace hoteling host requires **Professional** workspace license (Basic returns 405).
+- Workspace hoteling host requires **Professional** workspace license (Basic returns 405) — **not reproduced for this command:** on a Basic workspace (created with the `Webex Calling - Workspaces` license) `device-settings update-devices-workspaces WORKSPACE_ID --enabled` and `--no-enabled` also returned 2xx (Verified live 2026-10-13; effect unreadable, see below). The 405 / `25409 Invalid Professional Place` error is what the other `/telephony/config/workspaces/{id}/...` settings return on Basic.
+- Making a **Professional** workspace (Verified live 2026-10-13): create it with the org's `Webex Calling - Professional` license in `calling.webexCalling.licenses`; a workspace created with the `Webex Calling - Workspaces` license is Basic and `workspace-settings show-voicemail|list-simultaneous-ring|list-sequential-ring|list-priority-alert|show-anonymous-call-reject|show-call-policies|show-barge-in|show-call-bridge|list-privacy|list-push-to-talk|list-selective-*` all returned `25409` (HTTP 405) on it, while `show` (forwarding), `show-call-waiting`, `show-do-not-disturb`, `show-intercept`, `list-numbers`, `show-music-on-hold` and `list-monitoring` worked. On the Professional one all of those read 200.
 - Verified live 2026-10-13 (Professional desk workspace): `device-settings update-devices-workspaces WORKSPACE_ID --enabled` returns 200 but the write cannot be read back — `--verify` reports `enabled` as `<not present in read-back>` (its re-read is `GET /telephony/config/workspaces/{id}/devices`, which returns only `devices`/`maxDeviceCount`), and `GET .../workspaces/{id}/features/hoteling` and `.../telephony/config/workspaces/{id}/hoteling` both 404. Treat the result as unconfirmed.
 - Supports `--limit-guest-use` + `--guest-hours-limit N` for time-limited guest sessions.
 - Guest users must ALSO have person-level hoteling enabled (`user-settings update-hoteling`) to sign in.
@@ -117,6 +118,7 @@ wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled":
 - API path is `/features/reception` (NOT `/features/receptionist`). Person-level only — no workspace equivalent.
 - `receptionEnabled` must be `true` if `monitoredMembers` is non-empty.
 - Max 50 monitored members. Members can be person or workspace IDs.
+- **Not reproduced (2026-10-13):** `update-reception` with `{"receptionEnabled": true}` — with or without `monitoredMembers` — returned HTTP 400 with an **empty body** for a fresh Professional user (the CLI prints a bare `Error: `); `receptionEnabled: false` returned 204. The cause was not found, so treat the enable recipe above as unconfirmed. `list-reception` prints `[]` (it drops `receptionEnabled`).
 
 ### SimRing for persons (admin-configurable)
 ```bash
@@ -135,7 +137,10 @@ Verified live 2026-10-13 (person, admin token): the base update body needs `answ
 - SNR (`single-number-reach`) remains a valid alternative for the desk + mobile ring-simultaneously use case, but it is no longer the only admin-configurable option for person SimRing:
 ```bash
 wxcli single-number-reach list-single-number-reach PERSON_ID -o json
-wxcli single-number-reach create PERSON_ID --phone-number "+15551234567" --enabled --name "Mobile"
+wxcli single-number-reach create PERSON_ID --phone-number "+14085551234" --enabled --name "Mobile"
+# Verified live 2026-10-13: use a number with a real area code. +12223334444 (non-existent area code 222) was ACCEPTED on create and
+# then made every GET of that person's singleNumberReach fail with 400 25105 "The number is not E.164 format" until deleted.
+# +15551234567 (area code 555) was not tried. `list-single-number-reach` prints only the numbers array ([] when none), hiding `enabled`.
 ```
 
 ### Executive-assistant pairing (3-step process)
@@ -184,6 +189,7 @@ wxcli virtual-line-settings update-do-not-disturb VIRTUAL_LINE_ID --enabled --ri
 - **Bare-name trap:** `show` / `update` are **Call Recording**, NOT the virtual line detail. Detail is `show-virtual-lines` / `update-virtual-lines`.
 - `create` requires `--first-name`, `--last-name`, `--location-id`.
 - `delete` prompts for confirmation; pass `--force` to skip.
+- Verified live 2026-10-13 (create → settings → delete round trip on a temp virtual line): `update-call-forwarding` needs BOTH `callForwarding` and `businessContinuity` in the body (400 `25008` otherwise); `update-virtual-lines --announcement-language` takes the language NAME as read back (`"English"`), not `en_us` (400 `25046 Invalid Language`); `update-caller-id-virtual-lines` needs `--selected`; `list-caller-id` prints only `types`; `update --enabled --record "Always"` returns the recording vendor's terms-of-service body (not accepted in the sandbox); `update-directory-search` has no `--verify`.
 
 ### Person monitoring / BLF (`person-call-settings` — bare `list`/`update`)
 
@@ -201,7 +207,7 @@ wxcli user-settings list-available-members-speed-dials PERSON_ID -o json
 - **Do NOT read the bare names as "all person call settings."** `wxcli person-call-settings list` returns monitoring only.
 - **Do NOT claim "no CLI exists for person monitoring"** — it exists, under this non-obvious group name. Equally, do not reach for `user-settings list-monitoring`; it is not a real command.
 - The read/write pair and the available-member helpers are split across **two different groups** — that split is the reason this feature is easy to miss.
-- `update` is a PUT — `monitoredElements` replaces the whole list. Max 50 elements (people, places, call park extensions).
+- `update` is a PUT — a `monitoredElements` list you send replaces the whole list (`[]` clears it); **omitting `monitoredElements` keeps the existing list** (Verified live 2026-10-13: the `--enable-call-park-notification`-only form left the monitored person in place). Max 50 elements (people, places, call park extensions). The read key is `callParkNotificationEnabled`, the write key `enableCallParkNotification`, so `--verify` reports the flag as "not present in read-back" even when it applied.
 
 ### Hot desking members (person-level line assignment)
 
@@ -279,7 +285,7 @@ wxcli user-settings update-ms-teams PERSON_ID --setting-name HIDE_WEBEX_APP --va
 Same setting at three scopes, `/outboundBillingPlan` on each:
 ```bash
 wxcli user-settings list-outbound-billing-plan PERSON_ID -o json
-wxcli user-settings update-outbound-billing-plan PERSON_ID --json-body '{...}'
+wxcli user-settings update-outbound-billing-plan PERSON_ID --json-body '{"enabled": true}'   # body is {"enabled": bool} — Verified live 2026-10-13 (person: true then false, --verify matched)
 wxcli workspace-settings list-outbound-billing-plan WORKSPACE_ID -o json
 wxcli virtual-line-settings list-outbound-billing-plan VIRTUAL_LINE_ID -o json
 ```
@@ -353,8 +359,11 @@ wxcli user-call-settings-members-me show-summary
   older `/telephony/voiceMessages/memberships` path. It is not org-wide and takes
   no person ID. `user-settings` also still wraps the older self-scoped message
   path (`show-summary`, `list-voice-messages`, … with no positional).
-- **Unverified:** none of this surface has been run against a live tenant; the
-  scoping above is read from the spec and `--help`.
+- Verified live 2026-10-13 (admin PAT, empty mailboxes): `show-summary`, `list-voice-messages`, `list-memberships`
+  and `create-mark-as-read` all ran against a person and (summary) a virtual line with 2xx; an empty mailbox returns
+  204 (CLI prints `{}`/`[]`), and the `-me` twin returns `400 Target user not authorized (9601)` for an admin token.
+  `user-settings list-memberships` / `-me list-memberships` failed `9000 Feature Toggle not enabled` on this org.
+  Populated-mailbox shapes and a real delete were NOT exercised (no voicemail in the sandbox).
 
 ### Answer settings — preferred answer endpoint + auto answer (person / workspace / virtual line)
 
@@ -384,7 +393,7 @@ wxcli user-settings update-answer-settings PERSON_ID --json-body '{"preferredAns
   self-service equivalent. Reach for `*-answer-settings` when auto answer is
   involved, or for a workspace or virtual line. Detail:
   `docs/reference/person-call-settings-behavior.md` §10.
-- Verified live 2026-10-13 (person): set endpoint + `--auto-answer-enabled` with `--verify` matched; clearing with `--json-body '{"preferredAnswerEndpointId": null}'` works. The flag form `--preferred-answer-endpoint-id null` sends the string `"null"` and the server answered 502 — always clear with `--json-body`. Workspace and virtual-line variants were not tested here.
+- Verified live 2026-10-13 (person): set endpoint + `--auto-answer-enabled` with `--verify` matched; clearing with `--json-body '{"preferredAnswerEndpointId": null}'` works. The flag form `--preferred-answer-endpoint-id null` sends the string `"null"` and the server answered 502 — always clear with `--json-body`. Workspace and virtual-line variants (Verified live 2026-10-13): on a Professional workspace `workspace-settings update-answer-settings --no-auto-answer-enabled --verify` matched and `--no-is-preferred-endpoint-clearable-by-person` is rejected as an unknown option (workspace has no such flag); on a virtual line `--auto-answer-enabled` and `--no-is-preferred-endpoint-clearable-by-person` both matched under `--verify`. A set preferred endpoint is one value shared with the older `*-preferred-answer-endpoint` commands.
 
 
 ---
@@ -539,12 +548,12 @@ These settings exist ONLY at `/people/me/settings/{feature}` (Verified live 2026
 
 | Setting | Self-service path | CLI group | Workspace equivalent? |
 |---------|-------------------|-----------|----------------------|
-| Sequential Ring | `/me/settings/sequentialRing` | `my-call-settings` | No |
-| Priority Alert | `/me/settings/priorityAlert` | `my-call-settings` | No |
+| Sequential Ring | `/me/settings/sequentialRing` | `my-call-settings` | **Yes** (Professional workspace, Verified live 2026-10-13): `workspace-settings list-sequential-ring` / `update-sequential-ring` / `*-criteria-sequential-ring` |
+| Priority Alert | `/me/settings/priorityAlert` | `my-call-settings` | **Yes** (Professional workspace, Verified live 2026-10-13): `workspace-settings list-priority-alert` / `update-priority-alert` / `*-criteria-priority-alert` |
 | Call Notify | `/me/settings/callNotify` | `my-call-settings` | No |
 | Call Policies | `/me/settings/callPolicies` | `my-call-settings` | **Yes:** workspace-level admin endpoint (Professional license required) |
 
-**Self-service voicemail / hoteling commands** (`my-call-settings show-voicemail-settings`, `show-hoteling-guest`, `update-voicemail-pin`, `show-voicemail-rules`, `list-available-hosts`): These are NOT user-only — they have admin-path equivalents (`user-settings show-voicemail`, `user-settings update-hoteling`, `user-settings reset-voicemail-pin`). They provide the self-service path for users to manage their own voicemail and hoteling settings with a user-level token. Route to them when the user is configuring their own settings rather than an admin configuring someone else's. `show-personal-assistant` / `update-personal-assistant` are self-service **only** — there is no admin path for personal assistant.
+**Self-service voicemail / hoteling commands** (`my-call-settings show-voicemail-settings`, `show-hoteling-guest`, `update-voicemail-pin`, `show-voicemail-rules`, `list-available-hosts`): These are NOT user-only — they have admin-path equivalents (`user-settings show-voicemail`, `user-settings update-hoteling`, `user-settings reset-voicemail-pin`). They provide the self-service path for users to manage their own voicemail and hoteling settings with a user-level token. Route to them when the user is configuring their own settings rather than an admin configuring someone else's. `my-call-settings show-personal-assistant` / `update-personal-assistant` are the user-OAuth versions; **an admin path exists too** (Verified live 2026-10-13: `GET`/`PUT /telephony/config/people/{id}/features/personalAssistant` returned 200/204 with an admin token, and `wxcli user-settings show-personal-assistant PERSON_ID` read an existing user). The earlier "self-service only" wording was wrong.
 
 **If the user asks to configure one of these for a person:** Stop and explain that no admin API exists. Offer the workspace-level alternative if applicable, or inform them the user must self-configure.
 
@@ -682,8 +691,9 @@ wxcli user-settings show-do-not-disturb PERSON_ID --output json
 wxcli user-settings show-hoteling PERSON_ID --output json
 wxcli user-settings show-call-forwarding PERSON_ID --output json
 wxcli user-settings show-voicemail PERSON_ID --output json
-wxcli user-settings show-caller-id PERSON_ID --output json
-wxcli user-settings list-privacy PERSON_ID --output json
+wxcli user-settings list PERSON_ID --output json        # person caller ID — but prints ONLY the `types` array (CLI bug); see the read-command trap
+# NOT `show-caller-id`: that is AGENT caller ID (read {"selectedCallerId": {}} for a non-agent; Verified live 2026-10-13)
+wxcli user-settings list-privacy PERSON_ID --output json   # prints [] for a populated object (CLI bug) — read GET /people/{id}/features/privacy instead
 wxcli user-settings show-barge-in PERSON_ID --output json
 ```
 
@@ -774,7 +784,7 @@ wxcli user-settings update-call-forwarding PERSON_ID --json-body '{
 }'
 ```
 Forwarding has 4 blocks: always, busy and noAnswer under `callForwarding`, plus top-level businessContinuity. selectiveForward is a SEPARATE API.
-> **Unverified:** the `callForwarding` wrapper is from the spec and `docs/reference/person-call-settings-handling.md`, not a live call.
+Verified live 2026-10-13 (see the recipe at the top of this skill): the wrapper is right and the person PUT merges. **Virtual lines are different** — `virtual-line-settings update-call-forwarding` requires BOTH `callForwarding` and `businessContinuity` in every body (400 `25008 Missing Mandatory field name: businessContinuity` / `callForwarding` otherwise), so for a virtual line the "read first, send everything" advice above is mandatory, not just safe.
 
 #### Pattern: Voicemail configuration
 
@@ -788,7 +798,9 @@ wxcli user-settings update-voicemail PERSON_ID --json-body '{
   }
 }'
 
-# Upload voicemail greetings (json-body only — no --file flag)
+# Upload voicemail greetings — DOES NOT WORK from the CLI (Verified live 2026-10-13): both commands, bare or with
+# --json-body '{"type":"CUSTOM"}', return 400 "Current request is not a multipart request" (no file option exists).
+# Upload the .wav with a multipart POST to .../voicemail/actions/uploadBusyGreeting|uploadNoAnswerGreeting/invoke instead.
 wxcli user-settings configure-busy-voicemail PERSON_ID --json-body '{"type": "CUSTOM", ...}'
 wxcli user-settings configure-no-answer PERSON_ID --json-body '{"type": "CUSTOM", ...}'
 ```
@@ -804,7 +816,7 @@ wxcli user-settings update-intercept PERSON_ID --json-body '{
   }
 }'
 
-# Upload intercept greeting (json-body only — no --file flag)
+# Upload intercept greeting — same limitation: 400 "not a multipart request" (Verified live 2026-10-13); multipart POST needed
 wxcli user-settings configure-call-intercept PERSON_ID --json-body '{"type": "CUSTOM", ...}'
 ```
 
@@ -862,12 +874,16 @@ wxcli user-settings create PERSON_ID --json-body '{
 # Add an event to a schedule
 wxcli user-settings create-events PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --json-body '{
   "name": "Weekdays",
-  "startDate": "2026-01-01",
-  "endDate": "2026-12-31",
+  "startDate": "2026-10-14",
+  "endDate": "2026-10-14",
   "startTime": "09:00",
   "endTime": "17:00",
   "recurrence": {"recurWeekly": {"monday": true, "tuesday": true, "wednesday": true, "thursday": true, "friday": true}}
 }'
+# Verified live 2026-10-13: startDate/endDate are the FIRST OCCURRENCE (same day), not the recurrence window. The old
+# example (startDate 2026-01-01, endDate 2026-12-31) failed with 400 [Error 4194] "The event recurrence is invalid. The
+# duration must be shorter than how frequently it occurs." "recurForEver": true inside recurrence (capital E, as the server
+# stores it) was accepted and read back; a weekly rule without it was accepted too.
 
 # Show schedule detail
 wxcli user-settings show-schedules PERSON_ID SCHEDULE_TYPE SCHEDULE_ID --output json
@@ -912,14 +928,14 @@ For large batches, use shell loops with sleep for rate limiting, or reference th
 
 ```bash
 # Example: disable call waiting for all users via shell loop
-for USER_ID in $(wxcli people list --calling-data --output json | python3 -c "
-import sys, json
-for u in json.load(sys.stdin).get('items', []):
-    if u.get('locationId'): print(u['id'])
-"); do
+# Verified live 2026-10-13: the previous version of this loop could not run — `--calling-data` takes a value
+# (`--calling-data --output json` fails with "Got unexpected extra argument(s) (json)"), `people list -o json` returns a
+# bare JSON array (so `.get('items')` raises AttributeError), and it ended in a stray `])` with no `done`.
+# This form returned the 16 calling-enabled users of the test org, one id per line:
+wxcli people list --calling-data true --all --fields '[?locationId].id' -o text | while read -r USER_ID; do
     wxcli user-settings update-call-waiting "$USER_ID" --no-enabled
     sleep 1
-    ])
+done
 ```
 
 ## Step 7: Verify — `[Read back after every update]`
