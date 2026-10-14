@@ -240,6 +240,41 @@ def test_non_literal_kwarg_is_skipped_not_guessed(tree):
     assert drift_check.CHECK_EXAMINED["24"]["skipped"] == 1
 
 
+# ------------------------------------------- strings ending in a backslash
+
+# `help="…\\"` (a description ending in a backslash) closes its string. A
+# scanner that reads every quote after a backslash as escaped never balances
+# the call, so the walker block was silently skipped instead of judged.
+
+def test_backslash_string_in_walker_call_still_fires(tree):
+    walk = r'follow_page_param(url=url, params=params, item_key="d\\")'
+    src = _block(walk).replace(
+        'typer.Option(False, "--all")',
+        r'typer.Option(False, "--all", help="Every page C:\\")')
+    assert r'item_key="d\\"' in src and r'C:\\"' in src
+    findings = tree(src, _spec(["page", "size"]))
+    assert [(f["walker"], f["param"]) for f in findings] == [
+        ("follow_page_param", "pageSize")]
+
+
+def test_backslash_string_in_walker_call_reads_kwargs(tree):
+    walk = (r'follow_page_param(url=url, params=params, item_key="d\\", '
+            'size_param="size")')
+    assert drift_check.walker_sends(_block(walk)) == [
+        ("follow_page_param", {"page_param": "page", "size_param": "size"})]
+    assert tree(_block(walk), _spec(["page", "size"])) == []
+
+
+def test_unbalanced_walker_call_is_skipped_not_raised(tree):
+    walk = 'follow_page_param(url=url, params=((params, item_key="data")'
+    assert drift_check.walker_sends(_block(walk)) is None
+    findings = tree(_block(walk), _spec(["page", "size"]))
+    # The only block is skipped, so the run is BLIND (a gated error), not a
+    # crash and not a page-size finding.
+    assert [f["check"] for f in findings] == ["24"] and "error" in findings[0]
+    assert drift_check.CHECK_EXAMINED["24"] == {"examined": 0, "skipped": 1}
+
+
 # -------------------------------------------------------- coverage / blind
 
 def test_walker_in_a_non_get_block_is_skipped_and_counted(tree):

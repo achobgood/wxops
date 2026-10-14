@@ -2968,7 +2968,17 @@ class SpecOp(NamedTuple):
 
 
 _BLOCK_URL = re.compile(r'(?<![\w.])url = f?"([^"]+)"')
-_BLOCK_NAME = re.compile(r'@app\.command\("([^"]+)"')
+
+
+def _strip_url_base(url: str) -> str:
+    """`url` with the first matching URL_BASES prefix removed (un-normalized)."""
+    for base in URL_BASES:
+        if url.startswith(base):
+            return url[len(base):]
+    return url
+
+
+_BLOCK_NAME =re.compile(r'@app\.command\("([^"]+)"')
 # rest_* names the method; the four page walkers in src/wxcli/auth.py
 # (follow_pagination, follow_page_param, fetch_from_offset, follow_scim) all
 # issue GET. Read, never imported.
@@ -3021,11 +3031,7 @@ def iter_command_blocks(commands_dir: Path = COMMANDS_DIR) -> list[CommandBlock]
                 if named and (url or call):
                     skipped_blocks.append(f"{mod.stem} {named.group(1)}")
                 continue
-            path = url.group(1)
-            for base in URL_BASES:
-                if path.startswith(base):
-                    path = path[len(base):]
-                    break
+            path = _strip_url_base(url.group(1))
             method = (call.group(2) or "get").upper()
             blocks.append(CommandBlock(
                 module=mod.stem, group=mod.stem.replace("_", "-"),
@@ -3136,27 +3142,36 @@ def _resolve_ref(spec: dict, node, depth: int = 0):
     return node if isinstance(node, dict) else {}
 
 
-def query_param_names(op: dict, spec: dict) -> set[str]:
-    """Names of every `in: query` parameter on `op`, path-level ones included.
+def _query_params(op: dict, spec: dict) -> dict[str, dict]:
+    """{name: schema} for every `in: query` parameter on `op`, path-level ones
+    included; the first declaration of a name wins (operation before path
+    item). The schema is the parameter's `schema`, or the parameter itself
+    when it has none.
 
     `$ref`'d parameters are resolved; a dangling ref or a non-dict entry is
     ignored. Path-level parameters are found by locating `op` (by identity) in
     `spec["paths"]`, so pass the op object a SpecOp carries, not a copy.
     """
     if not isinstance(op, dict) or not isinstance(spec, dict):
-        return set()
+        return {}
     params = []
     for holder in (op, _path_item_of(op, spec)):
         declared = holder.get("parameters")
         if isinstance(declared, list):
             params += declared
-    names: set[str] = set()
+    out: dict[str, dict] = {}
     for p in params:
         p = _resolve_ref(spec, p)
         name = p.get("name")
         if p.get("in") == "query" and isinstance(name, str):
-            names.add(name)
-    return names
+            out.setdefault(name, p.get("schema", p))
+    return out
+
+
+def query_param_names(op: dict, spec: dict) -> set[str]:
+    """Names of every `in: query` parameter on `op`, path-level ones included
+    (see `_query_params`)."""
+    return set(_query_params(op, spec))
 
 
 def _is_array_schema(schema: dict) -> bool:
@@ -3195,6 +3210,19 @@ def _object_props(spec: dict, schema, depth: int = 0) -> dict:
     return props
 
 
+def _response_200_content(op: dict, spec: dict) -> dict | None:
+    """The `content` map of `op`'s 200 response (`$ref` on the response
+    resolved), or None when there is no op/spec, no 200 or no content."""
+    if not isinstance(op, dict) or not isinstance(spec, dict):
+        return None
+    responses = op.get("responses")
+    if not isinstance(responses, dict):
+        return None
+    resp = _resolve_ref(spec, responses.get("200", responses.get(200)))
+    content = resp.get("content")
+    return content if isinstance(content, dict) else None
+
+
 def response_array_props(op: dict, spec: dict) -> set[str] | None:
     """Array-typed top-level properties of `op`'s 200 response.
 
@@ -3205,14 +3233,8 @@ def response_array_props(op: dict, spec: dict) -> set[str] | None:
     there is no key to extract), and an empty set when there is no 200, no
     content or no usable schema.
     """
-    if not isinstance(op, dict) or not isinstance(spec, dict):
-        return set()
-    responses = op.get("responses")
-    if not isinstance(responses, dict):
-        return set()
-    resp = _resolve_ref(spec, responses.get("200", responses.get(200)))
-    content = resp.get("content")
-    if not isinstance(content, dict):
+    content = _response_200_content(op, spec)
+    if content is None:
         return set()
     found: set[str] = set()
     for media in content.values():
@@ -3277,7 +3299,8 @@ def flag_query_map(block_text: str) -> dict[str, str]:
     text = block_text or ""
     var_flag: dict[str, str] = {}
     for m in _OPTION_DECL.finditer(text):
-        flag = _FLAG_LITERAL.search(_call_args(text, m.end()))
+        args = _call_args(text, m.end())
+        flag = _FLAG_LITERAL.search(args) if isinstance(args, str) else None
         if flag:
             var_flag.setdefault(m.group(1), flag.group(1))
     out: dict[str, str] = {}
@@ -3482,7 +3505,6 @@ def print_check_findings(check: str, findings: list[dict], limit: int = 20,
 # too generic a word (openapi_parser._page_size_param says the same of `size`).
 _OFFSET_NAMES = frozenset({"offset", "start", "startIndex", "page"})
 _SIZE_NAMES = frozenset({"limit", "max", "pageSize"})
-_PARAM_WRITE = re.compile(r'\bparams\["([^"]+)"\]\s*=\s*(?:str\(\s*)?(\w+)\b')
 
 
 def _declared_window_names(flag: str, declared: set[str]) -> set[str]:
@@ -3550,7 +3572,7 @@ def check_inert_window_flags(commands_dir: Path = COMMANDS_DIR,
             declared |= query_param_names(sop.op, sop.spec)
         sends_map = flag_query_map(block.text)
         writes = [(m.group(1), m.group(2))
-                  for m in _PARAM_WRITE.finditer(block.text)]
+                  for m in _PARAM_ASSIGN.finditer(block.text)]
         for flag in ("--offset", "--limit"):
             sends = sends_map.get(flag)
             if sends is None or sends in declared:
@@ -3603,24 +3625,15 @@ _WALKER_KWARG = re.compile(r"\b(page_param|size_param)\s*=\s*([^,)\s]+)")
 _STR_LITERAL = re.compile(r"""^(["'])([^"']*)\1$""")
 
 
-def _call_args(text: str, start: int):
+def _balanced_call_args(text: str, start: int):
     """The argument text of the call whose `(` ends just before `start`, or
-    None when the parens never balance (a half-written or truncated block)."""
-    depth, quote = 1, ""
-    for i in range(start, len(text)):
-        c = text[i]
-        if quote:
-            if c == quote and text[i - 1] != "\\":
-                quote = ""
-        elif c in "\"'":
-            quote = c
-        elif c == "(":
-            depth += 1
-        elif c == ")":
-            depth -= 1
-            if depth == 0:
-                return text[start:i]
-    return None
+    None when the parens never balance (a half-written or truncated block).
+
+    Same string-aware scan as `_call_args` (a backslash inside a string skips
+    the next character, so `"x\\\\"` closes), but unbalanced means None, not
+    "the rest of the text": `walker_sends` skips such a block."""
+    args = _call_args(text, start)
+    return args if len(args) < len(text) - start else None
 
 
 def walker_sends(block_text: str):
@@ -3630,7 +3643,7 @@ def walker_sends(block_text: str):
     calls = []
     for m in _WALKER_CALL.finditer(block_text):
         walker = m.group(1)
-        args = _call_args(block_text, m.end())
+        args = _balanced_call_args(block_text, m.end())
         if args is None:
             return None
         if walker == "follow_scim":
@@ -3748,14 +3761,8 @@ def response_object_props(op: dict, spec: dict) -> set[str]:
     """Top-level property names of `op`'s 200 response object, over EVERY
     media type (`*/*` included), `$ref` and `allOf` resolved. Empty when there
     is no 200, no content or no usable schema. Never raises."""
-    if not isinstance(op, dict) or not isinstance(spec, dict):
-        return set()
-    responses = op.get("responses")
-    if not isinstance(responses, dict):
-        return set()
-    resp = _resolve_ref(spec, responses.get("200", responses.get(200)))
-    content = resp.get("content")
-    if not isinstance(content, dict):
+    content = _response_200_content(op, spec)
+    if content is None:
         return set()
     names: set[str] = set()
     for media in content.values():
@@ -3919,12 +3926,8 @@ def check_cc_base64_org_id(commands_dir: Path = COMMANDS_DIR) -> list[dict]:
         url = url_m.group(1) if url_m else ""
         if not _sends_base64_org_id(block.text, url):
             continue
-        for base in URL_BASES:
-            if url.startswith(base):
-                url = url[len(base):]
-                break
         findings.append({"group": block.group, "command": block.command,
-                         "op": f"{block.method} {url}"})
+                         "op": f"{block.method} {_strip_url_base(url)}"})
     return record_examined("26", findings, examined,
                            helper_skip_count("modules", "blocks"),
                            "Contact Center commands")
@@ -4183,17 +4186,10 @@ def _numeric_type(spec: dict, schema) -> str | None:
 def _query_param_numeric(sop, name: str) -> str | None | bool:
     """Numeric type of query param `name` on one spec op; None if declared
     but not numeric; False if this spec does not declare it."""
-    op, spec = sop.op, sop.spec
-    params = []
-    for holder in (op, _path_item_of(op, spec)):
-        declared = holder.get("parameters")
-        if isinstance(declared, list):
-            params += declared
-    for p in params:
-        p = _resolve_ref(spec, p)
-        if p.get("in") == "query" and p.get("name") == name:
-            return _numeric_type(spec, p.get("schema", p))
-    return False
+    params = _query_params(sop.op, sop.spec)
+    if name not in params:
+        return False
+    return _numeric_type(sop.spec, params[name])
 
 
 def _body_prop_numeric(sop, key: str) -> str | None | bool:
