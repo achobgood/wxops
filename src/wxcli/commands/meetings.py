@@ -63,7 +63,7 @@ def cmd_list(
         params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
@@ -110,7 +110,7 @@ def list_group_meetings(
         params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
@@ -402,7 +402,7 @@ def list_meetings(
         params["start"] = offset
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
@@ -1375,7 +1375,7 @@ def list_registrants(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2255,7 +2255,7 @@ def list_survey_results(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

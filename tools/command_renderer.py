@@ -1291,6 +1291,12 @@ def _derive_default_columns(ep: Endpoint) -> list[tuple[str, str]] | None:
     return [(_column_header(n), n) for n in chosen[:_MAX_DEFAULT_COLUMNS]]
 
 
+class OffsetIgnoredError(ValueError):
+    """An `offset_ignored` entry names a list whose --offset is translated
+    (page-numbered / SCIM): the entry contradicts the rendering. The generator
+    turns this into a readable ERROR and exit 1 (ADR-18)."""
+
+
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
@@ -1352,9 +1358,32 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     # op would otherwise get --offset sent as an undeclared `startIndex`.
     scim_window = (ep.pagination_style == "scim" and not ep.paginates
                    and {"startIndex", "count"} <= spec_param_names)
+    # ADR-18: a DECLARED, live-measured set of commands whose endpoint ignores
+    # the `start` the CLI sends (`offset_ignored` in field_overrides.yaml;
+    # 2026-10-13: `people list` returned items 0-2 for `--offset 2 --limit 3`).
+    # Their `--offset` is refused (exit 2) instead of sent, and their note never
+    # names it. A translated --offset (page-numbered, SCIM) works by
+    # construction, so declaring it ignored there is a contradiction.
+    offset_ignored = ep.command_name in (folder_overrides.get("offset_ignored") or {})
+    if offset_ignored and (page_numbered or scim_window):
+        raise OffsetIgnoredError(
+            f"offset_ignored names {ep.command_name!r}, whose --offset is now "
+            f"translated ({ep.pagination_style} paging: the spec gained a page or "
+            f"startIndex parameter) rather than sent as start/offset. Re-measure "
+            f"live (--offset 2 --limit 3 vs items 2-4 of --all), then delete or "
+            f"keep the entry in field_overrides.yaml.")
+    # A walker list's --all fetches every page, so the refusal can point at it;
+    # an unpaged list's --all walks nothing (`licenses list` returns every row
+    # whatever is sent), so there the only advice is to drop --offset and slice.
+    walks = ep.paginates or ep.pagination_style in ("link", "page", "scim")
 
     params.extend(_render_output_options("table"))
-    if page_numbered:
+    if offset_ignored:
+        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
+        slice_hint = ("Use --all and slice the output, e.g. --fields \'[2:5]\'." if walks
+                      else "Slice the output instead, e.g. --fields \'[2:5]\'.")
+        params.append(f'    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, measured live. {slice_hint}"),')
+    elif page_numbered:
         params.append(f'    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size ({ep.page_size_param}); 0 = the server default page. Ignored with --all."),')
         params.append('    offset: int = typer.Option(0, "--offset", help="Skip this many records (translated to the page number; record-exact)."),')
     elif scim_window:
@@ -1391,7 +1420,37 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         param_build.append('    if offset > 0 and params.get("startIndex") is None:\n        params["startIndex"] = offset + 1')
     else:
         param_build.append(f'    if limit > 0:\n        params["{limit_param_key}"] = limit')
-        param_build.append(f'    if offset > 0:\n        params["{offset_param_key}"] = offset')
+        if not offset_ignored:
+            param_build.append(f'    if offset > 0:\n        params["{offset_param_key}"] = offset')
+
+    # Before authentication, so the refusal costs no token and no request.
+    # Worded by shape (ADR-18): a walker list returns the first page again and
+    # can slice the --all output (not "use --all" when --all was already
+    # passed); an unpaged list returns the same rows whatever is sent, and its
+    # --all does nothing, so it is never named there.
+    if not offset_ignored:
+        offset_guard = []
+    elif walks:
+        offset_guard = [
+            "    if offset > 0:",
+            '        typer.echo("Error: this endpoint ignores --offset: it returns the '
+            "first page again whatever offset is sent (measured live, ADR-18). Drop "
+            "--offset and slice \" + (\"the --all output instead, e.g. --fields '[2:5]'.\" "
+            "if all_pages else \"every page instead, e.g. --all --fields '[2:5]'.\"), err=True)",
+            "        raise typer.Exit(2)",
+        ]
+    else:
+        offset_guard = [
+            "    if offset > 0:",
+            '        typer.echo("Error: this endpoint ignores --offset: it returns the '
+            "same records whatever offset is sent (measured live, ADR-18). Drop "
+            "--offset and slice the output instead, e.g. --fields '[2:5]'.\", err=True)",
+            "        raise typer.Exit(2)",
+        ]
+
+    # The truncation note names only what this command offers (ADR-18): --all
+    # where a walker serves it, --offset unless the endpoint ignores it.
+    remedies = ', remedies=("all",)' if offset_ignored else ', remedies=("all", "offset")'
 
     list_key = ep.response_list_key or "items"
 
@@ -1426,7 +1485,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         fetch_block = [
             "    try:",
             f'        if limit > 0 and not all_pages:',
-            f'            result = api.session.rest_get(url, params=params)',
+            f'            result = api.session.rest_get(url, params=params{remedies})',
             f'            result = result or {{}}',
             f'            items = result.get("{list_key}", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])',
             f'        else:',
@@ -1451,7 +1510,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         if page_numbered:
             offset_branch = [
                 "        elif offset > 0:",
-                f'            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="{list_key}"{walker_extra})',
+                f'            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="{list_key}"{walker_extra}{remedies})',
             ]
         fetch_block = [
             "    result = None",
@@ -1463,7 +1522,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             f'            result = list(api.session.{walker}(url=url, params=params, item_key="{list_key}"{walker_extra}))',
             *offset_branch,
             "        else:",
-            "            result = api.session.rest_get(url, params=params)",
+            f"            result = api.session.rest_get(url, params=params{remedies})",
         ]
     else:
         # Non-paginating endpoint: single call (all results in one response).
@@ -1482,6 +1541,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             *params,
             "):",
             _render_docstring(ep),
+            *offset_guard,
             "    api = get_api(debug=debug)",
             *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
@@ -1498,6 +1558,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             *params,
             "):",
             _render_docstring(ep),
+            *offset_guard,
             "    api = get_api(debug=debug)",
             *_render_path_inject(ep),
             f'    url = f"{url_expr}"',

@@ -46,9 +46,9 @@ def cmd_list(
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="items"))
         elif offset > 0:
-            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="items")
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="items", remedies=("all", "offset"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -248,9 +248,9 @@ def list_bulk_export(
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="resources"))
         elif offset > 0:
-            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="resources")
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="resources", remedies=("all", "offset"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -466,9 +466,9 @@ def list_incoming_references(
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
         elif offset > 0:
-            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data", remedies=("all", "offset"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -519,9 +519,9 @@ def list_dial_number_v2(
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
         elif offset > 0:
-            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data", remedies=("all", "offset"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -572,9 +572,9 @@ def list_dial_number_v3(
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data"))
         elif offset > 0:
-            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data")
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data", remedies=("all", "offset"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

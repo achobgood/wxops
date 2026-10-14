@@ -182,9 +182,9 @@ def cmd_list(
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="items", size_param="size"))
         elif offset > 0:
-            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="items", size_param="size")
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="items", size_param="size", remedies=("all", "offset"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -233,9 +233,9 @@ def list_search(
         if all_pages:
             result = list(api.session.follow_page_param(url=url, params=params, item_key="data", size_param="size"))
         elif offset > 0:
-            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data", size_param="size")
+            result = api.session.fetch_from_offset(url=url, params=params, offset=offset, count=limit, item_key="data", size_param="size", remedies=("all", "offset"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

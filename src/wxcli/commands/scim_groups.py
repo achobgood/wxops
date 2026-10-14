@@ -62,7 +62,7 @@ def cmd_list(
         if all_pages:
             result = list(api.session.follow_scim(url=url, params=params, item_key="Resources"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -295,7 +295,7 @@ def list_members(
         if all_pages:
             result = list(api.session.follow_scim(url=url, params=params, item_key="members"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

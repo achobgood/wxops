@@ -93,7 +93,7 @@ def cmd_list(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="dialPlans"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -310,7 +310,7 @@ def list_dial_plans(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="dialPlans"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -616,7 +616,7 @@ def list_trunks(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="trunks"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -887,7 +887,7 @@ def list_route_groups(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="routeGroups"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1105,7 +1105,7 @@ def list_usage_call_to_extension_route_groups(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="locations"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1148,7 +1148,7 @@ def list_usage_dial_plan(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="locations"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1191,7 +1191,7 @@ def list_usage_pstn_connection_route_groups(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="locations"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1234,7 +1234,7 @@ def list_usage_route_list(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="routeGroupUsageRouteListGet"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1279,7 +1279,7 @@ def list_route_lists(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="routeLists"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1482,7 +1482,7 @@ def list_numbers(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="numbers"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1571,7 +1571,7 @@ def list_usage_call_to_extension_trunks(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="locations"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1622,7 +1622,7 @@ def list_translation_patterns(
         if all_pages:
             result = list(api.session.follow_pagination(url=url, params=params, item_key="translationPatterns"))
         else:
-            result = api.session.rest_get(url, params=params)
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

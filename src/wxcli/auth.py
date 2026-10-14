@@ -179,7 +179,36 @@ def _next_page_url(response: "httpx.Response") -> str | None:
     return None
 
 
-def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
+# The remedies a truncation note may name. The note is printed by `rest_get`
+# and `fetch_from_offset`, which every generated command calls — show commands,
+# single-object reads and unpaged lists included — so it must not assume its
+# caller has `--all` or a working `--offset`. Live 2026-10-13 (ADR-18):
+# `licenses show … --limit 2` advised `--all`, which `show` does not have, and
+# `people list` advised `--offset 5`, which `/v1/people` ignores (it pages by a
+# Link cursor), so following the note looped back to page one. Each caller
+# passes the remedies its command really offers; the public default is none,
+# and the two private note helpers take no default at all, so a future direct
+# caller must say what its command offers.
+PAGE_REMEDIES = ("all", "offset")
+
+
+def _note_remedy(remedies, offset) -> str:
+    """The sentence after "the server has more pages." for this remedy set."""
+    remedies = tuple(remedies or ())
+    if "all" in remedies:
+        tail = " Re-run with --all to fetch every page"
+        if "offset" not in remedies:
+            return (tail + " (this endpoint ignores --offset; slice the --all "
+                    "output instead, e.g. --fields '[100:200]').")
+        return tail + (f", or --offset {offset} for just the next one."
+                       if offset else ".")
+    if "offset" in remedies and offset:
+        return f" Re-run with --offset {offset} for just the next one."
+    return (" This command does not walk pages; see its --help for a cursor or "
+            "paging option.")
+
+
+def _warn_if_more_pages(response: "httpx.Response", params, remedies) -> None:
     """Say so on stderr when a single fetch left pages on the server.
 
     211 list commands issue one `rest_get` against an endpoint that pages, and
@@ -219,27 +248,29 @@ def _warn_if_more_pages(response: "httpx.Response", params=None) -> None:
 
     # The remedy must be `--offset`, NOT `--limit 0`. On the 210 commands this
     # fires for, `--limit 0` is already the default and does not fetch more —
-    # naming it would print a next step that cannot work. `--offset` is the one
-    # remedy that exists on EVERY list command: on `max`/`start` endpoints it is
+    # naming it would print a next step that cannot work. `--offset` is on every
+    # list command, but works only where the endpoint reads it (`people list`
+    # and `licenses list` refuse it, ADR-18): on `max`/`start` endpoints it is
     # `start`, and on page-numbered (Contact Center) endpoints the generated
     # command translates it to `page`/`pageSize` (`fetch_from_offset`). `--page`
     # is NOT named: `cc-tasks list` pages by `page` but its spec declares only
     # `pageSize`, so it has no `--page` flag — the note used to name one.
+    # Neither remedy is named unless the caller says its command offers it
+    # (`remedies`, ADR-18): a command in the `offset_ignored` set offers `--all`
+    # only, and a show command or an unpaged list offers neither.
     shown = f"{count} records returned" if count else "This response was partial"
-    nxt = " Re-run with --all to fetch every page"
     offset = _next_offset(response, body, params, count)
-    nxt += f", or --offset {offset} for just the next one." if offset else "."
+    nxt = _note_remedy(remedies, offset)
     typer.echo(f"Note: {shown} and the server has more pages.{nxt}", err=True)
 
 
-def _more_pages_note(count: int, next_offset: int) -> None:
+def _more_pages_note(count: int, next_offset: int, remedies) -> None:
     """The truncation note, for callers that fetched without rest_get."""
     if os.environ.get("WXCLI_NO_PAGE_WARN"):
         return
     typer.echo(
-        f"Note: {count} records returned and the server has more pages. Re-run "
-        f"with --all to fetch every page, or --offset {next_offset} for just "
-        "the next one.",
+        f"Note: {count} records returned and the server has more pages."
+        f"{_note_remedy(remedies, next_offset)}",
         err=True,
     )
 
@@ -442,13 +473,17 @@ class WebexSession:
                 body = response.json() if response.content else None
             except ValueError:
                 pass
-            raise WebexError(response.text, status_code=response.status_code, body=body)
+            raise WebexError(response.text, status_code=response.status_code, body=body, headers=response.headers)
         return response.json() if response.content else {}
 
-    def rest_get(self, url: str, params=None) -> dict:
+    def rest_get(self, url: str, params=None, *, remedies=()) -> dict:
+        """One GET. `remedies` names the paging flags the CALLING command
+        offers (`"all"`, `"offset"`), for the truncation note; the default
+        names none, so a caller that declares nothing is never told to use a
+        flag it does not have (ADR-18)."""
         response = self._request("GET", url, params=params)
         data = self._json_or_raise(response)
-        _warn_if_more_pages(response, params)
+        _warn_if_more_pages(response, params, remedies)
         return data
 
     def rest_put(self, url: str, json=None, params=None) -> dict:
@@ -474,7 +509,7 @@ class WebexSession:
         while url:
             response = self._request("GET", url, params=params)
             if not response.is_success:
-                raise WebexError(response.text, status_code=response.status_code)
+                raise WebexError(response.text, status_code=response.status_code, headers=response.headers)
             data = response.json() if response.content else {}
             yield from (data.get(item_key, []) if isinstance(data, dict) else [])
             link = response.headers.get("Link", "")
@@ -539,7 +574,7 @@ class WebexSession:
 
     def fetch_from_offset(self, url: str, params=None, offset: int = 0, count: int = 0,
                           item_key: str = "data", page_param: str = "page",
-                          size_param: str = "pageSize") -> list:
+                          size_param: str = "pageSize", *, remedies=()) -> list:
         """`--offset N` on a page-numbered endpoint: records [N, N + count).
 
         These endpoints ignore `start`, so `--offset` used to re-fetch page 0
@@ -552,7 +587,8 @@ class WebexSession:
         A server that caps the page size below the one asked for would shift
         every page boundary, so a short page whose declared total says more
         records follow re-plans once with the size the server actually serves.
-        Prints the same truncation note as rest_get when records remain.
+        Prints the same truncation note as rest_get when records remain,
+        naming only the `remedies` the caller passes (ADR-18).
         """
         params = dict(params or {})
         params.pop(page_param, None)
@@ -584,7 +620,7 @@ class WebexSession:
             else len(window) > want
         window = window[:want]
         if more:
-            _more_pages_note(len(window), offset + len(window))
+            _more_pages_note(len(window), offset + len(window), remedies)
         return window
 
     def follow_scim(self, url: str, params=None, item_key: str = "Resources",
