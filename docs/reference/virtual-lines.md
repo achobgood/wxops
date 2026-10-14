@@ -218,8 +218,9 @@ wxcli virtual-line-settings update-voicemail Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTEl
 wxcli virtual-line-settings update-voicemail Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0 --enabled
 
 # Read caller ID settings
-# Verified live 2026-10-13: this prints only the `types` array (e.g. ["LOCATION_NUMBER","CUSTOM"]), not `selected` or the rest of the
-# object, and every update-caller-id-virtual-lines call must include --selected (omitting it: 400 25024 Invalid field value: selected)
+# Verified live 2026-10-13, BEFORE the generator fix: this printed only the `types` array (e.g. ["LOCATION_NUMBER","CUSTOM"]), not
+# `selected` or the rest of the object. It now prints the whole response object (generator fix 2026-10-13, ADR-14; not
+# re-run live for this command). Every update-caller-id-virtual-lines call must include --selected (omitting it: 400 25024 Invalid field value: selected)
 wxcli virtual-line-settings list-caller-id Y2lzY29zcGFyazovL3VzL1ZJUlRVQUxfTElORS8xMjM0
 
 # Update caller ID to use direct line

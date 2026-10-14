@@ -359,10 +359,10 @@ Show real-time progress:
 
 ```
 Step 1/7: Creating location "Raleigh Office"...
-  $ wxcli locations create --name "Raleigh Office" --time-zone "America/New_York" ...
+  $ wxcli locations create --json-body '{"name":"Raleigh Office","timeZone":"America/New_York",...,"address":{...}}'
   Created: Y2lz...abc (Raleigh Office)
 Step 2/7: Enabling Webex Calling for location...
-  $ wxcli location-settings create --id Y2lz...abc --name "Raleigh Office" --time-zone "America/New_York" --preferred-language "en_us" --announcement-language "en_us"
+  $ wxcli location-settings create --json-body '{"id":"Y2lz...abc","name":"Raleigh Office","timeZone":"America/New_York",...,"address":{...}}'
   Done
 Step 3/7: Provisioning user alice@example.com...
   $ wxcli users create --json-body '{"emails":["alice@example.com"],"firstName":"Alice","lastName":"Smith"}' ...
@@ -407,18 +407,25 @@ If the user changes their mind during execution ("actually skip that", "add anot
 
 ```bash
 # Provisioning
-wxcli locations create --name "..." --time-zone "America/Los_Angeles" --preferred-language en_US --announcement-language en_us \
-  --json-body '{"address": {"address1": "123 Main St", "city": "...", "state": "...", "postalCode": "...", "country": "US"}}'
-# Enable calling (requires location details — fetch first with wxcli locations show LOCATION_ID)
-wxcli location-settings create --id LOCATION_ID --name "..." --time-zone "..." --preferred-language en_US --announcement-language en_us
-wxcli users create --json-body '{"emails":["..."],"firstName":"...","lastName":"..."}'
+# Verified live 2026-10-13: --json-body REPLACES the other flags, so flags + an address-only body fails
+# 400 "location name cannot be null or empty". Put name, timeZone, languages AND address all in the body.
+wxcli locations create --json-body '{"name":"...","timeZone":"America/Los_Angeles","preferredLanguage":"en_US","announcementLanguage":"en_us","address":{"address1":"123 Main St","city":"...","state":"...","postalCode":"...","country":"US"}}'
+# Enable calling (requires location details — fetch first with wxcli locations show LOCATION_ID). Flags-only fails
+# 400 "Validation failure" (verified live 2026-10-13); send id, name, timeZone, languages and address in --json-body.
+wxcli location-settings create --json-body '{"id":"LOCATION_ID","name":"...","timeZone":"...","preferredLanguage":"en_US","announcementLanguage":"en_us","address":{"address1":"...","city":"...","state":"...","postalCode":"...","country":"US"}}'
+wxcli users create --json-body '{"emails":["..."],"displayName":"...","firstName":"...","lastName":"..."}'
+# A calling user in ONE call (licenses + locationId + extension in the body) also needs --calling-data true, else 400 "Calling flag not set".
 
 # Features
 wxcli location-schedules create LOCATION_ID --name "Business Hours" --type businessHours
-wxcli auto-attendant create LOCATION_ID --name "Main Menu" --extension 1000 --business-schedule "Business Hours"
-wxcli call-queue create LOCATION_ID --name "Support" --extension 2000
+# Verified live 2026-10-13: the CLI injects NO defaults for auto-attendant, call-queue or call-park, so their flags-only
+# forms fail 400 25008 (missing businessHoursMenu / callPolicies / recall). Use --json-body (it replaces the other flags);
+# see .codex/skills/configure-features/SKILL.md for the full bodies. hunt-group flags-only works (the CLI injects a
+# default callPolicies for it); the call-pickup form below was not specifically re-tested flags-only.
+wxcli auto-attendant create LOCATION_ID --json-body '{...both menus...}'   # businessSchedule = exact schedule NAME
+wxcli call-queue create LOCATION_ID --json-body '{"name":"Support","extension":"2000","callPolicies":{"policy":"CIRCULAR"}}'
 wxcli hunt-group create LOCATION_ID --name "Sales" --extension 3000 --enabled
-wxcli call-park create LOCATION_ID --name "Lobby Park"
+wxcli call-park create LOCATION_ID --json-body '{"name":"Lobby Park","recall":{"option":"ALERT_PARKING_USER_ONLY"}}'
 wxcli call-pickup create LOCATION_ID --name "Front Desk"
 
 # Settings
@@ -664,7 +671,7 @@ These are non-negotiable. Violating any of these causes failures, data loss, or 
 ALWAYS validate the access token before running any commands. A stale token causes cryptic 401 errors mid-execution. Run `wxcli whoami` as a smoke test before starting.
 
 ### Handle Rate Limiting
-Webex APIs enforce rate limits. wxcli does NOT auto-retry 429s in normal CLI mode — it raises an error. For shell loops, add `sleep 1` between commands to avoid hitting limits. For bulk async operations, use the semaphore + 429 retry pattern (see Bulk Operations section).
+Webex APIs enforce rate limits. wxcli auto-retries 429s (up to 4 attempts, honoring `Retry-After` up to 30 s) and, for GET/PUT/DELETE only, 5xx; it raises once attempts are exhausted. For shell loops, add `sleep 1` between commands to avoid hitting limits. For bulk async operations, use the semaphore + 429 retry pattern (see Bulk Operations section).
 
 ### Log All Commands
 ALWAYS show every wxcli command before running it. This is the debugging trail. For verbose HTTP details, add `--debug` to the command.

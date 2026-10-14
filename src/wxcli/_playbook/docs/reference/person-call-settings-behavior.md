@@ -390,7 +390,7 @@ api.session.rest_put(url, json=body)
 
 **CLI**: `wxcli user-settings list-reception <personId>` / `update-reception <personId>`
 
-> **Not reproducible in the test sandbox — 2026-10-13:** `PUT people/{id}/features/reception` with `{"receptionEnabled":true}` (with or without `monitoredMembers`) returned **HTTP 400 with an empty body** for three different users; `{"receptionEnabled":false}` returned 204. The cause was not determined (possibly an entitlement the sandbox lacks), so the enable path and the `monitoredMembers` rules above are unverified. The CLI prints the failure as a bare `Error: ` with no message. `list-reception` prints only the `monitoredMembers` array (`[]`) and drops `receptionEnabled`.
+> **Not reproducible in the test sandbox — 2026-10-13:** `PUT people/{id}/features/reception` with `{"receptionEnabled":true}` (with or without `monitoredMembers`) returned **HTTP 400 with an empty body** for three different users; `{"receptionEnabled":false}` returned 204. The cause was not determined (possibly an entitlement the sandbox lacks), so the enable path and the `monitoredMembers` rules above are unverified. The CLI prints the failure as a bare `Error: ` with no message. Before the generator fix, `list-reception` printed only the `monitoredMembers` array (`[]`) and dropped `receptionEnabled`; it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command).
 
 ---
 
@@ -465,7 +465,7 @@ api.session.rest_put(url, json=body)
 
 **CLI**: `wxcli user-settings list-numbers <personId>` / `update-numbers <personId> --json-body '{...}'`
 
-Verified live 2026-10-13 (admin token, Site1 user): `update-numbers` ADD of an available number (`"primary":false,"action":"ADD","external":"+12094571629","ringPattern":"NORMAL"`) was read back by `GET people/{id}/features/numbers` as `{"primary":false,"directNumber":"+12094571629","ringPattern":"NORMAL"}`, and `"action":"DELETE"` removed it. The CLI `--help` example spells the number field `directNumber`; both `external` and `directNumber` were accepted for ADD and for DELETE. Candidate numbers come from `wxcli user-settings list-available-numbers-secondary PERSON_ID`. **CLI bug:** `list-numbers` prints only the `phoneNumbers` array and drops `distinctiveRingEnabled`.
+Verified live 2026-10-13 (admin token, Site1 user): `update-numbers` ADD of an available number (`"primary":false,"action":"ADD","external":"+12094571629","ringPattern":"NORMAL"`) was read back by `GET people/{id}/features/numbers` as `{"primary":false,"directNumber":"+12094571629","ringPattern":"NORMAL"}`, and `"action":"DELETE"` removed it. The CLI `--help` example spells the number field `directNumber`; both `external` and `directNumber` were accepted for ADD and for DELETE. Candidate numbers come from `wxcli user-settings list-available-numbers-secondary PERSON_ID`. **CLI read (was a bug):** `list-numbers` printed only the `phoneNumbers` array and dropped `distinctiveRingEnabled`; it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command).
 
 ### Gotchas
 
@@ -708,7 +708,7 @@ Scopes per the spec: `spark-admin:telephony_config_read` (GETs) and
 #### Gotchas
 
 - **Clearing the preferred endpoint needs a JSON `null`, which the flag cannot send.** The spec says "To clear the preferred answer endpoint, the `preferredAnswerEndpointId` must be set to null", and "omit to leave unchanged". `--preferred-answer-endpoint-id` is a plain string option in the generated code, so `--preferred-answer-endpoint-id null` would send the four-character string `"null"`. Use `--json-body '{"preferredAnswerEndpointId": null}'`. Verified live 2026-10-13 (person): `--preferred-answer-endpoint-id null` made the server answer **502** (`The server, while acting as a gateway or proxy, received an invalid response from the upstream server`) after the CLI's three automatic retries, exit 1; `--json-body '{"preferredAnswerEndpointId": null}'` cleared the endpoint (read-back omits the field; `--verify` reports `sent None, now '<not present in read-back>'`, which is the expected shape, not a failure).
-- **Two admin objects now hold the same preferred endpoint — change it in one place.** `update-preferred-answer-endpoint` and `update-answer-settings` both write `preferredAnswerEndpointId` for the same person. The spec does not say they are separate stores, so assume they are one value and read back with `show-answer-settings` after a write through either. Prefer `*-answer-settings` whenever auto answer is part of the change. Verified live 2026-10-13: a write through `update-preferred-answer-endpoint` was visible in `show-answer-settings` (`preferredAnswerEndpointId` set), so they are one value. `list-preferred-answer-endpoint` prints only the `endpoints` array and drops `preferredAnswerEndpointId` (CLI bug) — read the current value with `show-answer-settings`.
+- **Two admin objects now hold the same preferred endpoint — change it in one place.** `update-preferred-answer-endpoint` and `update-answer-settings` both write `preferredAnswerEndpointId` for the same person. The spec does not say they are separate stores, so assume they are one value and read back with `show-answer-settings` after a write through either. Prefer `*-answer-settings` whenever auto answer is part of the change. Verified live 2026-10-13: a write through `update-preferred-answer-endpoint` was visible in `show-answer-settings` (`preferredAnswerEndpointId` set), so they are one value. `list-preferred-answer-endpoint` printed only the `endpoints` array and dropped `preferredAnswerEndpointId` (CLI bug); it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command). Until it is, read the current value with `show-answer-settings`, which is live-verified.
 - **Auto answer may need a preferred endpoint to do anything.** The read-only `preferredAnswerEndpointRequired` flag means the entity "must have a preferred answer endpoint selected in order for a call to be auto-answered". When it reads `true`, check that `preferredAnswerEndpointId` is set before treating `autoAnswerEnabled: true` as working. Verified live 2026-10-13 (person): the server accepts `autoAnswerEnabled: true` with no preferred endpoint set and `preferredAnswerEndpointRequired: true` — it does not reject or warn, so the dependency is behavioural, not validated. Whether calls are actually auto-answered was not tested (no live call).
 
 ---
@@ -1237,7 +1237,8 @@ wxcli user-settings list-push-to-talk <personId>
 # Update push-to-talk settings (use --json-body for member list and complex config)
 wxcli user-settings update-push-to-talk <personId> --json-body '{"allowAutoAnswer": true, "connectionType": "TWO_WAY", "accessType": "ALLOW_MEMBERS", "members": ["<member-id>"]}'
 # accessType is ALLOW_MEMBERS or BLOCK_MEMBERS. Verified live 2026-10-13: the object form members:[{"id":...}] (shown here before)
-# is rejected with 400 25024 Invalid field value: members; list-push-to-talk prints only the members array.
+# is rejected with 400 25024 Invalid field value: members. list-push-to-talk printed only the members array before the
+# generator fix; it now prints the whole response object (fix 2026-10-13, ADR-14; not re-run live for this command).
 ```
 
 ---

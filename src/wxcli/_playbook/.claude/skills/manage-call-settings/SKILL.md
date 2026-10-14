@@ -118,7 +118,7 @@ wxcli user-settings update-reception PERSON_ID --json-body '{"receptionEnabled":
 - API path is `/features/reception` (NOT `/features/receptionist`). Person-level only — no workspace equivalent.
 - `receptionEnabled` must be `true` if `monitoredMembers` is non-empty.
 - Max 50 monitored members. Members can be person or workspace IDs.
-- **Not reproduced (2026-10-13):** `update-reception` with `{"receptionEnabled": true}` — with or without `monitoredMembers` — returned HTTP 400 with an **empty body** for a fresh Professional user (the CLI prints a bare `Error: `); `receptionEnabled: false` returned 204. The cause was not found, so treat the enable recipe above as unconfirmed. `list-reception` prints `[]` (it drops `receptionEnabled`).
+- **Not reproduced (2026-10-13):** `update-reception` with `{"receptionEnabled": true}` — with or without `monitoredMembers` — returned HTTP 400 with an **empty body** for a fresh Professional user (the CLI prints a bare `Error: `); `receptionEnabled: false` returned 204. The cause was not found, so treat the enable recipe above as unconfirmed. `list-reception` printed `[]` (it dropped `receptionEnabled`); it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command).
 
 ### SimRing for persons (admin-configurable)
 ```bash
@@ -130,7 +130,7 @@ wxcli user-settings update-criteria-simultaneous-ring PERSON_ID ID --json-body '
 wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID ID --force
 ```
 
-Verified live 2026-10-13 (person, admin token): the base update body needs `answerConfirmationRequiredEnabled` on **every** phone number or it fails with 400 `{"errorCode":25008,"message":"Missing Mandatory field name:  numbers.answerConfirmationEnabled"}` (the message names the field wrong). The recipe body above (`{"phoneNumber":"+15551234567"}` only) fails for that reason; use `{"phoneNumber":"+15551234567","answerConfirmationRequiredEnabled":false}`. Criteria: `callsFrom` and `ringEnabled` are required; `scheduleName` must name an existing schedule (an unknown name returned 400 `[Error 4167] The time schedule cannot be found`, so the recipe's `"After hours"`/`PEOPLE` example only works if a person schedule of that name exists). A location schedule worked with `"scheduleName":"openHours","scheduleLevel":"LOCATION"` (and also `GROUP`, which reads back as `LOCATION`), `callsFrom: ANY_PHONE_NUMBER`. `show-` / `update-` (`{"ringEnabled":false}`) / `delete-criteria-simultaneous-ring` (needs `--force` to skip the prompt) all worked. `user-settings list-simultaneous-ring` prints `[]` although the object exists — see the read-command trap below.
+Verified live 2026-10-13 (person, admin token): the base update body needs `answerConfirmationRequiredEnabled` on **every** phone number or it fails with 400 `{"errorCode":25008,"message":"Missing Mandatory field name:  numbers.answerConfirmationEnabled"}` (the message names the field wrong). The recipe body above (`{"phoneNumber":"+15551234567"}` only) fails for that reason; use `{"phoneNumber":"+15551234567","answerConfirmationRequiredEnabled":false}`. Criteria: `callsFrom` and `ringEnabled` are required; `scheduleName` must name an existing schedule (an unknown name returned 400 `[Error 4167] The time schedule cannot be found`, so the recipe's `"After hours"`/`PEOPLE` example only works if a person schedule of that name exists). A location schedule worked with `"scheduleName":"openHours","scheduleLevel":"LOCATION"` (and also `GROUP`, which reads back as `LOCATION`), `callsFrom: ANY_PHONE_NUMBER`. `show-` / `update-` (`{"ringEnabled":false}`) / `delete-criteria-simultaneous-ring` (needs `--force` to skip the prompt) all worked. `user-settings list-simultaneous-ring` used to print `[]` although the object existed; it now prints the whole object (Verified live 2026-10-13 after the generator fix — see the read-command note below).
 
 - Person SimRing now has an admin path via `user-settings` — `list-simultaneous-ring` / `update-simultaneous-ring` configure the base setting (enabled, do-not-ring-if-on-call, numbers); the `criteria-simultaneous-ring` commands manage schedule-based ring criteria.
 - **Workspace SimRing is also admin-configurable:** `wxcli workspace-settings list-simultaneous-ring WORKSPACE_ID` and `update-simultaneous-ring` exist. Use those for workspaces instead of the `user-settings` commands.
@@ -140,7 +140,8 @@ wxcli single-number-reach list-single-number-reach PERSON_ID -o json
 wxcli single-number-reach create PERSON_ID --phone-number "+14085551234" --enabled --name "Mobile"
 # Verified live 2026-10-13: use a number with a real area code. +12223334444 (non-existent area code 222) was ACCEPTED on create and
 # then made every GET of that person's singleNumberReach fail with 400 25105 "The number is not E.164 format" until deleted.
-# +15551234567 (area code 555) was not tried. `list-single-number-reach` prints only the numbers array ([] when none), hiding `enabled`.
+# +15551234567 (area code 555) was not tried. `list-single-number-reach` printed only the numbers array ([] when none), hiding
+# `enabled`; it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command).
 ```
 
 ### Executive-assistant pairing (3-step process)
@@ -189,7 +190,7 @@ wxcli virtual-line-settings update-do-not-disturb VIRTUAL_LINE_ID --enabled --ri
 - **Bare-name trap:** `show` / `update` are **Call Recording**, NOT the virtual line detail. Detail is `show-virtual-lines` / `update-virtual-lines`.
 - `create` requires `--first-name`, `--last-name`, `--location-id`.
 - `delete` prompts for confirmation; pass `--force` to skip.
-- Verified live 2026-10-13 (create → settings → delete round trip on a temp virtual line): `update-call-forwarding` needs BOTH `callForwarding` and `businessContinuity` in the body (400 `25008` otherwise); `update-virtual-lines --announcement-language` takes the language NAME as read back (`"English"`), not `en_us` (400 `25046 Invalid Language`); `update-caller-id-virtual-lines` needs `--selected`; `list-caller-id` prints only `types`; `update --enabled --record "Always"` returns the recording vendor's terms-of-service body (not accepted in the sandbox); `update-directory-search` has no `--verify`.
+- Verified live 2026-10-13 (create → settings → delete round trip on a temp virtual line): `update-call-forwarding` needs BOTH `callForwarding` and `businessContinuity` in the body (400 `25008` otherwise); `update-virtual-lines --announcement-language` takes the language NAME as read back (`"English"`), not `en_us` (400 `25046 Invalid Language`); `update-caller-id-virtual-lines` needs `--selected`; `list-caller-id` printed only `types` (it now prints the whole response object — generator fix 2026-10-13, ADR-14; not re-run live for this command); `update --enabled --record "Always"` returns the recording vendor's terms-of-service body (not accepted in the sandbox); `update-directory-search` has no `--verify`.
 
 ### Person monitoring / BLF (`person-call-settings` — bare `list`/`update`)
 
@@ -593,7 +594,7 @@ Present the user with the settings categories. Ask which settings they want to r
 | Push-to-Talk | `list-push-to-talk` | `update-push-to-talk` | One-way or two-way intercom; allow/block member lists |
 | Music on Hold | `show-music-on-hold` | `update-music-on-hold` | Verified live 2026-10-13 (`--moh-enabled`/`--no-moh-enabled`, `--greeting DEFAULT`; read shows `mohLocationEnabled`). Location-level MoH must be enabled first; uses `telephony_config` scopes |
 
-> **Read-command trap (Verified live 2026-10-13, person, admin token):** `user-settings list` (caller ID) prints only the `types` array, and `list-privacy`, `list-push-to-talk`, `list-simultaneous-ring` and `person-call-settings list` (monitoring) print `[]` or just the inner array although the server returned a full object. An empty `[]` here does NOT mean "not configured". Read the real values with `api.session.rest_get` on `/people/{id}/features/callerId|privacy|pushToTalk|monitoring` or `/telephony/config/people/{id}/simultaneousRing`. The writes (`update-*`) are unaffected.
+> **Read-command trap — fixed by the generator 2026-10-13 (ADR-14).** Before the fix (verified live 2026-10-13, person, admin token), `user-settings list` (caller ID) printed only the `types` array, and `list-privacy`, `list-push-to-talk`, `list-simultaneous-ring` and `person-call-settings list` (monitoring) printed `[]` or just the inner array although the server returned a full object. Now: `list-privacy` and `list-simultaneous-ring` print the whole object (Verified live 2026-10-13 after the fix). `user-settings list`, `list-push-to-talk` and `person-call-settings list` now print the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for these commands) — until they are, the live-verified read is `api.session.rest_get` on `/people/{id}/features/callerId|pushToTalk|monitoring`. The writes (`update-*`) are unaffected.
 
 #### Category 3: Permissions
 
@@ -615,7 +616,7 @@ Present the user with the settings categories. Ask which settings they want to r
 | Hoteling (self-service) | `my-call-settings show-hoteling-guest` | `my-call-settings update-hoteling-guest` | User-level OAuth only. User manages own hoteling guest settings |
 | Available Hoteling Hosts | `my-call-settings list-available-hosts` | — | User-level OAuth only. Lists hosts the user can sign into |
 | Receptionist Client | `list-reception` | `update-reception` | `receptionEnabled` must be `true` if members set. Path: `/features/reception` (NOT receptionist) |
-| Numbers | `list-numbers` | `update-numbers` | Primary + alternate numbers; distinctive ring patterns. Verified live 2026-10-13: `update-numbers PERSON_ID --json-body '{"phoneNumbers":[{"primary":false,"action":"ADD","directNumber":"+1..."}]}'` added an alternate number and `action: DELETE` removed it (`external` is accepted as a synonym of `directNumber`). Candidates: `list-available-numbers-secondary`. `list-numbers` prints only the phoneNumbers array (drops `distinctiveRingEnabled`) |
+| Numbers | `list-numbers` | `update-numbers` | Primary + alternate numbers; distinctive ring patterns. Verified live 2026-10-13: `update-numbers PERSON_ID --json-body '{"phoneNumbers":[{"primary":false,"action":"ADD","directNumber":"+1..."}]}'` added an alternate number and `action: DELETE` removed it (`external` is accepted as a synonym of `directNumber`). Candidates: `list-available-numbers-secondary`. `list-numbers` printed only the phoneNumbers array (dropped `distinctiveRingEnabled`); it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command) |
 | Preferred Answer Endpoint | `list-preferred-answer-endpoint` | `update-preferred-answer-endpoint` | Which device/app answers by default. Self-service: `my-call-settings show`/`update` |
 | Answer Settings | `show-answer-settings` | `update-answer-settings` | Preferred endpoint **plus** auto answer; candidates via `list-available-preferred-answer-endpoints`. Same three on `workspace-settings`/`virtual-line-settings`. See the Answer settings recipe above |
 | MS Teams | `list-ms-teams` | `update-ms-teams` | Person-level accepts **HIDE_WEBEX_APP only**. For PRESENCE_SYNC use org-level `wxcli client-settings update` |
@@ -691,9 +692,9 @@ wxcli user-settings show-do-not-disturb PERSON_ID --output json
 wxcli user-settings show-hoteling PERSON_ID --output json
 wxcli user-settings show-call-forwarding PERSON_ID --output json
 wxcli user-settings show-voicemail PERSON_ID --output json
-wxcli user-settings list PERSON_ID --output json        # person caller ID — but prints ONLY the `types` array (CLI bug); see the read-command trap
+wxcli user-settings list PERSON_ID --output json        # person caller ID — whole object since the 2026-10-13 generator fix (not re-run live; it printed ONLY `types` before); see the read-command note
 # NOT `show-caller-id`: that is AGENT caller ID (read {"selectedCallerId": {}} for a non-agent; Verified live 2026-10-13)
-wxcli user-settings list-privacy PERSON_ID --output json   # prints [] for a populated object (CLI bug) — read GET /people/{id}/features/privacy instead
+wxcli user-settings list-privacy PERSON_ID --output json   # prints the whole privacy object (Verified live 2026-10-13 after the generator fix; it printed [] before)
 wxcli user-settings show-barge-in PERSON_ID --output json
 ```
 

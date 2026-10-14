@@ -346,7 +346,7 @@ Uses `ringEnabled` as the enabled attribute. See [Shared Criteria Model](#shared
 Verified live 2026-10-13 (admin token, `user-settings` group):
 
 ```bash
-# Read — NOTE: prints [] even though the server returned an object (CLI bug, see Gotchas); use Raw HTTP to read
+# Read — prints the whole settings object (Verified live 2026-10-13 after the generator fix, ADR-14)
 wxcli user-settings list-simultaneous-ring PERSON_ID -o json
 # Update — every number needs answerConfirmationRequiredEnabled or the call fails with error 25008
 wxcli user-settings update-simultaneous-ring PERSON_ID --json-body '{"enabled":true,"phoneNumbers":[{"phoneNumber":"+15551234567","answerConfirmationRequiredEnabled":false}]}'
@@ -395,7 +395,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneou
 - **`answerConfirmationRequiredEnabled` is mandatory on every number.** Omitting it returns 400 `{"errorCode":25008,"message":"Missing Mandatory field name:  numbers.answerConfirmationEnabled"}` — the message names the field wrong; the wire name (and read-back) is `answerConfirmationRequiredEnabled`.
 - **The server normalises numbers:** sent `+15551234567`, read back `+1-5551234567`. Criteria `phoneNumbers` read back as `5551234567`.
 - **Criteria `scheduleName` must reference an existing schedule**, otherwise 400 `[Error 4167] The time schedule cannot be found`. `scheduleLevel` read back as `LOCATION` for a location schedule.
-- **CLI bug:** `wxcli user-settings list-simultaneous-ring` prints `[]` although the server returned the object above (same class as the outbound-billing-plan bug fixed under ADR-13). Read with Raw HTTP until fixed.
+- **CLI read fixed:** `wxcli user-settings list-simultaneous-ring` used to print `[]` for the object above; it now prints the whole object (Verified live 2026-10-13 after the generator fix, ADR-14).
 - The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
 ---
@@ -512,8 +512,9 @@ Lists service and standard PSTN numbers at a location that are available for SNR
 ### CLI Examples
 
 ```bash
-# Read Single Number Reach settings for a person (CLI bug, Verified 2026-10-13: prints [] when the person has no
-# numbers, dropping enabled/alertAll...; read GET telephony/config/people/{id}/singleNumberReach for the object)
+# Read Single Number Reach settings for a person. Verified 2026-10-13 BEFORE the fix: printed [] when the person
+# had no numbers, dropping enabled/alertAll...; it now prints the whole response object (generator fix 2026-10-13,
+# ADR-14; not re-run live for this command). Live-verified fallback: GET telephony/config/people/{id}/singleNumberReach
 wxcli single-number-reach list-single-number-reach Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
 
 # Update top-level SNR settings (alert all numbers for click-to-dial)
@@ -1034,7 +1035,7 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 - **`callsFrom` values differ by feature — Verified live 2026-10-13:** `ANY_INTERNAL` and `ANY_EXTERNAL` are accepted only by Selective Forward criteria; Selective Accept and Selective Reject return 400 `25024 Invalid field value: callsFrom` for them (only `ANY_PHONE_NUMBER` / `SELECT_PHONE_NUMBERS`).
 - **`scheduleLevel` — Verified live 2026-10-13:** `PEOPLE`, `GROUP` and `LOCATION` are accepted (a location schedule shows as `GROUP`/`(Group)` on read-back); `GLOBAL` is rejected with 400 `25024 Invalid field value: scheduleLevel`. Sending `scheduleName` without `scheduleType` is also rejected (`25024 Invalid field value: scheduleType`).
 - **Creating the first criteria switches the feature on — Verified live 2026-10-13:** after a Selective Accept criteria was created, `GET .../selectiveAccept` read `"enabled": true` although it was `false` before. Disable explicitly (`update-selective-accept --no-enabled`) if you only wanted to stage the criteria.
-- **`list-*` CLI commands on single-object settings drop fields — Verified live 2026-10-13:** `user-settings list-selective-accept|forward|reject` print only the `criteria` array (and `[]` when empty, hiding `"enabled"`), `list-simultaneous-ring` prints `[]` for a populated object. The server returns 200 with the full object — read with Raw HTTP when you need the master `enabled` flag.
+- **`list-*` CLI commands on single-object settings used to drop fields — fixed by the generator 2026-10-13 (ADR-14):** before the fix (verified live 2026-10-13), `user-settings list-selective-accept|forward|reject` printed only the `criteria` array (and `[]` when empty, hiding `"enabled"`), and `list-simultaneous-ring` printed `[]` for a populated object. `list-simultaneous-ring` now prints the whole object (Verified live 2026-10-13 after the fix). `list-selective-accept|forward|reject` now print the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for these commands) — until they are, Raw HTTP is the live-verified way to read the master `enabled` flag.
 - **Call Forwarding PUT merges, it does not replace — Verified live 2026-10-13 (person):** sending only `{"callForwarding":{"noAnswer":{...}}}` left the earlier `always` block untouched, and `{"businessContinuity":{...}}` alone worked. Inside a block you send, omitted booleans can reset (an omitted `ringReminderEnabled` went back to `false`) while an omitted `destination` was kept. Virtual lines are stricter — see `virtual-lines.md`.
 - **Nested settings require `--json-body` in CLI:** Call forwarding and other nested payloads cannot be expressed with simple CLI flags. Use `--json-body '{"key": {...}}'` for these.
 - **`400` / error `4003` "Unauthorized request: `<BroadWorksRequestName>`" means the TARGET USER is not calling-active — not that your request was malformed.** Measured 2026-08-01: four different person-setting reads on one user (`show-do-not-disturb`, `show-call-waiting`, `show-call-forwarding`, `show-voicemail`) all returned this, each naming its own internal BroadWorks request (`UserDoNotDisturbGetRequestWC`, `UserCallWaitingGetRequest17Sp4`, …). The user was invite-pending with no extension. Confirm with `wxcli people show <personId> --calling-data true` — no `extension` or `locationId` means no person setting will read or write until they are licensed and activated. Note this is **not** the 404 / error `4008` shape documented for the 19 user-only settings (Known Issue #4); a licensed-but-user-only endpoint returns `4008`, an unlicensed target returns `4003`. `wxcli` now prints this distinction as a tip on the error.

@@ -368,7 +368,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/callerId", json=body)
 - `selected: DIRECT_LINE` returns 400 `25042 Invalid Operation` for a user with only an extension (no direct number) — the read-back `types` list shows what is allowed (`["LOCATION_NUMBER","CUSTOM"]`); `selected: CUSTOM` with a number not on the location returns 400 `[Error 5209] DN not found` (Verified live 2026-10-13, person and virtual line).
 - `--custom-external-caller-id-name` is sticky: after switching the policy back from `OTHER` the old custom name stays until you send `--custom-external-caller-id-name ""`, which removes it.
 - `--dial-by-first-name`/`--dial-by-last-name` also change the `firstName`/`lastName` shown in the read-back (Verified live 2026-10-13: `Grace` -> `Gracie` in both places).
-- **CLI bug:** `wxcli user-settings list PERSON_ID -o json` (the "read" command above) prints only the `types` array (`["LOCATION_NUMBER","CUSTOM"]`), not the settings object. Read with Raw HTTP until fixed.
+- **CLI read (was a bug):** before the generator fix, `wxcli user-settings list PERSON_ID -o json` (the "read" command above) printed only the `types` array (`["LOCATION_NUMBER","CUSTOM"]`), not the settings object (verified live 2026-10-13). It now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command) — until it is, Raw HTTP is the live-verified read.
 
 ---
 
@@ -1213,7 +1213,7 @@ command names are bare. `user-settings` carries only the available-members looku
 the complete `monitoredElements` list — read with `person-call-settings list` first if you are
 adding to an existing set.
 
-Verified live 2026-10-13 (person, admin token): the PUT field is `enableCallParkNotification` but the GET returns it as `callParkNotificationEnabled` (plus `monitoredElements[].member{...}` and `availableEntriesCount`), so `--verify` reports both sent fields as differing even though the write took (read-back `true`). Sending `"monitoredElements":[]` clears the list. **CLI bug:** `wxcli person-call-settings list PERSON_ID` prints only the `monitoredElements` array (or `[]` when empty) and drops `callParkNotificationEnabled`; read the flag with Raw HTTP.
+Verified live 2026-10-13 (person, admin token): the PUT field is `enableCallParkNotification` but the GET returns it as `callParkNotificationEnabled` (plus `monitoredElements[].member{...}` and `availableEntriesCount`), so `--verify` reports both sent fields as differing even though the write took (read-back `true`). Sending `"monitoredElements":[]` clears the list. **CLI read (was a bug):** `wxcli person-call-settings list PERSON_ID` printed only the `monitoredElements` array (or `[]` when empty) and dropped `callParkNotificationEnabled` (verified live 2026-10-13, before the fix). It now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command); until it is, read the flag with Raw HTTP.
 
 The workspace equivalents live in their own group — see `devices-workspaces.md`:
 
@@ -1270,7 +1270,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/monitoring", json=body
 - Maximum 50 monitored elements.
 - For updates, pass a flat list of IDs (person, place, or call park extension IDs). Reads return full objects with nested `member` or `callparkextension` details.
 - The JSON key for call park extensions is `callparkextension` (lowercase, no hyphen).
-- **Omitted `monitoredElements` keeps the list; `[]` clears it — Verified live 2026-10-13.** `person-call-settings update PERSON_ID --enable-call-park-notification` (flag only) left an existing monitored person in place; `--json-body '{"enableCallParkNotification":false,"monitoredElements":[]}'` emptied it, after which the GET omitted `monitoredElements` entirely. `wxcli person-call-settings list PERSON_ID` prints `[]` for a person with no elements, hiding `callParkNotificationEnabled`.
+- **Omitted `monitoredElements` keeps the list; `[]` clears it — Verified live 2026-10-13.** `person-call-settings update PERSON_ID --enable-call-park-notification` (flag only) left an existing monitored person in place; `--json-body '{"enableCallParkNotification":false,"monitoredElements":[]}'` emptied it, after which the GET omitted `monitoredElements` entirely. Before the generator fix, `wxcli person-call-settings list PERSON_ID` printed `[]` for a person with no elements, hiding `callParkNotificationEnabled`; it now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command).
 
 ---
 
@@ -1369,7 +1369,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/pushToTalk", json=body
 **Gotchas:**
 - `members` accepts a flat list of person IDs for updates, even though reads return full member objects.
 - **Members must be a flat list of ID strings — Verified live 2026-10-13:** `"members": [{"id": "<person id>"}]` (the form `person-call-settings-behavior.md` §16 once showed) returns 400 `25024 Invalid field value: members`; `"members": ["<person id>"]` is accepted and reads back as full objects.
-- **CLI read bug (Verified live 2026-10-13):** `wxcli user-settings list-push-to-talk PERSON_ID` prints only the `members` array (and `[]` when there are none), dropping `allowAutoAnswer`, `connectionType` and `accessType`. `list-privacy` likewise prints `[]` for a populated object. Read with Raw HTTP.
+- **CLI read bug, fixed by the generator 2026-10-13 (ADR-14):** before the fix (verified live 2026-10-13), `wxcli user-settings list-push-to-talk PERSON_ID` printed only the `members` array (and `[]` when there were none), dropping `allowAutoAnswer`, `connectionType` and `accessType`, and `list-privacy` printed `[]` for a populated object. `list-privacy` now prints the whole object (Verified live 2026-10-13 after the fix). `list-push-to-talk` now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command); until it is, Raw HTTP is the live-verified read.
 - `connectionType` values: `"ONE_WAY"`, `"TWO_WAY"`.
 - `accessType` values: `"ALLOW_MEMBERS"`, `"BLOCK_MEMBERS"`.
 

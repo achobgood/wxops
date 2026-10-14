@@ -790,8 +790,9 @@ wxcli device-settings update-layout DEVICE_ID --json-body '{"layoutMode":"CUSTOM
 # Reset a device to its default layout ({"layoutMode":"DEFAULT"} read back as DEFAULT live)
 wxcli device-settings update-layout DEVICE_ID --json-body '{"layoutMode":"DEFAULT"}'
 
-# NOTE: `list-layout` prints only the lineKeys array and drops layoutMode / userReorderEnabled /
-# kemKeys (CLI bug, live 2026-10-13); read GET .../devices/{id}/layout for the full object.
+# NOTE: `list-layout` printed only the lineKeys array and dropped layoutMode / userReorderEnabled /
+# kemKeys (CLI bug, live 2026-10-13). It now prints the whole response object (generator fix 2026-10-13,
+# ADR-14; not re-run live for this command); until it is, GET .../devices/{id}/layout is the verified read.
 ```
 
 #### Line Key Templates (`device-settings`)
@@ -842,8 +843,9 @@ wxcli device-settings validate-a-list --json-body '{
 # "Cisco 9861" all returned 400 25470 "familyOrModelDisplayName ... is not supported" on the
 # get-* commands and a silent empty list from list-settings-groups. Use "MPP" for the 8845.
 
-# List supported devices for dynamic settings (CLI bug: prints only the upgradeChannelList,
-# ["STABLE_DELAY","STABLE","PREVIEW"], not devices — see §5a)
+# List supported devices for dynamic settings. Verified live 2026-10-13 after the generator fix:
+# returns the device catalog (136 device-model records). Before the fix it printed only the
+# upgradeChannelList, ["STABLE_DELAY","STABLE","PREVIEW"] — see §5a
 wxcli device-dynamic-settings list
 
 # Filter supported devices by type (e.g., MPP phones)
@@ -980,7 +982,7 @@ If the model is unknown or you want to be safe, query the telephony device detai
    ```
    Each entry in `devices` includes `deviceSettingsConfiguration`: one of `WEBEX_CALLING_DEVICE_CONFIGURATION`, `WEBEX_DEVICE_CONFIGURATION`, `WEBEX_CALLING_DYNAMIC_DEVICE_CONFIGURATION`, or `NONE`.
 
-   > **CLI gotcha:** `wxcli device-dynamic-settings list` calls this same endpoint, but extracts the response's `upgradeChannelList` array instead of `devices` -- it returns `["STABLE_DELAY", "STABLE", "PREVIEW"]`, not the device list. Use raw HTTP until that is fixed.
+   > **CLI:** `wxcli device-dynamic-settings list` calls this same endpoint and now extracts `devices` (Verified live 2026-10-13 after the generator fix, ADR-14: 136 device-model records). Before the fix it extracted the `upgradeChannelList` array and returned `["STABLE_DELAY", "STABLE", "PREVIEW"]`.
 
 2. Match the device's `model` to the supported devices list and read its `deviceSettingsConfiguration` value.
 
@@ -1441,7 +1443,7 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/sup
 7. **No auto-pagination.** Pass `max=1000` on list endpoints. The `rest_get` method does not auto-paginate like SDK generator methods do.
 8. **CTI Route Point protocol varies by device pool.** CTI Route Points require SCCP protocol on some device pools — SIP protocol assignment fails with "Device Protocol not valid" error. When creating CTI Route Points via AXL, try SCCP first if SIP fails, or verify the device pool's supported protocols before assignment.
 9. **Org/location device settings PUT affects all matching devices on next sync. No rollback.** The PUT to `/telephony/config/locations/{id}/devices/settings` immediately queues the settings for all devices at that location. There is no way to preview or roll back.
-10. **9800-series model string format differs from older MPP.** Older MPP phones use `"DMS Cisco 8845"` (with "DMS" prefix); 9800-series phones use `"Cisco 9861"` (no "DMS" prefix). Using the wrong format for Line Key Templates or device creation will fail. Read the exact `model` string from `GET /telephony/config/supportedDevices` (no `wxcli` command returns it: `device-settings list-supported-devices-dects` / `-dect-networks` return only the two DECT bases, and `device-dynamic-settings list` returns only the upgrade-channel list). Verified live 2026-10-13: `"DMS Cisco 8845"` and `"Cisco 9861"` are the catalog strings, and a line key template created with `"DMS Cisco 9861"` returned 400 25271 "The device type does not support line key management."
+10. **9800-series model string format differs from older MPP.** Older MPP phones use `"DMS Cisco 8845"` (with "DMS" prefix); 9800-series phones use `"Cisco 9861"` (no "DMS" prefix). Using the wrong format for Line Key Templates or device creation will fail. Read the exact `model` string from `GET /telephony/config/supportedDevices`, which `wxcli device-dynamic-settings list -o json` now returns (Verified live 2026-10-13 after the generator fix: 136 device-model records; before it, that command returned only the upgrade-channel list). `device-settings list-supported-devices-dects` / `-dect-networks` return only the two DECT bases. Verified live 2026-10-13: `"DMS Cisco 8845"` and `"Cisco 9861"` are the catalog strings, and a line key template created with `"DMS Cisco 9861"` returned 400 25271 "The device type does not support line key management."
 12. **`device-settings update` members array requires `lineWeight` and `primaryOwner` on every entry — not shown in `--help`.** When updating device members via `wxcli device-settings update`, every member object in the `members` array must include `lineWeight` (int, number of lines for this member) and `primaryOwner` (bool). Omitting either field returns a 400 error. Neither field appears in the CLI `--help` output or the JSON body example. Surfaced during live testing 2026-04-15.
 
 13. **9800-series device settings are split across API surfaces.** Device-level settings (`show-settings-devices`) is rejected (400 `25417` live 2026-10-13; earlier notes said 404). Per-device config uses Device Configurations with **PhoneOS** keys — NOT RoomOS; 9800-series runs PhoneOS, which is RoomOS-derived but distinct. Person-level device settings (`get-person-device-settings`) works but returns limited fields (e.g., `compression`). Line Key Templates work normally via the `device-settings` LKT endpoints. Features that older docs describe as "MPP-only" (background images/wallpaper, line labels) also work on 9800-series via PhoneOS config keys (`User.Screen.CustomWallpaper.CustomWallpaperDownloadURL[N]`, `Phone.LineKeyLabel`, `Phone.LineKeySecondaryLabel`) — they just use a different API path. This makes 9800-series the only phone family that spans three API surfaces.

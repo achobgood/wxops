@@ -1629,9 +1629,10 @@ items = result["phoneNumbers"]  # response key: "phoneNumbers" (NOT "availableNu
 
 ```bash
 # Get single number reach settings for a person.
-# CLI limitation (verified live 2026-10-13): this prints ONLY the `numbers` array. The raw GET returns
-# {"enabled": true, "alertAllNumbersForClickToDialCallsEnabled": false, "numbers": [...]}, but the CLI drops
-# `enabled` and `alertAllNumbersForClickToDialCallsEnabled`, so a person with no numbers prints `[]`.
+# Before the generator fix (verified live 2026-10-13) this printed ONLY the `numbers` array: the raw GET returns
+# {"enabled": true, "alertAllNumbersForClickToDialCallsEnabled": false, "numbers": [...]}, but the CLI dropped
+# `enabled` and `alertAllNumbersForClickToDialCallsEnabled`, so a person with no numbers printed `[]`.
+# It now prints the whole response object (generator fix 2026-10-13, ADR-14; not re-run live for this command).
 wxcli single-number-reach list-single-number-reach <person_id>
 
 # Create a single number reach number for a person
