@@ -15,6 +15,8 @@ Each test here covers a decision that a future edit could quietly undo:
   describing reality fails rather than silently covering a name nobody reviewed.
 """
 
+import pytest
+
 from tools import drift_check as dc
 
 
@@ -149,3 +151,123 @@ def test_synonyms_stop_person_and_workspace_false_positives():
     assert dc._tokens("USER_ID") & dc._tokens("PEOPLE")
     # ... but genuinely different resources still do not match
     assert not (dc._tokens("PERSON_ID") & dc._tokens("HUNT_GROUP"))
+
+
+# ------------------------------------------------- 11a/11b: stacked aliases
+
+# A renamed command stacks its hidden deprecated alias FIRST and the visible
+# name second (102 functions, measured 2026-10-13). Keying either surface on the
+# first decorator alone made every documented citation of the VISIBLE name
+# invisible to 11a and 11b — `cc-agents list-activities` cited without `--from`
+# passed silently.
+STACKED_PROBE = '''"""Probe module."""
+import typer
+
+app = typer.Typer()
+
+
+@app.command("list", hidden=True)
+@app.command("list-activities")
+def list_activities(
+    from_: str = typer.Option(..., "--from"),
+    to: str = typer.Option(..., "--to"),
+    output: str = typer.Option("table", "--output", "-o"),
+):
+    """Probe: renamed command with required flags."""
+
+
+@app.command("show", hidden=True)
+@app.command("show-site")
+def show_site(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli probe-group list-sites"),
+    output: str = typer.Option("json", "--output", "-o"),
+):
+    """Probe: renamed command with a kind-carrying argument."""
+
+
+@app.command("show-owner", hidden=True)
+@app.command("show-person")
+def show_person(
+    person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli probe-group list-people"),
+):
+    """Probe: a second kind, so a PERSON_ID placeholder names a KNOWN kind."""
+
+
+@app.command("show-bad", hidden=True)
+@app.command("show-mislabelled")
+def show_mislabelled(
+    location_id: str = typer.Argument(help="Webex PEOPLE id"),
+):
+    """Probe: a label its own parameter name contradicts."""
+'''
+
+
+def _stacked(tmp_path):
+    (tmp_path / "zz_probe.py").write_text(STACKED_PROBE)
+    sig = dc.parse_module_signatures("zz_probe", commands_dir=tmp_path)
+    surface = {"probe-group": {name: [] for name in sig}}
+    return surface, {"probe-group": sig}
+
+
+def _scan(tmp_path, monkeypatch, doc_text):
+    doc = tmp_path / "fixture.md"
+    doc.write_text(doc_text)
+    monkeypatch.setattr(
+        dc, "tracked_files",
+        lambda pattern: [str(doc)] if pattern == "docs/reference/**" else [])
+
+
+def test_required_options_key_every_decorator_name(tmp_path):
+    (tmp_path / "zz_probe.py").write_text(STACKED_PROBE)
+    req = dc.parse_module_required_options("zz_probe", commands_dir=tmp_path)
+    for name in ("list", "list-activities"):
+        assert {"--from"} in req[name] and {"--to"} in req[name]
+
+
+@pytest.mark.parametrize("cited, expected", [
+    ("wxcli probe-group list-activities --output json", [["--from", "--to"]]),
+    ("wxcli probe-group list-activities --from 1 --to 2", []),
+    ("wxcli probe-group list --output json", [["--from", "--to"]]),
+])
+def test_renamed_command_missing_a_required_flag_fires_11a(
+        tmp_path, monkeypatch, cited, expected):
+    surface, positional = _stacked(tmp_path)
+    required = {"probe-group": dc.parse_module_required_options(
+        "zz_probe", commands_dir=tmp_path)}
+    _scan(tmp_path, monkeypatch, f"```bash\n{cited}\n```\n")
+    findings, _bare = dc.check_required_flags(surface, positional, required)
+    assert [f["missing"] for f in findings] == expected
+
+
+def test_arg_kinds_key_every_decorator_name(tmp_path):
+    (tmp_path / "zz_probe.py").write_text(STACKED_PROBE)
+    kinds = dc.parse_module_arg_kinds("zz_probe", commands_dir=tmp_path)
+    for name in ("show", "show-site"):
+        assert [a["kind"] for a in kinds[name]] == ["LOCATION"]
+
+
+@pytest.mark.parametrize("placeholder, fires", [
+    ("PERSON_ID", True), ("LOCATION_ID", False)])
+def test_renamed_command_with_a_wrong_placeholder_fires_11b(
+        tmp_path, monkeypatch, placeholder, fires):
+    surface, positional = _stacked(tmp_path)
+    kinds = {"probe-group": dc.parse_module_arg_kinds(
+        "zz_probe", commands_dir=tmp_path)}
+    _scan(tmp_path, monkeypatch,
+          f"```bash\nwxcli probe-group show-site {placeholder}\n```\n")
+    mismatches, _adv, _mis = dc.check_arg_kinds(surface, positional, kinds)
+    assert [m["cmd"] for m in mismatches] == (
+        ["probe-group show-site"] if fires else [])
+
+
+def test_mislabelled_argument_is_reported_once_under_its_visible_name(
+        tmp_path, monkeypatch):
+    """Widening the surface to every name must not double-report a CLI-side
+    defect, nor report it under a name `--help` does not show."""
+    surface, positional = _stacked(tmp_path)
+    kinds = {"probe-group": dc.parse_module_arg_kinds(
+        "zz_probe", commands_dir=tmp_path)}
+    _scan(tmp_path, monkeypatch, "")
+    _mm, _adv, mislabelled = dc.check_arg_kinds(surface, positional, kinds)
+    assert [(m["command"], m["arg"]) for m in mislabelled] == [
+        ("show-mislabelled", "location_id")]
