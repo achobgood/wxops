@@ -601,6 +601,8 @@ Webex-native group management. Does not require `org-id` -- uses the authenticat
 | `delete` | Delete a group | `GROUP_ID` (positional), `--force` |
 | `list-members` | Get group members with pagination | `GROUP_ID` (positional), `--start-index`, `--count` |
 
+> **Paging (verified live 2026-10-13 on `groups list`):** on the 5 SCIM-style lists (`scim-users list`, `scim-groups list`/`list-members`, `groups list`/`list-members`) the generic `--offset N` / `--limit N` are translated to SCIM's 1-based `startIndex=N+1` and `count`; an explicit `--start-index`/`--count` wins. Before 2026-10-13 both were sent as `start`/`max`, which these endpoints ignore (ADR-13).
+
 ### CLI Examples
 
 ```bash
