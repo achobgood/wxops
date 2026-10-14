@@ -166,24 +166,200 @@ def verify_write(api, url: str, params: dict | None, sent: Any) -> None:
         typer.echo("Note: --verify read back a non-object response; cannot compare.", err=True)
         return
 
-    drift = []
-    for key, want in sent.items():
-        if key not in got:
-            drift.append((key, want, "<not present in read-back>"))
-        elif got[key] != want:
-            drift.append((key, want, got[key]))
+    # The write already succeeded and its result has not been printed yet, so
+    # nothing in the compare may escape as a traceback and a non-zero exit.
+    try:
+        drift, absent, n_differ, n_absent = _compare_sent(sent, got)
+    except Exception as e:  # noqa: BLE001 - the exit code must never change
+        typer.echo(f"Note: --verify could not compare the read-back ({type(e).__name__}); "
+                   f"check the fields you sent with the show command.", err=True)
+        return
 
-    if not drift:
+    if not drift and not absent:
         typer.echo(f"Verified: re-read {url} and all {len(sent)} sent field(s) match.", err=True)
         return
-    typer.echo(
-        f"Note: --verify re-read {url} and {len(drift)} of {len(sent)} sent "
-        f"field(s) differ. A 2xx means the request was accepted, not that it "
-        f"took effect — check whether the server normalised these or ignored them:",
-        err=True,
-    )
-    for key, want, actual in drift:
-        typer.echo(f"  {key}: sent {want!r}, now {actual!r}", err=True)
+    if drift:
+        typer.echo(
+            f"Note: --verify re-read {url} and {n_differ} of {len(sent)} sent "
+            f"field(s) differ. A 2xx means the request was accepted, not that it "
+            f"took effect — check whether the server normalised these or ignored them:",
+            err=True,
+        )
+        for path, want, actual in drift:
+            typer.echo(f"  {path}: sent {want!r}, now {actual!r}", err=True)
+    if absent:
+        if drift:
+            # Counted in paths: some may sit under a field already counted as differing.
+            lead = (f"Note: {len(absent)} sent path(s) could not be verified "
+                    f"(not present in the read-back). Check these with the matching show command:")
+        else:
+            n_matched = len(sent) - n_absent
+            paths = f" ({len(absent)} sent path(s) below)" if len(absent) != n_absent else ""
+            lead = (f"Note: --verify re-read {url}: {n_matched} matched, {n_absent} could not "
+                    f"be verified{paths}. Check these with the matching show command:")
+        typer.echo(lead, err=True)
+        for path in absent:
+            typer.echo(f"  {path}: could not be verified — not present in the read-back "
+                       f"(the endpoint may name it differently)", err=True)
+
+
+def _compare_sent(sent: dict, got: dict):
+    """Per top-level sent field: the paths that differ and the paths absent.
+
+    A field counts as "differ" if anything under it differs, "could not be
+    verified" if it only has absent paths, else "matched". A sent null whose
+    key the read-back omits is matched: omission is how a cleared field reads
+    back, and an ignored clear would bring the old value back PRESENT (ADR-17).
+    """
+    drift: list[tuple[str, Any, Any]] = []
+    absent: list[str] = []
+    n_differ = n_absent = 0
+    for key, want in sent.items():
+        d: list[tuple[str, Any, Any]] = []
+        a: list[str] = []
+        if key not in got:
+            if want is not None:
+                a.append(key)
+        else:
+            _compare(key, want, got[key], d, a)
+        drift += d
+        absent += a
+        n_differ += bool(d)
+        n_absent += bool(a) and not d
+    return drift, absent, n_differ, n_absent
+
+
+_BOOL_STRINGS = {"true": True, "false": False}
+
+
+def _as_bool(v: Any) -> bool | None:
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return _BOOL_STRINGS.get(v.strip().lower())
+    return None
+
+
+def _num_str_eq(s: str, n: int | float) -> bool:
+    """'30' == 30 and '2.5' == 2.5; never '030' == 30 or 'thirty' == 30."""
+    s = s.strip()
+    if isinstance(n, int):
+        return s == str(n)
+    try:
+        return float(s) == n
+    except ValueError:
+        return False
+
+
+def _scalar_eq(want: Any, got: Any) -> bool:
+    """Equality after the normalisation a str-typed CLI flag needs.
+
+    Generated body flags for numbers (and some booleans) are typed `str`, so
+    `--number-of-days 30` sends '30' and the server reads back 30. Booleans are
+    never equal to numbers here, although Python says True == 1.
+    """
+    if isinstance(want, bool) or isinstance(got, bool):
+        wb, gb = _as_bool(want), _as_bool(got)
+        return wb is not None and wb == gb
+    num = (int, float)
+    if isinstance(want, num) and isinstance(got, num):
+        return want == got
+    if isinstance(want, str) and isinstance(got, num):
+        return _num_str_eq(want, got)
+    if isinstance(got, str) and isinstance(want, num):
+        return _num_str_eq(got, want)
+    return want == got
+
+
+def _matches(want: Any, got: Any) -> bool:
+    """True when `want` is fully contained in `got` (no differ, no absent)."""
+    d: list = []
+    a: list = []
+    _compare("", want, got, d, a)
+    return not d and not a
+
+
+# Above this many elements an out-of-order list is not matched (n^2 element
+# compares); verify_write reports "could not compare" instead of guessing.
+_MAX_REORDER = 1000
+
+
+class ListTooLongToMatch(ValueError):
+    """A list too long to match element-by-element out of order."""
+
+
+def _list_contained(want: list, got: list) -> bool:
+    """Sent and read-back lists hold the same elements, in any order.
+
+    Lengths must be equal: a PUT replaces the list, so a read-back element you
+    did not send is a removal the server ignored (ADR-17, round 2). Each sent
+    element must match a DISTINCT read-back element, where an object element
+    matches when its sent keys match (extra keys inside it are ignored). Tries
+    the same order first, then iterative augmenting paths, so a first-fit
+    choice cannot block a match that exists and no input can recurse deeply.
+    """
+    n = len(want)
+    if len(got) != n:
+        return False
+    if all(_matches(w, g) for w, g in zip(want, got)):
+        return True
+    if n > _MAX_REORDER:
+        raise ListTooLongToMatch(f"{n} elements out of order")
+
+    memo: dict[tuple[int, int], bool] = {}
+
+    def ok(i: int, j: int) -> bool:
+        if (i, j) not in memo:
+            memo[(i, j)] = _matches(want[i], got[j])
+        return memo[(i, j)]
+
+    owner = [-1] * n  # read-back index -> sent index
+    for root in range(n):
+        seen = [False] * n
+        stack, via, nxt = [root], [-1], [0]  # sent vertex, read-back edge into it, scan position
+        placed = False
+        while stack and not placed:
+            u, j = stack[-1], nxt[-1]
+            while j < n and (seen[j] or not ok(u, j)):
+                j += 1
+            if j == n:
+                stack.pop(), via.pop(), nxt.pop()
+                continue
+            nxt[-1] = j + 1
+            seen[j] = True
+            if owner[j] == -1:
+                owner[j] = u
+                for k in range(len(stack) - 1, 0, -1):
+                    owner[via[k]] = stack[k - 1]
+                placed = True
+            else:
+                stack.append(owner[j])
+                via.append(j)
+                nxt.append(0)
+        if not placed:
+            return False
+    return True
+
+
+def _compare(path: str, want: Any, got: Any,
+             drift: list[tuple[str, Any, Any]], absent: list[str]) -> None:
+    """Record every path where the read-back does not contain what was sent."""
+    if isinstance(want, dict):
+        if not isinstance(got, dict):
+            drift.append((path, want, got))
+            return
+        for k, v in want.items():
+            sub = f"{path}.{k}" if path else k
+            if k not in got:
+                if v is not None:
+                    absent.append(sub)
+            else:
+                _compare(sub, v, got[k], drift, absent)
+    elif isinstance(want, list):
+        if not isinstance(got, list) or not _list_contained(want, got):
+            drift.append((path, want, got))
+    elif not _scalar_eq(want, got):
+        drift.append((path, want, got))
 
 
 def emit(
