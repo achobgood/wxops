@@ -435,7 +435,9 @@ def test_live_tree_is_clean():
         drift_check.iter_command_blocks(), drift_check.spec_ops_by_key())
     assert findings == []
     assert drift_check.CHECK_EXAMINED["30"]["examined"] > 100
-    assert unparseable > 0
+    # Reported, never required: a doc clean-up may convert every body. The
+    # counting itself is pinned on fixtures (Review Focus 3 cases above).
+    assert isinstance(unparseable, int) and unparseable >= 0
 
 
 def test_json_output_carries_the_unparseable_count(monkeypatch, capsys):
@@ -446,5 +448,6 @@ def test_json_output_carries_the_unparseable_count(monkeypatch, capsys):
     drift_check.main()
     results = json.loads(capsys.readouterr().out)
     assert results["30_doc_body_unknown_keys"] == []
-    assert results["30_doc_body_unparseable"] == \
-        drift_check.CHECK_EXAMINED["30"]["unparseable"] > 0
+    count = results["30_doc_body_unparseable"]
+    assert isinstance(count, int) and count >= 0
+    assert count == drift_check.CHECK_EXAMINED["30"]["unparseable"]
