@@ -310,6 +310,16 @@ Checks (docs/arch/target-architecture.md §A6):
       `upgradeChannelList` and dropped `devices`). Extractors that reach
       nothing are check 27's; a path several specs declare passes if any
       describes a clean collection.
+  32. Request body declared as a query parameter: a POST/PUT/PATCH spec op
+      with no requestBody and a query parameter whose schema is an object
+      (`$ref` to one or `type: object`; not `style: deepObject`) put its body
+      in the query. Its command must not send that parameter as a query
+      param, require it as an option, send no body, or (one parameter with
+      properties) lack --generate-json-body. The CC team / skill-profile /
+      agent-profile writes did all four (live 2026-10-13: `cc-team create`
+      exit 2 without `--team-dto`, 400 with it); the parser now moves such a
+      parameter into the body (ADR-16). Examined = every write command with
+      a spec op, so an upstream fix reads 0, never BLIND.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -2201,14 +2211,20 @@ def spec_op_index() -> dict[str, dict[tuple[str, str], dict]]:
     return _SPEC_OP_INDEX
 
 
-def _raw_body_schema(op: dict) -> dict | None:
+def _raw_body_schema(op: dict, spec: dict | None = None) -> dict | None:
     """The unresolved request-body schema node body_schema starts from — the
     first JSON content type openapi_parser.parse_request_body would pick —
-    or None when the op declares no JSON body."""
+    or None when the op declares no JSON body.
+
+    Given `spec`, an op whose spec declares its body as a query parameter
+    (query_body_param, check 32, ADR-16) answers with that parameter's
+    schema: the generator renders it as the body, so checks 13/14/29/30
+    judge the body the command actually sends."""
     content = op.get("requestBody", {}).get("content", {})
     node = next((content[k] for k in JSON_CONTENT_KEYS if k in content), None)
     if not node:
-        return None
+        lifted = query_body_param(op, spec) if spec is not None else None
+        return lifted[1] if lifted else None
     return node.get("schema", {})
 
 
@@ -2219,7 +2235,7 @@ def body_schema(op: dict, spec: dict) -> dict | None:
     the same body the generator saw. Unlike check 9's `_resolve_schema` this
     keeps `required`, which is the entire oracle for checks 13 and 14.
     """
-    schema = _raw_body_schema(op)
+    schema = _raw_body_schema(op, spec)
     if schema is None:
         return None
     if "$ref" in schema:
@@ -2245,10 +2261,15 @@ def required_body_fields(op: dict, spec: dict) -> list[str]:
     return [f for f in schema.get("required", []) if f in props]
 
 
-def required_query_params(op: dict) -> list[str]:
+def required_query_params(op: dict, spec: dict | None = None) -> list[str]:
+    """Required `in: query` names on `op`. Given `spec`, a query parameter
+    the generator renders as the request body (query_body_param, ADR-16) is
+    not one: the command neither requires nor sends it."""
+    lifted = query_body_param(op, spec) if spec is not None else None
     return [p["name"] for p in op.get("parameters", [])
             if isinstance(p, dict) and p.get("in") == "query"
-            and p.get("required") is True and p.get("name")]
+            and p.get("required") is True and p.get("name")
+            and not (lifted and p["name"] == lifted[0])]
 
 
 def field_shape(op: dict, spec: dict, name: str) -> str:
@@ -2524,7 +2545,7 @@ def check_generated_help() -> tuple[list, list]:
             if not declaring:
                 continue                      # in no tracked spec
             per_spec = {name: (required_body_fields(op, specs[name]),
-                               required_query_params(op))
+                               required_query_params(op, specs[name]))
                         for name, op in declaring}
             if len({(tuple(sorted(b)), tuple(sorted(q)))
                     for b, q in per_spec.values()}) > 1:
@@ -2964,9 +2985,9 @@ def check_inert_overrides() -> tuple[list, list]:
     return findings, stale
 
 
-# ------------------------------------------- shared helpers for checks 23-31
+# ------------------------------------------- shared helpers for checks 23-32
 #
-# Checks 23-31 each compare a rendered command block (what the CLI sends) with
+# Checks 23-32 each compare a rendered command block (what the CLI sends) with
 # the spec operation it renders (what the API declares). These helpers are the
 # single reader for both sides. Contract: they NEVER raise on odd input — a
 # missing response, a non-dict schema, an unreadable module or spec is
@@ -3452,7 +3473,7 @@ def check_undeclared_paging(acks: dict | None = None,
 
 # ----------------------------------------------------------------- check 23
 
-# What checks 23-31 looked at on their most recent call, keyed by check number,
+# What checks 23-32 looked at on their most recent call, keyed by check number,
 # so main() can print "(examined N …)" beside a count and a vacuous 0 shows up
 # in the unattended log: {"23": {"examined": N, "skipped": K}}.
 CHECK_EXAMINED: dict[str, dict[str, int]] = {}
@@ -3463,7 +3484,7 @@ def record_examined(check: str, findings: list[dict], examined: int,
     """Record what check `check` examined; return `findings`, plus a gated
     blind-run finding when it examined nothing.
 
-    Shared by checks 23-31. A check over zero items reports a confident 0 —
+    Shared by checks 23-32. A check over zero items reports a confident 0 —
     indistinguishable from a clean tree — so a zero-examined run FAILS with a
     single `{"check", "error"}` finding instead (main() prints it as BLIND).
     `skipped` should include the HELPER_SKIPS entries the check's readers set.
@@ -3483,7 +3504,7 @@ def helper_skip_count(*keys: str) -> int:
     return sum(len(HELPER_SKIPS.get(k) or ()) for k in keys)
 
 
-# How main() prints each of checks 23-31: {"NN": (label, noun, formatter)}.
+# How main() prints each of checks 23-32: {"NN": (label, noun, formatter)}.
 # The formatter renders ONE ordinary finding; print_check_findings renders the
 # blind-run finding itself, so a formatter never sees a dict without its keys.
 CHECK_PRINT: dict[str, tuple[str, str, Callable[[dict], str]]] = {}
@@ -4521,7 +4542,7 @@ def _closed_body_keys(sop) -> set[str] | None:
     try:
         if not isinstance(body_schema(sop.op, sop.spec), dict):
             return None
-        keys = _closed_schema_keys(sop.spec, _raw_body_schema(sop.op))
+        keys = _closed_schema_keys(sop.spec, _raw_body_schema(sop.op, sop.spec))
         if not keys:
             return None
         return keys | _body_example_keys(sop) | _described_body_keys(sop)
@@ -4801,6 +4822,165 @@ CHECK_PRINT["31"] = (
     "list commands",
     lambda f: (f"wxcli {f['group']} {f['command']}  extracts {f['extracts']}  "
                f"drops: {', '.join(f['drops'])}  {f['op']}  ({f['spec']})"))
+
+
+# ----------------------------------------------------------------- check 32
+
+_WRITE_METHODS = ("POST", "PUT", "PATCH")
+_REQUIRED_OPTION = re.compile(r'typer\.Option\(\s*\.\.\.\s*,\s*"--([\w-]+)"')
+_WRITE_CALL = re.compile(r"\.rest_(?:post|put|patch)\(")
+
+
+def _method_of(op: dict, spec: dict) -> str | None:
+    """The upper-case HTTP method under which `op` (by identity) is declared."""
+    for method, candidate in _path_item_of(op, spec).items():
+        if candidate is op and isinstance(method, str):
+            return method.upper()
+    return None
+
+
+def query_body_params(op: dict, spec: dict) -> list[tuple[str, dict]]:
+    """[(name, schema node)] for every query parameter on a write `op` that
+    the spec uses as the request body: the op is a POST/PUT/PATCH with no
+    `requestBody`, and the parameter's schema resolves to an object (a `$ref`
+    to one, `type: object`, or untyped with `properties`) and is not
+    `style: deepObject` (a real, exploded object query param). Path-level
+    parameters count; the operation's own declaration of a name wins.
+
+    The gate's own copy of `openapi_parser._query_body_param` (ADR-16), kept
+    independent so the check is an oracle for the generator rather than a
+    restatement of it; `tests/test_drift_check_query_body.py` pins the two to
+    the same answers. Pass the op object a SpecOp / spec index carries — the
+    method is found by locating it in `spec["paths"]` by identity.
+    """
+    if not isinstance(op, dict) or not isinstance(spec, dict):
+        return []
+    if _method_of(op, spec) not in _WRITE_METHODS or op.get("requestBody"):
+        return []
+    params: list = []
+    for holder in (op, _path_item_of(op, spec)):
+        declared = holder.get("parameters")
+        if isinstance(declared, list):
+            params += declared
+    out: list[tuple[str, dict]] = []
+    seen: set[str] = set()
+    for p in params:
+        p = _resolve_ref(spec, p)
+        name = p.get("name")
+        if p.get("in") != "query" or not isinstance(name, str) or name in seen:
+            continue
+        seen.add(name)
+        if p.get("style") == "deepObject":
+            continue
+        schema = _resolve_ref(spec, p.get("schema"))
+        t = schema.get("type")
+        if t == "object" or (t is None and isinstance(schema.get("properties"), dict)):
+            out.append((name, p.get("schema")))
+    return out
+
+
+def query_body_param(op: dict, spec: dict) -> tuple[str, dict] | None:
+    """The one query parameter the generator renders as the body, or None.
+    With two or more there is no telling which is the body: none is lifted,
+    and check 32 fires on the command that still sends them as query."""
+    found = query_body_params(op, spec)
+    return found[0] if len(found) == 1 else None
+
+
+def count_query_body_spec_ops(specs_dir: Path = SPECS_DIR) -> int:
+    """How many spec ops declare their body as a query parameter — the
+    population check 32 guards, printed beside its count."""
+    return sum(1 for sops in spec_ops_by_key(specs_dir).values()
+               for sop in sops if query_body_params(sop.op, sop.spec))
+
+
+def check_query_body_params(commands_dir: Path = COMMANDS_DIR,
+                            specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A write whose spec put the request body in the query, still rendered so.
+
+    The Contact Center spec declares the DTO of six writes (POST/PUT of
+    `/organization/{orgid}/team[/{id}]`, `/skill-profile[/{id}]`,
+    `/agent-profile[/{id}]`) as a REQUIRED QUERY parameter whose schema is an
+    object, with no `requestBody`. Rendered literally (live 2026-10-13):
+    `cc-team create` required `--team-dto` even beside `--json-body` (exit 2),
+    sent it as `?teamDTO=%7B…`, sent an empty body (400 "siteId: should not
+    be null or blank"), and had no `--generate-json-body`. The parser now
+    moves such a parameter into the body (ADR-16, `_lift_query_body`).
+
+    For each POST/PUT/PATCH block with a spec op, the op's query-declared
+    body parameters (query_body_params) are compared with what the block
+    does. Defects: `sent as query param` (the block writes the name into
+    `params`), `required option` (a `typer.Option(..., "--<flag>")` whose
+    flag is the parameter's name), `no request body` (the rest_* call carries
+    no `json=`), and — for a single parameter whose schema has properties —
+    `no --generate-json-body`. Static only; no ack key (ADR-13 rules).
+
+    Examined = every write block with a spec op, so an upstream spec that
+    fixes the error reads a clean 0, never BLIND. A path several specs
+    declare passes if any declares a real `requestBody` (under-report rather
+    than fail a correct command). Blocks with no spec op are skipped and
+    counted.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method not in _WRITE_METHODS:
+            continue
+        sops = index.get((block.method, block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        examined += 1
+        if any(sop.op.get("requestBody") for sop in sops):
+            continue
+        hits: dict[str, tuple] = {}
+        for sop in sops:
+            for name, schema in query_body_params(sop.op, sop.spec):
+                hits.setdefault(name, (sop, schema))
+        if not hits:
+            continue
+        text = block.text
+        defects: list[str] = []
+        if any(re.search(rf'params\[\s*["\']{re.escape(n)}["\']\s*\]', text)
+               for n in hits):
+            defects.append("sent as query param")
+        squashed = {n.replace("-", "").replace("_", "").lower() for n in hits}
+        if any(m.group(1).replace("-", "").lower() in squashed
+               for m in _REQUIRED_OPTION.finditer(text)):
+            defects.append("required option")
+        calls = [_call_args(text, m.end()) for m in _WRITE_CALL.finditer(text)]
+        if not calls or not all(re.search(r"\bjson\s*=", c) for c in calls):
+            defects.append("no request body")
+        if len(hits) == 1:
+            sop, schema = next(iter(hits.values()))
+            if (_object_props(sop.spec, schema)
+                    and '"--generate-json-body"' not in text):
+                defects.append("no --generate-json-body")
+        if not defects:
+            continue
+        first = next(iter(hits.values()))[0]
+        findings.append({
+            "group": block.group,
+            "command": block.command,
+            "op": f"{block.method} {first.path}",
+            "param": ", ".join(sorted(hits)),
+            "defects": defects,
+            "spec": ", ".join(sorted({s.spec_file for s in sops})),
+        })
+    return record_examined(
+        "32", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "write commands")
+
+
+CHECK_PRINT["32"] = (
+    "write commands whose spec put the request body in the query",
+    "write commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  query param "
+               f"{f['param']}: {', '.join(f['defects'])}  {f['op']}  "
+               f"({f['spec']})"))
 
 
 # ----------------------------------------------------------------- check 18
@@ -5774,6 +5954,8 @@ def main() -> int:
     doc_body_keys, unparseable_bodies = check_doc_body_keys(
         invocations, command_blocks, ops_by_key)
     list_drops_object_fields = check_list_drops_object_fields()
+    query_body_findings = check_query_body_params()
+    query_body_spec_ops = count_query_body_spec_ops()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -5828,6 +6010,7 @@ def main() -> int:
         # trend them (`--json` had only the findings list before).
         "30_doc_body_unparseable": unparseable_bodies,
         "31_list_drops_object_fields": list_drops_object_fields,
+        "32_query_body_params": query_body_findings,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -5847,7 +6030,7 @@ def main() -> int:
                   or single_object_lists or cc_base64_org_ids
                   or unreachable_list_keys or wrong_product_labels
                   or doc_value_types or doc_body_keys
-                  or list_drops_object_fields)
+                  or list_drops_object_fields or query_body_findings)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -6088,6 +6271,9 @@ def main() -> int:
         print_check_findings("30", doc_body_keys,
                              note=f"({unparseable_bodies} unparseable, not checked)")
         print_check_findings("31", list_drops_object_fields)
+        print_check_findings("32", query_body_findings,
+                             note=f"({query_body_spec_ops} spec ops declare "
+                                  f"their body as a query param)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

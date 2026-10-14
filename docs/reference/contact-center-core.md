@@ -769,7 +769,7 @@ Teams group agents for routing and reporting. A team is assigned to a site, and 
 ### Key Parameters
 
 - **Create:** Requires `name`, `siteId` (team must belong to a site), `active`, `teamType` and `teamStatus`. Verified live 2026-10-13: `{name, siteId}` alone (the old example) → `400 "[active: should be either true or false.]"`; adding `active` but not `teamType` → `500 "Processing failed"` (the CLI retries it three times first); adding `teamType` but not `teamStatus` → `409 "Column 'team_status' cannot be null"`. Enums are UPPER CASE: `teamType` is `AGENT` or `CAPACITY` (`"Agent"` → 400 listing `[CAPACITY, AGENT]`); `teamStatus` is `IN_SERVICE` or `NOT_AVAILABLE`. Optional `description`, `skillProfileId`, `userIds`, `desktopLayoutId`, `multiMediaProfileId` (the last two read back on `show`, verified live 2026-10-13 — **the desktop layout is attached to the team, not to the desktop profile**, see §14).
-- **CLI quirk:** `cc-team create` and `cc-team update` mark `--team-dto` required even when `--json-body` is given, so a bare `--json-body` call exits `Missing option '--team-dto'` (verified live 2026-10-13). Pass any placeholder (`--team-dto x`); `--json-body` overrides it.
+- **The team body is `--json-body` (or the body flags) — no DTO option.** The spec declares the team body as a required *query* parameter (`teamDTO`). Rendered literally, `cc-team create` and `update` required `--team-dto` even beside `--json-body` (a bare `--json-body` call exited `Missing option '--team-dto'`) and sent its value as a query string, leaving the request body empty (verified live 2026-10-13). The generator now sends that schema as the request body: pass `--json-body` alone, or build the body from the flags (`--name`, `--site-id`, `--team-type`, `--team-status`, `--active`, …); `--generate-json-body` prints the full skeleton. Built from flags, the CLI also demands `--rank-queues-for-team/--no-rank-queues-for-team`, because the spec marks `rankQueuesForTeam` required; the live-verified body below omits it, so whether the server needs it is **unverified**. `--team-dto` is still accepted and ignored (hidden from `--help`), so scripts that pass `--team-dto x --json-body …` keep working. The change is a generator fix 2026-10-13 (ADR-16); not re-run live for this command.
 - **Update:** Can reassign team to different site, rename, change capacity. It is a full replace and the body **must carry `"id"` equal to the URL id** (`400 "Invalid id: id in payload and URL should be same"` otherwise). `--verify` works and reported `all 7 sent field(s) match` (verified live 2026-10-13).
 - **List vs show:** `list` / `list-team` omit `userIds`, `skillProfileId`, `desktopLayoutId`, `multiMediaProfileId`, `description` and `queueRankings`; read team membership with `show` (verified live 2026-10-13).
 - **References:** Shows which queues, routing strategies, and profiles reference this team
@@ -780,8 +780,9 @@ Teams group agents for routing and reporting. A team is assigned to a site, and 
 # List all teams (v2)
 wxcli cc-team list-team
 
-# Create a team (verified live 2026-10-13; --team-dto is a required-but-ignored placeholder, see Key Parameters)
-wxcli cc-team create --team-dto x --json-body '{
+# Create a team. The body was verified live 2026-10-13; sending it with --json-body alone
+# (no --team-dto) is a generator fix 2026-10-13 (ADR-16), Verified live 2026-10-13: create, show, update (with and without the old --team-dto, which is accepted and ignored), delete all worked with --json-body alone — see Key Parameters
+wxcli cc-team create --json-body '{
   "name": "Sales Team",
   "siteId": "site-uuid",
   "active": true,
@@ -939,7 +940,7 @@ Skill profiles bundle skill-value pairs and are assigned to agents. When a queue
 
 - **Create:** Requires `name` and at least one entry in `activeSkills` (non-enum skills) or `activeEnumSkills` (enum skills). Verified live 2026-10-13: the body this section showed before that date (`skills:[{skillId, skillValue}]`) returns `400 "Atleast one skill is mandatory."` — `skills` and `skillValue` are not fields. A profile read back with `show` carries `activeSkills[]` (`id`, `skillId`, plus `proficiencyValue` or `booleanValue`) — that is the shape to send.
 - **Skill values:** a `PROFICIENCY` skill takes `{"skillId":"…","proficiencyValue":8}`; a `BOOLEAN` skill takes `{"skillId":"…","booleanValue":true}` (both created and read back live 2026-10-13); an `ENUM` skill goes in the separate `activeEnumSkills` array as `{"enumSkillValueId":"<id of one value of the enum skill>"}` (created and read back live 2026-10-13; the ids come from `enumSkillValues[].id` on `cc-skill show`). `TEXT` skills use `textValue` per the spec — **Unverified:** not tested live.
-- **CLI quirk:** `cc-skill-profile create` and `update` mark `--skill-profile-dto` required even with `--json-body` (`Missing option '--skill-profile-dto'`); pass a placeholder (`--skill-profile-dto x`). Same pattern as `cc-team` (§9). Verified live 2026-10-13.
+- **The profile body is `--json-body` — no DTO option.** Same spec error as `cc-team` (§9): the body is declared as a required query parameter (`skillProfileDTO`), so before the fix `create` and `update` exited `Missing option '--skill-profile-dto'` on a bare `--json-body` call (verified live 2026-10-13). The generator now sends that schema as the request body, and `--generate-json-body` prints its skeleton. `--skill-profile-dto` is still accepted and ignored (hidden), so `--skill-profile-dto x --json-body …` keeps working. The change is a generator fix 2026-10-13 (ADR-16); not re-run live for this command.
 - **Update:** full replace with `"id"` in the body. Re-sending `activeSkills` **without each entry's own `id`** returns `409 "Duplicate entry '<org>-<profile>-…' for key 'active_skill.UK…'"`; copy the `activeSkills[].id` values from `show` and the update works (`proficiencyValue` 8 → 5 read back; `--verify` reports `activeSkills` as "differ" only because the server reorders the array). Verified live 2026-10-13.
 
 ### CLI Examples
@@ -948,8 +949,9 @@ Skill profiles bundle skill-value pairs and are assigned to agents. When a queue
 # List all skill profiles (v2)
 wxcli cc-skill-profile list-skill-profile
 
-# Create a skill profile (proficiency + boolean skills; verified live 2026-10-13: created, read back, updated, deleted)
-wxcli cc-skill-profile create --skill-profile-dto x --json-body '{
+# Create a skill profile (proficiency + boolean skills). The body was verified live 2026-10-13 (created,
+# read back, updated, deleted); --json-body alone (no --skill-profile-dto) is a generator fix 2026-10-13 (ADR-16), Verified live 2026-10-13: create, show, update --verify, delete all worked with --json-body alone (the old option on update was not tried)
+wxcli cc-skill-profile create --json-body '{
   "name": "Senior Sales Agent",
   "activeSkills": [
     {"skillId": "product-knowledge-uuid", "proficiencyValue": 8},
@@ -957,8 +959,8 @@ wxcli cc-skill-profile create --skill-profile-dto x --json-body '{
   ]
 }'
 
-# An ENUM skill is attached by the id of one of its values, in a separate array (verified live 2026-10-13)
-wxcli cc-skill-profile create --skill-profile-dto x --json-body '{
+# An ENUM skill is attached by the id of one of its values, in a separate array (body verified live 2026-10-13)
+wxcli cc-skill-profile create --json-body '{
   "name": "East Region",
   "activeEnumSkills": [{"enumSkillValueId": "east-value-uuid"}]
 }'
@@ -1163,7 +1165,7 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 
 - **Create:** Verified live 2026-10-13 — the body this section showed before that date (`name`, `desktopLayoutId`, `dialNumberSettings`) is rejected, and a body with only `name` is rejected with a `400` listing what is missing. Required: `name`, `parentType` (`ORGANIZATION` or `SITE`; anything else → 400 listing both), `accessQueue`, `accessEntryPoint`, `accessBuddyTeam` (each `ALL`, `SPECIFIC` or `NONE`), `accessIdleCode`, `accessWrapUpCode` (each `ALL` or `SPECIFIC` — no `NONE`), `agentDNValidation` (`PROVISIONED_VALUE`, `SPECIFIC` or `NONE`), `viewableStatistics` (an object, e.g. `{"agentStats":true,"accessQueueStats":"ALL","loggedInTeamStats":true,"accessTeamStats":"ALL"}`) and `loginVoiceOptions` (a non-empty array of `BROWSER`, `AGENT_DN`, `EXTENSION`; `"WEBRTC"` → 400 listing those three). `active` defaults to `false` when omitted — send `"active": true`.
 - **No `desktopLayoutId`, `dialNumberSettings` or `agentAvailableOptions` on a profile.** Verified live 2026-10-13: a PUT carrying all three returned 200 and `--verify` reported each `sent … now '<not present in read-back>'` — accepted and silently dropped. The desktop layout is attached to the **team** (`desktopLayoutId` on `cc-team`, §9; read back live), not the profile. Do not infer a layout link from a profile.
-- **CLI quirk:** `cc-desktop-profile create` and `update` mark `--agent-profile-dto` required even with `--json-body`; pass a placeholder (`--agent-profile-dto x`) — same pattern as `cc-team` (§9).
+- **The profile body is `--json-body` — no DTO option.** Same spec error as `cc-team` (§9): the body is declared as a required query parameter (`agentProfileDTO`), so before the fix `create` and `update` required `--agent-profile-dto` even with `--json-body`. The generator now sends that schema as the request body, and `--generate-json-body` prints its skeleton (it has more than 50 fields; the create example below is the live-verified minimum). `--agent-profile-dto` is still accepted and ignored (hidden), so `--agent-profile-dto x --json-body …` keeps working. The change is a generator fix 2026-10-13 (ADR-16); not re-run live for this command.
 - **Update:** full replace; the body must carry `"id"` equal to the URL id (`400 "Invalid id: id in payload and URL should be same"` otherwise). `viewableStatistics` always shows as "differ" under `--verify` because the server adds an `id` and empty arrays to it — normalisation, not a failed write.
 - **Outdial:** `outdialEnabled:true` requires `outdialEntryPointId` (`400 "outdialEntryPointId should be specified when outdialEnabled is true"`) and, when `dialPlanEnabled` is false, an `addressBookId` (`400 "addressBookId should be specified when outdialEnabled is true and dialPlanEnabled is false"`). `outdialANIId` points at an Outdial ANI profile (`cc-outdial-ani`, see [contact-center-routing.md](contact-center-routing.md) §3); with it set, the ANI profile's `list-incoming-references` names the desktop profile and deleting the ANI returns `412 "referred in other entities"` with `"referencedEntities":["desktop-profile"]`. Verified live 2026-10-13.
 - **List omits `loginVoiceOptions`.** `list`, `list-agent-profile` return `loginVoiceOptions: null` for every profile (the system default "Agent-Profile" really holds `["BROWSER","EXTENSION","AGENT_DN"]`), and `--attributes loginVoiceOptions` → `400 "Invalid requested columns :loginVoiceOptions"`. Read it with `show` per profile (verified live 2026-10-13). The list also omits `dialPlans`, `viewableStatistics`, `wrapUpCodes`, `idleCodes`, `queues`, `entryPoints` and `buddyTeams`.
@@ -1177,8 +1179,9 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 wxcli cc-desktop-profile list-agent-profile
 
 # Create a desktop profile
-# (verified live 2026-10-13: created, read back, deleted; `active` defaults to false so it is sent)
-wxcli cc-desktop-profile create --agent-profile-dto x --json-body '{
+# (body verified live 2026-10-13: created, read back, deleted; `active` defaults to false so it is sent;
+# --json-body alone, with no --agent-profile-dto, is a generator fix 2026-10-13 (ADR-16), Verified live 2026-10-13: create, show, update (old --agent-profile-dto accepted and ignored), delete all worked)
+wxcli cc-desktop-profile create --json-body '{
   "name": "Sales Desktop Profile",
   "parentType": "ORGANIZATION",
   "active": true,

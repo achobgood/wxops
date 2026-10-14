@@ -1547,6 +1547,33 @@ def _render_inert_list_flags(ep: Endpoint) -> list[str]:
     ]
 
 
+def _render_lifted_query_flags(ep: Endpoint) -> list[str]:
+    """Hidden no-op options for query params the parser moved into the body.
+
+    ADR-16: the spec declared these writes' body as a query parameter
+    (`teamDTO`, …); the parser renders it as the request body instead
+    (openapi_parser._lift_query_body). The old option (`--team-dto`) is kept,
+    hidden from --help and ignored — never required, never sent — because
+    scripts and the 2026-10-13 docs' workaround pass `--team-dto x --json-body
+    …`, and "No such option" would break them. Same policy as the hidden
+    paging flags (_render_inert_list_flags, ADR-14 amendment). Skipped when a
+    path, query or body parameter already claims the name.
+    """
+    claimed = _used_param_names(ep) | {
+        _safe_param_name(bf.python_name) for bf in ep.body_fields}
+    claimed_flags = {f"--{f.python_name}" for f in ep.query_params + ep.body_fields}
+    out = []
+    for flag in getattr(ep, "lifted_query_params", None) or []:
+        var = _safe_param_name(flag)
+        if var in claimed or f"--{flag}" in claimed_flags:
+            continue
+        out.append(
+            f'    {var}: str = typer.Option(None, "--{flag}", hidden=True, '
+            f'help="Accepted and ignored: the request body is --json-body '
+            f'(or the body flags)."),')
+    return out
+
+
 def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
@@ -1679,6 +1706,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
             params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
         else:
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+    params.extend(_render_lifted_query_flags(ep))
 
     if ep.json_body_example:
         params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
@@ -1785,6 +1813,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
                 params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
             else:
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+    params.extend(_render_lifted_query_flags(ep))
 
     if ep.json_body_example:
         params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
@@ -2062,6 +2091,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
                 params.append(f'    {param}: bool = typer.Option(None, "--{bf.python_name}/--no-{bf.python_name}", help="{help_text}"),')
             else:
                 params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+        params.extend(_render_lifted_query_flags(ep))
         if emits_generate_flag:
             params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
         params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
@@ -2173,6 +2203,7 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
             continue
         help_text = _enum_help(bf)
         params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
+    params.extend(_render_lifted_query_flags(ep))
 
     if ep.json_body_example:
         params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')

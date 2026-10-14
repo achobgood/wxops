@@ -752,6 +752,66 @@ A create that hits a flaky 5xx now fails on the first response instead of recove
 
 ---
 
+## ADR-16: A Request Body the Spec Declares as a Query Parameter Is Rendered as the Body; Drift Check 32 Gates It
+
+### Decision
+
+`openapi_parser.parse_operation` first calls `_lift_query_body`. On a POST, PUT or PATCH that declares **no `requestBody`** and **exactly one** query parameter whose schema is an object (a `$ref` to one, `type: object`, or untyped with `properties`; `style: deepObject` excluded, because that is a real exploded query parameter), the parameter's schema becomes the operation's JSON request body and the parameter leaves the query. It is not rendered as a visible option, not required, and never sent. `--json-body` is the body, `--generate-json-body` prints the schema's skeleton, and body flags come from the schema like any other body. Required DTO fields follow the ordinary body rule: on `create` they are checked at runtime only when `--json-body` is absent (exit 1, `Missing required fields`), never as a required Click option, so `--json-body` alone always runs. The op is copied, so the spec is never mutated.
+
+The old option (`--team-dto`, `--skill-profile-dto`, `--agent-profile-dto`) is kept as a **hidden option that is accepted and ignored** (`Endpoint.lifted_query_params` → `command_renderer._render_lifted_query_flags`, on create/update/action/delete). Scripts, and the 2026-10-13 docs' workaround `--team-dto x --json-body '{…}'`, keep working instead of hitting "No such option". This is the policy Adam approved for the hidden paging flags (ADR-14 amendment).
+
+**Drift check 32 gates the class**, with ADR-13's rules: static, `record_examined`/`BLIND`, `CHECK_PRINT`, never raises, no ack key. For every POST/PUT/PATCH command with a spec op, it fires when the op declares its body as a query parameter and the command still treats it as one: it writes the parameter into `params`, declares the option required, sends no body, or (for one parameter with properties) offers no `--generate-json-body`. Examined is every write command with a spec op, not just the six, so an upstream spec that fixes the error reads a clean 0, never `BLIND`. The gate prints how many spec ops are in the class beside the count. CI's completion assertion now greps `^\[32\]`.
+
+The gate keeps its **own copy** of the rule (`drift_check.query_body_params`), so it is an oracle for the generator and not a restatement of it; `tests/test_drift_check_query_body.py` pins the two copies to the same answers. Its body readers (`_raw_body_schema`, `body_schema`, `required_query_params`, when given the spec) now treat a lifted parameter as the body, so checks 13, 14, 29 and 30 judge the body the command actually sends. Check 19 (`tools/spec_semantics.json`) still reads the raw spec, so its snapshot did not change.
+
+### Context
+
+`specs/webex-contact-center.json` declares the DTO of six writes as a **required query parameter** whose schema is a `$ref` object, with no `requestBody`: POST/PUT `/organization/{orgid}/team[/{id}]` (`teamDTO` → `TeamDTO`), `/skill-profile[/{id}]` (`skillProfileDTO`), `/agent-profile[/{id}]` (`agentProfileDTO`). A scan of all 9 specs (2198 operations, 3076 query parameters) finds no other object-typed query parameter, on any method. Rendered literally, the six commands were broken. **Verified live 2026-10-13** by a sandbox agent, 6+ reproductions:
+
+- `cc-team create --json-body '{…}'` exited 2: `Error: Missing option '--team-dto'.`
+- The option's value went out as a query string (`POST …/team?teamDTO=%7B%22name%22…`) and the body was empty, so passing the real JSON only through `--team-dto` returned 400 `[siteId: should not be null or blank., active: should be either true or false.]`.
+- `--team-dto x --json-body '{…}'` worked, so the DTO really is the request body.
+- `--generate-json-body` was "No such option" on all six, although the 400 tip and root `CLAUDE.md` Known Issue #2 point users at it.
+
+Live-found facts about the bodies, kept in `docs/reference/contact-center-core.md` §9/§11/§14:
+
+- **An update needs `id` in the body**, equal to the URL id (`400 "Invalid id: id in payload and URL should be same"`). The spec does not mark `id` required.
+- **A team create needs `active`, `teamType` and `teamStatus` besides `name` and `siteId`.** Without `active` the server returns 400; without `teamType`, 500; without `teamStatus`, 409. The spec's `TeamDTO.required` lists all five, plus `rankQueuesForTeam`, which the live-verified body omits. So the generated flag path demands `--rank-queues-for-team` and the live-verified `--json-body` does not. Whether the server needs it is **unverified**. (The brief this ADR was written from said the spec marks only some of the five. Measured against the spec, it marks all five.)
+
+### Alternatives Considered
+
+- **A spec overlay that adds `requestBody` and removes the query parameter.** *Rejected.* Overlays are additive only: `spec_overlay.merge_overlay` can add paths but cannot remove a parameter, and `apply_overlay` raises when an overlay path collides with an upstream path, which these six do. Check 5 exists to delete overlays once upstream publishes a path. An overlay would also fix only these six; the next upstream spec could repeat the error on a new operation.
+- **Six `field_overrides.yaml` pins (`omit_query_params` plus a body override).** *Rejected* for the same reason ADR-14 rejected 109 pins: the next operation of this shape would ship broken. A parser rule, gated by check 32, covers it.
+- **Drop the old option outright.** *Rejected.* The 2026-10-13 docs taught `--team-dto x --json-body …`, and "No such option" would break every script that learned it. The hidden option costs nothing: it is not in `--help`, not sent, and not required.
+- **Guess the body when two object query parameters exist.** *Rejected.* There is no rule for which one is the body. The parser leaves both in the query and check 32 fails, so a human decides.
+- **An ack or allowlist key for check 32.** *Rejected*, as for checks 23-31 (ADR-13).
+
+### Proof — 0 at HEAD, fires on the pre-fix tree
+
+HEAD is this change's regenerated tree, measured with `--enforce`. Pre-fix is the new check-32 code run against a worktree of `5f6550b`, with `REPO`/`SPECS_DIR`/`COMMANDS_DIR`/`MAIN_PY` pointed at it (ADR-13's method). This is a manual step; no test references that tree.
+
+| Check | HEAD (examined, skipped) | Pre-fix 5f6550b (examined, skipped) | Named pre-fix instances |
+|---|---|---|---|
+| 32 | **0** (869 write commands, 3) | **6** (869 write commands, 3) | `cc-team create`/`update` (`teamDTO`), `cc-skill-profile create`/`update` (`skillProfileDTO`), `cc-desktop-profile create`/`update` (`agentProfileDTO`): each "sent as query param, required option, no --generate-json-body" |
+
+The 3 skipped are `cc-ai-assistant create` (`POST /event`, in no spec) and the 2 hand-written blocks `HELPER_SKIPS` names (`cleanup run`, `cucm execute`). Both runs print `(6 spec ops declare their body as a query param)`.
+
+The regen changed exactly 3 modules (`cc_team.py`, `cc_skill_profile.py`, `cc_desktop_profile.py`), and only the six commands in them. A second and a third regen produced byte-identical `git diff -- src/ tools/` and `git status`. The name lock, `_registry.py` and `tools/spec_semantics.json` did not change, and the gate's first line is unchanged (`192 command sets (195 registered names incl. aliases), 2164 commands, 1991 non-skipped spec ops (152 deliberately skipped)`).
+
+**Doc defects the widened body readers surfaced.** Check 30 had never judged these six commands' `--json-body` examples, because their ops declared no body. With the lifted body it found 3 wrong bodies in the `contact-center` skill: `cc-team create` sent `multimediaProfileId` (the schema spells it `multiMediaProfileId`), `cc-skill-profile create` sent `skills` (live 400; the field is `activeSkills`), and `cc-desktop-profile create` sent `{name, desktopLayoutId}` (live: that body is rejected, and a profile has no `desktopLayoutId`; a PUT carrying one is accepted and silently drops it). All 3 were rewritten to the bodies that `contact-center-core.md` records as verified live 2026-10-13.
+
+### Consequences
+
+**Enables:** `cc-team`, `cc-skill-profile` and `cc-desktop-profile` `create`/`update` take `--json-body` alone, or the body flags, and offer `--generate-json-body`. The DTO is sent as the request body. Docs and the skill now show `--json-body` with no DTO option. That form is a **generator fix 2026-10-13 (ADR-16), Verified live 2026-10-13** on a temporary team, skill profile and desktop profile in the sandbox: create, show, update (with `--verify`) and delete all worked with `--json-body` alone, and the old option was accepted and ignored on `update` for teams and desktop profiles.
+**Changes for users:** the six commands gain body flags (`cc-team create` has 18) and a generated `Example:` line built from the spec's required fields. Numeric DTO fields (`capacity`, `version`) are string-typed flags, the generator's existing behaviour for every body, so prefer `--json-body` for them.
+**Known gaps, not built:** the generated `update` `Example:` lines carry no `id` in the body, though the server requires it, so an agent copying one verbatim gets `400 "Invalid id"`. All three updates render an `--id` body flag (it writes `body["id"]`; the path argument is `ID`), but `--json-body` replaces the whole body, so with `--json-body` the `id` must be inside the JSON. The docs' Update bullets say the body must carry `id`. Teaching the generator that a CC update's body needs the URL id is a separate change. Two more small gaps found in review: the generated `--help` example for `cc-desktop-profile create` omits `loginVoiceOptions`, which `contact-center-core.md` §14 records as required live; and a body supplied only through the hidden DTO option (`--team-dto '{...}'` alone) is silently dropped, so `update` sends a PUT with an empty body and `create` exits 1 with a "Missing required fields" error that does not mention the ignored option. Neither is a regression (the old behaviour also sent an empty body); a stderr note when the hidden option carries JSON would help.
+
+### Status
+
+**Active** since 2026-10-13. Gate `--enforce` PASS, check 32 at 0.
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -775,6 +835,8 @@ A create that hits a flaky 5xx now fails on the first response instead of recove
 | ADR-14 (Single-object list GETs) | ADR-13 (Static checks 23-30) | Extends ADR-13 item 2 from flat objects to objects carrying an array; check 31 gates what check 27 could not see (a key that reaches one array of an object) |
 | ADR-15 (POST/PATCH not retried on 5xx) | ADR-2 (Raw HTTP) | The retry loop lives in the sync `WebexSession` that ADR-2 keeps as the CLI's execution layer; the rule is by HTTP method, not by endpoint |
 | ADR-14 (Single-object list GETs) | ADR-12 (Paging flags translated) | Only GETs with no declared paging are re-rendered, so no command that ADR-12's translation serves loses `--offset`/`--limit`/`--all` |
+| ADR-16 (Query-declared body lifted) | ADR-13 (Static checks 23-30) | Check 32 follows ADR-13's rules (static, `BLIND`, no ack); the gate's body readers now see the lifted body, so check 30 judges these six commands' doc bodies for the first time |
+| ADR-16 (Query-declared body lifted) | ADR-14 (Single-object list GETs) | Same policy as the ADR-14 amendment: an option the regen made meaningless (`--team-dto`) stays accepted, hidden and ignored rather than becoming "No such option" |
 
 ---
 

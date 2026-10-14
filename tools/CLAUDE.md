@@ -115,7 +115,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-31 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-32 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -158,13 +158,14 @@ The renaming machinery this feeds is already built and proven by 28 renames:
 `command_name_overrides` plus an automatic hidden alias. To fix instead of acking, rename
 there and delete the ack.
 
-**GATED SINCE 2026-10-13 — checks 23-31.** A live session that day found about 15 Contact
+**GATED SINCE 2026-10-13 — checks 23-32.** A live session that day found about 15 Contact
 Center defects that the weekly routine could never have seen: it never calls the API, it never
 re-audits existing groups, and it may not edit the generator (`tools/sync_guard.py`
 `FORBIDDEN_PATHS`). Checks 23-30 cover the half that can be detected statically. The
 decision, the rejected options and the before/after proof are in ADR-13
 (`docs/architecture/02-decisions.md`); check 31, added the same day after a Calling read
-printed `[]` for a populated object, is ADR-14. **None has an ack, allowlist or exemption key.** A
+printed `[]` for a populated object, is ADR-14; check 32, added after `cc-team create` would not
+take a bare `--json-body`, is ADR-16. **None has an ack, allowlist or exemption key.** A
 finding is either a real defect, which you fix, or a sign the rule is wrong, which you tighten in
 a reviewed commit. "To clear" below is the only way out.
 
@@ -250,6 +251,30 @@ a reviewed commit. "To clear" below is the only way out.
   single-object read still accepts `--all`/`--limit`/`--offset` as hidden, ignored options
   (`_render_inert_list_flags`; ADR-14 amendment), so check 23 examines it and finds nothing
   sent.
+- **[32] A write whose spec put the request body in the query** (added 2026-10-13, ADR-16).
+  The spec op is a POST/PUT/PATCH with no `requestBody` and a query parameter whose schema is
+  an object (`$ref` to one, `type: object`, or untyped with `properties`; `style: deepObject`
+  is a real query param and excluded). The command fires when it still treats that parameter
+  as a query param: it writes it into `params`, declares the option required, sends no body,
+  or — for a single parameter with properties — has no `--generate-json-body`. 2026-10-13:
+  `cc-team`, `cc-skill-profile`, `cc-desktop-profile` `create`/`update` (`teamDTO`,
+  `skillProfileDTO`, `agentProfileDTO` in `specs/webex-contact-center.json`; the only 6 such ops
+  in all 9 specs) exited 2 on a bare `--json-body` (`Missing option '--team-dto'`) and sent the
+  DTO as `?teamDTO=%7B…` with an empty body (400). **To clear:** nothing to pin by hand —
+  `openapi_parser._lift_query_body` moves a write's ONE object query param into the request
+  body (the param is not rendered, not required, not sent; `--json-body`, `--generate-json-body`
+  and the body flags come from its schema), and `_render_lifted_query_flags` keeps the old
+  option hidden and ignored so `--team-dto x --json-body …` still runs. A finding means the
+  rule did not apply: two or more object query params on one op (the parser will not guess
+  which is the body — a human decides, then fixes the parser), or a new shape the rule does not
+  recognise. Examined = every write command with a spec op, so an upstream spec that fixes the
+  error reads a clean 0, never `BLIND`; the gate prints how many spec ops are in the class
+  beside the count. The gate keeps its own copy of the rule (`query_body_params`), and its body
+  readers (`_raw_body_schema`, `body_schema`, `required_query_params`, given the spec) treat a
+  lifted parameter as the body, so checks 13/14/29/30 judge what the command sends — which is
+  how check 30 found 3 wrong `contact-center` SKILL bodies the day it landed (`multimediaProfileId`,
+  `skills`, `desktopLayoutId`). `tests/test_drift_check_query_body.py` pins the two copies of
+  the rule to the same answers.
 
 Checks 6, 9, 10, 11a and 11b also moved off the first `@app.command` decorator the same day.
 On the ~102 renamed commands that decorator is the hidden alias, so documented calls of the
@@ -259,7 +284,7 @@ labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both
 `LOCATION_ID`. Checks 6, 11a and 11b found nothing new; a live-tree mutation showed that 6 and
 11a now fire on a renamed command.
 
-**Shared mechanics of checks 23-31 (`drift_check.py`, under "check 23").**
+**Shared mechanics of checks 23-32 (`drift_check.py`, under "check 23").**
 - **`record_examined(check, findings, examined, skipped, noun)`** fills `CHECK_EXAMINED`. A check
   that examined nothing adds a gated `{"check", "error"}` finding, which prints as `BLIND`. A
   blind run fails; it never passes quietly.
@@ -282,7 +307,7 @@ labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both
 **The no-ack trade-off, accepted on purpose.** Checks 29 and 30 use the spec as the oracle, and
 nothing can ack a finding. So an upstream spec that drops a key or retypes a value the live API
 still accepts fails the gate, and the weekly release stays blocked until a human edits the doc.
-An escape hatch the unattended routine could reach would defeat the point. For checks 23-28 the
+An escape hatch the unattended routine could reach would defeat the point. For checks 23-28, 31 and 32 the
 fix is in generator code or override keys, which `tools/sync_guard.py` keeps out of the routine
 (`FORBIDDEN_PATHS`, `yaml_key_findings`), so the routine fails closed and a human fixes it. For
 checks 29/30 the routine may spend its repair attempts on a finding ONLY when the finding's
@@ -1491,6 +1516,21 @@ objects before scalars), which fixed `device-dynamic-settings list` and
 single-object read as an ID producer, or 14 argument-help pointers would have
 vanished. Paged endpoints keep the list rendering on purpose: see the ADR's
 rejected alternatives before widening it.
+
+### A request body the spec declares as a query parameter becomes the body (2026-10-13, ADR-16)
+
+`parse_operation` first calls `_lift_query_body`: on a POST/PUT/PATCH with no
+`requestBody` and exactly ONE query parameter whose schema is an object (not
+`style: deepObject`), that schema becomes the op's JSON request body and the
+parameter is dropped from the query (a copy of the op; the spec is untouched).
+`Endpoint.lifted_query_params` carries the old flag name, which
+`_render_lifted_query_flags` renders as a hidden, ignored option on create /
+update / action / delete. Measured across all 9 specs this matches exactly 6
+operations (`cc-team`, `cc-skill-profile`, `cc-desktop-profile` create/update);
+nothing else in any spec declares an object-typed query parameter. Required DTO
+fields follow the ordinary body rule — checked at runtime only when
+`--json-body` is not given — so the spec's `required` list never becomes an
+unbypassable Click option. Drift check 32 gates the class.
 
 ### A group two specs render gets ONE label, whatever the render order (2026-10-13)
 

@@ -464,6 +464,7 @@ Collect from user:
 |-----------|:--------:|-------|
 | Name | Yes | Unique team name |
 | Site ID | Yes | From `wxcli cc-site list` |
+| `active`, `teamType`, `teamStatus` | Yes | `true`; `AGENT` or `CAPACITY`; `IN_SERVICE` or `NOT_AVAILABLE` — each missing one fails (verified live 2026-10-13, `docs/reference/contact-center-core.md` §9) |
 | Multimedia profile ID | No | Channel capacity assignment |
 | Skill profile ID | No | For skill-based routing |
 | Desktop profile ID | No | Agent desktop config |
@@ -474,9 +475,14 @@ Collect from user:
 wxcli cc-team create --json-body '{
   "name": "Support Team",
   "siteId": "SITE_ID",
-  "multimediaProfileId": "MM_PROFILE_ID"
+  "active": true,
+  "teamType": "AGENT",
+  "teamStatus": "IN_SERVICE",
+  "multiMediaProfileId": "MM_PROFILE_ID"
 }'
 ```
+
+> The required keys and the `multiMediaProfileId` spelling come from the body verified live 2026-10-13 (`docs/reference/contact-center-core.md` §9; this example used to send `multimediaProfileId`, which the request schema does not have). Passing `--json-body` with no `--team-dto` is a generator fix 2026-10-13 (ADR-16); not re-run live for this command. `--generate-json-body` prints the full skeleton.
 
 **List teams:**
 
@@ -582,11 +588,13 @@ wxcli cc-skill list-skill -o json
 wxcli cc-skill-profile create --json-body '{
   "name": "Bilingual Agent",
   "description": "English + Spanish",
-  "skills": [
-    {"skillId": "SKILL_ID", "skillValue": 8}
+  "activeSkills": [
+    {"skillId": "SKILL_ID", "proficiencyValue": 8}
   ]
 }'
 ```
+
+> Body shape verified live 2026-10-13 (`docs/reference/contact-center-core.md` §11): the old `skills:[{skillId, skillValue}]` returns `400 "Atleast one skill is mandatory."`. A `BOOLEAN` skill takes `booleanValue`; an `ENUM` skill goes in `activeEnumSkills` as `{"enumSkillValueId": …}`. Passing `--json-body` with no `--skill-profile-dto` is a generator fix 2026-10-13 (ADR-16); not re-run live for this command.
 
 **List skill profiles:**
 
@@ -701,9 +709,20 @@ wxcli cc-desktop-layout list-desktop-layout -o json
 ```bash
 wxcli cc-desktop-profile create --json-body '{
   "name": "Standard Profile",
-  "desktopLayoutId": "LAYOUT_ID"
+  "parentType": "ORGANIZATION",
+  "active": true,
+  "accessQueue": "ALL",
+  "accessEntryPoint": "ALL",
+  "accessBuddyTeam": "ALL",
+  "accessIdleCode": "ALL",
+  "accessWrapUpCode": "ALL",
+  "agentDNValidation": "NONE",
+  "loginVoiceOptions": ["BROWSER"],
+  "viewableStatistics": {"agentStats": true, "accessQueueStats": "ALL", "loggedInTeamStats": true, "accessTeamStats": "ALL"}
 }'
 ```
+
+> Body verified live 2026-10-13 (`docs/reference/contact-center-core.md` §14): `{name, desktopLayoutId}` is rejected, and a profile carries **no** `desktopLayoutId` — the server accepts and silently drops it; the desktop layout is attached to the **team** (`desktopLayoutId` on `cc-team create`). Passing `--json-body` with no `--agent-profile-dto` is a generator fix 2026-10-13 (ADR-16); not re-run live for this command.
 
 **List desktop profiles:**
 

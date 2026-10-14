@@ -62,28 +62,89 @@ def cmd_list(
 
 
 
+_BODY_SKELETON_CREATE = '{"name":"...","teamType":"AGENT","teamStatus":"IN_SERVICE","active":true,"siteId":"...","rankQueuesForTeam":true,"organizationId":"...","id":"...","version":0,"dialedNumber":"...","capacity":0,"desktopLayoutId":"...","skillProfileId":"...","multiMediaProfileId":"...","userIds":["..."],"description":"...","systemDefault":true,"queueRankings":[{"queueId":"...","rank":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
+
 @app.command("create", short_help="Create a new Team.")
 def create(
-    team_dto: str = typer.Option(..., "--team-dto", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="(required) Enter the name for the team. Generally, use names that indicate the function of the team, such as Billing or Customer Support. This field should be specified for create and update operation. Two teams in the same site in an organization cannot share the same name."),
+    team_type: str = typer.Option(None, "--team-type", help="(required) Choices: AGENT, CAPACITY"),
+    team_status: str = typer.Option(None, "--team-status", help="(required) Choices: IN_SERVICE, NOT_AVAILABLE"),
+    dialed_number: str = typer.Option(None, "--dialed-number", help="Enter the dial number where the system distributes the calls for this team. This setting is applicable only for capacity-based teams."),
+    capacity: str = typer.Option(None, "--capacity", help="Enter the maximum number of simultaneous contacts that this team can handle. This setting is applicable only for capacity-based teams."),
+    active: bool = typer.Option(None, "--active/--no-active", help="(required) Specify whether the team is active or not Active."),
+    site_id: str = typer.Option(None, "--site-id", help="(required) Identifier for a site which is a physical contact center location under the control of your enterprise. Once specified, siteId should not be modified."),
+    desktop_layout_id: str = typer.Option(None, "--desktop-layout-id", help="Identifier for an agent desktop layout which a Contact Center administrator has configured."),
+    skill_profile_id: str = typer.Option(None, "--skill-profile-id", help="(Optional) If your enterprise uses the optional Skills-Based Routing feature, you can select a skill profile for this team. Note: You can’t assign this profile to a capacity-based team."),
+    multi_media_profile_id: str = typer.Option(None, "--multi-media-profile-id", help="(Optional) If your organization administrator enables Multimedia for your enterprise, you can select a multimedia profile for this team. Note: You can’t assign this profile to a capacity-based team."),
+    description: str = typer.Option(None, "--description", help="Description."),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
+    rank_queues_for_team: bool = typer.Option(None, "--rank-queues-for-team/--no-rank-queues-for-team", help="(required) Indicates whether the queues should be ranked for the team."),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    team_dto: str = typer.Option(None, "--team-dto", hidden=True, help="Accepted and ignored: the request body is --json-body (or the body flags)."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Team.\n\n\b\nExample: wxcli cc-team create --team-dto TEAM_DTO"""
+    """Create a new Team.\n\n\b\nExample: wxcli cc-team create --name NAME --team-type AGENT --team-status IN_SERVICE --active --site-id SITE_ID --rank-queues-for-team\n\n\b\nExample --json-body: '{"name":"...","teamType":"AGENT","teamStatus":"IN_SERVICE","active":true,"siteId":"...","rankQueuesForTeam":true,"organizationId":"...","id":"...","version":0,"dialedNumber":"...","capacity":0,"desktopLayoutId":"...","skillProfileId":"...","multiMediaProfileId":"...","userIds":["..."],"description":"...","systemDefault":true,"queueRankings":[{"queueId":"...","rank":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/team"
-    params = {}
-    if team_dto is not None:
-        params["teamDTO"] = team_dto
     if json_body:
         body = load_json_body(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if team_type is not None:
+            body["teamType"] = team_type
+        if team_status is not None:
+            body["teamStatus"] = team_status
+        if dialed_number is not None:
+            body["dialedNumber"] = dialed_number
+        if capacity is not None:
+            body["capacity"] = capacity
+        if active is not None:
+            body["active"] = active
+        if site_id is not None:
+            body["siteId"] = site_id
+        if desktop_layout_id is not None:
+            body["desktopLayoutId"] = desktop_layout_id
+        if skill_profile_id is not None:
+            body["skillProfileId"] = skill_profile_id
+        if multi_media_profile_id is not None:
+            body["multiMediaProfileId"] = multi_media_profile_id
+        if description is not None:
+            body["description"] = description
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if rank_queues_for_team is not None:
+            body["rankQueuesForTeam"] = rank_queues_for_team
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
+        _missing = [f for f in ['name', 'teamType', 'teamStatus', 'active', 'siteId', 'rankQueuesForTeam'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -199,36 +260,93 @@ def show(
 
 
 
+_BODY_SKELETON_UPDATE = '{"name":"...","teamType":"AGENT","teamStatus":"IN_SERVICE","active":true,"siteId":"...","rankQueuesForTeam":true,"organizationId":"...","id":"...","version":0,"dialedNumber":"...","capacity":0,"desktopLayoutId":"...","skillProfileId":"...","multiMediaProfileId":"...","userIds":["..."],"description":"...","systemDefault":true,"queueRankings":[{"queueId":"...","rank":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
+
 @app.command("update", short_help="Update specific Team by ID.")
 def update(
     id: str = typer.Argument(help="UUID, from: wxcli cc-team list"),
-    team_dto: str = typer.Option(..., "--team-dto", help=""),
+    organization_id: str = typer.Option(None, "--organization-id", help="ID of the contact center organization. This field is required for all bulk save operations."),
+    id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
+    version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
+    name: str = typer.Option(None, "--name", help="Enter the name for the team. Generally, use names that indicate the function of the team, such as Billing or Customer Support. This field should be specified for create and update operation. Two teams in the same site in an organization cannot share the same name."),
+    team_type: str = typer.Option(None, "--team-type", help="Choices: AGENT, CAPACITY"),
+    team_status: str = typer.Option(None, "--team-status", help="Choices: IN_SERVICE, NOT_AVAILABLE"),
+    dialed_number: str = typer.Option(None, "--dialed-number", help="Enter the dial number where the system distributes the calls for this team. This setting is applicable only for capacity-based teams."),
+    capacity: str = typer.Option(None, "--capacity", help="Enter the maximum number of simultaneous contacts that this team can handle. This setting is applicable only for capacity-based teams."),
+    active: bool = typer.Option(None, "--active/--no-active", help="Specify whether the team is active or not Active."),
+    site_id: str = typer.Option(None, "--site-id", help="Identifier for a site which is a physical contact center location under the control of your enterprise. Once specified, siteId should not be modified."),
+    desktop_layout_id: str = typer.Option(None, "--desktop-layout-id", help="Identifier for an agent desktop layout which a Contact Center administrator has configured."),
+    skill_profile_id: str = typer.Option(None, "--skill-profile-id", help="(Optional) If your enterprise uses the optional Skills-Based Routing feature, you can select a skill profile for this team. Note: You can’t assign this profile to a capacity-based team."),
+    multi_media_profile_id: str = typer.Option(None, "--multi-media-profile-id", help="(Optional) If your organization administrator enables Multimedia for your enterprise, you can select a multimedia profile for this team. Note: You can’t assign this profile to a capacity-based team."),
+    description: str = typer.Option(None, "--description", help="Description."),
+    system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
+    rank_queues_for_team: bool = typer.Option(None, "--rank-queues-for-team/--no-rank-queues-for-team", help="Indicates whether the queues should be ranked for the team."),
+    created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
+    last_updated_time: str = typer.Option(None, "--last-updated-time", help="This is the updated time of the entity."),
+    team_dto: str = typer.Option(None, "--team-dto", hidden=True, help="Accepted and ignored: the request body is --json-body (or the body flags)."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Team by ID.\n\n\b\nExample: wxcli cc-team update ID --team-dto TEAM_DTO"""
+    """Update specific Team by ID.\n\n\b\nExample: wxcli cc-team update ID --name NAME --team-type AGENT --team-status IN_SERVICE --active --site-id SITE_ID --rank-queues-for-team\n\n\b\nExample --json-body: '{"name":"...","teamType":"AGENT","teamStatus":"IN_SERVICE","active":true,"siteId":"...","rankQueuesForTeam":true,"organizationId":"...","id":"...","version":0,"dialedNumber":"...","capacity":0,"desktopLayoutId":"...","skillProfileId":"...","multiMediaProfileId":"...","userIds":["..."],"description":"...","systemDefault":true,"queueRankings":[{"queueId":"...","rank":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     orgid = get_cc_org_id(api.session)
     url = f"{cc_base_url}/organization/{orgid}/team/{id}"
-    params = {}
-    if team_dto is not None:
-        params["teamDTO"] = team_dto
     if json_body:
         body = load_json_body(json_body)
     else:
         body = {}
+        if organization_id is not None:
+            body["organizationId"] = organization_id
+        if id_param is not None:
+            body["id"] = id_param
+        if version is not None:
+            body["version"] = version
+        if name is not None:
+            body["name"] = name
+        if team_type is not None:
+            body["teamType"] = team_type
+        if team_status is not None:
+            body["teamStatus"] = team_status
+        if dialed_number is not None:
+            body["dialedNumber"] = dialed_number
+        if capacity is not None:
+            body["capacity"] = capacity
+        if active is not None:
+            body["active"] = active
+        if site_id is not None:
+            body["siteId"] = site_id
+        if desktop_layout_id is not None:
+            body["desktopLayoutId"] = desktop_layout_id
+        if skill_profile_id is not None:
+            body["skillProfileId"] = skill_profile_id
+        if multi_media_profile_id is not None:
+            body["multiMediaProfileId"] = multi_media_profile_id
+        if description is not None:
+            body["description"] = description
+        if system_default is not None:
+            body["systemDefault"] = system_default
+        if rank_queues_for_team is not None:
+            body["rankQueuesForTeam"] = rank_queues_for_team
+        if created_time is not None:
+            body["createdTime"] = created_time
+        if last_updated_time is not None:
+            body["lastUpdatedTime"] = last_updated_time
     try:
-        result = api.session.rest_put(url, json=body, params=params)
+        result = api.session.rest_put(url, json=body)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
     if verify:
-        verify_write(api, url, params, body)
+        verify_write(api, url, None, body)
     if result:
         emit(result, output=output, fields=fields)
     elif output in ("table", "id") and not fields:

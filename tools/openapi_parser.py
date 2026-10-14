@@ -872,6 +872,65 @@ def _drops_object_fields(op: dict, spec: dict) -> bool:
     return True
 
 
+def _query_body_param(method: str, op: dict, spec: dict) -> dict | None:
+    """The one query parameter a write op's spec uses as its request body.
+
+    ADR-16. The Contact Center spec declares the DTO of six writes (POST/PUT
+    of `/organization/{orgid}/team[/{id}]`, `/skill-profile[/{id}]`,
+    `/agent-profile[/{id}]`) as a REQUIRED QUERY parameter whose schema is an
+    object, with no `requestBody`. Live 2026-10-13 the DTO is the body:
+    rendered literally, `cc-team create` demanded `--team-dto` beside
+    `--json-body`, sent it as `?teamDTO=%7B…` and sent an empty body (400).
+
+    Returned when the op is a POST/PUT/PATCH, declares no `requestBody`, and
+    has EXACTLY ONE query parameter whose schema resolves to an object (a
+    `$ref` to one, or `type: object`, or untyped with `properties`) and is
+    not `style: deepObject` (a real, exploded object query param). With two
+    such params there is no telling which is the body: none is returned, the
+    command keeps both in the query, and drift check 32 (which keeps its own
+    copy of this rule) sends it to a human. `op["parameters"]` must already
+    carry the path-level parameters (parse_tag merges them).
+    """
+    if method.lower() not in ("post", "put", "patch") or op.get("requestBody"):
+        return None
+    found = []
+    for param in op.get("parameters", []):
+        param = _safe_resolve(spec, param)
+        if not param or param.get("in") != "query":
+            continue
+        if param.get("style") == "deepObject":
+            continue
+        schema = _safe_resolve(spec, param.get("schema"))
+        if not schema:
+            continue
+        t = schema.get("type")
+        if t == "object" or (t is None and isinstance(schema.get("properties"), dict)):
+            found.append(param)
+    return found[0] if len(found) == 1 else None
+
+
+def _lift_query_body(method: str, op: dict, spec: dict) -> tuple[dict, list[str]]:
+    """`op` with its query-declared body (see _query_body_param) moved into a
+    JSON `requestBody`, plus the moved parameter's CLI flag name (kebab) —
+    rendered as a hidden option that is accepted and ignored. A copy; the
+    spec is never mutated. Unchanged `op` and [] when there is none."""
+    param = _query_body_param(method, op, spec)
+    if param is None:
+        return op, []
+    name = param.get("name", "")
+    kept = []
+    for p in op.get("parameters", []):
+        resolved = _safe_resolve(spec, p) or {}
+        if resolved.get("in") == "query" and resolved.get("name") == name:
+            continue
+        kept.append(p)
+    lifted = {**op, "parameters": kept, "requestBody": {
+        "required": bool(param.get("required")),
+        "content": {"application/json": {"schema": param.get("schema", {})}},
+    }}
+    return lifted, [camel_to_kebab(name)]
+
+
 def parse_operation(
     method: str,
     path: str,
@@ -881,6 +940,7 @@ def parse_operation(
     auto_inject_params: set[str] | None = None,
 ) -> Endpoint:
     """Convert one OpenAPI operation to an Endpoint dataclass."""
+    op, lifted_query_params = _lift_query_body(method, op, spec)
     params = op.get("parameters", [])
     (path_vars, query_params, auto_inject_names, auto_inject_path_names,
      path_var_meta) = parse_parameters(
@@ -954,6 +1014,7 @@ def parse_operation(
         real_semantics=classify_real_semantics(name, body_fields),
         response_item_fields=response_item_fields,
         path_var_meta=path_var_meta,
+        lifted_query_params=lifted_query_params,
     )
 
 
