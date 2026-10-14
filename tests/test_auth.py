@@ -227,6 +227,33 @@ def test_retries_502_then_succeeds(monkeypatch):
     assert calls["n"] == 3
 
 
+@pytest.mark.parametrize("call", ["post", "patch"])
+@pytest.mark.parametrize("status", [500, 502, 503, 504])
+def test_non_idempotent_write_is_not_retried_on_5xx(monkeypatch, call, status):
+    """A 5xx on a create/patch can mean the server half-processed it; a retry could
+    duplicate the resource (observed: `cc-team create` with no teamType, 500 sent 4 times)."""
+    calls = _counting(monkeypatch, [status, 200])
+    with pytest.raises(WebexError):
+        getattr(WebexSession("tok"), f"rest_{call}")("https://x/p", json={"a": 1})
+    assert calls["n"] == 1
+
+
+@pytest.mark.parametrize("call", ["post", "patch"])
+def test_non_idempotent_write_is_still_retried_on_429(monkeypatch, call):
+    """429 means the request was rejected before any work was done, so it is safe to resend."""
+    calls = _counting(monkeypatch, [429, 200])
+    assert getattr(WebexSession("tok"), f"rest_{call}")("https://x/p", json={"a": 1}) == {"ok": True}
+    assert calls["n"] == 2
+
+
+@pytest.mark.parametrize("call", ["get", "put", "delete"])
+def test_idempotent_methods_are_still_retried_on_5xx(monkeypatch, call):
+    calls = _counting(monkeypatch, [502, 200])
+    fn = getattr(WebexSession("tok"), f"rest_{call}")
+    assert fn("https://x/p") == {"ok": True}
+    assert calls["n"] == 2
+
+
 def test_gives_up_after_max_attempts(monkeypatch):
     calls = _counting(monkeypatch, [503])
     monkeypatch.setenv("WXCLI_MAX_ATTEMPTS", "3")

@@ -508,7 +508,7 @@ The session inherits its auth from whatever `wxcli configure` saved:
 | `WEBEX_ACCESS_TOKEN` / `WEBEX_TOKEN` env var | Checked first, in that order — an env var overrides the config file |
 | Token saved by `wxcli configure` | Read from `~/.wxcli/config.json` when neither env var is set |
 | No token at all | `get_api()` exits with `Error: No token found. Run 'wxcli configure' or set WEBEX_ACCESS_TOKEN.` |
-| Retry policy | Bounded retry on 429/500/502/503/504 plus connect errors; see [Timeouts, Retries and Environment Variables](#timeouts-retries-and-environment-variables) |
+| Retry policy | Bounded retry on 429/500/502/503/504 plus connect errors (`POST`/`PATCH`: 429 only); see [Timeouts, Retries and Environment Variables](#timeouts-retries-and-environment-variables) |
 | Debug logging | `get_api(debug=True)` raises the log level to DEBUG |
 
 ### Complete Example: Raw HTTP
@@ -571,6 +571,7 @@ Every HTTP call made through `wxcli.auth` (both `wxcli` commands and raw HTTP vi
 | `WXCLI_NO_RETRY=1` | Legacy alias — also disables retry entirely | retry on |
 
 - Retried HTTP status codes: **429, 500, 502, 503, 504** (`RETRY_STATUSES`). Previously only 429 was retried.
+- **`POST` and `PATCH` are retried on 429 only, never on 5xx** (`NON_IDEMPOTENT_METHODS`, changed 2026-10-13). A 5xx on a create can mean the server half-processed it, and resending could duplicate the resource; a 429 means the request was rejected before any work was done. `GET`, `PUT` and `DELETE` are still retried on all five codes. Observed before the change: `cc-team create` without `teamType` returned a 500 and was sent four times (the default is 4 attempts; no duplicate team resulted). The rule is by HTTP method, so the three `POST` calls that only read (`cc-search create`, and the meetings registrant and participant `/query` endpoints) are also no longer retried on 5xx; retrying them could not duplicate anything, but the cost is one manual re-run.
 - A malformed `WXCLI_MAX_ATTEMPTS` value falls back to the default of 4.
 - On a 429 that carries a `Retry-After` header, that value is honored, capped at **30 seconds** (`MAX_RETRY_AFTER_SECONDS`).
 - Otherwise, retries use exponential backoff with jitter: attempt 1 waits (0,1]s, attempt 2 waits (1,2]s, attempt 3 waits (2,4]s.
