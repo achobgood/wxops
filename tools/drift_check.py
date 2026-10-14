@@ -1649,8 +1649,12 @@ def parse_module_required_options(
     for node in ast.walk(ast.parse(path.read_text())):
         if not isinstance(node, ast.FunctionDef):
             continue
-        name = _command_name(node)
-        if name is None:
+        # Every decorator name, as parse_module_signatures does: a renamed
+        # command stacks its hidden alias FIRST, so keying on `_command_name`
+        # left the visible name (`cc-agents list-activities`) with no required
+        # options and every citation of it unchecked.
+        cmd_names = [n for n, _hidden in command_names(node)]
+        if not cmd_names:
             continue
         params = node.args.args + node.args.kwonlyargs
         defaults = ([None] * (len(node.args.args) - len(node.args.defaults))
@@ -1667,7 +1671,8 @@ def parse_module_required_options(
                      if isinstance(a, ast.Constant) and isinstance(a.value, str)
                      for p in a.value.split("/") if p.startswith("-")}
             required.append(names or {"--" + param.arg.replace("_", "-")})
-        out.setdefault(name, required)
+        for name in cmd_names:
+            out.setdefault(name, required)
     return out
 
 
@@ -1869,9 +1874,14 @@ def parse_module_arg_kinds(
     for node in ast.walk(ast.parse(path.read_text())):
         if not isinstance(node, ast.FunctionDef):
             continue
-        name = _command_name(node)
-        if name is None:
+        # Every decorator name (see parse_module_required_options). `visible`
+        # is the name --help shows — the first non-hidden one — so a CLI-side
+        # report built from this surface names each function once, by the
+        # name an operator can find, rather than once per alias.
+        names = command_names(node)
+        if not names:
             continue
+        visible = next((n for n, hidden in names if not hidden), names[0][0])
         params = node.args.args + node.args.kwonlyargs
         defaults = ([None] * (len(node.args.args) - len(node.args.defaults))
                     + list(node.args.defaults) + list(node.args.kw_defaults))
@@ -1891,8 +1901,10 @@ def parse_module_arg_kinds(
                 "kind": km.group(1) if km else None,
                 "uuid": help_text.startswith("UUID"),
                 "producer": f"{pm.group(1)} {pm.group(2)}" if pm else None,
+                "visible": visible,
             })
-        out.setdefault(name, args)
+        for name, _hidden in names:
+            out.setdefault(name, args)
     return out
 
 
@@ -2021,7 +2033,10 @@ def check_arg_kinds(surface: dict, positional_surface: dict,
                 })
     mislabelled = []
     for g, c, p in sorted(suspect):
-        declared = next(a["kind"] for a in kind_surface[g][c] if a["param"] == p)
+        arg = next(a for a in kind_surface[g][c] if a["param"] == p)
+        if arg.get("visible", c) != c:
+            continue  # a hidden alias of a function reported by its visible name
+        declared = arg["kind"]
         reads = sorted(k for k, kt in kind_tokens.items() if _tokens(p) & kt)
         mislabelled.append({"group": g, "command": c, "arg": p,
                             "declared": declared, "reads_as": reads[0]})
