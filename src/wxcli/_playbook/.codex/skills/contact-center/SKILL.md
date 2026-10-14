@@ -534,7 +534,7 @@ wxcli cc-users update-dynamic-skill SKILL_ID --json-body '{
 }'
 ```
 
-> **Unverified:** this body is built from the spec's `UpdateDynamicSkillsDTO`, not from a live call. Per the spec: `userId` is the user whose skill is set; `organizationId` (the bare CC org UUID) is "required for all bulk save operations"; the value goes in the field that matches the skill's type — `proficiencyValue` (0-10), `booleanValue`, `textValue`, or `enumSkillValues`; `requestAction` is `SAVE` or `DELETE`; and `id` (the assignment's own resource id) is "mandatory when updating a resource", so include it when changing an existing assignment. Run the command with `--generate-json-body` to see the full item shape.
+**Verified live 2026-10-13:** this body works as written. The response is per item (`{"items":[{"itemIdentifier":1,"status":200,…}]}`) — check each item's `status`. Read back with `cc-users show-by-dynamic-skill-id SKILL_ID --fields data` (`proficiencyValue` comes back as a string). SAVE updates an existing assignment **without** `id`/`version`; `organizationId` and `skillId` inside `item` are optional (the path supplies the skill) — the spec's "required"/"mandatory" wording does not hold here. Remove an assignment with `{"items":[{"itemIdentifier":1,"item":{"userId":"USER_ID"},"requestAction":"DELETE"}]}`. The skill must have been created with `"dynamicSkill": true` (otherwise 400 "is not a dynamic skill"). Only `proficiencyValue` was tested; `booleanValue`/`textValue`/`enumSkillValues` are from the spec.
 
 **List users with a specific dynamic skill:**
 
@@ -559,16 +559,16 @@ wxcli cc-users update-reskill USER_ID --json-body '{
 ```bash
 wxcli cc-skill create --json-body '{
   "name": "Spanish",
-  "skillType": "Proficiency",
+  "skillType": "PROFICIENCY",
   "serviceLevelThreshold": 60,
   "active": true,
   "description": "Spanish language proficiency"
 }'
 ```
 
-Skill types: `Proficiency` (0-10 scale), `Boolean` (true/false), `Text` (string match), `enum` (set of values). Create requires `name`, `skillType`, `serviceLevelThreshold` and `active`.
+Skill types are **UPPER CASE**: `PROFICIENCY` (0-10 scale), `BOOLEAN` (true/false), `TEXT` (string match), `ENUM` (set of values). Create requires `name`, `skillType`, `serviceLevelThreshold` and `active`. Add `"dynamicSkill": true` for a skill you will assign with `cc-users update-dynamic-skill`.
 
-> **Unverified:** the required keys and the `skillType` spellings are from the spec (`SkillDTO`), not a live create. See `docs/reference/contact-center-core.md` (Skills, Key Parameters).
+> **Verified live 2026-10-13:** `"skillType":"PROFICIENCY"` (with `"dynamicSkill":true`) created a skill; the spec's and `--help`'s title case `"Proficiency"` is rejected with a 400 listing `BOOLEAN, ENUM, PROFICIENCY, TEXT`. (Opposite of Global Variable `variableType`, which needs title case — see `docs/reference/contact-center-core.md` gotcha 21.)
 
 **List skills:**
 
