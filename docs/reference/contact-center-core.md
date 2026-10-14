@@ -348,7 +348,7 @@ wxcli cc-users update --json-body '[
 # List users with a specific dynamic skill
 wxcli cc-users show-by-dynamic-skill-id "skill-uuid"
 
-# Bulk assign a dynamic skill to users (unverified body; see the note below this block)
+# Bulk assign a dynamic skill to users (verified live 2026-10-13; see the note below this block)
 wxcli cc-users update-dynamic-skill "skill-uuid" --json-body '{
   "items": [
     {"itemIdentifier": 1, "requestAction": "SAVE",
@@ -370,7 +370,7 @@ wxcli cc-users update-reskill "user-uuid" --json-body '{
 }'
 ```
 
-> **Unverified:** the `update-dynamic-skill` body above is built from the spec's `UpdateDynamicSkillsDTO`, not from a live call. Per the spec: `userId` is the user whose dynamic skill is set; `organizationId` (the bare CC org UUID) is "required for all bulk save operations"; the value goes in the field that matches the skill's type — `proficiencyValue` (0-10), `booleanValue`, `textValue`, or `enumSkillValues`; `requestAction` is `SAVE` or `DELETE`; and `id` (the assignment's own resource id) is "mandatory when updating a resource", so include it when changing an existing assignment. `--generate-json-body` prints the full item shape.
+**Verified live 2026-10-13** (CC Bootcamp Sandbox, temporary dynamic skill, removed afterwards): the body above is accepted as written. The response is per item — `{"items":[{"itemIdentifier":1,"status":200,"href":…}]}` — so check each item's `status`, not just the HTTP code. Read back with `wxcli cc-users show-by-dynamic-skill-id SKILL_ID --fields data` (`dynamicSkill.proficiencyValue` comes back as a **string**, e.g. `"7"`). SAVE on a user who already has the skill updates it **without** `id` or `version`. `item.organizationId` and `item.skillId` are both **optional** here (omitting each still returned 200 and changed the value — the path supplies the skill) — the spec's "required for all bulk save operations" and "`id` mandatory when updating" do not hold for this endpoint. Not tested by omission: `userId`, `itemIdentifier`, `requestAction`. Remove an assignment with `{"items":[{"itemIdentifier":1,"item":{"userId":"USER_ID"},"requestAction":"DELETE"}]}` (verified, 200, read-back empty). The skill must be created with `"dynamicSkill": true`; a normal skill returns 400 "is not a dynamic skill". The value field must match the skill's type — `proficiencyValue` (0-10) verified; `booleanValue`, `textValue`, `enumSkillValues` are from the spec, unverified.
 
 ### Raw HTTP
 
@@ -837,16 +837,19 @@ Skills are attributes assigned to agents for skill-based routing. Each skill has
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `serviceLevelThreshold`, `skillType` and `active`. The spec spells the `skillType` values `Proficiency`, `Boolean`, `Text` and `enum`
-- **Proficiency type:** Values 0-10, used for competency-based routing
-- **Boolean type:** True/false, used for capability flags (e.g., "speaks_spanish")
-- **enum type:** Requires `enumSkillValues` — one `{"name": …}` object per allowed value
-- **Text type:** Free-form text value
+- **Create:** Requires `name`, `serviceLevelThreshold`, `skillType` and `active`. `skillType` is **UPPER CASE**: `PROFICIENCY`, `BOOLEAN`, `TEXT`, `ENUM`
+- **PROFICIENCY type:** Values 0-10, used for competency-based routing
+- **BOOLEAN type:** True/false, used for capability flags (e.g., "speaks_spanish")
+- **ENUM type:** Requires `enumSkillValues` — one `{"name": …}` object per allowed value
+- **TEXT type:** Free-form text value
+- **Dynamic skill:** add `"dynamicSkill": true` to create a skill that `cc-users update-dynamic-skill` can assign (a normal skill returns 400 "is not a dynamic skill")
 
-> **Unverified:** the required keys, the `skillType` spellings and the `enumSkillValues` shape
-> are from the spec, not a live call. Only `Proficiency` appears in a command this doc runs
-> (`cc-skill update --skill-type "Proficiency"` below). Gotcha 21 shows the CC API rejects the
-> upper-case spelling of a sibling enum (`variableType`), so the spec's casing is used here.
+> **Verified live 2026-10-13:** `cc-skill create` with `"skillType":"PROFICIENCY"` and
+> `"dynamicSkill":true` succeeded; the spec's title-case spelling (`"Proficiency"`, also the value
+> the generated `--help` example shows) was rejected with a 400 listing the valid values as
+> `BOOLEAN, ENUM, PROFICIENCY, TEXT`. Note the opposite convention from a sibling field: Global
+> Variable `variableType` requires **title** case (gotcha 21). `--help` and the spec are wrong here.
+> **Unverified:** the `enumSkillValues` shape (from the spec).
 
 ### CLI Examples
 
@@ -857,7 +860,7 @@ wxcli cc-skill list-skill
 # Create a proficiency skill
 wxcli cc-skill create --json-body '{
   "name": "Product Knowledge",
-  "skillType": "Proficiency",
+  "skillType": "PROFICIENCY",
   "serviceLevelThreshold": 60,
   "active": true
 }'
@@ -865,7 +868,7 @@ wxcli cc-skill create --json-body '{
 # Create a boolean skill
 wxcli cc-skill create --json-body '{
   "name": "Spanish Speaker",
-  "skillType": "Boolean",
+  "skillType": "BOOLEAN",
   "serviceLevelThreshold": 60,
   "active": true
 }'
@@ -873,7 +876,7 @@ wxcli cc-skill create --json-body '{
 # Create an enum skill
 wxcli cc-skill create --json-body '{
   "name": "Region",
-  "skillType": "enum",
+  "skillType": "ENUM",
   "serviceLevelThreshold": 60,
   "active": true,
   "enumSkillValues": [{"name": "EAST"}, {"name": "WEST"}, {"name": "CENTRAL"}]
@@ -886,7 +889,7 @@ wxcli cc-skill show "skill-uuid"
 wxcli cc-skill delete "skill-uuid"
 
 # Deactivate a skill (PUT replaces the resource, so resend name, type and threshold)
-wxcli cc-skill update "skill-uuid" --name "Product Knowledge" --skill-type "Proficiency" \
+wxcli cc-skill update "skill-uuid" --name "Product Knowledge" --skill-type "PROFICIENCY" \
   --service-level-threshold 60 --no-active
 ```
 
@@ -901,7 +904,7 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/skill" \
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/skill" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Product Knowledge","skillType":"Proficiency","serviceLevelThreshold":60,"active":true}'
+  -d '{"name":"Product Knowledge","skillType":"PROFICIENCY","serviceLevelThreshold":60,"active":true}'
 ```
 
 ---
@@ -1908,7 +1911,7 @@ For teardown, reverse this order.
 
 12. **Incoming references before delete.** Always check `list-incoming-references` before deleting a config entity. Deleting an entity that is referenced by queues, teams, or routing strategies can produce 409 Conflict errors or leave orphaned references.
 
-13. **Skill value types must match.** When creating skill profiles, the `skillValue` must match the skill's `skillType`: integer 0-10 for `Proficiency`, boolean for `Boolean`, string for `enum` (must be a defined enum value), or string for `Text`.
+13. **Skill value types must match.** When creating skill profiles, the `skillValue` must match the skill's `skillType`: integer 0-10 for `PROFICIENCY`, boolean for `BOOLEAN`, string for `ENUM` (must be a defined enum value), or string for `TEXT` (`skillType` values are upper case — verified live 2026-10-13).
 
 14. **Sites must exist before teams.** A team requires a `siteId`. Create sites first, then teams. Similarly, skill profiles require skills, and queues can require skill profiles.
 
