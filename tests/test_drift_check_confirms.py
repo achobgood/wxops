@@ -114,8 +114,8 @@ class TestRenamedCommandsResolveUnderBothNames:
 
     `build_cli_surface` (via `parse_module_commands`) emits an entry per
     DECORATOR, so a renamed command appears under its hidden legacy alias AND
-    its visible name. `_command_name` returns only the first. Keying the
-    confirm surface on `_command_name` left every renamed destructive command
+    its visible name. Keying the confirm surface on the first decorator alone
+    (the hidden alias) left every renamed destructive command
     looking ungated: the check reported 15 findings on a tree where all 15 were
     correctly gated. A confirm is a property of the FUNCTION, so both names
     must carry the function's answer.
