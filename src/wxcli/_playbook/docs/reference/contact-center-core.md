@@ -370,7 +370,7 @@ wxcli cc-users update-reskill "user-uuid" --json-body '{
 }'
 ```
 
-**Unverified:** the `update-dynamic-skill` body above is built from the spec's `UpdateDynamicSkillsDTO`, not from a live call. Per the spec: `userId` is the user whose dynamic skill is set; `organizationId` (the bare CC org UUID) is "required for all bulk save operations"; the value goes in the field that matches the skill's type — `proficiencyValue` (0-10), `booleanValue`, `textValue`, or `enumSkillValues`; `requestAction` is `SAVE` or `DELETE`; and `id` (the assignment's own resource id) is "mandatory when updating a resource", so include it when changing an existing assignment. `--generate-json-body` prints the full item shape.
+> **Unverified:** the `update-dynamic-skill` body above is built from the spec's `UpdateDynamicSkillsDTO`, not from a live call. Per the spec: `userId` is the user whose dynamic skill is set; `organizationId` (the bare CC org UUID) is "required for all bulk save operations"; the value goes in the field that matches the skill's type — `proficiencyValue` (0-10), `booleanValue`, `textValue`, or `enumSkillValues`; `requestAction` is `SAVE` or `DELETE`; and `id` (the assignment's own resource id) is "mandatory when updating a resource", so include it when changing an existing assignment. `--generate-json-body` prints the full item shape.
 
 ### Raw HTTP
 
