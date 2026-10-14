@@ -329,6 +329,9 @@ def _next_offset(response, body, params, count: int) -> int | None:
 DEFAULT_MAX_ATTEMPTS = 4
 MAX_RETRY_AFTER_SECONDS = 30
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+# A 5xx on a create/patch can mean the server half-processed it, so resending could duplicate the
+# resource. These methods are retried on 429 only (rejected before any work was done).
+NON_IDEMPOTENT_METHODS = frozenset({"POST", "PATCH"})
 
 # Backstop for the offset-walking pagers. They stop on a short page, so a server
 # that ignores `page`/`startIndex` and keeps returning a full one never ends —
@@ -393,7 +396,7 @@ class WebexSession:
                  content_type: str | None = None) -> httpx.Response:
         """Single HTTP path for all verbs: bounded retry on RETRY_STATUSES
         (Retry-After honored on ALL of them, capped at 30s; jittered backoff
-        otherwise) + one connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
+        otherwise; POST/PATCH are retried on 429 only, never on 5xx) + one connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
         import httpx  # deferred — see module docstring note above the imports
 
         enabled = _retry_enabled()
@@ -414,7 +417,9 @@ class WebexSession:
                     continue
                 raise
             attempts_left -= 1
-            if response.status_code in RETRY_STATUSES and attempts_left > 0:
+            retryable = response.status_code in RETRY_STATUSES and (
+                response.status_code == 429 or method.upper() not in NON_IDEMPOTENT_METHODS)
+            if retryable and attempts_left > 0:
                 retry_after = response.headers.get("Retry-After")
                 delay = None
                 if retry_after:
