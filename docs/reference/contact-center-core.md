@@ -841,12 +841,12 @@ Skills are attributes assigned to agents for skill-based routing. Each skill has
 - **Proficiency type:** Values 0-10, used for competency-based routing
 - **Boolean type:** True/false, used for capability flags (e.g., "speaks_spanish")
 - **enum type:** Requires `enumSkillValues` — one `{"name": …}` object per allowed value
+- **Text type:** Free-form text value
 
 > **Unverified:** the required keys, the `skillType` spellings and the `enumSkillValues` shape
 > are from the spec, not a live call. Only `Proficiency` appears in a command this doc runs
 > (`cc-skill update --skill-type "Proficiency"` below). Gotcha 21 shows the CC API rejects the
 > upper-case spelling of a sibling enum (`variableType`), so the spec's casing is used here.
-- **TEXT type:** Free-form text value
 
 ### CLI Examples
 
@@ -1908,7 +1908,7 @@ For teardown, reverse this order.
 
 12. **Incoming references before delete.** Always check `list-incoming-references` before deleting a config entity. Deleting an entity that is referenced by queues, teams, or routing strategies can produce 409 Conflict errors or leave orphaned references.
 
-13. **Skill value types must match.** When creating skill profiles, the `skillValue` must match the skill's `skillType`: integer 0-10 for PROFICIENCY, boolean for BOOLEAN, string for ENUM (must be a defined enum value), or string for TEXT.
+13. **Skill value types must match.** When creating skill profiles, the `skillValue` must match the skill's `skillType`: integer 0-10 for `Proficiency`, boolean for `Boolean`, string for `enum` (must be a defined enum value), or string for `Text`.
 
 14. **Sites must exist before teams.** A team requires a `siteId`. Create sites first, then teams. Similarly, skill profiles require skills, and queues can require skill profiles.
 

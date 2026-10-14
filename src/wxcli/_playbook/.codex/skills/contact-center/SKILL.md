@@ -559,12 +559,16 @@ wxcli cc-users update-reskill USER_ID --json-body '{
 ```bash
 wxcli cc-skill create --json-body '{
   "name": "Spanish",
-  "skillType": "PROFICIENCY",
+  "skillType": "Proficiency",
+  "serviceLevelThreshold": 60,
+  "active": true,
   "description": "Spanish language proficiency"
 }'
 ```
 
-Skill types: `PROFICIENCY` (1-10 scale), `BOOLEAN` (true/false), `TEXT` (string match), `ENUM` (set of values).
+Skill types: `Proficiency` (1-10 scale), `Boolean` (true/false), `Text` (string match), `enum` (set of values). Create requires `name`, `skillType`, `serviceLevelThreshold` and `active`.
+
+> **Unverified:** the required keys and the `skillType` spellings are from the spec (`SkillDTO`), not a live create. See `docs/reference/contact-center-core.md` (Skills, Key Parameters).
 
 **List skills:**
 
